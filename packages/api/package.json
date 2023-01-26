@@ -1,0 +1,49 @@
+{
+  "name": "api",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "NODE_ENV=development nodemon",
+    "build": "NODE_ENV=production tsc --build",
+    "lint": "eslint src/",
+    "segment-test": "ts-node scripts/segmentTest.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.1.0",
+    "@fastify/swagger": "^8.1.0",
+    "@fastify/swagger-ui": "^1.1.0",
+    "@fastify/type-provider-typebox": "^2.3.0",
+    "@opentelemetry/api": "^1.2.0",
+    "@opentelemetry/instrumentation": "^0.35.0",
+    "@opentelemetry/instrumentation-fastify": "^0.30.0",
+    "@opentelemetry/instrumentation-http": "^0.33.0",
+    "@opentelemetry/resources": "^1.9.0",
+    "@opentelemetry/sdk-trace-base": "^1.7.0",
+    "@opentelemetry/sdk-trace-node": "^1.7.0",
+    "@opentelemetry/semantic-conventions": "^1.9.0",
+    "@sendgrid/mail": "^7.7.0",
+    "@sinclair/typebox": "^0.25.8",
+    "@types/analytics-node": "^3.1.9",
+    "analytics-node": "^6.2.0",
+    "backend-lib": "0.0.1",
+    "change-case": "^4.1.2",
+    "dotenv": "^16.0.3",
+    "fastify": "^4.8.1",
+    "fastify-plugin": "^4.5.0",
+    "fastify-raw-body": "^4.2.0",
+    "isomorphic-lib": "0.0.1",
+    "neverthrow": "^6.0.0",
+    "openapi-types": "^12.1.0"
+  },
+  "devDependencies": {
+    "@temporalio/testing": "^1.5.2",
+    "@temporalio/worker": "^1.5.2",
+    "@types/node": "^18.8.5",
+    "fastify-tsconfig": "^1.0.1",
+    "nodemon": "^2.0.20",
+    "pino-pretty": "^9.1.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.4"
+  },
+  "license": "LicenseRef-LICENSE"
+}

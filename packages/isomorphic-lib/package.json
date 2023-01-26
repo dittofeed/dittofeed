@@ -1,0 +1,18 @@
+{
+  "name": "isomorphic-lib",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "liquidjs": "^10.4.0",
+    "@sinclair/typebox": "^0.25.8",
+    "neverthrow": "^6.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.3.1",
+    "typescript": "^4.8.4"
+  },
+  "license": "LicenseRef-LICENSE"
+}

@@ -1,0 +1,2 @@
+prisma/migrations/*
+!prisma/migrations/.gitkeep
