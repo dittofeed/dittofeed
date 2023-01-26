@@ -1,0 +1,28 @@
+.edgeTextContainer {
+  cursor: pointer;
+  pointer-events: all;
+  stroke: rgb(235, 236, 242);
+  fill: rgb(199, 199, 212);
+}
+
+.edgeTextContainer:hover {
+  fill: #f5f5f5;
+}
+
+.addNodeText {
+  user-select: none;
+  fill: white;
+}
+
+.edgePath {
+  fill: none;
+  stroke: rgb(199, 199, 212);
+  stroke-width: 1;
+}
+
+.nodeDropzone {
+  stroke-dasharray: 5;
+  fill: rgb(235, 236, 242);
+  stroke-width: 1px;
+  stroke: rgb(199, 199, 212);
+}

@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id                     String                  @id() @default(uuid()) @db.Uuid
+  name                   String
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  Segment                Segment[]
+  Journey                Journey[]
+  UserProperty           UserProperty[]
+  EmailProvider          EmailProvider[]
+  DefaultEmailProvider   DefaultEmailProvider?
+  EmailTemplate          EmailTemplate[]
+  SegmentIOConfiguration SegmentIOConfiguration?
+  CurrentUserEventsTable CurrentUserEventsTable?
+}
+
+model Segment {
+  id          String    @id() @default(uuid()) @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String    @db.Uuid
+  name        String
+  definition  Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, name])
+}
+
+enum JourneyStatus {
+  NotStarted
+  Running
+  Paused
+}
+
+model Journey {
+  id               String             @id() @default(uuid()) @db.Uuid
+  workspace        Workspace          @relation(fields: [workspaceId], references: [id])
+  workspaceId      String             @db.Uuid
+  name             String
+  status           JourneyStatus      @default(NotStarted)
+  definition       Json
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  UserJourneyEvent UserJourneyEvent[]
+
+  @@unique([workspaceId, name])
+}
+
+model UserProperty {
+  id                     String                   @id() @default(uuid()) @db.Uuid
+  workspace              Workspace                @relation(fields: [workspaceId], references: [id])
+  workspaceId            String                   @db.Uuid
+  name                   String
+  definition             Json
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  UserPropertyAssignment UserPropertyAssignment[]
+
+  @@unique([workspaceId, name])
+}
+
+model SegmentAssignment {
+  userId    String
+  segmentId String
+  inSegment Boolean
+
+  @@unique([userId, segmentId])
+}
+
+model UserPropertyAssignment {
+  userId         String
+  userProperty   UserProperty @relation(fields: [userPropertyId], references: [id])
+  userPropertyId String       @db.Uuid
+  value          String
+
+  @@unique([userId, userPropertyId])
+  @@index([userId])
+}
+
+model EmailTemplate {
+  id          String    @id() @default(uuid()) @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String    @db.Uuid
+  name        String
+  from        String
+  subject     String
+  body        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model DefaultEmailProvider {
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String    @db.Uuid
+
+  emailProvider   EmailProvider @relation(fields: [emailProviderId], references: [id])
+  emailProviderId String        @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId])
+}
+
+model CurrentUserEventsTable {
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String    @db.Uuid
+  version     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  @@unique([workspaceId])
+}
+
+model EmailProvider {
+  id                   String                 @id() @default(uuid()) @db.Uuid
+  workspace            Workspace              @relation(fields: [workspaceId], references: [id])
+  workspaceId          String                 @db.Uuid
+  type                 String
+  apiKey               String
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  DefaultEmailProvider DefaultEmailProvider[]
+
+  @@unique([workspaceId, type])
+}
+
+model SegmentIOConfiguration {
+  id           String    @id() @default(uuid()) @db.Uuid
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId  String    @db.Uuid
+  sharedSecret String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([workspaceId])
+}
+
+model UserJourneyEvent {
+  id               String   @id() @default(uuid()) @db.Uuid
+  userId           String
+  journeyId        String   @db.Uuid()
+  journey          Journey  @relation(fields: [journeyId], references: [id])
+  type             String
+  journeyStartedAt DateTime
+  createdAt        DateTime @default(now())
+
+  @@unique([journeyId, userId, type, journeyStartedAt])
+}

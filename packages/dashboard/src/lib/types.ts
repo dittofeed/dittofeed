@@ -1,0 +1,176 @@
+import { Draft } from "immer";
+import {
+  DefaultEmailProviderResource,
+  EphemeralRequestStatus,
+  JourneyNodeType,
+  JourneyResource,
+  MessageTemplateResource,
+  PersistedEmailProvider,
+  RequestStatus,
+  SegmentNode,
+  SegmentNodeType,
+  SegmentResource,
+  WorkspaceResource,
+} from "isomorphic-lib/src/types";
+import { Edge, EdgeChange, Node, NodeChange } from "reactflow";
+
+// README: properties get shallowly overridden when merging serverside state
+// into the default client state, see lib/appStore.ts initializeStore. For that
+// reason properties should not be nested in AppState.
+export type AppState = {
+  workspace: RequestStatus<WorkspaceResource, Error>;
+  drawerOpen: boolean;
+  segments: RequestStatus<SegmentResource[], Error>;
+  messages: RequestStatus<MessageTemplateResource[], Error>;
+  journeys: RequestStatus<JourneyResource[], Error>;
+  traits: RequestStatus<string[], Error>;
+  defaultEmailProvider: RequestStatus<
+    DefaultEmailProviderResource | null,
+    Error
+  >;
+  emailProviders: RequestStatus<PersistedEmailProvider[], Error>;
+} & PageStoreContents;
+
+export interface AppActions {
+  toggleDrawer: () => void;
+  upsertEmailProvider: (emailProvider: PersistedEmailProvider) => void;
+  upsertMessage: (message: MessageTemplateResource) => void;
+  upsertSegment: (segment: SegmentResource) => void;
+  upsertJourney: (journey: JourneyResource) => void;
+}
+
+export interface SegmentEditorState {
+  editedSegment: SegmentResource | null;
+  segmentUpdateRequest: EphemeralRequestStatus<Error>;
+}
+
+export interface SegmentEditorContents extends SegmentEditorState {
+  setEditableSegmentName: (name: string) => void;
+  addEditableSegmentChild: (parentId: string) => void;
+  removeEditableSegmentChild: (parentId: string, nodeId: string) => void;
+  updateEditableSegmentNodeType: (
+    nodeId: string,
+    nodeType: SegmentNodeType
+  ) => void;
+  updateEditableSegmentNodeData: (
+    nodeId: string,
+    updater: (currentValue: Draft<SegmentNode>) => void
+  ) => void;
+  setSegmentUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
+}
+
+export interface EmailMessageEditorState {
+  emailMessageSubject: string;
+  emailMessageFrom: string;
+  emailMessageTitle: string;
+  emailMessageBody: string;
+  emailMessageUserProperties: Record<string, string>;
+  emailMessageUserPropertiesJSON: string;
+  emailMessageUpdateRequest: EphemeralRequestStatus<Error>;
+}
+
+export interface EmailMessageEditorContents extends EmailMessageEditorState {
+  setEmailMessageSubject: (subject: string) => void;
+  setEmailMessageBody: (body: string) => void;
+  setEmailMessageFrom: (to: string) => void;
+  replaceEmailMessageProps: (properties: Record<string, string>) => void;
+  setEmailMessagePropsJSON: (jsonString: string) => void;
+  setEmailMessageProps: (title: string) => void;
+  setEmailMessageUpdateRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
+}
+
+export interface JourneyState {
+  journeyName: string;
+  journeyDraggedComponentType: JourneyNodeType | null;
+  journeySelectedNodeId: string | null;
+  journeyNodes: Node<NodeData>[];
+  journeyNodesIndex: Record<string, number>;
+  journeyEdges: Edge<EdgeData>[];
+  journeyUpdateRequest: EphemeralRequestStatus<Error>;
+}
+
+export interface JourneyContent extends JourneyState {
+  setDraggedComponentType: (t: JourneyNodeType | null) => void;
+  setSelectedNodeId: (t: string | null) => void;
+  addNodes: (params: {
+    source: string;
+    target: string;
+    nodes: Node<NodeData>[];
+    edges: Edge[];
+  }) => void;
+  setEdges: (changes: EdgeChange[]) => void;
+  setNodes: (changes: NodeChange[]) => void;
+  updateJourneyNodeData: (
+    nodeId: string,
+    updater: (currentValue: Draft<Node<JourneyNodeProps>>) => void
+  ) => void;
+  setJourneyUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
+  setJourneyName: (name: string) => void;
+}
+
+export type PageStoreContents = EmailMessageEditorContents &
+  SegmentEditorContents &
+  JourneyContent;
+
+export interface EntryNodeProps {
+  type: JourneyNodeType.EntryNode;
+  segmentId?: string;
+}
+
+export interface ExitNodeProps {
+  type: JourneyNodeType.ExitNode;
+}
+
+export interface MessageNodeProps {
+  type: JourneyNodeType.MessageNode;
+  name: string;
+  templateId?: string;
+}
+export interface DelayNodeProps {
+  type: JourneyNodeType.DelayNode;
+  seconds?: number;
+}
+
+export interface SegmentSplitNodeProps {
+  type: JourneyNodeType.SegmentSplitNode;
+  name: string;
+  segmentId?: string;
+  trueLabelNodeId: string;
+  falseLabelNodeId: string;
+}
+
+export type NodeTypeProps =
+  | EntryNodeProps
+  | ExitNodeProps
+  | MessageNodeProps
+  | DelayNodeProps
+  | SegmentSplitNodeProps;
+
+export interface JourneyNodeProps {
+  type: "JourneyNode";
+  nodeTypeProps: NodeTypeProps;
+}
+
+export interface EmptyNodeProps {
+  type: "EmptyNode";
+}
+
+export interface LabelNodeProps {
+  type: "LabelNode";
+  title: string;
+}
+
+export type NodeData = JourneyNodeProps | LabelNodeProps | EmptyNodeProps;
+
+export interface WorkflowEdgeProps {
+  type: "WorkflowEdge";
+  disableMarker?: boolean;
+}
+
+export interface PlaceholderEdgeProps {
+  type: "PlaceholderEdge";
+}
+
+export type EdgeData = WorkflowEdgeProps | PlaceholderEdgeProps;

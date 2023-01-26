@@ -1,0 +1,46 @@
+{
+  "name": "backend-lib",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "NODE_ENV=production tsc",
+    "lint": "eslint src/",
+    "prisma": "yarn config-env prisma",
+    "config-env": "ts-node scripts/configEnv.ts"
+  },
+  "dependencies": {
+    "@clickhouse/client": "^0.0.10",
+    "@prisma/client": "^4.8.1",
+    "@sendgrid/helpers": "^7.7.0",
+    "@sendgrid/mail": "^7.7.0",
+    "@sinclair/typebox": "^0.25.8",
+    "@temporalio/activity": "^1.5.2",
+    "@temporalio/client": "^1.5.2",
+    "@temporalio/worker": "^1.5.2",
+    "@temporalio/workflow": "^1.5.2",
+    "change-case": "^4.1.2",
+    "cross-spawn": "^7.0.3",
+    "dotenv": "^16.0.3",
+    "escape-html": "^1.0.3",
+    "isomorphic-lib": "0.0.1",
+    "jsonpath": "^1.1.1",
+    "kafkajs": "^2.2.2",
+    "minimist": "^1.2.7",
+    "neverthrow": "^6.0.0",
+    "prisma": "^4.8.1",
+    "utility-types": "^3.10.0"
+  },
+  "devDependencies": {
+    "@temporalio/testing": "^1.5.2",
+    "@types/cross-spawn": "^6.0.2",
+    "@types/escape-html": "^1.0.2",
+    "@types/jest": "^29.2.5",
+    "@types/jsonpath": "^0.2.0",
+    "@types/minimist": "^1.2.2",
+    "@types/node": "^18.11.18",
+    "deepmerge": "^4.2.2",
+    "jest": "^29.3.1",
+    "typescript": "^4.8.4"
+  },
+  "license": "LicenseRef-LICENSE"
+}

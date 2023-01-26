@@ -1,0 +1,26 @@
+import { Box, useTheme } from "@mui/material";
+import { Handle, Position } from "reactflow";
+
+import styles from "./nodeTypes.module.css";
+
+export function EmptyNode() {
+  const theme = useTheme();
+  return (
+    <>
+      <Handle type="target" position={Position.Top} className={styles.handle} />
+      <Box
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          backgroundColor: theme.palette.grey[400],
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className={styles.handle}
+      />
+    </>
+  );
+}
