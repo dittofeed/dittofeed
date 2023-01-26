@@ -1,7 +1,7 @@
 # Dittofeed
 
 <a href="https://dittofeed-community.slack.com/ssb/redirect"><img alt="Join Slack Community" src="https://img.shields.io/badge/slack-Dittofeed-brightgreen.svg?logo=slack"/></a>
-<a href="https://twitter.com/dittofeed"><img alt="Join Slack Community" src="https://img.shields.io/badge/slack-Dittofeed-blue.svg?logo=twitter"/></a>
+<a href="https://twitter.com/dittofeed"><img alt="Follow Us On Twitter" src="https://img.shields.io/badge/follow-Dittofeed-blue?logo=twitter"/></a>
 
 
 The first developer-centric, open-source, omni-channel customer engagement platform.
