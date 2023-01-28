@@ -1,0 +1,11 @@
+{
+  "name": "docs",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {
+    "mintlify": "^2.0.16"
+  },
+  "license": "LicenseRef-LICENSE"
+}
