@@ -4,14 +4,14 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
-import prisma from "../prisma";
+import prisma from "./prisma";
 import {
   EnrichedJourney,
   JourneyBodyNode,
   JourneyDefinition,
   JourneyNodeType,
   JourneyResource,
-} from "../types";
+} from "./types";
 
 export function enrichJourney(
   journey: Journey

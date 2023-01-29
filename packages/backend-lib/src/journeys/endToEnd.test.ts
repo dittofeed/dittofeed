@@ -8,6 +8,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { segmentIdentifyEvent } from "../../test/factories/segment";
 import { createEnvAndWorker } from "../../test/temporal";
 import { clickhouseClient } from "../clickhouse";
+import { enrichJourney } from "../journeys";
 import prisma from "../prisma";
 import {
   ComputedPropertiesWorkflowParams,
@@ -28,7 +29,6 @@ import {
   createUserEventsTables,
   insertUserEvents,
 } from "../userEvents/clickhouse";
-import { enrichJourney } from ".";
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {

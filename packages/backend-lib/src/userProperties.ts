@@ -3,8 +3,8 @@ import { ValueError } from "@sinclair/typebox/errors";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
-import prisma from "../prisma";
-import { EnrichedUserProperty, UserPropertyDefinition } from "../types";
+import prisma from "./prisma";
+import { EnrichedUserProperty, UserPropertyDefinition } from "./types";
 
 export async function upsertComputedProperty() {
   // create computed property pg record

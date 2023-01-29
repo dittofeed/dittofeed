@@ -27,7 +27,7 @@ import {
   enrichedUserProperty,
   findAllUserPropertyAssignments,
 } from "../../../userProperties";
-import { computePropertiesPeriod } from ".";
+import { computePropertiesPeriod } from "./computeProperties";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();

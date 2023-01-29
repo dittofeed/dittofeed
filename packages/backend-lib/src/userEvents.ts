@@ -1,11 +1,11 @@
 import { ok, Result } from "neverthrow";
 
-import { clickhouseClient } from "../clickhouse";
-import config from "../config";
-import { kafkaProducer } from "../kafka";
-import prisma from "../prisma";
-import { InternalEventType, UserEvent } from "../types";
-import { buildUserEventsTableName } from "./clickhouse";
+import { clickhouseClient } from "./clickhouse";
+import config from "./config";
+import { kafkaProducer } from "./kafka";
+import prisma from "./prisma";
+import { InternalEventType, UserEvent } from "./types";
+import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 export async function writeUserEvents(
   userEvents: {

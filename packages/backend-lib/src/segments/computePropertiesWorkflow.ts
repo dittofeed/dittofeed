@@ -8,9 +8,9 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
-import { EnrichedJourney } from "../../types";
+import { EnrichedJourney } from "../types";
 // Only import the activity types
-import type * as activities from "./activities";
+import type * as activities from "./computePropertiesWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 

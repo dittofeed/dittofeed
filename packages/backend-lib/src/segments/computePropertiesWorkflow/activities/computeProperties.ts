@@ -11,6 +11,7 @@ import {
   userJourneyWorkflow,
 } from "../../../journeys/userWorkflow";
 import prisma from "../../../prisma";
+import { findAllEnrichedSegments } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
 import {
   ComputedAssignment,
@@ -23,7 +24,6 @@ import {
   SegmentUpdate,
   UserPropertyDefinitionType,
 } from "../../../types";
-import { findAllEnrichedSegments } from "../../index";
 
 interface BaseComputedProperty {
   modelIndex: number;
