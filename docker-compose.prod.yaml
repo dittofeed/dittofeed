@@ -1,0 +1,94 @@
+# FIXME add remote images
+# FIXME add api, dashboard, and worker
+version: "3.9"
+services:
+  temporal:
+    container_name: temporal
+    depends_on:
+      - postgres
+    environment:
+      - DB=postgresql
+      - DB_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=${POSTGRES_HOST:-postgres}
+    image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.18.5}
+    labels:
+      kompose.volume.type: configMap
+    networks:
+      - temporal-network
+    ports:
+      - 7233:7233
+    volumes:
+      - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-15}
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD
+      - POSTGRES_USER
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - temporal-network
+  # FIXME remove and replace with redpandas
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+  kafka:
+    image: confluentinc/cp-server:7.3.0
+    user: root
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    volumes:
+      - kafka:/var/lib/kafka/data
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:22.9.5.25-alpine
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "9009:9009"
+    depends_on:
+      - kafka
+      - zookeeper
+    volumes:
+      - clickhouse_lib:/var/lib/clickhouse
+      - clickhouse_log:/var/log/clickhouse-server
+volumes:
+  postgres:
+  kafka:
+  zookeeper_data:
+  zookeeper_logs:
+  clickhouse_lib:
+  clickhouse_log:
+
+networks:
+  temporal-network:
+    driver: bridge
+    name: temporal-network
