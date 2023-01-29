@@ -1,50 +1,41 @@
 import { Static, Type } from "@sinclair/typebox";
-import { Value } from "@sinclair/typebox/value";
-import { constantCase } from "change-case";
-import * as dotenv from "dotenv";
-import * as path from "path";
-
-enum NodeEnv {
-  Development = "development",
-  Test = "test",
-  Production = "production",
-}
-
-const NodeEnvEnum = Type.Enum(NodeEnv);
-type NodeEnvEnum = Static<typeof NodeEnvEnum>;
+import {
+  loadConfig,
+  NodeEnv,
+  setConfigOnEnv,
+} from "backend-lib/src/config/loader";
+import { Overwrite } from "utility-types";
 
 // Structure of application config.
-const configInterface = Type.Object(
+const RawConfig = Type.Object(
   {
-    nodeEnv: NodeEnvEnum,
-    gcpProjectId: Type.String(),
-    port: Type.String(),
+    nodeEnv: Type.Optional(NodeEnv),
+    port: Type.Optional(Type.String()),
+    host: Type.Optional(Type.String()),
   },
   { additionalProperties: false }
 );
 
-type Config = Static<typeof configInterface>;
+type RawConfig = Static<typeof RawConfig>;
 
-type UnknownConfig = Record<string, unknown>;
-
-export function initializeConfig(): Config {
-  dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
-  dotenv.config({ path: path.resolve(__dirname, "..", ".env.local") });
-
-  const unknownConfig: UnknownConfig = {};
-
-  for (const key of Object.keys(configInterface.properties)) {
-    unknownConfig[key] = process.env[constantCase(key)];
+export type Config = Overwrite<
+  RawConfig,
+  {
+    nodeEnv: string;
+    host: string;
+    port: number;
   }
+>;
+function parseRawConfig(raw: RawConfig): Config {
+  const nodeEnv = raw.nodeEnv ?? "development";
+  const port = Number(raw.port);
 
-  if (Value.Check(configInterface, unknownConfig)) {
-    return unknownConfig;
-  }
-  console.log(
-    "loc1",
-    JSON.stringify(Value.Errors(configInterface, unknownConfig))
-  );
-  throw new Error(JSON.stringify(Value.Errors(configInterface, unknownConfig)));
+  return {
+    ...raw,
+    nodeEnv,
+    host: raw.host ?? (nodeEnv === "development" ? "localhost" : "0.0.0.0"),
+    port: Number.isNaN(port) ? 3001 : port,
+  };
 }
 
 // Singleton configuration object used by application.
@@ -52,15 +43,8 @@ let CONFIG: Config | null = null;
 
 export default function config(): Config {
   if (!CONFIG) {
-    CONFIG = initializeConfig();
+    CONFIG = loadConfig({ schema: RawConfig, transform: parseRawConfig });
+    setConfigOnEnv(CONFIG);
   }
   return CONFIG;
-}
-
-export function host(): string {
-  return config().nodeEnv === "development" ? "localhost" : "0.0.0.0";
-}
-
-export function port(): number {
-  return Number(config().port);
 }

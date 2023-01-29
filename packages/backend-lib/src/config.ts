@@ -1,20 +1,17 @@
 import { Static, Type } from "@sinclair/typebox";
 import { Overwrite } from "utility-types";
 
-import { loadConfig, setConfigOnEnv } from "./config/loader";
-
-enum NodeEnv {
-  Development = "development",
-  Test = "test",
-  Production = "production",
-}
-
-const NodeEnvEnum = Type.Enum(NodeEnv);
+import {
+  loadConfig,
+  NodeEnv,
+  NodeEnvEnum,
+  setConfigOnEnv,
+} from "./config/loader";
 
 // Structure of application config.
 const RawConfig = Type.Object(
   {
-    nodeEnv: Type.Optional(NodeEnvEnum),
+    nodeEnv: Type.Optional(NodeEnv),
     databaseUrl: Type.Optional(Type.String()),
     kafkaBrokers: Type.Optional(Type.String()),
     computedPropertiesTopicName: Type.Optional(Type.String()),
@@ -44,7 +41,7 @@ export type Config = Overwrite<
     userEventsTopicName: string;
     temporalNamespace: string;
     databaseUrl: string;
-    nodeEnv: NodeEnv;
+    nodeEnv: NodeEnvEnum;
     defaultWorkspaceId: string;
     defaultIdUserPropertyId: string;
     defaultAnonymousIdIdUserPropertyId: string;
@@ -61,8 +58,10 @@ export type Config = Overwrite<
 function parseRawConfig(rawConfig: RawConfig): Config {
   const parsedConfig: Config = {
     ...rawConfig,
-    nodeEnv: rawConfig.nodeEnv ?? NodeEnv.Development,
-    databaseUrl: "postgresql://postgres:password@localhost:5432/dittofeed",
+    nodeEnv: rawConfig.nodeEnv ?? NodeEnvEnum.Development,
+    databaseUrl:
+      rawConfig.databaseUrl ??
+      "postgresql://postgres:password@localhost:5432/dittofeed",
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],

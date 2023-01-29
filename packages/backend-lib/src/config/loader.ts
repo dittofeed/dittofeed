@@ -1,13 +1,15 @@
-import { Static, TObject } from "@sinclair/typebox";
+import { Static, TObject, Type } from "@sinclair/typebox";
 import { constantCase } from "change-case";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
-export enum NodeEnv {
+export enum NodeEnvEnum {
   Development = "development",
   Test = "test",
   Production = "production",
 }
+
+export const NodeEnv = Type.Enum(NodeEnvEnum);
 
 export type UnknownConfig = Record<string, unknown>;
 
