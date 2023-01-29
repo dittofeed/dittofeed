@@ -4,7 +4,7 @@ FROM node:16.14.2 AS builder
 WORKDIR /service
 
 COPY *.json yarn.lock ./
-COPY ./packages/api/*.json ./packages/api/
+COPY ./packages/temporal-worker/*.json ./packages/temporal-worker/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 
@@ -15,8 +15,8 @@ RUN yarn install --pure_lockfile
 
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
-COPY ./packages/api/ ./packages/api
-RUN yarn workspace backend-lib prisma generate && yarn workspace api build
+COPY ./packages/temporal-worker/ ./packages/temporal-worker
+RUN yarn workspace backend-lib prisma generate && yarn workspace temporal-worker build
 
 # Production image
 FROM node:16.14.2 AS runner
@@ -24,11 +24,8 @@ FROM node:16.14.2 AS runner
 WORKDIR /service
 
 COPY --from=builder /service/production_node_modules ./node_modules
-COPY --from=builder /service/packages/api/dist ./dist
-COPY --from=builder /service/packages/api/.env ./
+COPY --from=builder /service/packages/temporal-worker/dist ./dist
 
 ENV NODE_ENV=production
-EXPOSE 3001
 
-
-CMD ["node", "dist/scripts/startServer.js"]
+CMD ["node", "dist/scripts/startWorker.js"]
