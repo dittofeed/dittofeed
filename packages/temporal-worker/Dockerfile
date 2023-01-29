@@ -24,7 +24,9 @@ FROM node:16.14.2 AS runner
 WORKDIR /service
 
 COPY --from=builder /service/production_node_modules ./node_modules
-COPY --from=builder /service/packages/temporal-worker/dist ./dist
+COPY --from=builder /service/packages/temporal-worker/dist ./packages/temporal-worker/dist
+COPY --from=builder /service/packages/temporal-worker/dist ./packages/backend-lib/dist
+COPY --from=builder /service/packages/temporal-worker/dist ./packages/isomorphic-lib/dist
 
 ENV NODE_ENV=production
 

@@ -8,6 +8,9 @@
     "prisma": "yarn config-env prisma",
     "config-env": "ts-node scripts/configEnv.ts"
   },
+  "exports": {
+    "./*": "./dist/*.js"
+  },
   "dependencies": {
     "@clickhouse/client": "^0.0.10",
     "@prisma/client": "^4.8.1",
