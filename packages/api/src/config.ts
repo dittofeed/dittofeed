@@ -40,6 +40,10 @@ export function initializeConfig(): Config {
   if (Value.Check(configInterface, unknownConfig)) {
     return unknownConfig;
   }
+  console.log(
+    "loc1",
+    JSON.stringify(Value.Errors(configInterface, unknownConfig))
+  );
   throw new Error(JSON.stringify(Value.Errors(configInterface, unknownConfig)));
 }
 

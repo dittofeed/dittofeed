@@ -1,8 +1,7 @@
 import { Static, Type } from "@sinclair/typebox";
-import { constantCase } from "change-case";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { Overwrite } from "utility-types";
+
+import { loadConfig, setConfigOnEnv } from "./config/loader";
 
 enum NodeEnv {
   Development = "development",
@@ -59,8 +58,6 @@ export type Config = Overwrite<
   }
 >;
 
-type UnknownConfig = Record<string, unknown>;
-
 function parseRawConfig(rawConfig: RawConfig): Config {
   const parsedConfig: Config = {
     ...rawConfig,
@@ -109,33 +106,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   return parsedConfig;
 }
 
-function setConfigOnEnv(configForEnv: Config): Config {
-  for (const [key, value] of Object.entries(configForEnv)) {
-    const serializedValue = Array.isArray(value) ? value.join(",") : value;
-    const casedKey = constantCase(key);
-    process.env[casedKey] = serializedValue;
-  }
-  return configForEnv;
-}
-
-export function initializeConfig(): Config {
-  const unknownConfig: UnknownConfig = {};
-
-  for (const key of Object.keys(RawConfig.properties)) {
-    unknownConfig[key] = process.env[constantCase(key)];
-  }
-
-  const rawConfig = unwrap(schemaValidate(unknownConfig, RawConfig));
-
-  return parseRawConfig(rawConfig);
-}
-
 // Singleton configuration object used by application.
 let CONFIG: Config | null = null;
 
 export default function config(): Config {
   if (!CONFIG) {
-    CONFIG = initializeConfig();
+    CONFIG = loadConfig({ schema: RawConfig, transform: parseRawConfig });
     setConfigOnEnv(CONFIG);
   }
   return CONFIG;
