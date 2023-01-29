@@ -1,5 +1,21 @@
 version: "3.9"
 services:
+  # api: 
+  #   profiles: ["apps"]
+  #   depends_on:
+  #     - postgres
+  #     - temporal
+  #     - kafka
+  #   networks:
+  #     - temporal-network
+  worker: 
+    profiles: ["apps"]
+    depends_on:
+      - postgres
+      - temporal
+      - kafka
+    networks:
+      - temporal-network
   temporal:
     container_name: temporal
     depends_on:
