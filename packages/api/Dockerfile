@@ -25,7 +25,6 @@ WORKDIR /service
 
 COPY --from=builder /service/production_node_modules ./node_modules
 COPY --from=builder /service/packages/api/dist ./dist
-COPY --from=builder /service/packages/api/.env ./
 
 ENV NODE_ENV=production
 EXPOSE 3001

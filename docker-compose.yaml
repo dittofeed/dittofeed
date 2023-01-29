@@ -10,7 +10,7 @@ services:
       - temporal
       - kafka
     networks:
-      - temporal-network
+      - temporal-network-dev
   temporal:
     container_name: temporal
     depends_on:
@@ -26,7 +26,7 @@ services:
     labels:
       kompose.volume.type: configMap
     networks:
-      - temporal-network
+      - temporal-network-dev
     ports:
       - 7233:7233
     volumes:
@@ -41,7 +41,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     networks:
-      - temporal-network
+      - temporal-network-dev
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     hostname: zookeeper
@@ -98,7 +98,7 @@ services:
     # https://github.com/temporalio/temporal/issues/2539
     image: temporalio/admin-tools:1.13.4
     networks:
-    - temporal-network
+    - temporal-network-dev
     stdin_open: true
     tty: true
 volumes:
@@ -110,6 +110,6 @@ volumes:
   clickhouse_log:
 
 networks:
-  temporal-network:
+  temporal-network-dev:
     driver: bridge
-    name: temporal-network
+    name: temporal-network-dev
