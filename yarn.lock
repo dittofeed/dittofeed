@@ -1718,7 +1718,7 @@
     "@sendgrid/client" "^7.7.0"
     "@sendgrid/helpers" "^7.7.0"
 
-"@sinclair/typebox@^0.25.16", "@sinclair/typebox@^0.25.8":
+"@sinclair/typebox@^0.25.16", "@sinclair/typebox@^0.25.21", "@sinclair/typebox@^0.25.8":
   version "0.25.21"
   resolved "https://registry.yarnpkg.com/@sinclair/typebox/-/typebox-0.25.21.tgz#763b05a4b472c93a8db29b2c3e359d55b29ce272"
   integrity sha512-gFukHN4t8K4+wVC+ECqeqwzBDeFeTzBXroBTqE6vcWrQGbEUpHO7LYdG0f4xnvYq4VOEwITSlHlp0JBAIFMS/g==

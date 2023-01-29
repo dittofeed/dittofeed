@@ -9,6 +9,8 @@ services:
       - postgres
       - temporal
       - kafka
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
     networks:
       - temporal-network-dev
   temporal:
