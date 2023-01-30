@@ -2,13 +2,13 @@ import { ValueError } from "@sinclair/typebox/errors";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
-import prisma from "../prisma";
+import prisma from "./prisma";
 import {
   EnrichedSegment,
   Segment,
   SegmentDefinition,
   SegmentResource,
-} from "../types";
+} from "./types";
 
 export function enrichSegment(
   segment: Segment

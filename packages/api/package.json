@@ -33,7 +33,8 @@
     "fastify-raw-body": "^4.2.0",
     "isomorphic-lib": "0.0.1",
     "neverthrow": "^6.0.0",
-    "openapi-types": "^12.1.0"
+    "openapi-types": "^12.1.0",
+    "utility-types": "^3.10.0"
   },
   "devDependencies": {
     "@temporalio/testing": "^1.5.2",

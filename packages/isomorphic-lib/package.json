@@ -5,6 +5,9 @@
   "scripts": {
     "lint": "eslint src/"
   },
+  "exports": {
+    "./*": "./dist/*.js"
+  },
   "dependencies": {
     "liquidjs": "^10.4.0",
     "@sinclair/typebox": "^0.25.8",

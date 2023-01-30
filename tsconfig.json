@@ -12,5 +12,8 @@
     {
       "path": "./packages/dashboard"
     },
+    {
+      "path": "./packages/temporal-worker"
+    }
   ]
 }

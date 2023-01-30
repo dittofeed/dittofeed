@@ -5,9 +5,9 @@ import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import { OpenAPIV3_1 } from "openapi-types";
 
-import config from "../config";
-import cors from "./cors";
-import router from "./router";
+import cors from "./buildApp/cors";
+import router from "./buildApp/router";
+import config from "./config";
 
 async function buildApp() {
   const server = fastify({

@@ -8,8 +8,8 @@ import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { JourneyNodeType } from "isomorphic-lib/src/types";
 import React from "react";
 
-import { useAppStore } from "../../../lib/appStore";
-import journeyNodeLabel from "../journeyNodeLabel";
+import { useAppStore } from "../../lib/appStore";
+import journeyNodeLabel from "./journeyNodeLabel";
 
 function Sidebar() {
   const theme = useTheme();

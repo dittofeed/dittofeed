@@ -1,22 +1,23 @@
 import { Static, Type } from "@sinclair/typebox";
-import { constantCase } from "change-case";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { Overwrite } from "utility-types";
 
-enum NodeEnv {
-  Development = "development",
-  Test = "test",
-  Production = "production",
-}
-
-const NodeEnvEnum = Type.Enum(NodeEnv);
+import {
+  loadConfig,
+  NodeEnv,
+  NodeEnvEnum,
+  setConfigOnEnv,
+} from "./config/loader";
 
 // Structure of application config.
 const RawConfig = Type.Object(
   {
-    nodeEnv: Type.Optional(NodeEnvEnum),
+    nodeEnv: Type.Optional(NodeEnv),
     databaseUrl: Type.Optional(Type.String()),
+    temporalAddress: Type.Optional(Type.String()),
+    clickhouseHost: Type.Optional(Type.String()),
+    clickhouseDatabase: Type.Optional(Type.String()),
+    clickhouseUsername: Type.Optional(Type.String()),
+    clickhousePassword: Type.Optional(Type.String()),
     kafkaBrokers: Type.Optional(Type.String()),
     computedPropertiesTopicName: Type.Optional(Type.String()),
     userEventsTopicName: Type.Optional(Type.String()),
@@ -45,7 +46,9 @@ export type Config = Overwrite<
     userEventsTopicName: string;
     temporalNamespace: string;
     databaseUrl: string;
-    nodeEnv: NodeEnv;
+    clickhouseHost: string;
+    clickhouseDatabase: string;
+    nodeEnv: NodeEnvEnum;
     defaultWorkspaceId: string;
     defaultIdUserPropertyId: string;
     defaultAnonymousIdIdUserPropertyId: string;
@@ -56,16 +59,20 @@ export type Config = Overwrite<
     defaultLanguageUserPropertyId: string;
     defaultAccountManagerUserPropertyId: string;
     defaultUserEventsTableVersion: string;
+    temporalAddress: string;
   }
 >;
-
-type UnknownConfig = Record<string, unknown>;
 
 function parseRawConfig(rawConfig: RawConfig): Config {
   const parsedConfig: Config = {
     ...rawConfig,
-    nodeEnv: rawConfig.nodeEnv ?? NodeEnv.Development,
-    databaseUrl: "postgresql://postgres:password@localhost:5432/dittofeed",
+    nodeEnv: rawConfig.nodeEnv ?? NodeEnvEnum.Development,
+    temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
+    databaseUrl:
+      rawConfig.databaseUrl ??
+      "postgresql://postgres:password@localhost:5432/dittofeed",
+    clickhouseDatabase: rawConfig.databaseUrl ?? "dittofeed",
+    clickhouseHost: rawConfig.clickhouseHost ?? "http://localhost:8123",
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],
@@ -109,33 +116,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   return parsedConfig;
 }
 
-function setConfigOnEnv(configForEnv: Config): Config {
-  for (const [key, value] of Object.entries(configForEnv)) {
-    const serializedValue = Array.isArray(value) ? value.join(",") : value;
-    const casedKey = constantCase(key);
-    process.env[casedKey] = serializedValue;
-  }
-  return configForEnv;
-}
-
-export function initializeConfig(): Config {
-  const unknownConfig: UnknownConfig = {};
-
-  for (const key of Object.keys(RawConfig.properties)) {
-    unknownConfig[key] = process.env[constantCase(key)];
-  }
-
-  const rawConfig = unwrap(schemaValidate(unknownConfig, RawConfig));
-
-  return parseRawConfig(rawConfig);
-}
-
 // Singleton configuration object used by application.
 let CONFIG: Config | null = null;
 
 export default function config(): Config {
   if (!CONFIG) {
-    CONFIG = initializeConfig();
+    CONFIG = loadConfig({ schema: RawConfig, transform: parseRawConfig });
     setConfigOnEnv(CONFIG);
   }
   return CONFIG;

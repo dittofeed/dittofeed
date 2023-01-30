@@ -3,10 +3,10 @@ import { Box, Drawer, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useMemo } from "react";
 
-import { drawerWidth } from "../../config";
+import { drawerWidth } from "../config";
 // project import
-import DrawerContent from "./drawerContent";
-import MiniDrawerStyled from "./miniDrawerStyled";
+import DrawerContent from "./drawer/drawerContent";
+import MiniDrawerStyled from "./drawer/miniDrawerStyled";
 
 // ==============================|| MAIN LAYOUT - DRAWER ||============================== //
 

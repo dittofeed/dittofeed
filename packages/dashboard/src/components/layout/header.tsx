@@ -5,8 +5,8 @@ import { AppBar, IconButton, Toolbar, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 // project import
-import AppBarStyled from "./appBarStyled";
-import HeaderContent from "./headerContent";
+import AppBarStyled from "./header/appBarStyled";
+import HeaderContent from "./header/headerContent";
 
 // ==============================|| MAIN LAYOUT - HEADER ||============================== //
 

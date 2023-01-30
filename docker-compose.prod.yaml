@@ -1,86 +1,37 @@
 version: "3.9"
-x-backend-app-env: &backend-app-env
-  DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed"
-  KAFKA_BROKERS: kafka:9092
-  CLICKHOUSE_HOST: "http://clickhouse-server:8123"
-  TEMPORAL_ADDRESS: temporal:7233
+# TODO implement app services
 services:
-  dashboard:
-    build:
-      context: .
-      dockerfile: ./packages/dashboard/Dockerfile
-    profiles: ["apps"]
-    ports:
-      - "3000:3000"
-    depends_on:
-      - postgres
-      - temporal
-      - kafka
-      - api
-    environment:
-      <<: *backend-app-env
-    networks:
-      - temporal-network-dev
-  api: 
-    build:
-      context: .
-      dockerfile: ./packages/api/Dockerfile
-    profiles: ["apps"]
-    ports:
-      - "3001:3001"
-    depends_on:
-      - postgres
-      - temporal
-      - kafka
-      - temporal-worker
-    environment:
-      <<: *backend-app-env
-    networks:
-      - temporal-network-dev
-  temporal-worker: 
-    build:
-      context: .
-      dockerfile: ./packages/temporal-worker/Dockerfile
-    profiles: ["apps"]
-    depends_on:
-      - postgres
-      - temporal
-      - kafka
-    environment:
-      <<: *backend-app-env
-    networks:
-      - temporal-network-dev
   temporal:
     container_name: temporal
     depends_on:
       - postgres
     environment:
       - DB=postgresql
-      - DB_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PWD=password
-      - POSTGRES_SEEDS=postgres
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/dev.yaml
-    image: temporalio/auto-setup:1.18.5
+      - DB_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=${POSTGRES_HOST:-postgres}
+    image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.18.5}
     labels:
       kompose.volume.type: configMap
     networks:
-      - temporal-network-dev
+      - temporal-network
     ports:
       - 7233:7233
     volumes:
       - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
   postgres:
-    image: "postgres:15"
+    image: postgres:${POSTGRES_VERSION:-15}
     restart: always
     environment:
-      POSTGRES_PASSWORD: password
+      - POSTGRES_PASSWORD
+      - POSTGRES_USER
     ports:
       - "5432:5432"
     volumes:
       - postgres:/var/lib/postgresql/data
     networks:
-      - temporal-network-dev
+      - temporal-network
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     hostname: zookeeper
@@ -112,7 +63,7 @@ services:
       KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_DELETE_TOPIC_ENABLE: true
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
     volumes:
       - kafka:/var/lib/kafka/data
   clickhouse-server:
@@ -125,7 +76,6 @@ services:
       - kafka
       - zookeeper
     volumes:
-      - ./packages/backend-lib/clickhouse_config.dev.xml:/etc/clickhouse-server/config.xml
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
 volumes:
@@ -137,6 +87,6 @@ volumes:
   clickhouse_log:
 
 networks:
-  temporal-network-dev:
+  temporal-network:
     driver: bridge
-    name: temporal-network-dev
+    name: temporal-network

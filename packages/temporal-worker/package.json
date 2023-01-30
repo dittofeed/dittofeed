@@ -9,6 +9,7 @@
     "start": "nodemon scripts/startWorker.ts"
   },
   "dependencies": {
+    "@sinclair/typebox": "^0.25.21",
     "@temporalio/worker": "^1.5.2",
     "backend-lib": "0.0.1"
   },

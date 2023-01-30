@@ -13,11 +13,12 @@ module.exports = {
     tsconfigRootDir: __dirname,
     project: ["./tsconfig.eslint.json", "./packages/*/tsconfig.json"],
   },
-  plugins: ["@typescript-eslint", "simple-import-sort"],
+  plugins: ["@typescript-eslint", "simple-import-sort", "filenames"],
   rules: {
     "@typescript-eslint/no-redeclare": "off",
     "consistent-return": "off",
     "default-case": "off",
+    "filenames/no-index": "error",
     "import/prefer-default-export": "off",
     "no-continue": "off",
     "no-labels": "off",

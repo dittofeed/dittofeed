@@ -15,8 +15,8 @@ import {
   JourneyNode,
   MessageNodeVariantType,
   SegmentUpdate,
-} from "../../types";
-import type * as activities from "./activities";
+} from "../types";
+import type * as activities from "./userWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
