@@ -13,6 +13,7 @@ const RawConfig = Type.Object(
   {
     nodeEnv: Type.Optional(NodeEnv),
     databaseUrl: Type.Optional(Type.String()),
+    temporalAddress: Type.Optional(Type.String()),
     clickhouseHost: Type.Optional(Type.String()),
     clickhouseDatabase: Type.Optional(Type.String()),
     clickhouseUsername: Type.Optional(Type.String()),
@@ -58,6 +59,7 @@ export type Config = Overwrite<
     defaultLanguageUserPropertyId: string;
     defaultAccountManagerUserPropertyId: string;
     defaultUserEventsTableVersion: string;
+    temporalAddress: string;
   }
 >;
 
@@ -65,6 +67,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   const parsedConfig: Config = {
     ...rawConfig,
     nodeEnv: rawConfig.nodeEnv ?? NodeEnvEnum.Development,
+    temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
     databaseUrl:
       rawConfig.databaseUrl ??
       "postgresql://postgres:password@localhost:5432/dittofeed",

@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import {
   appendDefaultInterceptors,
@@ -28,7 +29,7 @@ export async function createEnvAndWorker({
       },
       console
     ),
-    activities: { ...activities, ...activityOverrides},
+    activities: { ...activities, ...activityOverrides },
     taskQueue: "default",
     sinks: defaultSinks(console),
   });

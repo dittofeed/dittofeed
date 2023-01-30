@@ -2,24 +2,16 @@ import { Static, Type } from "@sinclair/typebox";
 import { loadConfig, setConfigOnEnv } from "backend-lib/src/config/loader";
 
 // Structure of application config.
-const RawConfig = Type.Object(
-  {
-    temporalAddress: Type.Optional(Type.String()),
-  },
-  { additionalProperties: false }
-);
+const RawConfig = Type.Object({}, { additionalProperties: false });
 
 type RawConfig = Static<typeof RawConfig>;
 
-interface Config {
-  temporalAddress: string;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface Config {}
 
-function parseRawConfig(raw: RawConfig): Config {
-  return {
-    ...raw,
-    temporalAddress: raw.temporalAddress ?? "localhost:7233",
-  };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function parseRawConfig(_raw: RawConfig): Config {
+  return {};
 }
 
 // Singleton configuration object used by application.
