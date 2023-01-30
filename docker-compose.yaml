@@ -1,5 +1,9 @@
 version: "3.9"
-# x-backend-app-env: &backend-app-env
+x-backend-app-env: &backend-app-env
+  DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed"
+  KAFKA_BROKERS: kafka:9092
+  CLICKHOUSE_HOST: "http://clickhouse-server:8123"
+  TEMPORAL_ADDRESS: temporal:7233
 services:
   dashboard:
     build:
@@ -14,26 +18,7 @@ services:
       - kafka
       - api
     environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-      - DATABASE_URL="postgresql://postgres:password@postgres:5432/dittofeed",
-      - KAFKA_BROKERS=kafka:9092
-      - CLICKHOUSE_HOST="http://clickhouse-server:8123"
-    networks:
-      - temporal-network-dev
-  temporal-worker: 
-    build:
-      context: .
-      dockerfile: ./packages/temporal-worker/Dockerfile
-    profiles: ["apps"]
-    depends_on:
-      - postgres
-      - temporal
-      - kafka
-    environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-      - DATABASE_URL="postgresql://postgres:password@postgres:5432/dittofeed",
-      - KAFKA_BROKERS=kafka:9092
-      - CLICKHOUSE_HOST="http://clickhouse-server:8123"
+      <<: *backend-app-env
     networks:
       - temporal-network-dev
   api: 
@@ -47,10 +32,22 @@ services:
       - postgres
       - temporal
       - kafka
+      - temporal-worker
     environment:
-      - DATABASE_URL="postgresql://postgres:password@postgres:5432/dittofeed",
-      - KAFKA_BROKERS=kafka:9092
-      - CLICKHOUSE_HOST="http://clickhouse-server:8123"
+      <<: *backend-app-env
+    networks:
+      - temporal-network-dev
+  temporal-worker: 
+    build:
+      context: .
+      dockerfile: ./packages/temporal-worker/Dockerfile
+    profiles: ["apps"]
+    depends_on:
+      - postgres
+      - temporal
+      - kafka
+    environment:
+      <<: *backend-app-env
     networks:
       - temporal-network-dev
   temporal:
@@ -131,18 +128,6 @@ services:
       - ./packages/backend-lib/clickhouse_config.dev.xml:/etc/clickhouse-server/config.xml
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
-  temporal-admin-tools:
-    container_name: temporal-admin-tools
-    depends_on:
-      - temporal
-    environment:
-      - TEMPORAL_CLI_ADDRESS=temporal:7233
-    # https://github.com/temporalio/temporal/issues/2539
-    image: temporalio/admin-tools:1.13.4
-    networks:
-    - temporal-network-dev
-    stdin_open: true
-    tty: true
 volumes:
   postgres:
   kafka:
