@@ -1,5 +1,25 @@
 version: "3.9"
+# x-backend-app-env: &backend-app-env
 services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: ./packages/dashboard/Dockerfile
+    profiles: ["apps"]
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - temporal
+      - kafka
+      - api
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - DATABASE_URL="postgresql://postgres:password@postgres:5432/dittofeed",
+      - KAFKA_BROKERS=kafka:9092
+      - CLICKHOUSE_HOST="http://clickhouse-server:8123"
+    networks:
+      - temporal-network-dev
   temporal-worker: 
     build:
       context: .
