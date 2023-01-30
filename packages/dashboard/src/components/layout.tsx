@@ -2,12 +2,12 @@
 import { Box, Toolbar } from "@mui/material";
 import React, { useMemo } from "react";
 
-import { useAppStore } from "../../lib/appStore";
-import { MenuItemGroup } from "../menuItems/types";
-import { LayoutContext } from "./context";
+import { useAppStore } from "../lib/appStore";
+import { LayoutContext } from "./layout/context";
 // project import
-import Drawer from "./drawer";
-import Header from "./header";
+import Drawer from "./layout/drawer";
+import Header from "./layout/header";
+import { MenuItemGroup } from "./menuItems/types";
 
 function Layout({
   items,

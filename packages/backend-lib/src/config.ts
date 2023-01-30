@@ -13,6 +13,10 @@ const RawConfig = Type.Object(
   {
     nodeEnv: Type.Optional(NodeEnv),
     databaseUrl: Type.Optional(Type.String()),
+    clickhouseHost: Type.Optional(Type.String()),
+    clickhouseDatabase: Type.Optional(Type.String()),
+    clickhouseUsername: Type.Optional(Type.String()),
+    clickhousePassword: Type.Optional(Type.String()),
     kafkaBrokers: Type.Optional(Type.String()),
     computedPropertiesTopicName: Type.Optional(Type.String()),
     userEventsTopicName: Type.Optional(Type.String()),
@@ -41,6 +45,8 @@ export type Config = Overwrite<
     userEventsTopicName: string;
     temporalNamespace: string;
     databaseUrl: string;
+    clickhouseHost: string;
+    clickhouseDatabase: string;
     nodeEnv: NodeEnvEnum;
     defaultWorkspaceId: string;
     defaultIdUserPropertyId: string;
@@ -62,6 +68,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     databaseUrl:
       rawConfig.databaseUrl ??
       "postgresql://postgres:password@localhost:5432/dittofeed",
+    clickhouseDatabase: rawConfig.databaseUrl ?? "dittofeed",
+    clickhouseHost: rawConfig.clickhouseHost ?? "http://localhost:8123",
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],

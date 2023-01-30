@@ -2,9 +2,9 @@
 import { Stack } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
-import Profile from "../../header/headerContent/profile";
+import Profile from "../header/headerContent/profile";
 // project import
-import DrawerHeaderStyled from "./drawerHeaderStyled";
+import DrawerHeaderStyled from "./drawerHeader/drawerHeaderStyled";
 
 // ==============================|| DRAWER HEADER ||============================== //
 

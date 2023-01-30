@@ -2,9 +2,9 @@
 import { Box, Typography } from "@mui/material";
 import { useContext } from "react";
 
-import { LayoutContext } from "../../../context";
+import { LayoutContext } from "../../context";
 // project import
-import NavGroup from "./navGroup";
+import NavGroup from "./navigation/navGroup";
 
 // ==============================|| DRAWER CONTENT - NAVIGATION ||============================== //
 

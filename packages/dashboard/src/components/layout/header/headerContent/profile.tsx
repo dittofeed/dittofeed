@@ -14,11 +14,11 @@ import {
 import { useTheme } from "@mui/material/styles";
 import React, { useRef, useState } from "react";
 
-import isNode from "../../../../../lib/isNode";
+import isNode from "../../../../lib/isNode";
 // project import
-import MainCard from "../../../../mainCard";
-import Transitions from "../../../../transitions";
-import ProfileTab from "./profileTab";
+import MainCard from "../../../mainCard";
+import Transitions from "../../../transitions";
+import ProfileTab from "./profile/profileTab";
 
 // ==============================|| HEADER CONTENT - PROFILE ||============================== //
 

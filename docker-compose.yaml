@@ -11,6 +11,26 @@ services:
       - kafka
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
+      - DATABASE_URL="postgresql://postgres:password@postgres:5432/dittofeed",
+      - KAFKA_BROKERS=kafka:9092
+      - CLICKHOUSE_HOST="http://clickhouse-server:8123"
+    networks:
+      - temporal-network-dev
+  api: 
+    build:
+      context: .
+      dockerfile: ./packages/api/Dockerfile
+    profiles: ["apps"]
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - temporal
+      - kafka
+    environment:
+      - DATABASE_URL="postgresql://postgres:password@postgres:5432/dittofeed",
+      - KAFKA_BROKERS=kafka:9092
+      - CLICKHOUSE_HOST="http://clickhouse-server:8123"
     networks:
       - temporal-network-dev
   temporal:

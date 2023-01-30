@@ -2,9 +2,9 @@
 import { GithubOutlined } from "@ant-design/icons";
 import { Box, IconButton, Link, Theme, useMediaQuery } from "@mui/material";
 
-import MobileSection from "./mobileSection";
+import MobileSection from "./headerContent/mobileSection";
 // project import
-import Profile from "./profile";
+import Profile from "./headerContent/profile";
 
 // ==============================|| HEADER - CONTENT ||============================== //
 
