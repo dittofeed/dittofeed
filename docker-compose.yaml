@@ -32,15 +32,15 @@ services:
       - postgres
       - temporal
       - kafka
-      - temporal-worker
+      - worker
     environment:
       <<: *backend-app-env
     networks:
       - temporal-network-dev
-  temporal-worker: 
+  worker: 
     build:
       context: .
-      dockerfile: ./packages/temporal-worker/Dockerfile
+      dockerfile: ./packages/worker/Dockerfile
     profiles: ["apps"]
     depends_on:
       - postgres
