@@ -129,7 +129,6 @@ export async function trackInternalEvents(props: {
       messageRaw: JSON.stringify(mr),
     }));
 
-  console.log("trackInternalEvents events", events);
   await writeUserEvents(events);
 
   return ok(undefined);

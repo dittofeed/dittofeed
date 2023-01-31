@@ -1,8 +1,38 @@
+import spawn from "cross-spawn";
+
+import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
+import { kafkaAdmin } from "./kafka";
 import prisma from "./prisma";
 import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
+import { createUserEventsTables } from "./userEvents/clickhouse";
+
+async function prismaMigrate() {
+  await new Promise<void>((resolve, reject) => {
+    spawn("yarn", ["prisma", "migrate", "deploy"], { stdio: "inherit" }).once(
+      "exit",
+      (exitCode, signal) => {
+        if (typeof exitCode === "number") {
+          if (exitCode === 0) {
+            resolve();
+          } else {
+            reject(
+              new Error(`Migration failed with exit code: ${String(exitCode)}`)
+            );
+          }
+        } else if (signal) {
+          reject(new Error(`Migration failed with signal: ${String(signal)}`));
+        } else {
+          resolve();
+        }
+      }
+    );
+  });
+}
 
 export default async function bootstrap() {
+  await prismaMigrate();
+
   const {
     defaultWorkspaceId,
     defaultIdUserPropertyId,
@@ -16,27 +46,43 @@ export default async function bootstrap() {
     defaultAccountManagerUserPropertyId,
   } = config();
 
-  await prisma.workspace.upsert({
-    where: {
-      id: defaultWorkspaceId,
-    },
-    update: {},
-    create: {
-      id: defaultWorkspaceId,
-      name: "Default",
-    },
-  });
+  await Promise.all([
+    prisma.workspace.upsert({
+      where: {
+        id: defaultWorkspaceId,
+      },
+      update: {},
+      create: {
+        id: defaultWorkspaceId,
+        name: "Default",
+      },
+    }),
+    kafkaAdmin.connect(),
+    createClickhouseDb(),
+  ]);
 
-  await prisma.currentUserEventsTable.upsert({
-    where: {
-      workspaceId: defaultWorkspaceId,
-    },
-    create: {
-      workspaceId: defaultWorkspaceId,
-      version: defaultUserEventsTableVersion,
-    },
-    update: {},
-  });
+  const [currentUserEventsTable] = await Promise.all([
+    prisma.currentUserEventsTable.upsert({
+      where: {
+        workspaceId: defaultWorkspaceId,
+      },
+      create: {
+        workspaceId: defaultWorkspaceId,
+        version: defaultUserEventsTableVersion,
+      },
+      update: {},
+    }),
+    kafkaAdmin.createTopics({
+      waitForLeaders: true,
+      topics: [
+        {
+          topic: config().userEventsTopicName,
+          numPartitions: 1,
+          replicationFactor: 1,
+        },
+      ],
+    }),
+  ]);
 
   const idUserPropertyDefinition: UserPropertyDefinition = {
     type: UserPropertyDefinitionType.Id,
@@ -77,6 +123,10 @@ export default async function bootstrap() {
   };
 
   await Promise.all([
+    createUserEventsTables({
+      tableVersion: currentUserEventsTable.version,
+      ingressTopic: config().userEventsTopicName,
+    }),
     prisma.userProperty.createMany({
       data: [
         {
