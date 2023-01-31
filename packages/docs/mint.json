@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "Starter Kit",
+  "name": "Dittofeed",
   "logo": {
     "dark": "/logo/dark.png",
     "light": "/logo/light.png"
@@ -23,19 +23,14 @@
   },
   "anchors": [
     {
-      "name": "API Reference",
-      "icon": "rectangle-terminal",
-      "url": "api-reference"
-    },
-    {
-      "name": "Changelog",
-      "icon": "list",
-      "url": "https://mintlify.com"
-    },
-    {
       "name": "Community",
-      "icon": "discord",
-      "url": "https://mintlify.com/community"
+      "icon": "slack",
+      "url": "https://dittofeed-community.slack.com/ssb/redirect"
+    },
+    {
+      "name": "Github",
+      "icon": "github",
+      "url": "https://github.com/ideamarketinc/dittofeed"
     }
   ],
   "navigation": [
