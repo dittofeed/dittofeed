@@ -1,6 +1,6 @@
 {
   "name": "backend-lib",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "scripts": {
     "build": "NODE_ENV=production tsc",
@@ -25,7 +25,7 @@
     "cross-spawn": "^7.0.3",
     "dotenv": "^16.0.3",
     "escape-html": "^1.0.3",
-    "isomorphic-lib": "0.0.2",
+    "isomorphic-lib": "0.0.3",
     "jsonpath": "^1.1.1",
     "kafkajs": "^2.2.2",
     "minimist": "^1.2.7",
