@@ -109,9 +109,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     defaultAccountManagerUserPropertyId:
       rawConfig.defaultAccountManagerUserPropertyId ??
       "6e0c65eb-3792-414b-9d56-fd7828b71ebe",
+    // UUID with _ instead of - for clickhouse compatibility
     defaultUserEventsTableVersion:
       rawConfig.defaultUserEventsTableVersion ??
-      "48221d18-bd04-4c6b-abf3-9d0a4f87f52f",
+      "48221d18_bd04_4c6b_abf3_9d0a4f87f52f",
   };
   return parsedConfig;
 }
