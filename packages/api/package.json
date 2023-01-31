@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
     "dev": "NODE_ENV=development nodemon",
@@ -25,13 +25,13 @@
     "@sinclair/typebox": "^0.25.8",
     "@types/analytics-node": "^3.1.9",
     "analytics-node": "^6.2.0",
-    "backend-lib": "0.0.1",
+    "backend-lib": "0.0.2",
     "change-case": "^4.1.2",
     "dotenv": "^16.0.3",
     "fastify": "^4.8.1",
     "fastify-plugin": "^4.5.0",
     "fastify-raw-body": "^4.2.0",
-    "isomorphic-lib": "0.0.1",
+    "isomorphic-lib": "0.0.2",
     "neverthrow": "^6.0.0",
     "openapi-types": "^12.1.0",
     "utility-types": "^3.10.0"
