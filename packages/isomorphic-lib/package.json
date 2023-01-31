@@ -1,8 +1,9 @@
 {
   "name": "isomorphic-lib",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
+    "build": "NODE_ENV=production tsc --build",
     "lint": "eslint src/"
   },
   "exports": {

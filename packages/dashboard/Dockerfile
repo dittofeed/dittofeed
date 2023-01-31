@@ -22,7 +22,10 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN yarn workspace backend-lib prisma generate && yarn workspace dashboard build
+RUN yarn workspace isomorphic-lib build && \
+    yarn workspace backend-lib prisma generate && \
+    yarn workspace backend-lib build && \
+    yarn workspace dashboard build
 
 # Production image, copy all the files and run next
 FROM node:16.14.2 AS runner

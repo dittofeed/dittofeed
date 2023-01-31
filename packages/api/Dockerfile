@@ -16,7 +16,11 @@ RUN yarn install --pure_lockfile
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/api/ ./packages/api
-RUN yarn workspace backend-lib prisma generate && yarn workspace api build
+
+# Running isomorphic-lib build first so that prisma generate has access to code.
+RUN yarn workspace isomorphic-lib build && \
+    yarn workspace backend-lib prisma generate && \
+    yarn workspace api build
 
 # Production image
 FROM node:16.14.2 AS runner
