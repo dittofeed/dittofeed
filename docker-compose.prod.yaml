@@ -1,6 +1,46 @@
 version: "3.9"
-# TODO implement app services
+x-backend-app-env: &backend-app-env
+  DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed"
+  KAFKA_BROKERS: kafka:9092
+  CLICKHOUSE_HOST: "http://clickhouse-server:8123"
+  TEMPORAL_ADDRESS: temporal:7233
 services:
+  dashboard:
+    image: dittofeed/dittofeed-dashboard:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - temporal
+      - kafka
+      - api
+    environment:
+      <<: *backend-app-env
+    networks:
+      - temporal-network
+  api:
+    image: dittofeed/dittofeed-api:latest
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - temporal
+      - kafka
+      - worker
+    environment:
+      <<: *backend-app-env
+    networks:
+      - temporal-network
+  worker:
+    image: dittofeed/dittofeed-worker:latest
+    depends_on:
+      - postgres
+      - temporal
+      - kafka
+    environment:
+      <<: *backend-app-env
+    networks:
+      - temporal-network
   temporal:
     container_name: temporal
     depends_on:
