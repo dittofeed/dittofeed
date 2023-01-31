@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "private": true,
   "scripts": {
-    "build": "tsc --build",
+    "build": "NODE_ENV=production tsc --build",
     "build.watch": "tsc --build --watch",
     "lint": "eslint .",
     "start": "nodemon scripts/startWorker.ts"
