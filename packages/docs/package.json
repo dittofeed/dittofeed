@@ -2,7 +2,9 @@
   "name": "docs",
   "version": "0.0.3",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "dev": "mintlify dev"
+  },
   "dependencies": {},
   "devDependencies": {
     "mintlify": "^2.0.16"

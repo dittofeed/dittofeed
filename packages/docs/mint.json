@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "Starter Kit",
+  "name": "Dittofeed",
   "logo": {
     "dark": "/logo/dark.png",
     "light": "/logo/light.png"
@@ -11,59 +11,70 @@
     "light": "#4D9CFF",
     "dark": "#0050B4"
   },
-  "topbarLinks": [
-    {
-      "name": "Documentation",
-      "url": "https://mintlify.com/docs"
-    }
-  ],
+  "topbarLinks": [],
   "topbarCtaButton": {
-    "name": "Get Started",
-    "url": "https://github.com/mintlify/starter"
+    "name": "Book a Demo",
+    "url": "https://calendly.com/d/xz3-fc9-ngy/dittofeed-demo"
   },
   "anchors": [
     {
-      "name": "API Reference",
-      "icon": "rectangle-terminal",
-      "url": "api-reference"
-    },
-    {
-      "name": "Changelog",
-      "icon": "list",
-      "url": "https://mintlify.com"
-    },
-    {
       "name": "Community",
-      "icon": "discord",
-      "url": "https://mintlify.com/community"
+      "icon": "slack",
+      "url": "https://dittofeed-community.slack.com/ssb/redirect"
+    },
+    {
+      "name": "Github",
+      "icon": "github",
+      "url": "https://github.com/ideamarketinc/dittofeed"
     }
   ],
   "navigation": [
     {
       "group": "Home",
-      "pages": ["introduction", "development"]
+      "pages": ["introduction", "getting-started", {
+        "group": "Examples",
+        "pages": ["examples/segment-sendgrid"]
+      }]
     },
     {
-      "group": "Learn More",
-      "pages": ["features", "resources"]
+      "group": "Deployment",
+      "pages": ["deployment/docker-compose", "deployment/kubernetes", "deployment/cloud"]
     },
     {
-      "group": "API Documentation",
-      "pages": ["api-reference/authentication"]
-    },
-    {
-      "group": "Endpoint Examples",
+      "group": "Integrations",
       "pages": [
-        "api-reference/endpoint/get",
-        "api-reference/endpoint/create",
-        "api-reference/endpoint/update",
-        "api-reference/endpoint/delete"
+        "integrations/sources",
+        {
+          "group": "Data Source Types",
+          "pages": [
+            "integrations/sources/segment"
+          ]
+        },
+        "integrations/destinations",
+        {
+          "group": "Destination Types",
+          "pages": [
+            "integrations/destinations/segment"
+          ]
+        },
+        "integrations/channels",
+        {
+          "group": "Message Channel Types",
+          "pages": [
+            "integrations/channels/email",
+            "integrations/channels/sendgrid"
+          ]
+        }
       ]
+    },
+    {
+      "group": "User Guide",
+      "pages": ["guide/git-workflows", "guide/testing", "guide/monitoring-alerting", "guide/license"]
     }
   ],
   "footerSocials": {
-    "twitter": "https://twitter.com/mintlify",
-    "github": "https://github.com/mintlify",
-    "linkedin": "https://www.linkedin.com/company/mintsearch"
+    "twitter": "https://twitter.com/dittofeed",
+    "github": "https://github.com/ideamarketinc/dittofeed",
+    "linkedin": "https://www.linkedin.com/company/dittofeed"
   }
 }
