@@ -31,28 +31,45 @@
   "navigation": [
     {
       "group": "Home",
-      "pages": ["introduction"]
+      "pages": ["introduction", "getting-started", {
+        "group": "Examples",
+        "pages": ["examples/segment-sendgrid"]
+      }]
     },
     {
       "group": "Deployment",
-      "pages": ["Docker Compose", "Kubernetes", "Dittofeed Cloud"]
+      "pages": ["deployment/docker-compose", "deployment/kubernetes", "deployment/cloud"]
     },
     {
-      "group": "Learn More",
-      "pages": ["features", "resources"]
-    },
-    {
-      "group": "API Documentation",
-      "pages": ["api-reference/authentication"]
-    },
-    {
-      "group": "Endpoint Examples",
+      "group": "Integrations",
       "pages": [
-        "api-reference/endpoint/get",
-        "api-reference/endpoint/create",
-        "api-reference/endpoint/update",
-        "api-reference/endpoint/delete"
+        "integrations/sources",
+        {
+          "group": "Data Source Types",
+          "pages": [
+            "integrations/sources/segment"
+          ]
+        },
+        "integrations/destinations",
+        {
+          "group": "Destination Types",
+          "pages": [
+            "integrations/destinations/segment"
+          ]
+        },
+        "integrations/channels",
+        {
+          "group": "Message Channel Types",
+          "pages": [
+            "integrations/channels/email",
+            "integrations/channels/sendgrid"
+          ]
+        }
       ]
+    },
+    {
+      "group": "User Guide",
+      "pages": ["guide/git-workflows", "guide/testing", "guide/monitoring-alerting", "guide/license"]
     }
   ],
   "footerSocials": {
