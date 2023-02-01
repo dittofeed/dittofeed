@@ -1,6 +1,58 @@
 ---
-title: "Dittofeed Documentation"
+title: "What is Dittofeed?"
 ---
+
+The first developer-centric, open-source, omni-channel customer engagement platform. It shares the value proposition of other omni-channel customer engagement platforms - Braze, Customer.io, One Signal, Segment Engage and others.
+
+Customer engagement platforms allow marketing and growth teams to automate messaging on channels like email, SMS, and in-app push notifications.
+
+## What makes Dittofeed different?
+
+Dittofeed built from the bottom up with growth, and marketing engineers in mind.
+
+**Open Source** 
+
+Free and Open-Source forever.
+
+**Git based workflow (coming soon)**
+
+Check your email templates into git, don't write them in a browser editor.
+
+**Monitoring and Alerting (coming soon)**
+
+Understate the state of your users' journeys. Seemlessly integrate with OpenTelemtry for monitoring and alerting of your customer journeys.
+
+**Test SDK (coming soon)**
+
+A first-in-class Time-traveling test sdk for customer journeys. Catch regressions before they get deployed.
+
+```javascript
+describe("When the bookmark button is clicked", () => {
+  let df: DittofeedTestEnv;
+
+  beforeEach(async () => {
+    df = await Dittofeed.setupTestEnv();
+    ...
+  })
+
+  it("Emails the clicking user", async () => {
+    render(<BookmarkButton/>)
+    fireEvent.click(screen.getByText(/bookmark/i))
+
+    // Using simulated time.
+    await df.sleep("1 week");
+    const messages = await df.fetchMessages();
+
+    expect(messages).toEqual([
+      expect.objectContaining({
+        to: "test@email.com",
+        type: "Email",
+        body: expect.stringContaining("https://app.com/user-1/bookmarks")
+      });
+    ]);
+  });
+});
+````
 
 ## Getting Started
 

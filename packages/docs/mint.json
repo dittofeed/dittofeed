@@ -11,15 +11,10 @@
     "light": "#4D9CFF",
     "dark": "#0050B4"
   },
-  "topbarLinks": [
-    {
-      "name": "Documentation",
-      "url": "https://mintlify.com/docs"
-    }
-  ],
+  "topbarLinks": [],
   "topbarCtaButton": {
-    "name": "Get Started",
-    "url": "https://github.com/mintlify/starter"
+    "name": "Book a Demo",
+    "url": "https://calendly.com/d/xz3-fc9-ngy/dittofeed-demo"
   },
   "anchors": [
     {
@@ -36,7 +31,11 @@
   "navigation": [
     {
       "group": "Home",
-      "pages": ["introduction", "development"]
+      "pages": ["introduction"]
+    },
+    {
+      "group": "Deployment",
+      "pages": ["Docker Compose", "Kubernetes", "Dittofeed Cloud"]
     },
     {
       "group": "Learn More",
@@ -57,8 +56,8 @@
     }
   ],
   "footerSocials": {
-    "twitter": "https://twitter.com/mintlify",
-    "github": "https://github.com/mintlify",
-    "linkedin": "https://www.linkedin.com/company/mintsearch"
+    "twitter": "https://twitter.com/dittofeed",
+    "github": "https://github.com/ideamarketinc/dittofeed",
+    "linkedin": "https://www.linkedin.com/company/dittofeed"
   }
 }
