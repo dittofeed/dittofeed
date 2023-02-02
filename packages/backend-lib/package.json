@@ -5,7 +5,7 @@
   "scripts": {
     "build": "NODE_ENV=production tsc",
     "lint": "eslint src/",
-    "prisma": "yarn config-env prisma",
+    "prisma-dev": "yarn config-env prisma",
     "config-env": "ts-node scripts/configEnv.ts"
   },
   "exports": {

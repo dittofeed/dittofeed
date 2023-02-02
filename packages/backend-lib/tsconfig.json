@@ -6,7 +6,7 @@
     "skipLibCheck": true,
   },
   "exclude": ["node_modules", "dist"],
-  "include": ["./src/**/*.ts", "./src/**/*.ts", "./test/**/*.ts"],
+  "include": ["./src/**/*.ts", "./scripts/**/*.ts", "./test/**/*.ts"],
   "references": [
     {
       "path": "../isomorphic-lib"
