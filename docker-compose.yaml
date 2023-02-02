@@ -79,6 +79,7 @@ services:
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: dittofeed
+      POSTGRES_USER: postgres
     ports:
       - "5432:5432"
     volumes:

@@ -71,7 +71,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     databaseUrl:
       rawConfig.databaseUrl ??
       "postgresql://postgres:password@localhost:5432/dittofeed",
-    clickhouseDatabase: rawConfig.databaseUrl ?? "dittofeed",
+    clickhouseDatabase: rawConfig.clickhouseDatabase ?? "dittofeed",
     clickhouseHost: rawConfig.clickhouseHost ?? "http://localhost:8123",
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
