@@ -17,10 +17,11 @@ services:
       - temporal
       - kafka
       - api
+      - clickhouse-server
     environment:
       <<: *backend-app-env
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
   api: 
     build:
       context: .
@@ -30,13 +31,14 @@ services:
       - "3001:3001"
     depends_on:
       - postgres
+      - clickhouse-server
       - temporal
       - kafka
       - worker
     environment:
       <<: *backend-app-env
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
   worker: 
     build:
       context: .
@@ -45,11 +47,12 @@ services:
     depends_on:
       - postgres
       - temporal
+      - clickhouse-server
       - kafka
     environment:
       <<: *backend-app-env
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
   temporal:
     container_name: temporal
     depends_on:
@@ -65,7 +68,7 @@ services:
     labels:
       kompose.volume.type: configMap
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
     ports:
       - 7233:7233
     volumes:
@@ -81,7 +84,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     hostname: zookeeper
@@ -129,6 +132,8 @@ services:
       - ./packages/backend-lib/clickhouse_config.dev.xml:/etc/clickhouse-server/config.xml
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
+    networks:
+      - dittofeed-network-dev
 volumes:
   postgres:
   kafka:
@@ -138,6 +143,6 @@ volumes:
   clickhouse_log:
 
 networks:
-  temporal-network-dev:
+  dittofeed-network-dev:
     driver: bridge
-    name: temporal-network-dev
+    name: dittofeed-network-dev
