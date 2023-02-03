@@ -4,12 +4,15 @@ x-backend-app-env: &backend-app-env
   KAFKA_BROKERS: "kafka:29092"
   CLICKHOUSE_HOST: "http://clickhouse-server:8123"
   TEMPORAL_ADDRESS: "temporal:7233"
+  LOG_CONFIG: true
 services:
   dashboard:
     build:
       context: .
       dockerfile: ./packages/dashboard/Dockerfile
     profiles: ["apps"]
+    volumes:
+      - ./mnt:/dittofeed-mnt
     ports:
       - "3000:3000"
     depends_on:
@@ -27,6 +30,8 @@ services:
       context: .
       dockerfile: ./packages/api/Dockerfile
     profiles: ["apps"]
+    volumes:
+      - ./mnt:/dittofeed-mnt
     ports:
       - "3001:3001"
     depends_on:
@@ -44,6 +49,8 @@ services:
       context: .
       dockerfile: ./packages/worker/Dockerfile
     profiles: ["apps"]
+    volumes:
+      - ./mnt:/dittofeed-mnt
     depends_on:
       - postgres
       - temporal

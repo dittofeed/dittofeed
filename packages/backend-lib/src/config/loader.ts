@@ -3,6 +3,7 @@ import { constantCase } from "change-case";
 import dotenv from "dotenv";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import path from "path";
 
 export enum NodeEnvEnum {
   Development = "development",
@@ -22,6 +23,8 @@ export function loadConfig<S extends TObject, C = Static<S>>({
   transform: (parsed: Static<S>) => C;
 }): C {
   dotenv.config();
+  dotenv.config({ path: path.join("/dittofeed-mnt", ".env") });
+
   const unknownConfig: UnknownConfig = {};
 
   for (const key of Object.keys(schema.properties)) {
