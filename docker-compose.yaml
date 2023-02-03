@@ -98,6 +98,8 @@ services:
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_logs:/var/lib/zookeeper/log
+    networks:
+      - dittofeed-network-dev
   kafka:
     image: confluentinc/cp-server:7.3.0
     user: root
@@ -120,6 +122,8 @@ services:
       KAFKA_DELETE_TOPIC_ENABLE: true
     volumes:
       - kafka:/var/lib/kafka/data
+    networks:
+      - dittofeed-network-dev
   clickhouse-server:
     image: clickhouse/clickhouse-server:22.9.5.25-alpine
     ports:
