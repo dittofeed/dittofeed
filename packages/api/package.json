@@ -3,7 +3,7 @@
   "version": "0.0.3",
   "private": true,
   "scripts": {
-    "dev": "NODE_ENV=development nodemon",
+    "dev": "NODE_ENV=development tsc-watch -b --onSuccess 'node dist/scripts/startServer.js'",
     "build": "NODE_ENV=production tsc --build",
     "lint": "eslint src/",
     "segment-test": "ts-node scripts/segmentTest.ts"
@@ -41,9 +41,9 @@
     "@temporalio/worker": "^1.5.2",
     "@types/node": "^18.8.5",
     "fastify-tsconfig": "^1.0.1",
-    "nodemon": "^2.0.20",
     "pino-pretty": "^9.1.1",
     "ts-node": "^10.9.1",
+    "tsc-watch": "^6.0.0",
     "typescript": "^4.8.4"
   },
   "license": "LicenseRef-LICENSE"
