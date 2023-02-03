@@ -1,4 +1,5 @@
 import { Static, Type } from "@sinclair/typebox";
+import { inspect } from "util";
 import { Overwrite } from "utility-types";
 
 import {
@@ -7,6 +8,8 @@ import {
   NodeEnvEnum,
   setConfigOnEnv,
 } from "./config/loader";
+
+const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
 
 // Structure of application config.
 const RawConfig = Type.Object(
@@ -32,6 +35,7 @@ const RawConfig = Type.Object(
     defaultLanguageUserPropertyId: Type.Optional(Type.String()),
     defaultAccountManagerUserPropertyId: Type.Optional(Type.String()),
     defaultUserEventsTableVersion: Type.Optional(Type.String()),
+    logConfig: Type.Optional(BoolStr),
   },
   { additionalProperties: false }
 );
@@ -60,6 +64,7 @@ export type Config = Overwrite<
     defaultAccountManagerUserPropertyId: string;
     defaultUserEventsTableVersion: string;
     temporalAddress: string;
+    logConfig: boolean;
   }
 >;
 
@@ -113,6 +118,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     defaultUserEventsTableVersion:
       rawConfig.defaultUserEventsTableVersion ??
       "48221d18_bd04_4c6b_abf3_9d0a4f87f52f",
+    logConfig: rawConfig.logConfig === "true",
   };
   return parsedConfig;
 }
@@ -124,6 +130,16 @@ export default function config(): Config {
   if (!CONFIG) {
     CONFIG = loadConfig({ schema: RawConfig, transform: parseRawConfig });
     setConfigOnEnv(CONFIG);
+
+    if (CONFIG.logConfig) {
+      console.log(
+        `Initialized with config:\n${inspect(CONFIG, {
+          colors: true,
+          depth: null,
+          sorted: true,
+        })}`
+      );
+    }
   }
   return CONFIG;
 }
