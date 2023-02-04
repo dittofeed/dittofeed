@@ -2,16 +2,11 @@ import { Static, Type } from "@sinclair/typebox";
 import { inspect } from "util";
 import { Overwrite } from "utility-types";
 
-import {
-  loadConfig,
-  NodeEnv,
-  NodeEnvEnum,
-  setConfigOnEnv,
-} from "./config/loader";
+import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
 
 const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
 
-const BaseRawConfigProps = {
+const BaseRawConfig = Type.Object({
   databaseUrl: Type.Optional(Type.String()),
   databaseUser: Type.Optional(Type.String()),
   databasePassword: Type.Optional(Type.String()),
@@ -26,9 +21,7 @@ const BaseRawConfigProps = {
   userEventsTopicName: Type.Optional(Type.String()),
   temporalNamespace: Type.Optional(Type.String()),
   logConfig: BoolStr,
-};
-
-const BaseRawConfig = Type.Object(BaseRawConfigProps);
+});
 
 // Structure of application config.
 const RawConfig = Type.Union([
@@ -40,7 +33,12 @@ const RawConfig = Type.Union([
   ]),
   Type.Intersect([
     Type.Object({
-      nodeEnv: Type.Optional(NodeEnv),
+      nodeEnv: Type.Optional(
+        Type.Union([
+          Type.Literal(NodeEnvEnum.Development),
+          Type.Literal(NodeEnvEnum.Test),
+        ])
+      ),
     }),
     Type.Partial(BaseRawConfig),
   ]),
