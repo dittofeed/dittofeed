@@ -140,7 +140,7 @@ export default function config(): Config {
     CONFIG = loadConfig({
       schema: RawConfig,
       transform: parseRawConfig,
-      keys: Object.keys(BaseRawConfigProps),
+      keys: ["nodeEnv"].concat(Object.keys(BaseRawConfigProps)),
     });
     setConfigOnEnv(CONFIG);
 
