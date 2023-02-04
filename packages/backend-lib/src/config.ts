@@ -6,7 +6,7 @@ import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
 
 const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
 
-const BaseRawConfig = Type.Object({
+const BaseRawConfigProps = {
   databaseUrl: Type.Optional(Type.String()),
   databaseUser: Type.Optional(Type.String()),
   databasePassword: Type.Optional(Type.String()),
@@ -21,7 +21,9 @@ const BaseRawConfig = Type.Object({
   userEventsTopicName: Type.Optional(Type.String()),
   temporalNamespace: Type.Optional(Type.String()),
   logConfig: BoolStr,
-});
+};
+
+const BaseRawConfig = Type.Object(BaseRawConfigProps);
 
 // Structure of application config.
 const RawConfig = Type.Union([
