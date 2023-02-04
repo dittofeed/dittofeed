@@ -8,4 +8,3 @@ docker run \
     --network host \
     -v "$mnt" \
     "$image" bash -c "$cmd"
-
