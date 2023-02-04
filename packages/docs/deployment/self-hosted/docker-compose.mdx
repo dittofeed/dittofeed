@@ -1,3 +1,26 @@
 ---
 title: Self-Host with Docker Compose
 ---
+
+```bash
+git clone git@github.com:ideamarketinc/dittofeed.git
+cd dittofeed
+```
+
+```bash
+touch .env
+```
+
+```properties .env
+DATABASE_HOST=my-postgres-host
+DATABASE_USER=my-postgres-user
+DATABASE_PASSWORD=my-postgres-password
+CLICKHOUSE_USER=my-clickhouse-user
+CLICKHOUSE_PASSWORD=my-clickhouse-password
+```
+
+```bash
+docker compose -f docker-compose.prod.yaml up -d
+./scripts/bootstrap.sh
+```
+
