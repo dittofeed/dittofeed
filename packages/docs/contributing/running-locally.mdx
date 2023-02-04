@@ -1,0 +1,44 @@
+---
+title: Running Dittofeed Locally
+---
+
+To run Dittofeed locally, start docker compose, and then run the development bootstrap script.
+
+```bash
+docker compose --profile apps up -d
+# The bootstrap script will run migrations and seed data stores with default
+# resources.
+./scripts/bootstrap-dev.sh
+```
+
+## Developing a Dittofeed Service
+
+Dittofeed has three services.
+
+1. Dashboard
+2. API
+3. Worker
+
+If you want to run a particular application while making changes to it, you will
+want to run that application in the foreground outside of docker compose.
+
+### Dashboard
+
+```bash
+docker compose --profile apps-dashboard up -d
+yarn workspace dashboard dev
+```
+
+### API
+
+```bash
+docker compose --profile apps-api up -d
+yarn workspace api dev
+```
+
+### Worker
+
+```bash
+docker compose --profile apps-worker up -d
+yarn workspace worker dev
+```

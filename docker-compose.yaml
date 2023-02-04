@@ -10,7 +10,7 @@ services:
     build:
       context: .
       dockerfile: ./packages/dashboard/Dockerfile
-    profiles: ["apps"]
+    profiles: ["apps", "apps-api", "apps-worker"]
     volumes:
       - ./mnt:/dittofeed-mnt
     ports:
@@ -29,7 +29,7 @@ services:
     build:
       context: .
       dockerfile: ./packages/api/Dockerfile
-    profiles: ["apps"]
+    profiles: ["apps", "apps-dashboard", "apps-worker"]
     volumes:
       - ./mnt:/dittofeed-mnt
     ports:
@@ -48,7 +48,7 @@ services:
     build:
       context: .
       dockerfile: ./packages/worker/Dockerfile
-    profiles: ["apps"]
+    profiles: ["apps", "apps-dashboard", "apps-api"]
     volumes:
       - ./mnt:/dittofeed-mnt
     depends_on:
