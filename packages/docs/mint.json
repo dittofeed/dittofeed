@@ -47,8 +47,6 @@
             "deployment/self-hosted/kubernetes"
           ]
         },
-        "deployment/docker-compose",
-        "deployment/kubernetes",
         "deployment/cloud"
       ]
     },
