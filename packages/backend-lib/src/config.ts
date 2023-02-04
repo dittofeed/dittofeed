@@ -16,6 +16,10 @@ const RawConfig = Type.Object(
   {
     nodeEnv: Type.Optional(NodeEnv),
     databaseUrl: Type.Optional(Type.String()),
+    databaseUser: Type.Optional(Type.String()),
+    databasePassword: Type.Optional(Type.String()),
+    databaseHost: Type.Optional(Type.String()),
+    databasePort: Type.Optional(Type.String()),
     temporalAddress: Type.Optional(Type.String()),
     clickhouseHost: Type.Optional(Type.String()),
     clickhouseDatabase: Type.Optional(Type.String()),
@@ -68,14 +72,31 @@ export type Config = Overwrite<
   }
 >;
 
+function parseDatabaseUrl(rawConfig: RawConfig) {
+  if (rawConfig.databaseUrl) {
+    return rawConfig.databaseUrl;
+  }
+
+  if (
+    rawConfig.databaseUser &&
+    rawConfig.databasePassword &&
+    rawConfig.databaseHost &&
+    rawConfig.databasePort
+  ) {
+    return `postgresql://${rawConfig.databaseUser}:${rawConfig.databasePassword}@${rawConfig.databaseHost}:${rawConfig.databasePort}/dittofeed`;
+  }
+
+  return "postgresql://postgres:password@localhost:5432/dittofeed";
+}
+
 function parseRawConfig(rawConfig: RawConfig): Config {
+  const databaseUrl = parseDatabaseUrl(rawConfig);
+
   const parsedConfig: Config = {
     ...rawConfig,
     nodeEnv: rawConfig.nodeEnv ?? NodeEnvEnum.Development,
     temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
-    databaseUrl:
-      rawConfig.databaseUrl ??
-      "postgresql://postgres:password@localhost:5432/dittofeed",
+    databaseUrl,
     clickhouseDatabase: rawConfig.clickhouseDatabase ?? "dittofeed",
     clickhouseHost: rawConfig.clickhouseHost ?? "http://localhost:8123",
     kafkaBrokers: rawConfig.kafkaBrokers
