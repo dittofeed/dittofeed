@@ -78,6 +78,10 @@
     {
       "group": "User Guide",
       "pages": ["guide/git-workflows", "guide/testing", "guide/monitoring-alerting", "guide/license"]
+    },
+    {
+      "group": "Contributing",
+      "pages": ["contributing/running-locally"]
     }
   ],
   "footerSocials": {

@@ -181,4 +181,6 @@ export default async function bootstrap() {
       skipDuplicates: true,
     }),
   ]);
+
+  await kafkaAdmin.disconnect();
 }

@@ -1,15 +1,18 @@
 version: "3.9"
 x-backend-app-env: &backend-app-env
   DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed"
-  KAFKA_BROKERS: kafka:9092
+  KAFKA_BROKERS: "kafka:29092"
   CLICKHOUSE_HOST: "http://clickhouse-server:8123"
-  TEMPORAL_ADDRESS: temporal:7233
+  TEMPORAL_ADDRESS: "temporal:7233"
+  LOG_CONFIG: true
 services:
   dashboard:
     build:
       context: .
       dockerfile: ./packages/dashboard/Dockerfile
-    profiles: ["apps"]
+    profiles: ["apps", "apps-api", "apps-worker"]
+    volumes:
+      - ./mnt:/dittofeed-mnt
     ports:
       - "3000:3000"
     depends_on:
@@ -17,39 +20,46 @@ services:
       - temporal
       - kafka
       - api
+      - clickhouse-server
     environment:
       <<: *backend-app-env
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
   api: 
     build:
       context: .
       dockerfile: ./packages/api/Dockerfile
-    profiles: ["apps"]
+    profiles: ["apps", "apps-dashboard", "apps-worker"]
+    volumes:
+      - ./mnt:/dittofeed-mnt
     ports:
       - "3001:3001"
     depends_on:
       - postgres
+      - clickhouse-server
       - temporal
       - kafka
       - worker
     environment:
       <<: *backend-app-env
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
   worker: 
     build:
       context: .
       dockerfile: ./packages/worker/Dockerfile
-    profiles: ["apps"]
+    profiles: ["apps", "apps-dashboard", "apps-api"]
+    volumes:
+      - ./mnt:/dittofeed-mnt
     depends_on:
       - postgres
       - temporal
+      - clickhouse-server
       - kafka
     environment:
       <<: *backend-app-env
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
   temporal:
     container_name: temporal
     depends_on:
@@ -65,7 +75,7 @@ services:
     labels:
       kompose.volume.type: configMap
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
     ports:
       - 7233:7233
     volumes:
@@ -75,12 +85,14 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: password
+      POSTGRES_DB: dittofeed
+      POSTGRES_USER: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres:/var/lib/postgresql/data
     networks:
-      - temporal-network-dev
+      - dittofeed-network-dev
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     hostname: zookeeper
@@ -93,6 +105,8 @@ services:
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_logs:/var/lib/zookeeper/log
+    networks:
+      - dittofeed-network-dev
   kafka:
     image: confluentinc/cp-server:7.3.0
     user: root
@@ -115,6 +129,8 @@ services:
       KAFKA_DELETE_TOPIC_ENABLE: true
     volumes:
       - kafka:/var/lib/kafka/data
+    networks:
+      - dittofeed-network-dev
   clickhouse-server:
     image: clickhouse/clickhouse-server:22.9.5.25-alpine
     ports:
@@ -128,6 +144,8 @@ services:
       - ./packages/backend-lib/clickhouse_config.dev.xml:/etc/clickhouse-server/config.xml
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
+    networks:
+      - dittofeed-network-dev
 volumes:
   postgres:
   kafka:
@@ -137,6 +155,6 @@ volumes:
   clickhouse_log:
 
 networks:
-  temporal-network-dev:
+  dittofeed-network-dev:
     driver: bridge
-    name: temporal-network-dev
+    name: dittofeed-network-dev
