@@ -79,7 +79,6 @@ export const getServerSideProps: JourneyGetServerSideProps = async (ctx) => {
       value: [journeyResource],
     };
     const stateFromJourney = journeyToState(journeyResource);
-    console.log(JSON.stringify({ stateFromJourney, journeyResource }, null, 2));
     Object.assign(serverInitialState, stateFromJourney);
   } else {
     serverInitialState.journeyName = `New Journey - ${id}`;

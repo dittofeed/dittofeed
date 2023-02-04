@@ -407,7 +407,7 @@ export function journeyToState(
         edgeMultiMap
       );
       multiMapSet(
-        { parentId: node.id, type: "workflow" },
+        { parentId: trueId, type: "workflow" },
         node.variant.trueChild,
         edgeMultiMap
       );
@@ -417,7 +417,7 @@ export function journeyToState(
         edgeMultiMap
       );
       multiMapSet(
-        { parentId: node.id, type: "workflow" },
+        { parentId: falseId, type: "workflow" },
         node.variant.falseChild,
         edgeMultiMap
       );
