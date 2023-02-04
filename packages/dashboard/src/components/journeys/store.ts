@@ -335,6 +335,7 @@ export function journeyToState(
       type: "JourneyNode",
       nodeTypeProps: {
         type: JourneyNodeType.EntryNode,
+        segmentId: journey.definition.entryNode.segment,
       },
     },
   });
@@ -376,6 +377,7 @@ export function journeyToState(
             name: node.name ?? defaultSegmentSplitName,
             trueLabelNodeId: trueId,
             falseLabelNodeId: falseId,
+            segmentId: node.variant.segment,
           },
         },
       });
@@ -456,6 +458,7 @@ export function journeyToState(
             nodeTypeProps: {
               type: JourneyNodeType.MessageNode,
               name: `Message - ${node.id}`,
+              templateId: node.variant.templateId,
             },
           },
         };
