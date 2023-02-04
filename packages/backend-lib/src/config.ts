@@ -2,12 +2,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { inspect } from "util";
 import { Overwrite } from "utility-types";
 
-import {
-  loadConfig,
-  NodeEnv,
-  NodeEnvEnum,
-  setConfigOnEnv,
-} from "./config/loader";
+import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
 
 const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
 
@@ -40,7 +35,12 @@ const RawConfig = Type.Union([
   ]),
   Type.Intersect([
     Type.Object({
-      nodeEnv: Type.Optional(NodeEnv),
+      nodeEnv: Type.Optional(
+        Type.Union([
+          Type.Literal(NodeEnvEnum.Development),
+          Type.Literal(NodeEnvEnum.Test),
+        ])
+      ),
     }),
     Type.Partial(BaseRawConfig),
   ]),
