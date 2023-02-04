@@ -1,9 +1,14 @@
 version: "3.9"
 x-backend-app-env: &backend-app-env
-  DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed"
-  KAFKA_BROKERS: kafka:9092
-  CLICKHOUSE_HOST: "http://clickhouse-server:8123"
-  TEMPORAL_ADDRESS: temporal:7233
+  DATABASE_URL: DATABASE_URL
+  DATABASE_HOST: ${DATABASE_HOST:-postgres}
+  DATABASE_USER: DATABASE_USER
+  DATABASE_PASSWORD: DATABASE_PASSWORD
+  KAFKA_BROKERS: ${KAFKA_BROKERS:-"kafka:29092"}
+  CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-"http://clickhouse-server:8123"}
+  TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-"temporal:7233"}
+  CLICKHOUSE_USER: CLICKHOUSE_USER
+  CLICKHOUSE_PASSWORD: CLICKHOUSE_PASSWORD
 services:
   dashboard:
     image: dittofeed/dittofeed-dashboard:latest
@@ -47,10 +52,10 @@ services:
       - postgres
     environment:
       - DB=postgresql
-      - DB_PORT=${POSTGRES_PORT:-5432}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PWD=${POSTGRES_PASSWORD}
-      - POSTGRES_SEEDS=${POSTGRES_HOST:-postgres}
+      - DB_PORT=${DATABASE_PORT:-5432}
+      - POSTGRES_USER=${DATABASE_PORT}
+      - POSTGRES_PWD=${DATABASE_PASSWORD}
+      - POSTGRES_SEEDS=${DATABASE_HOST:-postgres}
     image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.18.5}
     labels:
       kompose.volume.type: configMap
@@ -64,8 +69,8 @@ services:
     image: postgres:${POSTGRES_VERSION:-15}
     restart: always
     environment:
-      - POSTGRES_PASSWORD
-      - POSTGRES_USER
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_USER=${DATABASE_USER}
       - POSTGRES_DB=dittofeed
     ports:
       - "5432:5432"
