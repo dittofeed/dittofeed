@@ -9,8 +9,8 @@ import {
 import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
-import { journeyToState } from "../../../../components/journeys/store";
 
+import { journeyToState } from "../../../../components/journeys/store";
 import {
   addInitialStateToProps,
   PreloadedState,
