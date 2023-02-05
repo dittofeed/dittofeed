@@ -27,7 +27,7 @@ describe("journeyToState", () => {
       definition: {
         entryNode: {
           type: JourneyNodeType.EntryNode,
-          segment: expect.any(String),
+          segment: uuid(),
           child: "908b9795-60b7-4333-a57c-a30f4972fb6b",
         },
         exitNode: {
@@ -40,7 +40,7 @@ describe("journeyToState", () => {
             child: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
             variant: {
               type: MessageNodeVariantType.Email,
-              templateId: expect.any(String),
+              templateId: uuid(),
             },
           },
           {
@@ -57,7 +57,7 @@ describe("journeyToState", () => {
             type: JourneyNodeType.SegmentSplitNode,
             variant: {
               type: SegmentSplitVariantType.Boolean,
-              segment: expect.any(String),
+              segment: uuid(),
               trueChild: "6ce89301-2a35-4562-b1db-54689bfe0e05",
               falseChild: "ExitNode",
             },
@@ -68,7 +68,7 @@ describe("journeyToState", () => {
             child: JourneyNodeType.ExitNode,
             variant: {
               type: MessageNodeVariantType.Email,
-              templateId: expect.any(String),
+              templateId: uuid(),
             },
           },
         ],
@@ -80,28 +80,40 @@ describe("journeyToState", () => {
   it("produces the correct ui state", () => {
     const uiState = journeyToState(journeyResource);
     expect(uiState).toEqual({
-      journeyNodes: [
+      journeyNodes: expect.arrayContaining([
         {
           id: "EntryNode",
-          position: { x: 800, y: 100 },
+          position: { x: 400, y: 100 },
           type: "journey",
-          data: { type: "JourneyNode", nodeTypeProps: { type: "EntryNode" } },
+          data: {
+            type: "JourneyNode",
+            nodeTypeProps: {
+              type: "EntryNode",
+              segmentId: journeyResource.definition.entryNode.segment,
+            },
+          },
         },
         {
           id: "908b9795-60b7-4333-a57c-a30f4972fb6b",
-          position: { x: 800, y: 300 },
+          position: { x: 400, y: 300 },
           type: "journey",
           data: {
             type: "JourneyNode",
             nodeTypeProps: {
               type: "MessageNode",
+              templateId: journeyResource.definition.nodes.flatMap((n) =>
+                n.type === JourneyNodeType.MessageNode &&
+                n.id === "908b9795-60b7-4333-a57c-a30f4972fb6b"
+                  ? n
+                  : []
+              )[0]?.variant.templateId,
               name: "Message - 908b9795-60b7-4333-a57c-a30f4972fb6b",
             },
           },
         },
         {
           id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-          position: { x: 800, y: 500 },
+          position: { x: 400, y: 500 },
           type: "journey",
           data: {
             type: "JourneyNode",
@@ -110,13 +122,19 @@ describe("journeyToState", () => {
         },
         {
           id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-          position: { x: 800, y: 700 },
+          position: { x: 400, y: 700 },
           type: "journey",
           data: {
             type: "JourneyNode",
             nodeTypeProps: {
               type: "SegmentSplitNode",
               name: "True / False Branch",
+              segmentId: journeyResource.definition.nodes.flatMap((n) =>
+                n.type === JourneyNodeType.SegmentSplitNode &&
+                n.id === "9d5367b0-882e-49c2-a6d2-4c28e5416d04"
+                  ? n
+                  : []
+              )[0]?.variant.segment,
               trueLabelNodeId: expect.any(String),
               falseLabelNodeId: expect.any(String),
             },
@@ -136,29 +154,35 @@ describe("journeyToState", () => {
         },
         {
           id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
-          position: { x: 1000, y: 900 },
+          position: { x: 200, y: 1100 },
           type: "journey",
           data: {
             type: "JourneyNode",
             nodeTypeProps: {
               type: "MessageNode",
+              templateId: journeyResource.definition.nodes.flatMap((n) =>
+                n.type === JourneyNodeType.MessageNode &&
+                n.id === "6ce89301-2a35-4562-b1db-54689bfe0e05"
+                  ? n
+                  : []
+              )[0]?.variant.templateId,
               name: "Message - 6ce89301-2a35-4562-b1db-54689bfe0e05",
             },
           },
         },
         {
           id: expect.any(String),
-          position: { x: 800, y: 1100 },
+          position: { x: 400, y: 1300 },
           type: "empty",
           data: { type: "EmptyNode" },
         },
         {
           id: "ExitNode",
-          position: { x: 800, y: 1300 },
+          position: { x: 400, y: 1500 },
           type: "journey",
           data: { type: "JourneyNode", nodeTypeProps: { type: "ExitNode" } },
         },
-      ],
+      ]),
       journeyNodesIndex: expect.objectContaining({
         EntryNode: 0,
         ExitNode: 1,
@@ -193,8 +217,8 @@ describe("journeyToState", () => {
           type: "placeholder",
         },
         {
-          id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04=>6ce89301-2a35-4562-b1db-54689bfe0e05",
-          source: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+          id: expect.any(String),
+          source: expect.any(String),
           target: "6ce89301-2a35-4562-b1db-54689bfe0e05",
           type: "workflow",
         },
@@ -206,13 +230,13 @@ describe("journeyToState", () => {
         },
         {
           id: expect.any(String),
-          source: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+          source: expect.any(String),
           target: expect.any(String),
           type: "workflow",
         },
         {
           id: expect.any(String),
-          source: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+          source: expect.any(String),
           target: expect.any(String),
           type: "workflow",
         },

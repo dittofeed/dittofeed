@@ -335,6 +335,7 @@ export function journeyToState(
       type: "JourneyNode",
       nodeTypeProps: {
         type: JourneyNodeType.EntryNode,
+        segmentId: journey.definition.entryNode.segment,
       },
     },
   });
@@ -376,6 +377,7 @@ export function journeyToState(
             name: node.name ?? defaultSegmentSplitName,
             trueLabelNodeId: trueId,
             falseLabelNodeId: falseId,
+            segmentId: node.variant.segment,
           },
         },
       });
@@ -405,7 +407,7 @@ export function journeyToState(
         edgeMultiMap
       );
       multiMapSet(
-        { parentId: node.id, type: "workflow" },
+        { parentId: trueId, type: "workflow" },
         node.variant.trueChild,
         edgeMultiMap
       );
@@ -415,7 +417,7 @@ export function journeyToState(
         edgeMultiMap
       );
       multiMapSet(
-        { parentId: node.id, type: "workflow" },
+        { parentId: falseId, type: "workflow" },
         node.variant.falseChild,
         edgeMultiMap
       );
@@ -456,6 +458,7 @@ export function journeyToState(
             nodeTypeProps: {
               type: JourneyNodeType.MessageNode,
               name: `Message - ${node.id}`,
+              templateId: node.variant.templateId,
             },
           },
         };

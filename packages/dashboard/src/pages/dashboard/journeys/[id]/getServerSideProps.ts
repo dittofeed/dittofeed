@@ -10,6 +10,7 @@ import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
 
+import { journeyToState } from "../../../../components/journeys/store";
 import {
   addInitialStateToProps,
   PreloadedState,
@@ -33,7 +34,7 @@ export const getServerSideProps: JourneyGetServerSideProps = async (ctx) => {
     await prisma.journey.findUnique({
       where: { id },
     }),
-    prisma.workspace.findFirst({
+    prisma.workspace.findUnique({
       where: { id: workspaceId },
     }),
     prisma.segment.findMany({
@@ -77,7 +78,8 @@ export const getServerSideProps: JourneyGetServerSideProps = async (ctx) => {
       type: CompletionStatus.Successful,
       value: [journeyResource],
     };
-    serverInitialState.journeyName = journeyResource.name;
+    const stateFromJourney = journeyToState(journeyResource);
+    Object.assign(serverInitialState, stateFromJourney);
   } else {
     serverInitialState.journeyName = `New Journey - ${id}`;
   }
