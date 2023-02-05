@@ -35,7 +35,6 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
 
-
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder /app/packages/dashboard/.next/standalone/packages/dashboard ./
 COPY --from=builder /app/packages/dashboard/.next/standalone/node_modules ./node_modules

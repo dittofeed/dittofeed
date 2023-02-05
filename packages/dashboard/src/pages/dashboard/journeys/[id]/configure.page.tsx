@@ -14,8 +14,13 @@ import InfoTooltip from "../../../../components/infoTooltip";
 import JourneyLayout from "../../../../components/journeys/layout";
 import { useAppStore } from "../../../../lib/appStore";
 import config from "../../../../lib/config";
+import {
+  JourneyGetServerSideProps,
+  journeyGetServerSideProps,
+} from "./getServerSideProps";
 
-export { getServerSideProps } from "./getServerSideProps";
+export const getServerSideProps: JourneyGetServerSideProps = (ctx) =>
+  journeyGetServerSideProps(ctx);
 
 interface StatusCopy {
   label: string;
