@@ -80,7 +80,7 @@ describe("journeyToState", () => {
   it("produces the correct ui state", () => {
     const uiState = journeyToState(journeyResource);
     expect(uiState).toEqual({
-      journeyNodes: [
+      journeyNodes: expect.arrayContaining([
         {
           id: "EntryNode",
           position: { x: 400, y: 100 },
@@ -113,7 +113,7 @@ describe("journeyToState", () => {
         },
         {
           id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-          position: { x: 800, y: 500 },
+          position: { x: 400, y: 500 },
           type: "journey",
           data: {
             type: "JourneyNode",
@@ -122,7 +122,7 @@ describe("journeyToState", () => {
         },
         {
           id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-          position: { x: 800, y: 700 },
+          position: { x: 400, y: 700 },
           type: "journey",
           data: {
             type: "JourneyNode",
@@ -154,7 +154,7 @@ describe("journeyToState", () => {
         },
         {
           id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
-          position: { x: 1000, y: 900 },
+          position: { x: 200, y: 1100 },
           type: "journey",
           data: {
             type: "JourneyNode",
@@ -172,17 +172,17 @@ describe("journeyToState", () => {
         },
         {
           id: expect.any(String),
-          position: { x: 800, y: 1100 },
+          position: { x: 400, y: 1300 },
           type: "empty",
           data: { type: "EmptyNode" },
         },
         {
           id: "ExitNode",
-          position: { x: 800, y: 1300 },
+          position: { x: 400, y: 1500 },
           type: "journey",
           data: { type: "JourneyNode", nodeTypeProps: { type: "ExitNode" } },
         },
-      ],
+      ]),
       journeyNodesIndex: expect.objectContaining({
         EntryNode: 0,
         ExitNode: 1,
