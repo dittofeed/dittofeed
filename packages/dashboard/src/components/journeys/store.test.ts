@@ -185,11 +185,11 @@ describe("journeyToState", () => {
       ]),
       journeyNodesIndex: expect.objectContaining({
         EntryNode: 0,
-        ExitNode: 1,
-        "908b9795-60b7-4333-a57c-a30f4972fb6b": 2,
-        "6940ebec-a2ca-47dc-a356-42dc0245dd2e": 3,
-        "9d5367b0-882e-49c2-a6d2-4c28e5416d04": 4,
-        "6ce89301-2a35-4562-b1db-54689bfe0e05": 7,
+        "908b9795-60b7-4333-a57c-a30f4972fb6b": 1,
+        "6940ebec-a2ca-47dc-a356-42dc0245dd2e": 2,
+        "9d5367b0-882e-49c2-a6d2-4c28e5416d04": 3,
+        "6ce89301-2a35-4562-b1db-54689bfe0e05": 5,
+        ExitNode: 7,
       }),
       journeyEdges: [
         {
@@ -468,6 +468,7 @@ describe("journeyDefinitionFromState", () => {
           id: "908b9795-60b7-4333-a57c-a30f4972fb6b",
           type: JourneyNodeType.MessageNode,
           child: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
+          name: "Message 1",
           variant: {
             type: MessageNodeVariantType.Email,
             templateId: expect.any(String),
@@ -495,6 +496,7 @@ describe("journeyDefinitionFromState", () => {
         {
           id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
           type: JourneyNodeType.MessageNode,
+          name: "Message 2",
           child: JourneyNodeType.ExitNode,
           variant: {
             type: MessageNodeVariantType.Email,
