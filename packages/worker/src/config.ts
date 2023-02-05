@@ -19,7 +19,11 @@ let CONFIG: Config | null = null;
 
 export default function config(): Config {
   if (!CONFIG) {
-    CONFIG = loadConfig({ schema: RawConfig, transform: parseRawConfig });
+    CONFIG = loadConfig({
+      schema: RawConfig,
+      transform: parseRawConfig,
+      keys: [],
+    });
     setConfigOnEnv(CONFIG);
   }
   return CONFIG;
