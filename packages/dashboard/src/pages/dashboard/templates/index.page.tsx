@@ -30,7 +30,7 @@ export const getServerSideProps: GetServerSideProps<
   const workspaceId = backendConfig().defaultWorkspaceId;
 
   const emails: EmailTemplateResource[] = (
-    await prisma.emailTemplate.findMany({
+    await prisma().emailTemplate.findMany({
       where: { workspaceId },
     })
   ).map((e) => ({

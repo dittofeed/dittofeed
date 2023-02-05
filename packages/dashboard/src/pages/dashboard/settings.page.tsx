@@ -52,7 +52,7 @@ export const getServerSideProps: GetServerSideProps<
   const [emailProviders, defaultEmailProviderRecord, workspace] =
     await Promise.all([
       (
-        await prisma.emailProvider.findMany({
+        await prisma().emailProvider.findMany({
           where: { workspaceId },
         })
       ).map(({ id, type, apiKey }) => {
@@ -66,10 +66,10 @@ export const getServerSideProps: GetServerSideProps<
         }
         return { type: providerType, id, apiKey, workspaceId };
       }),
-      prisma.defaultEmailProvider.findFirst({
+      prisma().defaultEmailProvider.findFirst({
         where: { workspaceId },
       }),
-      prisma.workspace.findFirst({
+      prisma().workspace.findFirst({
         where: { id: workspaceId },
       }),
     ]);

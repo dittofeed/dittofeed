@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import prismaConfig from "backend-lib/src/prisma/config";
+import buildConfig from "backend-lib/src/prisma/buildConfig";
 
 // This package is intended to be consumable by Next.js projects.
 //
@@ -12,18 +12,23 @@ import prismaConfig from "backend-lib/src/prisma/config";
 declare global {
   // allow global `var` declarations
   // eslint-disable-next-line no-var, vars-on-top
-  var prisma: PrismaClient | undefined;
+  var PRISMA: PrismaClient | null;
 }
 
 // eslint-disable-next-line import/no-mutable-exports
-let prisma: PrismaClient;
+let PRISMA: PrismaClient | null = null;
 
-if (process.env.NODE_ENV === "production") {
-  prisma = new PrismaClient(prismaConfig);
-} else {
-  if (!global.prisma) {
-    global.prisma = new PrismaClient(prismaConfig);
+function prisma(): PrismaClient {
+  if (!PRISMA) {
+    if (process.env.NODE_ENV === "production") {
+      PRISMA = new PrismaClient(buildConfig());
+    } else {
+      if (!global.PRISMA) {
+        global.PRISMA = new PrismaClient(buildConfig());
+      }
+      PRISMA = global.PRISMA;
+    }
   }
-  prisma = global.prisma;
+  return PRISMA;
 }
 export default prisma;

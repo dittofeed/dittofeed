@@ -27,19 +27,19 @@ export const getServerSideProps: GetServerSideProps<
   switch (ctx.params?.type) {
     case "emails": {
       messageResourceType = TemplateResourceType.Email;
-      const {id} = ctx.params;
+      const { id } = ctx.params;
 
       if (typeof id !== "string" || !validate(id)) {
         serverInitialState = defaultEmailMessageState;
         break;
       }
       const [emailMessage, workspace] = await Promise.all([
-        prisma.emailTemplate.findUnique({
+        prisma().emailTemplate.findUnique({
           where: {
             id,
           },
         }),
-        prisma.workspace.findUnique({
+        prisma().workspace.findUnique({
           where: {
             id: workspaceId,
           },

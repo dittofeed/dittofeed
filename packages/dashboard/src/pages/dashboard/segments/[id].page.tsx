@@ -122,12 +122,12 @@ export const getServerSideProps: GetServerSideProps<
   }
 
   const [segment, workspace] = await Promise.all([
-    prisma.segment.findUnique({
+    prisma().segment.findUnique({
       where: {
         id,
       },
     }),
-    prisma.workspace.findUnique({
+    prisma().workspace.findUnique({
       where: {
         id: workspaceId,
       },

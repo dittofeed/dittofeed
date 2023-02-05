@@ -2,8 +2,13 @@ import { useRouter } from "next/router";
 
 import JourneysBuilder from "../../../../components/journeys/journeysBuilder";
 import JourneyLayout from "../../../../components/journeys/layout";
+import {
+  JourneyGetServerSideProps,
+  journeyGetServerSideProps,
+} from "./getServerSideProps";
 
-export { getServerSideProps } from "./getServerSideProps";
+export const getServerSideProps: JourneyGetServerSideProps = (ctx) =>
+  journeyGetServerSideProps(ctx);
 
 function Journey() {
   const path = useRouter();

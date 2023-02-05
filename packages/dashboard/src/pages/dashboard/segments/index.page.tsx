@@ -9,7 +9,6 @@ import {
   Typography,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
-import { toSegmentResource } from "backend-lib/src/segments";
 import { CompletionStatus, SegmentResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -24,10 +23,12 @@ import { AppState } from "../../../lib/types";
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState
 > = async () => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
+  // Dynamically import to avoid transitively importing backend config at build time.
+  const { toSegmentResource } = await import("backend-lib/src/segments");
 
+  const workspaceId = backendConfig().defaultWorkspaceId;
   const segmentResources: SegmentResource[] = (
-    await prisma.segment.findMany({
+    await prisma().segment.findMany({
       where: { workspaceId },
     })
   ).flatMap((segment) => {
@@ -37,7 +38,6 @@ export const getServerSideProps: GetServerSideProps<
     }
     return result.value;
   });
-
   const segments: AppState["segments"] = {
     type: CompletionStatus.Successful,
     value: segmentResources,

@@ -1,6 +1,4 @@
 import backendConfig from "backend-lib/src/config";
-import { toJourneyResource } from "backend-lib/src/journeys";
-import { toSegmentResource } from "backend-lib/src/segments";
 import {
   CompletionStatus,
   MessageTemplateResource,
@@ -18,9 +16,18 @@ import {
 } from "../../../../lib/appStore";
 import prisma from "../../../../lib/prisma";
 
-type JourneyGetServerSideProps = GetServerSideProps<PropsWithInitialState>;
+export type JourneyGetServerSideProps =
+  GetServerSideProps<PropsWithInitialState>;
 
-export const getServerSideProps: JourneyGetServerSideProps = async (ctx) => {
+export const journeyGetServerSideProps: JourneyGetServerSideProps = async (
+  ctx
+) => {
+  // Dynamically import to avoid transitively importing backend config at build time.
+  const [{ toJourneyResource }, { toSegmentResource }] = await Promise.all([
+    import("backend-lib/src/journeys"),
+    import("backend-lib/src/segments"),
+  ]);
+
   const workspaceId = backendConfig().defaultWorkspaceId;
   const id = ctx.params?.id;
 
@@ -31,16 +38,16 @@ export const getServerSideProps: JourneyGetServerSideProps = async (ctx) => {
   }
 
   const [journey, workspace, segments, emailTemplates] = await Promise.all([
-    await prisma.journey.findUnique({
+    await prisma().journey.findUnique({
       where: { id },
     }),
-    prisma.workspace.findUnique({
+    prisma().workspace.findUnique({
       where: { id: workspaceId },
     }),
-    prisma.segment.findMany({
+    prisma().segment.findMany({
       where: { workspaceId },
     }),
-    prisma.emailTemplate.findMany({
+    prisma().emailTemplate.findMany({
       where: { workspaceId },
     }),
   ]);

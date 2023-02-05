@@ -35,7 +35,7 @@ export const getServerSideProps: GetServerSideProps<
 
   const [journeys, workspace] = await Promise.all([
     (
-      await prisma.journey.findMany({
+      await prisma().journey.findMany({
         where: { workspaceId },
       })
     ).flatMap(({ id, definition, name, status }) => {
@@ -52,7 +52,7 @@ export const getServerSideProps: GetServerSideProps<
       };
       return resource;
     }),
-    prisma.workspace.findFirst({
+    prisma().workspace.findFirst({
       where: { id: workspaceId },
     }),
   ]);

@@ -14,7 +14,7 @@ const BaseRawConfigProps = {
   databasePort: Type.Optional(Type.String()),
   temporalAddress: Type.Optional(Type.String()),
   clickhouseHost: Type.String(),
-  clickhouseDatabase: Type.String(),
+  clickhouseDatabase: Type.Optional(Type.String()),
   clickhouseUsername: Type.String(),
   clickhousePassword: Type.String(),
   kafkaBrokers: Type.String(),
@@ -24,6 +24,16 @@ const BaseRawConfigProps = {
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
+
+function inspectConfig(u: unknown) {
+  console.log(
+    `Initialized with config:\n${inspect(u, {
+      colors: true,
+      depth: null,
+      sorted: true,
+    })}`
+  );
+}
 
 // Structure of application config.
 const RawConfig = Type.Union([
@@ -145,13 +155,7 @@ export default function config(): Config {
     setConfigOnEnv(CONFIG);
 
     if (CONFIG.logConfig) {
-      console.log(
-        `Initialized with config:\n${inspect(CONFIG, {
-          colors: true,
-          depth: null,
-          sorted: true,
-        })}`
-      );
+      console.log(`Initialized with config:\n${inspectConfig(CONFIG)}`);
     }
   }
   return CONFIG;

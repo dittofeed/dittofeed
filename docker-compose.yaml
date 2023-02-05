@@ -1,5 +1,6 @@
 version: "3.9"
 x-backend-app-env: &backend-app-env
+  NODE_ENV: development
   DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed"
   KAFKA_BROKERS: "kafka:29092"
   CLICKHOUSE_HOST: "http://clickhouse-server:8123"
