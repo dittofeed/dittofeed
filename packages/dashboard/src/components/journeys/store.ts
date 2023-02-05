@@ -288,6 +288,7 @@ export function journeyDefinitionFromState({
           id: current.id,
           type: JourneyNodeType.MessageNode,
           child: nextNode.id,
+          name: props.name,
           variant: {
             type: MessageNodeVariantType.Email,
             templateId: props.templateId,
@@ -324,7 +325,7 @@ interface EdgeIntent {
 export function journeyToState(
   journey: JourneyResource
 ): JourneyStateForResource {
-  const journeyNodes: Node<NodeData>[] = [];
+  let journeyNodes: Node<NodeData>[] = [];
   const journeyEdges: Edge<EdgeData>[] = [];
 
   journeyNodes.push({
@@ -457,7 +458,7 @@ export function journeyToState(
             type: "JourneyNode",
             nodeTypeProps: {
               type: JourneyNodeType.MessageNode,
-              name: `Message - ${node.id}`,
+              name: node.name ?? `Message - ${node.id}`,
               templateId: node.variant.templateId,
             },
           },
@@ -511,12 +512,13 @@ export function journeyToState(
       });
     }
   });
+  journeyNodes = layoutNodes(journeyNodes, journeyEdges);
 
   const journeyNodesIndex: Record<string, number> =
     buildNodesIndex(journeyNodes);
 
   return {
-    journeyNodes: layoutNodes(journeyNodes, journeyEdges),
+    journeyNodes,
     journeyNodesIndex,
     journeyEdges,
     journeyName: journey.name,
