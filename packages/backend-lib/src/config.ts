@@ -15,7 +15,7 @@ const BaseRawConfigProps = {
   temporalAddress: Type.Optional(Type.String()),
   clickhouseHost: Type.String(),
   clickhouseDatabase: Type.Optional(Type.String()),
-  clickhouseUsername: Type.String(),
+  clickhouseUser: Type.String(),
   clickhousePassword: Type.String(),
   kafkaBrokers: Type.String(),
   userEventsTopicName: Type.Optional(Type.String()),
