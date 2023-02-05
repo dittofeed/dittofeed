@@ -1,5 +1,5 @@
 # Rebuild the source code only when needed
-FROM node:16.14.2 AS builder
+FROM node:18.4.0 AS builder
 
 WORKDIR /service
 

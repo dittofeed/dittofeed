@@ -1,5 +1,5 @@
 # Install dependencies only when needed
-FROM node:16.14.2 AS deps
+FROM node:18.4.0 AS deps
 
 WORKDIR /app
 
