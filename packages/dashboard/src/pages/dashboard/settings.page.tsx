@@ -1,4 +1,4 @@
-import { ArrowBackIos, MailOutline } from "@mui/icons-material";
+import { ArrowBackIos, East, MailOutline } from "@mui/icons-material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
@@ -130,6 +130,16 @@ const menuItems: MenuItemGroup[] = [
         description: "Exit settings, and return to the home page.",
       },
       {
+        id: "data-sources",
+        title: "Data Sources",
+        type: "item",
+        url: "/dashboard/settings#data-sources-title",
+        target: true,
+        icon: East,
+        description:
+          "Configure data source settings to send user data to Dittofeed.",
+      },
+      {
         id: "email",
         title: "Email",
         type: "item",
@@ -180,6 +190,29 @@ export const useSettingsStore = create(
     },
   }))
 );
+
+function SegmentIoConfig() {
+  const sharedSecret = "";
+  const updateSegmentIoSharedSecret = (s: string) => {};
+  const handleSubmit = () => {};
+
+  const upToDate = false;
+  return (
+    <Stack sx={{ padding: 1 }} spacing={1}>
+      <TextField
+        label="Shared Secret"
+        variant="outlined"
+        onChange={(e) => {
+          updateSegmentIoSharedSecret(e.target.value);
+        }}
+        value={sharedSecret}
+      />
+      <Button onClick={handleSubmit} variant="contained" disabled={upToDate}>
+        {upToDate ? "Saved" : "Save"}
+      </Button>
+    </Stack>
+  );
+}
 
 function SendGridConfig() {
   const emailProviders = useAppStore((store) => store.emailProviders);
@@ -288,13 +321,46 @@ const Settings: NextPage<
   InferGetServerSidePropsType<typeof getServerSideProps>
 > = function Settings() {
   const [sendgridOpen, setSendgridOpen] = useState<boolean>(true);
+  const [segmentIoOpen, setSegmentIoOpen] = useState<boolean>(true);
   const handleSendgridOpen = () => {
     setSendgridOpen((open) => !open);
+  };
+  const handleSegmentIoOpen = () => {
+    setSegmentIoOpen((open) => !open);
   };
 
   return (
     <SettingsLayout>
       <Stack spacing={1} sx={{ padding: 2, width: 500 }}>
+        <Typography
+          id="data-sources-title"
+          variant="h2"
+          sx={{ paddingLeft: 1 }}
+        >
+          Data Sources
+        </Typography>
+        <Box sx={{ paddingLeft: 1 }}>
+          In order to use Dittofeed, one must configure at least 1 source of
+          user data.
+        </Box>
+        <Box sx={{ width: "100%" }}>
+          <Button variant="text" onClick={handleSegmentIoOpen}>
+            <Typography variant="h4" sx={{ color: "black" }}>
+              Using Segment.io
+            </Typography>
+          </Button>
+          <ExpandMore
+            expand={segmentIoOpen}
+            onClick={handleSegmentIoOpen}
+            aria-expanded={segmentIoOpen}
+            aria-label="show more"
+          >
+            <ExpandMoreIcon />
+          </ExpandMore>
+        </Box>
+        <Collapse in={segmentIoOpen} unmountOnExit>
+          <SegmentIoConfig />
+        </Collapse>
         <Typography id="email-title" variant="h2" sx={{ paddingLeft: 1 }}>
           Email Providers
         </Typography>
