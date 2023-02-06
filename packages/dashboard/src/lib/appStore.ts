@@ -217,6 +217,27 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             emailProviders.value.push(emailProvider);
             return state;
           }),
+        upsertDataSourceConfiguration: (dataSourceConfiguration) =>
+          set((state) => {
+            let { dataSourceConfigurations } = state;
+
+            if (dataSourceConfigurations.type !== CompletionStatus.Successful) {
+              dataSourceConfigurations = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.dataSourceConfigurations = dataSourceConfigurations;
+            }
+
+            for (const existingProvider of dataSourceConfigurations.value) {
+              if (dataSourceConfiguration.id === existingProvider.id) {
+                Object.assign(existingProvider, dataSourceConfiguration);
+                return state;
+              }
+            }
+            dataSourceConfigurations.value.push(dataSourceConfiguration);
+            return state;
+          }),
         upsertJourney: (journey) =>
           set((state) => {
             let { journeys } = state;
