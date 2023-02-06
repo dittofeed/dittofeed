@@ -86,7 +86,7 @@ export default async function settingsController(fastify: FastifyInstance) {
           break;
         default:
           throw new Error(
-            `unknown email provider record type ${  emailProvider.type}`
+            `unknown email provider record type ${emailProvider.type}`
           );
       }
       const resource: EmailProviderResource = {
