@@ -2,6 +2,8 @@ import { Static, Type } from "@sinclair/typebox";
 import { inspect } from "util";
 import { Overwrite } from "utility-types";
 
+import { URL } from "url";
+
 import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
 
 const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
@@ -85,9 +87,19 @@ export type Config = Overwrite<
   defaultUserEventsTableVersion: string;
 };
 
+const defaultDbParams: Record<string, string> = {
+  connect_timeout: "60",
+};
+
 function parseDatabaseUrl(rawConfig: RawConfig) {
   if (rawConfig.databaseUrl) {
-    return rawConfig.databaseUrl;
+    const url = new URL(rawConfig.databaseUrl);
+
+    url.search = new URLSearchParams({
+      ...defaultDbParams,
+      ...Object.fromEntries(url.searchParams),
+    }).toString();
+    return url.toString();
   }
 
   if (
@@ -96,7 +108,14 @@ function parseDatabaseUrl(rawConfig: RawConfig) {
     rawConfig.databaseHost &&
     rawConfig.databasePort
   ) {
-    return `postgresql://${rawConfig.databaseUser}:${rawConfig.databasePassword}@${rawConfig.databaseHost}:${rawConfig.databasePort}/dittofeed`;
+    const url = new URL(
+      `postgresql://${rawConfig.databaseUser}:${rawConfig.databasePassword}@${rawConfig.databaseHost}:${rawConfig.databasePort}/dittofeed`
+    );
+    url.search = new URLSearchParams({
+      ...defaultDbParams,
+    }).toString();
+
+    return url.toString();
   }
 
   if (rawConfig.nodeEnv === "production") {
@@ -105,7 +124,14 @@ function parseDatabaseUrl(rawConfig: RawConfig) {
     );
   }
 
-  return "postgresql://postgres:password@localhost:5432/dittofeed";
+  const url = new URL(
+    "postgresql://postgres:password@localhost:5432/dittofeed"
+  );
+  url.search = new URLSearchParams({
+    ...defaultDbParams,
+  }).toString();
+
+  return url.toString();
 }
 
 function parseRawConfig(rawConfig: RawConfig): Config {
