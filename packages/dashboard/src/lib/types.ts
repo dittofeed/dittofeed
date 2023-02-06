@@ -1,5 +1,6 @@
 import { Draft } from "immer";
 import {
+  DataSourceConfigurationResource,
   DefaultEmailProviderResource,
   EphemeralRequestStatus,
   JourneyNodeType,
@@ -29,11 +30,18 @@ export type AppState = {
     Error
   >;
   emailProviders: RequestStatus<PersistedEmailProvider[], Error>;
+  dataSourceConfigurations: RequestStatus<
+    DataSourceConfigurationResource[],
+    Error
+  >;
 } & PageStoreContents;
 
 export interface AppActions {
   toggleDrawer: () => void;
   upsertEmailProvider: (emailProvider: PersistedEmailProvider) => void;
+  upsertDataSourceConfiguration: (
+    dataSource: DataSourceConfigurationResource
+  ) => void;
   upsertMessage: (message: MessageTemplateResource) => void;
   upsertSegment: (segment: SegmentResource) => void;
   upsertJourney: (journey: JourneyResource) => void;
