@@ -4,8 +4,7 @@ x-clickhouse-credentials: &clickhouse-credentials
   CLICKHOUSE_PASSWORD: password
 x-backend-app-env: &backend-app-env
   <<: *clickhouse-credentials
-  NODE_ENV: development
-  DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed"
+  DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed?connect_timeout=60"
   KAFKA_BROKERS: "kafka:29092"
   CLICKHOUSE_HOST: "http://clickhouse-server:8123"
   TEMPORAL_ADDRESS: "temporal:7233"
