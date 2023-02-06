@@ -1,8 +1,7 @@
 import { Static, Type } from "@sinclair/typebox";
+import { URL } from "url";
 import { inspect } from "util";
 import { Overwrite } from "utility-types";
-
-import { URL } from "url";
 
 import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
 
