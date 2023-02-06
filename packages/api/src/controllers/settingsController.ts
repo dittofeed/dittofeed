@@ -30,7 +30,7 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id, workspaceId, variant } = request.body;
+      const { workspaceId, variant } = request.body;
 
       let resource: DataSourceConfigurationResource;
       switch (variant.type) {
@@ -41,12 +41,11 @@ export default async function settingsController(fastify: FastifyInstance) {
                 "Invalid payload. Segment variant musti included sharedSecret value.",
             });
           }
-          await prisma.segmentIOConfiguration.upsert({
+          const { id } = await prisma.segmentIOConfiguration.upsert({
             where: {
-              id,
+              workspaceId,
             },
             create: {
-              id,
               workspaceId,
               sharedSecret: variant.sharedSecret,
             },

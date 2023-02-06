@@ -472,18 +472,10 @@ export type DataSourceConfigurationResource = Static<
   typeof DataSourceConfigurationResource
 >;
 
-export const UpsertDataSourceConfigurationResource = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  variant: Type.Union(
-    DataSourceConfigurationVariant.anyOf.map((v) =>
-      Type.Intersect([
-        Type.Pick(v, ["type"]),
-        Type.Partial(Type.Omit(v, ["type"])),
-      ])
-    )
-  ),
-});
+export const UpsertDataSourceConfigurationResource = Type.Omit(
+  DataSourceConfigurationResource,
+  ["id"]
+);
 
 export type UpsertDataSourceConfigurationResource = Static<
   typeof UpsertDataSourceConfigurationResource

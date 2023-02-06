@@ -16,10 +16,13 @@ import backendConfig from "backend-lib/src/config";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
+  DataSourceConfigurationResource,
+  DataSourceVariantType,
   EmailProviderResource,
   EmailProviderType,
   EphemeralRequestStatus,
   PersistedEmailProvider,
+  UpsertDataSourceConfigurationResource,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -162,8 +165,8 @@ function SettingsLayout(
 interface SettingsState {
   sendgridProviderRequest: EphemeralRequestStatus<Error>;
   sendgridProviderApiKey: string;
-  segmentIoProviderRequest: EphemeralRequestStatus<Error>;
-  segmentIoProviderSharedSecret: string;
+  segmentIoRequest: EphemeralRequestStatus<Error>;
+  segmentIoSharedSecret: string;
 }
 
 interface SettingsActions {
@@ -171,18 +174,16 @@ interface SettingsActions {
   updateSendgridProviderRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
-  updateSegmentIoProviderSharedSecret: (key: string) => void;
-  updateSegmentIoProviderRequest: (
-    request: EphemeralRequestStatus<Error>
-  ) => void;
+  updateSegmentIoSharedSecret: (key: string) => void;
+  updateSegmentIoRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
 export const useSettingsStore = create(
   immer<SettingsActions & SettingsState>((set) => ({
-    segmentIoProviderRequest: {
+    segmentIoRequest: {
       type: CompletionStatus.NotStarted,
     },
-    segmentIoProviderSharedSecret: "",
+    segmentIoSharedSecret: "",
     sendgridProviderRequest: {
       type: CompletionStatus.NotStarted,
     },
@@ -198,23 +199,93 @@ export const useSettingsStore = create(
         state.sendgridProviderRequest = request;
       });
     },
-    updateSegmentIoProviderSharedSecret: (key) => {
+    updateSegmentIoSharedSecret: (key) => {
       set((state) => {
-        state.segmentIoProviderSharedSecret = key;
+        state.segmentIoSharedSecret = key;
       });
     },
-    updateSegmentIoProviderRequest: (request) => {
+    updateSegmentIoRequest: (request) => {
       set((state) => {
-        state.segmentIoProviderRequest = request;
+        state.segmentIoRequest = request;
       });
     },
   }))
 );
 
 function SegmentIoConfig() {
-  const sharedSecret = "";
-  const updateSegmentIoSharedSecret = (s: string) => {};
-  const handleSubmit = () => {};
+  const sharedSecret = useSettingsStore((store) => store.segmentIoSharedSecret);
+  const segmentIoRequest = useSettingsStore((store) => store.segmentIoRequest);
+  const updateSegmentIoRequest = useSettingsStore(
+    (store) => store.updateSegmentIoRequest
+  );
+  const workspace = useAppStore((store) => store.workspace);
+  const upsertDataSourceConfiguration = useAppStore(
+    (store) => store.upsertDataSourceConfiguration
+  );
+  const updateSegmentIoSharedSecret = useSettingsStore(
+    (store) => store.updateSegmentIoSharedSecret
+  );
+  const workspaceId =
+    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+
+  const handleSubmit = async () => {
+    if (segmentIoRequest.type === CompletionStatus.InProgress || !workspaceId) {
+      return;
+    }
+
+    updateSegmentIoRequest({
+      type: CompletionStatus.InProgress,
+    });
+    let response: AxiosResponse;
+    try {
+      const body: UpsertDataSourceConfigurationResource = {
+        workspaceId,
+        variant: {
+          type: DataSourceVariantType.SegmentIO,
+          sharedSecret,
+        },
+      };
+
+      response = await axios.put(
+        `${config.apiProtocol}://${config.apiHost}/api/settings/email-providers`,
+        body,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    } catch (e) {
+      const error = e as Error;
+
+      updateSegmentIoRequest({
+        type: CompletionStatus.Failed,
+        error,
+      });
+      return;
+    }
+    const dataSourceResult = schemaValidate(
+      response.data,
+      DataSourceConfigurationResource
+    );
+    if (dataSourceResult.isErr()) {
+      console.error(
+        "unable to parse segment data source",
+        dataSourceResult.error
+      );
+
+      updateSegmentIoRequest({
+        type: CompletionStatus.Failed,
+        error: new Error(JSON.stringify(dataSourceResult.error)),
+      });
+      return;
+    }
+
+    upsertDataSourceConfiguration(dataSourceResult.value);
+    updateSegmentIoRequest({
+      type: CompletionStatus.NotStarted,
+    });
+  };
 
   const upToDate = false;
   return (
