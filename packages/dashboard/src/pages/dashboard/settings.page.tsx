@@ -162,6 +162,8 @@ function SettingsLayout(
 interface SettingsState {
   sendgridProviderRequest: EphemeralRequestStatus<Error>;
   sendgridProviderApiKey: string;
+  segmentIoProviderRequest: EphemeralRequestStatus<Error>;
+  segmentIoProviderSharedSecret: string;
 }
 
 interface SettingsActions {
@@ -169,10 +171,18 @@ interface SettingsActions {
   updateSendgridProviderRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
+  updateSegmentIoProviderSharedSecret: (key: string) => void;
+  updateSegmentIoProviderRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
 }
 
 export const useSettingsStore = create(
   immer<SettingsActions & SettingsState>((set) => ({
+    segmentIoProviderRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    segmentIoProviderSharedSecret: "",
     sendgridProviderRequest: {
       type: CompletionStatus.NotStarted,
     },
@@ -186,6 +196,16 @@ export const useSettingsStore = create(
     updateSendgridProviderRequest: (request) => {
       set((state) => {
         state.sendgridProviderRequest = request;
+      });
+    },
+    updateSegmentIoProviderSharedSecret: (key) => {
+      set((state) => {
+        state.segmentIoProviderSharedSecret = key;
+      });
+    },
+    updateSegmentIoProviderRequest: (request) => {
+      set((state) => {
+        state.segmentIoProviderRequest = request;
       });
     },
   }))
