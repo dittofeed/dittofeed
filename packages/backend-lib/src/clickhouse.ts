@@ -8,7 +8,7 @@ import config from "./config";
 const {
   clickhouseHost: host,
   clickhouseDatabase: database,
-  clickhouseUsername: username,
+  clickhouseUser: username,
   clickhousePassword: password,
 } = config();
 
