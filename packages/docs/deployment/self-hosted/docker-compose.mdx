@@ -37,4 +37,10 @@ docker compose -f docker-compose.prod.yaml up -d
 ./scripts/bootstrap.sh
 ```
 
-Note that this will start Postgres, Clickhouse, and Kafka dependencies. You may decide to use a third party vendor for these data stores. In that case, you should disable the corresponding data store in the `docker-compose.prod.yaml` file.
+<Warning>
+The above command will start Postgres, Clickhouse, and Kafka dependencies. You may decide to use a third party vendor for these data stores. In that case, you should disable the corresponding services in the `docker-compose.prod.yaml` file.
+</Warning>
+
+<Card title="Self-Host with AWS Cloudformation" href="/deployment/self-hosted/cloudformation">
+  Deploy Dittofeed to AWS with docker compose and Cloudformation. *Coming Soon*
+</Card>
