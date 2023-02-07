@@ -31,14 +31,15 @@
   "navigation": [
     {
       "group": "Home",
-      "pages": ["introduction", "getting-started", {
-        "group": "Examples",
-        "pages": ["examples/segment-sendgrid"]
-      }]
+      "pages": [
+        "introduction",
+        "getting-started"
+      ]
     },
     {
       "group": "Deployment",
-      "pages": ["deployment/self-hosted", 
+      "pages": [
+        "deployment/self-hosted",
         {
           "group": "Self-Hosting Options",
           "pages": [
@@ -46,7 +47,8 @@
             "deployment/self-hosted/kubernetes"
           ]
         },
-      "deployment/docker-compose", "deployment/kubernetes", "deployment/cloud"]
+        "deployment/cloud"
+      ]
     },
     {
       "group": "Integrations",
@@ -54,16 +56,12 @@
         "integrations/sources",
         {
           "group": "Data Source Types",
-          "pages": [
-            "integrations/sources/segment"
-          ]
+          "pages": ["integrations/sources/segment"]
         },
         "integrations/destinations",
         {
           "group": "Destination Types",
-          "pages": [
-            "integrations/destinations/segment"
-          ]
+          "pages": ["integrations/destinations/segment"]
         },
         "integrations/channels",
         {
@@ -77,7 +75,12 @@
     },
     {
       "group": "User Guide",
-      "pages": ["guide/git-workflows", "guide/testing", "guide/monitoring-alerting", "guide/license"]
+      "pages": [
+        "guide/git-workflows",
+        "guide/testing",
+        "guide/monitoring-alerting",
+        "guide/license"
+      ]
     },
     {
       "group": "Contributing",
