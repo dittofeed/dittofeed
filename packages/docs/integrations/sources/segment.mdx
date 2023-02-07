@@ -2,7 +2,7 @@
 title: Using Segment.io as a Source
 ---
 
-[Segment](https://segment.com/) is one of the most popular available "customer data platform"s - or "CDP" for short. Segment serves as a centralized repository user data, sourced from, and available to a variety of marketing, and analytics platforms - including Dittofeed.
+[Segment](https://segment.com/) is one of the most popular available "customer data platform"s - "CDP" for short. Segment serves as a centralized repository of user data, sourced from, and available to a variety of marketing, and analytics platforms - including Dittofeed.
 
 Feed user data from Segment into Dittofeed to start sending users messages.
 
@@ -13,4 +13,20 @@ You can send a self-hosted Dittofeed installation user data with a Segment webho
 <Info>Segment's [webhook destination documentation](https://segment.com/docs/connections/destinations/catalog/webhooks/).</Info>
 <Tip>Check out Dittofeed's [guide on self-hosting](/deployment/self-hosted).</Tip>
 
-Dittofeed receives segment data from its `POST /webhooks/segment` endpoint. To receive data from Segment, this path needs to be exposed to the internet by public dns.
+Dittofeed receives segment data from its `POST /api/webhooks/segment` endpoint. To receive data from Segment, this path needs to be exposed to the internet by public dns.
+
+Configure Segment to send its event payloads to your Dittofeed installation, on the `/api/webhooks/segment` path. For example, `https://my-dittofeed-host.com/api/webhooks/segment`.
+
+![Segment Webhook URL](/images/segment-webhook-url.png)
+
+Next add a shared secret to Segment.
+
+<Tip> You can generate shared secrets using password generators, like [1password's](https://1password.com/password-generator/)</Tip>
+
+![Segment Shared Secret](/images/segment-shared-secret.png)
+
+Finally, add that same shared secret to Dittofeed on the settings page `/dashboard/settings#data-sources-title`.
+
+![Dittofeed Segment Shared Secret](/images/dittofeed-segment-shared-secret.png)
+
+That's it. At this point your Segment payloads should be flowing through Dittofeed.
