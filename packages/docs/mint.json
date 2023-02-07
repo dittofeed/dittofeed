@@ -84,6 +84,10 @@
       ]
     },
     {
+      "group": "API Reference",
+      "pages": ["/api-reference/endpoints/webhooks/segment"]
+    },
+    {
       "group": "Contributing",
       "pages": ["contributing/running-locally"]
     }
