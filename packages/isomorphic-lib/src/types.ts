@@ -451,6 +451,36 @@ export type UpsertEmailProviderResource = Static<
   typeof UpsertEmailProviderResource
 >;
 
+export enum DataSourceVariantType {
+  SegmentIO = "SegmentIO",
+}
+
+export const SegmentIODataSource = Type.Object({
+  type: Type.Literal(DataSourceVariantType.SegmentIO),
+  sharedSecret: Type.String(),
+});
+
+export const DataSourceConfigurationVariant = Type.Union([SegmentIODataSource]);
+
+export const DataSourceConfigurationResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  variant: DataSourceConfigurationVariant,
+});
+
+export type DataSourceConfigurationResource = Static<
+  typeof DataSourceConfigurationResource
+>;
+
+export const UpsertDataSourceConfigurationResource = Type.Omit(
+  DataSourceConfigurationResource,
+  ["id"]
+);
+
+export type UpsertDataSourceConfigurationResource = Static<
+  typeof UpsertDataSourceConfigurationResource
+>;
+
 export type DeepPartial<T> = T extends object
   ? {
       [P in keyof T]?: DeepPartial<T[P]>;

@@ -113,6 +113,9 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         workspace: {
           type: CompletionStatus.NotStarted,
         },
+        dataSourceConfigurations: {
+          type: CompletionStatus.NotStarted,
+        },
         defaultEmailProvider: {
           type: CompletionStatus.NotStarted,
         },
@@ -157,9 +160,13 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           }),
         upsertMessage: (message) =>
           set((state) => {
-            const { messages } = state;
+            let { messages } = state;
             if (messages.type !== CompletionStatus.Successful) {
-              return state;
+              messages = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.messages = messages;
             }
             for (const existingMessage of messages.value) {
               if (message.id === existingMessage.id) {
@@ -172,9 +179,13 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           }),
         upsertSegment: (segment) =>
           set((state) => {
-            const { segments } = state;
+            let { segments } = state;
             if (segments.type !== CompletionStatus.Successful) {
-              return state;
+              segments = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.segments = segments;
             }
             for (const existing of segments.value) {
               if (segment.id === existing.id) {
@@ -187,10 +198,16 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           }),
         upsertEmailProvider: (emailProvider) =>
           set((state) => {
-            const { emailProviders } = state;
+            let { emailProviders } = state;
+
             if (emailProviders.type !== CompletionStatus.Successful) {
-              return state;
+              emailProviders = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.emailProviders = emailProviders;
             }
+
             for (const existingProvider of emailProviders.value) {
               if (emailProvider.id === existingProvider.id) {
                 Object.assign(existingProvider, emailProvider);
@@ -200,11 +217,36 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             emailProviders.value.push(emailProvider);
             return state;
           }),
+        upsertDataSourceConfiguration: (dataSourceConfiguration) =>
+          set((state) => {
+            let { dataSourceConfigurations } = state;
+
+            if (dataSourceConfigurations.type !== CompletionStatus.Successful) {
+              dataSourceConfigurations = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.dataSourceConfigurations = dataSourceConfigurations;
+            }
+
+            for (const existingProvider of dataSourceConfigurations.value) {
+              if (dataSourceConfiguration.id === existingProvider.id) {
+                Object.assign(existingProvider, dataSourceConfiguration);
+                return state;
+              }
+            }
+            dataSourceConfigurations.value.push(dataSourceConfiguration);
+            return state;
+          }),
         upsertJourney: (journey) =>
           set((state) => {
-            const { journeys } = state;
+            let { journeys } = state;
             if (journeys.type !== CompletionStatus.Successful) {
-              return state;
+              journeys = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.journeys = journeys;
             }
             for (const existing of journeys.value) {
               if (journey.id === existing.id) {

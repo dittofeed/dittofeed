@@ -1,15 +1,74 @@
+/* eslint-disable arrow-body-style */
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { Type } from "@sinclair/typebox";
 import prisma from "backend-lib/src/prisma";
 import { EmailProvider } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import {
+  DataSourceConfigurationResource,
+  DataSourceVariantType,
   EmailProviderResource,
   EmailProviderType,
+  UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
 } from "isomorphic-lib/src/types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function settingsController(fastify: FastifyInstance) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/data-sources",
+    {
+      schema: {
+        description: "Create or update email provider settings",
+        body: UpsertDataSourceConfigurationResource,
+        response: {
+          200: DataSourceConfigurationResource,
+          400: Type.Object({
+            error: Type.String(),
+          }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, variant } = request.body;
+
+      let resource: DataSourceConfigurationResource;
+      switch (variant.type) {
+        case DataSourceVariantType.SegmentIO: {
+          if (!variant.sharedSecret) {
+            return reply.status(400).send({
+              error:
+                "Invalid payload. Segment variant musti included sharedSecret value.",
+            });
+          }
+          const { id } = await prisma.segmentIOConfiguration.upsert({
+            where: {
+              workspaceId,
+            },
+            create: {
+              workspaceId,
+              sharedSecret: variant.sharedSecret,
+            },
+            update: {
+              sharedSecret: variant.sharedSecret,
+            },
+          });
+
+          resource = {
+            id,
+            workspaceId,
+            variant: {
+              type: variant.type,
+              sharedSecret: variant.sharedSecret,
+            },
+          };
+        }
+      }
+
+      return reply.status(200).send(resource);
+    }
+  );
+
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/email-providers",
     {
@@ -86,7 +145,7 @@ export default async function settingsController(fastify: FastifyInstance) {
           break;
         default:
           throw new Error(
-            `unknown email provider record type ${  emailProvider.type}`
+            `unknown email provider record type ${emailProvider.type}`
           );
       }
       const resource: EmailProviderResource = {
