@@ -491,7 +491,7 @@ const Settings: NextPage<
         <Box sx={{ width: "100%" }}>
           <Button variant="text" onClick={handleSendgridOpen}>
             <Typography variant="h4" sx={{ color: "black" }}>
-              Using Sendgrid
+              Using SendGrid
             </Typography>
           </Button>
           <ExpandMore
