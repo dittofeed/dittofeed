@@ -5,6 +5,10 @@
     "dark": "/logo/dark.png",
     "light": "/logo/light.png"
   },
+  "api": {
+    "baseUrl": "https://api.dittofeed.com",
+    "hidePlayground": true
+  },
   "favicon": "/favicon.png",
   "colors": {
     "primary": "#0069ED",
@@ -31,10 +35,7 @@
   "navigation": [
     {
       "group": "Home",
-      "pages": [
-        "introduction",
-        "getting-started"
-      ]
+      "pages": ["introduction", "getting-started"]
     },
     {
       "group": "Deployment",
@@ -85,7 +86,7 @@
     },
     {
       "group": "API Reference",
-      "pages": ["/api-reference/endpoints/webhooks/segment"]
+      "pages": ["api-reference/endpoints/webhooks/segment"]
     },
     {
       "group": "Contributing",

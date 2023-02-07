@@ -13,9 +13,9 @@ You can send a self-hosted Dittofeed installation user data with a Segment webho
 <Info>Segment's [webhook destination documentation](https://segment.com/docs/connections/destinations/catalog/webhooks/).</Info>
 <Tip>Check out Dittofeed's [guide on self-hosting](/deployment/self-hosted).</Tip>
 
-Dittofeed receives segment data from its `POST /api/webhooks/segment` endpoint. To receive data from Segment, this path needs to be exposed to the internet by public dns.
+Dittofeed receives segment data from its `POST /api/webhooks/segment` [endpoint](/api-reference/endpoints/webhooks/segment). To receive data from Segment, this path needs to be exposed to the internet by public dns.
 
-Configure Segment to send its event payloads to your Dittofeed installation, on the `/api/webhooks/segment` path. For example, `https://my-dittofeed-host.com/api/webhooks/segment`.
+Configure Segment to send its event payloads to your Dittofeed installation, [`POST /api/webhooks/segment`](/api-reference/endpoints/webhooks/segment). For example, `https://my-dittofeed-host.com/api/webhooks/segment`.
 
 ![Segment Webhook URL](/images/segment-webhook-url.png)
 

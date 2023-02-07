@@ -1,1 +1,957 @@
-{"openapi":"3.0.3","info":{"title":"Dittofeed API","description":"Interactive API documentation.","version":"0.0.0"},"components":{"schemas":{}},"paths":{"/api/":{"get":{"description":"Application health check endpoint.","responses":{"200":{"description":"Default Response"}}}},"/api/webhooks/segment":{"post":{"description":"Used to consume segment.io webhook payloads. Must be exposed publicly to the internet.","requestBody":{"content":{"application/json":{"schema":{"additionalProperties":true,"type":"object","properties":{"messageId":{"type":"string"},"timestamp":{"type":"string"}},"required":["messageId","timestamp"]}}},"required":true},"parameters":[{"schema":{"type":"string"},"in":"header","name":"x-signature","required":true},{"schema":{"type":"string"},"in":"header","name":"df-workspace-id","required":false,"description":"Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"}],"responses":{"200":{"description":"Default Response"}}}},"/api/journeys/":{"put":{"description":"Create or update a journey.","requestBody":{"content":{"application/json":{"schema":{"type":"object","properties":{"workspaceId":{"type":"string"},"name":{"type":"string"},"status":{"anyOf":[{"type":"string","enum":["NotStarted"]},{"type":"string","enum":["Running"]},{"type":"string","enum":["Paused"]}]},"definition":{"type":"object","properties":{"entryNode":{"title":"Entry Node","description":"The first node in a journey, which limits it to a specific segment.","type":"object","properties":{"type":{"type":"string","enum":["EntryNode"]},"segment":{"type":"string"},"child":{"type":"string"}},"required":["type","segment","child"]},"exitNode":{"title":"Exit Node","description":"Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.","type":"object","properties":{"type":{"type":"string","enum":["ExitNode"]}},"required":["type"]},"nodes":{"type":"array","items":{"anyOf":[{"title":"Delay Node","description":"Delays a users progression through the journey for either a set amount of time, or until a specific date time.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["DelayNode"]},"variant":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Second"]},"seconds":{"type":"number"}},"required":["type","seconds"]}]},"child":{"type":"string"}},"required":["id","type","variant","child"]},{"title":"Rate Limit Node","description":"Used to limit the frequency with which users are contacted by a given Journey.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["RateLimitNode"]}},"required":["id","type"]},{"title":"Segment Split Node","description":"Used to split users among audiences, based on the behavior and attributes.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["SegmentSplitNode"]},"variant":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Boolean"]},"segment":{"type":"string"},"trueChild":{"type":"string"},"falseChild":{"type":"string"}},"required":["type","segment","trueChild","falseChild"]}]},"name":{"type":"string"}},"required":["id","type","variant"]},{"title":"Message Node","description":"Used to contact a user on a message channel.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["MessageNode"]},"name":{"type":"string"},"variant":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Email"]},"templateId":{"type":"string"}},"required":["type","templateId"]}]},"child":{"type":"string"}},"required":["id","type","variant","child"]},{"title":"Experiment Split Node","description":"Used to split users among experiment paths, to test their effectiveness.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["ExperimentSplitNode"]}},"required":["id","type"]}]}}},"required":["entryNode","exitNode","nodes"]},"id":{"type":"string"}},"required":["id"]}}},"required":true},"responses":{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"string"},"workspaceId":{"type":"string"},"name":{"type":"string"},"status":{"anyOf":[{"type":"string","enum":["NotStarted"]},{"type":"string","enum":["Running"]},{"type":"string","enum":["Paused"]}]},"definition":{"type":"object","properties":{"entryNode":{"title":"Entry Node","description":"The first node in a journey, which limits it to a specific segment.","type":"object","properties":{"type":{"type":"string","enum":["EntryNode"]},"segment":{"type":"string"},"child":{"type":"string"}},"required":["type","segment","child"]},"exitNode":{"title":"Exit Node","description":"Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.","type":"object","properties":{"type":{"type":"string","enum":["ExitNode"]}},"required":["type"]},"nodes":{"type":"array","items":{"anyOf":[{"title":"Delay Node","description":"Delays a users progression through the journey for either a set amount of time, or until a specific date time.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["DelayNode"]},"variant":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Second"]},"seconds":{"type":"number"}},"required":["type","seconds"]}]},"child":{"type":"string"}},"required":["id","type","variant","child"]},{"title":"Rate Limit Node","description":"Used to limit the frequency with which users are contacted by a given Journey.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["RateLimitNode"]}},"required":["id","type"]},{"title":"Segment Split Node","description":"Used to split users among audiences, based on the behavior and attributes.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["SegmentSplitNode"]},"variant":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Boolean"]},"segment":{"type":"string"},"trueChild":{"type":"string"},"falseChild":{"type":"string"}},"required":["type","segment","trueChild","falseChild"]}]},"name":{"type":"string"}},"required":["id","type","variant"]},{"title":"Message Node","description":"Used to contact a user on a message channel.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["MessageNode"]},"name":{"type":"string"},"variant":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Email"]},"templateId":{"type":"string"}},"required":["type","templateId"]}]},"child":{"type":"string"}},"required":["id","type","variant","child"]},{"title":"Experiment Split Node","description":"Used to split users among experiment paths, to test their effectiveness.","type":"object","properties":{"id":{"type":"string"},"type":{"type":"string","enum":["ExperimentSplitNode"]}},"required":["id","type"]}]}}},"required":["entryNode","exitNode","nodes"]}},"required":["id","workspaceId","name","status","definition"]}}}}}}},"/api/segments/":{"put":{"description":"Create or update an audience segment within journeys.","requestBody":{"content":{"application/json":{"schema":{"type":"object","properties":{"workspaceId":{"type":"string"},"name":{"type":"string"},"definition":{"type":"object","properties":{"entryNode":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Trait"]},"id":{"type":"string"},"path":{"type":"string"},"operator":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Within"]},"windowSeconds":{"type":"number"}},"required":["type","windowSeconds"]},{"type":"object","properties":{"type":{"type":"string","enum":["Equals"]},"value":{"anyOf":[{"type":"string"},{"type":"number"}]}},"required":["type","value"]}]}},"required":["type","id","path","operator"]},{"type":"object","properties":{"type":{"type":"string","enum":["And"]},"id":{"type":"string"},"children":{"type":"array","items":{"type":"string"}}},"required":["type","id","children"]},{"type":"object","properties":{"type":{"type":"string","enum":["Or"]},"id":{"type":"string"},"children":{"type":"array","items":{"type":"string"}}},"required":["type","id","children"]}]},"nodes":{"type":"array","items":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Trait"]},"id":{"type":"string"},"path":{"type":"string"},"operator":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Within"]},"windowSeconds":{"type":"number"}},"required":["type","windowSeconds"]},{"type":"object","properties":{"type":{"type":"string","enum":["Equals"]},"value":{"anyOf":[{"type":"string"},{"type":"number"}]}},"required":["type","value"]}]}},"required":["type","id","path","operator"]},{"type":"object","properties":{"type":{"type":"string","enum":["And"]},"id":{"type":"string"},"children":{"type":"array","items":{"type":"string"}}},"required":["type","id","children"]},{"type":"object","properties":{"type":{"type":"string","enum":["Or"]},"id":{"type":"string"},"children":{"type":"array","items":{"type":"string"}}},"required":["type","id","children"]}]}}},"required":["entryNode","nodes"]},"id":{"type":"string"}},"required":["id"]}}},"required":true},"responses":{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"string"},"workspaceId":{"type":"string"},"name":{"type":"string"},"definition":{"type":"object","properties":{"entryNode":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Trait"]},"id":{"type":"string"},"path":{"type":"string"},"operator":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Within"]},"windowSeconds":{"type":"number"}},"required":["type","windowSeconds"]},{"type":"object","properties":{"type":{"type":"string","enum":["Equals"]},"value":{"anyOf":[{"type":"string"},{"type":"number"}]}},"required":["type","value"]}]}},"required":["type","id","path","operator"]},{"type":"object","properties":{"type":{"type":"string","enum":["And"]},"id":{"type":"string"},"children":{"type":"array","items":{"type":"string"}}},"required":["type","id","children"]},{"type":"object","properties":{"type":{"type":"string","enum":["Or"]},"id":{"type":"string"},"children":{"type":"array","items":{"type":"string"}}},"required":["type","id","children"]}]},"nodes":{"type":"array","items":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Trait"]},"id":{"type":"string"},"path":{"type":"string"},"operator":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Within"]},"windowSeconds":{"type":"number"}},"required":["type","windowSeconds"]},{"type":"object","properties":{"type":{"type":"string","enum":["Equals"]},"value":{"anyOf":[{"type":"string"},{"type":"number"}]}},"required":["type","value"]}]}},"required":["type","id","path","operator"]},{"type":"object","properties":{"type":{"type":"string","enum":["And"]},"id":{"type":"string"},"children":{"type":"array","items":{"type":"string"}}},"required":["type","id","children"]},{"type":"object","properties":{"type":{"type":"string","enum":["Or"]},"id":{"type":"string"},"children":{"type":"array","items":{"type":"string"}}},"required":["type","id","children"]}]}}},"required":["entryNode","nodes"]}},"required":["id","workspaceId","name","definition"]}}}}}}},"/api/settings/data-sources":{"put":{"description":"Create or update email provider settings","requestBody":{"content":{"application/json":{"schema":{"type":"object","properties":{"workspaceId":{"type":"string"},"variant":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["SegmentIO"]},"sharedSecret":{"type":"string"}},"required":["type","sharedSecret"]}]}},"required":["workspaceId","variant"]}}},"required":true},"responses":{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"string"},"workspaceId":{"type":"string"},"variant":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["SegmentIO"]},"sharedSecret":{"type":"string"}},"required":["type","sharedSecret"]}]}},"required":["id","workspaceId","variant"]}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"]}}}}}}},"/api/settings/email-providers":{"put":{"description":"Create or update email provider settings","requestBody":{"content":{"application/json":{"schema":{"anyOf":[{"type":"object","properties":{"workspaceId":{"type":"string"},"type":{"type":"string","enum":["SendGrid"]},"apiKey":{"type":"string"},"id":{"type":"string"}},"required":["id"]},{"type":"object","properties":{"id":{"type":"string"},"apiKey":{"type":"string"},"workspaceId":{"type":"string"},"type":{"type":"string","enum":["SendGrid"]}},"required":["workspaceId","type"]}]}}}},"responses":{"200":{"description":"Default Response","content":{"application/json":{"schema":{"anyOf":[{"anyOf":[{"type":"object","properties":{"id":{"type":"string"},"workspaceId":{"type":"string"},"type":{"type":"string","enum":["SendGrid"]},"apiKey":{"type":"string"}},"required":["id","workspaceId","type","apiKey"]}]},{"type":"object","properties":{"type":{"type":"string","enum":["Test"]}},"required":["type"]}]}}}}}}},"/api/content/messages":{"put":{"description":"Create or update email provider settings","requestBody":{"content":{"application/json":{"schema":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Email"]},"workspaceId":{"type":"string"},"name":{"type":"string"},"from":{"type":"string"},"subject":{"type":"string"},"body":{"type":"string"},"id":{"type":"string"}},"required":["id"]}]}}}},"responses":{"200":{"description":"Default Response","content":{"application/json":{"schema":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["Email"]},"workspaceId":{"type":"string"},"id":{"type":"string"},"name":{"type":"string"},"from":{"type":"string"},"subject":{"type":"string"},"body":{"type":"string"}},"required":["type","workspaceId","id","name","from","subject","body"]}]}}}}}}}},"servers":[{"url":"http://localhost"}]}
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Dittofeed API",
+    "description": "Interactive API documentation.",
+    "version": "0.0.0"
+  },
+  "components": { "schemas": {} },
+  "paths": {
+    "/api/": {
+      "get": {
+        "description": "Application health check endpoint.",
+        "responses": { "200": { "description": "Default Response" } }
+      }
+    },
+    "/api/webhooks/segment": {
+      "post": {
+        "description": "Used to consume segment.io webhook payloads. Must be exposed publicly to the internet.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "properties": {
+                  "messageId": { "type": "string" },
+                  "timestamp": { "type": "string" }
+                },
+                "required": ["messageId", "timestamp"]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": { "type": "string" },
+            "in": "header",
+            "name": "x-signature",
+            "required": true
+          },
+          {
+            "schema": { "type": "string" },
+            "in": "header",
+            "name": "df-workspace-id",
+            "required": false,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+          }
+        ],
+        "responses": { "200": { "description": "Default Response" } }
+      }
+    },
+    "/api/journeys/": {
+      "put": {
+        "description": "Create or update a journey.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": { "type": "string" },
+                  "name": { "type": "string" },
+                  "status": {
+                    "anyOf": [
+                      { "type": "string", "enum": ["NotStarted"] },
+                      { "type": "string", "enum": ["Running"] },
+                      { "type": "string", "enum": ["Paused"] }
+                    ]
+                  },
+                  "definition": {
+                    "type": "object",
+                    "properties": {
+                      "entryNode": {
+                        "title": "Entry Node",
+                        "description": "The first node in a journey, which limits it to a specific segment.",
+                        "type": "object",
+                        "properties": {
+                          "type": { "type": "string", "enum": ["EntryNode"] },
+                          "segment": { "type": "string" },
+                          "child": { "type": "string" }
+                        },
+                        "required": ["type", "segment", "child"]
+                      },
+                      "exitNode": {
+                        "title": "Exit Node",
+                        "description": "Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.",
+                        "type": "object",
+                        "properties": {
+                          "type": { "type": "string", "enum": ["ExitNode"] }
+                        },
+                        "required": ["type"]
+                      },
+                      "nodes": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "title": "Delay Node",
+                              "description": "Delays a users progression through the journey for either a set amount of time, or until a specific date time.",
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "string" },
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["DelayNode"]
+                                },
+                                "variant": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["Second"]
+                                        },
+                                        "seconds": { "type": "number" }
+                                      },
+                                      "required": ["type", "seconds"]
+                                    }
+                                  ]
+                                },
+                                "child": { "type": "string" }
+                              },
+                              "required": ["id", "type", "variant", "child"]
+                            },
+                            {
+                              "title": "Rate Limit Node",
+                              "description": "Used to limit the frequency with which users are contacted by a given Journey.",
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "string" },
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["RateLimitNode"]
+                                }
+                              },
+                              "required": ["id", "type"]
+                            },
+                            {
+                              "title": "Segment Split Node",
+                              "description": "Used to split users among audiences, based on the behavior and attributes.",
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "string" },
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["SegmentSplitNode"]
+                                },
+                                "variant": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["Boolean"]
+                                        },
+                                        "segment": { "type": "string" },
+                                        "trueChild": { "type": "string" },
+                                        "falseChild": { "type": "string" }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "segment",
+                                        "trueChild",
+                                        "falseChild"
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "name": { "type": "string" }
+                              },
+                              "required": ["id", "type", "variant"]
+                            },
+                            {
+                              "title": "Message Node",
+                              "description": "Used to contact a user on a message channel.",
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "string" },
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["MessageNode"]
+                                },
+                                "name": { "type": "string" },
+                                "variant": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["Email"]
+                                        },
+                                        "templateId": { "type": "string" }
+                                      },
+                                      "required": ["type", "templateId"]
+                                    }
+                                  ]
+                                },
+                                "child": { "type": "string" }
+                              },
+                              "required": ["id", "type", "variant", "child"]
+                            },
+                            {
+                              "title": "Experiment Split Node",
+                              "description": "Used to split users among experiment paths, to test their effectiveness.",
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "string" },
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["ExperimentSplitNode"]
+                                }
+                              },
+                              "required": ["id", "type"]
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["entryNode", "exitNode", "nodes"]
+                  },
+                  "id": { "type": "string" }
+                },
+                "required": ["id"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "workspaceId": { "type": "string" },
+                    "name": { "type": "string" },
+                    "status": {
+                      "anyOf": [
+                        { "type": "string", "enum": ["NotStarted"] },
+                        { "type": "string", "enum": ["Running"] },
+                        { "type": "string", "enum": ["Paused"] }
+                      ]
+                    },
+                    "definition": {
+                      "type": "object",
+                      "properties": {
+                        "entryNode": {
+                          "title": "Entry Node",
+                          "description": "The first node in a journey, which limits it to a specific segment.",
+                          "type": "object",
+                          "properties": {
+                            "type": { "type": "string", "enum": ["EntryNode"] },
+                            "segment": { "type": "string" },
+                            "child": { "type": "string" }
+                          },
+                          "required": ["type", "segment", "child"]
+                        },
+                        "exitNode": {
+                          "title": "Exit Node",
+                          "description": "Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.",
+                          "type": "object",
+                          "properties": {
+                            "type": { "type": "string", "enum": ["ExitNode"] }
+                          },
+                          "required": ["type"]
+                        },
+                        "nodes": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "title": "Delay Node",
+                                "description": "Delays a users progression through the journey for either a set amount of time, or until a specific date time.",
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "string" },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["DelayNode"]
+                                  },
+                                  "variant": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["Second"]
+                                          },
+                                          "seconds": { "type": "number" }
+                                        },
+                                        "required": ["type", "seconds"]
+                                      }
+                                    ]
+                                  },
+                                  "child": { "type": "string" }
+                                },
+                                "required": ["id", "type", "variant", "child"]
+                              },
+                              {
+                                "title": "Rate Limit Node",
+                                "description": "Used to limit the frequency with which users are contacted by a given Journey.",
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "string" },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["RateLimitNode"]
+                                  }
+                                },
+                                "required": ["id", "type"]
+                              },
+                              {
+                                "title": "Segment Split Node",
+                                "description": "Used to split users among audiences, based on the behavior and attributes.",
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "string" },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["SegmentSplitNode"]
+                                  },
+                                  "variant": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["Boolean"]
+                                          },
+                                          "segment": { "type": "string" },
+                                          "trueChild": { "type": "string" },
+                                          "falseChild": { "type": "string" }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "segment",
+                                          "trueChild",
+                                          "falseChild"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "name": { "type": "string" }
+                                },
+                                "required": ["id", "type", "variant"]
+                              },
+                              {
+                                "title": "Message Node",
+                                "description": "Used to contact a user on a message channel.",
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "string" },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["MessageNode"]
+                                  },
+                                  "name": { "type": "string" },
+                                  "variant": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["Email"]
+                                          },
+                                          "templateId": { "type": "string" }
+                                        },
+                                        "required": ["type", "templateId"]
+                                      }
+                                    ]
+                                  },
+                                  "child": { "type": "string" }
+                                },
+                                "required": ["id", "type", "variant", "child"]
+                              },
+                              {
+                                "title": "Experiment Split Node",
+                                "description": "Used to split users among experiment paths, to test their effectiveness.",
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "string" },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["ExperimentSplitNode"]
+                                  }
+                                },
+                                "required": ["id", "type"]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": ["entryNode", "exitNode", "nodes"]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "workspaceId",
+                    "name",
+                    "status",
+                    "definition"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/segments/": {
+      "put": {
+        "description": "Create or update an audience segment within journeys.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": { "type": "string" },
+                  "name": { "type": "string" },
+                  "definition": {
+                    "type": "object",
+                    "properties": {
+                      "entryNode": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": { "type": "string", "enum": ["Trait"] },
+                              "id": { "type": "string" },
+                              "path": { "type": "string" },
+                              "operator": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": ["Within"]
+                                      },
+                                      "windowSeconds": { "type": "number" }
+                                    },
+                                    "required": ["type", "windowSeconds"]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": ["Equals"]
+                                      },
+                                      "value": {
+                                        "anyOf": [
+                                          { "type": "string" },
+                                          { "type": "number" }
+                                        ]
+                                      }
+                                    },
+                                    "required": ["type", "value"]
+                                  }
+                                ]
+                              }
+                            },
+                            "required": ["type", "id", "path", "operator"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": { "type": "string", "enum": ["And"] },
+                              "id": { "type": "string" },
+                              "children": {
+                                "type": "array",
+                                "items": { "type": "string" }
+                              }
+                            },
+                            "required": ["type", "id", "children"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": { "type": "string", "enum": ["Or"] },
+                              "id": { "type": "string" },
+                              "children": {
+                                "type": "array",
+                                "items": { "type": "string" }
+                              }
+                            },
+                            "required": ["type", "id", "children"]
+                          }
+                        ]
+                      },
+                      "nodes": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": { "type": "string", "enum": ["Trait"] },
+                                "id": { "type": "string" },
+                                "path": { "type": "string" },
+                                "operator": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["Within"]
+                                        },
+                                        "windowSeconds": { "type": "number" }
+                                      },
+                                      "required": ["type", "windowSeconds"]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["Equals"]
+                                        },
+                                        "value": {
+                                          "anyOf": [
+                                            { "type": "string" },
+                                            { "type": "number" }
+                                          ]
+                                        }
+                                      },
+                                      "required": ["type", "value"]
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": ["type", "id", "path", "operator"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": { "type": "string", "enum": ["And"] },
+                                "id": { "type": "string" },
+                                "children": {
+                                  "type": "array",
+                                  "items": { "type": "string" }
+                                }
+                              },
+                              "required": ["type", "id", "children"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": { "type": "string", "enum": ["Or"] },
+                                "id": { "type": "string" },
+                                "children": {
+                                  "type": "array",
+                                  "items": { "type": "string" }
+                                }
+                              },
+                              "required": ["type", "id", "children"]
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["entryNode", "nodes"]
+                  },
+                  "id": { "type": "string" }
+                },
+                "required": ["id"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "workspaceId": { "type": "string" },
+                    "name": { "type": "string" },
+                    "definition": {
+                      "type": "object",
+                      "properties": {
+                        "entryNode": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": { "type": "string", "enum": ["Trait"] },
+                                "id": { "type": "string" },
+                                "path": { "type": "string" },
+                                "operator": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["Within"]
+                                        },
+                                        "windowSeconds": { "type": "number" }
+                                      },
+                                      "required": ["type", "windowSeconds"]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["Equals"]
+                                        },
+                                        "value": {
+                                          "anyOf": [
+                                            { "type": "string" },
+                                            { "type": "number" }
+                                          ]
+                                        }
+                                      },
+                                      "required": ["type", "value"]
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": ["type", "id", "path", "operator"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": { "type": "string", "enum": ["And"] },
+                                "id": { "type": "string" },
+                                "children": {
+                                  "type": "array",
+                                  "items": { "type": "string" }
+                                }
+                              },
+                              "required": ["type", "id", "children"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": { "type": "string", "enum": ["Or"] },
+                                "id": { "type": "string" },
+                                "children": {
+                                  "type": "array",
+                                  "items": { "type": "string" }
+                                }
+                              },
+                              "required": ["type", "id", "children"]
+                            }
+                          ]
+                        },
+                        "nodes": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["Trait"]
+                                  },
+                                  "id": { "type": "string" },
+                                  "path": { "type": "string" },
+                                  "operator": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["Within"]
+                                          },
+                                          "windowSeconds": { "type": "number" }
+                                        },
+                                        "required": ["type", "windowSeconds"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["Equals"]
+                                          },
+                                          "value": {
+                                            "anyOf": [
+                                              { "type": "string" },
+                                              { "type": "number" }
+                                            ]
+                                          }
+                                        },
+                                        "required": ["type", "value"]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": ["type", "id", "path", "operator"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": { "type": "string", "enum": ["And"] },
+                                  "id": { "type": "string" },
+                                  "children": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                  }
+                                },
+                                "required": ["type", "id", "children"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": { "type": "string", "enum": ["Or"] },
+                                  "id": { "type": "string" },
+                                  "children": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                  }
+                                },
+                                "required": ["type", "id", "children"]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": ["entryNode", "nodes"]
+                    }
+                  },
+                  "required": ["id", "workspaceId", "name", "definition"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/data-sources": {
+      "put": {
+        "description": "Create or update email provider settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": { "type": "string" },
+                  "variant": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": { "type": "string", "enum": ["SegmentIO"] },
+                          "sharedSecret": { "type": "string" }
+                        },
+                        "required": ["type", "sharedSecret"]
+                      }
+                    ]
+                  }
+                },
+                "required": ["workspaceId", "variant"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "workspaceId": { "type": "string" },
+                    "variant": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": { "type": "string", "enum": ["SegmentIO"] },
+                            "sharedSecret": { "type": "string" }
+                          },
+                          "required": ["type", "sharedSecret"]
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["id", "workspaceId", "variant"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "error": { "type": "string" } },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings/email-providers": {
+      "put": {
+        "description": "Create or update email provider settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": { "type": "string" },
+                      "type": { "type": "string", "enum": ["SendGrid"] },
+                      "apiKey": { "type": "string" },
+                      "id": { "type": "string" }
+                    },
+                    "required": ["id"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "apiKey": { "type": "string" },
+                      "workspaceId": { "type": "string" },
+                      "type": { "type": "string", "enum": ["SendGrid"] }
+                    },
+                    "required": ["workspaceId", "type"]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string" },
+                            "workspaceId": { "type": "string" },
+                            "type": { "type": "string", "enum": ["SendGrid"] },
+                            "apiKey": { "type": "string" }
+                          },
+                          "required": ["id", "workspaceId", "type", "apiKey"]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": { "type": "string", "enum": ["Test"] }
+                      },
+                      "required": ["type"]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/content/messages": {
+      "put": {
+        "description": "Create or update email provider settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": { "type": "string", "enum": ["Email"] },
+                      "workspaceId": { "type": "string" },
+                      "name": { "type": "string" },
+                      "from": { "type": "string" },
+                      "subject": { "type": "string" },
+                      "body": { "type": "string" },
+                      "id": { "type": "string" }
+                    },
+                    "required": ["id"]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": { "type": "string", "enum": ["Email"] },
+                        "workspaceId": { "type": "string" },
+                        "id": { "type": "string" },
+                        "name": { "type": "string" },
+                        "from": { "type": "string" },
+                        "subject": { "type": "string" },
+                        "body": { "type": "string" }
+                      },
+                      "required": [
+                        "type",
+                        "workspaceId",
+                        "id",
+                        "name",
+                        "from",
+                        "subject",
+                        "body"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [{ "url": "http://localhost" }]
+}
