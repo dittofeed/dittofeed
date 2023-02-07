@@ -2,14 +2,24 @@
 title: Self-Host with Docker Compose
 ---
 
+This section outlines the necessary steps to run Dittofeed with docker compose.
+
+First, clone Dittofeed's github repository.
+
 ```bash
 git clone git@github.com:ideamarketinc/dittofeed.git
 cd dittofeed
 ```
 
+Next create a local `.env` file.
+
 ```bash
 touch .env
 ```
+
+Dittofeed has dependencies on Postgres, and Clickhouse, with an optional Kafka dependency.
+
+Populate this `.env` file with the following values, substituting placeholder values with your own.
 
 ```properties .env
 DATABASE_HOST=my-postgres-host
@@ -19,7 +29,12 @@ CLICKHOUSE_USER=my-clickhouse-user
 CLICKHOUSE_PASSWORD=my-clickhouse-password
 ```
 
+Finally, start Dittofeed's services, and run Dittofeed's bootstrap script.
+
 ```bash
 docker compose -f docker-compose.prod.yaml up -d
+# Run once the above services have successfully started.
 ./scripts/bootstrap.sh
 ```
+
+Note that this will start Postgres, Clickhouse, and Kafka dependencies. You may decide to use a third party vendor for these data stores. In that case, you should disable the corresponding data store in the `docker-compose.prod.yaml` file.
