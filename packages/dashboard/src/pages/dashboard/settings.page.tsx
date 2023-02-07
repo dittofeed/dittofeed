@@ -219,6 +219,9 @@ function SegmentIoConfig() {
     (store) => store.updateSegmentIoRequest
   );
   const workspace = useAppStore((store) => store.workspace);
+  const dataSourceConfigurations = useAppStore(
+    (store) => store.dataSourceConfigurations
+  );
   const upsertDataSourceConfiguration = useAppStore(
     (store) => store.upsertDataSourceConfiguration
   );
@@ -247,7 +250,7 @@ function SegmentIoConfig() {
       };
 
       response = await axios.put(
-        `${config.apiProtocol}://${config.apiHost}/api/settings/email-providers`,
+        `${config.apiProtocol}://${config.apiHost}/api/settings/data-sources`,
         body,
         {
           headers: {
@@ -287,7 +290,30 @@ function SegmentIoConfig() {
     });
   };
 
-  const upToDate = false;
+  const savedDataSourceConfiguration: DataSourceConfigurationResource | null =
+    useMemo(() => {
+      if (
+        dataSourceConfigurations.type !== CompletionStatus.Successful ||
+        !workspaceId
+      ) {
+        return null;
+      }
+      for (const dataSourceConfiguration of dataSourceConfigurations.value) {
+        if (
+          dataSourceConfiguration.workspaceId === workspaceId &&
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          dataSourceConfiguration.variant.type ===
+            DataSourceVariantType.SegmentIO
+        ) {
+          return dataSourceConfiguration;
+        }
+      }
+      return null;
+    }, [dataSourceConfigurations, workspaceId]);
+
+  const upToDate =
+    savedDataSourceConfiguration?.variant.sharedSecret === sharedSecret;
+
   return (
     <Stack sx={{ padding: 1 }} spacing={1}>
       <TextField
@@ -327,7 +353,11 @@ function SendGridConfig() {
       return null;
     }
     for (const emailProvider of emailProviders.value) {
-      if (emailProvider.workspaceId === workspaceId) {
+      if (
+        emailProvider.workspaceId === workspaceId &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        emailProvider.type === EmailProviderType.Sendgrid
+      ) {
         return emailProvider;
       }
     }
