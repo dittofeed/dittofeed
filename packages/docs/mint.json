@@ -35,7 +35,8 @@
   "navigation": [
     {
       "group": "Home",
-      "pages": ["introduction", "getting-started"]
+
+      "pages": ["introduction", "getting-started", "glossary"]
     },
     {
       "group": "Deployment",
