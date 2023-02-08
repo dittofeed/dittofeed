@@ -5,6 +5,10 @@
     "dark": "/logo/dark.png",
     "light": "/logo/light.png"
   },
+  "api": {
+    "baseUrl": "https://api.dittofeed.com",
+    "hidePlayground": true
+  },
   "favicon": "/favicon.png",
   "colors": {
     "primary": "#0069ED",
@@ -31,15 +35,8 @@
   "navigation": [
     {
       "group": "Home",
-      "pages": [
-        "introduction",
-        "getting-started",
-        {
-          "group": "Examples",
-          "pages": ["examples/segment-sendgrid"]
-        },
-        "glossary"
-      ]
+
+      "pages": ["introduction", "getting-started", "glossary"]
     },
     {
       "group": "Deployment",
@@ -49,11 +46,10 @@
           "group": "Self-Hosting Options",
           "pages": [
             "deployment/self-hosted/docker-compose",
-            "deployment/self-hosted/kubernetes"
+            "deployment/self-hosted/kubernetes",
+            "deployment/self-hosted/cloudformation"
           ]
         },
-        "deployment/docker-compose",
-        "deployment/kubernetes",
         "deployment/cloud"
       ]
     },
@@ -88,6 +84,10 @@
         "guide/monitoring-alerting",
         "guide/license"
       ]
+    },
+    {
+      "group": "API Reference",
+      "pages": ["api-reference/endpoints/webhooks/segment"]
     },
     {
       "group": "Contributing",

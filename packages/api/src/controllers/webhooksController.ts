@@ -1,5 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
+import backendConfig from "backend-lib/src/config";
 import prisma from "backend-lib/src/prisma";
 import { writeUserEvents } from "backend-lib/src/userEvents";
 import * as crypto from "crypto";
@@ -11,7 +12,8 @@ export default async function webhookController(fastify: FastifyInstance) {
     "/segment",
     {
       schema: {
-        description: "Used to consume segment.io webhooks.",
+        description:
+          "Used to consume segment.io webhook payloads. Must be exposed publicly to the internet.",
         body: Type.Object(
           {
             messageId: Type.String(),
@@ -21,12 +23,19 @@ export default async function webhookController(fastify: FastifyInstance) {
         ),
         headers: Type.Object({
           "x-signature": Type.String(),
-          "df-workspace-id": Type.String(),
+          "df-workspace-id": Type.Optional(
+            Type.String({
+              description:
+                "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems",
+            })
+          ),
         }),
       },
     },
     async (request, reply) => {
-      const workspaceId = request.headers["df-workspace-id"];
+      const { defaultWorkspaceId } = backendConfig();
+      const workspaceId =
+        request.headers["df-workspace-id"] ?? defaultWorkspaceId;
       const config = await prisma.segmentIOConfiguration.findUnique({
         where: { workspaceId },
       });

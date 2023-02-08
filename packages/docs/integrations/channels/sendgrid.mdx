@@ -1,3 +1,29 @@
 ---
-title: Using SendGrid to send Emails
+title: Send Email with SendGrid
 ---
+
+Dittofeed can integrate with SendGrid to send emails.
+
+## Integration Instructions
+
+Visit the SendGrid API Keys page [https://app.sendgrid.com/settings/api_keys](https://app.sendgrid.com/settings/api_keys).
+
+Click "Create API Key", then select "Restricted Access". Grant "Full Access" in the following categories.
+
+* Mail Send
+* Mail settings
+* Tracking
+
+Then grant "Read Access" in the following categories.
+
+* Stats
+
+![SendGrid API Access](/images/sendgrid-api-access.png)
+
+Click "Create & View". You will then be directed to a page containing your API key.
+
+Finally, add that same API key to Dittofeed on the settings page `/dashboard/settings#email-title`.
+
+![Dittofeed SendGrid API Key](/images/dittofeed-sendgrid-api-key.png)
+
+That's it. At this point you should be able send emails with Dittofeed and SendGrid.
