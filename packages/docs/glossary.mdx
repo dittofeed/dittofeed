@@ -4,7 +4,7 @@ title: Glossary
 
 ## Action
 
-A step in a messaging journey that carries out pre-defined work if its trigger is activated. Imagine you have a simple journey where you want a new user to be messaged with a welcome email. The trigger is the new user being saved to your database, and the action is the welcome email being sent to the user.
+A step in a messaging journey which carries out pre-defined work if its trigger is activated. Imagine a simple journey where a new user is messaged with a welcome email. The trigger is the new user being saved to your database, and the action is the welcome email being sent to the user.
 
 ## Campaign
 
@@ -28,13 +28,15 @@ Messaging that happens within an application. SaaS companies will often deploy t
 
 ## Integration
 
+Interoperability between separate software systems.
+
 ## Journey
 
 A sequence of triggers and actions which automate the process of sending well-timed, relevant messaging to users. Journeys (also known as workflows) allow companies to automatically split users into segments, add time delays to messages, send different messaging templates based on user behavior, and much more.
 
-Create journeys to automate messaging for things like:
+Journeys automate communicating with users about things like:
 
-User onboarding  
+Onboarding  
 Promotions  
 Cart abandonment  
 Loyalty programs  
@@ -43,12 +45,24 @@ New feature rollout
 
 ## Reverse ETL
 
+A method of operationalizing warehoused data by pushing it into business applications for analysis, reporting, customer engagement, and many other uses that benefit the business. "ETL" stands for "extract, transform, load”, and refers to the way in which reverse ETL software prepares warehoused data for it’s destination applications. Popular data warehouses include Snowflake, Amazon Redshift, and Google BigQuery. Popular data destinations include Salesforce, Tableau, and Amplitude.
+
 ## Segment
+
+A section of users defined by specific parameters like demography, app usage metrics, and message responses. Segmentation is the act of defining a segment by choosing the appropriate parameters for a business objective. For example, Company X has users across the world who use their app to varying degrees, but the company only wants to send a particular message to its North American users who don't use the app very often. Segmentation could be used to identify who those users are in order to send targeted messaging to them.
 
 ## Template
 
+A standardized messaging layout, often with a visual design and variable input fields which can be programmatically altered to automate message personalization.
+
 ## Trigger
+
+A switch that activates a journey action. Triggers are created by assigning events to them and placing them before a desired action within a journey. ”Event” and “trigger” are sometimes used interchangeably. However, events happen outside of a journey (on your app, website, etc.), while triggers happen within journeys. For example, a user clicks on a “buy” button on Company X’s website, and this click is saved as an event in the company’s database. The company then decides to create a journey to message every user who clicks on the “buy” button (the “event”), so they make a trigger that listens for this specific event and activates a “message send” action each time the event occurs.
 
 ## Webhook
 
+A way for an application to stream data to outside applications without the need for those outside applications to make frequent API requests. Instead, the outside application builds an endpoint to receive the streamed data.
+
 ## Workflow
+
+Another term for a journey. Workflows are sequences of triggers and actions.

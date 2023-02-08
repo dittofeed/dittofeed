@@ -22,7 +22,7 @@ Focused on developer happiness with first in-class features.
 
 * Local, time-travelling testing.
 * Journey monitoring and alerting.
-* Git Syncing.
+* Git syncing.
 * More to come.
 
 ## Contact
