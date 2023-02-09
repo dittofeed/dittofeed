@@ -10,6 +10,7 @@ const RawConfigProps = {
   nodeEnv: Type.Optional(NodeEnv),
   apiPort: Type.Optional(Type.String()),
   apiHost: Type.Optional(Type.String()),
+  apiPrefix: Type.Optional(Type.String()),
 };
 
 // Structure of application config.
