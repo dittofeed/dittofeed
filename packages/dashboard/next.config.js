@@ -8,6 +8,9 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['isomorphic-lib', 'backend-lib'],
   swcMinify: true,
+  publicRuntimeConfig: {
+    apiBase: process.env.API_BASE ?? "http://localhost:3001"
+  },
   async redirects() {
     return [
       {

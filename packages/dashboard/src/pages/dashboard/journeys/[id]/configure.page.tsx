@@ -7,17 +7,19 @@ import {
   JourneyResourceStatus,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
+import getConfig from "next/config";
 import { useRouter } from "next/router";
 
 import EditableName from "../../../../components/editableName";
 import InfoTooltip from "../../../../components/infoTooltip";
 import JourneyLayout from "../../../../components/journeys/layout";
 import { useAppStore } from "../../../../lib/appStore";
-import config from "../../../../lib/config";
 import {
   JourneyGetServerSideProps,
   journeyGetServerSideProps,
 } from "./getServerSideProps";
+
+const { publicRuntimeConfig } = getConfig();
 
 export const getServerSideProps: JourneyGetServerSideProps = (ctx) =>
   journeyGetServerSideProps(ctx);
@@ -113,7 +115,7 @@ function JourneyConfigure() {
     let response: AxiosResponse;
     try {
       response = await axios.put(
-        `${config.apiProtocol}://${config.apiHost}/api/journeys`,
+        `${publicRuntimeConfig.apiBase}/api/journeys`,
         journeyUpdate,
         {
           headers: {

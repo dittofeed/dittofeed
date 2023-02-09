@@ -29,6 +29,7 @@ import {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
+import getConfig from "next/config";
 import { useMemo, useState } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
@@ -40,8 +41,9 @@ import {
   PropsWithInitialState,
   useAppStore,
 } from "../../lib/appStore";
-import config from "../../lib/config";
 import prisma from "../../lib/prisma";
+
+const { publicRuntimeConfig } = getConfig();
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -250,7 +252,7 @@ function SegmentIoConfig() {
       };
 
       response = await axios.put(
-        `${config.apiProtocol}://${config.apiHost}/api/settings/data-sources`,
+        `${publicRuntimeConfig.apiBase}/api/settings/data-sources`,
         body,
         {
           headers: {
@@ -375,7 +377,7 @@ function SendGridConfig() {
     let response: AxiosResponse;
     try {
       response = await axios.put(
-        `${config.apiProtocol}://${config.apiHost}/api/settings/email-providers`,
+        `${publicRuntimeConfig.apiBase}/api/settings/email-providers`,
         {
           id: savedSendgridProvider?.id,
           apiKey,

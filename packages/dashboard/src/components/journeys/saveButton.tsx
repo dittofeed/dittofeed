@@ -6,10 +6,12 @@ import {
   JourneyResource,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
+import getConfig from "next/config";
 
 import { useAppStore } from "../../lib/appStore";
-import config from "../../lib/config";
 import { journeyDefinitionFromState } from "./store";
+
+const { publicRuntimeConfig } = getConfig();
 
 export default function SaveButton({ journeyId }: { journeyId: string }) {
   const journeyUpdateRequest = useAppStore(
@@ -61,7 +63,7 @@ export default function SaveButton({ journeyId }: { journeyId: string }) {
     let response: AxiosResponse;
     try {
       response = await axios.put(
-        `${config.apiProtocol}://${config.apiHost}/api/journeys`,
+        `${publicRuntimeConfig.apiBase}/api/journeys`,
         journeyUpdate,
         {
           headers: {
