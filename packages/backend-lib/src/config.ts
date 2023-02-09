@@ -21,7 +21,7 @@ const BaseRawConfigProps = {
   kafkaBrokers: Type.String(),
   userEventsTopicName: Type.Optional(Type.String()),
   temporalNamespace: Type.Optional(Type.String()),
-  logConfig: BoolStr,
+  logConfig: Type.Optional(BoolStr),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
