@@ -56,7 +56,7 @@ export async function findManyEvents({
     tableVersion
   )} WHERE workspace_id = {workspaceId:String}`;
 
-  const resultSet = await clickhouseClient.query({
+  const resultSet = await clickhouseClient().query({
     query,
     format: "JSONEachRow",
     query_params: {
@@ -90,7 +90,7 @@ export async function findManyInternalEvents({
     tableVersion.version
   )} WHERE event_type = 'track' AND event = {event:String} AND workspace_id = {workspaceId:String}`;
 
-  const resultSet = await clickhouseClient.query({
+  const resultSet = await clickhouseClient().query({
     query,
     format: "JSONEachRow",
     query_params: {

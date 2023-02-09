@@ -397,7 +397,7 @@ export async function computePropertiesPeriodSafe({
     ORDER BY latest_processing_time DESC
   `;
 
-  const resultSet = await clickhouseClient.query({
+  const resultSet = await clickhouseClient().query({
     query,
     format: "JSONEachRow",
   });
