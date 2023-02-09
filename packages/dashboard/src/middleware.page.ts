@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
     process.env.BASE_PATH &&
     request.nextUrl.pathname.startsWith("/dashboard")
   ) {
-    const pathname = `${process.env.DASHBOARD_BASE_PATH}/${request.nextUrl.pathname}`;
+    const pathname = `${process.env.BASE_PATH}/${request.nextUrl.pathname}`;
     return NextResponse.redirect(new URL(pathname, request.url));
   }
 }
