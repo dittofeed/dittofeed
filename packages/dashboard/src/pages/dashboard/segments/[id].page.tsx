@@ -25,6 +25,7 @@ import {
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
+import getConfig from "next/config";
 import Head from "next/head";
 import React, { useMemo } from "react";
 import { validate } from "uuid";
@@ -36,8 +37,9 @@ import {
   PropsWithInitialState,
   useAppStore,
 } from "../../../lib/appStore";
-import config from "../../../lib/config";
 import prisma from "../../../lib/prisma";
+
+const { publicRuntimeConfig } = getConfig();
 
 interface GroupedOption {
   id: SegmentNodeType;
@@ -525,7 +527,7 @@ export default function NewSegment() {
     let response: AxiosResponse;
     try {
       response = await axios.put(
-        `${config.apiProtocol}://${config.apiHost}/api/segments`,
+        `${publicRuntimeConfig.apiBase}/api/segments`,
         editedSegment,
         {
           headers: {

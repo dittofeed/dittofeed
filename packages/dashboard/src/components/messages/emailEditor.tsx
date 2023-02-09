@@ -31,16 +31,18 @@ import {
   TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
+import getConfig from "next/config";
 import { useRouter } from "next/router";
 import React, { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useAppStore } from "../../lib/appStore";
-import config from "../../lib/config";
 import { EmailMessageEditorState } from "../../lib/types";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 import defaultEmailBody from "./defaultEmailBody";
+
+const { publicRuntimeConfig } = getConfig();
 
 function TransitionInner(
   props: TransitionProps & {
@@ -230,8 +232,7 @@ export default function EmailEditor() {
         subject: emailSubject,
       };
       response = await axios.put(
-        `${config.apiProtocol}://${config.apiHost}/api/content/messages`,
-
+        `${publicRuntimeConfig.apiBase}/api/content/messages`,
         body,
         {
           headers: {

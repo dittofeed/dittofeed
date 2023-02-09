@@ -11,6 +11,17 @@ import config from "./config";
 
 async function buildApp() {
   const server = fastify({
+    rewriteUrl: (req) => {
+      const { apiPrefix } = config();
+      if (!req.url) {
+        return "";
+      }
+
+      if (!apiPrefix) {
+        return req.url;
+      }
+      return req.url.replace(apiPrefix, "");
+    },
     // Logger only for production
     logger:
       config().nodeEnv === "development"
