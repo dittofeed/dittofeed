@@ -143,6 +143,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     databaseUrl,
     clickhouseDatabase: rawConfig.clickhouseDatabase ?? "dittofeed",
     clickhouseHost: rawConfig.clickhouseHost ?? "http://localhost:8123",
+    clickhouseUser: rawConfig.clickhouseUser ?? "dittofeed",
+    clickhousePassword: rawConfig.clickhousePassword ?? "password",
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],

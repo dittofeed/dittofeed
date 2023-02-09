@@ -1,5 +1,9 @@
 version: "3.9"
+x-clickhouse-credentials: &clickhouse-credentials
+  CLICKHOUSE_USER: dittofeed
+  CLICKHOUSE_PASSWORD: password
 x-backend-app-env: &backend-app-env
+  <<: *clickhouse-credentials
   DATABASE_URL: "postgresql://postgres:password@postgres:5432/dittofeed?connect_timeout=60"
   KAFKA_BROKERS: "kafka:29092"
   CLICKHOUSE_HOST: "http://clickhouse-server:8123"
@@ -137,6 +141,8 @@ services:
       - "8123:8123"
       - "9000:9000"
       - "9009:9009"
+    environment:
+      <<: *clickhouse-credentials
     depends_on:
       - kafka
       - zookeeper
