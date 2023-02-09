@@ -9,6 +9,7 @@ export function middleware(request: NextRequest) {
     const pathname = `${process.env.BASE_PATH}/${request.nextUrl.pathname}`;
     return NextResponse.redirect(new URL(pathname, request.url));
   }
+  return undefined;
 }
 
 export const config = {
