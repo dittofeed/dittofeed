@@ -21,7 +21,7 @@ const BaseRawConfigProps = {
   kafkaBrokers: Type.String(),
   userEventsTopicName: Type.Optional(Type.String()),
   temporalNamespace: Type.Optional(Type.String()),
-  logConfig: BoolStr,
+  logConfig: Type.Optional(BoolStr),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -143,6 +143,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     databaseUrl,
     clickhouseDatabase: rawConfig.clickhouseDatabase ?? "dittofeed",
     clickhouseHost: rawConfig.clickhouseHost ?? "http://localhost:8123",
+    clickhouseUser: rawConfig.clickhouseUser ?? "dittofeed",
+    clickhousePassword: rawConfig.clickhousePassword ?? "password",
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],

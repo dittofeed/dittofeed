@@ -128,7 +128,7 @@ describe("compute properties activities", () => {
   });
 
   afterAll(async () => {
-    await clickhouseClient.close();
+    await clickhouseClient().close();
   });
 
   describe("computePropertiesPeriod", () => {

@@ -1,6 +1,6 @@
 version: "3.9"
 x-clickhouse-credentials: &clickhouse-credentials
-  CLICKHOUSE_USER: clickhouse
+  CLICKHOUSE_USER: dittofeed
   CLICKHOUSE_PASSWORD: password
 x-backend-app-env: &backend-app-env
   <<: *clickhouse-credentials

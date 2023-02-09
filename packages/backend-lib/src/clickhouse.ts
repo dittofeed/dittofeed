@@ -1,4 +1,5 @@
 import {
+  ClickHouseClient,
   ClickHouseClientConfigOptions,
   createClient,
 } from "@clickhouse/client";
@@ -36,6 +37,14 @@ export async function createClickhouseDb() {
       wait_end_of_query: 1,
     },
   });
+  await client.close();
 }
 
-export const clickhouseClient = createClient(getClientConfig());
+let CLICKHOUSE_CLIENT: ClickHouseClient | null = null;
+
+export function clickhouseClient() {
+  if (CLICKHOUSE_CLIENT === null) {
+    CLICKHOUSE_CLIENT = createClient(getClientConfig());
+  }
+  return CLICKHOUSE_CLIENT;
+}

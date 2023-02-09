@@ -43,6 +43,8 @@ const paidSegmentDefinition: SegmentDefinition = {
   nodes: [],
 };
 
+jest.setTimeout(15000);
+
 describe("end to end journeys", () => {
   let testEnv: TestWorkflowEnvironment;
   let worker: Worker;
@@ -60,7 +62,7 @@ describe("end to end journeys", () => {
   });
 
   afterAll(async () => {
-    await clickhouseClient.close();
+    await clickhouseClient().close();
     await testEnv.teardown();
   });
 

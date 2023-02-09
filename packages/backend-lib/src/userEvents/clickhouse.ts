@@ -46,7 +46,7 @@ export async function insertUserEvents({
     }
     tableVersion = currentTable.version;
   }
-  await clickhouseClient.insert({
+  await clickhouseClient().insert({
     table: `dittofeed.user_events_${tableVersion} (message_raw, processing_time, workspace_id)`,
     values: events.map((e) => {
       const value: {
@@ -100,7 +100,7 @@ export async function createUserEventsTables({
 
   await Promise.all(
     queries.map((query) =>
-      clickhouseClient.exec({
+      clickhouseClient().exec({
         query,
         clickhouse_settings: { wait_end_of_query: 1 },
       })
@@ -115,7 +115,7 @@ export async function createUserEventsTables({
       FROM dittofeed.user_events_queue_${tableVersion};
     `;
 
-    await clickhouseClient.exec({
+    await clickhouseClient().exec({
       query: mvQuery,
       clickhouse_settings: { wait_end_of_query: 1 },
     });
