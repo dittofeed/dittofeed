@@ -17,6 +17,14 @@ const nextConfig = {
       },
     ]
   },
+  async rewrites() {
+    return [
+      {
+        source: '/:prefix*/dashboard/:path*',
+        destination: '/dashboard/:path*',
+      },
+    ]
+  },
   experimental: {
     newNextLinkBehavior: true,
     outputFileTracingRoot: path.join(__dirname, '../../'),
