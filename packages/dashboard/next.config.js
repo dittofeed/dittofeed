@@ -9,7 +9,7 @@ const nextConfig = {
   transpilePackages: ['isomorphic-lib', 'backend-lib'],
   swcMinify: true,
   publicRuntimeConfig: {
-    apiBase: process.env.API_BASE ?? "http://localhost:3001"
+    apiBase: process.env.API_BASE === undefined ? "http://localhost:3001" : process.env.API_BASE
   },
   async redirects() {
     return [
