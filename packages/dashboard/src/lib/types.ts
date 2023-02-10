@@ -19,6 +19,7 @@ import { Edge, EdgeChange, Node, NodeChange } from "reactflow";
 // into the default client state, see lib/appStore.ts initializeStore. For that
 // reason properties should not be nested in AppState.
 export type AppState = {
+  apiBase: string;
   workspace: RequestStatus<WorkspaceResource, Error>;
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;

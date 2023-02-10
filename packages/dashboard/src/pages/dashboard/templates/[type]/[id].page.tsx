@@ -13,6 +13,7 @@ import EmailEditor, {
   defaultEmailMessageState,
 } from "../../../../components/messages/emailEditor";
 import {
+  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
 } from "../../../../lib/appStore";
@@ -74,10 +75,12 @@ export const getServerSideProps: GetServerSideProps<
   }
 
   return {
-    props: {
-      serverInitialState,
-      messageResourceType,
-    },
+    props: addInitialStateToProps(
+      {
+        messageResourceType,
+      },
+      serverInitialState
+    ),
   };
 };
 

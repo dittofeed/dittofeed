@@ -110,6 +110,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
   create(
     immer<AppContents>((set, ...remaining) => {
       const appContents: AppContents = {
+        apiBase: "",
         workspace: {
           type: CompletionStatus.NotStarted,
         },
@@ -439,7 +440,10 @@ export const useCreateStore = (
 ): (() => AppStore) => {
   // For SSR & SSG, always use a new store.
   if (typeof window === "undefined") {
-    return () => initializeStore(serverInitialState);
+    return () =>
+      initializeStore({
+        ...serverInitialState,
+      });
   }
 
   const isReusingStore = Boolean(store);
@@ -484,10 +488,14 @@ export function addInitialStateToProps<T>(
   props: T,
   serverInitialState: Partial<AppState>
 ): T & PropsWithInitialState {
+  const stateWithEnvVars: Partial<AppState> = {
+    apiBase: process.env.DASHBOARD_API_BASE ?? "http://localhost:3001",
+    ...serverInitialState,
+  };
   return {
     ...props,
     // the "stringify and then parse again" piece is required as next.js
     // isn't able to serialize it to JSON properly
-    serverInitialState: JSON.parse(JSON.stringify(serverInitialState)),
+    serverInitialState: JSON.parse(JSON.stringify(stateWithEnvVars)),
   };
 }

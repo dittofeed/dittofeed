@@ -31,7 +31,6 @@ import {
   TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
-import getConfig from "next/config";
 import { useRouter } from "next/router";
 import React, { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
@@ -41,8 +40,6 @@ import { EmailMessageEditorState } from "../../lib/types";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 import defaultEmailBody from "./defaultEmailBody";
-
-const { publicRuntimeConfig } = getConfig();
 
 function TransitionInner(
   props: TransitionProps & {
@@ -126,6 +123,7 @@ export default function EmailEditor() {
   );
   const emailFrom = useAppStore((state) => state.emailMessageFrom);
   const emailBody = useAppStore((state) => state.emailMessageBody);
+  const apiBase = useAppStore((state) => state.apiBase);
   const userPropertiesJSON = useAppStore(
     (state) => state.emailMessageUserPropertiesJSON
   );
@@ -231,15 +229,11 @@ export default function EmailEditor() {
         body: emailBody,
         subject: emailSubject,
       };
-      response = await axios.put(
-        `${publicRuntimeConfig.apiBase}/api/content/messages`,
-        body,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      response = await axios.put(`${apiBase}/api/content/messages`, body, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     } catch (e) {
       const error = e as Error;
 
