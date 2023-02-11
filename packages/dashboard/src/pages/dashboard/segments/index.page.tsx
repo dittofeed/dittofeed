@@ -16,7 +16,11 @@ import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
-import { PropsWithInitialState, useAppStore } from "../../../lib/appStore";
+import {
+  addInitialStateToProps,
+  PropsWithInitialState,
+  useAppStore,
+} from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
 import { AppState } from "../../../lib/types";
 
@@ -43,11 +47,12 @@ export const getServerSideProps: GetServerSideProps<
     value: segmentResources,
   };
   return {
-    props: {
-      serverInitialState: {
+    props: addInitialStateToProps(
+      {},
+      {
         segments,
-      },
-    },
+      }
+    ),
   };
 };
 

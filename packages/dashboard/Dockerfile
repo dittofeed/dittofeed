@@ -11,7 +11,7 @@ COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 RUN yarn install --frozen-lockfile
 
 # Rebuild the source code only when needed
-FROM node:16.14.2 AS builder
+FROM node:18.4.0 AS builder
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -28,7 +28,7 @@ RUN yarn workspace isomorphic-lib build && \
     yarn workspace dashboard build
 
 # Production image, copy all the files and run next
-FROM node:16.14.2 AS runner
+FROM node:18.4.0 AS runner
 
 WORKDIR /app
 

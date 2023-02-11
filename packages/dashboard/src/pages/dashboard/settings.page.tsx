@@ -37,6 +37,7 @@ import { immer } from "zustand/middleware/immer";
 import Layout from "../../components/layout";
 import { MenuItemGroup } from "../../components/menuItems/types";
 import {
+  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
   useAppStore,
@@ -101,9 +102,7 @@ export const getServerSideProps: GetServerSideProps<
   }
 
   return {
-    props: {
-      serverInitialState,
-    },
+    props: addInitialStateToProps({}, serverInitialState),
   };
 };
 

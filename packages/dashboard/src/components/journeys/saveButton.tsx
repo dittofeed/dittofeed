@@ -6,13 +6,11 @@ import {
   JourneyResource,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
-import getConfig from "next/config";
 
 import { useAppStore } from "../../lib/appStore";
 import { journeyDefinitionFromState } from "./store";
 
-const { publicRuntimeConfig } = getConfig();
-
+// Only usable on SSR pages
 export default function SaveButton({ journeyId }: { journeyId: string }) {
   const journeyUpdateRequest = useAppStore(
     (store) => store.journeyUpdateRequest
@@ -20,6 +18,7 @@ export default function SaveButton({ journeyId }: { journeyId: string }) {
   const setJourneyUpdateRequest = useAppStore(
     (store) => store.setJourneyUpdateRequest
   );
+  const apiBase = useAppStore((store) => store.apiBase);
   const upsertJourney = useAppStore((store) => store.upsertJourney);
 
   const journeyEdges = useAppStore((store) => store.journeyEdges);
@@ -62,15 +61,11 @@ export default function SaveButton({ journeyId }: { journeyId: string }) {
 
     let response: AxiosResponse;
     try {
-      response = await axios.put(
-        `${publicRuntimeConfig.apiBase}/api/journeys`,
-        journeyUpdate,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      response = await axios.put(`${apiBase}/api/journeys`, journeyUpdate, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     } catch (e) {
       const error = e as Error;
 

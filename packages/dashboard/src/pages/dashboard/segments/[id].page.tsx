@@ -25,7 +25,6 @@ import {
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import getConfig from "next/config";
 import Head from "next/head";
 import React, { useMemo } from "react";
 import { validate } from "uuid";
@@ -33,13 +32,12 @@ import { validate } from "uuid";
 import EditableName from "../../../components/editableName";
 import MainLayout from "../../../components/mainLayout";
 import {
+  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
   useAppStore,
 } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
-
-const { publicRuntimeConfig } = getConfig();
 
 interface GroupedOption {
   id: SegmentNodeType;
@@ -191,9 +189,7 @@ export const getServerSideProps: GetServerSideProps<
   }
 
   return {
-    props: {
-      serverInitialState,
-    },
+    props: addInitialStateToProps({}, serverInitialState),
   };
 };
 
@@ -501,6 +497,7 @@ function SegmentNodeComponent({
 export default function NewSegment() {
   const editedSegment = useAppStore((state) => state.editedSegment);
   const setName = useAppStore((state) => state.setEditableSegmentName);
+  const apiBase = useAppStore((state) => state.apiBase);
   const segmentUpdateRequest = useAppStore(
     (state) => state.segmentUpdateRequest
   );
@@ -526,15 +523,11 @@ export default function NewSegment() {
     });
     let response: AxiosResponse;
     try {
-      response = await axios.put(
-        `${publicRuntimeConfig.apiBase}/api/segments`,
-        editedSegment,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      response = await axios.put(`${apiBase}/api/segments`, editedSegment, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     } catch (e) {
       const error = e as Error;
 
