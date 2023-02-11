@@ -45,7 +45,7 @@ export function isNodeComplete(props: NodeTypeProps): boolean {
   }
 }
 
-function EntryNodeBody({ segmentId }: { segmentId?: string }) {
+function SegmentDescriptionBody({ segmentId }: { segmentId?: string }) {
   const segments = useAppStore((state) => state.segments);
   const theme = useTheme();
 
@@ -76,7 +76,7 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
   const t = props.type;
   switch (t) {
     case JourneyNodeType.EntryNode: {
-      const body = <EntryNodeBody segmentId={props.segmentId} />;
+      const body = <SegmentDescriptionBody segmentId={props.segmentId} />;
       return {
         sidebarColor: "transparent",
         icon: ThunderboltOutlined,
@@ -92,13 +92,15 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
         title: "Delay",
         body: <DurationDescription durationSeconds={props.seconds} />,
       };
-    case JourneyNodeType.SegmentSplitNode:
+    case JourneyNodeType.SegmentSplitNode: {
+      const body = <SegmentDescriptionBody segmentId={props.segmentId} />;
       return {
         sidebarColor: "#12F7BE",
         icon: ForkOutlined,
         title: props.name,
-        body: null,
+        body,
       };
+    }
     case JourneyNodeType.MessageNode:
       return {
         sidebarColor: "#03D9F5",
