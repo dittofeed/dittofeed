@@ -29,7 +29,7 @@ function NavItem({ item, level }: { level: number; item: MenuItem }) {
     : item.description;
 
   return (
-    <Tooltip title={description}>
+    <Tooltip title={description} placement="right" arrow>
       <span>
         <ListItemButton
           href={item.url}

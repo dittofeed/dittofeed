@@ -84,6 +84,11 @@ function MessageListContents() {
         {messages.map((message) => (
           <ListItem disableGutters key={message.id}>
             <ListItemButton
+              sx={{
+                border: 1,
+                borderRadius: 1,
+                borderColor: "grey.200",
+              }}
               onClick={() => {
                 let messageType: string;
                 switch (message.type) {
