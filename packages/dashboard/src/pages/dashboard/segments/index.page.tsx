@@ -78,6 +78,11 @@ function SegmentListContents() {
         {segments.map((segment) => (
           <ListItem disableGutters key={segment.id}>
             <ListItemButton
+              sx={{
+                border: 1,
+                borderRadius: 1,
+                borderColor: "grey.200",
+              }}
               onClick={() => {
                 path.push(`/dashboard/segments/${segment.id}`);
               }}
