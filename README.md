@@ -6,6 +6,7 @@
 
 The first developer-centric, open-source, omni-channel customer engagement platform.
 
+* [Documentation](https://docs.dittofeed.com/)
 * [Demo App](https://demo.dittofeed.com/dashboard/journeys/7abdc111-5743-495f-9365-7a2c37929279)
 
 ## Omni-channel Customer Engagement Platform
