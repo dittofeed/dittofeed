@@ -135,13 +135,16 @@ function parseDatabaseUrl(rawConfig: RawConfig) {
 
 function parseRawConfig(rawConfig: RawConfig): Config {
   const databaseUrl = parseDatabaseUrl(rawConfig);
+  const clickhouseDatabase =
+    rawConfig.clickhouseDatabase ??
+    (rawConfig.nodeEnv === "test" ? "dittofeed-test" : "dittofeed");
 
   const parsedConfig: Config = {
     ...rawConfig,
     nodeEnv: rawConfig.nodeEnv ?? NodeEnvEnum.Development,
     temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
     databaseUrl,
-    clickhouseDatabase: rawConfig.clickhouseDatabase ?? "dittofeed",
+    clickhouseDatabase,
     clickhouseHost: rawConfig.clickhouseHost ?? "http://localhost:8123",
     clickhouseUser: rawConfig.clickhouseUser ?? "dittofeed",
     clickhousePassword: rawConfig.clickhousePassword ?? "password",

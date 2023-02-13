@@ -65,7 +65,6 @@ export function segmentIdentifyEvent(
       traits: {
         name: "Peter Gibbons",
         email: "peter@example.com",
-        plan: "premium",
         logins: 5,
         address: {
           street: "6th St",
