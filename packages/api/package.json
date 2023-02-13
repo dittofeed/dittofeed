@@ -34,7 +34,8 @@
     "isomorphic-lib": "0.0.3",
     "neverthrow": "^6.0.0",
     "openapi-types": "^12.1.0",
-    "utility-types": "^3.10.0"
+    "utility-types": "^3.10.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@temporalio/testing": "^1.5.2",
