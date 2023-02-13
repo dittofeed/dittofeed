@@ -6,6 +6,8 @@
 
 The first developer-centric, open-source, omni-channel customer engagement platform.
 
+* [Demo App](https://demo.dittofeed.com/dashboard/journeys/7abdc111-5743-495f-9365-7a2c37929279)
+
 ## Omni-channel Customer Engagement Platform
 
 Like Braze, One-Signal, Customer.io, or Segment engage.
