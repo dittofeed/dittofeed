@@ -34,9 +34,8 @@ function NavItem({ item, level }: { level: number; item: MenuItem }) {
         <ListItemButton
           href={item.url}
           disabled={item.disabled}
-          target={item.target ? "_self" : "_blank"}
-          component={item.external ? Link : "a"}
-          onClick={() => path.push(item.url)}
+          target={item.external ? "_blank" : "_self"}
+          component={item.external ? "a" : Link}
           selected={isSelected}
           sx={{
             zIndex: 1201,

@@ -13,7 +13,6 @@ export interface MenuItem {
   url: string;
   icon: React.FC;
   external?: boolean;
-  target?: boolean;
   breadcrumbs?: boolean;
   description: string;
   disabled?: true;
