@@ -129,7 +129,6 @@ const menuItems: MenuItemGroup[] = [
         title: "Return Home",
         type: "item",
         url: "/dashboard",
-        target: true,
         icon: ArrowBackIos,
         description: "Exit settings, and return to the home page.",
       },
@@ -138,7 +137,6 @@ const menuItems: MenuItemGroup[] = [
         title: "Data Sources",
         type: "item",
         url: "/dashboard/settings#data-sources-title",
-        target: true,
         icon: East,
         description:
           "Configure data source settings to send user data to Dittofeed.",
@@ -148,7 +146,6 @@ const menuItems: MenuItemGroup[] = [
         title: "Email",
         type: "item",
         url: "/dashboard/settings#email-title",
-        target: true,
         icon: MailOutline,
         description:
           "Configure email settings, including the email provider credentials.",
