@@ -29,7 +29,6 @@ import {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
-import getConfig from "next/config";
 import { useMemo, useState } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
@@ -43,8 +42,6 @@ import {
   useAppStore,
 } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
-
-const { publicRuntimeConfig } = getConfig();
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -129,7 +126,6 @@ const menuItems: MenuItemGroup[] = [
         title: "Return Home",
         type: "item",
         url: "/dashboard",
-        target: true,
         icon: ArrowBackIos,
         description: "Exit settings, and return to the home page.",
       },
@@ -138,7 +134,6 @@ const menuItems: MenuItemGroup[] = [
         title: "Data Sources",
         type: "item",
         url: "/dashboard/settings#data-sources-title",
-        target: true,
         icon: East,
         description:
           "Configure data source settings to send user data to Dittofeed.",
@@ -148,7 +143,6 @@ const menuItems: MenuItemGroup[] = [
         title: "Email",
         type: "item",
         url: "/dashboard/settings#email-title",
-        target: true,
         icon: MailOutline,
         description:
           "Configure email settings, including the email provider credentials.",
@@ -216,6 +210,7 @@ export const useSettingsStore = create(
 function SegmentIoConfig() {
   const sharedSecret = useSettingsStore((store) => store.segmentIoSharedSecret);
   const segmentIoRequest = useSettingsStore((store) => store.segmentIoRequest);
+  const apiBase = useAppStore((store) => store.apiBase);
   const updateSegmentIoRequest = useSettingsStore(
     (store) => store.updateSegmentIoRequest
   );
@@ -250,15 +245,11 @@ function SegmentIoConfig() {
         },
       };
 
-      response = await axios.put(
-        `${publicRuntimeConfig.apiBase}/api/settings/data-sources`,
-        body,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      response = await axios.put(`${apiBase}/api/settings/data-sources`, body, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     } catch (e) {
       const error = e as Error;
 
@@ -335,6 +326,7 @@ function SegmentIoConfig() {
 function SendGridConfig() {
   const emailProviders = useAppStore((store) => store.emailProviders);
   const apiKey = useSettingsStore((store) => store.sendgridProviderApiKey);
+  const apiBase = useAppStore((store) => store.apiBase);
   const sendgridProviderRequest = useSettingsStore(
     (store) => store.sendgridProviderRequest
   );
@@ -376,7 +368,7 @@ function SendGridConfig() {
     let response: AxiosResponse;
     try {
       response = await axios.put(
-        `${publicRuntimeConfig.apiBase}/api/settings/email-providers`,
+        `${apiBase}/api/settings/email-providers`,
         {
           id: savedSendgridProvider?.id,
           apiKey,
