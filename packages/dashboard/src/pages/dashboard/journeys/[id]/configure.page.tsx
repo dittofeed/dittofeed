@@ -7,7 +7,6 @@ import {
   JourneyResourceStatus,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
-import getConfig from "next/config";
 import { useRouter } from "next/router";
 
 import EditableName from "../../../../components/editableName";
@@ -18,8 +17,6 @@ import {
   JourneyGetServerSideProps,
   journeyGetServerSideProps,
 } from "./getServerSideProps";
-
-const { publicRuntimeConfig } = getConfig();
 
 export const getServerSideProps: JourneyGetServerSideProps = (ctx) =>
   journeyGetServerSideProps(ctx);
@@ -67,6 +64,7 @@ function JourneyConfigure() {
   const journeyUpdateRequest = useAppStore(
     (store) => store.journeyUpdateRequest
   );
+  const apiBase = useAppStore((store) => store.apiBase);
   const setJourneyUpdateRequest = useAppStore(
     (store) => store.setJourneyUpdateRequest
   );
@@ -114,15 +112,11 @@ function JourneyConfigure() {
 
     let response: AxiosResponse;
     try {
-      response = await axios.put(
-        `${publicRuntimeConfig.apiBase}/api/journeys`,
-        journeyUpdate,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      response = await axios.put(`${apiBase}/api/journeys`, journeyUpdate, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
     } catch (e) {
       const error = e as Error;
 
