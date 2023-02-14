@@ -24,7 +24,7 @@ RUN yarn workspace isomorphic-lib build && \
     yarn workspace worker build
 
 # Production image
-FROM node:16.14.2 AS runner
+FROM node:18.4.0 AS runner
 
 WORKDIR /service
 
