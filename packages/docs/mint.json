@@ -15,9 +15,14 @@
     "light": "#4D9CFF",
     "dark": "#0050B4"
   },
-  "topbarLinks": [],
+  "topbarLinks": [
+    {
+      "name": "Demo App",
+      "url": "https://demo.dittofeed.com/dashboard/journeys/7abdc111-5743-495f-9365-7a2c37929279"
+    }
+  ],
   "topbarCtaButton": {
-    "name": "Book a Demo",
+    "name": "Book a Call",
     "url": "https://calendly.com/d/xz3-fc9-ngy/dittofeed-demo"
   },
   "anchors": [
