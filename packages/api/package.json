@@ -41,6 +41,7 @@
     "@temporalio/testing": "^1.5.2",
     "@temporalio/worker": "^1.5.2",
     "@types/node": "^18.8.5",
+    "@types/uuid": "^9.0.0",
     "fastify-tsconfig": "^1.0.1",
     "pino-pretty": "^9.1.1",
     "ts-node": "^10.9.1",
