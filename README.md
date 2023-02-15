@@ -1,13 +1,10 @@
 <p style="border: none; margin-bottom:0; padding-bottom: 0;" position="left">
   <a href="https://dittofeed.com">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dittofeed/dittofeed/main/packages/docs/logo/light.png">
-      <img width="350" alt="dittofeed logo" src="https://raw.githubusercontent.com/dittofeed/dittofeed/main/packages/docs/logo/dark.png">
+      <img width="350" alt="dittofeed logo" src="https://raw.githubusercontent.com/dittofeed/dittofeed/main/packages/docs/logo/light.png">
     </picture>
   </a>
 </p>
-
-<br />
 
 <h3 position="left">The first open-source customer engagement platform built for devs</h3>
 
