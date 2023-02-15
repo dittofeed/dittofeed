@@ -34,7 +34,7 @@
     {
       "name": "Github",
       "icon": "github",
-      "url": "https://github.com/ideamarketinc/dittofeed"
+      "url": "https://github.com/dittofeed/dittofeed"
     }
   ],
   "navigation": [
@@ -101,7 +101,7 @@
   ],
   "footerSocials": {
     "twitter": "https://twitter.com/dittofeed",
-    "github": "https://github.com/ideamarketinc/dittofeed",
+    "github": "https://github.com/dittofeed/dittofeed",
     "linkedin": "https://www.linkedin.com/company/dittofeed"
   }
 }
