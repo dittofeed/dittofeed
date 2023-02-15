@@ -20,7 +20,7 @@ function HeaderContent() {
 
       <IconButton
         component={Link}
-        href="https://github.com/ideamarketinc/dittofeed"
+        href="https://github.com/dittofeed/dittofeed"
         target="_blank"
         disableRipple
         color="secondary"
