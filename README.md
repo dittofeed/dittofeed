@@ -1,36 +1,66 @@
-# Dittofeed
+<p style="border: none; margin-bottom:0; padding-bottom: 0;" position="left">
+  <a href="https://dittofeed.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dittofeed/dittofeed/main/packages/docs/logo/light.png">
+      <img width="350" alt="dittofeed logo" src="https://raw.githubusercontent.com/dittofeed/dittofeed/main/packages/docs/logo/dark.png">
+    </picture>
+  </a>
+</p>
 
+<br />
+
+<h3 position="left">The first open-source customer engagement platform built for devs</h3>
+
+<br />
+
+<h3 position="left">
+  <a target="_blank" href="https://docs.dittofeed.com/" rel="dofollow"><strong>Docs</strong></a>
+  |
+  <a target="_blank" href="https://demo.dittofeed.com/dashboard/journeys/7abdc111-5743-495f-9365-7a2c37929279" rel="dofollow"><strong>Live Demo</strong></a>
+  <br />
+</h3>
+
+<br />
+
+<a href="https://dittofeed.com/"><img alt="Visit Our Site" src="https://img.shields.io/badge/site-Dittofeed-orange"/></a>
 <a href="https://dittofeed-community.slack.com/ssb/redirect"><img alt="Join Slack Community" src="https://img.shields.io/badge/slack-Dittofeed-brightgreen.svg?logo=slack"/></a>
 <a href="https://twitter.com/dittofeed"><img alt="Follow Us On Twitter" src="https://img.shields.io/badge/follow-Dittofeed-blue?logo=twitter"/></a>
 
+<br />
 
-The first developer-centric, open-source, omni-channel customer engagement platform.
+<a href="https://dittofeed.com/">
+  <img src="https://raw.githubusercontent.com/dittofeed/dittofeed/main/packages/docs/images/github-readme-banner.png" alt="Dittofeed Admin Panel Banner" />
+</a>
 
-* [Documentation](https://docs.dittofeed.com/)
-* [Demo App](https://demo.dittofeed.com/dashboard/journeys/7abdc111-5743-495f-9365-7a2c37929279)
+<br />
 
 ## Omni-channel Customer Engagement Platform
 
-Like Braze, One-Signal, Customer.io, or Segment engage.
+Like Braze, One-Signal, Customer.io, and Segment Engage. Create automated user journeys to message users along any channel: email, SMS, mobile push notifications, and custom webhooks.
 
-Automated user journeys to message users along any channel (email, SMS, mobile push notifications, custom webhooks).
+<br />
 
+## Developer-centric
+
+Focused on developer happiness with first-in-class features:
+
+* Write email templates in your favorite editor, checked into git - not in an un-versioned web based IDE.
+* Time-traveling testing SDK to test your marketing campaigns in CI. No more manually QAing them in production.
+* Self-hostable. Protect your sensitive PII inside of your own VPC.
+* Journey monitoring and alerting.
+* More to come.
+
+<br />
+  
 ## Open Source
 
 [MIT licensed](/LICENSE), and free forever.
 
-## Developer-Centric
-
-Focused on developer happiness with first in-class features.
-
-* Local, time-travelling testing.
-* Journey monitoring and alerting.
-* Git syncing.
-* More to come.
+<br />
 
 ## Contact
 
-Dittofeed is very much a work in progress. If you're interested in trying us out, please get in touch!
+If you're interested in trying us out, please get in touch!
 
 * [Slack](https://dittofeed-community.slack.com/ssb/redirect)
 * Email: [support@dittofeed.com](mailto:support@dittofeed.com)
