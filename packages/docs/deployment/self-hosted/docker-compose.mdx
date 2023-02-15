@@ -7,7 +7,7 @@ This section outlines the necessary steps to run Dittofeed with docker compose.
 First, clone Dittofeed's github repository.
 
 ```bash
-git clone git@github.com:ideamarketinc/dittofeed.git
+git clone git@github.com:dittofeed/dittofeed.git
 cd dittofeed
 ```
 
@@ -38,9 +38,15 @@ docker compose -f docker-compose.prod.yaml up -d
 ```
 
 <Warning>
-The above command will start Postgres, Clickhouse, and Kafka dependencies. You may decide to use a third party vendor for these data stores. In that case, you should disable the corresponding services in the `docker-compose.prod.yaml` file.
+  The above command will start Postgres, Clickhouse, and Kafka dependencies. You
+  may decide to use a third party vendor for these data stores. In that case,
+  you should disable the corresponding services in the
+  `docker-compose.prod.yaml` file.
 </Warning>
 
-<Card title="Self-Host with AWS Cloudformation" href="/deployment/self-hosted/cloudformation">
+<Card
+  title="Self-Host with AWS Cloudformation"
+  href="/deployment/self-hosted/cloudformation"
+>
   Deploy Dittofeed to AWS with docker compose and Cloudformation. *Coming Soon*
 </Card>
