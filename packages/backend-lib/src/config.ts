@@ -21,6 +21,7 @@ const BaseRawConfigProps = {
   kafkaBrokers: Type.String(),
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
+  kafkaSsl: Type.Optional(BoolStr),
   userEventsTopicName: Type.Optional(Type.String()),
   temporalNamespace: Type.Optional(Type.String()),
   logConfig: Type.Optional(BoolStr),
@@ -73,6 +74,7 @@ export type Config = Overwrite<
     clickhouseDatabase: string;
     kafkaUsername: string;
     kafkaPassword: string;
+    kafkaSsl: boolean;
     nodeEnv: NodeEnvEnum;
     temporalAddress: string;
     logConfig: boolean;
@@ -157,6 +159,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       : ["localhost:9092"],
     kafkaUsername: rawConfig.kafkaUsername ?? "dittofeed",
     kafkaPassword: rawConfig.kafkaPassword ?? "password",
+    kafkaSsl: rawConfig.kafkaSsl === "true",
     userEventsTopicName:
       rawConfig.userEventsTopicName ?? "dittofeed-user-events",
     temporalNamespace: rawConfig.temporalNamespace ?? "default",
