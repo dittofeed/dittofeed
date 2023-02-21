@@ -153,9 +153,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       : ["localhost:9092"],
     userEventsTopicName:
       rawConfig.userEventsTopicName ?? "dittofeed-user-events",
-    temporalNamespace:
-      rawConfig.temporalNamespace ??
-      (rawConfig.nodeEnv === "test" ? "default" : "dittofeed"),
+    temporalNamespace: rawConfig.temporalNamespace ?? "default",
     defaultWorkspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
     defaultIdUserPropertyId: "eaeafca1-a8ec-49df-8359-43fef17a9794",
     defaultAnonymousIdIdUserPropertyId: "ad4c926b-dcae-4da4-b779-6e23061e6e17",
