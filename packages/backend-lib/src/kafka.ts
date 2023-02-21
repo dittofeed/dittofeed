@@ -2,9 +2,16 @@ import { Kafka, Partitioners } from "kafkajs";
 
 import config from "./config";
 
+const { kafkaUsername, kafkaPassword, kafkaBrokers } = config();
+
 export const kafka = new Kafka({
   clientId: "dittofeed",
-  brokers: config().kafkaBrokers,
+  brokers: kafkaBrokers,
+  sasl: {
+    mechanism: "plain",
+    username: kafkaUsername,
+    password: kafkaPassword,
+  },
 });
 
 export const kafkaAdmin = kafka.admin();

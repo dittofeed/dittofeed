@@ -1,9 +1,12 @@
 version: "3.9"
+x-kafka-credentials: &kafka-credentials
+  KAFKA_USERNAME: $KAFKA_USERNAME
+  KAFKA_PASSWORD: $KAFKA_PASSWORD
 x-clickhouse-credentials: &clickhouse-credentials
   CLICKHOUSE_USER: $CLICKHOUSE_USER
   CLICKHOUSE_PASSWORD: $CLICKHOUSE_PASSWORD
 x-backend-app-env: &backend-app-env
-  <<: *clickhouse-credentials
+  <<: [*clickhouse-credentials, *kafka-credentials]
   NODE_ENV: production
   DATABASE_HOST: ${DATABASE_HOST:-postgres}
   DATABASE_PORT: ${DATABASE_PORT:-5432}
@@ -102,6 +105,7 @@ services:
       - "9092:9092"
       - "9101:9101"
     environment:
+      <<: *kafka-credentials
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
