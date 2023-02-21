@@ -29,7 +29,7 @@ async function prismaMigrate() {
   });
 }
 
-async function bootstrapPrimaryDb() {
+async function bootstrapPostgres() {
   const {
     defaultWorkspaceId,
     defaultIdUserPropertyId,
@@ -192,8 +192,14 @@ async function bootstrapClickhouse() {
 
 export default async function bootstrap() {
   await Promise.all([
-    bootstrapPrimaryDb(),
-    bootstrapKafka(),
-    bootstrapClickhouse(),
+    bootstrapPostgres().catch((e) =>
+      console.error("failed to bootstrap postgres", e)
+    ),
+    bootstrapKafka().catch((e) =>
+      console.error("failed to bootstrap kafka", e)
+    ),
+    bootstrapClickhouse().catch((e) =>
+      console.error("failed to bootstrap clickhouse", e)
+    ),
   ]);
 }
