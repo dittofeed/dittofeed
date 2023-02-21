@@ -22,6 +22,8 @@ const BaseRawConfigProps = {
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
   kafkaSsl: Type.Optional(BoolStr),
+  kafkaUserEventsPartitions: Type.Optional(Type.String()),
+  kafkaUserEventsReplicationFactor: Type.Optional(Type.String()),
   userEventsTopicName: Type.Optional(Type.String()),
   temporalNamespace: Type.Optional(Type.String()),
   logConfig: Type.Optional(BoolStr),
@@ -78,6 +80,8 @@ export type Config = Overwrite<
     nodeEnv: NodeEnvEnum;
     temporalAddress: string;
     logConfig: boolean;
+    kafkaUserEventsPartitions: number;
+    kafkaUserEventsReplicationFactor: number;
   }
 > & {
   defaultWorkspaceId: string;
@@ -139,15 +143,38 @@ function parseDatabaseUrl(rawConfig: RawConfig) {
   return url.toString();
 }
 
+function parseToNumber({
+  nodeEnv,
+  unparsed,
+  prodDefault,
+  nonProdDefault,
+}: {
+  nodeEnv: NodeEnvEnum;
+  unparsed?: string;
+  prodDefault: number;
+  nonProdDefault: number;
+}) {
+  const coerced = Number(unparsed);
+  if (Number.isNaN(coerced)) {
+    if (nodeEnv === NodeEnvEnum.Production) {
+      return prodDefault;
+    }
+    return nonProdDefault;
+  }
+  return coerced;
+}
+
 function parseRawConfig(rawConfig: RawConfig): Config {
   const databaseUrl = parseDatabaseUrl(rawConfig);
   const clickhouseDatabase =
     rawConfig.clickhouseDatabase ??
     (rawConfig.nodeEnv === "test" ? "dittofeed-test" : "dittofeed");
 
+  const nodeEnv = rawConfig.nodeEnv ?? NodeEnvEnum.Development;
+
   const parsedConfig: Config = {
     ...rawConfig,
-    nodeEnv: rawConfig.nodeEnv ?? NodeEnvEnum.Development,
+    nodeEnv,
     temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
     databaseUrl,
     clickhouseDatabase,
@@ -160,6 +187,18 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     kafkaUsername: rawConfig.kafkaUsername ?? "dittofeed",
     kafkaPassword: rawConfig.kafkaPassword ?? "password",
     kafkaSsl: rawConfig.kafkaSsl === "true",
+    kafkaUserEventsPartitions: parseToNumber({
+      unparsed: rawConfig.kafkaUserEventsPartitions,
+      nodeEnv,
+      prodDefault: 10,
+      nonProdDefault: 1,
+    }),
+    kafkaUserEventsReplicationFactor: parseToNumber({
+      unparsed: rawConfig.kafkaUserEventsReplicationFactor,
+      nodeEnv,
+      prodDefault: 3,
+      nonProdDefault: 1,
+    }),
     userEventsTopicName:
       rawConfig.userEventsTopicName ?? "dittofeed-user-events",
     temporalNamespace: rawConfig.temporalNamespace ?? "default",

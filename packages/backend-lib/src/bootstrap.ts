@@ -163,15 +163,20 @@ async function bootstrapPostgres() {
 }
 
 async function bootstrapKafka() {
+  const {
+    userEventsTopicName,
+    kafkaUserEventsPartitions,
+    kafkaUserEventsReplicationFactor,
+  } = config();
   await kafkaAdmin.connect();
 
   await kafkaAdmin.createTopics({
     waitForLeaders: true,
     topics: [
       {
-        topic: config().userEventsTopicName,
-        numPartitions: 1,
-        replicationFactor: 1,
+        topic: userEventsTopicName,
+        numPartitions: kafkaUserEventsPartitions,
+        replicationFactor: kafkaUserEventsReplicationFactor,
       },
     ],
   });
