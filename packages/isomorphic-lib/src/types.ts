@@ -28,7 +28,21 @@ export interface SegmentUpdate {
 export enum SegmentOperatorType {
   Within = "Within",
   Equals = "Equals",
+  HasBeen = "HasBeen",
 }
+
+export enum SegmentHasBeenOperatorComparator {
+  GTE = "GTE",
+  LT = "LT",
+}
+
+export const SegmentHasBeenOperator = Type.Object({
+  type: Type.Literal(SegmentOperatorType.HasBeen),
+  comparator: Type.Enum(SegmentHasBeenOperatorComparator),
+  windowSeconds: Type.Number(),
+});
+
+export type SegmentHasBeenOperator = Static<typeof SegmentHasBeenOperator>;
 
 export const SegmentWithinOperator = Type.Object({
   type: Type.Literal(SegmentOperatorType.Within),
@@ -47,6 +61,7 @@ export type SegmentEqualsOperator = Static<typeof SegmentEqualsOperator>;
 export const SegmentOperator = Type.Union([
   SegmentWithinOperator,
   SegmentEqualsOperator,
+  SegmentHasBeenOperator,
 ]);
 
 export type SegmentOperator = Static<typeof SegmentOperator>;
