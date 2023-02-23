@@ -15,6 +15,26 @@ const userEventsColumns = `
   workspace_id String
 `;
 
+/**
+ * Use materialized views in clickhouse
+ * store segment as an attribute
+ *
+ * - use clickhouse maps
+ * - preparse json
+ * - can store mix of parsed and unparsed
+ *
+ *  user
+ *  segment
+ *  last_update_time min function
+ *  order by (user, segment)
+ *
+ * materialized view calculates up to date values
+ * live query finds users with updated values in polling period
+ *
+ * send denis a copy of table structures
+ *
+ */
+
 interface InsertValue {
   processingTime?: string;
   messageRaw: Record<string, JSONValue>;
@@ -98,6 +118,7 @@ export async function createUserEventsTables({
       `);
   }
 
+  console.log("queries", queries);
   await Promise.all(
     queries.map((query) =>
       clickhouseClient().exec({
@@ -114,6 +135,7 @@ export async function createUserEventsTables({
       SELECT *
       FROM user_events_queue_${tableVersion};
     `;
+    console.log("mvQuery", mvQuery);
 
     await clickhouseClient().exec({
       query: mvQuery,

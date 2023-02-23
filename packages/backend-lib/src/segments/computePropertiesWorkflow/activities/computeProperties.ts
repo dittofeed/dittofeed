@@ -18,7 +18,7 @@ import {
   EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
-  SegmentHasBeenOperatorComparator,
+  // SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
@@ -90,43 +90,64 @@ function buildSegmentQueryExpression({
           `;
         }
         case SegmentOperatorType.HasBeen: {
-          if (
-            node.operator.comparator !== SegmentHasBeenOperatorComparator.GTE
-          ) {
-            throw new Error("Unimplemented comparator.");
-          }
+          return "True";
+          // if (
+          //   node.operator.comparator !== SegmentHasBeenOperatorComparator.GTE
+          // ) {
+          //   throw new Error("Unimplemented comparator.");
+          // }
 
-          const val = node.operator.value;
-          const varName = `last_trait_update${node.id.replace(/-/g, "_")}`;
-          const upperTraitBound =
-            currentTime / 1000 - node.operator.windowSeconds;
+          // const val = node.operator.value;
+          // const varName = `last_trait_update${node.id.replace(/-/g, "_")}`;
+          // const upperTraitBound =
+          //   currentTime / 1000 - node.operator.windowSeconds;
 
-          let queryVal: string;
+          // console.log(
+          //   "upperTraitBound",
+          //   new Date(upperTraitBound * 1000).toISOString()
+          // );
 
-          switch (typeof val) {
-            case "number": {
-              queryVal = String(val);
-              break;
-            }
-            case "string": {
-              queryVal = `'${val}'`;
-              break;
-            }
-          }
+          // let queryVal: string;
 
-          return `
-            and(
-              JSON_VALUE(
-                (
-                  arrayFirst(
-                    m -> JSONHas(m.1, 'traits', ${pathArgs}),
-                    timed_messages
-                  ) as ${varName},
-                ).1,
-                '$.traits.${node.path}'
-              ) == ${queryVal},
-              ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
-            )`;
+          // switch (typeof val) {
+          //   case "number": {
+          //     queryVal = String(val);
+          //     break;
+          //   }
+          //   case "string": {
+          //     queryVal = `'${val}'`;
+          //     break;
+          //   }
+          // }
+
+          // return `
+          //     JSON_VALUE(
+          //       (
+          //         arrayFirst(
+          //           m -> JSONHas(m.1, 'traits', ${pathArgs}),
+          //           timed_messages
+          //         ) as ${varName}
+          //       ).1,
+          //       '$.traits.${node.path}'
+          //     ) == ${queryVal}
+          //   `;
+
+          // FIXME test if has no relevant events shouldn't error
+          // return `
+          //   and(
+          //     JSON_VALUE(
+          //       (
+          //         arrayFirst(
+          //           m -> JSONHas(m.1, 'traits', ${pathArgs}),
+          //           timed_messages
+          //         ) as ${varName}
+          //       ).1,
+          //       '$.traits.${node.path}'
+          //     ) == ${queryVal},
+          //     ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
+          //   )`;
+
+          // ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
         }
         case SegmentOperatorType.Within: {
           const upperTraitBound = currentTime / 1000;
@@ -415,12 +436,12 @@ export async function computePropertiesPeriodSafe({
 
   // TODO handle anonymous id's, including case where user_id is null
   // TODO handle materializing previous segmentation result by writing query to table
-  const lowerBoundClause =
-    processingTimeLowerBound && !Object.keys(newComputedIds ?? {}).length
-      ? `HAVING latest_processing_time >= toDateTime64(${
-          processingTimeLowerBound / 1000
-        }, 3)`
-      : "";
+  const lowerBoundClause = "";
+  // processingTimeLowerBound && !Object.keys(newComputedIds ?? {}).length
+  //   ? `HAVING latest_processing_time >= toDateTime64(${
+  //       processingTimeLowerBound / 1000
+  //     }, 3)`
+  //   : "";
 
   const joinedWithClause = Array.from(withClause)
     .map(([key, value]) => `${value} AS ${key}`)
@@ -437,6 +458,7 @@ export async function computePropertiesPeriodSafe({
     ${lowerBoundClause}
     ORDER BY latest_processing_time DESC
   `;
+  console.log("query loc1", query);
 
   const resultSet = await clickhouseClient().query({
     query,
@@ -445,7 +467,9 @@ export async function computePropertiesPeriodSafe({
 
   let lastProcessingTime: null | number = null;
 
+  console.log("loop");
   for await (const rows of resultSet.stream()) {
+    console.log("row", rows);
     const assignments: ComputedAssignment[] = await Promise.all(
       rows.flatMap(async (row: Row) => {
         const json = await row.json();

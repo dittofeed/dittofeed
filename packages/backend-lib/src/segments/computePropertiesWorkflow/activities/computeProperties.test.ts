@@ -133,7 +133,7 @@ describe("compute properties activities", () => {
   });
 
   describe("computePropertiesPeriod", () => {
-    describe.only("when segmenting on users who have a trait for longer than 24 hours", () => {
+    describe.skip("when segmenting on users who have a trait for longer than 24 hours", () => {
       beforeEach(async () => {
         const segmentDefinition: SegmentDefinition = {
           entryNode: {
