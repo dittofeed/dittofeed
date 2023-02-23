@@ -32,7 +32,7 @@ export async function createClickhouseDb() {
   const client = createClient(clientConfig);
 
   await client.exec({
-    query: "CREATE DATABASE IF NOT EXISTS dittofeed",
+    query: `CREATE DATABASE IF NOT EXISTS ${database}`,
     clickhouse_settings: {
       wait_end_of_query: 1,
     },

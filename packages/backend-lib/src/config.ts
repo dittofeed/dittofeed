@@ -168,7 +168,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   const databaseUrl = parseDatabaseUrl(rawConfig);
   const clickhouseDatabase =
     rawConfig.clickhouseDatabase ??
-    (rawConfig.nodeEnv === "test" ? "dittofeed-test" : "dittofeed");
+    (rawConfig.nodeEnv === "test" ? "dittofeed_test" : "dittofeed");
 
   const nodeEnv = rawConfig.nodeEnv ?? NodeEnvEnum.Development;
 

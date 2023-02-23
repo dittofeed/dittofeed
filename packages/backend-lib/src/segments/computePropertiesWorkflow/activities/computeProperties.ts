@@ -18,6 +18,7 @@ import {
   EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
+  SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
@@ -88,6 +89,45 @@ function buildSegmentQueryExpression({
             ) == ${queryVal}
           `;
         }
+        case SegmentOperatorType.HasBeen: {
+          if (
+            node.operator.comparator !== SegmentHasBeenOperatorComparator.GTE
+          ) {
+            throw new Error("Unimplemented comparator.");
+          }
+
+          const val = node.operator.value;
+          const varName = `last_trait_update${node.id.replace(/-/g, "_")}`;
+          const upperTraitBound =
+            currentTime / 1000 - node.operator.windowSeconds;
+
+          let queryVal: string;
+
+          switch (typeof val) {
+            case "number": {
+              queryVal = String(val);
+              break;
+            }
+            case "string": {
+              queryVal = `'${val}'`;
+              break;
+            }
+          }
+
+          return `
+            and(
+              JSON_VALUE(
+                (
+                  arrayFirst(
+                    m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                    timed_messages
+                  ) as ${varName},
+                ).1,
+                '$.traits.${node.path}'
+              ) == ${queryVal},
+              ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
+            )`;
+        }
         case SegmentOperatorType.Within: {
           const upperTraitBound = currentTime / 1000;
           const traitIdentifier = node.id.replace(/-/g, "_");
@@ -95,6 +135,7 @@ function buildSegmentQueryExpression({
           const lowerTraitBound =
             currentTime / 1000 - node.operator.windowSeconds;
 
+          // FIXME replace array find with array first
           return `
             and(
               (
@@ -390,7 +431,7 @@ export async function computePropertiesPeriodSafe({
     WITH
       ${joinedWithClause}
     SELECT user_id, history_length, model_index, in_segment, user_property, latest_processing_time, timed_messages
-    FROM dittofeed.user_events_${tableVersion}
+    FROM user_events_${tableVersion}
     WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
     GROUP BY user_id
     ${lowerBoundClause}

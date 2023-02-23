@@ -17,6 +17,7 @@ import {
   CompletionStatus,
   SegmentDefinition,
   SegmentEqualsOperator,
+  SegmentHasBeenOperator,
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
@@ -90,11 +91,17 @@ const withinOperatorOption = {
   label: "Within",
 };
 
+const hasBeenOperatorOption = {
+  id: SegmentOperatorType.HasBeen,
+  label: "Has Been",
+};
+
 const operatorOptions: Option[] = [equalsOperatorOption, withinOperatorOption];
 
 const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
   [SegmentOperatorType.Equals]: equalsOperatorOption,
   [SegmentOperatorType.Within]: withinOperatorOption,
+  [SegmentOperatorType.HasBeen]: hasBeenOperatorOption,
 };
 
 type Group = SegmentNodeType.And | SegmentNodeType.Or;
@@ -231,7 +238,7 @@ function DurationValueSelect({
   operator,
 }: {
   nodeId: string;
-  operator: SegmentWithinOperator;
+  operator: SegmentWithinOperator | SegmentHasBeenOperator;
 }) {
   const value = operator.windowSeconds;
 
@@ -278,7 +285,10 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const operator = keyedOperatorOptions[node.operator.type];
 
   let valueSelect: React.ReactElement;
-  if (node.operator.type === SegmentOperatorType.Within) {
+  if (
+    node.operator.type === SegmentOperatorType.Within ||
+    node.operator.type === SegmentOperatorType.HasBeen
+  ) {
     valueSelect = (
       <DurationValueSelect nodeId={node.id} operator={node.operator} />
     );

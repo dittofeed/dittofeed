@@ -39,6 +39,7 @@ export enum SegmentHasBeenOperatorComparator {
 export const SegmentHasBeenOperator = Type.Object({
   type: Type.Literal(SegmentOperatorType.HasBeen),
   comparator: Type.Enum(SegmentHasBeenOperatorComparator),
+  value: Type.Union([Type.String(), Type.Number()]),
   windowSeconds: Type.Number(),
 });
 

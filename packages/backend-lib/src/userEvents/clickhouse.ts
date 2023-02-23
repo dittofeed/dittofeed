@@ -21,7 +21,7 @@ interface InsertValue {
 }
 
 export function buildUserEventsTableName(tableVersion: string) {
-  return `dittofeed.user_events_${tableVersion}`;
+  return `user_events_${tableVersion}`;
 }
 
 export async function insertUserEvents({
@@ -47,7 +47,7 @@ export async function insertUserEvents({
     tableVersion = currentTable.version;
   }
   await clickhouseClient().insert({
-    table: `dittofeed.user_events_${tableVersion} (message_raw, processing_time, workspace_id)`,
+    table: `user_events_${tableVersion} (message_raw, processing_time, workspace_id)`,
     values: events.map((e) => {
       const value: {
         message_raw: string;
@@ -87,7 +87,7 @@ export async function createUserEventsTables({
   if (ingressTopic) {
     // TODO modify kafka consumer settings
     queries.push(`
-        CREATE TABLE IF NOT EXISTS dittofeed.user_events_queue_${tableVersion}
+        CREATE TABLE IF NOT EXISTS user_events_queue_${tableVersion}
         (message_raw String, workspace_id String)
         ENGINE = Kafka('${kafkaBrokers}', '${ingressTopic}', '${ingressTopic}-clickhouse',
                   'JSONEachRow') settings
@@ -109,10 +109,10 @@ export async function createUserEventsTables({
 
   if (ingressTopic) {
     const mvQuery = `
-      CREATE MATERIALIZED VIEW IF NOT EXISTS dittofeed.user_events_mv_${tableVersion}
-      TO dittofeed.user_events_${tableVersion} AS
+      CREATE MATERIALIZED VIEW IF NOT EXISTS user_events_mv_${tableVersion}
+      TO user_events_${tableVersion} AS
       SELECT *
-      FROM dittofeed.user_events_queue_${tableVersion};
+      FROM user_events_queue_${tableVersion};
     `;
 
     await clickhouseClient().exec({

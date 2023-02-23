@@ -14,6 +14,7 @@ import {
   JourneyNodeType,
   MessageNodeVariantType,
   SegmentDefinition,
+  SegmentHasBeenOperatorComparator,
   SegmentNodeType,
   SegmentOperatorType,
   UserPropertyDefinition,
@@ -132,6 +133,77 @@ describe("compute properties activities", () => {
   });
 
   describe("computePropertiesPeriod", () => {
+    describe.only("when segmenting on users who have a trait for longer than 24 hours", () => {
+      beforeEach(async () => {
+        const segmentDefinition: SegmentDefinition = {
+          entryNode: {
+            type: SegmentNodeType.Trait,
+            id: randomUUID(),
+            path: "status",
+            operator: {
+              type: SegmentOperatorType.HasBeen,
+              comparator: SegmentHasBeenOperatorComparator.GTE,
+              windowSeconds: 60 * 60 * 24,
+              value: "onboarding",
+            },
+          },
+          nodes: [],
+        };
+
+        await createSegmentsAndJourney([segmentDefinition]);
+      });
+
+      describe("when the user has had the trait for longer than 24 hours", () => {
+        beforeEach(async () => {
+          await insertUserEvents({
+            tableVersion,
+            workspaceId: workspace.id,
+            events: [
+              {
+                // One day earlier than current time
+                processingTime: "2021-12-31 00:15:30",
+                messageRaw: segmentIdentifyEvent({
+                  userId,
+                  anonymousId,
+                  timestamp: "2021-12-31 00:15:00",
+                  traits: {
+                    status: "onboarding",
+                  },
+                }),
+              },
+            ],
+          });
+        });
+
+        it("signals or creates a workflow for that user", async () => {
+          // One day after status was changed
+          const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
+
+          const nextUpperBound = await computePropertiesPeriod({
+            currentTime,
+            workspaceId: workspace.id,
+            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
+            tableVersion,
+            subscribedJourneys: [journey],
+            userProperties: [],
+          });
+
+          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
+          expect(signalWithStart).toHaveBeenCalledWith(
+            expect.any(Function),
+            expect.objectContaining({
+              signalArgs: [
+                expect.objectContaining({
+                  segmentId: segment.id,
+                  currentlyInSegment: true,
+                }),
+              ],
+            })
+          );
+        });
+      });
+    });
+
     describe("when segmenting on users created in the last 30 minutes", () => {
       beforeEach(async () => {
         const segmentDefinition: SegmentDefinition = {
