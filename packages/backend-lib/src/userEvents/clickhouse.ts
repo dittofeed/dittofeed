@@ -98,6 +98,19 @@ export async function createUserEventsTables({
         ENGINE MergeTree()
         ORDER BY (workspace_id, processing_time, user_or_anonymous_id, event_time);
       `,
+    `
+        CREATE TABLE IF NOT EXISTS property_assignments (
+            workspace_id LowCardinality(String),
+            user_id String,
+            segment_id LowCardinality(String),
+            segment_value Boolean,
+            trait_path LowCardinality(String),
+            trait_value String,
+            processed Boolean DEFAULT False,
+            assigned_at DateTime64(3) DEFAULT now64(3)
+        ) Engine = ReplacingMergeTree()
+        ORDER BY (workspace_id, segment_id, user_id, processed);
+      `,
   ];
   const kafkaBrokers =
     config().nodeEnv === "test" || config().nodeEnv === "development"
