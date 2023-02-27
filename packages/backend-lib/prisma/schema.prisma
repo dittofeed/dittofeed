@@ -78,6 +78,7 @@ model SegmentAssignment {
   @@unique([userId, segmentId])
 }
 
+
 model UserPropertyAssignment {
   userId         String
   userProperty   UserProperty @relation(fields: [userPropertyId], references: [id])
