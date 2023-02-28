@@ -210,18 +210,22 @@ function buildSegmentQueryExpression({
 function buildSegmentQueryFragment({
   currentTime,
   modelIndex,
-  node,
-  nodes,
+  segment,
 }: {
   currentTime: number;
   modelIndex: number;
-  node: SegmentNode;
-  nodes: SegmentNode[];
+  segment: EnrichedSegment;
 }): string {
   return `
     (
       ${modelIndex},
-      ${buildSegmentQueryExpression({ currentTime, node, nodes })},
+      ${buildSegmentQueryExpression({
+        currentTime,
+        node: segment.definition.entryNode,
+        nodes: segment.definition.nodes,
+      })},
+      Null,
+      '${segment.id}',
       Null
     )
   `;
@@ -269,7 +273,9 @@ function buildUserPropertyQueryFragment({
     (
       ${modelIndex},
       Null,
-      ${innerQuery}
+      ${innerQuery},
+      Null,
+      '${userProperty.id}'
     )
   `;
 }
@@ -298,8 +304,7 @@ function computedToQueryFragments({
       case "Segment": {
         modelFragments.push(
           buildSegmentQueryFragment({
-            node: computedProperty.segment.definition.entryNode,
-            nodes: computedProperty.segment.definition.nodes,
+            segment: computedProperty.segment,
             modelIndex: computedProperty.modelIndex,
             currentTime,
           })
@@ -332,6 +337,8 @@ function computedToQueryFragments({
   withClause.set("model_index", "models.1");
   withClause.set("in_segment", "models.2");
   withClause.set("user_property", "models.3");
+  withClause.set("segment_id", "models.4");
+  withClause.set("user_property_id", "models.5");
   withClause.set(
     "latest_processing_time",
     "arrayMax(m -> toInt64(m.3), timed_messages)"
@@ -447,6 +454,35 @@ export async function computePropertiesPeriodSafe({
     .map(([key, value]) => `${value} AS ${key}`)
     .join(",\n");
 
+  const query2 = `
+    INSERT INTO segment_assignments
+    SELECT
+      sas.workspace_id,
+      sas.user_id,
+      sas.segment_id,
+      sas.in_segment,
+      sas.user_property_id,
+      sas.user_property,
+      False,
+      now64(3)
+    FROM (
+      SELECT 
+        ${joinedWithClause},
+        user_id,
+        history_length,
+        model_index,
+        in_segment,
+        user_property,
+        latest_processing_time,
+        timed_messages
+      FROM user_events_${tableVersion}
+      WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
+      GROUP BY user_id
+      ${lowerBoundClause}
+      ORDER BY latest_processing_time DESC
+    ) sas
+  `;
+
   // TODO handle anonymous ids
   const query = `
     WITH
@@ -458,7 +494,11 @@ export async function computePropertiesPeriodSafe({
     ${lowerBoundClause}
     ORDER BY latest_processing_time DESC
   `;
-  console.log("query loc1", query);
+
+  await clickhouseClient().query({
+    query: query2,
+    format: "JSONEachRow",
+  });
 
   const resultSet = await clickhouseClient().query({
     query,
@@ -467,7 +507,6 @@ export async function computePropertiesPeriodSafe({
 
   let lastProcessingTime: null | number = null;
 
-  console.log("loop");
   for await (const rows of resultSet.stream()) {
     console.log("row", rows);
     const assignments: ComputedAssignment[] = await Promise.all(
@@ -518,6 +557,7 @@ export async function computePropertiesPeriodSafe({
         }
 
         const inSegment = Boolean(a.in_segment);
+        // FIXME return segment assignment
         return prisma.segmentAssignment.upsert({
           where: {
             userId_segmentId: {

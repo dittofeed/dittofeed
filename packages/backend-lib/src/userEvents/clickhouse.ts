@@ -103,9 +103,9 @@ export async function createUserEventsTables({
             workspace_id LowCardinality(String),
             user_id String,
             segment_id LowCardinality(String),
-            segment_value Boolean,
-            trait_path LowCardinality(String),
-            trait_value String,
+            segment_value Nullable(Boolean),
+            user_property_id LowCardinality(String),
+            user_property_value Nullable(String),
             processed Boolean DEFAULT False,
             assigned_at DateTime64(3) DEFAULT now64(3)
         ) Engine = ReplacingMergeTree()
@@ -131,7 +131,6 @@ export async function createUserEventsTables({
       `);
   }
 
-  console.log("queries", queries);
   await Promise.all(
     queries.map((query) =>
       clickhouseClient().exec({
@@ -148,7 +147,6 @@ export async function createUserEventsTables({
       SELECT *
       FROM user_events_queue_${tableVersion};
     `;
-    console.log("mvQuery", mvQuery);
 
     await clickhouseClient().exec({
       query: mvQuery,
