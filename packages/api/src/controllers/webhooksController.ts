@@ -3,8 +3,9 @@ import { Type } from "@sinclair/typebox";
 import backendConfig from "backend-lib/src/config";
 import prisma from "backend-lib/src/prisma";
 import { writeUserEvents } from "backend-lib/src/userEvents";
-import * as crypto from "crypto";
 import { FastifyInstance } from "fastify";
+
+import { generateDigest } from "../crypto";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
@@ -52,10 +53,10 @@ export default async function webhookController(fastify: FastifyInstance) {
       const { sharedSecret } = config;
       const signature = request.headers["x-signature"];
 
-      const digest = crypto
-        .createHmac("sha1", sharedSecret)
-        .update(Buffer.from(request.rawBody, "utf-8"))
-        .digest("hex");
+      const digest = generateDigest({
+        rawBody: request.rawBody,
+        sharedSecret,
+      });
 
       if (signature !== digest) {
         return reply.status(401).send();

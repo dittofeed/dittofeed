@@ -24,6 +24,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import buildApp from "../buildApp";
+import { generateDigest } from "../crypto";
 
 jest.setTimeout(20000);
 
@@ -48,6 +49,7 @@ describe("end to end segment webhooks", () => {
   let app: Awaited<ReturnType<typeof buildApp>>;
   let tableVersion: string;
   const k = new KafkaSkaffold();
+  const sharedSecret = "bac20417-432b-40a8-ac2d-81fb2744d0f7";
 
   beforeAll(async () => {
     await k.setupBeforeAll();
@@ -131,7 +133,7 @@ describe("end to end segment webhooks", () => {
       prisma.segmentIOConfiguration.create({
         data: {
           workspaceId: workspace.id,
-          sharedSecret: "bac20417-432b-40a8-ac2d-81fb2744d0f7",
+          sharedSecret,
         },
       }),
       prisma.currentUserEventsTable.create({
@@ -206,21 +208,25 @@ describe("end to end segment webhooks", () => {
           ],
         });
         const messageId = "d69e965a-9f31-4f7c-b7d0-01edfe18d96e";
+        const payload = segmentIdentifyEvent({
+          userId,
+          messageId,
+          traits: {
+            plan: "paid",
+          },
+        });
 
         const response = await app.inject({
           method: "POST",
           url: "/api/webhooks/segment",
           headers: {
-            "x-signature": "a80df74bda29011869c6fe994d342626d469a67d",
+            "x-signature": generateDigest({
+              rawBody: JSON.stringify(payload),
+              sharedSecret,
+            }),
             "df-workspace-id": workspace.id,
           },
-          payload: segmentIdentifyEvent({
-            userId,
-            messageId,
-            traits: {
-              plan: "paid",
-            },
-          }),
+          payload,
         });
 
         expect(response.statusCode).toBe(200);
