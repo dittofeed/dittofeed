@@ -521,6 +521,8 @@ export async function computePropertiesPeriodSafe({
         segment_value,
         user_property_value,
         assigned_at
+      HAVING
+        processed_for_pair.1 == computed_property_id
 
       UNION ALL
 
@@ -584,24 +586,26 @@ export async function computePropertiesPeriodSafe({
     console.log("assignments", assignments);
     // segment id, journey id
 
-    const processedFor: string[] = ["pg"];
-    const userPropertyAssignments: ComputedAssignment[] = [];
-    const segmentAssignments: ComputedAssignment[] = [];
+    const pgUserPropertyAssignments: ComputedAssignment[] = [];
+    const pgSegmentAssignments: ComputedAssignment[] = [];
+    const signalSegmentAssignments: ComputedAssignment[] = [];
 
     for (const assignment of assignments) {
       if (assignment.processed_for === "pg") {
         switch (assignment.type) {
           case "segment":
-            segmentAssignments.push(assignment);
+            pgSegmentAssignments.push(assignment);
             break;
           case "user_property":
-            userPropertyAssignments.push(assignment);
+            pgUserPropertyAssignments.push(assignment);
             break;
         }
+      } else {
+        signalSegmentAssignments.push(assignment);
       }
     }
     await Promise.all([
-      ...userPropertyAssignments.map((a) =>
+      ...pgUserPropertyAssignments.map((a) =>
         prisma.userPropertyAssignment.upsert({
           where: {
             workspaceId_userPropertyId_userId: {
@@ -621,7 +625,7 @@ export async function computePropertiesPeriodSafe({
           },
         })
       ),
-      ...segmentAssignments.map((a) => {
+      ...pgSegmentAssignments.map((a) => {
         const inSegment = Boolean(a.latest_segment_value);
         return prisma.segmentAssignment.upsert({
           where: {
@@ -644,51 +648,32 @@ export async function computePropertiesPeriodSafe({
       }),
     ]);
 
-    const signalBatch: Promise<void>[] = [];
-
-    // FIXME signalling every journey even when shouldn't
-    for (const assignment of segmentAssignments) {
-      for (const journey of subscribedJourneys) {
-        const subscribedSegments = getSubscribedSegments(journey.definition);
-        if (!subscribedSegments.has(assignment.computed_property_id)) {
-          continue;
-        }
-        processedFor.push(journey.id);
-
-        signalBatch.push(
-          signalJourney({
-            workspaceId,
-            segmentId: assignment.computed_property_id,
-            segmentAssignment: assignment,
-            journey,
-          })
+    // console.log('signalSegmentAssignments');
+    await Promise.all(
+      signalSegmentAssignments.flatMap((assignment) => {
+        const journey = subscribedJourneys.find(
+          (j) => j.id === assignment.processed_for
         );
-      }
-    }
-    await Promise.all(signalBatch);
+        if (!journey) {
+          return [];
+        }
+
+        return signalJourney({
+          workspaceId,
+          segmentId: assignment.computed_property_id,
+          segmentAssignment: assignment,
+          journey,
+        });
+      })
+    );
 
     const processedAssignments: ComputedPropertyAssignment[] =
-      processedFor.flatMap((pf) =>
-        assignments.map(
-          ({
-            user_id,
-            type,
-            computed_property_id,
-            latest_segment_value,
-            latest_user_property_value,
-            max_assigned_at,
-          }) => ({
-            workspace_id: workspaceId,
-            user_id,
-            type,
-            computed_property_id,
-            segment_value: latest_segment_value,
-            assigned_at: max_assigned_at,
-            user_property_value: latest_user_property_value,
-            processed_for: pf,
-          })
-        )
-      );
+      assignments.flatMap((assignment) => ({
+        workspace_id: workspaceId,
+        user_property_value: assignment.latest_user_property_value,
+        segment_value: assignment.latest_segment_value,
+        ...assignment,
+      }));
 
     await insertProcessedComputedProperties({
       assignments: processedAssignments,
