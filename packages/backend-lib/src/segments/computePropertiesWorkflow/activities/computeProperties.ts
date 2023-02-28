@@ -510,7 +510,8 @@ export async function computePropertiesPeriodSafe({
           user_property_value latest_user_property_value,
           assigned_at max_assigned_at,
           arrayJoin([${subscribedSegmentPairsCh}]) processed_for_pair,
-          processed_for_pair.2 processed_for
+          processed_for_pair.2 processed_for,
+          processed_for_pair.1 == computed_property_id property_is_computed
       FROM computed_property_assignments FINAL
       WHERE type == 'segment'
       GROUP BY
@@ -521,11 +522,8 @@ export async function computePropertiesPeriodSafe({
         segment_value,
         user_property_value,
         assigned_at
-      HAVING
-        processed_for_pair.1 == computed_property_id
 
       UNION ALL
-
       SELECT workspace_id,
           type,
           computed_property_id,
@@ -534,11 +532,12 @@ export async function computePropertiesPeriodSafe({
           user_property_value latest_user_property_value,
           assigned_at max_assigned_at,
           ('', '') processed_for_pair,
-          'pg' processed_for
+          'pg' processed_for,
+          True property_is_computed
       FROM computed_property_assignments FINAL
       WHERE type == 'user_property'
     ) cpa
-    WHERE (
+    WHERE property_is_computed AND (
       workspace_id,
       computed_property_id,
       user_id,

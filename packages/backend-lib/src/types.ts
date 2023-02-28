@@ -43,6 +43,7 @@ export const ComputedAssignment = Type.Object({
   latest_segment_value: Type.Boolean(),
   latest_user_property_value: Type.String(),
   max_assigned_at: Type.String(),
+  processed_for: Type.String(),
 });
 
 export type ComputedAssignment = Static<typeof ComputedAssignment>;
