@@ -63,6 +63,7 @@ export async function computePropertiesWorkflow({
     logger.info("segmentsNotificationWorkflow polling attempt", {
       i,
       currentTime,
+      maxPollingAttempts,
     });
 
     /**

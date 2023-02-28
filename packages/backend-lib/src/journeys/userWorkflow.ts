@@ -133,6 +133,7 @@ export async function userJourneyWorkflow({
 
         // TODO read from map if available
         const segmentAssignment = await getSegmentAssignment({
+          workspaceId,
           userId,
           segmentId: cn.variant.segment,
         });

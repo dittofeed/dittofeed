@@ -26,7 +26,7 @@ import {
   SegmentUpdate,
   UserPropertyDefinitionType,
 } from "../../../types";
-import { insertComputedPropertyAssignments } from "../../../userEvents/clickhouse";
+import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
 
 interface BaseComputedProperty {
   modelIndex: number;
@@ -460,7 +460,6 @@ export async function computePropertiesPeriodSafe({
       sas.computed_property_id,
       coalesce(sas.in_segment, False),
       coalesce(sas.user_property, ''),
-      False,
       now64(3)
     FROM (
       SELECT 
@@ -480,28 +479,49 @@ export async function computePropertiesPeriodSafe({
     ) sas
   `;
 
+  const chProcessedFor = subscribedJourneys
+    .map((j) => `'${j.id}'`)
+    .concat(["'pg'"])
+    .join(", ");
+
+  // FIXME not right, if there is partial overlap of journeys and segments
+  // Effectively this is saying if has not been sent to even 1 of the subscribed journeys, re-send to all of them
   const readQuery = `
-    WITH
-        uniq(segment_value) AS segment_value_count,
-        uniq(user_property_value) AS user_property_value_count,
-        uniq(processed) AS processed_count
-    SELECT computed_property_id,
-        user_id,
-        type,
-        argMax(segment_value, assigned_at) latest_segment_value,
-        argMax(user_property_value, assigned_at) latest_user_property_value,
-        max(assigned_at) max_assigned_at,
-        processed_count,
-        segment_value_count,
-        user_property_value_count
-    FROM computed_property_assignments FINAL
-    WHERE workspace_id == '${workspaceId}'
-    GROUP BY workspace_id,
+    SELECT workspace_id,
         type,
         computed_property_id,
-        user_id
-    HAVING segment_value_count == processed_count
-      OR user_property_value_count == processed_count;
+        user_id,
+        segment_value latest_segment_value,
+        user_property_value latest_user_property_value,
+        assigned_at max_assigned_at,
+        arrayJoin([${chProcessedFor}]) processed_for
+    FROM computed_property_assignments FINAL
+    WHERE (
+      workspace_id,
+      computed_property_id,
+      user_id,
+      segment_value,
+      user_property_value,
+      processed_for
+    ) NOT IN (
+      SELECT
+        workspace_id,
+        computed_property_id,
+        user_id,
+        segment_value,
+        user_property_value,
+        processed_for
+      FROM processed_computed_properties FINAL
+      WHERE processed_for IN (${chProcessedFor})
+    )
+    GROUP BY
+      workspace_id,
+      type,
+      computed_property_id,
+      user_id,
+      segment_value,
+      user_property_value,
+      assigned_at
   `;
 
   await clickhouseClient().query({
@@ -513,8 +533,6 @@ export async function computePropertiesPeriodSafe({
     query: readQuery,
     format: "JSONEachRow",
   });
-
-  // let lastProcessingTime: null | number = null;
 
   for await (const rows of resultSet.stream()) {
     const assignments: ComputedAssignment[] = await Promise.all(
@@ -532,9 +550,11 @@ export async function computePropertiesPeriodSafe({
         return result.value;
       })
     );
+    console.log("assignments", assignments);
 
     const userPropertyAssignments: ComputedAssignment[] = [];
     const segmentAssignments: ComputedAssignment[] = [];
+    const processedFor: string[] = ["pg"];
 
     for (const assignment of assignments) {
       switch (assignment.type) {
@@ -546,7 +566,6 @@ export async function computePropertiesPeriodSafe({
           break;
       }
     }
-    console.log(assignments);
     await Promise.all([
       ...userPropertyAssignments.map((a) =>
         prisma.userPropertyAssignment.upsert({
@@ -592,31 +611,16 @@ export async function computePropertiesPeriodSafe({
     ]);
 
     const signalBatch: Promise<void>[] = [];
-    for (const assignment of assignments) {
-      // if (!lastProcessingTime) {
-      //   lastProcessingTime = Number(assignment.latest_processing_time) * 1000;
-      // }
 
-      // const segmentId = modelIds[assignment.model_index];
-
-      // if (!segmentId) {
-      //   continue;
-      // }
-
+    // FIXME signalling every journey even when shouldn't
+    for (const assignment of segmentAssignments) {
       for (const journey of subscribedJourneys) {
-        // if (
-        //   !newComputedIds?.[journey.id] &&
-        //   processingTimeLowerBound &&
-        //   // TODO move this logic into the query
-        //   Number(assignment.latest_processing_time) * 1000 <
-        //     processingTimeLowerBound
-        // ) {
-        //   continue;
-        // }
         const subscribedSegments = getSubscribedSegments(journey.definition);
         if (!subscribedSegments.has(assignment.computed_property_id)) {
           continue;
         }
+        processedFor.push(journey.id);
+
         signalBatch.push(
           signalJourney({
             workspaceId,
@@ -629,26 +633,30 @@ export async function computePropertiesPeriodSafe({
     }
     await Promise.all(signalBatch);
 
-    const processedAssignments: ComputedPropertyAssignment[] = assignments.map(
-      ({
-        user_id,
-        type,
-        computed_property_id,
-        latest_segment_value,
-        latest_user_property_value,
-        max_assigned_at,
-      }) => ({
-        workspace_id: workspaceId,
-        user_id,
-        type,
-        computed_property_id,
-        segment_value: latest_segment_value,
-        assigned_at: max_assigned_at,
-        user_property_value: latest_user_property_value,
-        processed: true,
-      })
-    );
-    await insertComputedPropertyAssignments({
+    const processedAssignments: ComputedPropertyAssignment[] =
+      processedFor.flatMap((pf) =>
+        assignments.map(
+          ({
+            user_id,
+            type,
+            computed_property_id,
+            latest_segment_value,
+            latest_user_property_value,
+            max_assigned_at,
+          }) => ({
+            workspace_id: workspaceId,
+            user_id,
+            type,
+            computed_property_id,
+            segment_value: latest_segment_value,
+            assigned_at: max_assigned_at,
+            user_property_value: latest_user_property_value,
+            processed_for: pf,
+          })
+        )
+      );
+
+    await insertProcessedComputedProperties({
       assignments: processedAssignments,
     });
   }

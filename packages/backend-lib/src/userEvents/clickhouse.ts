@@ -25,14 +25,14 @@ export function buildUserEventsTableName(tableVersion: string) {
 }
 
 // TODO route through kafka
-export async function insertComputedPropertyAssignments({
+export async function insertProcessedComputedProperties({
   assignments,
 }: {
   assignments: ComputedPropertyAssignment[];
 }) {
   await clickhouseClient().insert({
     table:
-      "computed_property_assignments (workspace_id, user_id, type, computed_property_id, segment_value, user_property_value, processed, assigned_at)",
+      "processed_computed_properties (workspace_id, user_id, type, computed_property_id, segment_value, user_property_value, processed_for)",
     values: assignments,
     format: "JSONEachRow",
   });
@@ -100,10 +100,21 @@ export async function createUserEventsTables({
             computed_property_id LowCardinality(String),
             segment_value Boolean,
             user_property_value String,
-            processed Boolean DEFAULT False,
             assigned_at DateTime64(3) DEFAULT now64(3)
         ) Engine = ReplacingMergeTree()
-        ORDER BY (workspace_id, computed_property_id, user_id, processed);
+        ORDER BY (workspace_id, computed_property_id, user_id);
+      `,
+    `
+        CREATE TABLE IF NOT EXISTS processed_computed_properties (
+            workspace_id LowCardinality(String),
+            user_id String,
+            type Enum('user_property' = 1, 'segment' = 2),
+            computed_property_id LowCardinality(String),
+            segment_value Boolean,
+            user_property_value String,
+            processed_for LowCardinality(String)
+        ) Engine = ReplacingMergeTree()
+        ORDER BY (workspace_id, computed_property_id, user_id, processed_for);
       `,
   ];
 

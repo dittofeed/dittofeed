@@ -169,15 +169,18 @@ export async function onNodeProcessed({
 export type OnNodeProcessed = typeof onNodeProcessed;
 
 export function getSegmentAssignment({
+  workspaceId,
   segmentId,
   userId,
 }: {
+  workspaceId: string;
   segmentId: string;
   userId: string;
 }): Promise<SegmentAssignment | null> {
   return prisma.segmentAssignment.findUnique({
     where: {
-      userId_segmentId: {
+      workspaceId_userId_segmentId: {
+        workspaceId,
         segmentId,
         userId,
       },

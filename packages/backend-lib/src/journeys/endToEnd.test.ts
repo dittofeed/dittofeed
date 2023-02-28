@@ -369,7 +369,13 @@ describe("end to end journeys", () => {
               {
                 workflowId: computePropertiesWorkflowId,
                 taskQueue: "default",
-                args: [computedPropertiesParams],
+                args: [
+                  {
+                    ...computedPropertiesParams,
+                    maxPollingAttempts: 1,
+                    shouldContinueAsNew: false,
+                  },
+                ],
               }
             );
 
@@ -417,7 +423,13 @@ describe("end to end journeys", () => {
               {
                 workflowId: computePropertiesWorkflowId,
                 taskQueue: "default",
-                args: [computedPropertiesParams],
+                args: [
+                  {
+                    ...computedPropertiesParams,
+                    maxPollingAttempts: 1,
+                    shouldContinueAsNew: false,
+                  },
+                ],
               }
             );
 
@@ -440,7 +452,13 @@ describe("end to end journeys", () => {
             await testEnv.client.workflow.execute(computePropertiesWorkflow, {
               workflowId: computePropertiesWorkflowId,
               taskQueue: "default",
-              args: [computedPropertiesParams],
+              args: [
+                {
+                  ...computedPropertiesParams,
+                  maxPollingAttempts: 1,
+                  shouldContinueAsNew: false,
+                },
+              ],
             });
 
             expect(testActivities.sendEmail).toHaveBeenCalledTimes(2);

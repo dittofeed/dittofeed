@@ -33,8 +33,7 @@ export interface ComputedPropertyAssignment {
   computed_property_id: string;
   segment_value: boolean;
   user_property_value: string;
-  processed: boolean;
-  assigned_at: string;
+  processed_for: string;
 }
 
 export const ComputedAssignment = Type.Object({
