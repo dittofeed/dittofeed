@@ -19,7 +19,6 @@ import {
   EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
-  // SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
@@ -479,29 +478,70 @@ export async function computePropertiesPeriodSafe({
     ) sas
   `;
 
-  const chProcessedFor = subscribedJourneys
-    .map((j) => `'${j.id}'`)
-    .concat(["'pg'"])
+  // segment id / pg + journey id
+  const subscribedSegmentPairs = subscribedJourneys.reduce<
+    Map<string, Set<string>>
+  >((memo, j) => {
+    const subscribedSegments = getSubscribedSegments(j.definition);
+    subscribedSegments.forEach((segmentId) => {
+      const processFor = memo.get(segmentId) ?? new Set();
+      processFor.add(j.id);
+      processFor.add("pg");
+      memo.set(segmentId, processFor);
+    });
+    return memo;
+  }, new Map());
+
+  const subscribedSegmentPairsCh = Array.from(subscribedSegmentPairs)
+    .flatMap(([segmentId, processedForSet]) =>
+      Array.from(processedForSet).map(
+        (processedFor) => `('${segmentId}', '${processedFor}')`
+      )
+    )
     .join(", ");
 
-  // FIXME not right, if there is partial overlap of journeys and segments
-  // Effectively this is saying if has not been sent to even 1 of the subscribed journeys, re-send to all of them
   const readQuery = `
-    SELECT workspace_id,
+    SELECT * FROM (
+      SELECT workspace_id,
+          type,
+          computed_property_id,
+          user_id,
+          segment_value latest_segment_value,
+          user_property_value latest_user_property_value,
+          assigned_at max_assigned_at,
+          arrayJoin([${subscribedSegmentPairsCh}]) processed_for_pair,
+          processed_for_pair.2 processed_for
+      FROM computed_property_assignments FINAL
+      WHERE type == 'segment'
+      GROUP BY
+        workspace_id,
         type,
         computed_property_id,
         user_id,
-        segment_value latest_segment_value,
-        user_property_value latest_user_property_value,
-        assigned_at max_assigned_at,
-        arrayJoin([${chProcessedFor}]) processed_for
-    FROM computed_property_assignments FINAL
+        segment_value,
+        user_property_value,
+        assigned_at
+
+      UNION ALL
+
+      SELECT workspace_id,
+          type,
+          computed_property_id,
+          user_id,
+          segment_value latest_segment_value,
+          user_property_value latest_user_property_value,
+          assigned_at max_assigned_at,
+          ('', '') processed_for_pair,
+          'pg' processed_for
+      FROM computed_property_assignments FINAL
+      WHERE type == 'user_property'
+    ) cpa
     WHERE (
       workspace_id,
       computed_property_id,
       user_id,
-      segment_value,
-      user_property_value,
+      latest_segment_value,
+      latest_user_property_value,
       processed_for
     ) NOT IN (
       SELECT
@@ -512,16 +552,7 @@ export async function computePropertiesPeriodSafe({
         user_property_value,
         processed_for
       FROM processed_computed_properties FINAL
-      WHERE processed_for IN (${chProcessedFor})
     )
-    GROUP BY
-      workspace_id,
-      type,
-      computed_property_id,
-      user_id,
-      segment_value,
-      user_property_value,
-      assigned_at
   `;
 
   await clickhouseClient().query({
@@ -551,19 +582,22 @@ export async function computePropertiesPeriodSafe({
       })
     );
     console.log("assignments", assignments);
+    // segment id, journey id
 
+    const processedFor: string[] = ["pg"];
     const userPropertyAssignments: ComputedAssignment[] = [];
     const segmentAssignments: ComputedAssignment[] = [];
-    const processedFor: string[] = ["pg"];
 
     for (const assignment of assignments) {
-      switch (assignment.type) {
-        case "segment":
-          segmentAssignments.push(assignment);
-          break;
-        case "user_property":
-          userPropertyAssignments.push(assignment);
-          break;
+      if (assignment.processed_for === "pg") {
+        switch (assignment.type) {
+          case "segment":
+            segmentAssignments.push(assignment);
+            break;
+          case "user_property":
+            userPropertyAssignments.push(assignment);
+            break;
+        }
       }
     }
     await Promise.all([
