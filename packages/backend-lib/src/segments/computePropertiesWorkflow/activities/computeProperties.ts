@@ -356,10 +356,12 @@ async function signalJourney({
   segmentAssignment: ComputedAssignment;
   journey: EnrichedJourney;
 }) {
+  const { _assigned_at: assignedAt } = segmentAssignment;
+
   const segmentUpdate = {
     segmentId,
-    currentlyInSegment: Boolean(segmentAssignment.in_segment),
-    segmentVersion: Number(segmentAssignment.history_length),
+    currentlyInSegment: Boolean(segmentAssignment.latest_segment_value),
+    segmentVersion: new Date(assignedAt).getTime(),
   };
 
   if (segmentUpdate.currentlyInSegment) {
@@ -391,13 +393,11 @@ async function signalJourney({
 // TODO signal back to workflow with query id, so that query can be safely restarted part way through
 export async function computePropertiesPeriodSafe({
   currentTime,
-  processingTimeLowerBound,
   subscribedJourneys,
   tableVersion,
   workspaceId,
   userProperties,
-  newComputedIds,
-}: ComputePropertiesPeriodParams): Promise<Result<number | null, Error>> {
+}: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
   const segmentResult = await findAllEnrichedSegments(workspaceId);
 
   if (segmentResult.isErr()) {
@@ -405,9 +405,9 @@ export async function computePropertiesPeriodSafe({
   }
 
   const segments = segmentResult.value;
-  const modelIds: string[] = segments
-    .map((s) => s.id)
-    .concat(userProperties.map((up) => up.id));
+  // const modelIds: string[] = segments
+  //   .map((s) => s.id)
+  //   .concat(userProperties.map((up) => up.id));
 
   const segmentComputedProperties: ComputedProperty[] = segments.map(
     (segment, i) => {
@@ -456,6 +456,7 @@ export async function computePropertiesPeriodSafe({
     SELECT
       '${workspaceId}',
       sas.user_id,
+      if(isNull(in_segment), 1, 2),
       sas.computed_property_id,
       coalesce(sas.in_segment, False),
       coalesce(sas.user_property, ''),
@@ -486,11 +487,14 @@ export async function computePropertiesPeriodSafe({
         uniq(processed) AS processed_count
     SELECT computed_property_id,
         user_id,
+        type,
         argMax(segment_value, assigned_at) latest_segment_value,
-        processed_count
+        argMax(user_property_value, assigned_at) latest_user_property_value,
+        max(assigned_at) _assigned_at
     FROM computed_property_assignments FINAL
     WHERE workspace_id == '${workspaceId}'
     GROUP BY workspace_id,
+        type,
         computed_property_id,
         user_id
     HAVING segment_value_count == processed_count 
@@ -507,7 +511,7 @@ export async function computePropertiesPeriodSafe({
     format: "JSONEachRow",
   });
 
-  let lastProcessingTime: null | number = null;
+  // let lastProcessingTime: null | number = null;
 
   for await (const rows of resultSet.stream()) {
     const assignments: ComputedAssignment[] = await Promise.all(
@@ -526,44 +530,48 @@ export async function computePropertiesPeriodSafe({
       })
     );
 
+    const userPropertyAssignments: ComputedAssignment[] = [];
+    const segmentAssignments: ComputedAssignment[] = [];
+
+    for (const assignment of assignments) {
+      switch (assignment.type) {
+        case "segment":
+          segmentAssignments.push(assignment);
+          break;
+        case "user_property":
+          userPropertyAssignments.push(assignment);
+          break;
+      }
+    }
+    console.log(assignments);
     await Promise.all([
-      ...assignments.map((a) => {
-        const userPropertyId = modelIds[a.model_index];
-
-        if (!userPropertyId || !a.user_property) {
-          return;
-        }
-
-        return prisma.userPropertyAssignment.upsert({
+      ...userPropertyAssignments.map((a) =>
+        prisma.userPropertyAssignment.upsert({
           where: {
-            userId_userPropertyId: {
+            workspaceId_userPropertyId_userId: {
+              workspaceId,
               userId: a.user_id,
-              userPropertyId,
+              userPropertyId: a.computed_property_id,
             },
           },
           update: {
-            value: a.user_property,
+            value: a.latest_user_property_value,
           },
           create: {
+            workspaceId,
             userId: a.user_id,
-            userPropertyId,
-            value: a.user_property,
+            userPropertyId: a.computed_property_id,
+            value: a.latest_user_property_value,
           },
-        });
-      }),
-      ...assignments.map((a) => {
-        const segmentId = modelIds[a.model_index];
-        if (!segmentId) {
-          return null;
-        }
-
-        const inSegment = Boolean(a.in_segment);
-        // FIXME return segment assignment
+        })
+      ),
+      ...segmentAssignments.map((a) => {
+        const inSegment = Boolean(a.latest_segment_value);
         return prisma.segmentAssignment.upsert({
           where: {
             userId_segmentId: {
               userId: a.user_id,
-              segmentId,
+              segmentId: a.computed_property_id,
             },
           },
           update: {
@@ -571,7 +579,7 @@ export async function computePropertiesPeriodSafe({
           },
           create: {
             userId: a.user_id,
-            segmentId,
+            segmentId: a.computed_property_id,
             inSegment,
           },
         });
@@ -580,34 +588,34 @@ export async function computePropertiesPeriodSafe({
 
     const signalBatch: Promise<void>[] = [];
     for (const assignment of assignments) {
-      if (!lastProcessingTime) {
-        lastProcessingTime = Number(assignment.latest_processing_time) * 1000;
-      }
+      // if (!lastProcessingTime) {
+      //   lastProcessingTime = Number(assignment.latest_processing_time) * 1000;
+      // }
 
-      const segmentId = modelIds[assignment.model_index];
+      // const segmentId = modelIds[assignment.model_index];
 
-      if (!segmentId) {
-        continue;
-      }
+      // if (!segmentId) {
+      //   continue;
+      // }
 
       for (const journey of subscribedJourneys) {
-        if (
-          !newComputedIds?.[journey.id] &&
-          processingTimeLowerBound &&
-          // TODO move this logic into the query
-          Number(assignment.latest_processing_time) * 1000 <
-            processingTimeLowerBound
-        ) {
-          continue;
-        }
+        // if (
+        //   !newComputedIds?.[journey.id] &&
+        //   processingTimeLowerBound &&
+        //   // TODO move this logic into the query
+        //   Number(assignment.latest_processing_time) * 1000 <
+        //     processingTimeLowerBound
+        // ) {
+        //   continue;
+        // }
         const subscribedSegments = getSubscribedSegments(journey.definition);
-        if (!subscribedSegments.has(segmentId)) {
+        if (!subscribedSegments.has(assignment.computed_property_id)) {
           continue;
         }
         signalBatch.push(
           signalJourney({
             workspaceId,
-            segmentId,
+            segmentId: assignment.computed_property_id,
             segmentAssignment: assignment,
             journey,
           })
@@ -617,7 +625,8 @@ export async function computePropertiesPeriodSafe({
     await Promise.all(signalBatch);
   }
 
-  return ok(lastProcessingTime);
+  // return ok(lastProcessingTime);
+  return ok(null);
 }
 
 interface ComputePropertiesPeriodParams {
@@ -632,6 +641,6 @@ interface ComputePropertiesPeriodParams {
 
 export async function computePropertiesPeriod(
   params: ComputePropertiesPeriodParams
-): Promise<number | null> {
+): Promise<null> {
   return unwrap(await computePropertiesPeriodSafe(params));
 }

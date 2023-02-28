@@ -14,6 +14,7 @@ const {
 } = config();
 
 function getClientConfig(): ClickHouseClientConfigOptions {
+  console.log("database", database);
   return {
     host,
     database,

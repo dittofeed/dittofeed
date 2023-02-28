@@ -27,17 +27,18 @@ export interface EnrichedUserProperty extends Omit<UserProperty, "definition"> {
 }
 
 export const ComputedAssignment = Type.Object({
+  computed_property_id: Type.String(),
   user_id: Type.String(),
-  in_segment: Nullable(Type.Number()),
-  user_property: Nullable(Type.String()),
-  model_index: Type.Number(),
-  history_length: Type.String(),
-  latest_processing_time: Type.String(),
+  type: Type.Union([Type.Literal("segment"), Type.Literal("user_property")]),
+  latest_segment_value: Type.Boolean(),
+  latest_user_property_value: Type.String(),
+  _assigned_at: Type.String(),
 });
 
 export type ComputedAssignment = Static<typeof ComputedAssignment>;
 
 export const UserEvent = Type.Object({
+  workspace_id: Type.String(),
   event_type: Type.Enum(EventType),
   user_id: Nullable(Type.String()),
   anonymous_id: Nullable(Type.String()),
@@ -46,7 +47,6 @@ export const UserEvent = Type.Object({
   processing_time: Type.String(),
   message_raw: Type.String(),
   event: Type.String(),
-  workspace_id: Type.String(),
 });
 
 export type UserEvent = Static<typeof UserEvent>;

@@ -102,6 +102,7 @@ export async function createUserEventsTables({
         CREATE TABLE IF NOT EXISTS computed_property_assignments (
             workspace_id LowCardinality(String),
             user_id String,
+            type Enum('user_property' = 1, 'segment' = 2),
             computed_property_id LowCardinality(String),
             segment_value Boolean,
             user_property_value String,

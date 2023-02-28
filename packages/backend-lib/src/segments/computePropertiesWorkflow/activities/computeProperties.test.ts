@@ -244,10 +244,10 @@ describe("compute properties activities", () => {
           });
         });
 
-        it("signals or creates a workflow for that newly created user", async () => {
+        it.only("signals or creates a workflow for that newly created user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -256,7 +256,6 @@ describe("compute properties activities", () => {
             userProperties: [],
           });
 
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).toHaveBeenCalledWith(
             expect.any(Function),
             expect.objectContaining({

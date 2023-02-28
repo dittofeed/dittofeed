@@ -36,7 +36,7 @@ export const MAX_POLLING_PERIOD =
 export interface ComputedPropertiesWorkflowParams {
   workspaceId: string;
   tableVersion: string;
-  lastProcessingTime?: number;
+  // lastProcessingTime?: number;
   maxPollingAttempts?: number;
   shouldContinueAsNew?: boolean;
   basePollingPeriod?: number;
@@ -47,14 +47,14 @@ export interface ComputedPropertiesWorkflowParams {
 export async function computePropertiesWorkflow({
   tableVersion,
   workspaceId,
-  lastProcessingTime,
+  // lastProcessingTime,
   shouldContinueAsNew = false,
   maxPollingAttempts = 1500,
   basePollingPeriod = BASE_POLLING_PERIOD,
   pollingJitterCoefficient = POLLING_JITTER_COEFFICIENT,
   subscribedJourneys = [],
 }: ComputedPropertiesWorkflowParams): Promise<ComputedPropertiesWorkflowParams> {
-  let processingTimeUpperBound: number | null = null;
+  // let processingTimeUpperBound: number | null = null;
   let journeys = subscribedJourneys;
 
   for (let i = 0; i < maxPollingAttempts; i++) {
@@ -100,11 +100,12 @@ export async function computePropertiesWorkflow({
 
     journeys = latestSubscribedJourneys;
 
-    processingTimeUpperBound = await computePropertiesPeriod({
+    // processingTimeUpperBound = await computePropertiesPeriod({
+    await computePropertiesPeriod({
       tableVersion,
       currentTime,
       workspaceId,
-      processingTimeLowerBound: lastProcessingTime,
+      // processingTimeLowerBound: lastProcessingTime,
       newComputedIds: Object.fromEntries(newJourneysDiff),
       subscribedJourneys: journeys,
       userProperties,
@@ -114,13 +115,13 @@ export async function computePropertiesWorkflow({
     await sleep(basePollingPeriod + Math.random() * pollingJitterCoefficient);
   }
 
-  const newLastProcessingTime = processingTimeUpperBound ?? lastProcessingTime;
+  // const newLastProcessingTime = processingTimeUpperBound ?? lastProcessingTime;
 
   const params: ComputedPropertiesWorkflowParams = {
     maxPollingAttempts,
     tableVersion,
     workspaceId,
-    lastProcessingTime: newLastProcessingTime,
+    // lastProcessingTime: newLastProcessingTime,
     subscribedJourneys: journeys,
   };
   if (shouldContinueAsNew) {
