@@ -1,7 +1,7 @@
 import { clickhouseClient } from "../clickhouse";
 import config from "../config";
 import prisma from "../prisma";
-import { JSONValue } from "../types";
+import { ComputedPropertyAssignment, JSONValue } from "../types";
 
 const userEventsColumns = `
   event_type Enum('identify' = 1, 'track' = 2, 'page' = 3, 'screen' = 4, 'group' = 5, 'alias' = 6) DEFAULT JSONExtract(message_raw, 'type', 'Enum(\\'identify\\' = 1, \\'track\\' = 2, \\'page\\' = 3, \\'screen\\' = 4, \\'group\\' = 5, \\'alias\\' = 6)'),
@@ -15,26 +15,6 @@ const userEventsColumns = `
   workspace_id String
 `;
 
-/**
- * Use materialized views in clickhouse
- * store segment as an attribute
- *
- * - use clickhouse maps
- * - preparse json
- * - can store mix of parsed and unparsed
- *
- *  user
- *  segment
- *  last_update_time min function
- *  order by (user, segment)
- *
- * materialized view calculates up to date values
- * live query finds users with updated values in polling period
- *
- * send denis a copy of table structures
- *
- */
-
 interface InsertValue {
   processingTime?: string;
   messageRaw: Record<string, JSONValue>;
@@ -42,6 +22,20 @@ interface InsertValue {
 
 export function buildUserEventsTableName(tableVersion: string) {
   return `user_events_${tableVersion}`;
+}
+
+// TODO route through kafka
+export async function insertComputedPropertyAssignments({
+  assignments,
+}: {
+  assignments: ComputedPropertyAssignment[];
+}) {
+  await clickhouseClient().insert({
+    table:
+      "computed_property_assignments (workspace_id, user_id, type, computed_property_id, segment_value, user_property_value, processed, assigned_at)",
+    values: assignments,
+    format: "JSONEachRow",
+  });
 }
 
 export async function insertUserEvents({

@@ -26,13 +26,24 @@ export interface EnrichedUserProperty extends Omit<UserProperty, "definition"> {
   definition: UserPropertyDefinition;
 }
 
+export interface ComputedPropertyAssignment {
+  workspace_id: string;
+  user_id: string;
+  type: "user_property" | "segment";
+  computed_property_id: string;
+  segment_value: boolean;
+  user_property_value: string;
+  processed: boolean;
+  assigned_at: string;
+}
+
 export const ComputedAssignment = Type.Object({
   computed_property_id: Type.String(),
   user_id: Type.String(),
   type: Type.Union([Type.Literal("segment"), Type.Literal("user_property")]),
   latest_segment_value: Type.Boolean(),
   latest_user_property_value: Type.String(),
-  _assigned_at: Type.String(),
+  max_assigned_at: Type.String(),
 });
 
 export type ComputedAssignment = Static<typeof ComputedAssignment>;

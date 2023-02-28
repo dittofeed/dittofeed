@@ -15,6 +15,7 @@ import { findAllEnrichedSegments } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
 import {
   ComputedAssignment,
+  ComputedPropertyAssignment,
   EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
@@ -25,6 +26,7 @@ import {
   SegmentUpdate,
   UserPropertyDefinitionType,
 } from "../../../types";
+import { insertComputedPropertyAssignments } from "../../../userEvents/clickhouse";
 
 interface BaseComputedProperty {
   modelIndex: number;
@@ -356,12 +358,10 @@ async function signalJourney({
   segmentAssignment: ComputedAssignment;
   journey: EnrichedJourney;
 }) {
-  const { _assigned_at: assignedAt } = segmentAssignment;
-
   const segmentUpdate = {
     segmentId,
     currentlyInSegment: Boolean(segmentAssignment.latest_segment_value),
-    segmentVersion: new Date(assignedAt).getTime(),
+    segmentVersion: new Date(segmentAssignment.max_assigned_at).getTime(),
   };
 
   if (segmentUpdate.currentlyInSegment) {
@@ -490,14 +490,17 @@ export async function computePropertiesPeriodSafe({
         type,
         argMax(segment_value, assigned_at) latest_segment_value,
         argMax(user_property_value, assigned_at) latest_user_property_value,
-        max(assigned_at) _assigned_at
+        max(assigned_at) max_assigned_at,
+        processed_count,
+        segment_value_count,
+        user_property_value_count
     FROM computed_property_assignments FINAL
     WHERE workspace_id == '${workspaceId}'
     GROUP BY workspace_id,
         type,
         computed_property_id,
         user_id
-    HAVING segment_value_count == processed_count 
+    HAVING segment_value_count == processed_count
       OR user_property_value_count == processed_count;
   `;
 
@@ -625,6 +628,29 @@ export async function computePropertiesPeriodSafe({
       }
     }
     await Promise.all(signalBatch);
+
+    const processedAssignments: ComputedPropertyAssignment[] = assignments.map(
+      ({
+        user_id,
+        type,
+        computed_property_id,
+        latest_segment_value,
+        latest_user_property_value,
+        max_assigned_at,
+      }) => ({
+        workspace_id: workspaceId,
+        user_id,
+        type,
+        computed_property_id,
+        segment_value: latest_segment_value,
+        assigned_at: max_assigned_at,
+        user_property_value: latest_user_property_value,
+        processed: true,
+      })
+    );
+    await insertComputedPropertyAssignments({
+      assignments: processedAssignments,
+    });
   }
 
   // return ok(lastProcessingTime);
