@@ -28,10 +28,10 @@ const { sendEmail, getSegmentAssignment, onNodeProcessed, isRunnable } =
     startToCloseTimeout: "2 minutes",
   });
 
-interface SegmentAssignment {
-  currentlyInSegment: boolean;
-  eventHistoryLength: number;
-}
+type SegmentAssignment = Pick<
+  SegmentUpdate,
+  "currentlyInSegment" | "segmentVersion"
+>;
 
 export async function userJourneyWorkflow({
   workspaceId,
@@ -62,13 +62,13 @@ export async function userJourneyWorkflow({
 
   wf.setHandler(segmentUpdateSignal, (update) => {
     const prev = segmentAssignments.get(update.segmentId);
-    if (prev && prev.eventHistoryLength >= update.eventHistoryLength) {
+    if (prev && prev.segmentVersion >= update.segmentVersion) {
       return;
     }
 
     segmentAssignments.set(update.segmentId, {
       currentlyInSegment: update.currentlyInSegment,
-      eventHistoryLength: update.eventHistoryLength,
+      segmentVersion: update.segmentVersion,
     });
   });
 

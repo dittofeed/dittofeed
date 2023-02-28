@@ -225,8 +225,7 @@ function buildSegmentQueryFragment({
         nodes: segment.definition.nodes,
       })},
       Null,
-      '${segment.id}',
-      Null
+      '${segment.id}'
     )
   `;
 }
@@ -274,7 +273,6 @@ function buildUserPropertyQueryFragment({
       ${modelIndex},
       Null,
       ${innerQuery},
-      Null,
       '${userProperty.id}'
     )
   `;
@@ -337,8 +335,7 @@ function computedToQueryFragments({
   withClause.set("model_index", "models.1");
   withClause.set("in_segment", "models.2");
   withClause.set("user_property", "models.3");
-  withClause.set("segment_id", "models.4");
-  withClause.set("user_property_id", "models.5");
+  withClause.set("computed_property_id", "models.4");
   withClause.set(
     "latest_processing_time",
     "arrayMax(m -> toInt64(m.3), timed_messages)"
@@ -362,7 +359,7 @@ async function signalJourney({
   const segmentUpdate = {
     segmentId,
     currentlyInSegment: Boolean(segmentAssignment.in_segment),
-    eventHistoryLength: Number(segmentAssignment.history_length),
+    segmentVersion: Number(segmentAssignment.history_length),
   };
 
   if (segmentUpdate.currentlyInSegment) {
@@ -454,15 +451,14 @@ export async function computePropertiesPeriodSafe({
     .map(([key, value]) => `${value} AS ${key}`)
     .join(",\n");
 
-  const query2 = `
-    INSERT INTO segment_assignments
+  const writeQuery = `
+    INSERT INTO computed_property_assignments
     SELECT
-      sas.workspace_id,
+      '${workspaceId}',
       sas.user_id,
-      sas.segment_id,
-      sas.in_segment,
-      sas.user_property_id,
-      sas.user_property,
+      sas.computed_property_id,
+      coalesce(sas.in_segment, False),
+      coalesce(sas.user_property, ''),
       False,
       now64(3)
     FROM (
@@ -483,32 +479,37 @@ export async function computePropertiesPeriodSafe({
     ) sas
   `;
 
-  // TODO handle anonymous ids
-  const query = `
+  const readQuery = `
     WITH
-      ${joinedWithClause}
-    SELECT user_id, history_length, model_index, in_segment, user_property, latest_processing_time, timed_messages
-    FROM user_events_${tableVersion}
-    WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
-    GROUP BY user_id
-    ${lowerBoundClause}
-    ORDER BY latest_processing_time DESC
+        uniq(segment_value) AS segment_value_count,
+        uniq(user_property_value) AS user_property_value_count,
+        uniq(processed) AS processed_count
+    SELECT computed_property_id,
+        user_id,
+        argMax(segment_value, assigned_at) latest_segment_value,
+        processed_count
+    FROM computed_property_assignments FINAL
+    WHERE workspace_id == '${workspaceId}'
+    GROUP BY workspace_id,
+        computed_property_id,
+        user_id
+    HAVING segment_value_count == processed_count 
+      OR user_property_value_count == processed_count;
   `;
 
   await clickhouseClient().query({
-    query: query2,
+    query: writeQuery,
     format: "JSONEachRow",
   });
 
   const resultSet = await clickhouseClient().query({
-    query,
+    query: readQuery,
     format: "JSONEachRow",
   });
 
   let lastProcessingTime: null | number = null;
 
   for await (const rows of resultSet.stream()) {
-    console.log("row", rows);
     const assignments: ComputedAssignment[] = await Promise.all(
       rows.flatMap(async (row: Row) => {
         const json = await row.json();

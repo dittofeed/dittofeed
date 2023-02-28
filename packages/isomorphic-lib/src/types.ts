@@ -22,7 +22,7 @@ export enum EventType {
 export interface SegmentUpdate {
   segmentId: string;
   currentlyInSegment: boolean;
-  eventHistoryLength: number;
+  segmentVersion: number;
 }
 
 export enum SegmentOperatorType {
