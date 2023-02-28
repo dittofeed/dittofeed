@@ -569,7 +569,8 @@ export async function computePropertiesPeriodSafe({
         const inSegment = Boolean(a.latest_segment_value);
         return prisma.segmentAssignment.upsert({
           where: {
-            userId_segmentId: {
+            workspaceId_userId_segmentId: {
+              workspaceId,
               userId: a.user_id,
               segmentId: a.computed_property_id,
             },
@@ -578,6 +579,7 @@ export async function computePropertiesPeriodSafe({
             inSegment,
           },
           create: {
+            workspaceId,
             userId: a.user_id,
             segmentId: a.computed_property_id,
             inSegment,

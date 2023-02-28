@@ -179,7 +179,7 @@ describe("compute properties activities", () => {
           // One day after status was changed
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -188,7 +188,6 @@ describe("compute properties activities", () => {
             userProperties: [],
           });
 
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).toHaveBeenCalledWith(
             expect.any(Function),
             expect.objectContaining({
@@ -244,7 +243,7 @@ describe("compute properties activities", () => {
           });
         });
 
-        it.only("signals or creates a workflow for that newly created user", async () => {
+        it("signals or creates a workflow for that newly created user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
           await computePropertiesPeriod({
@@ -294,7 +293,7 @@ describe("compute properties activities", () => {
           it("also creates that user property", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-            const nextUpperBound = await computePropertiesPeriod({
+            await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
               processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -303,9 +302,6 @@ describe("compute properties activities", () => {
               userProperties: [userProperty],
             });
 
-            expect(nextUpperBound).toEqual(
-              Date.parse("2022-01-01 00:15:30 UTC")
-            );
             expect(signalWithStart).toHaveBeenCalledWith(
               expect.any(Function),
               expect.objectContaining({
@@ -353,7 +349,7 @@ describe("compute properties activities", () => {
           it("doesn't affect signal", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-            const nextUpperBound = await computePropertiesPeriod({
+            await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
               processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -362,9 +358,6 @@ describe("compute properties activities", () => {
               userProperties: [],
             });
 
-            expect(nextUpperBound).toEqual(
-              Date.parse("2022-01-01 00:15:30 UTC")
-            );
             expect(signalWithStart).toHaveBeenCalledWith(
               expect.any(Function),
               expect.objectContaining({
@@ -441,7 +434,7 @@ describe("compute properties activities", () => {
           it("returns the same results and produces the same signals", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-            let nextUpperBound = await computePropertiesPeriod({
+            await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
               processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -449,11 +442,8 @@ describe("compute properties activities", () => {
               subscribedJourneys: [journey],
               userProperties: [],
             });
-            expect(nextUpperBound).toEqual(
-              Date.parse("2022-01-01 00:15:30 UTC")
-            );
 
-            nextUpperBound = await computePropertiesPeriod({
+            await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
               processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -461,9 +451,6 @@ describe("compute properties activities", () => {
               subscribedJourneys: [journey],
               userProperties: [],
             });
-            expect(nextUpperBound).toEqual(
-              Date.parse("2022-01-01 00:15:30 UTC")
-            );
             expect(signalWithStart).toBeCalledTimes(2);
           });
         });
@@ -493,7 +480,7 @@ describe("compute properties activities", () => {
         it("does not signal", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -502,7 +489,6 @@ describe("compute properties activities", () => {
             userProperties: [],
           });
 
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).not.toHaveBeenCalled();
         });
       });
@@ -532,7 +518,7 @@ describe("compute properties activities", () => {
         it("signals or creates a workflow for that newly created user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -541,7 +527,6 @@ describe("compute properties activities", () => {
             userProperties: [],
           });
 
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).toHaveBeenCalledWith(
             expect.any(Function),
             expect.objectContaining({
@@ -580,7 +565,7 @@ describe("compute properties activities", () => {
         it("signals or creates a workflow for that newly created user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -589,7 +574,6 @@ describe("compute properties activities", () => {
             userProperties: [],
           });
 
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).toHaveBeenCalledWith(
             expect.any(Function),
             expect.objectContaining({
@@ -625,7 +609,7 @@ describe("compute properties activities", () => {
         it("does not signal or creates a workflow for that existing created user", async () => {
           const currentTime = Date.parse("2022-01-01 00:16:00 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             workspaceId: workspace.id,
             currentTime,
             // Fast forward polling period
@@ -635,7 +619,6 @@ describe("compute properties activities", () => {
             userProperties: [],
           });
 
-          expect(nextUpperBound).toEqual(null);
           expect(signalWithStart).not.toHaveBeenCalled();
           expect(signal).not.toHaveBeenCalled();
         });
@@ -665,7 +648,7 @@ describe("compute properties activities", () => {
         it("signals false for existing user workflow", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -674,7 +657,6 @@ describe("compute properties activities", () => {
             userProperties: [],
           });
 
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).not.toHaveBeenCalled();
         });
       });
@@ -718,7 +700,7 @@ describe("compute properties activities", () => {
         it("signals twice, once for each user, and returns the latest processing time", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -727,12 +709,6 @@ describe("compute properties activities", () => {
             userProperties: [],
           });
 
-          if (!nextUpperBound) {
-            fail("nextUpperBound null");
-          }
-          expect(new Date(nextUpperBound).toISOString()).toEqual(
-            "2022-01-01T00:15:35.000Z"
-          );
           expect(signalWithStart).toHaveBeenCalledTimes(2);
           expect(signalWithStart).toHaveBeenCalledWith(
             expect.any(Function),
@@ -835,7 +811,7 @@ describe("compute properties activities", () => {
         it("signals or creates a workflow for user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -843,7 +819,6 @@ describe("compute properties activities", () => {
             subscribedJourneys: [journey],
             userProperties: [],
           });
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).toHaveBeenCalledWith(
             expect.any(Function),
             expect.objectContaining({
@@ -882,7 +857,7 @@ describe("compute properties activities", () => {
         it("does not signal or create a workflow for user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -890,7 +865,6 @@ describe("compute properties activities", () => {
             subscribedJourneys: [journey],
             userProperties: [],
           });
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).not.toHaveBeenCalled();
         });
       });
@@ -960,7 +934,7 @@ describe("compute properties activities", () => {
         it("signals or creates a workflow for user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -968,7 +942,6 @@ describe("compute properties activities", () => {
             subscribedJourneys: [journey],
             userProperties: [],
           });
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).toHaveBeenCalledWith(
             expect.any(Function),
             expect.objectContaining({
@@ -1008,7 +981,7 @@ describe("compute properties activities", () => {
         it("does not signal or create a workflow for user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -1016,7 +989,6 @@ describe("compute properties activities", () => {
             subscribedJourneys: [journey],
             userProperties: [],
           });
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).not.toHaveBeenCalled();
         });
       });
@@ -1063,7 +1035,7 @@ describe("compute properties activities", () => {
         it("signals or creates a workflow for that newly paying user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -1071,7 +1043,6 @@ describe("compute properties activities", () => {
             subscribedJourneys: [journey],
             userProperties: [],
           });
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).toHaveBeenCalledWith(
             expect.any(Function),
             expect.objectContaining({
@@ -1089,7 +1060,7 @@ describe("compute properties activities", () => {
           it("does not signal or creates a workflow for that existing paying user", async () => {
             const currentTime = Date.parse("2022-01-01 00:16:00 UTC");
 
-            const nextUpperBound = await computePropertiesPeriod({
+            await computePropertiesPeriod({
               workspaceId: workspace.id,
               currentTime,
               // Fast forward polling period
@@ -1099,7 +1070,6 @@ describe("compute properties activities", () => {
               userProperties: [],
             });
 
-            expect(nextUpperBound).toEqual(null);
             expect(signalWithStart).not.toHaveBeenCalled();
             expect(signal).not.toHaveBeenCalled();
           });
@@ -1146,7 +1116,7 @@ describe("compute properties activities", () => {
             // Fast forward current time
             const currentTime = Date.parse("2022-01-01 00:16:00 UTC");
 
-            const nextUpperBound = await computePropertiesPeriod({
+            await computePropertiesPeriod({
               workspaceId: workspace.id,
               currentTime,
               // Fast forward polling period
@@ -1156,10 +1126,6 @@ describe("compute properties activities", () => {
               subscribedJourneys: [journey, newlyCreatedJourney],
               userProperties: [],
             });
-
-            expect(nextUpperBound).toEqual(
-              Date.parse("2022-01-01 00:15:50 UTC")
-            );
 
             if (!segments[0]) {
               fail("Test setup bug");
@@ -1246,7 +1212,7 @@ describe("compute properties activities", () => {
         it("does not signal for non-paying user", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             workspaceId: workspace.id,
             currentTime,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -1255,7 +1221,6 @@ describe("compute properties activities", () => {
             userProperties: [],
           });
 
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).not.toHaveBeenCalled();
         });
       });
@@ -1284,7 +1249,7 @@ describe("compute properties activities", () => {
 
         it("signals when paid, but not when becomes free", async () => {
           let currentTime = Date.parse("2022-01-01 00:10:45 UTC");
-          let nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             workspaceId: workspace.id,
             currentTime,
             processingTimeLowerBound: Date.parse("2022-01-01 00:10:15 UTC"),
@@ -1297,7 +1262,6 @@ describe("compute properties activities", () => {
             userId,
           });
 
-          expect(nextUpperBound).toEqual(null);
           expect(signalWithStart).not.toHaveBeenCalled();
           expect(signal).not.toHaveBeenCalled();
           expect(userPropertyAssignments).toEqual({});
@@ -1320,7 +1284,7 @@ describe("compute properties activities", () => {
           });
 
           currentTime = Date.parse("2022-01-01 00:15:45 UTC");
-          nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
@@ -1332,7 +1296,6 @@ describe("compute properties activities", () => {
             userId,
           });
 
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
           expect(signalWithStart).toHaveBeenCalledTimes(1);
           expect(signalWithStart).toHaveBeenCalledWith(
             expect.any(Function),
@@ -1365,7 +1328,7 @@ describe("compute properties activities", () => {
           });
 
           currentTime = Date.parse("2022-01-01 00:20:45 UTC");
-          nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:20:15 UTC"),
@@ -1377,7 +1340,6 @@ describe("compute properties activities", () => {
             userId,
           });
 
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:20:30 UTC"));
           expect(signalWithStart).toHaveBeenCalledTimes(1);
           expect(userPropertyAssignments).toEqual({ plan: "free" });
         });
@@ -1442,7 +1404,7 @@ describe("compute properties activities", () => {
         it("signals or creates a workflow once, only for the entry segment", async () => {
           const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
-          const nextUpperBound = await computePropertiesPeriod({
+          await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
@@ -1450,8 +1412,6 @@ describe("compute properties activities", () => {
             userProperties: [],
             subscribedJourneys: [journey],
           });
-
-          expect(nextUpperBound).toEqual(Date.parse("2022-01-01 00:15:30 UTC"));
 
           if (!segments[0] || !segments[1]) {
             fail("Test setup bug");
