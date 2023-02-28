@@ -79,7 +79,7 @@ model SegmentAssignment {
   segmentId   String
   inSegment   Boolean
 
-  @@unique([userId, segmentId])
+  @@unique([workspaceId, userId, segmentId])
 }
 
 model UserPropertyAssignment {
