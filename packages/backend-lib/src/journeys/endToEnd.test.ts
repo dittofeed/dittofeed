@@ -53,7 +53,7 @@ describe("end to end journeys", () => {
     sendEmail: jest.fn().mockReturnValue(true),
   };
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const envAndWorker = await createEnvAndWorker({
       activityOverrides: testActivities,
     });
@@ -61,9 +61,12 @@ describe("end to end journeys", () => {
     worker = envAndWorker.worker;
   });
 
+  afterEach(async () => {
+    await testEnv.teardown();
+  });
+
   afterAll(async () => {
     await clickhouseClient().close();
-    await testEnv.teardown();
   });
 
   describe("onboarding journey", () => {
@@ -250,7 +253,7 @@ describe("end to end journeys", () => {
       });
     });
 
-    describe.only("when a journey goes through status transitions", () => {
+    describe("when a journey goes through status transitions", () => {
       let paidAccountSegment: Segment;
 
       beforeEach(async () => {
