@@ -39,6 +39,7 @@ export async function sendEmail({
       id: journeyId,
     },
   });
+  console.log("sendEmail journey", journey);
   if (!journey || journey.status !== "Running") {
     return false;
   }

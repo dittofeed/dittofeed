@@ -478,6 +478,7 @@ export async function computePropertiesPeriodSafe({
     ) sas
   `;
 
+  // FIXME when no subscribed journeys should still persist to postgres
   // segment id / pg + journey id
   const subscribedSegmentPairs = subscribedJourneys.reduce<
     Map<string, Set<string>>
@@ -486,7 +487,6 @@ export async function computePropertiesPeriodSafe({
     subscribedSegments.forEach((segmentId) => {
       const processFor = memo.get(segmentId) ?? new Set();
       processFor.add(j.id);
-      processFor.add("pg");
       memo.set(segmentId, processFor);
     });
     return memo;
@@ -498,6 +498,7 @@ export async function computePropertiesPeriodSafe({
         (processedFor) => `('${segmentId}', '${processedFor}')`
       )
     )
+    .concat(["(computed_property_id, 'pg')"])
     .join(", ");
 
   const readQuery = `

@@ -250,7 +250,7 @@ describe("end to end journeys", () => {
       });
     });
 
-    describe("when a journey goes through status transitions", () => {
+    describe.only("when a journey goes through status transitions", () => {
       let paidAccountSegment: Segment;
 
       beforeEach(async () => {
@@ -322,12 +322,13 @@ describe("end to end journeys", () => {
         });
       });
 
-      it.only("only sends messages while the journey is running", async () => {
+      it("only sends messages while the journey is running", async () => {
         const computePropertiesWorkflowId = `segments-notification-workflow-${randomUUID()}`;
         let workerError: Error | null = null;
 
         await worker.runUntil(async () => {
           try {
+            console.log("loc1");
             let computedPropertiesParams: ComputedPropertiesWorkflowParams =
               await testEnv.client.workflow.execute(computePropertiesWorkflow, {
                 workflowId: computePropertiesWorkflowId,
@@ -346,6 +347,7 @@ describe("end to end journeys", () => {
               userJourneyWorkflowId
             );
 
+            console.log("loc2");
             let workflowDescribeError: unknown | null = null;
             try {
               await handle.describe();
@@ -363,6 +365,7 @@ describe("end to end journeys", () => {
                 status: "Running",
               },
             });
+            console.log("loc3");
 
             computedPropertiesParams = await testEnv.client.workflow.execute(
               computePropertiesWorkflow,
@@ -386,6 +389,7 @@ describe("end to end journeys", () => {
               })
             );
 
+            console.log("loc4");
             const currentTimeMS = await testEnv.currentTimeMs();
 
             await Promise.all([
@@ -418,6 +422,8 @@ describe("end to end journeys", () => {
               }),
             ]);
 
+            console.log("loc5");
+
             computedPropertiesParams = await testEnv.client.workflow.execute(
               computePropertiesWorkflow,
               {
@@ -440,6 +446,8 @@ describe("end to end journeys", () => {
               })
             );
 
+            console.log("loc6");
+
             await prisma.journey.update({
               where: {
                 id: journey.id,
@@ -449,6 +457,7 @@ describe("end to end journeys", () => {
               },
             });
 
+            console.log("loc7");
             await testEnv.client.workflow.execute(computePropertiesWorkflow, {
               workflowId: computePropertiesWorkflowId,
               taskQueue: "default",
@@ -461,6 +470,7 @@ describe("end to end journeys", () => {
               ],
             });
 
+            console.log("loc8");
             expect(testActivities.sendEmail).toHaveBeenCalledTimes(2);
             expect(testActivities.sendEmail).toHaveBeenCalledWith(
               expect.objectContaining({

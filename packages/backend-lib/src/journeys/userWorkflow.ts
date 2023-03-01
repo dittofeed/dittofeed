@@ -76,6 +76,9 @@ export async function userJourneyWorkflow({
 
   // loop with finite length as a safety stopgap
   nodeLoop: for (let i = 0; i < nodes.size + 1; i++) {
+    logger.info("user journey node", {
+      type: currentNode.type,
+    });
     switch (currentNode.type) {
       case "EntryNode": {
         const cn = currentNode;
