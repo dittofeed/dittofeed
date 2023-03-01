@@ -133,7 +133,7 @@ describe("compute properties activities", () => {
   });
 
   describe("computePropertiesPeriod", () => {
-    describe.skip("when segmenting on users who have a trait for longer than 24 hours", () => {
+    describe("when segmenting on users who have a trait for longer than 24 hours", () => {
       beforeEach(async () => {
         const segmentDefinition: SegmentDefinition = {
           entryNode: {
@@ -199,6 +199,45 @@ describe("compute properties activities", () => {
               ],
             })
           );
+        });
+      });
+
+      describe("when the user has had the trait for less than 24 hours", () => {
+        beforeEach(async () => {
+          await insertUserEvents({
+            tableVersion,
+            workspaceId: workspace.id,
+            events: [
+              {
+                // One day earlier than current time
+                processingTime: "2021-12-31 00:15:30",
+                messageRaw: segmentIdentifyEvent({
+                  userId,
+                  anonymousId,
+                  timestamp: "2021-12-31 00:15:00",
+                  traits: {
+                    status: "onboarding",
+                  },
+                }),
+              },
+            ],
+          });
+        });
+
+        it("does not signal or create a workflow for that user", async () => {
+          // One day after status was changed
+          const currentTime = Date.parse("2021-12-31 12:15:45 UTC");
+
+          await computePropertiesPeriod({
+            currentTime,
+            workspaceId: workspace.id,
+            processingTimeLowerBound: Date.parse("2021-12-31 12:15:00 UTC"),
+            tableVersion,
+            subscribedJourneys: [journey],
+            userProperties: [],
+          });
+
+          expect(signalWithStart).not.toHaveBeenCalled();
         });
       });
     });

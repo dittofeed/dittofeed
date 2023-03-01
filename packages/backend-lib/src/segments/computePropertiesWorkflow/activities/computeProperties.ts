@@ -19,6 +19,7 @@ import {
   EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
+  SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
@@ -91,64 +92,43 @@ function buildSegmentQueryExpression({
           `;
         }
         case SegmentOperatorType.HasBeen: {
-          return "True";
-          // if (
-          //   node.operator.comparator !== SegmentHasBeenOperatorComparator.GTE
-          // ) {
-          //   throw new Error("Unimplemented comparator.");
-          // }
+          if (
+            node.operator.comparator !== SegmentHasBeenOperatorComparator.GTE
+          ) {
+            throw new Error("Unimplemented comparator.");
+          }
 
-          // const val = node.operator.value;
-          // const varName = `last_trait_update${node.id.replace(/-/g, "_")}`;
-          // const upperTraitBound =
-          //   currentTime / 1000 - node.operator.windowSeconds;
+          const val = node.operator.value;
+          const varName = `last_trait_update${node.id.replace(/-/g, "_")}`;
+          const upperTraitBound =
+            currentTime / 1000 - node.operator.windowSeconds;
 
-          // console.log(
-          //   "upperTraitBound",
-          //   new Date(upperTraitBound * 1000).toISOString()
-          // );
+          let queryVal: string;
 
-          // let queryVal: string;
+          switch (typeof val) {
+            case "number": {
+              queryVal = String(val);
+              break;
+            }
+            case "string": {
+              queryVal = `'${val}'`;
+              break;
+            }
+          }
 
-          // switch (typeof val) {
-          //   case "number": {
-          //     queryVal = String(val);
-          //     break;
-          //   }
-          //   case "string": {
-          //     queryVal = `'${val}'`;
-          //     break;
-          //   }
-          // }
-
-          // return `
-          //     JSON_VALUE(
-          //       (
-          //         arrayFirst(
-          //           m -> JSONHas(m.1, 'traits', ${pathArgs}),
-          //           timed_messages
-          //         ) as ${varName}
-          //       ).1,
-          //       '$.traits.${node.path}'
-          //     ) == ${queryVal}
-          //   `;
-
-          // FIXME test if has no relevant events shouldn't error
-          // return `
-          //   and(
-          //     JSON_VALUE(
-          //       (
-          //         arrayFirst(
-          //           m -> JSONHas(m.1, 'traits', ${pathArgs}),
-          //           timed_messages
-          //         ) as ${varName}
-          //       ).1,
-          //       '$.traits.${node.path}'
-          //     ) == ${queryVal},
-          //     ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
-          //   )`;
-
-          // ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
+          return `
+            and(
+              JSON_VALUE(
+                (
+                  arrayFirst(
+                    m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                    timed_messages
+                  ) as ${varName}
+                ).1,
+                '$.traits.${node.path}'
+              ) == ${queryVal},
+              ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
+            )`;
         }
         case SegmentOperatorType.Within: {
           const upperTraitBound = currentTime / 1000;
@@ -478,7 +458,6 @@ export async function computePropertiesPeriodSafe({
     ) sas
   `;
 
-  // FIXME when no subscribed journeys should still persist to postgres
   // segment id / pg + journey id
   const subscribedSegmentPairs = subscribedJourneys.reduce<
     Map<string, Set<string>>
