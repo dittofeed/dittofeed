@@ -18,8 +18,10 @@ import {
   SegmentDefinition,
   SegmentEqualsOperator,
   SegmentHasBeenOperator,
+  SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
+  SegmentOperator,
   SegmentOperatorType,
   SegmentResource,
   SegmentWithinOperator,
@@ -96,7 +98,11 @@ const hasBeenOperatorOption = {
   label: "Has Been",
 };
 
-const operatorOptions: Option[] = [equalsOperatorOption, withinOperatorOption];
+const operatorOptions: Option[] = [
+  equalsOperatorOption,
+  withinOperatorOption,
+  hasBeenOperatorOption,
+];
 
 const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
   [SegmentOperatorType.Equals]: equalsOperatorOption,
@@ -284,6 +290,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
     traits.type === CompletionStatus.Successful ? traits.value : [];
   const operator = keyedOperatorOptions[node.operator.type];
 
+  // FIXME add value select for has been
   let valueSelect: React.ReactElement;
   if (
     node.operator.type === SegmentOperatorType.Within ||
@@ -332,22 +339,33 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                 segmentNode.type === SegmentNodeType.Trait &&
                 newValue.id !== segmentNode.operator.type
               ) {
+                let nodeOperator: SegmentOperator;
                 switch (newValue.id) {
                   case SegmentOperatorType.Equals: {
-                    segmentNode.operator = {
+                    nodeOperator = {
                       type: SegmentOperatorType.Equals,
                       value: "",
                     };
                     break;
                   }
                   case SegmentOperatorType.Within: {
-                    segmentNode.operator = {
+                    nodeOperator = {
                       type: SegmentOperatorType.Within,
                       windowSeconds: 0,
                     };
                     break;
                   }
+                  case SegmentOperatorType.HasBeen: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.HasBeen,
+                      comparator: SegmentHasBeenOperatorComparator.GTE,
+                      value: "",
+                      windowSeconds: 0,
+                    };
+                    break;
+                  }
                 }
+                segmentNode.operator = nodeOperator;
               }
             });
           }}
