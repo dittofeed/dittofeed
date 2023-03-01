@@ -502,7 +502,16 @@ export async function computePropertiesPeriodSafe({
     .join(", ");
 
   const readQuery = `
-    SELECT * FROM (
+    SELECT
+      cpa.workspace_id,
+      cpa.type,
+      cpa.computed_property_id,
+      cpa.user_id,
+      cpa.latest_segment_value,
+      cpa.latest_user_property_value,
+      cpa.max_assigned_at,
+      cpa.processed_for
+    FROM (
       SELECT workspace_id,
           type,
           computed_property_id,
