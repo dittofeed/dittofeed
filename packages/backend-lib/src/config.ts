@@ -74,8 +74,6 @@ export type Config = Overwrite<
     databaseUrl: string;
     clickhouseHost: string;
     clickhouseDatabase: string;
-    kafkaUsername: string;
-    kafkaPassword: string;
     kafkaSsl: boolean;
     nodeEnv: NodeEnvEnum;
     temporalAddress: string;
@@ -168,7 +166,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   const databaseUrl = parseDatabaseUrl(rawConfig);
   const clickhouseDatabase =
     rawConfig.clickhouseDatabase ??
-    (rawConfig.nodeEnv === "test" ? "dittofeed-test" : "dittofeed");
+    (rawConfig.nodeEnv === "test" ? "dittofeed_test" : "dittofeed");
 
   const nodeEnv = rawConfig.nodeEnv ?? NodeEnvEnum.Development;
 
@@ -184,8 +182,6 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],
-    kafkaUsername: rawConfig.kafkaUsername ?? "dittofeed",
-    kafkaPassword: rawConfig.kafkaPassword ?? "password",
     kafkaSsl: rawConfig.kafkaSsl === "true",
     kafkaUserEventsPartitions: parseToNumber({
       unparsed: rawConfig.kafkaUserEventsPartitions,

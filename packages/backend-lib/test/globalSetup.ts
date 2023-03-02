@@ -1,5 +1,5 @@
-import { createClickhouseDb } from "../src/clickhouse";
+import bootstrap from "../src/bootstrap";
 
 export default async function globalSetup() {
-  await createClickhouseDb();
+  await bootstrap();
 }

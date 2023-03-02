@@ -53,7 +53,7 @@ describe("end to end journeys", () => {
     sendEmail: jest.fn().mockReturnValue(true),
   };
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const envAndWorker = await createEnvAndWorker({
       activityOverrides: testActivities,
     });
@@ -61,9 +61,12 @@ describe("end to end journeys", () => {
     worker = envAndWorker.worker;
   });
 
+  afterEach(async () => {
+    await testEnv.teardown();
+  });
+
   afterAll(async () => {
     await clickhouseClient().close();
-    await testEnv.teardown();
   });
 
   describe("onboarding journey", () => {
@@ -322,7 +325,7 @@ describe("end to end journeys", () => {
         });
       });
 
-      it.only("only sends messages while the journey is running", async () => {
+      it("only sends messages while the journey is running", async () => {
         const computePropertiesWorkflowId = `segments-notification-workflow-${randomUUID()}`;
         let workerError: Error | null = null;
 
@@ -369,7 +372,13 @@ describe("end to end journeys", () => {
               {
                 workflowId: computePropertiesWorkflowId,
                 taskQueue: "default",
-                args: [computedPropertiesParams],
+                args: [
+                  {
+                    ...computedPropertiesParams,
+                    maxPollingAttempts: 1,
+                    shouldContinueAsNew: false,
+                  },
+                ],
               }
             );
 
@@ -417,7 +426,13 @@ describe("end to end journeys", () => {
               {
                 workflowId: computePropertiesWorkflowId,
                 taskQueue: "default",
-                args: [computedPropertiesParams],
+                args: [
+                  {
+                    ...computedPropertiesParams,
+                    maxPollingAttempts: 1,
+                    shouldContinueAsNew: false,
+                  },
+                ],
               }
             );
 
@@ -440,7 +455,13 @@ describe("end to end journeys", () => {
             await testEnv.client.workflow.execute(computePropertiesWorkflow, {
               workflowId: computePropertiesWorkflowId,
               taskQueue: "default",
-              args: [computedPropertiesParams],
+              args: [
+                {
+                  ...computedPropertiesParams,
+                  maxPollingAttempts: 1,
+                  shouldContinueAsNew: false,
+                },
+              ],
             });
 
             expect(testActivities.sendEmail).toHaveBeenCalledTimes(2);

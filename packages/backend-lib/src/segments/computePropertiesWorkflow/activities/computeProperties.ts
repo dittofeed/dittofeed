@@ -15,15 +15,18 @@ import { findAllEnrichedSegments } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
 import {
   ComputedAssignment,
+  ComputedPropertyAssignment,
   EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
+  SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
   SegmentUpdate,
   UserPropertyDefinitionType,
 } from "../../../types";
+import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
 
 interface BaseComputedProperty {
   modelIndex: number;
@@ -88,6 +91,45 @@ function buildSegmentQueryExpression({
             ) == ${queryVal}
           `;
         }
+        case SegmentOperatorType.HasBeen: {
+          if (
+            node.operator.comparator !== SegmentHasBeenOperatorComparator.GTE
+          ) {
+            throw new Error("Unimplemented comparator.");
+          }
+
+          const val = node.operator.value;
+          const varName = `last_trait_update${node.id.replace(/-/g, "_")}`;
+          const upperTraitBound =
+            currentTime / 1000 - node.operator.windowSeconds;
+
+          let queryVal: string;
+
+          switch (typeof val) {
+            case "number": {
+              queryVal = String(val);
+              break;
+            }
+            case "string": {
+              queryVal = `'${val}'`;
+              break;
+            }
+          }
+
+          return `
+            and(
+              JSON_VALUE(
+                (
+                  arrayFirst(
+                    m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                    timed_messages
+                  ) as ${varName}
+                ).1,
+                '$.traits.${node.path}'
+              ) == ${queryVal},
+              ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
+            )`;
+        }
         case SegmentOperatorType.Within: {
           const upperTraitBound = currentTime / 1000;
           const traitIdentifier = node.id.replace(/-/g, "_");
@@ -95,6 +137,7 @@ function buildSegmentQueryExpression({
           const lowerTraitBound =
             currentTime / 1000 - node.operator.windowSeconds;
 
+          // FIXME replace array find with array first
           return `
             and(
               (
@@ -148,19 +191,22 @@ function buildSegmentQueryExpression({
 function buildSegmentQueryFragment({
   currentTime,
   modelIndex,
-  node,
-  nodes,
+  segment,
 }: {
   currentTime: number;
   modelIndex: number;
-  node: SegmentNode;
-  nodes: SegmentNode[];
+  segment: EnrichedSegment;
 }): string {
   return `
     (
       ${modelIndex},
-      ${buildSegmentQueryExpression({ currentTime, node, nodes })},
-      Null
+      ${buildSegmentQueryExpression({
+        currentTime,
+        node: segment.definition.entryNode,
+        nodes: segment.definition.nodes,
+      })},
+      Null,
+      '${segment.id}'
     )
   `;
 }
@@ -207,7 +253,8 @@ function buildUserPropertyQueryFragment({
     (
       ${modelIndex},
       Null,
-      ${innerQuery}
+      ${innerQuery},
+      '${userProperty.id}'
     )
   `;
 }
@@ -236,8 +283,7 @@ function computedToQueryFragments({
       case "Segment": {
         modelFragments.push(
           buildSegmentQueryFragment({
-            node: computedProperty.segment.definition.entryNode,
-            nodes: computedProperty.segment.definition.nodes,
+            segment: computedProperty.segment,
             modelIndex: computedProperty.modelIndex,
             currentTime,
           })
@@ -270,6 +316,7 @@ function computedToQueryFragments({
   withClause.set("model_index", "models.1");
   withClause.set("in_segment", "models.2");
   withClause.set("user_property", "models.3");
+  withClause.set("computed_property_id", "models.4");
   withClause.set(
     "latest_processing_time",
     "arrayMax(m -> toInt64(m.3), timed_messages)"
@@ -292,8 +339,8 @@ async function signalJourney({
 }) {
   const segmentUpdate = {
     segmentId,
-    currentlyInSegment: Boolean(segmentAssignment.in_segment),
-    eventHistoryLength: Number(segmentAssignment.history_length),
+    currentlyInSegment: Boolean(segmentAssignment.latest_segment_value),
+    segmentVersion: new Date(segmentAssignment.max_assigned_at).getTime(),
   };
 
   if (segmentUpdate.currentlyInSegment) {
@@ -325,13 +372,11 @@ async function signalJourney({
 // TODO signal back to workflow with query id, so that query can be safely restarted part way through
 export async function computePropertiesPeriodSafe({
   currentTime,
-  processingTimeLowerBound,
   subscribedJourneys,
   tableVersion,
   workspaceId,
   userProperties,
-  newComputedIds,
-}: ComputePropertiesPeriodParams): Promise<Result<number | null, Error>> {
+}: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
   const segmentResult = await findAllEnrichedSegments(workspaceId);
 
   if (segmentResult.isErr()) {
@@ -339,9 +384,9 @@ export async function computePropertiesPeriodSafe({
   }
 
   const segments = segmentResult.value;
-  const modelIds: string[] = segments
-    .map((s) => s.id)
-    .concat(userProperties.map((up) => up.id));
+  // const modelIds: string[] = segments
+  //   .map((s) => s.id)
+  //   .concat(userProperties.map((up) => up.id));
 
   const segmentComputedProperties: ComputedProperty[] = segments.map(
     (segment, i) => {
@@ -374,35 +419,141 @@ export async function computePropertiesPeriodSafe({
 
   // TODO handle anonymous id's, including case where user_id is null
   // TODO handle materializing previous segmentation result by writing query to table
-  const lowerBoundClause =
-    processingTimeLowerBound && !Object.keys(newComputedIds ?? {}).length
-      ? `HAVING latest_processing_time >= toDateTime64(${
-          processingTimeLowerBound / 1000
-        }, 3)`
-      : "";
+  const lowerBoundClause = "";
+  // processingTimeLowerBound && !Object.keys(newComputedIds ?? {}).length
+  //   ? `HAVING latest_processing_time >= toDateTime64(${
+  //       processingTimeLowerBound / 1000
+  //     }, 3)`
+  //   : "";
 
   const joinedWithClause = Array.from(withClause)
     .map(([key, value]) => `${value} AS ${key}`)
     .join(",\n");
 
-  // TODO handle anonymous ids
-  const query = `
-    WITH
-      ${joinedWithClause}
-    SELECT user_id, history_length, model_index, in_segment, user_property, latest_processing_time, timed_messages
-    FROM dittofeed.user_events_${tableVersion}
-    WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
-    GROUP BY user_id
-    ${lowerBoundClause}
-    ORDER BY latest_processing_time DESC
+  const writeQuery = `
+    INSERT INTO computed_property_assignments
+    SELECT
+      '${workspaceId}',
+      sas.user_id,
+      if(isNull(in_segment), 1, 2),
+      sas.computed_property_id,
+      coalesce(sas.in_segment, False),
+      coalesce(sas.user_property, ''),
+      now64(3)
+    FROM (
+      SELECT 
+        ${joinedWithClause},
+        user_id,
+        history_length,
+        model_index,
+        in_segment,
+        user_property,
+        latest_processing_time,
+        timed_messages
+      FROM user_events_${tableVersion}
+      WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
+      GROUP BY user_id
+      ${lowerBoundClause}
+      ORDER BY latest_processing_time DESC
+    ) sas
   `;
 
-  const resultSet = await clickhouseClient().query({
-    query,
+  // segment id / pg + journey id
+  const subscribedSegmentPairs = subscribedJourneys.reduce<
+    Map<string, Set<string>>
+  >((memo, j) => {
+    const subscribedSegments = getSubscribedSegments(j.definition);
+    subscribedSegments.forEach((segmentId) => {
+      const processFor = memo.get(segmentId) ?? new Set();
+      processFor.add(j.id);
+      memo.set(segmentId, processFor);
+    });
+    return memo;
+  }, new Map());
+
+  const subscribedSegmentPairsCh = Array.from(subscribedSegmentPairs)
+    .flatMap(([segmentId, processedForSet]) =>
+      Array.from(processedForSet).map(
+        (processedFor) => `('${segmentId}', '${processedFor}')`
+      )
+    )
+    .concat(["(computed_property_id, 'pg')"])
+    .join(", ");
+
+  const readQuery = `
+    SELECT
+      cpa.workspace_id,
+      cpa.type,
+      cpa.computed_property_id,
+      cpa.user_id,
+      cpa.latest_segment_value,
+      cpa.latest_user_property_value,
+      cpa.max_assigned_at,
+      cpa.processed_for
+    FROM (
+      SELECT workspace_id,
+          type,
+          computed_property_id,
+          user_id,
+          segment_value latest_segment_value,
+          user_property_value latest_user_property_value,
+          assigned_at max_assigned_at,
+          arrayJoin([${subscribedSegmentPairsCh}]) processed_for_pair,
+          processed_for_pair.2 processed_for,
+          processed_for_pair.1 == computed_property_id property_is_computed
+      FROM computed_property_assignments FINAL
+      WHERE type == 'segment'
+      GROUP BY
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id,
+        segment_value,
+        user_property_value,
+        assigned_at
+
+      UNION ALL
+      SELECT workspace_id,
+          type,
+          computed_property_id,
+          user_id,
+          segment_value latest_segment_value,
+          user_property_value latest_user_property_value,
+          assigned_at max_assigned_at,
+          ('', '') processed_for_pair,
+          'pg' processed_for,
+          True property_is_computed
+      FROM computed_property_assignments FINAL
+      WHERE type == 'user_property'
+    ) cpa
+    WHERE property_is_computed AND (
+      workspace_id,
+      computed_property_id,
+      user_id,
+      latest_segment_value,
+      latest_user_property_value,
+      processed_for
+    ) NOT IN (
+      SELECT
+        workspace_id,
+        computed_property_id,
+        user_id,
+        segment_value,
+        user_property_value,
+        processed_for
+      FROM processed_computed_properties FINAL
+    )
+  `;
+
+  await clickhouseClient().query({
+    query: writeQuery,
     format: "JSONEachRow",
   });
 
-  let lastProcessingTime: null | number = null;
+  const resultSet = await clickhouseClient().query({
+    query: readQuery,
+    format: "JSONEachRow",
+  });
 
   for await (const rows of resultSet.stream()) {
     const assignments: ComputedAssignment[] = await Promise.all(
@@ -420,98 +571,105 @@ export async function computePropertiesPeriodSafe({
         return result.value;
       })
     );
+    console.log("assignments", assignments);
+    // segment id, journey id
 
-    await Promise.all([
-      ...assignments.map((a) => {
-        const userPropertyId = modelIds[a.model_index];
+    const pgUserPropertyAssignments: ComputedAssignment[] = [];
+    const pgSegmentAssignments: ComputedAssignment[] = [];
+    const signalSegmentAssignments: ComputedAssignment[] = [];
 
-        if (!userPropertyId || !a.user_property) {
-          return;
+    for (const assignment of assignments) {
+      if (assignment.processed_for === "pg") {
+        switch (assignment.type) {
+          case "segment":
+            pgSegmentAssignments.push(assignment);
+            break;
+          case "user_property":
+            pgUserPropertyAssignments.push(assignment);
+            break;
         }
-
-        return prisma.userPropertyAssignment.upsert({
+      } else {
+        signalSegmentAssignments.push(assignment);
+      }
+    }
+    await Promise.all([
+      ...pgUserPropertyAssignments.map((a) =>
+        prisma.userPropertyAssignment.upsert({
           where: {
-            userId_userPropertyId: {
+            workspaceId_userPropertyId_userId: {
+              workspaceId,
               userId: a.user_id,
-              userPropertyId,
+              userPropertyId: a.computed_property_id,
             },
           },
           update: {
-            value: a.user_property,
+            value: a.latest_user_property_value,
           },
           create: {
+            workspaceId,
             userId: a.user_id,
-            userPropertyId,
-            value: a.user_property,
+            userPropertyId: a.computed_property_id,
+            value: a.latest_user_property_value,
           },
-        });
-      }),
-      ...assignments.map((a) => {
-        const segmentId = modelIds[a.model_index];
-        if (!segmentId) {
-          return null;
-        }
-
-        const inSegment = Boolean(a.in_segment);
+        })
+      ),
+      ...pgSegmentAssignments.map((a) => {
+        const inSegment = Boolean(a.latest_segment_value);
         return prisma.segmentAssignment.upsert({
           where: {
-            userId_segmentId: {
+            workspaceId_userId_segmentId: {
+              workspaceId,
               userId: a.user_id,
-              segmentId,
+              segmentId: a.computed_property_id,
             },
           },
           update: {
             inSegment,
           },
           create: {
+            workspaceId,
             userId: a.user_id,
-            segmentId,
+            segmentId: a.computed_property_id,
             inSegment,
           },
         });
       }),
     ]);
 
-    const signalBatch: Promise<void>[] = [];
-    for (const assignment of assignments) {
-      if (!lastProcessingTime) {
-        lastProcessingTime = Number(assignment.latest_processing_time) * 1000;
-      }
-
-      const segmentId = modelIds[assignment.model_index];
-
-      if (!segmentId) {
-        continue;
-      }
-
-      for (const journey of subscribedJourneys) {
-        if (
-          !newComputedIds?.[journey.id] &&
-          processingTimeLowerBound &&
-          // TODO move this logic into the query
-          Number(assignment.latest_processing_time) * 1000 <
-            processingTimeLowerBound
-        ) {
-          continue;
-        }
-        const subscribedSegments = getSubscribedSegments(journey.definition);
-        if (!subscribedSegments.has(segmentId)) {
-          continue;
-        }
-        signalBatch.push(
-          signalJourney({
-            workspaceId,
-            segmentId,
-            segmentAssignment: assignment,
-            journey,
-          })
+    // console.log('signalSegmentAssignments');
+    await Promise.all(
+      signalSegmentAssignments.flatMap((assignment) => {
+        const journey = subscribedJourneys.find(
+          (j) => j.id === assignment.processed_for
         );
-      }
-    }
-    await Promise.all(signalBatch);
+        if (!journey) {
+          return [];
+        }
+
+        return signalJourney({
+          workspaceId,
+          segmentId: assignment.computed_property_id,
+          segmentAssignment: assignment,
+          journey,
+        });
+      })
+    );
+
+    const processedAssignments: ComputedPropertyAssignment[] =
+      assignments.flatMap((assignment) => ({
+        workspace_id: workspaceId,
+        user_property_value: assignment.latest_user_property_value,
+        segment_value: assignment.latest_segment_value,
+        ...assignment,
+      }));
+
+    await insertProcessedComputedProperties({
+      assignments: processedAssignments,
+    });
   }
 
-  return ok(lastProcessingTime);
+  // return ok(lastProcessingTime);
+  return ok(null);
 }
 
 interface ComputePropertiesPeriodParams {
@@ -526,6 +684,6 @@ interface ComputePropertiesPeriodParams {
 
 export async function computePropertiesPeriod(
   params: ComputePropertiesPeriodParams
-): Promise<number | null> {
+): Promise<null> {
   return unwrap(await computePropertiesPeriodSafe(params));
 }

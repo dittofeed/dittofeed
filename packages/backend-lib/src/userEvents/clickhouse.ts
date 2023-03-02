@@ -1,7 +1,7 @@
 import { clickhouseClient } from "../clickhouse";
 import config from "../config";
 import prisma from "../prisma";
-import { JSONValue } from "../types";
+import { ComputedPropertyAssignment, JSONValue } from "../types";
 
 const userEventsColumns = `
   event_type Enum('identify' = 1, 'track' = 2, 'page' = 3, 'screen' = 4, 'group' = 5, 'alias' = 6) DEFAULT JSONExtract(message_raw, 'type', 'Enum(\\'identify\\' = 1, \\'track\\' = 2, \\'page\\' = 3, \\'screen\\' = 4, \\'group\\' = 5, \\'alias\\' = 6)'),
@@ -21,7 +21,21 @@ interface InsertValue {
 }
 
 export function buildUserEventsTableName(tableVersion: string) {
-  return `dittofeed.user_events_${tableVersion}`;
+  return `user_events_${tableVersion}`;
+}
+
+// TODO route through kafka
+export async function insertProcessedComputedProperties({
+  assignments,
+}: {
+  assignments: ComputedPropertyAssignment[];
+}) {
+  await clickhouseClient().insert({
+    table:
+      "processed_computed_properties (workspace_id, user_id, type, computed_property_id, segment_value, user_property_value, processed_for)",
+    values: assignments,
+    format: "JSONEachRow",
+  });
 }
 
 export async function insertUserEvents({
@@ -47,7 +61,7 @@ export async function insertUserEvents({
     tableVersion = currentTable.version;
   }
   await clickhouseClient().insert({
-    table: `dittofeed.user_events_${tableVersion} (message_raw, processing_time, workspace_id)`,
+    table: `user_events_${tableVersion} (message_raw, processing_time, workspace_id)`,
     values: events.map((e) => {
       const value: {
         message_raw: string;
@@ -78,7 +92,32 @@ export async function createUserEventsTables({
         ENGINE MergeTree()
         ORDER BY (workspace_id, processing_time, user_or_anonymous_id, event_time);
       `,
+    `
+        CREATE TABLE IF NOT EXISTS computed_property_assignments (
+            workspace_id LowCardinality(String),
+            user_id String,
+            type Enum('user_property' = 1, 'segment' = 2),
+            computed_property_id LowCardinality(String),
+            segment_value Boolean,
+            user_property_value String,
+            assigned_at DateTime64(3) DEFAULT now64(3)
+        ) Engine = ReplacingMergeTree()
+        ORDER BY (workspace_id, computed_property_id, user_id);
+      `,
+    `
+        CREATE TABLE IF NOT EXISTS processed_computed_properties (
+            workspace_id LowCardinality(String),
+            user_id String,
+            type Enum('user_property' = 1, 'segment' = 2),
+            computed_property_id LowCardinality(String),
+            segment_value Boolean,
+            user_property_value String,
+            processed_for LowCardinality(String)
+        ) Engine = ReplacingMergeTree()
+        ORDER BY (workspace_id, computed_property_id, user_id, processed_for);
+      `,
   ];
+
   const kafkaBrokers =
     config().nodeEnv === "test" || config().nodeEnv === "development"
       ? "kafka:29092"
@@ -87,7 +126,7 @@ export async function createUserEventsTables({
   if (ingressTopic) {
     // TODO modify kafka consumer settings
     queries.push(`
-        CREATE TABLE IF NOT EXISTS dittofeed.user_events_queue_${tableVersion}
+        CREATE TABLE IF NOT EXISTS user_events_queue_${tableVersion}
         (message_raw String, workspace_id String)
         ENGINE = Kafka('${kafkaBrokers}', '${ingressTopic}', '${ingressTopic}-clickhouse',
                   'JSONEachRow') settings
@@ -109,10 +148,10 @@ export async function createUserEventsTables({
 
   if (ingressTopic) {
     const mvQuery = `
-      CREATE MATERIALIZED VIEW IF NOT EXISTS dittofeed.user_events_mv_${tableVersion}
-      TO dittofeed.user_events_${tableVersion} AS
+      CREATE MATERIALIZED VIEW IF NOT EXISTS user_events_mv_${tableVersion}
+      TO user_events_${tableVersion} AS
       SELECT *
-      FROM dittofeed.user_events_queue_${tableVersion};
+      FROM user_events_queue_${tableVersion};
     `;
 
     await clickhouseClient().exec({

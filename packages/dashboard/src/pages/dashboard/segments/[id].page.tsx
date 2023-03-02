@@ -17,8 +17,11 @@ import {
   CompletionStatus,
   SegmentDefinition,
   SegmentEqualsOperator,
+  SegmentHasBeenOperator,
+  SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
+  SegmentOperator,
   SegmentOperatorType,
   SegmentResource,
   SegmentWithinOperator,
@@ -29,6 +32,7 @@ import Head from "next/head";
 import React, { useMemo } from "react";
 import { validate } from "uuid";
 
+import DurationDescription from "../../../components/durationDescription";
 import EditableName from "../../../components/editableName";
 import MainLayout from "../../../components/mainLayout";
 import {
@@ -90,11 +94,21 @@ const withinOperatorOption = {
   label: "Within",
 };
 
-const operatorOptions: Option[] = [equalsOperatorOption, withinOperatorOption];
+const hasBeenOperatorOption = {
+  id: SegmentOperatorType.HasBeen,
+  label: "Has Been",
+};
+
+const operatorOptions: Option[] = [
+  equalsOperatorOption,
+  withinOperatorOption,
+  hasBeenOperatorOption,
+];
 
 const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
   [SegmentOperatorType.Equals]: equalsOperatorOption,
   [SegmentOperatorType.Within]: withinOperatorOption,
+  [SegmentOperatorType.HasBeen]: hasBeenOperatorOption,
 };
 
 type Group = SegmentNodeType.And | SegmentNodeType.Or;
@@ -198,7 +212,7 @@ function ValueSelect({
   operator,
 }: {
   nodeId: string;
-  operator: SegmentEqualsOperator;
+  operator: SegmentEqualsOperator | SegmentHasBeenOperator;
 }) {
   const { value } = operator;
 
@@ -210,7 +224,8 @@ function ValueSelect({
     updateSegmentNodeData(nodeId, (node) => {
       if (
         node.type === SegmentNodeType.Trait &&
-        node.operator.type === SegmentOperatorType.Equals
+        (node.operator.type === SegmentOperatorType.Equals ||
+          node.operator.type === SegmentOperatorType.HasBeen)
       ) {
         node.operator.value = e.target.value;
       }
@@ -231,7 +246,7 @@ function DurationValueSelect({
   operator,
 }: {
   nodeId: string;
-  operator: SegmentWithinOperator;
+  operator: SegmentWithinOperator | SegmentHasBeenOperator;
 }) {
   const value = operator.windowSeconds;
 
@@ -243,7 +258,8 @@ function DurationValueSelect({
     updateSegmentNodeData(nodeId, (node) => {
       if (
         node.type === SegmentNodeType.Trait &&
-        node.operator.type === SegmentOperatorType.Within
+        (node.operator.type === SegmentOperatorType.Within ||
+          node.operator.type === SegmentOperatorType.HasBeen)
       ) {
         node.operator.windowSeconds = parseInt(e.target.value, 10);
       }
@@ -262,6 +278,9 @@ function DurationValueSelect({
           onChange={handleChange}
         />
       </Box>
+      <Box>
+        <DurationDescription durationSeconds={value} />
+      </Box>
     </Stack>
   );
 }
@@ -278,12 +297,23 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const operator = keyedOperatorOptions[node.operator.type];
 
   let valueSelect: React.ReactElement;
-  if (node.operator.type === SegmentOperatorType.Within) {
-    valueSelect = (
-      <DurationValueSelect nodeId={node.id} operator={node.operator} />
-    );
-  } else {
-    valueSelect = <ValueSelect nodeId={node.id} operator={node.operator} />;
+  switch (node.operator.type) {
+    case SegmentOperatorType.Within:
+      valueSelect = (
+        <DurationValueSelect nodeId={node.id} operator={node.operator} />
+      );
+      break;
+    case SegmentOperatorType.Equals:
+      valueSelect = <ValueSelect nodeId={node.id} operator={node.operator} />;
+      break;
+    case SegmentOperatorType.HasBeen:
+      valueSelect = (
+        <>
+          <ValueSelect nodeId={node.id} operator={node.operator} />
+          <DurationValueSelect nodeId={node.id} operator={node.operator} />
+        </>
+      );
+      break;
   }
 
   return (
@@ -322,22 +352,33 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                 segmentNode.type === SegmentNodeType.Trait &&
                 newValue.id !== segmentNode.operator.type
               ) {
+                let nodeOperator: SegmentOperator;
                 switch (newValue.id) {
                   case SegmentOperatorType.Equals: {
-                    segmentNode.operator = {
+                    nodeOperator = {
                       type: SegmentOperatorType.Equals,
                       value: "",
                     };
                     break;
                   }
                   case SegmentOperatorType.Within: {
-                    segmentNode.operator = {
+                    nodeOperator = {
                       type: SegmentOperatorType.Within,
                       windowSeconds: 0,
                     };
                     break;
                   }
+                  case SegmentOperatorType.HasBeen: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.HasBeen,
+                      comparator: SegmentHasBeenOperatorComparator.GTE,
+                      value: "",
+                      windowSeconds: 0,
+                    };
+                    break;
+                  }
                 }
+                segmentNode.operator = nodeOperator;
               }
             });
           }}

@@ -28,10 +28,10 @@ const { sendEmail, getSegmentAssignment, onNodeProcessed, isRunnable } =
     startToCloseTimeout: "2 minutes",
   });
 
-interface SegmentAssignment {
-  currentlyInSegment: boolean;
-  eventHistoryLength: number;
-}
+type SegmentAssignment = Pick<
+  SegmentUpdate,
+  "currentlyInSegment" | "segmentVersion"
+>;
 
 export async function userJourneyWorkflow({
   workspaceId,
@@ -62,13 +62,13 @@ export async function userJourneyWorkflow({
 
   wf.setHandler(segmentUpdateSignal, (update) => {
     const prev = segmentAssignments.get(update.segmentId);
-    if (prev && prev.eventHistoryLength >= update.eventHistoryLength) {
+    if (prev && prev.segmentVersion >= update.segmentVersion) {
       return;
     }
 
     segmentAssignments.set(update.segmentId, {
       currentlyInSegment: update.currentlyInSegment,
-      eventHistoryLength: update.eventHistoryLength,
+      segmentVersion: update.segmentVersion,
     });
   });
 
@@ -76,6 +76,9 @@ export async function userJourneyWorkflow({
 
   // loop with finite length as a safety stopgap
   nodeLoop: for (let i = 0; i < nodes.size + 1; i++) {
+    logger.info("user journey node", {
+      type: currentNode.type,
+    });
     switch (currentNode.type) {
       case "EntryNode": {
         const cn = currentNode;
@@ -133,6 +136,7 @@ export async function userJourneyWorkflow({
 
         // TODO read from map if available
         const segmentAssignment = await getSegmentAssignment({
+          workspaceId,
           userId,
           segmentId: cn.variant.segment,
         });

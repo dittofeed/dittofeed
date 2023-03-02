@@ -11,10 +11,10 @@ datasource db {
 }
 
 model Workspace {
-  id                     String                  @id() @default(uuid()) @db.Uuid
+  id                     String                   @id() @default(uuid()) @db.Uuid
   name                   String
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
   Segment                Segment[]
   Journey                Journey[]
   UserProperty           UserProperty[]
@@ -23,6 +23,8 @@ model Workspace {
   EmailTemplate          EmailTemplate[]
   SegmentIOConfiguration SegmentIOConfiguration?
   CurrentUserEventsTable CurrentUserEventsTable?
+  UserPropertyAssignment UserPropertyAssignment[]
+  SegmentAssignment      SegmentAssignment[]
 }
 
 model Segment {
@@ -71,20 +73,24 @@ model UserProperty {
 }
 
 model SegmentAssignment {
-  userId    String
-  segmentId String
-  inSegment Boolean
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String    @db.Uuid
+  userId      String
+  segmentId   String
+  inSegment   Boolean
 
-  @@unique([userId, segmentId])
+  @@unique([workspaceId, userId, segmentId])
 }
 
 model UserPropertyAssignment {
+  workspace      Workspace    @relation(fields: [workspaceId], references: [id])
+  workspaceId    String       @db.Uuid
   userId         String
   userProperty   UserProperty @relation(fields: [userPropertyId], references: [id])
   userPropertyId String       @db.Uuid
   value          String
 
-  @@unique([userId, userPropertyId])
+  @@unique([workspaceId, userPropertyId, userId])
   @@index([userId])
 }
 
@@ -106,8 +112,8 @@ model DefaultEmailProvider {
 
   emailProvider   EmailProvider @relation(fields: [emailProviderId], references: [id])
   emailProviderId String        @db.Uuid
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@unique([workspaceId])
 }
@@ -118,6 +124,7 @@ model CurrentUserEventsTable {
   version     String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
   @@unique([workspaceId])
 }
 
