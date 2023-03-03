@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import deepmerge from "deepmerge";
 
 import { JSONValue } from "../../src/types";
@@ -26,7 +27,7 @@ export function segmentTrackEvent(
       },
       event: "Course Clicked",
       integrations: {},
-      messageId: "ajs-f8ca1e4de5024d9430b3928bd8ac6b96",
+      messageId: randomUUID(),
       properties: {
         title: "Intro to Analytics",
       },
@@ -58,7 +59,7 @@ export function segmentIdentifyEvent(
         Mixpanel: true,
         Salesforce: true,
       },
-      messageId: "022bb90c-bbac-11e4-8dfc-aa07a5b093db",
+      messageId: randomUUID(),
       receivedAt: "2015-02-23T22:28:55.387Z",
       sentAt: "2015-02-23T22:28:55.111Z",
       timestamp: "2015-02-23T22:28:55.111Z",

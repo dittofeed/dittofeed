@@ -52,7 +52,7 @@ export async function findAllUserTraits({
     tableVersion = currentTable.version;
   }
 
-  const query = `SELECT DISTINCT arrayJoin(JSONExtractKeys(message_raw, 'traits')) FROM ${buildUserEventsTableName(
+  const query = `SELECT DISTINCT arrayJoin(JSONExtractKeys(message_raw, 'traits')) AS trait FROM ${buildUserEventsTableName(
     tableVersion
   )} WHERE workspace_id = {workspaceId:String}`;
 
@@ -64,8 +64,8 @@ export async function findAllUserTraits({
     },
   });
 
-  const results = await resultSet.json<string[]>();
-  return results;
+  const results = await resultSet.json<{ trait: string }[]>();
+  return results.map((o) => o.trait);
 }
 
 export async function findManyEvents({
