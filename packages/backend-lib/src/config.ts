@@ -27,6 +27,7 @@ const BaseRawConfigProps = {
   userEventsTopicName: Type.Optional(Type.String()),
   temporalNamespace: Type.Optional(Type.String()),
   logConfig: Type.Optional(BoolStr),
+  bootstrapEvents: Type.Optional(BoolStr),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -78,6 +79,7 @@ export type Config = Overwrite<
     nodeEnv: NodeEnvEnum;
     temporalAddress: string;
     logConfig: boolean;
+    bootstrapEvents: boolean;
     kafkaUserEventsPartitions: number;
     kafkaUserEventsReplicationFactor: number;
   }
@@ -210,6 +212,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     // UUID with _ instead of - for clickhouse compatibility
     defaultUserEventsTableVersion: "48221d18_bd04_4c6b_abf3_9d0a4f87f52f",
     logConfig: rawConfig.logConfig === "true",
+    bootstrapEvents: rawConfig.bootstrapEvents === "true",
   };
   return parsedConfig;
 }

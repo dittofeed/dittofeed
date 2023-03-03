@@ -418,14 +418,6 @@ export async function computePropertiesPeriodSafe({
   });
 
   // TODO handle anonymous id's, including case where user_id is null
-  // TODO handle materializing previous segmentation result by writing query to table
-  const lowerBoundClause = "";
-  // processingTimeLowerBound && !Object.keys(newComputedIds ?? {}).length
-  //   ? `HAVING latest_processing_time >= toDateTime64(${
-  //       processingTimeLowerBound / 1000
-  //     }, 3)`
-  //   : "";
-
   const joinedWithClause = Array.from(withClause)
     .map(([key, value]) => `${value} AS ${key}`)
     .join(",\n");
@@ -453,7 +445,6 @@ export async function computePropertiesPeriodSafe({
       FROM user_events_${tableVersion}
       WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
       GROUP BY user_id
-      ${lowerBoundClause}
       ORDER BY latest_processing_time DESC
     ) sas
   `;
@@ -571,8 +562,6 @@ export async function computePropertiesPeriodSafe({
         return result.value;
       })
     );
-    console.log("assignments", assignments);
-    // segment id, journey id
 
     const pgUserPropertyAssignments: ComputedAssignment[] = [];
     const pgSegmentAssignments: ComputedAssignment[] = [];
@@ -636,7 +625,6 @@ export async function computePropertiesPeriodSafe({
       }),
     ]);
 
-    // console.log('signalSegmentAssignments');
     await Promise.all(
       signalSegmentAssignments.flatMap((assignment) => {
         const journey = subscribedJourneys.find(

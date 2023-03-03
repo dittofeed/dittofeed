@@ -104,6 +104,7 @@ export async function sendEmail({
 
   switch (defaultEmailProvider.emailProvider.type) {
     case EmailProviderType.Sendgrid: {
+      // FIXME make idempotent
       await sendEmailSendgrid({
         mailData: {
           to,
