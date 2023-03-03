@@ -31,6 +31,43 @@ export async function writeUserEvents(
   });
 }
 
+export async function findAllUserTraits({
+  workspaceId,
+  tableVersion: tableVersionParam,
+}: {
+  workspaceId: string;
+  tableVersion?: string;
+}): Promise<string[]> {
+  let tableVersion = tableVersionParam;
+  if (!tableVersion) {
+    const currentTable = await prisma.currentUserEventsTable.findUnique({
+      where: {
+        workspaceId,
+      },
+    });
+
+    if (!currentTable) {
+      return [];
+    }
+    tableVersion = currentTable.version;
+  }
+
+  const query = `SELECT DISTINCT arrayJoin(JSONExtractKeys(message_raw, 'traits')) FROM ${buildUserEventsTableName(
+    tableVersion
+  )} WHERE workspace_id = {workspaceId:String}`;
+
+  const resultSet = await clickhouseClient().query({
+    query,
+    format: "JSONEachRow",
+    query_params: {
+      workspaceId,
+    },
+  });
+
+  const results = await resultSet.json<string[]>();
+  return results;
+}
+
 export async function findManyEvents({
   workspaceId,
   tableVersion: tableVersionParam,

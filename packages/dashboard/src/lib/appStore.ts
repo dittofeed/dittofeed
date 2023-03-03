@@ -125,8 +125,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
         traits: {
-          type: CompletionStatus.Successful,
-          value: ["createdAt", "plan", "email", "phone"],
+          type: CompletionStatus.NotStarted,
         },
         messages: {
           type: CompletionStatus.NotStarted,
