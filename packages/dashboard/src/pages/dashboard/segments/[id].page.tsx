@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import axios, { AxiosResponse } from "axios";
 import backendConfig from "backend-lib/src/config";
+import { findAllUserTraits } from "backend-lib/src/userEvents";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -135,7 +136,7 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  const [segment, workspace] = await Promise.all([
+  const [segment, workspace, traits] = await Promise.all([
     prisma().segment.findUnique({
       where: {
         id,
@@ -145,6 +146,9 @@ export const getServerSideProps: GetServerSideProps<
       where: {
         id: workspaceId,
       },
+    }),
+    findAllUserTraits({
+      workspaceId,
     }),
   ]);
 
@@ -201,6 +205,11 @@ export const getServerSideProps: GetServerSideProps<
       },
     };
   }
+
+  serverInitialState.traits = {
+    type: CompletionStatus.Successful,
+    value: traits,
+  };
 
   return {
     props: addInitialStateToProps({}, serverInitialState),

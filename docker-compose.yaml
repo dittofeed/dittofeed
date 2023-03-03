@@ -46,6 +46,7 @@ services:
       - worker
     environment:
       <<: *backend-app-env
+      BOOTSTRAP_EVENTS: true
     networks:
       - dittofeed-network-dev
   worker: 

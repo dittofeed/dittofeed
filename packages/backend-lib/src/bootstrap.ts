@@ -1,11 +1,15 @@
 import spawn from "cross-spawn";
 
+import { segmentIdentifyEvent } from "../test/factories/segment";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
 import { kafkaAdmin } from "./kafka";
 import prisma from "./prisma";
 import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
-import { createUserEventsTables } from "./userEvents/clickhouse";
+import {
+  createUserEventsTables,
+  insertUserEvents,
+} from "./userEvents/clickhouse";
 
 async function prismaMigrate() {
   await new Promise<void>((resolve, reject) => {
@@ -195,6 +199,40 @@ async function bootstrapClickhouse() {
   });
 }
 
+async function insertDefaultEvents() {
+  await insertUserEvents({
+    tableVersion: config().defaultUserEventsTableVersion,
+    workspaceId: config().defaultWorkspaceId,
+    events: [
+      {
+        messageRaw: segmentIdentifyEvent({
+          traits: {
+            status: "onboarding",
+            firstName: "Max",
+            lastName: "Gurewitz",
+            plan: "free",
+            phone: "8005551234",
+            // 1 day ago
+            createdAt: new Date(Date.now() - 8.64 * 1000000).toISOString(),
+          },
+        }),
+      },
+      {
+        messageRaw: segmentIdentifyEvent({
+          traits: {
+            status: "onboarded",
+            firstName: "Chandler",
+            lastName: "Craig",
+            plan: "paid",
+            // 2 days ago
+            createdAt: new Date(Date.now() - 2 * 8.64 * 1000000).toISOString(),
+          },
+        }),
+      },
+    ],
+  });
+}
+
 export default async function bootstrap() {
   await Promise.all([
     bootstrapPostgres().catch((e) =>
@@ -207,4 +245,8 @@ export default async function bootstrap() {
       console.error("failed to bootstrap clickhouse", e)
     ),
   ]);
+
+  if (config().bootstrapEvents) {
+    await insertDefaultEvents();
+  }
 }
