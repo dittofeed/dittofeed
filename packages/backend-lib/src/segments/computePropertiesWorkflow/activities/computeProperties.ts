@@ -562,8 +562,6 @@ export async function computePropertiesPeriodSafe({
         return result.value;
       })
     );
-    console.log("assignments", assignments);
-    // segment id, journey id
 
     const pgUserPropertyAssignments: ComputedAssignment[] = [];
     const pgSegmentAssignments: ComputedAssignment[] = [];
@@ -627,7 +625,6 @@ export async function computePropertiesPeriodSafe({
       }),
     ]);
 
-    // console.log('signalSegmentAssignments');
     await Promise.all(
       signalSegmentAssignments.flatMap((assignment) => {
         const journey = subscribedJourneys.find(
