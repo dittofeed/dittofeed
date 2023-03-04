@@ -208,7 +208,7 @@ export default function Events() {
         >
           <DataGrid
             rows={events}
-            autoPageSize
+            getRowId={(row) => row.messageId}
             columns={[
               {
                 field: "messageId",
@@ -236,7 +236,7 @@ export default function Events() {
             loading={
               eventsPaginationRequest.type === CompletionStatus.InProgress
             }
-            // pageSizeOptions={[5]}
+            pageSizeOptions={[10]}
             paginationModel={paginationModel}
             paginationMode="server"
             onPaginationModelChange={updatePagination}
