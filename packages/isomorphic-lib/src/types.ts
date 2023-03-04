@@ -6,6 +6,7 @@ export const Nullable = <T extends TSchema>(type: T) =>
 export type JSONValue =
   | string
   | number
+  | null
   | boolean
   | { [x: string]: JSONValue }
   | JSONValue[];
@@ -368,8 +369,8 @@ export const GetEventsResponseItem = Type.Object({
   messageId: Type.String(),
   eventType: Type.String(),
   event: Type.String(),
-  userId: Type.String(),
-  anonymousId: Type.String(),
+  userId: Nullable(Type.String()),
+  anonymousId: Nullable(Type.String()),
   processingTime: Type.String(),
   eventTime: Type.String(),
 });

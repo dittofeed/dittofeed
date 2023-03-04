@@ -70,11 +70,15 @@ export async function findAllUserTraits({
 
 export async function findManyEvents({
   workspaceId,
+  limit,
+  offset = 0,
   tableVersion: tableVersionParam,
 }: {
   workspaceId: string;
   tableVersion?: string;
-}): Promise<unknown[]> {
+  limit?: number;
+  offset?: number;
+}): Promise<UserEvent[]> {
   let tableVersion = tableVersionParam;
   if (!tableVersion) {
     const currentTable = await prisma.currentUserEventsTable.findUnique({
@@ -89,9 +93,10 @@ export async function findManyEvents({
     tableVersion = currentTable.version;
   }
 
+  const paginationCaluse = limit ? `LIMIT ${limit},${offset}` : "";
   const query = `SELECT * FROM ${buildUserEventsTableName(
     tableVersion
-  )} WHERE workspace_id = {workspaceId:String}`;
+  )} WHERE workspace_id = {workspaceId:String} ${paginationCaluse}`;
 
   const resultSet = await clickhouseClient().query({
     query,
@@ -101,7 +106,7 @@ export async function findManyEvents({
     },
   });
 
-  const results = await resultSet.json<unknown[]>();
+  const results = await resultSet.json<UserEvent[]>();
   return results;
 }
 

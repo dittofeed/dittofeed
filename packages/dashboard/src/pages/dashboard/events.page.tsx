@@ -5,6 +5,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import Head from "next/head";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import backendConfig from "backend-lib/src/config";
 
 import MainLayout from "../../components/mainLayout";
 import {
@@ -14,9 +15,16 @@ import {
   GetEventsResponse,
   GetEventsResponseItem,
 } from "isomorphic-lib/src/types";
-import { useAppStore } from "../../lib/appStore";
+import {
+  PreloadedState,
+  PropsWithInitialState,
+  addInitialStateToProps,
+  useAppStore,
+} from "../../lib/appStore";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { GetServerSideProps } from "next";
+import prisma from "../../lib/prisma";
 
 interface EventsState {
   pageSize: number;
@@ -65,6 +73,32 @@ export const useEventsStore = create(
       }),
   }))
 );
+export const getServerSideProps: GetServerSideProps<
+  PropsWithInitialState
+> = async (ctx) => {
+  const workspaceId = backendConfig().defaultWorkspaceId;
+  const serverInitialState: PreloadedState = {};
+
+  const [workspace] = await Promise.all([
+    prisma().workspace.findFirstOrThrow({
+      where: {
+        id: workspaceId,
+      },
+    }),
+  ]);
+
+  serverInitialState.workspace = {
+    type: CompletionStatus.Successful,
+    value: {
+      id: workspaceId,
+      name: workspace.name,
+    },
+  };
+
+  return {
+    props: addInitialStateToProps({}, serverInitialState),
+  };
+};
 
 export default function Events() {
   const paginationModel = useEventsStore(
@@ -91,11 +125,13 @@ export default function Events() {
   const updateEvents = useEventsStore((store) => store.updateEvents);
 
   React.useEffect(() => {
+    console.log("useEffect workspace", workspace);
     (async () => {
       if (!workspaceId) {
         return;
       }
 
+      console.log("workspaceId");
       updateEventsPaginationRequest({
         type: CompletionStatus.InProgress,
       });

@@ -5,15 +5,17 @@ import { v4 as uuid } from "uuid";
 
 async function seedDemo() {
   const now = Date.now();
+  const messageId1 = uuid();
 
   await insertUserEvents({
     workspaceId: backendConfig().defaultWorkspaceId,
     events: [
       {
+        messageId: messageId1,
         messageRaw: segmentIdentifyEvent({
+          messageId: messageId1,
           anonymousId: uuid(),
           userId: uuid(),
-          messageId: uuid(),
           receivedAt: new Date(now).toISOString(),
           sentAt: new Date(now - 1000).toISOString(),
           timestamp: new Date(now - 1000).toISOString(),

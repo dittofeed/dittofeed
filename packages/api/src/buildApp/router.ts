@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 
 import contentController from "../controllers/contentController";
+import eventsController from "../controllers/eventsController";
 import indexController from "../controllers/indexController";
 import journeysController from "../controllers/journeysController";
 import segmentsController from "../controllers/segmentsController";
@@ -17,6 +18,7 @@ export default async function router(fastify: FastifyInstance) {
         f.register(segmentsController, { prefix: "/segments" }),
         f.register(settingsController, { prefix: "/settings" }),
         f.register(contentController, { prefix: "/content" }),
+        f.register(eventsController, { prefix: "/events" }),
       ]),
     { prefix: "/api" }
   );

@@ -1,4 +1,5 @@
 import spawn from "cross-spawn";
+import { randomUUID } from "crypto";
 
 import { segmentIdentifyEvent } from "../test/factories/segment";
 import { createClickhouseDb } from "./clickhouse";
@@ -200,12 +201,16 @@ async function bootstrapClickhouse() {
 }
 
 async function insertDefaultEvents() {
+  const messageId1 = randomUUID();
+  const messageId2 = randomUUID();
   await insertUserEvents({
     tableVersion: config().defaultUserEventsTableVersion,
     workspaceId: config().defaultWorkspaceId,
     events: [
       {
+        messageId: messageId1,
         messageRaw: segmentIdentifyEvent({
+          messageId: messageId1,
           traits: {
             status: "onboarding",
             firstName: "Max",
@@ -218,7 +223,9 @@ async function insertDefaultEvents() {
         }),
       },
       {
+        messageId: messageId2,
         messageRaw: segmentIdentifyEvent({
+          messageId: messageId2,
           traits: {
             status: "onboarded",
             firstName: "Chandler",

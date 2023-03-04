@@ -8,6 +8,7 @@ const userEventsColumns = `
   event Nullable(String) DEFAULT JSONExtract(message_raw, 'event', 'Nullable(String)'),
   event_time DateTime64 DEFAULT assumeNotNull(parseDateTime64BestEffortOrNull(JSONExtractString(message_raw, 'timestamp'), 3)),
   user_id Nullable(String) DEFAULT JSONExtract(message_raw, 'userId', 'Nullable(String)'),
+  message_id String,
   anonymous_id Nullable(String) DEFAULT JSONExtract(message_raw, 'anonymousId', 'Nullable(String)'),
   user_or_anonymous_id String DEFAULT assumeNotNull(coalesce(JSONExtract(message_raw, 'userId', 'Nullable(String)'), JSONExtract(message_raw, 'anonymousId', 'Nullable(String)'))),
   processing_time DateTime64(3) DEFAULT now64(3),
@@ -18,6 +19,7 @@ const userEventsColumns = `
 interface InsertValue {
   processingTime?: string;
   messageRaw: Record<string, JSONValue>;
+  messageId: string;
 }
 
 export function buildUserEventsTableName(tableVersion: string) {
@@ -61,16 +63,18 @@ export async function insertUserEvents({
     tableVersion = currentTable.version;
   }
   await clickhouseClient().insert({
-    table: `user_events_${tableVersion} (message_raw, processing_time, workspace_id)`,
+    table: `user_events_${tableVersion} (message_raw, processing_time, workspace_id, message_id)`,
     values: events.map((e) => {
       const value: {
         message_raw: string;
         processing_time: string | null;
         workspace_id: string;
+        message_id: string;
       } = {
         workspace_id: workspaceId,
         message_raw: JSON.stringify(e.messageRaw),
         processing_time: e.processingTime ?? null,
+        message_id: e.messageId,
       };
       return value;
     }),
@@ -90,7 +94,7 @@ export async function createUserEventsTables({
         CREATE TABLE IF NOT EXISTS ${buildUserEventsTableName(tableVersion)} 
         (${userEventsColumns})
         ENGINE MergeTree()
-        ORDER BY (workspace_id, processing_time, user_or_anonymous_id, event_time);
+        ORDER BY (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id);
       `,
     `
         CREATE TABLE IF NOT EXISTS computed_property_assignments (
