@@ -125,13 +125,11 @@ export default function Events() {
   const updateEvents = useEventsStore((store) => store.updateEvents);
 
   React.useEffect(() => {
-    console.log("useEffect workspace", workspace);
     (async () => {
       if (!workspaceId) {
         return;
       }
 
-      console.log("workspaceId");
       updateEventsPaginationRequest({
         type: CompletionStatus.InProgress,
       });
@@ -236,7 +234,7 @@ export default function Events() {
             loading={
               eventsPaginationRequest.type === CompletionStatus.InProgress
             }
-            pageSizeOptions={[10]}
+            pageSizeOptions={[paginationModel.pageSize]}
             paginationModel={paginationModel}
             paginationMode="server"
             onPaginationModelChange={updatePagination}
