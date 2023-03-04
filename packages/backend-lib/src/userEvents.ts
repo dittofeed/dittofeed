@@ -93,7 +93,7 @@ export async function findManyEvents({
     tableVersion = currentTable.version;
   }
 
-  const paginationCaluse = limit ? `LIMIT ${limit},${offset}` : "";
+  const paginationCaluse = limit ? `LIMIT ${offset},${limit}` : "";
   const query = `SELECT * FROM ${buildUserEventsTableName(
     tableVersion
   )} WHERE workspace_id = {workspaceId:String} ${paginationCaluse}`;

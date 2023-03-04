@@ -202,6 +202,7 @@ export default function Events() {
           direction="column"
           alignItems="center"
           justifyContent="center"
+          paddingBottom={2}
           sx={{ width: "100%", height: "100%" }}
         >
           <DataGrid
@@ -239,7 +240,6 @@ export default function Events() {
             paginationMode="server"
             onPaginationModelChange={updatePagination}
           />
-          ;
         </Stack>
       </MainLayout>
     </>
