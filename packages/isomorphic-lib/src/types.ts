@@ -379,6 +379,7 @@ export type GetEventsResponseItem = Static<typeof GetEventsResponseItem>;
 
 export const GetEventsResponse = Type.Object({
   events: Type.Array(GetEventsResponseItem),
+  count: Type.Number(),
 });
 
 export type GetEventsResponse = Static<typeof GetEventsResponse>;

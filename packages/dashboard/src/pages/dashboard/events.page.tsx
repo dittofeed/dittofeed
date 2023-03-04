@@ -47,9 +47,9 @@ interface EventsActions {
 
 export const useEventsStore = create(
   immer<EventsState & EventsActions>((set) => ({
-    pageSize: 0,
+    pageSize: 1,
     page: 0,
-    totalRowCount: 0,
+    totalRowCount: 2,
     events: [],
     eventsPaginationRequest: {
       type: CompletionStatus.NotStarted,
@@ -115,6 +115,9 @@ export default function Events() {
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
   const updatePagination = useEventsStore((store) => store.updatePagination);
   const totalRowCount = useEventsStore((store) => store.totalRowCount);
+  const updateTotalRowCount = useEventsStore(
+    (store) => store.updateTotalRowCount
+  );
   const updateEventsPaginationRequest = useEventsStore(
     (store) => store.updateEventsPaginationRequest
   );
@@ -165,6 +168,8 @@ export default function Events() {
       }
 
       updateEvents(result.value.events);
+      updateTotalRowCount(result.value.count);
+
       updateEventsPaginationRequest({
         type: CompletionStatus.NotStarted,
       });
@@ -173,6 +178,7 @@ export default function Events() {
     page,
     pageSize,
     workspaceId,
+    updateTotalRowCount,
     updateEventsPaginationRequest,
     updateEvents,
     apiBase,
@@ -202,6 +208,7 @@ export default function Events() {
           direction="column"
           alignItems="center"
           justifyContent="center"
+          // FIXME fetch from server
           paddingBottom={2}
           sx={{ width: "100%", height: "100%" }}
         >
