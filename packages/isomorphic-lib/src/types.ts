@@ -356,6 +356,32 @@ export const UpsertSegmentResource = Type.Intersect([
 
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
 
+export const GetEventsRequest = Type.Object({
+  workspaceId: Type.String(),
+  offset: Type.Number(),
+  limit: Type.Number(),
+});
+
+export type GetEventsRequest = Static<typeof GetEventsRequest>;
+
+export const GetEventsResponseItem = Type.Object({
+  messageId: Type.String(),
+  eventType: Type.String(),
+  event: Type.String(),
+  userId: Type.String(),
+  anonymousId: Type.String(),
+  processingTime: Type.String(),
+  eventTime: Type.String(),
+});
+
+export type GetEventsResponseItem = Static<typeof GetEventsResponseItem>;
+
+export const GetEventsResponse = Type.Object({
+  events: Type.Array(GetEventsResponseItem),
+});
+
+export type GetEventsResponse = Static<typeof GetEventsResponse>;
+
 export enum TemplateResourceType {
   Email = "Email",
 }

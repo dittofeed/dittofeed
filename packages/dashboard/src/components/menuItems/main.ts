@@ -7,6 +7,7 @@ import {
   MessageOutlined,
   ReadOutlined,
   SendOutlined,
+  ThunderboltOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 
@@ -69,6 +70,14 @@ const menuItems: { items: MenuItemGroup[] } = {
           icon: UserOutlined,
           disabled: true,
           description: "View users, and their histories.",
+        },
+        {
+          id: "events",
+          title: "Events",
+          type: "item",
+          url: "/dashboard/events",
+          icon: ThunderboltOutlined,
+          description: "View user events.",
         },
         {
           id: "segments",
