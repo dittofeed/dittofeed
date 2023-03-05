@@ -47,7 +47,7 @@ interface EventsActions {
 
 export const useEventsStore = create(
   immer<EventsState & EventsActions>((set) => ({
-    pageSize: 1,
+    pageSize: 10,
     page: 0,
     totalRowCount: 2,
     events: [],
@@ -208,45 +208,53 @@ export default function Events() {
           direction="column"
           alignItems="center"
           justifyContent="center"
-          // FIXME fetch from server
           paddingBottom={2}
           sx={{ width: "100%", height: "100%" }}
         >
-          <DataGrid
-            rows={events}
-            getRowId={(row) => row.messageId}
-            columns={[
-              {
-                field: "messageId",
-              },
-              {
-                field: "eventType",
-              },
-              {
-                field: "event",
-              },
-              {
-                field: "userId",
-              },
-              {
-                field: "anonymousId",
-              },
-              {
-                field: "processingTime",
-              },
-              {
-                field: "eventTime",
-              },
-            ]}
-            rowCount={totalRowCount}
-            loading={
-              eventsPaginationRequest.type === CompletionStatus.InProgress
-            }
-            pageSizeOptions={[paginationModel.pageSize]}
-            paginationModel={paginationModel}
-            paginationMode="server"
-            onPaginationModelChange={updatePagination}
-          />
+          <Box sx={{ width: 900, height: "100%" }}>
+            <DataGrid
+              rows={events}
+              getRowId={(row) => row.messageId}
+              columns={[
+                {
+                  field: "userId",
+                  flex: 1,
+                },
+                {
+                  field: "event",
+                  flex: 1,
+                },
+                {
+                  field: "eventTime",
+                  flex: 1,
+                },
+                {
+                  field: "anonymousId",
+                  flex: 1,
+                },
+                {
+                  field: "processingTime",
+                  flex: 1,
+                },
+                {
+                  field: "eventType",
+                  flex: 1,
+                },
+                {
+                  field: "messageId",
+                  flex: 1,
+                },
+              ]}
+              rowCount={totalRowCount}
+              loading={
+                eventsPaginationRequest.type === CompletionStatus.InProgress
+              }
+              pageSizeOptions={[paginationModel.pageSize]}
+              paginationModel={paginationModel}
+              paginationMode="server"
+              onPaginationModelChange={updatePagination}
+            />
+          </Box>
         </Stack>
       </MainLayout>
     </>
