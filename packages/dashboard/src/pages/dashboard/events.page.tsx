@@ -1,5 +1,5 @@
 import { Box, Stack, Tooltip } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import backendConfig from "backend-lib/src/config";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -108,6 +108,13 @@ function renderCell(params: any) {
   );
 }
 
+const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
+  flex: 1,
+  sortable: false,
+  filterable: false,
+  renderCell,
+};
+
 export default function Events() {
   const paginationModel = useEventsStore(
     ({ page, pageSize }) => ({
@@ -192,19 +199,6 @@ export default function Events() {
     apiBase,
   ]);
 
-  // const { }
-  // const { isLoading, rows, pageInfo } = useQuery(paginationModel);
-
-  // Some API clients return undefined while loading
-  // Following lines are here to prevent `rowCountState` from being undefined during the loading
-  // React.useEffect(() => {
-  //   updateTotalRowCount((prevRowCountState) =>
-  //     pageInfo?.totalRowCount !== undefined
-  //       ? pageInfo?.totalRowCount
-  //       : prevRowCountState
-  //   );
-  // }, [totalRowCount, updateTotalRowCount]);
-
   return (
     <>
       <Head>
@@ -219,57 +213,44 @@ export default function Events() {
           paddingBottom={2}
           sx={{ width: "100%", height: "100%" }}
         >
-          <Box sx={{ width: 1000, height: "100%" }}>
+          <Box sx={{ width: 1200, height: "100%" }}>
             <DataGrid
               rows={events}
               getRowId={(row) => row.messageId}
               columns={[
                 {
                   field: "userId",
-                  flex: 1,
-                  renderCell,
                 },
                 {
                   field: "anonymousId",
-                  flex: 1,
-                  renderCell,
                 },
                 {
                   field: "eventType",
-                  flex: 1,
-                  renderCell,
                 },
                 {
                   field: "event",
-                  flex: 1,
-                  renderCell,
                 },
                 {
                   field: "traits",
                   flex: 2,
-                  renderCell,
                 },
                 {
                   field: "properties",
                   flex: 2,
-                  renderCell,
                 },
                 {
                   field: "eventTime",
                   flex: 1,
-                  renderCell,
                 },
                 {
                   field: "processingTime",
                   flex: 1,
-                  renderCell,
                 },
                 {
                   field: "messageId",
                   flex: 1,
-                  renderCell,
                 },
-              ]}
+              ].map((c) => ({ ...baseColumn, ...c }))}
               rowCount={totalRowCount}
               loading={
                 eventsPaginationRequest.type === CompletionStatus.InProgress
