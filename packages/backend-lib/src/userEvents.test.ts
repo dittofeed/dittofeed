@@ -44,6 +44,7 @@ describe("findAllUserTraits", () => {
       workspaceId: workspace.id,
       tableVersion: config().defaultUserEventsTableVersion,
     });
-    expect(userTraits).toEqual(["status", "name", "height"]);
+    userTraits.sort();
+    expect(userTraits).toEqual(["height", "name", "status"]);
   });
 });
