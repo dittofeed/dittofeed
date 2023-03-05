@@ -1,13 +1,8 @@
-import React from "react";
-import { Box, Stack, Tooltip, useTheme } from "@mui/material";
-import { shallow } from "zustand/shallow";
+import { Box, Stack, Tooltip } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import Head from "next/head";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
+import axios, { AxiosResponse } from "axios";
 import backendConfig from "backend-lib/src/config";
-
-import MainLayout from "../../components/mainLayout";
+import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   EphemeralRequestStatus,
@@ -15,15 +10,20 @@ import {
   GetEventsResponse,
   GetEventsResponseItem,
 } from "isomorphic-lib/src/types";
+import { GetServerSideProps } from "next";
+import Head from "next/head";
+import React from "react";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import { shallow } from "zustand/shallow";
+
+import MainLayout from "../../components/mainLayout";
 import {
+  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
-  addInitialStateToProps,
   useAppStore,
 } from "../../lib/appStore";
-import axios, { AxiosResponse } from "axios";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { GetServerSideProps } from "next";
 import prisma from "../../lib/prisma";
 
 interface EventsState {

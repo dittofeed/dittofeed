@@ -1,6 +1,6 @@
-import React from "react";
 import { Box, Stack, useTheme } from "@mui/material";
 import Head from "next/head";
+import React from "react";
 
 import MainLayout from "../../../components/mainLayout";
 
@@ -22,7 +22,7 @@ export default function Events() {
           alignItems="center"
           justifyContent="center"
           sx={{ width: "100%", height: "100%" }}
-        ></Stack>
+         />
       </MainLayout>
     </>
   );
