@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Stack, useTheme } from "@mui/material";
+import { Box, Stack, Tooltip, useTheme } from "@mui/material";
 import { shallow } from "zustand/shallow";
 import { DataGrid } from "@mui/x-data-grid";
 import Head from "next/head";
@@ -99,6 +99,14 @@ export const getServerSideProps: GetServerSideProps<
     props: addInitialStateToProps({}, serverInitialState),
   };
 };
+
+function renderCell(params: any) {
+  return (
+    <Tooltip title={params.value} placement="right-start">
+      <span>{params.value}</span>
+    </Tooltip>
+  );
+}
 
 export default function Events() {
   const paginationModel = useEventsStore(
@@ -219,30 +227,37 @@ export default function Events() {
                 {
                   field: "userId",
                   flex: 1,
-                },
-                {
-                  field: "event",
-                  flex: 1,
-                },
-                {
-                  field: "eventTime",
-                  flex: 1,
-                },
-                {
-                  field: "anonymousId",
-                  flex: 1,
-                },
-                {
-                  field: "processingTime",
-                  flex: 1,
+                  renderCell,
                 },
                 {
                   field: "eventType",
                   flex: 1,
+                  renderCell,
+                },
+                {
+                  field: "event",
+                  flex: 1,
+                  renderCell,
+                },
+                {
+                  field: "eventTime",
+                  flex: 1,
+                  renderCell,
+                },
+                {
+                  field: "anonymousId",
+                  flex: 1,
+                  renderCell,
+                },
+                {
+                  field: "processingTime",
+                  flex: 1,
+                  renderCell,
                 },
                 {
                   field: "messageId",
                   flex: 1,
+                  renderCell,
                 },
               ]}
               rowCount={totalRowCount}
