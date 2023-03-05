@@ -365,6 +365,10 @@ export const GetEventsRequest = Type.Object({
 
 export type GetEventsRequest = Static<typeof GetEventsRequest>;
 
+export const Traits = Nullable(Type.Record(Type.String(), Type.Any()));
+
+export type Traits = Static<typeof Traits>;
+
 export const GetEventsResponseItem = Type.Object({
   messageId: Type.String(),
   eventType: Type.String(),
@@ -373,6 +377,8 @@ export const GetEventsResponseItem = Type.Object({
   anonymousId: Nullable(Type.String()),
   processingTime: Type.String(),
   eventTime: Type.String(),
+  traits: Type.String(),
+  properties: Type.String(),
 });
 
 export type GetEventsResponseItem = Static<typeof GetEventsResponseItem>;

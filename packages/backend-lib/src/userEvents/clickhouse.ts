@@ -91,7 +91,7 @@ export async function createUserEventsTables({
 }) {
   const queries: string[] = [
     `
-        CREATE TABLE IF NOT EXISTS ${buildUserEventsTableName(tableVersion)} 
+        CREATE TABLE IF NOT EXISTS ${buildUserEventsTableName(tableVersion)}
         (${userEventsColumns})
         ENGINE MergeTree()
         ORDER BY (workspace_id, processing_time, user_or_anonymous_id, event_time, message_id);

@@ -219,13 +219,18 @@ export default function Events() {
           paddingBottom={2}
           sx={{ width: "100%", height: "100%" }}
         >
-          <Box sx={{ width: 900, height: "100%" }}>
+          <Box sx={{ width: 1000, height: "100%" }}>
             <DataGrid
               rows={events}
               getRowId={(row) => row.messageId}
               columns={[
                 {
                   field: "userId",
+                  flex: 1,
+                  renderCell,
+                },
+                {
+                  field: "anonymousId",
                   flex: 1,
                   renderCell,
                 },
@@ -240,12 +245,17 @@ export default function Events() {
                   renderCell,
                 },
                 {
-                  field: "eventTime",
-                  flex: 1,
+                  field: "traits",
+                  flex: 2,
                   renderCell,
                 },
                 {
-                  field: "anonymousId",
+                  field: "properties",
+                  flex: 2,
+                  renderCell,
+                },
+                {
+                  field: "eventTime",
                   flex: 1,
                   renderCell,
                 },

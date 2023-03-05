@@ -42,6 +42,8 @@ export default async function eventsController(fastify: FastifyInstance) {
           anonymous_id,
           event,
           event_time,
+          traits,
+          properties,
         }) => ({
           messageId: message_id,
           processingTime: processing_time,
@@ -50,6 +52,8 @@ export default async function eventsController(fastify: FastifyInstance) {
           anonymousId: anonymous_id,
           event,
           eventTime: event_time,
+          traits,
+          properties,
         })
       );
       return reply.status(200).send({

@@ -91,6 +91,11 @@ async function getTableVersion({
   return tableVersion;
 }
 
+type UserEventsWithTraits = UserEvent & {
+  traits: string;
+  properties: string;
+};
+
 export async function findManyEvents({
   workspaceId,
   limit,
@@ -101,7 +106,7 @@ export async function findManyEvents({
   tableVersion?: string;
   limit?: number;
   offset?: number;
-}): Promise<UserEvent[]> {
+}): Promise<UserEventsWithTraits[]> {
   const tableVersion = await getTableVersion({
     workspaceId,
     tableVersion: tableVersionParam,
@@ -112,7 +117,19 @@ export async function findManyEvents({
   }
 
   const paginationClause = limit ? `LIMIT ${offset},${limit}` : "";
-  const query = `SELECT * FROM ${buildUserEventsTableName(
+  const query = `SELECT
+    workspace_id,
+    event_type,
+    user_id,
+    anonymous_id,
+    user_or_anonymous_id,
+    message_id,
+    event_time,
+    processing_time,
+    event,
+    JSONExtractRaw(message_raw, 'traits') AS traits,
+    JSONExtractRaw(message_raw, 'properties') AS properties
+  FROM ${buildUserEventsTableName(
     tableVersion
   )} WHERE workspace_id = {workspaceId:String} ${paginationClause}`;
 
@@ -124,7 +141,7 @@ export async function findManyEvents({
     },
   });
 
-  const results = await resultSet.json<UserEvent[]>();
+  const results = await resultSet.json<UserEventsWithTraits[]>();
   return results;
 }
 
