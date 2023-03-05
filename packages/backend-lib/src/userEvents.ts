@@ -68,6 +68,29 @@ export async function findAllUserTraits({
   return results.map((o) => o.trait);
 }
 
+async function getTableVersion({
+  workspaceId,
+  tableVersion: tableVersionParam,
+}: {
+  workspaceId: string;
+  tableVersion?: string;
+}): Promise<string | null> {
+  let tableVersion = tableVersionParam;
+  if (!tableVersion) {
+    const currentTable = await prisma.currentUserEventsTable.findUnique({
+      where: {
+        workspaceId,
+      },
+    });
+
+    if (!currentTable) {
+      return null;
+    }
+    tableVersion = currentTable.version;
+  }
+  return tableVersion;
+}
+
 export async function findManyEvents({
   workspaceId,
   limit,
@@ -79,24 +102,19 @@ export async function findManyEvents({
   limit?: number;
   offset?: number;
 }): Promise<UserEvent[]> {
-  let tableVersion = tableVersionParam;
-  if (!tableVersion) {
-    const currentTable = await prisma.currentUserEventsTable.findUnique({
-      where: {
-        workspaceId,
-      },
-    });
+  const tableVersion = await getTableVersion({
+    workspaceId,
+    tableVersion: tableVersionParam,
+  });
 
-    if (!currentTable) {
-      return [];
-    }
-    tableVersion = currentTable.version;
+  if (!tableVersion) {
+    return [];
   }
 
-  const paginationCaluse = limit ? `LIMIT ${offset},${limit}` : "";
+  const paginationClause = limit ? `LIMIT ${offset},${limit}` : "";
   const query = `SELECT * FROM ${buildUserEventsTableName(
     tableVersion
-  )} WHERE workspace_id = {workspaceId:String} ${paginationCaluse}`;
+  )} WHERE workspace_id = {workspaceId:String} ${paginationClause}`;
 
   const resultSet = await clickhouseClient().query({
     query,
@@ -174,4 +192,40 @@ export async function trackInternalEvents(props: {
   await writeUserEvents(events);
 
   return ok(undefined);
+}
+
+export async function findEventsCount({
+  workspaceId,
+  tableVersion: tableVersionParam,
+}: {
+  workspaceId: string;
+  tableVersion?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<number> {
+  const tableVersion = await getTableVersion({
+    workspaceId,
+    tableVersion: tableVersionParam,
+  });
+
+  if (!tableVersion) {
+    return 0;
+  }
+  const query = `SELECT COUNT(message_id) AS event_count FROM ${buildUserEventsTableName(
+    tableVersion
+  )}
+  WHERE workspace_id = {workspaceId:String}
+  GROUP BY workspace_id
+  `;
+
+  const resultSet = await clickhouseClient().query({
+    query,
+    format: "JSONEachRow",
+    query_params: {
+      workspaceId,
+    },
+  });
+
+  const results = await resultSet.json<{ event_count: number }[]>();
+  return results[0]?.event_count ?? 0;
 }
