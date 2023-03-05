@@ -1,4 +1,4 @@
-import { Box, Stack, Tooltip } from "@mui/material";
+import { Box, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import backendConfig from "backend-lib/src/config";
@@ -103,7 +103,7 @@ export const getServerSideProps: GetServerSideProps<
 function renderCell(params: any) {
   return (
     <Tooltip title={params.value} placement="right-start">
-      <span>{params.value}</span>
+      <Box sx={{ fontFamily: "monospace" }}>{params.value}</Box>
     </Tooltip>
   );
 }
@@ -124,6 +124,7 @@ export default function Events() {
     shallow
   );
   const { page, pageSize } = paginationModel;
+  const theme = useTheme();
   const workspace = useAppStore((store) => store.workspace);
   const apiBase = useAppStore((store) => store.apiBase);
   const workspaceId =
@@ -211,11 +212,16 @@ export default function Events() {
           alignItems="center"
           justifyContent="center"
           paddingBottom={2}
+          paddingTop={2}
           sx={{ width: "100%", height: "100%" }}
         >
           <Box sx={{ width: 1200, height: "100%" }}>
             <DataGrid
               rows={events}
+              sx={{
+                border: 2,
+                borderColor: theme.palette.grey[200],
+              }}
               getRowId={(row) => row.messageId}
               columns={[
                 {
@@ -232,10 +238,6 @@ export default function Events() {
                 },
                 {
                   field: "traits",
-                  flex: 2,
-                },
-                {
-                  field: "properties",
                   flex: 2,
                 },
                 {

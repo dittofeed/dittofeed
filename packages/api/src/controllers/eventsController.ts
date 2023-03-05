@@ -44,17 +44,30 @@ export default async function eventsController(fastify: FastifyInstance) {
           event_time,
           traits,
           properties,
-        }) => ({
-          messageId: message_id,
-          processingTime: processing_time,
-          userId: user_id,
-          eventType: event_type,
-          anonymousId: anonymous_id,
-          event,
-          eventTime: event_time,
-          traits,
-          properties,
-        })
+        }) => {
+          let colsolidatedTraits: string;
+          if (traits.length) {
+            colsolidatedTraits = traits;
+          } else if (properties.length) {
+            colsolidatedTraits = properties;
+          } else {
+            console.error(
+              `message ${message_id} missing both traits and properties`
+            );
+            return [];
+          }
+
+          return {
+            messageId: message_id,
+            processingTime: processing_time,
+            userId: user_id,
+            eventType: event_type,
+            anonymousId: anonymous_id,
+            event,
+            eventTime: event_time,
+            traits: colsolidatedTraits,
+          };
+        }
       );
       return reply.status(200).send({
         events,
