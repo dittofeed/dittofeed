@@ -4,6 +4,7 @@ import { inspect } from "util";
 import { Overwrite } from "utility-types";
 
 import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
+import { KafkaSaslMechanism } from "./types";
 
 const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
 
@@ -22,6 +23,7 @@ const BaseRawConfigProps = {
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
   kafkaSsl: Type.Optional(BoolStr),
+  kafkaSaslMechanism: Type.Optional(KafkaSaslMechanism),
   kafkaUserEventsPartitions: Type.Optional(Type.String()),
   kafkaUserEventsReplicationFactor: Type.Optional(Type.String()),
   userEventsTopicName: Type.Optional(Type.String()),
@@ -82,6 +84,7 @@ export type Config = Overwrite<
     bootstrapEvents: boolean;
     kafkaUserEventsPartitions: number;
     kafkaUserEventsReplicationFactor: number;
+    kafkaSaslMechanism: KafkaSaslMechanism;
   }
 > & {
   defaultWorkspaceId: string;
@@ -185,6 +188,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],
     kafkaSsl: rawConfig.kafkaSsl === "true",
+    kafkaSaslMechanism: rawConfig.kafkaSaslMechanism ?? "plain",
     kafkaUserEventsPartitions: parseToNumber({
       unparsed: rawConfig.kafkaUserEventsPartitions,
       nodeEnv,
