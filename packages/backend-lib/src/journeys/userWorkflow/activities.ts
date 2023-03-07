@@ -1,6 +1,7 @@
 import { SegmentAssignment } from "@prisma/client";
 import escapeHTML from "escape-html";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
+import { UndefinedVariableError } from "liquidjs";
 
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
 import prisma from "../../prisma";
@@ -39,7 +40,6 @@ export async function sendEmail({
       id: journeyId,
     },
   });
-  console.log("sendEmail journey", journey);
   if (!journey || journey.status !== "Running") {
     return false;
   }
@@ -69,10 +69,21 @@ export async function sendEmail({
   const render = (template: string) =>
     renderWithUserProperties({ userProperties, template });
 
+  let from: string;
+  let subject: string;
+  let body: string;
+  try {
+    from = escapeHTML(render(emailTemplate.from));
+    subject = escapeHTML(render(emailTemplate.subject));
+    body = render(emailTemplate.body);
+  } catch (e) {
+    if (e instanceof UndefinedVariableError) {
+      console.error(`template has an undefined error: ${templateId}`, e);
+      return false;
+    }
+    throw e;
+  }
   const to = userProperties.email;
-  const from = escapeHTML(render(emailTemplate.from));
-  const subject = escapeHTML(render(emailTemplate.subject));
-  const body = render(emailTemplate.body);
 
   await trackInternalEvents({
     workspaceId,
@@ -104,8 +115,7 @@ export async function sendEmail({
 
   switch (defaultEmailProvider.emailProvider.type) {
     case EmailProviderType.Sendgrid: {
-      // FIXME make idempotent
-      await sendEmailSendgrid({
+      const result = await sendEmailSendgrid({
         mailData: {
           to,
           from,
@@ -114,10 +124,15 @@ export async function sendEmail({
         },
         apiKey: defaultEmailProvider.emailProvider.apiKey,
       });
-      break;
+      if (result.isErr()) {
+        console.error("sendgrid request failed", result.error);
+        return false;
+      }
+      return true;
     }
   }
-  return true;
+
+  throw new Error("Unhandled email provider type.");
 }
 
 export async function isRunnable({

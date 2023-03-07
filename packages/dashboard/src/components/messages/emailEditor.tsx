@@ -384,16 +384,16 @@ export default function EmailEditor() {
       <Stack>
         <TextField
           required
-          disabled
           label="To"
           variant="filled"
-          value={previewEmailTo}
+          disabled
           InputProps={{
             sx: {
               borderTopLeftRadius: 0,
             },
           }}
           sx={disabledStyles}
+          value={previewEmailTo}
         />
         <TextField
           required

@@ -6,6 +6,11 @@ import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
 import { kafkaAdmin } from "./kafka";
 import prisma from "./prisma";
+import {
+  computePropertiesWorkflow,
+  generateComputePropertiesId,
+} from "./segments/computePropertiesWorkflow";
+import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
 import {
   createUserEventsTables,
@@ -200,6 +205,26 @@ async function bootstrapClickhouse() {
   });
 }
 
+async function bootstrapWorker() {
+  const temporalClient = await connectWorkflowClient();
+
+  try {
+    await temporalClient.start(computePropertiesWorkflow, {
+      taskQueue: "default",
+      workflowId: generateComputePropertiesId(config().defaultWorkspaceId),
+      args: [
+        {
+          tableVersion: config().defaultUserEventsTableVersion,
+          workspaceId: config().defaultWorkspaceId,
+          shouldContinueAsNew: true,
+        },
+      ],
+    });
+  } catch (e) {
+    console.error("failed to bootstrap worker", e);
+  }
+}
+
 async function insertDefaultEvents() {
   const messageId1 = randomUUID();
   const messageId2 = randomUUID();
@@ -256,4 +281,6 @@ export default async function bootstrap() {
   if (config().bootstrapEvents) {
     await insertDefaultEvents();
   }
+
+  await bootstrapWorker();
 }

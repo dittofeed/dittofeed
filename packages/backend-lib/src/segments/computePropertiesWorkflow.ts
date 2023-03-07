@@ -26,6 +26,10 @@ export const userJourneyInitialize = wf.defineSignal<[string]>(
   "userJourneyInitialize"
 );
 
+export function generateComputePropertiesId(workspaceId: string) {
+  return `compute-properties-workflow-${workspaceId}`;
+}
+
 type JourneyMap = Map<string, boolean>;
 
 export const BASE_POLLING_PERIOD = 10 * 1000;

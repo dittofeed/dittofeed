@@ -131,7 +131,7 @@ export async function createUserEventsTables({
     // TODO modify kafka consumer settings
     queries.push(`
         CREATE TABLE IF NOT EXISTS user_events_queue_${tableVersion}
-        (message_raw String, workspace_id String)
+        (message_raw String, workspace_id String, message_id String)
         ENGINE = Kafka('${kafkaBrokers}', '${ingressTopic}', '${ingressTopic}-clickhouse',
                   'JSONEachRow') settings
                   kafka_thread_per_consumer = 0,

@@ -1,4 +1,4 @@
-import { Kafka, Partitioners } from "kafkajs";
+import { Kafka, Partitioners, Producer, ProducerConfig } from "kafkajs";
 
 import config from "./config";
 
@@ -22,6 +22,16 @@ export const kafka = new Kafka({
 
 export const kafkaAdmin = kafka.admin();
 
-export const kafkaProducer = kafka.producer({
+export const kafkaProducerConfig: ProducerConfig = {
   createPartitioner: Partitioners.DefaultPartitioner,
-});
+};
+
+let KAFKA_PRODUCER: null | Producer = null;
+
+export async function kafkaProducer() {
+  if (!KAFKA_PRODUCER) {
+    KAFKA_PRODUCER = kafka.producer(kafkaProducerConfig);
+    await KAFKA_PRODUCER.connect();
+  }
+  return KAFKA_PRODUCER;
+}

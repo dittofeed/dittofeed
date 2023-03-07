@@ -1,6 +1,6 @@
 import responseError from "@sendgrid/helpers/classes/response-error";
 import sendgridMail from "@sendgrid/mail";
-import { Result,ResultAsync } from "neverthrow";
+import { Result, ResultAsync } from "neverthrow";
 
 function guardResponseError(e: unknown): sendgridMail.ResponseError {
   if (e instanceof responseError) {
