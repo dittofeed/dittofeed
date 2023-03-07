@@ -6,6 +6,7 @@ export const Nullable = <T extends TSchema>(type: T) =>
 export type JSONValue =
   | string
   | number
+  | null
   | boolean
   | { [x: string]: JSONValue }
   | JSONValue[];
@@ -355,6 +356,38 @@ export const UpsertSegmentResource = Type.Intersect([
 ]);
 
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
+
+export const GetEventsRequest = Type.Object({
+  workspaceId: Type.String(),
+  offset: Type.Number(),
+  limit: Type.Number(),
+});
+
+export type GetEventsRequest = Static<typeof GetEventsRequest>;
+
+export const Traits = Nullable(Type.Record(Type.String(), Type.Any()));
+
+export type Traits = Static<typeof Traits>;
+
+export const GetEventsResponseItem = Type.Object({
+  messageId: Type.String(),
+  eventType: Type.String(),
+  event: Type.String(),
+  userId: Nullable(Type.String()),
+  anonymousId: Nullable(Type.String()),
+  processingTime: Type.String(),
+  eventTime: Type.String(),
+  traits: Type.String(),
+});
+
+export type GetEventsResponseItem = Static<typeof GetEventsResponseItem>;
+
+export const GetEventsResponse = Type.Object({
+  events: Type.Array(GetEventsResponseItem),
+  count: Type.Number(),
+});
+
+export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
 export enum TemplateResourceType {
   Email = "Email",

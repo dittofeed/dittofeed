@@ -18,6 +18,7 @@ describe("findAllUserTraits", () => {
       workspaceId: workspace.id,
       events: [
         {
+          messageId: randomUUID(),
           messageRaw: segmentIdentifyEvent({
             traits: {
               status: "onboarding",
@@ -26,6 +27,7 @@ describe("findAllUserTraits", () => {
           }),
         },
         {
+          messageId: randomUUID(),
           messageRaw: segmentIdentifyEvent({
             traits: {
               status: "onboarding",
@@ -42,6 +44,7 @@ describe("findAllUserTraits", () => {
       workspaceId: workspace.id,
       tableVersion: config().defaultUserEventsTableVersion,
     });
-    expect(userTraits).toEqual(["status", "name", "height"]);
+    userTraits.sort();
+    expect(userTraits).toEqual(["height", "name", "status"]);
   });
 });

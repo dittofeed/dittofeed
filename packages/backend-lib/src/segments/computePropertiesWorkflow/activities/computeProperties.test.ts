@@ -162,6 +162,7 @@ describe("compute properties activities", () => {
               {
                 // One day earlier than current time
                 processingTime: "2021-12-31 00:15:30",
+                messageId: randomUUID(),
                 messageRaw: segmentIdentifyEvent({
                   userId,
                   anonymousId,
@@ -211,6 +212,7 @@ describe("compute properties activities", () => {
               {
                 // One day earlier than current time
                 processingTime: "2021-12-31 00:15:30",
+                messageId: randomUUID(),
                 messageRaw: segmentIdentifyEvent({
                   userId,
                   anonymousId,
@@ -268,6 +270,7 @@ describe("compute properties activities", () => {
             events: [
               {
                 processingTime: "2022-01-01 00:15:30",
+                messageId: randomUUID(),
                 messageRaw: segmentIdentifyEvent({
                   userId,
                   anonymousId,
@@ -372,6 +375,7 @@ describe("compute properties activities", () => {
               workspaceId: workspace.id,
               events: [
                 {
+                  messageId: randomUUID(),
                   processingTime: "2022-01-01 00:15:45",
                   messageRaw: segmentIdentifyEvent({
                     userId,
@@ -502,6 +506,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -539,6 +544,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -587,6 +593,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -633,6 +640,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -671,6 +679,7 @@ describe("compute properties activities", () => {
             tableVersion,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -714,6 +723,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -724,6 +734,7 @@ describe("compute properties activities", () => {
                 }),
               },
               {
+                messageId: randomUUID(),
                 processingTime: lastProcessedAt,
                 messageRaw: segmentIdentifyEvent({
                   userId: userId2,
@@ -834,6 +845,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -880,6 +892,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -958,6 +971,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -1003,6 +1017,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -1059,6 +1074,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -1139,6 +1155,7 @@ describe("compute properties activities", () => {
               workspaceId: workspace.id,
               events: [
                 {
+                  messageId: randomUUID(),
                   processingTime: "2022-01-01 00:15:50",
                   messageRaw: segmentIdentifyEvent({
                     userId: userId2,
@@ -1236,6 +1253,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -1311,6 +1329,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -1355,6 +1374,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:20:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,
@@ -1427,6 +1447,7 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             events: [
               {
+                messageId: randomUUID(),
                 processingTime: "2022-01-01 00:15:30",
                 messageRaw: segmentIdentifyEvent({
                   userId,

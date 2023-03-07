@@ -21,6 +21,7 @@
     "@emotion/styled": "^11.10.5",
     "@mui/icons-material": "^5.11.0",
     "@mui/material": "^5.11.4",
+    "@mui/x-data-grid": "^6.0.0",
     "@prisma/client": "^4.9.0",
     "@uiw/react-codemirror": "^4.19.5",
     "axios": "^1.2.2",

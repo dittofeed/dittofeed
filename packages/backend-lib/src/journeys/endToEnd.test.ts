@@ -188,6 +188,7 @@ describe("end to end journeys", () => {
           workspaceId: workspace.id,
           events: [
             {
+              messageId: randomUUID(),
               processingTime: new Date(currentTimeMS - 5000).toISOString(),
               messageRaw: segmentIdentifyEvent({
                 userId: userId1,
@@ -199,6 +200,7 @@ describe("end to end journeys", () => {
               }),
             },
             {
+              messageId: randomUUID(),
               processingTime: new Date(currentTimeMS - 5000).toISOString(),
               messageRaw: segmentIdentifyEvent({
                 userId: userId2,
@@ -312,6 +314,7 @@ describe("end to end journeys", () => {
           workspaceId: workspace.id,
           events: [
             {
+              messageId: randomUUID(),
               processingTime: new Date(currentTimeMS - 5000).toISOString(),
               messageRaw: segmentIdentifyEvent({
                 userId: userId1,
@@ -406,6 +409,7 @@ describe("end to end journeys", () => {
                 workspaceId: workspace.id,
                 events: [
                   {
+                    messageId: randomUUID(),
                     processingTime: new Date(
                       currentTimeMS - 5000
                     ).toISOString(),

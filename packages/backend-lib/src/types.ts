@@ -54,6 +54,7 @@ export const UserEvent = Type.Object({
   user_id: Nullable(Type.String()),
   anonymous_id: Nullable(Type.String()),
   user_or_anonymous_id: Type.String(),
+  message_id: Type.String(),
   event_time: Type.String(),
   processing_time: Type.String(),
   message_raw: Type.String(),
@@ -61,6 +62,21 @@ export const UserEvent = Type.Object({
 });
 
 export type UserEvent = Static<typeof UserEvent>;
+
+export const SegmentIOIdentifyEvent = Type.Object({
+  traits: Type.Object(Type.Record(Type.String(), Type.Any())),
+});
+
+export const SegmentIOTrackEvent = Type.Object({
+  properties: Type.Object(Type.Record(Type.String(), Type.Any())),
+});
+
+export const SegmentIOEvent = Type.Union([
+  SegmentIOIdentifyEvent,
+  SegmentIOTrackEvent,
+]);
+
+export type SegmentIOEvent = Static<typeof SegmentIOEvent>;
 
 export * from "@prisma/client";
 
