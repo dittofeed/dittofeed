@@ -1,13 +1,25 @@
-import { Kafka, Partitioners, Producer, ProducerConfig } from "kafkajs";
+import {
+  Kafka,
+  Partitioners,
+  Producer,
+  ProducerConfig,
+  SASLOptions,
+} from "kafkajs";
 
 import config from "./config";
 
-const { kafkaUsername, kafkaPassword, kafkaBrokers, kafkaSsl } = config();
+const {
+  kafkaUsername,
+  kafkaPassword,
+  kafkaBrokers,
+  kafkaSsl,
+  kafkaSaslMechanism,
+} = config();
 
-const sasl: ConstructorParameters<typeof Kafka>[0]["sasl"] | undefined =
+const sasl: SASLOptions | undefined =
   kafkaUsername && kafkaPassword
     ? {
-        mechanism: "plain",
+        mechanism: kafkaSaslMechanism,
         username: kafkaUsername,
         password: kafkaPassword,
       }

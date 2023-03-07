@@ -83,3 +83,11 @@ export * from "@prisma/client";
 export enum InternalEventType {
   MessageSent = "DittoFeedInternalMessageSent",
 }
+
+export const KafkaSaslMechanism = Type.Union([
+  Type.Literal("plain"),
+  Type.Literal("scram-sha-256"),
+  Type.Literal("scram-sha-512"),
+]);
+
+export type KafkaSaslMechanism = Static<typeof KafkaSaslMechanism>;
