@@ -1,6 +1,7 @@
 import { SegmentAssignment } from "@prisma/client";
 import escapeHTML from "escape-html";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
+import { UndefinedVariableError } from "liquidjs";
 
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
 import prisma from "../../prisma";
@@ -69,10 +70,20 @@ export async function sendEmail({
   const render = (template: string) =>
     renderWithUserProperties({ userProperties, template });
 
+  let from: string;
+  let subject: string;
+  let body: string;
+  try {
+    from = escapeHTML(render(emailTemplate.from));
+    subject = escapeHTML(render(emailTemplate.subject));
+    body = render(emailTemplate.body);
+  } catch (e) {
+    if (e instanceof UndefinedVariableError) {
+      return false;
+    }
+    throw e;
+  }
   const to = userProperties.email;
-  const from = escapeHTML(render(emailTemplate.from));
-  const subject = escapeHTML(render(emailTemplate.subject));
-  const body = render(emailTemplate.body);
 
   await trackInternalEvents({
     workspaceId,
@@ -104,7 +115,6 @@ export async function sendEmail({
 
   switch (defaultEmailProvider.emailProvider.type) {
     case EmailProviderType.Sendgrid: {
-      // FIXME make idempotent
       await sendEmailSendgrid({
         mailData: {
           to,
