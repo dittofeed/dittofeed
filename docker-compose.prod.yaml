@@ -84,41 +84,38 @@ services:
       - postgres:/var/lib/postgresql/data
     networks:
       - dittofeed-network
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.3.0
-    hostname: zookeeper
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeper_data:/var/lib/zookeeper/data
-      - zookeeper_logs:/var/lib/zookeeper/log
   kafka:
-    image: confluentinc/cp-server:7.3.0
-    user: root
-    depends_on:
-      - zookeeper
+    image: redpandadata/redpanda:v23.1.1
     ports:
-      - "9092:9092"
-      - "9101:9101"
+      - 9092:9092
+      - 18081:18081
+      - 18082:18082
+      - 19644:9644
     environment:
       <<: *kafka-credentials
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_DELETE_TOPIC_ENABLE: "true"
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:29092,external://0.0.0.0:9092
+      # Address the broker advertises to clients that connect to the Kafka API.
+      # Use the internal addresses to connect to the Redpanda brokers'
+      # from inside the same Docker network.
+      # Use the external addresses to connect to the Redpanda brokers'
+      # from outside the Docker network.
+      - --advertise-kafka-addr internal://kafka:29092,external://localhost:9092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      # Address the broker advertises to clients that connect to the HTTP Proxy.
+      - --advertise-pandaproxy-addr internal://kafka:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      # Redpanda brokers use the RPC API to communicate with eachother internally.
+      - --rpc-addr kafka:33145
+      - --advertise-rpc-addr kafka:33145
+      # enable logs for debugging.
+      - --default-log-level=debug
     volumes:
-      - kafka:/var/lib/kafka/data
+      - kafka:/var/lib/redpanda/data
+    networks:
+      - dittofeed-network
   clickhouse-server:
     image: clickhouse/clickhouse-server:22.9.5.25-alpine
     environment:
@@ -129,15 +126,12 @@ services:
       - "9009:9009"
     depends_on:
       - kafka
-      - zookeeper
     volumes:
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
 volumes:
   postgres:
   kafka:
-  zookeeper_data:
-  zookeeper_logs:
   clickhouse_lib:
   clickhouse_log:
 
