@@ -103,5 +103,10 @@
     "twitter": "https://twitter.com/dittofeed",
     "github": "https://github.com/dittofeed/dittofeed",
     "linkedin": "https://www.linkedin.com/company/dittofeed"
+  },
+  "analytics": {
+    "posthog": {
+      "apiKey": "phc_nAONMdL3n31UGZLr5QmIpPlyHqHV327DgxPCRjMusrG"
+    }
   }
 }
