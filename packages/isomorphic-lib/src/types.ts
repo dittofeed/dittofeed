@@ -488,7 +488,10 @@ export type EmailProviderResource = Static<typeof EmailProviderResource>;
 
 export const UpsertEmailProviderResource = Type.Union(
   PersistedEmailProvider.anyOf.flatMap((t) => [
-    Type.Intersect([Type.Omit(Type.Partial(t), ["id"]), Type.Pick(t, ["id"])]),
+    Type.Intersect([
+      Type.Omit(Type.Partial(t), ["id", "workspaceId"]),
+      Type.Pick(t, ["id", "workspaceId"]),
+    ]),
     Type.Intersect([
       Type.Omit(Type.Partial(t), ["type", "workspaceId"]),
       Type.Pick(t, ["type", "workspaceId"]),

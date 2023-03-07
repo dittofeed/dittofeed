@@ -215,9 +215,6 @@ function SegmentIoConfig() {
     (store) => store.updateSegmentIoRequest
   );
   const workspace = useAppStore((store) => store.workspace);
-  const dataSourceConfigurations = useAppStore(
-    (store) => store.dataSourceConfigurations
-  );
   const upsertDataSourceConfiguration = useAppStore(
     (store) => store.upsertDataSourceConfiguration
   );
@@ -282,29 +279,8 @@ function SegmentIoConfig() {
     });
   };
 
-  const savedDataSourceConfiguration: DataSourceConfigurationResource | null =
-    useMemo(() => {
-      if (
-        dataSourceConfigurations.type !== CompletionStatus.Successful ||
-        !workspaceId
-      ) {
-        return null;
-      }
-      for (const dataSourceConfiguration of dataSourceConfigurations.value) {
-        if (
-          dataSourceConfiguration.workspaceId === workspaceId &&
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          dataSourceConfiguration.variant.type ===
-            DataSourceVariantType.SegmentIO
-        ) {
-          return dataSourceConfiguration;
-        }
-      }
-      return null;
-    }, [dataSourceConfigurations, workspaceId]);
-
-  const upToDate =
-    savedDataSourceConfiguration?.variant.sharedSecret === sharedSecret;
+  const requestInProgress =
+    segmentIoRequest.type === CompletionStatus.InProgress;
 
   return (
     <Stack sx={{ padding: 1 }} spacing={1}>
@@ -316,8 +292,12 @@ function SegmentIoConfig() {
         }}
         value={sharedSecret}
       />
-      <Button onClick={handleSubmit} variant="contained" disabled={upToDate}>
-        {upToDate ? "Saved" : "Save"}
+      <Button
+        onClick={handleSubmit}
+        variant="contained"
+        disabled={requestInProgress}
+      >
+        Save
       </Button>
     </Stack>
   );
@@ -413,7 +393,9 @@ function SendGridConfig() {
     });
   };
 
-  const upToDate = savedSendgridProvider?.apiKey === apiKey;
+  const requestInProgress =
+    sendgridProviderRequest.type === CompletionStatus.InProgress;
+
   return (
     <Stack sx={{ padding: 1 }} spacing={1}>
       <TextField
@@ -424,8 +406,12 @@ function SendGridConfig() {
         }}
         value={apiKey}
       />
-      <Button onClick={handleSubmit} variant="contained" disabled={upToDate}>
-        {upToDate ? "Saved" : "Save"}
+      <Button
+        onClick={handleSubmit}
+        variant="contained"
+        disabled={requestInProgress}
+      >
+        Save
       </Button>
     </Stack>
   );

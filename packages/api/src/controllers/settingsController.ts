@@ -138,6 +138,17 @@ export default async function settingsController(fastify: FastifyInstance) {
         return reply.status(400).send();
       }
 
+      await prisma.defaultEmailProvider.upsert({
+        where: {
+          workspaceId,
+        },
+        create: {
+          workspaceId,
+          emailProviderId: emailProvider.id,
+        },
+        update: {},
+      });
+
       let recordType: EmailProviderType;
       switch (emailProvider.type) {
         case EmailProviderType.Sendgrid:
