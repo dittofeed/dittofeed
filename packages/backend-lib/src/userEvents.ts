@@ -26,6 +26,7 @@ export async function writeUserEvents(
         value: JSON.stringify({
           processing_time: processingTime,
           workspace_id: workspaceId,
+          message_id: messageId,
           message_raw: messageRaw,
         }),
       })
