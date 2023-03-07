@@ -40,7 +40,6 @@ export async function sendEmail({
       id: journeyId,
     },
   });
-  console.log("sendEmail journey", journey);
   if (!journey || journey.status !== "Running") {
     return false;
   }
@@ -115,7 +114,7 @@ export async function sendEmail({
 
   switch (defaultEmailProvider.emailProvider.type) {
     case EmailProviderType.Sendgrid: {
-      await sendEmailSendgrid({
+      const result = await sendEmailSendgrid({
         mailData: {
           to,
           from,
@@ -124,10 +123,15 @@ export async function sendEmail({
         },
         apiKey: defaultEmailProvider.emailProvider.apiKey,
       });
-      break;
+      if (result.isErr()) {
+        console.error("sendgrid request failed", result.error);
+        return false;
+      }
+      return true;
     }
   }
-  return true;
+
+  throw new Error("Unhandled email provider type.");
 }
 
 export async function isRunnable({
