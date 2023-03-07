@@ -216,6 +216,7 @@ async function bootstrapWorker() {
         {
           tableVersion: config().defaultUserEventsTableVersion,
           workspaceId: config().defaultWorkspaceId,
+          shouldContinueAsNew: true,
         },
       ],
     });
