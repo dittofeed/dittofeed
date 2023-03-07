@@ -78,6 +78,7 @@ export async function sendEmail({
     body = render(emailTemplate.body);
   } catch (e) {
     if (e instanceof UndefinedVariableError) {
+      console.error(`template has an undefined error: ${templateId}`, e);
       return false;
     }
     throw e;
