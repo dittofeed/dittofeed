@@ -18,7 +18,7 @@ async function run() {
 
   const worker = await Worker.create({
     connection,
-    namespace: "dittofeed",
+    namespace: backendConfig().temporalNamespace,
     workflowsPath: require.resolve("backend-lib/src/temporal/workflows"),
     activities,
     taskQueue: "default",
