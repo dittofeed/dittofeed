@@ -2,7 +2,6 @@ import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { type Config } from "backend-lib/src/config";
 import backendConfig from "backend-lib/src/config";
-import { kafkaProducer } from "backend-lib/src/kafka";
 import prisma from "backend-lib/src/prisma";
 import { computePropertiesWorkflow } from "backend-lib/src/segments/computePropertiesWorkflow";
 import { InternalEventType, UserEvent, Workspace } from "backend-lib/src/types";
@@ -181,7 +180,7 @@ describe("end to end segment webhooks", () => {
   });
 
   afterEach(async () => {
-    await Promise.all([testEnv.teardown(), kafkaProducer.disconnect()]);
+    await Promise.all([testEnv.teardown()]);
   });
 
   afterAll(async () => {

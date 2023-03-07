@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { Admin, Consumer, EachMessagePayload, Producer } from "kafkajs";
 
-import { kafka, kafkaAdmin, kafkaProducer } from "../src/kafka";
+import { kafka, kafkaAdmin, kafkaProducerConfig } from "../src/kafka";
 import { JSONValue, KafkaMessageTypes } from "../src/types";
 
 /**
@@ -25,7 +25,7 @@ export default class KafkaSkaffold {
     this.topicNames = {};
     this.consumers = [];
     this.admin = kafkaAdmin;
-    this.producer = kafkaProducer;
+    this.producer = kafka.producer(kafkaProducerConfig);
   }
 
   /**
@@ -60,7 +60,7 @@ export default class KafkaSkaffold {
   ) {
     const topic = this.getTopicName(topicPrefix);
 
-    await kafkaProducer.send({
+    await this.producer.send({
       topic,
       messages: messages.map((m) => ({
         key: m.key,
@@ -124,7 +124,7 @@ export default class KafkaSkaffold {
    * @param topicNamePrefixes prefix for the topic names to create
    */
   async createTopics(topicNamePrefixes: string[]) {
-    await kafkaAdmin.createTopics({
+    await this.admin.createTopics({
       waitForLeaders: true,
       topics: topicNamePrefixes.map((prefix) => {
         const topic = `${prefix}-${randomUUID()}`;
