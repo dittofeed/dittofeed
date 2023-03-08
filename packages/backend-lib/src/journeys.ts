@@ -1,4 +1,4 @@
-import { Journey } from "@prisma/client";
+import { Journey, PrismaClient } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -59,12 +59,12 @@ export function getSubscribedSegments(
   return subscribedSegments;
 }
 
-type FindManyParams = Parameters<typeof prisma.journey.findMany>[0];
+type FindManyParams = Parameters<PrismaClient["journey"]["findMany"]>[0];
 
 export async function findManyJourneys(
   params: FindManyParams
 ): Promise<Result<EnrichedJourney[], ValueError[]>> {
-  const journeys = await prisma.journey.findMany(params);
+  const journeys = await prisma().journey.findMany(params);
 
   const subscribedJourneys: EnrichedJourney[] = [];
 

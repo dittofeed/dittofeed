@@ -34,7 +34,7 @@ export default async function journeysController(fastify: FastifyInstance) {
         NotStarted -> Paused OR * -> NotStarted
       */
       if (canCreate) {
-        journey = await prisma.journey.upsert({
+        journey = await prisma().journey.upsert({
           where: {
             id,
           },
@@ -53,7 +53,7 @@ export default async function journeysController(fastify: FastifyInstance) {
           },
         });
       } else {
-        journey = await prisma.journey.update({
+        journey = await prisma().journey.update({
           where: {
             id,
           },

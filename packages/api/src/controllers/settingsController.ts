@@ -41,7 +41,7 @@ export default async function settingsController(fastify: FastifyInstance) {
                 "Invalid payload. Segment variant musti included sharedSecret value.",
             });
           }
-          const { id } = await prisma.segmentIOConfiguration.upsert({
+          const { id } = await prisma().segmentIOConfiguration.upsert({
             where: {
               workspaceId,
             },
@@ -87,7 +87,7 @@ export default async function settingsController(fastify: FastifyInstance) {
 
       if (workspaceId && type) {
         if (canCreate) {
-          emailProvider = await prisma.emailProvider.upsert({
+          emailProvider = await prisma().emailProvider.upsert({
             where: {
               workspaceId_type: {
                 workspaceId,
@@ -107,7 +107,7 @@ export default async function settingsController(fastify: FastifyInstance) {
             },
           });
         } else {
-          emailProvider = await prisma.emailProvider.update({
+          emailProvider = await prisma().emailProvider.update({
             where: {
               workspaceId_type: {
                 workspaceId,
@@ -123,7 +123,7 @@ export default async function settingsController(fastify: FastifyInstance) {
           });
         }
       } else if (id) {
-        emailProvider = await prisma.emailProvider.update({
+        emailProvider = await prisma().emailProvider.update({
           where: {
             id,
           },
@@ -138,7 +138,7 @@ export default async function settingsController(fastify: FastifyInstance) {
         return reply.status(400).send();
       }
 
-      await prisma.defaultEmailProvider.upsert({
+      await prisma().defaultEmailProvider.upsert({
         where: {
           workspaceId,
         },

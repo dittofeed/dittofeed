@@ -35,7 +35,7 @@ export async function createSegment({
   workspaceId: string;
   definition: SegmentDefinition;
 }) {
-  await prisma.segment.create({
+  await prisma().segment.create({
     data: {
       workspaceId,
       name,
@@ -63,7 +63,9 @@ export function toSegmentResource(
 export async function findEnrichedSegment(
   segmentId: string
 ): Promise<Result<EnrichedSegment | null, ValueError[]>> {
-  const segment = await prisma.segment.findFirst({ where: { id: segmentId } });
+  const segment = await prisma().segment.findFirst({
+    where: { id: segmentId },
+  });
   if (!segment) {
     return ok(null);
   }
@@ -74,7 +76,7 @@ export async function findEnrichedSegment(
 export async function findAllEnrichedSegments(
   workspaceId: string
 ): Promise<Result<EnrichedSegment[], ValueError[]>> {
-  const segments = await prisma.segment.findMany({
+  const segments = await prisma().segment.findMany({
     where: { workspaceId },
   });
 

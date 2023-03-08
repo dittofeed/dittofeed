@@ -30,7 +30,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
       const canCreate = workspaceId && name && definition;
 
       if (canCreate && id) {
-        segment = await prisma.segment.upsert({
+        segment = await prisma().segment.upsert({
           where: {
             id,
           },
@@ -47,7 +47,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
           },
         });
       } else {
-        segment = await prisma.segment.update({
+        segment = await prisma().segment.update({
           where: {
             id,
           },

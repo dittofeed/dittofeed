@@ -28,7 +28,7 @@ export default async function contentController(fastify: FastifyInstance) {
       const canCreate = workspaceId && from && subject && body && name;
 
       if (canCreate && id) {
-        emailTemplate = await prisma.emailTemplate.upsert({
+        emailTemplate = await prisma().emailTemplate.upsert({
           where: {
             id,
           },
@@ -49,7 +49,7 @@ export default async function contentController(fastify: FastifyInstance) {
           },
         });
       } else {
-        emailTemplate = await prisma.emailTemplate.update({
+        emailTemplate = await prisma().emailTemplate.update({
           where: {
             id,
           },

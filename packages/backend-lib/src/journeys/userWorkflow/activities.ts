@@ -35,7 +35,7 @@ export async function sendEmail({
   journeyId: string;
   messageId: string;
 }): Promise<boolean> {
-  const journey = await prisma.journey.findUnique({
+  const journey = await prisma().journey.findUnique({
     where: {
       id: journeyId,
     },
@@ -46,13 +46,13 @@ export async function sendEmail({
 
   const [defaultEmailProvider, emailTemplate, userProperties] =
     await Promise.all([
-      prisma.defaultEmailProvider.findUnique({
+      prisma().defaultEmailProvider.findUnique({
         where: {
           workspaceId,
         },
         include: { emailProvider: true },
       }),
-      prisma.emailTemplate.findUnique({
+      prisma().emailTemplate.findUnique({
         where: {
           id: templateId,
         },
@@ -142,7 +142,7 @@ export async function isRunnable({
   journeyId: string;
   userId: string;
 }): Promise<boolean> {
-  const previousExitEvent = await prisma.userJourneyEvent.findFirst({
+  const previousExitEvent = await prisma().userJourneyEvent.findFirst({
     where: {
       journeyId,
       userId,
@@ -164,7 +164,7 @@ export async function onNodeProcessed({
   node: JourneyNode;
 }) {
   const journeyStartedAtDate = new Date(journeyStartedAt);
-  await prisma.userJourneyEvent.upsert({
+  await prisma().userJourneyEvent.upsert({
     where: {
       journeyId_userId_type_journeyStartedAt: {
         journeyStartedAt: journeyStartedAtDate,
@@ -194,7 +194,7 @@ export function getSegmentAssignment({
   segmentId: string;
   userId: string;
 }): Promise<SegmentAssignment | null> {
-  return prisma.segmentAssignment.findUnique({
+  return prisma().segmentAssignment.findUnique({
     where: {
       workspaceId_userId_segmentId: {
         workspaceId,

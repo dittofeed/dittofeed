@@ -51,7 +51,7 @@ export async function insertUserEvents({
 }) {
   let tableVersion = tableVersionParam;
   if (!tableVersion) {
-    const currentTable = await prisma.currentUserEventsTable.findUnique({
+    const currentTable = await prisma().currentUserEventsTable.findUnique({
       where: {
         workspaceId,
       },
