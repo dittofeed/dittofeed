@@ -37,7 +37,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       const { defaultWorkspaceId } = backendConfig();
       const workspaceId =
         request.headers["df-workspace-id"] ?? defaultWorkspaceId;
-      const config = await prisma.segmentIOConfiguration.findUnique({
+      const config = await prisma().segmentIOConfiguration.findUnique({
         where: { workspaceId },
       });
 

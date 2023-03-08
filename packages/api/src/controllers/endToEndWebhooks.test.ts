@@ -70,7 +70,7 @@ describe("end to end segment webhooks", () => {
       userEventsTopicName: k.getTopicName(backendConfig().userEventsTopicName),
     });
     [workspace] = await Promise.all([
-      prisma.workspace.create({
+      prisma().workspace.create({
         data: {
           name: randomUUID(),
         },
@@ -82,7 +82,7 @@ describe("end to end segment webhooks", () => {
     ]);
 
     const [emailTemplate, paidAccountSegment] = await Promise.all([
-      prisma.emailTemplate.create({
+      prisma().emailTemplate.create({
         data: {
           from: "hello@email.com",
           subject: "hi there",
@@ -91,7 +91,7 @@ describe("end to end segment webhooks", () => {
           workspaceId: workspace.id,
         },
       }),
-      prisma.segment.create({
+      prisma().segment.create({
         data: {
           workspaceId: workspace.id,
           name: randomUUID(),
@@ -109,7 +109,7 @@ describe("end to end segment webhooks", () => {
           },
         },
       }),
-      prisma.userProperty.create({
+      prisma().userProperty.create({
         data: {
           name: "email",
           workspaceId: workspace.id,
@@ -119,7 +119,7 @@ describe("end to end segment webhooks", () => {
           },
         },
       }),
-      prisma.userProperty.create({
+      prisma().userProperty.create({
         data: {
           name: "plan",
           workspaceId: workspace.id,
@@ -129,13 +129,13 @@ describe("end to end segment webhooks", () => {
           },
         },
       }),
-      prisma.segmentIOConfiguration.create({
+      prisma().segmentIOConfiguration.create({
         data: {
           workspaceId: workspace.id,
           sharedSecret,
         },
       }),
-      prisma.currentUserEventsTable.create({
+      prisma().currentUserEventsTable.create({
         data: {
           workspaceId: workspace.id,
           version: tableVersion,
@@ -167,7 +167,7 @@ describe("end to end segment webhooks", () => {
       ],
     };
 
-    await prisma.journey.create({
+    await prisma().journey.create({
       data: {
         workspaceId: workspace.id,
         name: randomUUID(),
