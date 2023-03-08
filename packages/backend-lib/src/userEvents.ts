@@ -15,23 +15,30 @@ export async function writeUserEvents(
     messageId: string;
   }[]
 ) {
-  const { userEventsTopicName } = config();
-  await (
-    await kafkaProducer()
-  ).send({
-    topic: userEventsTopicName,
-    messages: userEvents.map(
-      ({ messageRaw, messageId, processingTime, workspaceId }) => ({
-        key: messageId,
-        value: JSON.stringify({
-          processing_time: processingTime,
-          workspace_id: workspaceId,
-          message_id: messageId,
-          message_raw: messageRaw,
-        }),
-      })
-    ),
-  });
+  const { userEventsTopicName, writeMode } = config();
+  switch (writeMode) {
+    case "kafka": {
+      await (
+        await kafkaProducer()
+      ).send({
+        topic: userEventsTopicName,
+        messages: userEvents.map(
+          ({ messageRaw, messageId, processingTime, workspaceId }) => ({
+            key: messageId,
+            value: JSON.stringify({
+              processing_time: processingTime,
+              workspace_id: workspaceId,
+              message_id: messageId,
+              message_raw: messageRaw,
+            }),
+          })
+        ),
+      });
+      break;
+    }
+    case "ch-async":
+    case "ch-sync":
+  }
 }
 
 export async function findAllUserTraits({
