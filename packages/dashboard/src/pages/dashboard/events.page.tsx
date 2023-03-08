@@ -1,4 +1,4 @@
-import { Box, Stack, Tooltip, Typography, useTheme } from "@mui/material";
+import { Box, Stack, Tooltip, useTheme } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import backendConfig from "backend-lib/src/config";
@@ -75,7 +75,7 @@ export const useEventsStore = create(
 );
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState
-> = async (ctx) => {
+> = async () => {
   const workspaceId = backendConfig().defaultWorkspaceId;
   const serverInitialState: PreloadedState = {};
 
