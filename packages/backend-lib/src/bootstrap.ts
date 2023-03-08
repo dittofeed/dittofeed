@@ -55,7 +55,7 @@ async function bootstrapPostgres() {
 
   await prismaMigrate();
 
-  await prisma.workspace.upsert({
+  await prisma().workspace.upsert({
     where: {
       id: defaultWorkspaceId,
     },
@@ -66,7 +66,7 @@ async function bootstrapPostgres() {
     },
   });
 
-  await prisma.currentUserEventsTable.upsert({
+  await prisma().currentUserEventsTable.upsert({
     where: {
       workspaceId: defaultWorkspaceId,
     },
@@ -116,7 +116,7 @@ async function bootstrapPostgres() {
   };
 
   await Promise.all([
-    prisma.userProperty.createMany({
+    prisma().userProperty.createMany({
       data: [
         {
           id: defaultIdUserPropertyId,

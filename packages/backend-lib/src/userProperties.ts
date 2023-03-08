@@ -37,7 +37,7 @@ export async function findAllUserProperties({
 }: {
   workspaceId: string;
 }): Promise<EnrichedUserProperty[]> {
-  const userProperties = await prisma.userProperty.findMany({
+  const userProperties = await prisma().userProperty.findMany({
     where: { workspaceId },
   });
 
@@ -62,7 +62,7 @@ export async function findAllUserPropertyAssignments({
 }: {
   userId: string;
 }): Promise<Record<string, string>> {
-  const assignments = await prisma.userPropertyAssignment.findMany({
+  const assignments = await prisma().userPropertyAssignment.findMany({
     where: { userId },
     include: {
       userProperty: {

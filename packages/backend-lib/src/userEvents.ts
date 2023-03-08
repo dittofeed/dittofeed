@@ -43,7 +43,7 @@ export async function findAllUserTraits({
 }): Promise<string[]> {
   let tableVersion = tableVersionParam;
   if (!tableVersion) {
-    const currentTable = await prisma.currentUserEventsTable.findUnique({
+    const currentTable = await prisma().currentUserEventsTable.findUnique({
       where: {
         workspaceId,
       },
@@ -80,7 +80,7 @@ async function getTableVersion({
 }): Promise<string | null> {
   let tableVersion = tableVersionParam;
   if (!tableVersion) {
-    const currentTable = await prisma.currentUserEventsTable.findUnique({
+    const currentTable = await prisma().currentUserEventsTable.findUnique({
       where: {
         workspaceId,
       },
@@ -156,7 +156,7 @@ export async function findManyInternalEvents({
   event: InternalEventType;
   workspaceId: string;
 }): Promise<UserEvent[]> {
-  const tableVersion = await prisma.currentUserEventsTable.findUnique({
+  const tableVersion = await prisma().currentUserEventsTable.findUnique({
     where: {
       workspaceId,
     },

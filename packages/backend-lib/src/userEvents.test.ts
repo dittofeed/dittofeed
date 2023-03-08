@@ -10,7 +10,7 @@ import { insertUserEvents } from "./userEvents/clickhouse";
 describe("findAllUserTraits", () => {
   let workspace: Workspace;
   beforeEach(async () => {
-    workspace = await prisma.workspace.create({
+    workspace = await prisma().workspace.create({
       data: { name: `workspace-${randomUUID()}` },
     });
     await insertUserEvents({

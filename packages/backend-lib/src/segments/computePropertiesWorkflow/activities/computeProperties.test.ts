@@ -86,12 +86,12 @@ describe("compute properties activities", () => {
   async function createSegmentsAndJourney(
     segmentDefinitions: SegmentDefinition[]
   ) {
-    workspace = await prisma.workspace.create({
+    workspace = await prisma().workspace.create({
       data: { name: `workspace-${randomUUID()}` },
     });
     segments = await Promise.all(
       segmentDefinitions.map((definition) =>
-        prisma.segment.create({
+        prisma().segment.create({
           data: {
             workspaceId: workspace.id,
             name: `segment-${randomUUID()}`,
@@ -110,7 +110,7 @@ describe("compute properties activities", () => {
 
     journey = unwrap(
       enrichJourney(
-        await prisma.journey.create({
+        await prisma().journey.create({
           data: {
             workspaceId: workspace.id,
             name: `user-journey-${randomUUID()}`,
@@ -321,7 +321,7 @@ describe("compute properties activities", () => {
 
             userProperty = unwrap(
               enrichedUserProperty(
-                await prisma.userProperty.create({
+                await prisma().userProperty.create({
                   data: {
                     workspaceId: workspace.id,
                     definition,
@@ -356,7 +356,7 @@ describe("compute properties activities", () => {
               })
             );
 
-            const assignment = await prisma.userPropertyAssignment.findFirst({
+            const assignment = await prisma().userPropertyAssignment.findFirst({
               where: {
                 userId,
                 userPropertyId: userProperty.id,
@@ -427,14 +427,14 @@ describe("compute properties activities", () => {
             };
 
             userProperties = (await Promise.all([
-              prisma.userProperty.create({
+              prisma().userProperty.create({
                 data: {
                   workspaceId: workspace.id,
                   definition: idDefinition,
                   name: "id",
                 },
               }),
-              prisma.userProperty.create({
+              prisma().userProperty.create({
                 data: {
                   workspaceId: workspace.id,
                   definition: anonymousIdDefinition,
@@ -456,7 +456,7 @@ describe("compute properties activities", () => {
               userProperties,
             });
 
-            const assignments = await prisma.userPropertyAssignment.findMany({
+            const assignments = await prisma().userPropertyAssignment.findMany({
               where: {
                 userId,
                 userPropertyId: {
@@ -1139,7 +1139,7 @@ describe("compute properties activities", () => {
             userId2 = `user-2-${uuid4()}`;
             newlyCreatedJourney = unwrap(
               enrichJourney(
-                await prisma.journey.create({
+                await prisma().journey.create({
                   data: {
                     workspaceId: workspace.id,
                     name: `user-journey-${randomUUID()}`,
@@ -1294,7 +1294,7 @@ describe("compute properties activities", () => {
 
           userProperty = unwrap(
             enrichedUserProperty(
-              await prisma.userProperty.create({
+              await prisma().userProperty.create({
                 data: {
                   workspaceId: workspace.id,
                   definition,

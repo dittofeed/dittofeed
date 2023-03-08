@@ -81,7 +81,7 @@ describe("end to end journeys", () => {
       tableVersion = randomUUID().replace(/-/g, "_");
       await createUserEventsTables({ tableVersion });
 
-      workspace = await prisma.workspace.create({
+      workspace = await prisma().workspace.create({
         data: { name: `workspace-${randomUUID()}` },
       });
 
@@ -107,7 +107,7 @@ describe("end to end journeys", () => {
           nodes: [],
         };
 
-        recentlyCreatedSegment = await prisma.segment.create({
+        recentlyCreatedSegment = await prisma().segment.create({
           data: {
             name: `recently-created-${randomUUID()}`,
             workspaceId: workspace.id,
@@ -115,7 +115,7 @@ describe("end to end journeys", () => {
           },
         });
 
-        paidAccountSegment = await prisma.segment.create({
+        paidAccountSegment = await prisma().segment.create({
           data: {
             workspaceId: workspace.id,
             name: `paid-${randomUUID()}`,
@@ -170,7 +170,7 @@ describe("end to end journeys", () => {
 
         journey = unwrap(
           enrichJourney(
-            await prisma.journey.create({
+            await prisma().journey.create({
               data: {
                 name: `user-journey-${randomUUID()}`,
                 workspaceId: workspace.id,
@@ -259,7 +259,7 @@ describe("end to end journeys", () => {
       let paidAccountSegment: Segment;
 
       beforeEach(async () => {
-        paidAccountSegment = await prisma.segment.create({
+        paidAccountSegment = await prisma().segment.create({
           data: {
             workspaceId: workspace.id,
             name: `paid-${randomUUID()}`,
@@ -293,7 +293,7 @@ describe("end to end journeys", () => {
 
         journey = unwrap(
           enrichJourney(
-            await prisma.journey.create({
+            await prisma().journey.create({
               data: {
                 name: `user-journey-${randomUUID()}`,
                 workspaceId: workspace.id,
@@ -361,7 +361,7 @@ describe("end to end journeys", () => {
             expect(workflowDescribeError).toBeInstanceOf(WorkflowNotFoundError);
             expect(testActivities.sendEmail).toHaveBeenCalledTimes(0);
 
-            await prisma.journey.update({
+            await prisma().journey.update({
               where: {
                 id: journey.id,
               },
@@ -395,7 +395,7 @@ describe("end to end journeys", () => {
             const currentTimeMS = await testEnv.currentTimeMs();
 
             await Promise.all([
-              prisma.journey.update({
+              prisma().journey.update({
                 where: {
                   id: journey.id,
                 },
@@ -447,7 +447,7 @@ describe("end to end journeys", () => {
               })
             );
 
-            await prisma.journey.update({
+            await prisma().journey.update({
               where: {
                 id: journey.id,
               },
