@@ -4,7 +4,7 @@ import { inspect } from "util";
 import { Overwrite } from "utility-types";
 
 import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
-import { KafkaSaslMechanism } from "./types";
+import { KafkaSaslMechanism, WriteMode } from "./types";
 
 const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
 
@@ -14,6 +14,7 @@ const BaseRawConfigProps = {
   databasePassword: Type.Optional(Type.String()),
   databaseHost: Type.Optional(Type.String()),
   databasePort: Type.Optional(Type.String()),
+  writeMode: Type.Optional(WriteMode),
   temporalAddress: Type.Optional(Type.String()),
   clickhouseHost: Type.String(),
   clickhouseDatabase: Type.Optional(Type.String()),
@@ -97,6 +98,7 @@ export type Config = Overwrite<
     kafkaUserEventsReplicationFactor: number;
     kafkaSaslMechanism: KafkaSaslMechanism;
     bootstrapWorker: boolean;
+    writeMode: WriteMode;
   }
 > & {
   defaultWorkspaceId: string;
@@ -178,10 +180,14 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     (rawConfig.nodeEnv === "test" ? "dittofeed_test" : "dittofeed");
 
   const nodeEnv = rawConfig.nodeEnv ?? NodeEnvEnum.Development;
+  const writeMode: WriteMode =
+    rawConfig.writeMode ??
+    (rawConfig.nodeEnv === "test" ? "ch-sync" : "ch-async");
 
   const parsedConfig: Config = {
     ...rawConfig,
     nodeEnv,
+    writeMode,
     temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
     databaseUrl,
     clickhouseDatabase,
