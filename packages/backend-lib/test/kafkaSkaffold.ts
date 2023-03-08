@@ -24,8 +24,8 @@ export default class KafkaSkaffold {
   constructor() {
     this.topicNames = {};
     this.consumers = [];
-    this.admin = kafkaAdmin;
-    this.producer = kafka.producer(kafkaProducerConfig);
+    this.admin = kafkaAdmin();
+    this.producer = kafka().producer(kafkaProducerConfig);
   }
 
   /**
@@ -93,7 +93,7 @@ export default class KafkaSkaffold {
     findMessage: (payload: EachMessagePayload) => T | null
   ): Promise<T> {
     const consumerGroup = randomUUID();
-    const consumer = kafka.consumer({
+    const consumer = kafka().consumer({
       groupId: consumerGroup,
     });
     this.consumers.push(consumer);

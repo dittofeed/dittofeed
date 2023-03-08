@@ -178,9 +178,9 @@ async function bootstrapKafka() {
     kafkaUserEventsPartitions,
     kafkaUserEventsReplicationFactor,
   } = config();
-  await kafkaAdmin.connect();
+  await kafkaAdmin().connect();
 
-  await kafkaAdmin.createTopics({
+  await kafkaAdmin().createTopics({
     waitForLeaders: true,
     topics: [
       {
@@ -191,7 +191,7 @@ async function bootstrapKafka() {
     ],
   });
 
-  await kafkaAdmin.disconnect();
+  await kafkaAdmin().disconnect();
 }
 
 async function bootstrapClickhouse() {

@@ -6,14 +6,14 @@ import {
 
 import config from "./config";
 
-const {
-  clickhouseHost: host,
-  clickhouseDatabase: database,
-  clickhouseUser: username,
-  clickhousePassword: password,
-} = config();
-
 function getClientConfig(): ClickHouseClientConfigOptions {
+  const {
+    clickhouseHost: host,
+    clickhouseDatabase: database,
+    clickhouseUser: username,
+    clickhousePassword: password,
+  } = config();
+
   return {
     host,
     database,
@@ -26,6 +26,8 @@ function getClientConfig(): ClickHouseClientConfigOptions {
 }
 
 export async function createClickhouseDb() {
+  const { clickhouseDatabase: database } = config();
+
   const clientConfig = getClientConfig();
   clientConfig.database = undefined;
 
