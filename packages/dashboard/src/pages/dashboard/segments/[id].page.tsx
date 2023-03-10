@@ -325,18 +325,21 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       break;
   }
 
+  const traitOnChange = (newValue: string) => {
+    updateSegmentNodeData(node.id, (segmentNode) => {
+      if (segmentNode.type === SegmentNodeType.Trait) {
+        segmentNode.path = newValue;
+      }
+    });
+  };
   return (
     <>
       <Box sx={{ width: selectorWith }}>
         <Autocomplete
           value={traitPath}
           freeSolo
-          onChange={(_event: unknown, newValue: string) => {
-            updateSegmentNodeData(node.id, (segmentNode) => {
-              if (segmentNode.type === SegmentNodeType.Trait) {
-                segmentNode.path = newValue;
-              }
-            });
+          onChange={(_event, newValue) => {
+            traitOnChange(newValue);
           }}
           disableClearable
           options={traitOptions}
@@ -344,6 +347,10 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
             <TextField
               {...params}
               label="Trait"
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                const newValue = event.target.value;
+                traitOnChange(newValue);
+              }}
               InputProps={{
                 ...params.InputProps,
                 type: "search",
