@@ -128,7 +128,7 @@ async function sendEmailWithPayload({
         userId,
         properties: {
           templateId,
-          message: "Template not found",
+          message: "User missing the email property",
           runId,
           messageType: MessageNodeVariantType.Email,
           nodeId,
