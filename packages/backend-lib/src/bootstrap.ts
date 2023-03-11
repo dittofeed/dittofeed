@@ -282,5 +282,7 @@ export default async function bootstrap() {
     await insertDefaultEvents();
   }
 
-  await bootstrapWorker();
+  if (config().bootstrapWorker) {
+    await bootstrapWorker();
+  }
 }
