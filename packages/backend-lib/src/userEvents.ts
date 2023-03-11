@@ -183,13 +183,16 @@ export async function findManyInternalEvents({
   return results;
 }
 
+export interface InternalEvent {
+  event: InternalEventType;
+  userId: string;
+  messageId: string;
+  properties: Record<string, string>;
+}
+
 export async function trackInternalEvents(props: {
   workspaceId: string;
-  events: {
-    event: InternalEventType;
-    messageId: string;
-    properties: Record<string, string>;
-  }[];
+  events: InternalEvent[];
 }): Promise<Result<void, Error>> {
   const timestamp = new Date().toISOString();
 
@@ -197,7 +200,7 @@ export async function trackInternalEvents(props: {
     .map((p) => ({
       type: "track",
       event: p.event,
-      userId: p.properties.userId,
+      userId: p.userId,
       anonymousId: p.properties.anonymousId,
       messageId: p.messageId,
       properties: p.properties,
@@ -205,6 +208,7 @@ export async function trackInternalEvents(props: {
     }))
     .map((mr) => ({
       workspaceId: props.workspaceId,
+      userId: mr.userId,
       messageId: mr.messageId,
       messageRaw: JSON.stringify(mr),
     }));
