@@ -1,7 +1,6 @@
 import { SegmentAssignment } from "@prisma/client";
 import escapeHTML from "escape-html";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
-import { UndefinedVariableError } from "liquidjs";
 
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
 import prisma from "../../prisma";
@@ -12,21 +11,12 @@ import {
   JourneyNodeType,
   MessageNodeVariantType,
 } from "../../types";
-import { trackInternalEvents } from "../../userEvents";
+import { InternalEvent, trackInternalEvents } from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
 
 export { findAllUserPropertyAssignments } from "../../userProperties";
 
-// TODO implement more sophisticated error handing
-export async function sendEmail({
-  journeyId,
-  templateId,
-  workspaceId,
-  userId,
-  runId,
-  nodeId,
-  messageId,
-}: {
+interface SendEmailParams {
   userId: string;
   workspaceId: string;
   runId: string;
@@ -34,14 +24,62 @@ export async function sendEmail({
   templateId: string;
   journeyId: string;
   messageId: string;
-}): Promise<boolean> {
+}
+
+async function sendEmailWithPayload({
+  journeyId,
+  templateId,
+  workspaceId,
+  userId,
+  runId,
+  nodeId,
+  messageId,
+}: SendEmailParams): Promise<[boolean, InternalEvent]> {
   const journey = await prisma().journey.findUnique({
     where: {
       id: journeyId,
     },
   });
-  if (!journey || journey.status !== "Running") {
-    return false;
+  if (!journey) {
+    return [
+      false,
+      {
+        event: InternalEventType.BadWorkspaceConfiguration,
+        messageId,
+        userId,
+        properties: {
+          journeyId,
+          message: "Journey not found",
+          templateId,
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
+        },
+      },
+    ];
+  }
+  if (journey.status !== "Running") {
+    return [
+      false,
+      {
+        event: InternalEventType.MessageSkipped,
+        messageId,
+        userId,
+        properties: {
+          journeyStatus: journey.status,
+          message: "Journey is not running",
+          journeyId,
+          templateId,
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
+        },
+      },
+    ];
   }
 
   const [defaultEmailProvider, emailTemplate, userProperties] =
@@ -62,8 +100,43 @@ export async function sendEmail({
       }),
     ]);
 
-  if (!emailTemplate || !userProperties.email) {
-    return false;
+  if (!emailTemplate) {
+    return [
+      false,
+      {
+        event: InternalEventType.BadWorkspaceConfiguration,
+        messageId,
+        userId,
+        properties: {
+          message: "Template not found",
+          templateId,
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
+        },
+      },
+    ];
+  }
+  if (!userProperties.email) {
+    return [
+      false,
+      {
+        event: InternalEventType.MessageSkipped,
+        messageId,
+        userId,
+        properties: {
+          templateId,
+          message: "User missing the email property",
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
+        },
+      },
+    ];
   }
 
   const render = (template: string) =>
@@ -77,25 +150,40 @@ export async function sendEmail({
     subject = escapeHTML(render(emailTemplate.subject));
     body = render(emailTemplate.body);
   } catch (e) {
-    if (e instanceof UndefinedVariableError) {
-      console.error(`template has an undefined error: ${templateId}`, e);
-      return false;
-    }
-    throw e;
+    const err = e as Error;
+
+    return [
+      false,
+      {
+        event: InternalEventType.BadWorkspaceConfiguration,
+        messageId,
+        userId,
+        properties: {
+          cause: err.message,
+          message: "Failed to render template",
+          templateId,
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
+        },
+      },
+    ];
   }
   const to = userProperties.email;
 
-  await trackInternalEvents({
-    workspaceId,
-    events: [
+  if (!defaultEmailProvider) {
+    return [
+      false,
       {
-        event: InternalEventType.MessageSent,
+        event: InternalEventType.BadWorkspaceConfiguration,
         messageId,
+        userId,
         properties: {
+          message: "Missing default email provider",
           runId,
           messageType: MessageNodeVariantType.Email,
-          emailProvider:
-            defaultEmailProvider?.emailProvider.type ?? EmailProviderType.Test,
           nodeId,
           userId,
           to,
@@ -106,11 +194,7 @@ export async function sendEmail({
           templateId,
         },
       },
-    ],
-  });
-
-  if (!defaultEmailProvider) {
-    return false;
+    ];
   }
 
   switch (defaultEmailProvider.emailProvider.type) {
@@ -125,14 +209,76 @@ export async function sendEmail({
         apiKey: defaultEmailProvider.emailProvider.apiKey,
       });
       if (result.isErr()) {
-        console.error("sendgrid request failed", result.error);
-        return false;
+        return [
+          false,
+          {
+            event: InternalEventType.MessageFailure,
+            userId,
+            messageId,
+            properties: {
+              runId,
+              messageType: MessageNodeVariantType.Email,
+              emailProvider: defaultEmailProvider.emailProvider.type,
+              nodeId,
+              userId,
+              to,
+              from,
+              subject,
+              body,
+              workspaceId,
+              templateId,
+            },
+          },
+        ];
       }
-      return true;
+
+      return [
+        true,
+        {
+          event: InternalEventType.MessageSent,
+          userId,
+          messageId,
+          properties: {
+            runId,
+            messageType: MessageNodeVariantType.Email,
+            emailProvider: defaultEmailProvider.emailProvider.type,
+            nodeId,
+            userId,
+            to,
+            from,
+            subject,
+            body,
+            workspaceId,
+            templateId,
+          },
+        },
+      ];
     }
   }
 
-  throw new Error("Unhandled email provider type.");
+  return [
+    false,
+    {
+      event: InternalEventType.BadWorkspaceConfiguration,
+      messageId,
+      userId,
+      properties: {
+        provider: defaultEmailProvider.emailProvider.type,
+        message: "Unknown email provider type",
+      },
+    },
+  ];
+}
+
+export async function sendEmail(params: SendEmailParams): Promise<boolean> {
+  const { workspaceId } = params;
+  const [sentMessage, internalUserEvent] = await sendEmailWithPayload(params);
+
+  await trackInternalEvents({
+    workspaceId,
+    events: [internalUserEvent],
+  });
+  return sentMessage;
 }
 
 export async function isRunnable({

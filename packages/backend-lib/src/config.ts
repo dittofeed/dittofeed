@@ -30,6 +30,7 @@ const BaseRawConfigProps = {
   temporalNamespace: Type.Optional(Type.String()),
   logConfig: Type.Optional(BoolStr),
   bootstrapEvents: Type.Optional(BoolStr),
+  bootstrapWorker: Type.Optional(BoolStr),
   defaultWorkspaceId: Type.Optional(Type.String()),
   defaultIdUserPropertyId: Type.Optional(Type.String()),
   defaultAnonymousIdIdUserPropertyId: Type.Optional(Type.String()),
@@ -95,6 +96,7 @@ export type Config = Overwrite<
     kafkaUserEventsPartitions: number;
     kafkaUserEventsReplicationFactor: number;
     kafkaSaslMechanism: KafkaSaslMechanism;
+    bootstrapWorker: boolean;
   }
 > & {
   defaultWorkspaceId: string;
@@ -246,6 +248,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       "48221d18_bd04_4c6b_abf3_9d0a4f87f52f",
     logConfig: rawConfig.logConfig === "true",
     bootstrapEvents: rawConfig.bootstrapEvents === "true",
+    bootstrapWorker:
+      rawConfig.bootstrapWorker === "true" ||
+      (nodeEnv === NodeEnvEnum.Production &&
+        rawConfig.bootstrapWorker !== "false"),
   };
   return parsedConfig;
 }

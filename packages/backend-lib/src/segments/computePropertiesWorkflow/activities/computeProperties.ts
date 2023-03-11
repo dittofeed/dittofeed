@@ -384,9 +384,6 @@ export async function computePropertiesPeriodSafe({
   }
 
   const segments = segmentResult.value;
-  // const modelIds: string[] = segments
-  //   .map((s) => s.id)
-  //   .concat(userProperties.map((up) => up.id));
 
   const segmentComputedProperties: ComputedProperty[] = segments.map(
     (segment, i) => {
@@ -410,11 +407,13 @@ export async function computePropertiesPeriodSafe({
     }
   );
 
+  const computedProperties = segmentComputedProperties.concat(
+    userComputedProperties
+  );
+
   const withClause = computedToQueryFragments({
     currentTime,
-    computedProperties: segmentComputedProperties.concat(
-      userComputedProperties
-    ),
+    computedProperties,
   });
 
   // TODO handle anonymous id's, including case where user_id is null
