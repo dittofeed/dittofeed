@@ -1,7 +1,6 @@
 import { SegmentAssignment } from "@prisma/client";
 import escapeHTML from "escape-html";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
-import { UndefinedVariableError } from "liquidjs";
 
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
 import prisma from "../../prisma";
@@ -51,6 +50,12 @@ async function sendEmailWithPayload({
         properties: {
           journeyId,
           message: "Journey not found",
+          templateId,
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
         },
       },
     ];
@@ -65,6 +70,13 @@ async function sendEmailWithPayload({
         properties: {
           journeyStatus: journey.status,
           message: "Journey is not running",
+          journeyId,
+          templateId,
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
         },
       },
     ];
@@ -96,8 +108,13 @@ async function sendEmailWithPayload({
         messageId,
         userId,
         properties: {
-          templateId,
           message: "Template not found",
+          templateId,
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
         },
       },
     ];
@@ -112,6 +129,11 @@ async function sendEmailWithPayload({
         properties: {
           templateId,
           message: "Template not found",
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
         },
       },
     ];
@@ -140,6 +162,11 @@ async function sendEmailWithPayload({
           cause: err.message,
           message: "Failed to render template",
           templateId,
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
         },
       },
     ];
@@ -155,6 +182,16 @@ async function sendEmailWithPayload({
         userId,
         properties: {
           message: "Missing default email provider",
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          to,
+          from,
+          subject,
+          body,
+          workspaceId,
+          templateId,
         },
       },
     ];
