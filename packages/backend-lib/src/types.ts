@@ -83,6 +83,7 @@ export * from "@prisma/client";
 export enum InternalEventType {
   MessageSent = "DittoFeedInternalMessageSent",
   BadWorkspaceConfiguration = "BadWorkspaceConfiguration",
+  MessageFailure = "MessageFailure",
   MessageSkipped = "MessageSkipped",
 }
 
