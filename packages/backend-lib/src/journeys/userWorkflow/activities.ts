@@ -233,117 +233,15 @@ async function sendEmailWithPayload({
   ];
 }
 
-export async function sendEmail({
-  journeyId,
-  templateId,
-  workspaceId,
-  userId,
-  runId,
-  nodeId,
-  messageId,
-}: SendEmailParams): Promise<boolean> {
-  const journey = await prisma().journey.findUnique({
-    where: {
-      id: journeyId,
-    },
-  });
-  if (!journey || journey.status !== "Running") {
-    return false;
-  }
-
-  const [defaultEmailProvider, emailTemplate, userProperties] =
-    await Promise.all([
-      prisma().defaultEmailProvider.findUnique({
-        where: {
-          workspaceId,
-        },
-        include: { emailProvider: true },
-      }),
-      prisma().emailTemplate.findUnique({
-        where: {
-          id: templateId,
-        },
-      }),
-      findAllUserPropertyAssignments({
-        userId,
-      }),
-    ]);
-
-  if (!emailTemplate || !userProperties.email) {
-    return false;
-  }
-
-  const render = (template: string) =>
-    renderWithUserProperties({ userProperties, template });
-
-  let from: string;
-  let subject: string;
-  let body: string;
-  try {
-    from = escapeHTML(render(emailTemplate.from));
-    subject = escapeHTML(render(emailTemplate.subject));
-    body = render(emailTemplate.body);
-  } catch (e) {
-    if (e instanceof UndefinedVariableError) {
-      // https://github.com/harttle/liquidjs/blob/1fd76acf281c88edd301c6d52e6096832ff6ceab/src/util/error.ts
-      // fixme get variable name
-      //   private originalError: Error
-
-      console.error(`template has an undefined error: ${templateId}`, e);
-      return false;
-    }
-    throw e;
-  }
-  const to = userProperties.email;
+export async function sendEmail(params: SendEmailParams): Promise<boolean> {
+  const { workspaceId } = params;
+  const [sentMessage, internalUserEvent] = await sendEmailWithPayload(params);
 
   await trackInternalEvents({
     workspaceId,
-    events: [
-      {
-        event: InternalEventType.MessageSent,
-        messageId,
-        properties: {
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          emailProvider:
-            defaultEmailProvider?.emailProvider.type ?? EmailProviderType.Test,
-          nodeId,
-          userId,
-          to,
-          from,
-          subject,
-          body,
-          workspaceId,
-          templateId,
-        },
-      },
-    ],
+    events: [internalUserEvent],
   });
-
-  if (!defaultEmailProvider) {
-    return false;
-  }
-
-  switch (defaultEmailProvider.emailProvider.type) {
-    case EmailProviderType.Sendgrid: {
-      const result = await sendEmailSendgrid({
-        mailData: {
-          to,
-          from,
-          subject,
-          html: body,
-        },
-        apiKey: defaultEmailProvider.emailProvider.apiKey,
-      });
-      if (result.isErr()) {
-        console.error("sendgrid request failed", result.error);
-        return false;
-      }
-      return true;
-    }
-  }
-
-  return false;
+  return sentMessage;
 }
 
 export async function isRunnable({
