@@ -65,7 +65,7 @@ const initialUserProperties = {
 export const defaultEmailMessageState: EmailMessageEditorState = {
   emailMessageBody: defaultEmailBody,
   emailMessageTitle: "New Email Message",
-  emailMessageSubject: 'Hi {{ user.fullname | default: "there"}}!',
+  emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
   emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
   emailMessageUserProperties: initialUserProperties,
   emailMessageUserPropertiesJSON: JSON.stringify(
