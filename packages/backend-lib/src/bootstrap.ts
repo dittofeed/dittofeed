@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import spawn from "cross-spawn";
 import { randomUUID } from "crypto";
 
@@ -11,7 +12,7 @@ import {
   generateComputePropertiesId,
 } from "./segments/computePropertiesWorkflow";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
-import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
+import { UserPropertyDefinitionType } from "./types";
 import {
   createUserEventsTables,
   insertUserEvents,
@@ -40,18 +41,7 @@ async function prismaMigrate() {
 }
 
 async function bootstrapPostgres() {
-  const {
-    defaultWorkspaceId,
-    defaultIdUserPropertyId,
-    defaultAnonymousIdIdUserPropertyId,
-    defaultEmailUserPropertyId,
-    defaultPhoneUserPropertyId,
-    defaultFirstNameUserPropertyId,
-    defaultLastNameUserPropertyId,
-    defaultLanguageUserPropertyId,
-    defaultAccountManagerUserPropertyId,
-    defaultUserEventsTableVersion,
-  } = config();
+  const { defaultWorkspaceId, defaultUserEventsTableVersion } = config();
 
   await prismaMigrate();
 
@@ -77,99 +67,86 @@ async function bootstrapPostgres() {
     update: {},
   });
 
-  const idUserPropertyDefinition: UserPropertyDefinition = {
-    type: UserPropertyDefinitionType.Id,
-  };
-
-  const anonymousIdUserPropertyDefinition: UserPropertyDefinition = {
-    type: UserPropertyDefinitionType.AnonymousId,
-  };
-
-  const emailUserPropertyDefinition: UserPropertyDefinition = {
-    type: UserPropertyDefinitionType.Trait,
-    path: "email",
-  };
-
-  const phoneUserPropertyDefinition: UserPropertyDefinition = {
-    type: UserPropertyDefinitionType.Trait,
-    path: "phone",
-  };
-
-  const firstNameUserPropertyDefinition: UserPropertyDefinition = {
-    type: UserPropertyDefinitionType.Trait,
-    path: "firstName",
-  };
-
-  const lastNameUserPropertyDefinition: UserPropertyDefinition = {
-    type: UserPropertyDefinitionType.Trait,
-    path: "lastName",
-  };
-
-  const languageUserPropertyDefinition: UserPropertyDefinition = {
-    type: UserPropertyDefinitionType.Trait,
-    path: "language",
-  };
-
-  const accountManagerUserPropertyDefinition: UserPropertyDefinition = {
-    type: UserPropertyDefinitionType.Trait,
-    path: "accountManager",
-  };
-
-  await Promise.all([
-    prisma().userProperty.createMany({
-      data: [
-        {
-          id: defaultIdUserPropertyId,
-          workspaceId: defaultWorkspaceId,
-          name: "id",
-          definition: idUserPropertyDefinition,
+  const userProperties: Prisma.UserPropertyUncheckedCreateWithoutUserPropertyAssignmentInput[] =
+    [
+      {
+        name: "id",
+        workspaceId: defaultWorkspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Id,
         },
-        {
-          id: defaultAnonymousIdIdUserPropertyId,
-          workspaceId: defaultWorkspaceId,
-          name: "anonymousId",
-          definition: anonymousIdUserPropertyDefinition,
+      },
+      {
+        name: "anonymousId",
+        workspaceId: defaultWorkspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.AnonymousId,
         },
-        {
-          id: defaultEmailUserPropertyId,
-          workspaceId: defaultWorkspaceId,
-          name: "email",
-          definition: emailUserPropertyDefinition,
+      },
+      {
+        name: "email",
+        workspaceId: defaultWorkspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "email",
         },
-        {
-          id: defaultPhoneUserPropertyId,
-          workspaceId: defaultWorkspaceId,
-          name: "phone",
-          definition: phoneUserPropertyDefinition,
+      },
+      {
+        name: "phone",
+        workspaceId: defaultWorkspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "phone",
         },
-        {
-          id: defaultFirstNameUserPropertyId,
-          workspaceId: defaultWorkspaceId,
-          name: "firstName",
-          definition: firstNameUserPropertyDefinition,
+      },
+      {
+        name: "firstName",
+        workspaceId: defaultWorkspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "firstName",
         },
-        {
-          id: defaultLastNameUserPropertyId,
-          workspaceId: defaultWorkspaceId,
-          name: "lastName",
-          definition: lastNameUserPropertyDefinition,
+      },
+      {
+        name: "firstName",
+        workspaceId: defaultWorkspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "lastName",
         },
-        {
-          id: defaultLanguageUserPropertyId,
-          workspaceId: defaultWorkspaceId,
-          name: "language",
-          definition: languageUserPropertyDefinition,
+      },
+      {
+        name: "language",
+        workspaceId: defaultWorkspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "language",
         },
-        {
-          id: defaultAccountManagerUserPropertyId,
-          workspaceId: defaultWorkspaceId,
-          name: "accountManager",
-          definition: accountManagerUserPropertyDefinition,
+      },
+      {
+        name: "accountManager",
+        workspaceId: defaultWorkspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "accountManager",
         },
-      ],
-      skipDuplicates: true,
-    }),
-  ]);
+      },
+    ];
+
+  await Promise.all(
+    userProperties.map((up) =>
+      prisma().userProperty.upsert({
+        where: {
+          workspaceId_name: {
+            workspaceId: up.workspaceId,
+            name: up.name,
+          },
+        },
+        create: up,
+        update: up,
+      })
+    )
+  );
 }
 
 async function bootstrapKafka() {
