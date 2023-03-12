@@ -58,7 +58,7 @@ const USER_PROPERTIES_TOOLTIP =
 
 const initialUserProperties = {
   email: "test@email.com",
-  fullname: "Joe Schmoe",
+  firstName: "Joe",
   id: "ad44fb62-91a4-4ec7-be24-7f9364e331b1",
 };
 
