@@ -352,7 +352,7 @@ const defaultEmailBody = `<!DOCTYPE html>
                             margin-bottom: 15px;
                           "
                         >
-                          {{ "{{user.fullname}}" }} = "{{ user.fullname }}"
+                          {{ "{{user.firstName}}" }} = "{{ user.firstName }}"
                         </p>
                         <p
                           style="

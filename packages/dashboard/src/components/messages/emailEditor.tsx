@@ -58,14 +58,14 @@ const USER_PROPERTIES_TOOLTIP =
 
 const initialUserProperties = {
   email: "test@email.com",
-  fullname: "Joe Schmoe",
+  firstName: "Joe",
   id: "ad44fb62-91a4-4ec7-be24-7f9364e331b1",
 };
 
 export const defaultEmailMessageState: EmailMessageEditorState = {
   emailMessageBody: defaultEmailBody,
   emailMessageTitle: "New Email Message",
-  emailMessageSubject: 'Hi {{ user.fullname | default: "there"}}!',
+  emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
   emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
   emailMessageUserProperties: initialUserProperties,
   emailMessageUserPropertiesJSON: JSON.stringify(
