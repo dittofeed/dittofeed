@@ -1,4 +1,4 @@
-import { AddCircleOutline } from "@mui/icons-material";
+import { AddCircleOutline, Delete } from "@mui/icons-material";
 import {
   IconButton,
   List,
@@ -89,7 +89,7 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
     responseSchema: DeleteSegmentResponse,
     setResponse: setDeleteResponse,
     requestConfig: {
-      method: "PUT",
+      method: "DELETE",
       url: `${apiBase}/api/segments`,
       data: {
         id: segment.id,
@@ -101,11 +101,18 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
   });
 
   return (
-    <ListItem disableGutters>
+    <ListItem
+      secondaryAction={
+        <IconButton edge="end" onClick={handleDelete}>
+          <Delete />
+        </IconButton>
+      }
+    >
       <ListItemButton
         sx={{
           border: 1,
-          borderRadius: 1,
+          borderTopLeftRadius: 1,
+          borderBottomLeftRadius: 1,
           borderColor: "grey.200",
         }}
         onClick={() => {
@@ -130,8 +137,8 @@ function SegmentListContents() {
   if (segments.length) {
     innerContents = (
       <List
+        dense
         sx={{
-          padding: 1,
           width: "100%",
           bgcolor: "background.paper",
           borderRadius: 1,

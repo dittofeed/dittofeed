@@ -1,5 +1,4 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { Type } from "@sinclair/typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
 import { Segment } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";

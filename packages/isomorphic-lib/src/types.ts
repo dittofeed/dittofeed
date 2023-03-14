@@ -580,7 +580,9 @@ export const UpsertJourneyResource = Type.Intersect([
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
 
-export const DeleteSegmentResponse = Type.Null();
+export const DeleteSegmentResponse = Type.String({
+  description: "An empty String",
+});
 
 export type DeleteSegmentResponse = Static<typeof DeleteSegmentResponse>;
 
