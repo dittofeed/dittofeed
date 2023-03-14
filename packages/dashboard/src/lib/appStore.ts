@@ -188,6 +188,11 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
 
+        // segment index view
+        segmentDeleteRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+
         toggleDrawer: () =>
           set((state) => {
             state.drawerOpen = !state.drawerOpen;
@@ -229,6 +234,20 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             }
             segments.value.push(segment);
             return state;
+          }),
+        deleteSegment: (segmentId) =>
+          set((state) => {
+            if (state.segments.type !== CompletionStatus.Successful) {
+              return state;
+            }
+            state.segments.value = state.segments.value.filter(
+              (s) => s.id !== segmentId
+            );
+            return state;
+          }),
+        setSegmentDeleteRequest: (request) =>
+          set((state) => {
+            state.segmentDeleteRequest = request;
           }),
         upsertEmailProvider: (emailProvider) =>
           set((state) => {
