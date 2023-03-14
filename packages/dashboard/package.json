@@ -23,6 +23,7 @@
     "@mui/material": "^5.11.4",
     "@mui/x-data-grid": "^6.0.0",
     "@prisma/client": "^4.9.0",
+    "@sinclair/typebox": "^0.25.8",
     "@uiw/react-codemirror": "^4.19.5",
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
