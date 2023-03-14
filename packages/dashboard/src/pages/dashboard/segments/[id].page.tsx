@@ -1,4 +1,5 @@
-import { DeleteFilled, PlusCircleFilled } from "@ant-design/icons";
+import { PlusCircleFilled } from "@ant-design/icons";
+import { Delete } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
@@ -474,7 +475,7 @@ function SegmentNodeComponent({
         size="large"
         onClick={() => removeChild(parentId, node.id)}
       >
-        <DeleteFilled />
+        <Delete />
       </IconButton>
     ) : null;
 

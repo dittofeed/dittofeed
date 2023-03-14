@@ -1,5 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import prisma from "backend-lib/src/prisma";
+import { Type } from "@sinclair/typebox";
+import prisma, { Prisma } from "backend-lib/src/prisma";
 import { Segment } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -15,7 +16,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
     "/",
     {
       schema: {
-        description: "Create or update an audience segment within journeys.",
+        description: "Create or update a user segment.",
 
         body: UpsertSegmentResource,
         response: {
@@ -76,6 +77,45 @@ export default async function segmentsController(fastify: FastifyInstance) {
       };
 
       return reply.status(200).send(resource);
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/",
+    {
+      schema: {
+        description: "Delete a segment.",
+        body: Type.Object({
+          id: Type.String(),
+        }),
+        response: {
+          204: {},
+          404: {},
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.body;
+
+      try {
+        await prisma().segment.delete({
+          where: {
+            id,
+          },
+        });
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError) {
+          switch (e.code) {
+            case "P2025":
+              return reply.status(404).send();
+            case "P2023":
+              return reply.status(404).send();
+          }
+        }
+        throw e;
+      }
+
+      return reply.status(204).send();
     }
   );
 }
