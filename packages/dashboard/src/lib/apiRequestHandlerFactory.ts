@@ -1,4 +1,4 @@
-import { Static,TSchema } from "@sinclair/typebox";
+import { Static, TSchema } from "@sinclair/typebox";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -6,16 +6,16 @@ import {
   EphemeralRequestStatus,
 } from "isomorphic-lib/src/types";
 
-export default function apiRequestHandlerFactory<S extends TSchema, E>({
+export default function apiRequestHandlerFactory<D, S extends TSchema, E>({
   request,
   requestConfig,
   setRequest,
   responseSchema,
   setResponse,
 }: {
-  requestConfig: AxiosRequestConfig;
+  requestConfig: AxiosRequestConfig<D>;
   request: EphemeralRequestStatus<E>;
-  setResponse: (response: Static<S>) => void;
+  setResponse: (response: Static<S>, requestData?: D) => void;
   responseSchema: S;
   setRequest: (request: EphemeralRequestStatus<Error>) => void;
 }) {
@@ -50,7 +50,7 @@ export default function apiRequestHandlerFactory<S extends TSchema, E>({
       return;
     }
 
-    setResponse(parsedResponse.value);
+    setResponse(parsedResponse.value, requestConfig.data);
     setRequest({
       type: CompletionStatus.NotStarted,
     });
