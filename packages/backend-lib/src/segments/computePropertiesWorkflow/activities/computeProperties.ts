@@ -43,11 +43,16 @@ interface UserComputedProperty extends BaseComputedProperty {
 
 type ComputedProperty = SegmentComputedProperty | UserComputedProperty;
 
-function pathToArgs(path: string): string {
-  return jp
-    .parse(path)
-    .map((c) => `'${c.expression.value}'`)
-    .join(", ");
+function pathToArgs(path: string): string | null {
+  try {
+    return jp
+      .parse(path)
+      .map((c) => `'${c.expression.value}'`)
+      .join(", ");
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
 }
 
 function buildSegmentQueryExpression({
@@ -58,10 +63,13 @@ function buildSegmentQueryExpression({
   currentTime: number;
   node: SegmentNode;
   nodes: SegmentNode[];
-}): string {
+}): string | null {
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const pathArgs = pathToArgs(node.path);
+      if (!pathArgs) {
+        return null;
+      }
 
       switch (node.operator.type) {
         case SegmentOperatorType.Equals: {
@@ -196,15 +204,21 @@ function buildSegmentQueryFragment({
   currentTime: number;
   modelIndex: number;
   segment: EnrichedSegment;
-}): string {
+}): string | null {
+  const query = buildSegmentQueryExpression({
+    currentTime,
+    node: segment.definition.entryNode,
+    nodes: segment.definition.nodes,
+  });
+
+  if (query === null) {
+    return null;
+  }
+
   return `
     (
       ${modelIndex},
-      ${buildSegmentQueryExpression({
-        currentTime,
-        node: segment.definition.entryNode,
-        nodes: segment.definition.nodes,
-      })},
+      ${query},
       Null,
       '${segment.id}'
     )
@@ -217,12 +231,15 @@ function buildUserPropertyQueryFragment({
 }: {
   modelIndex: number;
   userProperty: EnrichedUserProperty;
-}): string {
+}): string | null {
   let innerQuery: string;
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       const { path } = userProperty.definition;
       const pathArgs = pathToArgs(path);
+      if (!pathArgs) {
+        return null;
+      }
 
       innerQuery = `
           JSON_VALUE(
@@ -272,22 +289,27 @@ function computedToQueryFragments({
   for (const computedProperty of computedProperties) {
     switch (computedProperty.type) {
       case "UserProperty": {
-        modelFragments.push(
-          buildUserPropertyQueryFragment({
-            userProperty: computedProperty.userProperty,
-            modelIndex: computedProperty.modelIndex,
-          })
-        );
+        const fragment = buildUserPropertyQueryFragment({
+          userProperty: computedProperty.userProperty,
+          modelIndex: computedProperty.modelIndex,
+        });
+
+        if (fragment !== null) {
+          modelFragments.push(fragment);
+        }
         break;
       }
       case "Segment": {
-        modelFragments.push(
-          buildSegmentQueryFragment({
-            segment: computedProperty.segment,
-            modelIndex: computedProperty.modelIndex,
-            currentTime,
-          })
-        );
+        const fragment = buildSegmentQueryFragment({
+          segment: computedProperty.segment,
+          modelIndex: computedProperty.modelIndex,
+          currentTime,
+        });
+
+        if (fragment !== null) {
+          modelFragments.push(fragment);
+        }
+        break;
       }
     }
   }
