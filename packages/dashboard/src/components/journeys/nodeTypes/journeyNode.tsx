@@ -17,7 +17,7 @@ import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import { Handle, NodeProps, Position } from "reactflow";
 
 import { useAppStore } from "../../../lib/appStore";
-import { JourneyNodeProps, NodeTypeProps } from "../../../lib/types";
+import { AppState, JourneyNodeProps, NodeTypeProps } from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
 import styles from "./nodeTypes.module.css";
 
@@ -30,10 +30,23 @@ interface JourneyNodeConfig {
   disableBottomHandle?: boolean;
 }
 
-export function isNodeComplete(props: NodeTypeProps): boolean {
+export function isNodeComplete(
+  props: NodeTypeProps,
+  state: Pick<AppState, "segments" | "messages">
+): boolean {
   switch (props.type) {
-    case JourneyNodeType.EntryNode:
-      return Boolean(props.segmentId);
+    case JourneyNodeType.EntryNode: {
+      if (!props.segmentId) {
+        return false;
+      }
+      if (state.segments.type !== CompletionStatus.Successful) {
+        return true;
+      }
+      const segment = state.segments.value.find(
+        (s) => s.id === props.segmentId
+      );
+      return segment !== undefined;
+    }
     case JourneyNodeType.ExitNode:
       return true;
     case JourneyNodeType.MessageNode:
@@ -125,6 +138,8 @@ const borderRadius = 2;
 
 export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
   const theme = useTheme();
+  const segments = useAppStore((store) => store.segments);
+  const messages = useAppStore((store) => store.messages);
   const config = journNodeTypeToConfig(data.nodeTypeProps);
   const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
   const selectedNodeId = useAppStore((state) => state.journeySelectedNodeId);
@@ -158,7 +173,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
     ? theme.palette.blue[200]
     : theme.palette.grey[200];
 
-  const body = !isNodeComplete(data.nodeTypeProps) ? (
+  const body = !isNodeComplete(data.nodeTypeProps, { segments, messages }) ? (
     <Stack direction="row">
       <Box
         sx={{
