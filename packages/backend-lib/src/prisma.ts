@@ -15,6 +15,8 @@ declare global {
 // eslint-disable-next-line import/no-mutable-exports
 let PRISMA: PrismaClient | null = null;
 
+export { Prisma } from "@prisma/client";
+
 function prisma(): PrismaClient {
   if (!PRISMA) {
     if (process.env.NODE_ENV === "production") {
