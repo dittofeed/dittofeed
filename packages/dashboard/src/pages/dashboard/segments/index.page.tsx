@@ -56,6 +56,27 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
+function SegmentItem({ segment }: { segment: SegmentResource }) {
+  const path = useRouter();
+
+  return (
+    <ListItem disableGutters>
+      <ListItemButton
+        sx={{
+          border: 1,
+          borderRadius: 1,
+          borderColor: "grey.200",
+        }}
+        onClick={() => {
+          path.push(`/dashboard/segments/${segment.id}`);
+        }}
+      >
+        <ListItemText primary={segment.name} />
+      </ListItemButton>
+    </ListItem>
+  );
+}
+
 function SegmentListContents() {
   const path = useRouter();
   const segmentsResult = useAppStore((store) => store.segments);
@@ -76,20 +97,7 @@ function SegmentListContents() {
         }}
       >
         {segments.map((segment) => (
-          <ListItem disableGutters key={segment.id}>
-            <ListItemButton
-              sx={{
-                border: 1,
-                borderRadius: 1,
-                borderColor: "grey.200",
-              }}
-              onClick={() => {
-                path.push(`/dashboard/segments/${segment.id}`);
-              }}
-            >
-              <ListItemText primary={segment.name} />
-            </ListItemButton>
-          </ListItem>
+          <SegmentItem segment={segment} key={segment.id} />
         ))}
       </List>
     );
