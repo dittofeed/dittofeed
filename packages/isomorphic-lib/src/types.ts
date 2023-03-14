@@ -579,3 +579,13 @@ export const UpsertJourneyResource = Type.Intersect([
 ]);
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
+
+export const DeleteSegmentResponse = Type.Null();
+
+export type DeleteSegmentResponse = Static<typeof DeleteSegmentResponse>;
+
+export const DeleteSegmentRequest = Type.Object({
+  id: Type.String(),
+});
+
+export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;

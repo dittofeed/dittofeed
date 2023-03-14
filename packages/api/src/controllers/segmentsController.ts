@@ -5,6 +5,8 @@ import { Segment } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  DeleteSegmentRequest,
+  DeleteSegmentResponse,
   SegmentDefinition,
   SegmentResource,
   UpsertSegmentResource,
@@ -85,11 +87,9 @@ export default async function segmentsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Delete a segment.",
-        body: Type.Object({
-          id: Type.String(),
-        }),
+        body: DeleteSegmentRequest,
         response: {
-          204: {},
+          204: DeleteSegmentResponse,
           404: {},
         },
       },

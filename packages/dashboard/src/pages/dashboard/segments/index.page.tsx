@@ -9,13 +9,19 @@ import {
   Typography,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
-import { CompletionStatus, SegmentResource } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  DeleteSegmentRequest,
+  DeleteSegmentResponse,
+  SegmentResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import {
   addInitialStateToProps,
   PropsWithInitialState,
@@ -58,6 +64,41 @@ export const getServerSideProps: GetServerSideProps<
 
 function SegmentItem({ segment }: { segment: SegmentResource }) {
   const path = useRouter();
+  const setSegmentDeleteRequest = useAppStore(
+    (store) => store.setSegmentDeleteRequest
+  );
+  const apiBase = useAppStore((store) => store.apiBase);
+  const segmentDeleteRequest = useAppStore(
+    (store) => store.segmentDeleteRequest
+  );
+  const deleteSegment = useAppStore((store) => store.deleteSegment);
+
+  const setDeleteResponse = (
+    _response: DeleteSegmentResponse,
+    deleteRequest?: DeleteSegmentRequest
+  ) => {
+    if (!deleteRequest) {
+      return;
+    }
+    deleteSegment(deleteRequest.id);
+  };
+
+  const handleDelete = apiRequestHandlerFactory({
+    request: segmentDeleteRequest,
+    setRequest: setSegmentDeleteRequest,
+    responseSchema: DeleteSegmentResponse,
+    setResponse: setDeleteResponse,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/segments`,
+      data: {
+        id: segment.id,
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
 
   return (
     <ListItem disableGutters>
