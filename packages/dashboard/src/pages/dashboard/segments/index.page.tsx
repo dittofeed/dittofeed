@@ -1,4 +1,4 @@
-import { AddCircleOutline } from "@mui/icons-material";
+import { AddCircleOutline, Delete } from "@mui/icons-material";
 import {
   IconButton,
   List,
@@ -9,13 +9,19 @@ import {
   Typography,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
-import { CompletionStatus, SegmentResource } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  DeleteSegmentRequest,
+  DeleteSegmentResponse,
+  SegmentResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import {
   addInitialStateToProps,
   PropsWithInitialState,
@@ -56,6 +62,69 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
+function SegmentItem({ segment }: { segment: SegmentResource }) {
+  const path = useRouter();
+  const setSegmentDeleteRequest = useAppStore(
+    (store) => store.setSegmentDeleteRequest
+  );
+  const apiBase = useAppStore((store) => store.apiBase);
+  const segmentDeleteRequest = useAppStore(
+    (store) => store.segmentDeleteRequest
+  );
+  const deleteSegment = useAppStore((store) => store.deleteSegment);
+
+  const setDeleteResponse = (
+    _response: DeleteSegmentResponse,
+    deleteRequest?: DeleteSegmentRequest
+  ) => {
+    if (!deleteRequest) {
+      return;
+    }
+    deleteSegment(deleteRequest.id);
+  };
+
+  const handleDelete = apiRequestHandlerFactory({
+    request: segmentDeleteRequest,
+    setRequest: setSegmentDeleteRequest,
+    responseSchema: DeleteSegmentResponse,
+    setResponse: setDeleteResponse,
+    requestConfig: {
+      method: "DELETE",
+      url: `${apiBase}/api/segments`,
+      data: {
+        id: segment.id,
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
+
+  return (
+    <ListItem
+      secondaryAction={
+        <IconButton edge="end" onClick={handleDelete}>
+          <Delete />
+        </IconButton>
+      }
+    >
+      <ListItemButton
+        sx={{
+          border: 1,
+          borderTopLeftRadius: 1,
+          borderBottomLeftRadius: 1,
+          borderColor: "grey.200",
+        }}
+        onClick={() => {
+          path.push(`/dashboard/segments/${segment.id}`);
+        }}
+      >
+        <ListItemText primary={segment.name} />
+      </ListItemButton>
+    </ListItem>
+  );
+}
+
 function SegmentListContents() {
   const path = useRouter();
   const segmentsResult = useAppStore((store) => store.segments);
@@ -68,28 +137,15 @@ function SegmentListContents() {
   if (segments.length) {
     innerContents = (
       <List
+        dense
         sx={{
-          padding: 1,
           width: "100%",
           bgcolor: "background.paper",
           borderRadius: 1,
         }}
       >
         {segments.map((segment) => (
-          <ListItem disableGutters key={segment.id}>
-            <ListItemButton
-              sx={{
-                border: 1,
-                borderRadius: 1,
-                borderColor: "grey.200",
-              }}
-              onClick={() => {
-                path.push(`/dashboard/segments/${segment.id}`);
-              }}
-            >
-              <ListItemText primary={segment.name} />
-            </ListItemButton>
-          </ListItem>
+          <SegmentItem segment={segment} key={segment.id} />
         ))}
       </List>
     );
