@@ -10,7 +10,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import axios, { AxiosResponse } from "axios";
 import backendConfig from "backend-lib/src/config";
 import { findAllUserTraits } from "backend-lib/src/userEvents";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -37,6 +36,7 @@ import { validate } from "uuid";
 import DurationDescription from "../../../components/durationDescription";
 import EditableName from "../../../components/editableName";
 import MainLayout from "../../../components/mainLayout";
+import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import {
   addInitialStateToProps,
   PreloadedState,
@@ -571,46 +571,20 @@ export default function NewSegment() {
   const { entryNode } = editedSegment.definition;
   const { name } = editedSegment;
 
-  const handleSave = async () => {
-    if (segmentUpdateRequest.type === CompletionStatus.InProgress) {
-      return;
-    }
-
-    setSegmentUpdateRequest({
-      type: CompletionStatus.InProgress,
-    });
-    let response: AxiosResponse;
-    try {
-      response = await axios.put(`${apiBase}/api/segments`, editedSegment, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (e) {
-      const error = e as Error;
-
-      setSegmentUpdateRequest({
-        type: CompletionStatus.Failed,
-        error,
-      });
-      return;
-    }
-    const parsedResponse = schemaValidate(response.data, SegmentResource);
-    if (parsedResponse.isErr()) {
-      console.error("unable to parse segment", parsedResponse.error);
-
-      setSegmentUpdateRequest({
-        type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(parsedResponse.error)),
-      });
-      return;
-    }
-
-    upsertSegment(parsedResponse.value);
-    setSegmentUpdateRequest({
-      type: CompletionStatus.NotStarted,
-    });
-  };
+  const handleSave = apiRequestHandlerFactory({
+    request: segmentUpdateRequest,
+    setRequest: setSegmentUpdateRequest,
+    responseSchema: SegmentResource,
+    setResponse: upsertSegment,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/segments`,
+      data: editedSegment,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
 
   return (
     <>

@@ -1,5 +1,5 @@
+import { Static,TSchema } from "@sinclair/typebox";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
-import { TSchema, Static } from "@sinclair/typebox";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
