@@ -145,7 +145,7 @@ function buildSegmentQueryExpression({
           const lowerTraitBound =
             currentTime / 1000 - node.operator.windowSeconds;
 
-          // FIXME replace array find with array first
+          // TODO replace array find with array first
           return `
             and(
               (
@@ -168,13 +168,15 @@ function buildSegmentQueryExpression({
     case SegmentNodeType.And: {
       const childIds = new Set(node.children);
       const childNodes = nodes.filter((n) => childIds.has(n.id));
-      const childFragments = childNodes.map((childNode) =>
-        buildSegmentQueryExpression({
-          currentTime,
-          node: childNode,
-          nodes,
-        })
-      );
+      const childFragments = childNodes
+        .map((childNode) =>
+          buildSegmentQueryExpression({
+            currentTime,
+            node: childNode,
+            nodes,
+          })
+        )
+        .filter((query) => query !== null);
       return `and(
         ${childFragments.join(", ")}
       )`;
@@ -182,13 +184,15 @@ function buildSegmentQueryExpression({
     case SegmentNodeType.Or: {
       const childIds = new Set(node.children);
       const childNodes = nodes.filter((n) => childIds.has(n.id));
-      const childFragments = childNodes.map((childNode) =>
-        buildSegmentQueryExpression({
-          currentTime,
-          node: childNode,
-          nodes,
-        })
-      );
+      const childFragments = childNodes
+        .map((childNode) =>
+          buildSegmentQueryExpression({
+            currentTime,
+            node: childNode,
+            nodes,
+          })
+        )
+        .filter((query) => query !== null);
       return `or(
         ${childFragments.join(", ")}
       )`;
