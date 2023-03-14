@@ -1,5 +1,6 @@
 import {
   CompletionStatus,
+  SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
@@ -22,7 +23,40 @@ export type PreloadedState = Partial<AppState>;
 
 type AppContents = AppState & AppActions;
 
-function mapNodeToNewType(
+function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
+  const nonOrphanNodes = new Set<string>();
+  const nodesById = new Map<string, SegmentNode>();
+  for (const node of segmentDefinition.nodes) {
+    nodesById.set(node.id, node);
+  }
+
+  const currentNodes: SegmentNode[] = [segmentDefinition.entryNode];
+
+  while (currentNodes.length) {
+    const currentNode = currentNodes.pop();
+    if (currentNode) {
+      nonOrphanNodes.add(currentNode.id);
+
+      if (
+        currentNode.type === SegmentNodeType.And ||
+        currentNode.type === SegmentNodeType.Or
+      ) {
+        for (const childId of currentNode.children) {
+          const child = nodesById.get(childId);
+          if (child) {
+            currentNodes.push(child);
+          }
+        }
+      }
+    }
+  }
+
+  segmentDefinition.nodes = segmentDefinition.nodes.filter((n) =>
+    nonOrphanNodes.has(n.id)
+  );
+}
+
+function mapSegmentNodeToNewType(
   node: SegmentNode,
   type: SegmentNodeType
 ): { primary: SegmentNode; secondary: SegmentNode[] } {
@@ -352,6 +386,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
 
             parent.children = parent.children.filter((c) => c !== childId);
             editedSegment.definition.nodes.filter((n) => n.id !== childId);
+            removeOrphanedSegmentNodes(state.editedSegment.definition);
             return state;
           }),
         updateEditableSegmentNodeData: (nodeId, updater) =>
@@ -383,7 +418,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               if (node.type === nodeType) {
                 return state;
               }
-              const newType = mapNodeToNewType(node, nodeType);
+              const newType = mapSegmentNodeToNewType(node, nodeType);
               editedSegment.definition.entryNode = newType.primary;
               editedSegment.definition.nodes = newType.secondary.concat(
                 editedSegment.definition.nodes
@@ -399,7 +434,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
                   return;
                 }
 
-                const newType = mapNodeToNewType(node, nodeType);
+                const newType = mapSegmentNodeToNewType(node, nodeType);
 
                 editedSegment.definition.nodes = newType.secondary.concat(
                   editedSegment.definition.nodes
@@ -410,6 +445,8 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
                   );
               });
             }
+
+            removeOrphanedSegmentNodes(state.editedSegment.definition);
             return state;
           }),
         setSegmentUpdateRequest: (request) =>
