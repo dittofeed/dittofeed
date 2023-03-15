@@ -369,29 +369,32 @@ async function signalJourney({
     segmentVersion: new Date(segmentAssignment.max_assigned_at).getTime(),
   };
 
-  if (segmentUpdate.currentlyInSegment) {
-    const { workflowClient } = getContext();
-    const workflowId = `user-journey-${journey.id}-${segmentAssignment.user_id}`;
-
-    const userId = segmentAssignment.user_id;
-    await workflowClient.signalWithStart<
-      typeof userJourneyWorkflow,
-      [SegmentUpdate]
-    >(userJourneyWorkflow, {
-      taskQueue: "default",
-      workflowId,
-      args: [
-        {
-          journeyId: journey.id,
-          definition: journey.definition,
-          workspaceId,
-          userId,
-        },
-      ],
-      signal: segmentUpdateSignal,
-      signalArgs: [segmentUpdate],
-    });
+  if (!segmentUpdate.currentlyInSegment) {
+    console.log("not signalling for false segment", segmentUpdate);
+    return;
   }
+
+  const { workflowClient } = getContext();
+  const workflowId = `user-journey-${journey.id}-${segmentAssignment.user_id}`;
+
+  const userId = segmentAssignment.user_id;
+  await workflowClient.signalWithStart<
+    typeof userJourneyWorkflow,
+    [SegmentUpdate]
+  >(userJourneyWorkflow, {
+    taskQueue: "default",
+    workflowId,
+    args: [
+      {
+        journeyId: journey.id,
+        definition: journey.definition,
+        workspaceId,
+        userId,
+      },
+    ],
+    signal: segmentUpdateSignal,
+    signalArgs: [segmentUpdate],
+  });
 }
 
 // TODO distinguish between recoverable and non recoverable errors
@@ -593,19 +596,30 @@ export async function computePropertiesPeriodSafe({
     const signalSegmentAssignments: ComputedAssignment[] = [];
 
     for (const assignment of assignments) {
+      let assignmentCategory: ComputedAssignment[];
       if (assignment.processed_for === "pg") {
         switch (assignment.type) {
           case "segment":
-            pgSegmentAssignments.push(assignment);
+            assignmentCategory = pgSegmentAssignments;
             break;
           case "user_property":
-            pgUserPropertyAssignments.push(assignment);
+            assignmentCategory = pgUserPropertyAssignments;
             break;
         }
       } else {
-        signalSegmentAssignments.push(assignment);
+        assignmentCategory = signalSegmentAssignments;
       }
+      assignmentCategory.push(assignment);
     }
+
+    console.log("processing computed assignments", {
+      workspaceId,
+      assignmentsCount: assignments.length,
+      pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
+      pgSegmentAssignmentsCount: pgSegmentAssignments.length,
+      signalSegmentAssignmentsCount: signalSegmentAssignments.length,
+    });
+
     await Promise.all([
       ...pgUserPropertyAssignments.map((a) =>
         prisma().userPropertyAssignment.upsert({
@@ -656,6 +670,13 @@ export async function computePropertiesPeriodSafe({
           (j) => j.id === assignment.processed_for
         );
         if (!journey) {
+          console.error(
+            "journey in assignment.processed_for missing from subscribed journeys",
+            {
+              subscribedJourneys: subscribedJourneys.map((j) => j.id),
+              processed_for: assignment.processed_for,
+            }
+          );
           return [];
         }
 
