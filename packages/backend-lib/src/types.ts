@@ -94,3 +94,11 @@ export const KafkaSaslMechanism = Type.Union([
 ]);
 
 export type KafkaSaslMechanism = Static<typeof KafkaSaslMechanism>;
+
+export const WriteMode = Type.Union([
+  Type.Literal("kafka"),
+  Type.Literal("ch-async"),
+  Type.Literal("ch-sync"),
+]);
+
+export type WriteMode = Static<typeof WriteMode>;
