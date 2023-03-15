@@ -192,9 +192,10 @@ export async function findManyEvents({
     event,
     JSONExtractRaw(message_raw, 'traits') AS traits,
     JSONExtractRaw(message_raw, 'properties') AS properties
-  FROM ${buildUserEventsTableName(
-    tableVersion
-  )} WHERE workspace_id = {workspaceId:String} ${paginationClause}`;
+  FROM ${buildUserEventsTableName(tableVersion)}
+  WHERE workspace_id = {workspaceId:String}
+  ORDER BY event_time DESC, message_id
+  ${paginationClause}`;
 
   const resultSet = await clickhouseClient().query({
     query,
