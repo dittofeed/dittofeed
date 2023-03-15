@@ -369,29 +369,32 @@ async function signalJourney({
     segmentVersion: new Date(segmentAssignment.max_assigned_at).getTime(),
   };
 
-  if (segmentUpdate.currentlyInSegment) {
-    const { workflowClient } = getContext();
-    const workflowId = `user-journey-${journey.id}-${segmentAssignment.user_id}`;
-
-    const userId = segmentAssignment.user_id;
-    await workflowClient.signalWithStart<
-      typeof userJourneyWorkflow,
-      [SegmentUpdate]
-    >(userJourneyWorkflow, {
-      taskQueue: "default",
-      workflowId,
-      args: [
-        {
-          journeyId: journey.id,
-          definition: journey.definition,
-          workspaceId,
-          userId,
-        },
-      ],
-      signal: segmentUpdateSignal,
-      signalArgs: [segmentUpdate],
-    });
+  if (!segmentUpdate.currentlyInSegment) {
+    console.log("not signalling for false segment", segmentUpdate);
+    return;
   }
+
+  const { workflowClient } = getContext();
+  const workflowId = `user-journey-${journey.id}-${segmentAssignment.user_id}`;
+
+  const userId = segmentAssignment.user_id;
+  await workflowClient.signalWithStart<
+    typeof userJourneyWorkflow,
+    [SegmentUpdate]
+  >(userJourneyWorkflow, {
+    taskQueue: "default",
+    workflowId,
+    args: [
+      {
+        journeyId: journey.id,
+        definition: journey.definition,
+        workspaceId,
+        userId,
+      },
+    ],
+    signal: segmentUpdateSignal,
+    signalArgs: [segmentUpdate],
+  });
 }
 
 // TODO distinguish between recoverable and non recoverable errors
