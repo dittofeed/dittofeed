@@ -7,17 +7,58 @@ import prisma from "./prisma";
 import { InternalEventType, UserEvent } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
-export async function insertUserEvents({
-  workspaceId,
-  userEvents,
-}: {
+interface InsertUserEventsParams {
   workspaceId: string;
   userEvents: {
     messageRaw: string;
     processingTime?: string;
     messageId: string;
   }[];
-}): Promise<void> {
+}
+
+async function insertUserEventsDirect({
+  workspaceId,
+  userEvents,
+  asyncInsert,
+}: InsertUserEventsParams & { asyncInsert?: boolean }) {
+  const currentTable = await prisma().currentUserEventsTable.findUnique({
+    where: {
+      workspaceId,
+    },
+  });
+  if (!currentTable) {
+    console.error("missing current table");
+    return;
+  }
+
+  await clickhouseClient().insert({
+    table: `user_events_${currentTable.version} (message_raw, processing_time, workspace_id, message_id)`,
+    values: userEvents.map((e) => {
+      const value: {
+        message_raw: string;
+        processing_time: string | null;
+        workspace_id: string;
+        message_id: string;
+      } = {
+        workspace_id: workspaceId,
+        message_raw: JSON.stringify(e.messageRaw),
+        processing_time: e.processingTime ?? null,
+        message_id: e.messageId,
+      };
+      return value;
+    }),
+    clickhouse_settings: {
+      async_insert: asyncInsert ? 1 : undefined,
+      wait_for_async_insert: asyncInsert ? 1 : undefined,
+    },
+    format: "JSONEachRow",
+  });
+}
+
+export async function insertUserEvents({
+  workspaceId,
+  userEvents,
+}: InsertUserEventsParams): Promise<void> {
   const { userEventsTopicName, writeMode } = config();
   switch (writeMode) {
     case "kafka": {
@@ -40,36 +81,14 @@ export async function insertUserEvents({
       break;
     }
     case "ch-async":
-      throw new Error("unimplemented write method");
+      await insertUserEventsDirect({
+        workspaceId,
+        userEvents,
+        asyncInsert: true,
+      });
+      break;
     case "ch-sync": {
-      const currentTable = await prisma().currentUserEventsTable.findUnique({
-        where: {
-          workspaceId,
-        },
-      });
-      if (!currentTable) {
-        console.error("missing current table");
-        return;
-      }
-
-      await clickhouseClient().insert({
-        table: `user_events_${currentTable.version} (message_raw, processing_time, workspace_id, message_id)`,
-        values: userEvents.map((e) => {
-          const value: {
-            message_raw: string;
-            processing_time: string | null;
-            workspace_id: string;
-            message_id: string;
-          } = {
-            workspace_id: workspaceId,
-            message_raw: JSON.stringify(e.messageRaw),
-            processing_time: e.processingTime ?? null,
-            message_id: e.messageId,
-          };
-          return value;
-        }),
-        format: "JSONEachRow",
-      });
+      await insertUserEventsDirect({ workspaceId, userEvents });
       break;
     }
   }
