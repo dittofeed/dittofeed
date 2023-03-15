@@ -2,7 +2,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import backendConfig from "backend-lib/src/config";
 import prisma from "backend-lib/src/prisma";
-import { writeUserEvents } from "backend-lib/src/userEvents";
+import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 
 import { generateDigest } from "../crypto";
@@ -62,13 +62,15 @@ export default async function webhookController(fastify: FastifyInstance) {
         return reply.status(401).send();
       }
 
-      await writeUserEvents([
-        {
-          messageId: request.body.messageId,
-          workspaceId,
-          messageRaw: request.rawBody,
-        },
-      ]);
+      await insertUserEvents({
+        workspaceId,
+        userEvents: [
+          {
+            messageId: request.body.messageId,
+            messageRaw: request.rawBody,
+          },
+        ],
+      });
 
       return reply.status(200).send();
     }

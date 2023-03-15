@@ -7,14 +7,17 @@ import prisma from "./prisma";
 import { InternalEventType, UserEvent } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
-export async function writeUserEvents(
+export async function insertUserEvents({
+  workspaceId,
+  userEvents,
+}: {
+  workspaceId: string;
   userEvents: {
     messageRaw: string;
     processingTime?: string;
-    workspaceId: string;
     messageId: string;
-  }[]
-) {
+  }[];
+}): Promise<void> {
   const { userEventsTopicName, writeMode } = config();
   switch (writeMode) {
     case "kafka": {
@@ -23,7 +26,7 @@ export async function writeUserEvents(
       ).send({
         topic: userEventsTopicName,
         messages: userEvents.map(
-          ({ messageRaw, messageId, processingTime, workspaceId }) => ({
+          ({ messageRaw, messageId, processingTime }) => ({
             key: messageId,
             value: JSON.stringify({
               processing_time: processingTime,
@@ -37,7 +40,38 @@ export async function writeUserEvents(
       break;
     }
     case "ch-async":
-    case "ch-sync":
+      throw new Error("unimplemented write method");
+    case "ch-sync": {
+      const currentTable = await prisma().currentUserEventsTable.findUnique({
+        where: {
+          workspaceId,
+        },
+      });
+      if (!currentTable) {
+        console.error("missing current table");
+        return;
+      }
+
+      await clickhouseClient().insert({
+        table: `user_events_${currentTable.version} (message_raw, processing_time, workspace_id, message_id)`,
+        values: userEvents.map((e) => {
+          const value: {
+            message_raw: string;
+            processing_time: string | null;
+            workspace_id: string;
+            message_id: string;
+          } = {
+            workspace_id: workspaceId,
+            message_raw: JSON.stringify(e.messageRaw),
+            processing_time: e.processingTime ?? null,
+            message_id: e.messageId,
+          };
+          return value;
+        }),
+        format: "JSONEachRow",
+      });
+      break;
+    }
   }
 }
 
@@ -201,9 +235,10 @@ export async function trackInternalEvents(props: {
   workspaceId: string;
   events: InternalEvent[];
 }): Promise<Result<void, Error>> {
+  const { workspaceId } = props;
   const timestamp = new Date().toISOString();
 
-  const events = props.events
+  const userEvents = props.events
     .map((p) => ({
       type: "track",
       event: p.event,
@@ -214,13 +249,12 @@ export async function trackInternalEvents(props: {
       timestamp,
     }))
     .map((mr) => ({
-      workspaceId: props.workspaceId,
       userId: mr.userId,
       messageId: mr.messageId,
       messageRaw: JSON.stringify(mr),
     }));
 
-  await writeUserEvents(events);
+  await insertUserEvents({ workspaceId, userEvents });
 
   return ok(undefined);
 }
