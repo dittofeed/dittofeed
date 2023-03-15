@@ -47,7 +47,7 @@ export function segmentIdentifyEvent(
 ): Record<string, JSONValue> {
   return deepmerge(
     {
-      anonymousId: "507f191e810c19729de860ea",
+      anonymousId: randomUUID(),
       channel: "browser",
       context: {
         ip: "8.8.8.8",
@@ -65,7 +65,7 @@ export function segmentIdentifyEvent(
       timestamp: "2015-02-23T22:28:55.111Z",
       traits: {},
       type: "identify",
-      userId: "97980cfea0067",
+      userId: randomUUID(),
       version: "1.1",
     },
     overrides
