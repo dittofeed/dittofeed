@@ -41,7 +41,7 @@ async function insertUserEventsDirect({
         message_id: string;
       } = {
         workspace_id: workspaceId,
-        message_raw: JSON.stringify(e.messageRaw),
+        message_raw: e.messageRaw,
         processing_time: e.processingTime ?? null,
         message_id: e.messageId,
       };
