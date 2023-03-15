@@ -1,4 +1,4 @@
-// SHARED_SECRET=**** yarn workspace api ts-node ./scripts/generateSegmentRequest.ts
+// HOST='https://customer.dittofeed.com' TRAITS='{ "env": "development", "email": "name@email.com" }' SHARED_SECRET=**** yarn workspace api ts-node ./scripts/generateSegmentRequest.ts
 
 import backendConfig from "backend-lib/src/config";
 import { segmentIdentifyEvent } from "backend-lib/test/factories/segment";
