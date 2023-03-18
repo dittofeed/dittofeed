@@ -1,17 +1,30 @@
 import { Static, Type } from "@sinclair/typebox";
 import { loadConfig, setConfigOnEnv } from "backend-lib/src/config/loader";
+import { Overwrite } from "utility-types";
 
 // Structure of application config.
-const RawConfig = Type.Object({}, { additionalProperties: false });
+const RawConfig = Type.Object(
+  {
+    workerServiceName: Type.Optional(Type.String()),
+  },
+  { additionalProperties: false }
+);
 
 type RawConfig = Static<typeof RawConfig>;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface Config {}
+type Config = Overwrite<
+  RawConfig,
+  {
+    workerServiceName: string;
+  }
+>;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function parseRawConfig(_raw: RawConfig): Config {
-  return {};
+function parseRawConfig(raw: RawConfig): Config {
+  return {
+    ...raw,
+    workerServiceName: raw.workerServiceName ?? "dittofeed-worker",
+  };
 }
 
 // Singleton configuration object used by application.
