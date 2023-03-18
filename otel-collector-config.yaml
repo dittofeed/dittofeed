@@ -4,6 +4,7 @@ receivers:
       grpc:
       http:
 exporters:
+  logging:
   googlecloud:
     log:
       default_log_name: opentelemetry.io/collector-exported-log
@@ -17,11 +18,14 @@ processors:
     detectors: [gcp]
     timeout: 10s
 service:
+  telemetry:
+    logs:
+      level: "debug"
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [googlecloud]
+      exporters: [googlecloud, logging]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]

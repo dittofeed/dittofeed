@@ -1,13 +1,19 @@
-import { startOpentelemetry } from "backend-lib/src/openTelemetry";
+import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 
-import buildApp from "../src/buildApp";
 import config from "../src/config";
+
+const { apiPort: port, apiHost: host, serviceName } = config();
+
+// README: open telemetry instrumentation has to be imported before buildApp, because it patches fastify
+const startOpentelemetry = initOpenTelemetry({ serviceName });
+
+// eslint-disable-next-line import/first
+import buildApp from "../src/buildApp";
 
 async function start() {
   const app = await buildApp();
-  const { apiPort: port, apiHost: host, serviceName } = config();
+  await startOpentelemetry();
   await app.listen({ port, host });
-  await startOpentelemetry({ serviceName });
 }
 
 start().catch((e) => {

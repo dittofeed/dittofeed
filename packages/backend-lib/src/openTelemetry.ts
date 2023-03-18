@@ -6,15 +6,8 @@ import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
 
 import config from "./config";
 
-export async function startOpentelemetry({
-  serviceName,
-}: {
-  serviceName: string;
-}) {
+export function initOpenTelemetry({ serviceName }: { serviceName: string }) {
   const { otelCollector, startOtel } = config();
-  if (!startOtel) {
-    return;
-  }
 
   const sdk = new NodeSDK({
     resource: new Resource({
@@ -26,26 +19,31 @@ export async function startOpentelemetry({
     }),
   });
 
-  // Graceful shutdown
-  ["SIGTERM", "SIGINT"].forEach((signal) =>
-    process.on(signal, () => {
-      sdk.shutdown().then(
-        () => {
-          console.log("Tracing terminated");
-          process.exit(0);
-        },
-        (error) => {
-          console.error("Error terminating tracing", error);
-          process.exit(1);
-        }
-      );
-    })
-  );
+  return async function startOpentelemetry() {
+    if (!startOtel) {
+      return;
+    }
+    // Graceful shutdown
+    ["SIGTERM", "SIGINT"].forEach((signal) =>
+      process.on(signal, () => {
+        sdk.shutdown().then(
+          () => {
+            console.log("Tracing terminated");
+            process.exit(0);
+          },
+          (error) => {
+            console.error("Error terminating tracing", error);
+            process.exit(1);
+          }
+        );
+      })
+    );
 
-  try {
-    await sdk.start();
-  } catch (error) {
-    console.error("Error initializing tracing", error);
-    process.exit(1);
-  }
+    try {
+      await sdk.start();
+    } catch (error) {
+      console.error("Error initializing tracing", error);
+      process.exit(1);
+    }
+  };
 }
