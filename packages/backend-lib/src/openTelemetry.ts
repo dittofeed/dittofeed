@@ -11,8 +11,8 @@ export async function startOpentelemetry({
 }: {
   serviceName: string;
 }) {
-  const { otelCollector } = config();
-  if (!otelCollector) {
+  const { otelCollector, startOtel } = config();
+  if (!startOtel) {
     return;
   }
 

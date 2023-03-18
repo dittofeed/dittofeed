@@ -43,6 +43,7 @@ const BaseRawConfigProps = {
   defaultAccountManagerUserPropertyId: Type.Optional(Type.String()),
   defaultUserEventsTableVersion: Type.Optional(Type.String()),
   otelCollector: Type.Optional(Type.String()),
+  startOtel: Type.Optional(BoolStr),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -100,6 +101,8 @@ export type Config = Overwrite<
     kafkaSaslMechanism: KafkaSaslMechanism;
     bootstrapWorker: boolean;
     writeMode: WriteMode;
+    otelCollector: string;
+    startOtel: boolean;
   }
 > & {
   defaultWorkspaceId: string;
@@ -227,6 +230,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.bootstrapWorker === "true" ||
       (nodeEnv === NodeEnvEnum.Production &&
         rawConfig.bootstrapWorker !== "false"),
+    startOtel: rawConfig.startOtel === "true",
+    otelCollector: rawConfig.otelCollector ?? "http://localhost:4317",
   };
   return parsedConfig;
 }
