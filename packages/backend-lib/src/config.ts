@@ -42,6 +42,7 @@ const BaseRawConfigProps = {
   defaultLanguageUserPropertyId: Type.Optional(Type.String()),
   defaultAccountManagerUserPropertyId: Type.Optional(Type.String()),
   defaultUserEventsTableVersion: Type.Optional(Type.String()),
+  otelCollector: Type.Optional(Type.String()),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);

@@ -14,11 +14,10 @@
   "dependencies": {
     "@clickhouse/client": "^0.0.10",
     "@opentelemetry/auto-instrumentations-node": "^0.36.4",
-    "@opentelemetry/exporter-collector-grpc": "^0.25.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.36.0",
     "@opentelemetry/resources": "^1.10.0",
     "@opentelemetry/sdk-node": "^0.36.0",
     "@opentelemetry/semantic-conventions": "^1.10.0",
-    "@opentelemetry/tracing": "^0.24.0",
     "@prisma/client": "^4.8.1",
     "@sendgrid/helpers": "^7.7.0",
     "@sendgrid/mail": "^7.7.0",
