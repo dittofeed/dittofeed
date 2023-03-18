@@ -12,6 +12,7 @@ import config from "./config";
 export interface OpenTelemetry {
   sdk: NodeSDK;
   resource: Resource;
+  traceExporter: OTLPTraceExporter;
   start: () => Promise<void>;
 }
 
@@ -26,13 +27,14 @@ export function initOpenTelemetry({
   const resource = new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
   });
+  const traceExporter = new OTLPTraceExporter({
+    url: otelCollector,
+  });
 
   const sdk = new NodeSDK({
     resource,
     instrumentations: [getNodeAutoInstrumentations(configOverrides)],
-    traceExporter: new OTLPTraceExporter({
-      url: otelCollector,
-    }),
+    traceExporter,
   });
 
   const start = async function start() {
@@ -67,5 +69,6 @@ export function initOpenTelemetry({
     start,
     sdk,
     resource,
+    traceExporter,
   };
 }
