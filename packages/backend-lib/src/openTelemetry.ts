@@ -9,26 +9,33 @@ import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
 
 import config from "./config";
 
+export interface OpenTelemetry {
+  sdk: NodeSDK;
+  resource: Resource;
+  start: () => Promise<void>;
+}
+
 export function initOpenTelemetry({
   serviceName,
   configOverrides,
 }: {
   serviceName: string;
   configOverrides?: InstrumentationConfigMap;
-}) {
+}): OpenTelemetry {
   const { otelCollector, startOtel } = config();
+  const resource = new Resource({
+    [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
+  });
 
   const sdk = new NodeSDK({
-    resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
-    }),
+    resource,
     instrumentations: [getNodeAutoInstrumentations(configOverrides)],
     traceExporter: new OTLPTraceExporter({
       url: otelCollector,
     }),
   });
 
-  return async function startOpentelemetry() {
+  const start = async function start() {
     if (!startOtel) {
       return;
     }
@@ -54,5 +61,11 @@ export function initOpenTelemetry({
       console.error("Error initializing tracing", error);
       process.exit(1);
     }
+  };
+
+  return {
+    start,
+    sdk,
+    resource,
   };
 }
