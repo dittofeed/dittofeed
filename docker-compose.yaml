@@ -163,12 +163,8 @@ services:
     image: otel/opentelemetry-collector-contrib:latest
     profiles: ["otel"]
     command: ["--config", "/etc/otel-collector-config.yaml"]
-    environment:
-      # Using google exporter here as an example, modify as needed.
-      - GOOGLE_APPLICATION_CREDENTIALS
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
-      - ${OTEL_CREDENTIALS_DIR}:/etc/otel/credentials/
     ports:
       - 1888:1888 # pprof extension
       - 8888:8888 # Prometheus metrics exposed by the collector
