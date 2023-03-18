@@ -8,6 +8,7 @@ import { Overwrite } from "utility-types";
 
 const RawConfigProps = {
   nodeEnv: Type.Optional(NodeEnv),
+  apiServiceName: Type.Optional(Type.String()),
   apiPort: Type.Optional(Type.String()),
   apiHost: Type.Optional(Type.String()),
   apiPrefix: Type.Optional(Type.String()),
@@ -22,6 +23,7 @@ export type Config = Overwrite<
   RawConfig,
   {
     nodeEnv: string;
+    apiServiceName: string;
     apiHost: string;
     apiPort: number;
   }
@@ -32,6 +34,7 @@ function parseRawConfig(raw: RawConfig): Config {
 
   return {
     ...raw,
+    apiServiceName: raw.apiServiceName ?? "dittofeed-api",
     nodeEnv,
     apiHost:
       raw.apiHost ?? (nodeEnv === "development" ? "localhost" : "0.0.0.0"),
