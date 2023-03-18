@@ -38,8 +38,8 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "@temporalio/testing": "^1.5.2",
-    "@temporalio/worker": "^1.5.2",
+    "@temporalio/testing": "^1.6.0",
+    "@temporalio/worker": "^1.6.0",
     "@types/node": "^18.8.5",
     "@types/uuid": "^9.0.0",
     "fastify-tsconfig": "^1.0.1",
