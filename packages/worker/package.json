@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@sinclair/typebox": "^0.25.21",
+    "@temporalio/interceptors-opentelemetry": "^1.6.0",
     "@temporalio/worker": "^1.5.2",
     "backend-lib": "0.0.3",
     "utility-types": "^3.10.0"
