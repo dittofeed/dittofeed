@@ -52,6 +52,7 @@ async function run() {
     ),
     enableSDKTracing: true,
   });
+  await otel.start();
   await worker.run();
 }
 
