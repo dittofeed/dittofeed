@@ -6,7 +6,11 @@ import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
 
 import config from "./config";
 
-export async function startSDK({ serviceName }: { serviceName: string }) {
+export async function startOpentelemetry({
+  serviceName,
+}: {
+  serviceName: string;
+}) {
   const { otelCollector } = config();
   if (!otelCollector) {
     return;
