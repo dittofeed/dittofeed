@@ -151,6 +151,22 @@ services:
       - clickhouse_log:/var/log/clickhouse-server
     networks:
       - dittofeed-network-dev
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    profiles: ["telemetry"]
+    command: ["--config", "/etc/otel-collector-config.yaml"]
+    environment:
+      # Using google exporter here as an example, modify as needed.
+      - GOOGLE_APPLICATION_CREDENTIALS
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ${OTEL_CREDENTIALS_DIR}:/etc/otel/credentials/
+    ports:
+      - "4317:4317"
+      - "55681:55681"
+      - "55679:55679"
+    networks:
+      - dittofeed-network-dev
 volumes:
   postgres:
   kafka:
