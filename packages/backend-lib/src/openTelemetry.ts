@@ -13,7 +13,19 @@ export function initOpenTelemetry({ serviceName }: { serviceName: string }) {
     resource: new Resource({
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
     }),
-    instrumentations: [getNodeAutoInstrumentations()],
+    instrumentations: [
+      getNodeAutoInstrumentations({
+        "@opentelemetry/instrumentation-fastify": {
+          requestHook: (span, info) => {
+            const headers = info.request.headers as Record<string, string>;
+            const workspaceId =
+              headers["df-workspace-id"] ?? config().defaultWorkspaceId;
+
+            span.setAttribute("workflowId", workspaceId);
+          },
+        },
+      }),
+    ],
     traceExporter: new OTLPTraceExporter({
       url: otelCollector,
     }),
