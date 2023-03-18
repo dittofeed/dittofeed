@@ -151,9 +151,17 @@ services:
       - clickhouse_log:/var/log/clickhouse-server
     networks:
       - dittofeed-network-dev
+  zipkin:
+    image: openzipkin/zipkin
+    profiles: ["otel"]
+    container_name: zipkin
+    ports:
+      - 9411:9411
+    networks:
+      - dittofeed-network-dev
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
-    profiles: ["telemetry"]
+    profiles: ["otel"]
     command: ["--config", "/etc/otel-collector-config.yaml"]
     environment:
       # Using google exporter here as an example, modify as needed.

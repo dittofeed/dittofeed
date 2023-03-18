@@ -5,18 +5,14 @@ receivers:
       http:
 exporters:
   logging:
-  googlecloud:
-    log:
-      default_log_name: opentelemetry.io/collector-exported-log
+  zipkin:
+    endpoint: "http://zipkin:9411/api/v2/spans"
 processors:
   memory_limiter:
     check_interval: 1s
     limit_percentage: 65
     spike_limit_percentage: 20
   batch:
-  resourcedetection:
-    detectors: [gcp]
-    timeout: 10s
 service:
   telemetry:
     logs:
@@ -25,12 +21,4 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [googlecloud, logging]
-    metrics:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [googlecloud]
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [googlecloud]
+      exporters: [zipkin, logging]
