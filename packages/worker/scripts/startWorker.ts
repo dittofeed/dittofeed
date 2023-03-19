@@ -35,7 +35,7 @@ async function run() {
     activities,
     taskQueue: "default",
     sinks: {
-      ...defaultSinks,
+      ...defaultSinks(),
       exporter: makeWorkflowExporter(otel.traceExporter, otel.resource),
     },
     interceptors: appendDefaultInterceptors(
