@@ -2174,7 +2174,7 @@
     "@opentelemetry/resources" "1.7.0"
     lodash.merge "4.6.2"
 
-"@opentelemetry/sdk-metrics@1.10.0":
+"@opentelemetry/sdk-metrics@1.10.0", "@opentelemetry/sdk-metrics@^1.10.0":
   version "1.10.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/sdk-metrics/-/sdk-metrics-1.10.0.tgz#627f164036ad053551b3e75447adf9a902b066aa"
   integrity sha512-vOB3khvj894ppOwafNqKNavpChZYR2S2IZyy8PmL0DwNgFPGYwkWxZkv7YJduBNzcCd+Ao+ug93jdSFFhnpIhQ==

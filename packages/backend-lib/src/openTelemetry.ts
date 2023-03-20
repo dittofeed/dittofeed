@@ -1,9 +1,11 @@
+import api from "@opentelemetry/api";
 import {
   getNodeAutoInstrumentations,
   InstrumentationConfigMap,
 } from "@opentelemetry/auto-instrumentations-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { Resource } from "@opentelemetry/resources";
+import { MeterProvider } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
