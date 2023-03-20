@@ -11,6 +11,7 @@ const telemetryConfig: Parameters<
       const workspaceId =
         headers["df-workspace-id"] ?? backendConfig().defaultWorkspaceId;
 
+      span.updateName("api-custom-request-hook");
       span.setAttribute("workflowId", workspaceId);
     },
   },
