@@ -1,4 +1,3 @@
-import api from "@opentelemetry/api";
 import {
   getNodeAutoInstrumentations,
   InstrumentationConfigMap,
@@ -6,10 +5,7 @@ import {
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { Resource } from "@opentelemetry/resources";
-import {
-  MeterProvider,
-  PeriodicExportingMetricReader,
-} from "@opentelemetry/sdk-metrics";
+import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
@@ -45,17 +41,12 @@ export function initOpenTelemetry({
     exporter: metricExporter,
   });
 
-  const meterProvider = new MeterProvider();
-  meterProvider.addMetricReader(metricReader);
-
   const sdk = new NodeSDK({
     resource,
     instrumentations: [getNodeAutoInstrumentations(configOverrides)],
     traceExporter,
     metricReader,
   });
-
-  api.metrics.setGlobalMeterProvider(meterProvider);
 
   const start = async function start() {
     if (!startOtel) {
