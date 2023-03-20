@@ -1,8 +1,8 @@
+import api from "@opentelemetry/api";
 import {
   getNodeAutoInstrumentations,
   InstrumentationConfigMap,
 } from "@opentelemetry/auto-instrumentations-node";
-// import api from "@opentelemetry/api";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { Resource } from "@opentelemetry/resources";
@@ -54,6 +54,8 @@ export function initOpenTelemetry({
     traceExporter,
     metricReader,
   });
+
+  api.metrics.setGlobalMeterProvider(meterProvider);
 
   const start = async function start() {
     if (!startOtel) {
