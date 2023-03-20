@@ -1,6 +1,7 @@
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import logger from "backend-lib/src/logger";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import { OpenAPIV3_1 } from "openapi-types";
@@ -10,6 +11,7 @@ import router from "./buildApp/router";
 import config from "./config";
 
 async function buildApp() {
+  const fastifyLogger = logger();
   const server = fastify({
     rewriteUrl: (req) => {
       const { apiPrefix } = config();
@@ -22,19 +24,7 @@ async function buildApp() {
       }
       return req.url.replace(apiPrefix, "");
     },
-    // Logger only for production
-    logger:
-      config().nodeEnv === "development"
-        ? {
-            transport: {
-              target: "pino-pretty",
-              options: {
-                translateTime: "HH:MM:ss Z",
-                ignore: "pid,hostname",
-              },
-            },
-          }
-        : config().nodeEnv === "production",
+    logger: fastifyLogger,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   let servers: OpenAPIV3_1.ServerObject[];

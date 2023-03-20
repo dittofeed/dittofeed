@@ -4,7 +4,7 @@ import { inspect } from "util";
 import { Overwrite } from "utility-types";
 
 import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
-import { KafkaSaslMechanism, WriteMode } from "./types";
+import { KafkaSaslMechanism, LogLevel, WriteMode } from "./types";
 
 const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
 
@@ -44,6 +44,8 @@ const BaseRawConfigProps = {
   defaultUserEventsTableVersion: Type.Optional(Type.String()),
   otelCollector: Type.Optional(Type.String()),
   startOtel: Type.Optional(BoolStr),
+  prettyLogs: Type.Optional(BoolStr),
+  logLevel: Type.Optional(LogLevel),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -103,6 +105,8 @@ export type Config = Overwrite<
     writeMode: WriteMode;
     otelCollector: string;
     startOtel: boolean;
+    logLevel: LogLevel;
+    prettyLogs: boolean;
   }
 > & {
   defaultWorkspaceId: string;
@@ -188,6 +192,21 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     rawConfig.writeMode ??
     (rawConfig.nodeEnv === "test" ? "ch-sync" : "ch-async");
 
+  let logLevel: LogLevel;
+  if (rawConfig.logLevel) {
+    logLevel = rawConfig.logLevel;
+  } else {
+    switch (nodeEnv) {
+      case NodeEnvEnum.Production:
+        logLevel = "info";
+        break;
+      case NodeEnvEnum.Development:
+        logLevel = "debug";
+        break;
+      case NodeEnvEnum.Test:
+        logLevel = "error";
+    }
+  }
   const parsedConfig: Config = {
     ...rawConfig,
     nodeEnv,
@@ -232,6 +251,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
         rawConfig.bootstrapWorker !== "false"),
     startOtel: rawConfig.startOtel === "true",
     otelCollector: rawConfig.otelCollector ?? "http://localhost:4317",
+    prettyLogs:
+      rawConfig.prettyLogs === "true" ||
+      (nodeEnv === NodeEnvEnum.Development && rawConfig.prettyLogs !== "false"),
+    logLevel,
   };
   return parsedConfig;
 }

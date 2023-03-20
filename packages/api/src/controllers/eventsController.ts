@@ -1,4 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import logger from "backend-lib/src/logger";
 import {
   GetEventsRequest,
   GetEventsResponse,
@@ -51,9 +52,9 @@ export default async function eventsController(fastify: FastifyInstance) {
           } else if (properties.length) {
             colsolidatedTraits = properties;
           } else {
-            console.error(
-              `message ${message_id} missing both traits and properties`
-            );
+            logger().error(`message missing both traits and properties`, {
+              messageId: message_id,
+            });
             return [];
           }
 
