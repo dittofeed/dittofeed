@@ -40,6 +40,7 @@
     "minimist": "^1.2.7",
     "neverthrow": "^6.0.0",
     "pino": "^8.11.0",
+    "pino-pretty": "^10.0.0",
     "prisma": "^4.8.1",
     "utility-types": "^3.10.0"
   },

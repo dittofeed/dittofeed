@@ -102,3 +102,15 @@ export const WriteMode = Type.Union([
 ]);
 
 export type WriteMode = Static<typeof WriteMode>;
+
+export const LogLevel = Type.Union([
+  Type.Literal("fatal"),
+  Type.Literal("error"),
+  Type.Literal("warn"),
+  Type.Literal("info"),
+  Type.Literal("debug"),
+  Type.Literal("trace"),
+  Type.Literal("silent"),
+]);
+
+export type LogLevel = Static<typeof LogLevel>;
