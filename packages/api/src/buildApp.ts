@@ -1,7 +1,9 @@
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import fastify from "fastify";
+import { NodeEnvEnum } from "backend-lib/src/config/loader";
+import logger from "backend-lib/src/logger";
+import fastify, { FastifyServerOptions } from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import { OpenAPIV3_1 } from "openapi-types";
 
@@ -10,6 +12,27 @@ import router from "./buildApp/router";
 import config from "./config";
 
 async function buildApp() {
+  const { nodeEnv } = config();
+  let fastifyLogger: FastifyServerOptions["logger"];
+  switch (nodeEnv) {
+    case NodeEnvEnum.Development:
+      fastifyLogger = {
+        transport: {
+          target: "pino-pretty",
+          options: {
+            translateTime: "HH:MM:ss Z",
+            ignore: "pid,hostname",
+          },
+        },
+      };
+      break;
+    case NodeEnvEnum.Production:
+      fastifyLogger = logger();
+      break;
+    case NodeEnvEnum.Test:
+      fastifyLogger = false;
+      break;
+  }
   const server = fastify({
     rewriteUrl: (req) => {
       const { apiPrefix } = config();
@@ -22,19 +45,7 @@ async function buildApp() {
       }
       return req.url.replace(apiPrefix, "");
     },
-    // Logger only for production
-    logger:
-      config().nodeEnv === "development"
-        ? {
-            transport: {
-              target: "pino-pretty",
-              options: {
-                translateTime: "HH:MM:ss Z",
-                ignore: "pid,hostname",
-              },
-            },
-          }
-        : config().nodeEnv === "production",
+    logger: fastifyLogger,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   let servers: OpenAPIV3_1.ServerObject[];

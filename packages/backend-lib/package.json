@@ -37,6 +37,7 @@
     "liquidjs": "^10.4.0",
     "minimist": "^1.2.7",
     "neverthrow": "^6.0.0",
+    "pino": "^8.11.0",
     "prisma": "^4.8.1",
     "utility-types": "^3.10.0"
   },
