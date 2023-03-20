@@ -66,11 +66,11 @@ export function initOpenTelemetry({
       process.on(signal, () => {
         sdk.shutdown().then(
           () => {
-            console.log("Tracing terminated");
+            console.log("Telemetry terminated");
             process.exit(0);
           },
           (error) => {
-            console.error("Error terminating tracing", error);
+            console.error("Error terminating telemetry", error);
             process.exit(1);
           }
         );
@@ -80,7 +80,7 @@ export function initOpenTelemetry({
     try {
       await sdk.start();
     } catch (error) {
-      console.error("Error initializing tracing", error);
+      console.error("Error initializing telemetry", error);
       process.exit(1);
     }
   };
