@@ -23,6 +23,7 @@ export default async function eventsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { workspaceId, limit, offset } = request.query;
+
       const [eventsRaw, count] = await Promise.all([
         findManyEvents({
           workspaceId,

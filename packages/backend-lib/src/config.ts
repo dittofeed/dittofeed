@@ -1,6 +1,5 @@
 import { Static, Type } from "@sinclair/typebox";
 import { URL } from "url";
-import { inspect } from "util";
 import { Overwrite } from "utility-types";
 
 import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
@@ -49,16 +48,6 @@ const BaseRawConfigProps = {
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
-
-function inspectConfig(u: unknown) {
-  console.log(
-    `Initialized with config:\n${inspect(u, {
-      colors: true,
-      depth: null,
-      sorted: true,
-    })}`
-  );
-}
 
 // Structure of application config.
 const RawConfig = Type.Union([
@@ -270,10 +259,6 @@ export default function config(): Config {
       keys: ["nodeEnv"].concat(Object.keys(BaseRawConfigProps)),
     });
     setConfigOnEnv(CONFIG);
-
-    if (CONFIG.logConfig) {
-      console.log(`Initialized with config:\n${inspectConfig(CONFIG)}`);
-    }
   }
   return CONFIG;
 }

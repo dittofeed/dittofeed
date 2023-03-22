@@ -10,6 +10,7 @@ import {
   segmentUpdateSignal,
   userJourneyWorkflow,
 } from "../../../journeys/userWorkflow";
+import logger from "../../../logger";
 import prisma from "../../../prisma";
 import { findAllEnrichedSegments } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
@@ -50,7 +51,7 @@ function pathToArgs(path: string): string | null {
       .map((c) => `'${c.expression.value}'`)
       .join(", ");
   } catch (e) {
-    console.error(e);
+    logger().error({ err: e });
     return null;
   }
 }
@@ -370,7 +371,7 @@ async function signalJourney({
   };
 
   if (!segmentUpdate.currentlyInSegment) {
-    console.log("not signalling for false segment", segmentUpdate);
+    logger().debug(segmentUpdate, "not signalling for false segment");
     return;
   }
 
@@ -580,10 +581,9 @@ export async function computePropertiesPeriodSafe({
         const json = await row.json();
         const result = schemaValidate(json, ComputedAssignment);
         if (result.isErr()) {
-          console.error(
-            `failed to parse assignment json: ${JSON.stringify(
-              json
-            )} error: ${JSON.stringify(result.error)}`
+          logger().error(
+            { err: result.error, json },
+            "failed to parse assignment json"
           );
           return [];
         }
@@ -612,13 +612,16 @@ export async function computePropertiesPeriodSafe({
       assignmentCategory.push(assignment);
     }
 
-    console.log("processing computed assignments", {
-      workspaceId,
-      assignmentsCount: assignments.length,
-      pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
-      pgSegmentAssignmentsCount: pgSegmentAssignments.length,
-      signalSegmentAssignmentsCount: signalSegmentAssignments.length,
-    });
+    logger().debug(
+      {
+        workspaceId,
+        assignmentsCount: assignments.length,
+        pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
+        pgSegmentAssignmentsCount: pgSegmentAssignments.length,
+        signalSegmentAssignmentsCount: signalSegmentAssignments.length,
+      },
+      "processing computed assignments"
+    );
 
     await Promise.all([
       ...pgUserPropertyAssignments.map((a) =>
@@ -670,12 +673,12 @@ export async function computePropertiesPeriodSafe({
           (j) => j.id === assignment.processed_for
         );
         if (!journey) {
-          console.error(
-            "journey in assignment.processed_for missing from subscribed journeys",
+          logger().error(
             {
               subscribedJourneys: subscribedJourneys.map((j) => j.id),
               processed_for: assignment.processed_for,
-            }
+            },
+            "journey in assignment.processed_for missing from subscribed journeys"
           );
           return [];
         }
