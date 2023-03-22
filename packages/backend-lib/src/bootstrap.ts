@@ -6,6 +6,7 @@ import { segmentIdentifyEvent } from "../test/factories/segment";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
 import { kafkaAdmin } from "./kafka";
+import logger from "./logger";
 import prisma from "./prisma";
 import {
   computePropertiesWorkflow,
@@ -197,8 +198,8 @@ async function bootstrapWorker() {
         },
       ],
     });
-  } catch (e) {
-    console.error("failed to bootstrap worker", e);
+  } catch (err) {
+    logger().error({ err }, "Failed to bootstrap worker.");
   }
 }
 
@@ -244,14 +245,14 @@ async function insertDefaultEvents() {
 
 export default async function bootstrap() {
   await Promise.all([
-    bootstrapPostgres().catch((e) =>
-      console.error("failed to bootstrap postgres", e)
+    bootstrapPostgres().catch((err) =>
+      logger().error({ err }, "failed to bootstrap postgres")
     ),
-    bootstrapKafka().catch((e) =>
-      console.error("failed to bootstrap kafka", e)
+    bootstrapKafka().catch((err) =>
+      logger().error({ err }, "failed to bootstrap kafka")
     ),
-    bootstrapClickhouse().catch((e) =>
-      console.error("failed to bootstrap clickhouse", e)
+    bootstrapClickhouse().catch((err) =>
+      logger().error({ err }, "failed to bootstrap clickhouse")
     ),
   ]);
 
