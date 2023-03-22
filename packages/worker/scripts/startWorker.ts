@@ -9,6 +9,7 @@ import {
   Worker,
 } from "@temporalio/worker";
 import backendConfig from "backend-lib/src/config";
+import logger from "backend-lib/src/logger";
 import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 import * as activities from "backend-lib/src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activityInboundInterceptor";
@@ -17,8 +18,19 @@ import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClien
 import config from "../src/config";
 
 async function run() {
+  const workerConfig = config();
+
+  if (backendConfig().logConfig) {
+    logger().info(
+      {
+        ...backendConfig(),
+        ...workerConfig,
+      },
+      "Initialized with config"
+    );
+  }
   const otel = initOpenTelemetry({
-    serviceName: config().workerServiceName,
+    serviceName: workerConfig.workerServiceName,
   });
 
   const [connection, workflowClient] = await Promise.all([
@@ -57,6 +69,7 @@ async function run() {
 }
 
 run().catch((err) => {
+  // eslint-disable-next-line no-console
   console.error(err);
   process.exit(1);
 });

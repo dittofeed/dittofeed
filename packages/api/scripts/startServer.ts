@@ -18,10 +18,6 @@ const otel = initOpenTelemetry({
 import buildApp from "../src/buildApp";
 
 async function start() {
-  const app = await buildApp();
-  await otel.start();
-  await app.listen({ port, host });
-
   if (backendConfig().logConfig) {
     logger().info(
       {
@@ -31,6 +27,10 @@ async function start() {
       "Initialized with config"
     );
   }
+
+  const app = await buildApp();
+  await otel.start();
+  await app.listen({ port, host });
 }
 
 start().catch((e) => {
