@@ -3,6 +3,7 @@ import { ValueError } from "@sinclair/typebox/errors";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
+import logger from "./logger";
 import prisma from "./prisma";
 import { EnrichedUserProperty, UserPropertyDefinition } from "./types";
 
@@ -47,7 +48,7 @@ export async function findAllUserProperties({
     const enrichedJourney = enrichedUserProperty(userProperty);
 
     if (enrichedJourney.isErr()) {
-      console.log(enrichedJourney.error);
+      logger().error({ err: enrichedJourney.error });
       continue;
     }
 

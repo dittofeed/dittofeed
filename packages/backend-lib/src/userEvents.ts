@@ -3,6 +3,7 @@ import { ok, Result } from "neverthrow";
 import { clickhouseClient } from "./clickhouse";
 import config from "./config";
 import { kafkaProducer } from "./kafka";
+import logger from "./logger";
 import prisma from "./prisma";
 import { InternalEventType, UserEvent } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
@@ -27,7 +28,7 @@ async function insertUserEventsDirect({
     },
   });
   if (!currentTable) {
-    console.error("missing current table");
+    logger().error("Missing current table.");
     return;
   }
 

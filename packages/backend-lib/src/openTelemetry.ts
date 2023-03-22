@@ -10,6 +10,7 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
 import config from "./config";
+import logger from "./logger";
 
 export interface OpenTelemetry {
   sdk: NodeSDK;
@@ -57,11 +58,11 @@ export function initOpenTelemetry({
       process.on(signal, () => {
         sdk.shutdown().then(
           () => {
-            console.log("Telemetry terminated");
+            logger().info("Telemetry terminated");
             process.exit(0);
           },
-          (error) => {
-            console.error("Error terminating telemetry", error);
+          (err) => {
+            logger().error({ err }, "Error terminating telemetry");
             process.exit(1);
           }
         );
@@ -70,8 +71,8 @@ export function initOpenTelemetry({
 
     try {
       await sdk.start();
-    } catch (error) {
-      console.error("Error initializing telemetry", error);
+    } catch (err) {
+      logger().error({ err }, "Error initializing telemetry");
       process.exit(1);
     }
   };
