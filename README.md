@@ -20,7 +20,7 @@
 <br />
 
 <a href="https://dittofeed.com/"><img alt="Visit Our Site" src="https://img.shields.io/badge/site-Dittofeed-orange"/></a>
-<a href="https://dittofeed-community.slack.com/ssb/redirect"><img alt="Join Slack Community" src="https://img.shields.io/badge/slack-Dittofeed-brightgreen.svg?logo=slack"/></a>
+<a href="https://join.slack.com/t/dittofeed-community/shared_invite/zt-1rwjkx7w1-Jj8MeB1wN~hiM7uuErLj1A"><img alt="Join Slack Community" src="https://img.shields.io/badge/slack-Dittofeed-brightgreen.svg?logo=slack"/></a>
 <a href="https://twitter.com/dittofeed"><img alt="Follow Us On Twitter" src="https://img.shields.io/badge/follow-Dittofeed-blue?logo=twitter"/></a>
 
 <br />
@@ -59,5 +59,5 @@ Focused on developer happiness with first-in-class features:
 
 If you're interested in trying us out, please get in touch!
 
-* [Slack](https://dittofeed-community.slack.com/ssb/redirect)
+* [Slack](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1rwjkx7w1-Jj8MeB1wN~hiM7uuErLj1A)
 * Email: [support@dittofeed.com](mailto:support@dittofeed.com)
