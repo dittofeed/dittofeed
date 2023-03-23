@@ -77,7 +77,9 @@ export async function findAllUserPropertyAssignments({
   const combinedAssignments: Record<string, string> = {};
 
   for (const assignment of assignments) {
-    combinedAssignments[assignment.userProperty.name] = assignment.value;
+    combinedAssignments[assignment.userProperty.name] = JSON.parse(
+      assignment.value
+    );
   }
 
   return combinedAssignments;

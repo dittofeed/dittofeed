@@ -356,14 +356,10 @@ describe("compute properties activities", () => {
               })
             );
 
-            const assignment = await prisma().userPropertyAssignment.findFirst({
-              where: {
-                userId,
-                userPropertyId: userProperty.id,
-              },
+            const assignments = await findAllUserPropertyAssignments({
+              userId,
             });
-            expect(assignment).not.toBeNull();
-            expect(assignment?.value).toBe("example@email.com");
+            expect(assignments.email).toEqual("example@email.com");
           });
         });
 
@@ -456,20 +452,10 @@ describe("compute properties activities", () => {
               userProperties,
             });
 
-            const assignments = await prisma().userPropertyAssignment.findMany({
-              where: {
-                userId,
-                userPropertyId: {
-                  in: userProperties.map((up) => up.id),
-                },
-              },
-              orderBy: {
-                userPropertyId: "desc",
-              },
+            const assignments = await findAllUserPropertyAssignments({
+              userId,
             });
-            expect(new Set(assignments.map((a) => a.value))).toEqual(
-              new Set([userId, anonymousId])
-            );
+            expect(assignments).toEqual({ id: userId, anonymousId });
           });
         });
 
