@@ -104,7 +104,13 @@ function buildSegmentQueryExpression({
           if (
             node.operator.comparator !== SegmentHasBeenOperatorComparator.GTE
           ) {
-            throw new Error("Unimplemented comparator.");
+            logger().error(
+              {
+                operator: node.operator.comparator,
+              },
+              "unimplimented segment operator"
+            );
+            return null;
           }
 
           const val = node.operator.value;
