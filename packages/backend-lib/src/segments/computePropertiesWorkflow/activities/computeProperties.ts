@@ -249,12 +249,9 @@ function buildUserPropertyQueryFragment({
       innerQuery = `
           JSON_VALUE(
             (
-              arraySort(
-                m -> -toInt64(m.2),
-                arrayFilter(
-                  m -> JSONHas(m.1, 'traits', ${pathArgs}),
-                  timed_messages
-                )
+              arrayFilter(
+                m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                timed_messages
               ) as m${modelIndex}
             )[1].1,
             '$.traits.${path}'
@@ -269,6 +266,9 @@ function buildUserPropertyQueryFragment({
     case UserPropertyDefinitionType.AnonymousId: {
       innerQuery = "any(anonymous_id)";
       break;
+    }
+    case UserPropertyDefinitionType.LastEventTraitMap: {
+      throw new Error("unimplemented");
     }
   }
   return `
