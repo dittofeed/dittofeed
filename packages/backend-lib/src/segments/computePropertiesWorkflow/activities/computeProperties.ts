@@ -624,8 +624,9 @@ export async function computePropertiesPeriodSafe({
     );
 
     await Promise.all([
-      ...pgUserPropertyAssignments.map((a) =>
-        prisma().userPropertyAssignment.upsert({
+      ...pgUserPropertyAssignments.map((a) => {
+        const value = JSON.stringify(a.latest_user_property_value);
+        return prisma().userPropertyAssignment.upsert({
           where: {
             workspaceId_userPropertyId_userId: {
               workspaceId,
@@ -633,17 +634,15 @@ export async function computePropertiesPeriodSafe({
               userPropertyId: a.computed_property_id,
             },
           },
-          update: {
-            value: a.latest_user_property_value,
-          },
+          update: { value },
           create: {
             workspaceId,
             userId: a.user_id,
             userPropertyId: a.computed_property_id,
-            value: a.latest_user_property_value,
+            value,
           },
-        })
-      ),
+        });
+      }),
       ...pgSegmentAssignments.map((a) => {
         const inSegment = Boolean(a.latest_segment_value);
         return prisma().segmentAssignment.upsert({
