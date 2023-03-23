@@ -12,7 +12,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
-import React from "react";
+import React, { useMemo } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
@@ -141,6 +141,15 @@ export default function Events() {
     (store) => store.eventsPaginationRequest
   );
   const events = useEventsStore((store) => store.events);
+  const sortedEvents = useMemo(
+    () =>
+      [...events].sort((e1, e2) => {
+        const t1 = new Date(e1.eventTime);
+        const t2 = new Date(e2.eventTime);
+        return t1.getTime() > t2.getTime() ? -1 : 1;
+      }),
+    [events]
+  );
   const updateEvents = useEventsStore((store) => store.updateEvents);
 
   React.useEffect(() => {
@@ -217,7 +226,7 @@ export default function Events() {
         >
           <Box sx={{ width: 1200, height: "100%" }}>
             <DataGrid
-              rows={events}
+              rows={sortedEvents}
               sx={{
                 border: 2,
                 borderColor: theme.palette.grey[200],
