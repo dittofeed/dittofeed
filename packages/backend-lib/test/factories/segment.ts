@@ -3,6 +3,19 @@ import deepmerge from "deepmerge";
 
 import { JSONValue } from "../../src/types";
 
+function getTimestamps() {
+  const currentTime = Date.now() - Math.random() * 1000;
+  const receivedAt = new Date(currentTime - 500).toISOString();
+  const sentAt = new Date(currentTime - 1000).toISOString();
+  const timestamp = new Date(currentTime - 1500).toISOString();
+
+  return {
+    receivedAt,
+    sentAt,
+    timestamp,
+  };
+}
+
 export function segmentTrackEvent(
   overrides: Record<string, JSONValue>
 ): Record<string, JSONValue> {
@@ -31,12 +44,10 @@ export function segmentTrackEvent(
       properties: {
         title: "Intro to Analytics",
       },
-      receivedAt: "2015-12-12T19:11:01.266Z",
-      sentAt: "2015-12-12T19:11:01.169Z",
-      timestamp: "2015-12-12T19:11:01.249Z",
       type: "track",
       userId: "AiUGstSDIg",
       originalTimestamp: "2015-12-12T19:11:01.152Z",
+      ...getTimestamps(),
     },
     overrides
   );
@@ -60,13 +71,11 @@ export function segmentIdentifyEvent(
         Salesforce: true,
       },
       messageId: randomUUID(),
-      receivedAt: "2015-02-23T22:28:55.387Z",
-      sentAt: "2015-02-23T22:28:55.111Z",
-      timestamp: "2015-02-23T22:28:55.111Z",
       traits: {},
       type: "identify",
       userId: randomUUID(),
       version: "1.1",
+      ...getTimestamps(),
     },
     overrides
   );
