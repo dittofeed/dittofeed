@@ -286,8 +286,8 @@ function buildUserPropertyQueryFragment({
             reverse(
               arrayMap(
                 m -> (
-                  JSON_VALUE(m.1.traits, 'subscriptionGroupId'),
-                  JSON_VALUE(m.1.traits, 'subscriptionStatus')
+                  JSON_VALUE(m.1, '$.properties.subscriptionGroupId'),
+                  JSON_VALUE(m.1, '$.properties.subscriptionStatus')
                 ),
                 arrayFilter(
                   m ->
