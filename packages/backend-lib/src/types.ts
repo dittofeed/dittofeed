@@ -85,6 +85,7 @@ export enum InternalEventType {
   BadWorkspaceConfiguration = "BadWorkspaceConfiguration",
   MessageFailure = "MessageFailure",
   MessageSkipped = "MessageSkipped",
+  SubscriptionChange = "SubscriptionChange",
 }
 
 export const KafkaSaslMechanism = Type.Union([

@@ -3,6 +3,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
+import { v4 as uuid } from "uuid";
 
 import { clickhouseClient } from "../../../clickhouse";
 import { getSubscribedSegments } from "../../../journeys";
@@ -20,6 +21,7 @@ import {
   EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
+  InternalEventType,
   SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
@@ -114,12 +116,14 @@ function buildSegmentQueryExpression({
           }
 
           const val = node.operator.value;
+          // TODO just replace with uuid
           const varName = `last_trait_update${node.id.replace(/-/g, "_")}`;
           const upperTraitBound =
             currentTime / 1000 - node.operator.windowSeconds;
 
           let queryVal: string;
 
+          // TODO replace with query interpolation
           switch (typeof val) {
             case "number": {
               queryVal = String(val);
@@ -274,14 +278,42 @@ function buildUserPropertyQueryFragment({
       break;
     }
     case UserPropertyDefinitionType.LastEventTraitMap: {
-      throw new Error("unimplemented");
+      const pairsId = uuid().replace(/-/g, "_");
+      innerQuery = `
+        map(
+          arrayMap(
+            t -> t.1,
+            reverse(
+              arrayMap(
+                m -> (
+                  JSON_VALUE(m.1.traits, 'subscriptionGroupId'),
+                  JSON_VALUE(m.1.traits, 'subscriptionStatus')
+                ),
+                arrayFilter(
+                  m ->
+                    and(
+                      equals(m.1.event_type, 'track'),
+                      equals(m.1.event, '${InternalEventType.SubscriptionChange}')
+                    ),
+                  timed_messages
+                )
+              )
+            ) as ${pairsId}
+          ),
+          arrayMap(
+            t -> t.2,
+            ${pairsId}
+          )
+        )
+      `;
+      break;
     }
   }
   return `
     (
       ${modelIndex},
       Null,
-      ${innerQuery},
+      toJSONString(${innerQuery}),
       '${userProperty.id}'
     )
   `;
@@ -468,7 +500,7 @@ export async function computePropertiesPeriodSafe({
       coalesce(sas.user_property, ''),
       now64(3)
     FROM (
-      SELECT 
+      SELECT
         ${joinedWithClause},
         user_id,
         history_length,
@@ -631,7 +663,7 @@ export async function computePropertiesPeriodSafe({
 
     await Promise.all([
       ...pgUserPropertyAssignments.map((a) => {
-        const value = JSON.stringify(a.latest_user_property_value);
+        const value = a.latest_user_property_value;
         return prisma().userPropertyAssignment.upsert({
           where: {
             workspaceId_userPropertyId_userId: {
