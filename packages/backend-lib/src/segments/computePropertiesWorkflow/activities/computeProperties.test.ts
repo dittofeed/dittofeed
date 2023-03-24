@@ -496,7 +496,8 @@ describe("compute properties activities", () => {
             if (!assignments.subscriptions) {
               throw new Error("subscriptions is undefined.");
             }
-            expect(JSON.parse(assignments.subscriptions)).toEqual({
+            console.log(assignments);
+            expect(assignments.subscriptions).toEqual({
               "group-1": SubsciptionStatus.OptedIn,
               "group-2": SubsciptionStatus.OptedOut,
             });

@@ -3,6 +3,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
+// FIXME
 import { v4 as uuid } from "uuid";
 
 import { clickhouseClient } from "../../../clickhouse";
@@ -280,31 +281,66 @@ function buildUserPropertyQueryFragment({
     case UserPropertyDefinitionType.LastEventTraitMap: {
       const pairsId = uuid().replace(/-/g, "_");
       // FIXME paramaterize subscriptionGroupId, subscriptionStatus, event_type
-      innerQuery = `
-        map(
-          arrayMap(
-            t -> t.1,
-            reverse(
-              arrayMap(
-                m -> (
-                  JSON_VALUE(m.1, '$.properties.subscriptionGroupId'),
-                  JSON_VALUE(m.1, '$.properties.subscriptionStatus')
-                ),
-                arrayFilter(
-                  m ->
-                    and(
-                      equals(m.1.event_type, 'track'),
-                      equals(m.1.event, '${InternalEventType.SubscriptionChange}')
-                    ),
-                  timed_messages
+      // Syntax error: failed at position 1647 ('event_type') (line 64, col 34): event_type, 'track'),
+      // equals(m.1.event, 'SubscriptionChange')
+
+      // innerQuery = `
+      //   CAST(
+      //     (['key1', 'key2'], ['value1', 'value2']), 'Map(String, String)'
+      //   )
+      // `;
+
+      // innerQuery = `
+      //   map(
+      //     arrayMap(
+      //       t -> t.1,
+      //       (
+      //         [
+      //           ('key1', 'value1'),
+      //           ('key2', 'value2')
+      //         ]
+      //       ) as ${pairsId}
+      //     ),
+      //     arrayMap(
+      //       t -> t.2,
+      //       ${pairsId}
+      //     )
+      //   )
+      // `;
+      innerQuery = `;
+        CAST(
+          (
+            arrayMap(
+              t -> t.1,
+              reverse(
+                arrayMap(
+                  m -> (
+                    JSON_VALUE(m.1, '$.properties.subscriptionGroupId'),
+                    JSON_VALUE(m.1, '$.properties.subscriptionStatus')
+                  ),
+                  arrayFilter(
+                    m ->
+                      and(
+                        equals(
+                          JSON_VALUE(m.1, '$.event_type'),
+                          'track'
+                        ),
+                        equals(
+                          JSON_VALUE(m.1, '$.event'),
+                          '${InternalEventType.SubscriptionChange}'
+                        )
+                      ),
+                    timed_messages
+                  )
                 )
-              )
-            ) as ${pairsId}
+              ) as ${pairsId}
+            ),
+            arrayMap(
+              t -> t.2,
+              ${pairsId}
+            )
           ),
-          arrayMap(
-            t -> t.2,
-            ${pairsId}
-          )
+          'Map(String, String)'
         )
       `;
       break;
