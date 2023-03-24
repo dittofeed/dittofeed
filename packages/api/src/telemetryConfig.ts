@@ -7,6 +7,9 @@ const telemetryConfig: Parameters<
   "@opentelemetry/instrumentation-http": {
     ignoreIncomingPaths: ["/api"],
   },
+  "@opentelemetry/instrumentation-fs": {
+    enabled: false,
+  },
   "@opentelemetry/instrumentation-fastify": {
     requestHook: (span, info) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
