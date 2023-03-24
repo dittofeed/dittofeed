@@ -4,7 +4,7 @@ import config from "./config";
 
 let LOGGER: Logger | null = null;
 
-export { LogFn } from "pino";
+export { type LogFn } from "pino";
 
 export default function logger() {
   if (!LOGGER) {
