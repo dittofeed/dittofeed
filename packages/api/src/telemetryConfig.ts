@@ -4,6 +4,9 @@ import { type initOpenTelemetry } from "backend-lib/src/openTelemetry";
 const telemetryConfig: Parameters<
   typeof initOpenTelemetry
 >[0]["configOverrides"] = {
+  "@opentelemetry/instrumentation-http": {
+    ignoreIncomingPaths: ["/api"],
+  },
   "@opentelemetry/instrumentation-fastify": {
     requestHook: (span, info) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
