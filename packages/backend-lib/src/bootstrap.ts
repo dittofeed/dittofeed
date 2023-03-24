@@ -13,7 +13,7 @@ import {
   generateComputePropertiesId,
 } from "./segments/computePropertiesWorkflow";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
-import { UserPropertyDefinitionType, WriteMode } from "./types";
+import { UserPropertyDefinitionType } from "./types";
 import {
   createUserEventsTables,
   insertUserEvents,

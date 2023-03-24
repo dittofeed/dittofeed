@@ -4,6 +4,8 @@ import config from "./config";
 
 let LOGGER: Logger | null = null;
 
+export { LogFn } from "pino";
+
 export default function logger() {
   if (!LOGGER) {
     let options: Parameters<typeof pino>[0];

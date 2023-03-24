@@ -16,6 +16,7 @@ import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activ
 import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
 
 import config from "../src/config";
+import workerLogger from "../src/workerLogger";
 
 async function run() {
   const workerConfig = config();
@@ -47,7 +48,7 @@ async function run() {
     activities,
     taskQueue: "default",
     sinks: {
-      ...defaultSinks(),
+      ...defaultSinks(workerLogger),
       exporter: makeWorkflowExporter(otel.traceExporter, otel.resource),
     },
     interceptors: appendDefaultInterceptors(
@@ -60,7 +61,7 @@ async function run() {
           (ctx) => new OpenTelemetryActivityInboundInterceptor(ctx),
         ],
       },
-      console
+      workerLogger
     ),
     enableSDKTracing: true,
   });
