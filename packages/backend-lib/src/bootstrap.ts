@@ -13,7 +13,7 @@ import {
   generateComputePropertiesId,
 } from "./segments/computePropertiesWorkflow";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
-import { UserPropertyDefinitionType } from "./types";
+import { UserPropertyDefinitionType, WriteMode } from "./types";
 import {
   createUserEventsTables,
   insertUserEvents,
@@ -244,17 +244,22 @@ async function insertDefaultEvents() {
 }
 
 export default async function bootstrap() {
-  await Promise.all([
+  const initialBootstrap = [
     bootstrapPostgres().catch((err) =>
       logger().error({ err }, "failed to bootstrap postgres")
-    ),
-    bootstrapKafka().catch((err) =>
-      logger().error({ err }, "failed to bootstrap kafka")
     ),
     bootstrapClickhouse().catch((err) =>
       logger().error({ err }, "failed to bootstrap clickhouse")
     ),
-  ]);
+  ];
+  if (config().writeMode === "kafka") {
+    initialBootstrap.push(
+      bootstrapKafka().catch((err) =>
+        logger().error({ err }, "failed to bootstrap kafka")
+      )
+    );
+  }
+  await Promise.all(initialBootstrap);
 
   if (config().bootstrapEvents) {
     await insertDefaultEvents();
