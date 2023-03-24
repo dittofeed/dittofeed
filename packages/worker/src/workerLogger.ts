@@ -1,3 +1,6 @@
+/**
+ * Provides compatibility layer between temporal logger interface and pino
+ */
 import { LogLevel, LogMetadata } from "@temporalio/worker";
 import backendLogger, { LogFn } from "backend-lib/src/logger";
 
@@ -58,9 +61,3 @@ const workerLogger = {
 };
 
 export default workerLogger;
-
-// trace(message: string, meta?: LogMetadata): any;
-// debug(message: string, meta?: LogMetadata): any;
-// info(message: string, meta?: LogMetadata): any;
-// warn(message: string, meta?: LogMetadata): any;
-// error(message: string, meta?: LogMetadata): any;
