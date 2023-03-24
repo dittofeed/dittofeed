@@ -123,7 +123,6 @@ export enum UserPropertyDefinitionType {
 
 export const LetmUserPropertyDefinition = Type.Object({
   type: Type.Literal(UserPropertyDefinitionType.LastEventTraitMap),
-  path: Type.String(),
 });
 
 export type LetmUserPropertyDefinition = Static<
@@ -602,3 +601,9 @@ export const DeleteSegmentRequest = Type.Object({
 });
 
 export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
+
+export enum SubsciptionStatus {
+  OptedIn = "OptedIn",
+  OptedOut = "OptedOut",
+  Default = "Default",
+}

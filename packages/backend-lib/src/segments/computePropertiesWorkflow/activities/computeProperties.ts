@@ -279,6 +279,7 @@ function buildUserPropertyQueryFragment({
     }
     case UserPropertyDefinitionType.LastEventTraitMap: {
       const pairsId = uuid().replace(/-/g, "_");
+      // FIXME paramaterize subscriptionGroupId, subscriptionStatus, event_type
       innerQuery = `
         map(
           arrayMap(

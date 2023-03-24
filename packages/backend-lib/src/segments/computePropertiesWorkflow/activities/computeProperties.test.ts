@@ -3,13 +3,17 @@ import { uuid4 } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { segmentIdentifyEvent } from "../../../../test/factories/segment";
+import {
+  segmentIdentifyEvent,
+  segmentTrackEvent,
+} from "../../../../test/factories/segment";
 import { clickhouseClient } from "../../../clickhouse";
 import { enrichJourney } from "../../../journeys";
 import prisma from "../../../prisma";
 import {
   EnrichedJourney,
   EnrichedUserProperty,
+  InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
   MessageNodeVariantType,
@@ -17,6 +21,7 @@ import {
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,
   SegmentOperatorType,
+  SubsciptionStatus,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "../../../types";
@@ -408,6 +413,93 @@ describe("compute properties activities", () => {
                 ],
               })
             );
+          });
+        });
+
+        describe("when LastEventTraitMap for subscription properties are specified", () => {
+          let userProperty: EnrichedUserProperty;
+
+          beforeEach(async () => {
+            const definition: UserPropertyDefinition = {
+              type: UserPropertyDefinitionType.LastEventTraitMap,
+            };
+
+            userProperty = (await prisma().userProperty.create({
+              data: {
+                workspaceId: workspace.id,
+                definition,
+                name: "subscriptions",
+              },
+            })) as EnrichedUserProperty;
+
+            await insertUserEvents({
+              tableVersion,
+              workspaceId: workspace.id,
+              events: [
+                {
+                  messageId: randomUUID(),
+                  processingTime: "2022-01-01 00:15:45",
+                  messageRaw: segmentTrackEvent({
+                    userId,
+                    timestamp: "2022-01-01 00:15:15",
+                    event: InternalEventType.SubscriptionChange,
+                    properties: {
+                      subscriptionGroupId: "group-1",
+                      subscriptionStatus: SubsciptionStatus.OptedOut,
+                    },
+                  }),
+                },
+                {
+                  messageId: randomUUID(),
+                  processingTime: "2022-01-01 00:15:50",
+                  messageRaw: segmentTrackEvent({
+                    userId,
+                    timestamp: "2022-01-01 00:15:20",
+                    event: InternalEventType.SubscriptionChange,
+                    properties: {
+                      subscriptionGroupId: "group-1",
+                      subscriptionStatus: SubsciptionStatus.OptedIn,
+                    },
+                  }),
+                },
+                {
+                  messageId: randomUUID(),
+                  processingTime: "2022-01-01 00:15:55",
+                  messageRaw: segmentTrackEvent({
+                    userId,
+                    timestamp: "2022-01-01 00:15:25",
+                    event: InternalEventType.SubscriptionChange,
+                    properties: {
+                      subscriptionGroupId: "group-2",
+                      subscriptionStatus: SubsciptionStatus.OptedOut,
+                    },
+                  }),
+                },
+              ],
+            });
+          });
+          it("it creates that property", async () => {
+            const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
+
+            await computePropertiesPeriod({
+              currentTime,
+              workspaceId: workspace.id,
+              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
+              tableVersion,
+              subscribedJourneys: [journey],
+              userProperties: [userProperty],
+            });
+
+            const assignments = await findAllUserPropertyAssignments({
+              userId,
+            });
+            if (!assignments.subscriptions) {
+              throw new Error("subscriptions is undefined.");
+            }
+            expect(JSON.parse(assignments.subscriptions)).toEqual({
+              "group-1": SubsciptionStatus.OptedIn,
+              "group-2": SubsciptionStatus.OptedOut,
+            });
           });
         });
 
