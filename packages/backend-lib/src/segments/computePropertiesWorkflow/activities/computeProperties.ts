@@ -478,6 +478,14 @@ export async function computePropertiesPeriodSafe({
     ) sas
   `;
 
+  logger().debug(
+    {
+      workspaceId,
+      query: writeQuery,
+    },
+    "compute properties write query"
+  );
+
   // segment id / pg + journey id
   const subscribedSegmentPairs = subscribedJourneys.reduce<
     Map<string, Set<string>>
@@ -564,6 +572,14 @@ export async function computePropertiesPeriodSafe({
       FROM processed_computed_properties FINAL
     )
   `;
+
+  logger().debug(
+    {
+      workspaceId,
+      query: readQuery,
+    },
+    "compute properties read query"
+  );
 
   await clickhouseClient().query({
     query: writeQuery,
