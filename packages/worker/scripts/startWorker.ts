@@ -6,6 +6,7 @@ import {
   appendDefaultInterceptors,
   defaultSinks,
   NativeConnection,
+  Runtime,
   Worker,
 } from "@temporalio/worker";
 import backendConfig from "backend-lib/src/config";
@@ -16,6 +17,7 @@ import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activ
 import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
 
 import config from "../src/config";
+import workerLogger from "../src/workerLogger";
 
 async function run() {
   const workerConfig = config();
@@ -33,6 +35,8 @@ async function run() {
     serviceName: workerConfig.workerServiceName,
   });
 
+  Runtime.install({ logger: workerLogger });
+
   const [connection, workflowClient] = await Promise.all([
     NativeConnection.connect({
       address: backendConfig().temporalAddress,
@@ -47,7 +51,7 @@ async function run() {
     activities,
     taskQueue: "default",
     sinks: {
-      ...defaultSinks(),
+      ...defaultSinks(workerLogger),
       exporter: makeWorkflowExporter(otel.traceExporter, otel.resource),
     },
     interceptors: appendDefaultInterceptors(
@@ -60,10 +64,11 @@ async function run() {
           (ctx) => new OpenTelemetryActivityInboundInterceptor(ctx),
         ],
       },
-      console
+      workerLogger
     ),
     enableSDKTracing: true,
   });
+
   await otel.start();
   await worker.run();
 }

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "NODE_ENV=production tsc --build",
-    "dev": "NODE_ENV=development tsc-watch -b --onSuccess 'node dist/scripts/startWorker.js'",
+    "dev": "NODE_ENV=development ts-node scripts/startWorker.ts",
     "lint": "eslint .",
     "start": "nodemon scripts/startWorker.ts"
   },
