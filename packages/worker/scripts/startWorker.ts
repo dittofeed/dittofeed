@@ -6,6 +6,7 @@ import {
   appendDefaultInterceptors,
   defaultSinks,
   NativeConnection,
+  Runtime,
   Worker,
 } from "@temporalio/worker";
 import backendConfig from "backend-lib/src/config";
@@ -33,6 +34,8 @@ async function run() {
   const otel = initOpenTelemetry({
     serviceName: workerConfig.workerServiceName,
   });
+
+  Runtime.install({ logger: workerLogger });
 
   const [connection, workflowClient] = await Promise.all([
     NativeConnection.connect({
@@ -65,6 +68,7 @@ async function run() {
     ),
     enableSDKTracing: true,
   });
+
   await otel.start();
   await worker.run();
 }
