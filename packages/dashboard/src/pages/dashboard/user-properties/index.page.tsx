@@ -60,6 +60,14 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
+const protectedUserProperties = new Set<string>([
+  "id",
+  "phone",
+  "email",
+  "anonymousId",
+  "language",
+]);
+
 function UserPropertyItem({
   userProperty,
 }: {
@@ -85,6 +93,8 @@ function UserPropertyItem({
     deleteUserProperty(deleteRequest.id);
   };
 
+  const isProtected = protectedUserProperties.has(userProperty.name);
+
   const handleDelete = apiRequestHandlerFactory({
     request: userPropertyDeleteRequest,
     setRequest: setUserPropertyDeleteRequest,
@@ -105,7 +115,7 @@ function UserPropertyItem({
   return (
     <ListItem
       secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
+        <IconButton edge="end" onClick={handleDelete} disabled={isProtected}>
           <Delete />
         </IconButton>
       }
