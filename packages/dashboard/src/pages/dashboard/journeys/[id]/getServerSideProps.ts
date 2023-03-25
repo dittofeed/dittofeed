@@ -8,6 +8,11 @@ import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
 
+import {
+  buildNodesIndex,
+  defaultEdges,
+  defaultNodes,
+} from "../../../../components/journeys/defaults";
 import { journeyToState } from "../../../../components/journeys/store";
 import {
   addInitialStateToProps,
@@ -89,6 +94,9 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps = async (
     Object.assign(serverInitialState, stateFromJourney);
   } else {
     serverInitialState.journeyName = `New Journey - ${id}`;
+    serverInitialState.journeyNodes = defaultNodes;
+    serverInitialState.journeyEdges = defaultEdges;
+    serverInitialState.journeyNodesIndex = buildNodesIndex(defaultNodes);
   }
 
   const segmentResourceResult = Result.combine(segments.map(toSegmentResource));

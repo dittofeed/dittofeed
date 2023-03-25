@@ -21,7 +21,6 @@ import {
   EdgeChange,
   Node,
   NodeChange,
-  XYPosition,
 } from "reactflow";
 import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
@@ -32,23 +31,21 @@ import {
   JourneyState,
   NodeData,
 } from "../../lib/types";
+import {
+  buildNodesIndex,
+  defaultEdges,
+  defaultNodes,
+  placeholderNodePosition,
+} from "./defaults";
 import findJourneyNode from "./findJourneyNode";
 import findNode from "./findNode";
 import { layoutNodes } from "./layoutNodes";
-import defaultNodeTypeProps, {
-  defaultSegmentSplitName,
-} from "./nodeTypes/defaultNodeTypeProps";
+import { defaultSegmentSplitName } from "./nodeTypes/defaultNodeTypeProps";
 
-const defaultEdges: Edge[] = [
-  {
-    id: `${JourneyNodeType.EntryNode}=>${JourneyNodeType.ExitNode}`,
-    source: JourneyNodeType.EntryNode,
-    target: JourneyNodeType.ExitNode,
-    type: "workflow",
-  },
-];
-
-const placeholderNodePosition: XYPosition = { x: 0, y: 0 };
+type JourneyStateForResource = Pick<
+  JourneyState,
+  "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
+>;
 
 function multiMapSet<P, C, M extends Map<C, P[]>>(
   parent: P,
@@ -62,42 +59,6 @@ function multiMapSet<P, C, M extends Map<C, P[]>>(
   }
   existing.push(parent);
 }
-
-const defaultNodes = layoutNodes(
-  [
-    {
-      id: JourneyNodeType.EntryNode,
-      data: {
-        type: "JourneyNode",
-        nodeTypeProps: defaultNodeTypeProps(JourneyNodeType.EntryNode, []),
-      },
-      position: placeholderNodePosition,
-      type: "journey",
-    },
-    {
-      id: JourneyNodeType.ExitNode,
-      data: {
-        type: "JourneyNode",
-        nodeTypeProps: defaultNodeTypeProps(JourneyNodeType.ExitNode, []),
-      },
-      position: placeholderNodePosition,
-      type: "journey",
-    },
-  ],
-  defaultEdges
-);
-
-function buildNodesIndex(nodes: Node<NodeData>[]): Record<string, number> {
-  return nodes.reduce<Record<string, number>>((memo, node, i) => {
-    memo[node.id] = i;
-    return memo;
-  }, {});
-}
-
-type JourneyStateForResource = Pick<
-  JourneyState,
-  "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
->;
 
 export function journeyDefinitionFromState({
   state,
