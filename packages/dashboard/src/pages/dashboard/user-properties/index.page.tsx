@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
+import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
   CompletionStatus,
   DeleteUserPropertyRequest,
@@ -59,14 +60,6 @@ export const getServerSideProps: GetServerSideProps<
     ),
   };
 };
-
-const protectedUserProperties = new Set<string>([
-  "id",
-  "phone",
-  "email",
-  "anonymousId",
-  "language",
-]);
 
 function UserPropertyItem({
   userProperty,
@@ -128,7 +121,7 @@ function UserPropertyItem({
           borderColor: "grey.200",
         }}
         onClick={() => {
-          path.push(`/dashboard/userProperties/${userProperty.id}`);
+          path.push(`/dashboard/user-properties/${userProperty.id}`);
         }}
       >
         <ListItemText primary={userProperty.name} />

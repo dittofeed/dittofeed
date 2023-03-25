@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
 import { findAllUserTraits } from "backend-lib/src/userEvents";
+import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -27,6 +28,10 @@ import {
   SegmentResource,
   SegmentWithinOperator,
   TraitSegmentNode,
+  TraitUserPropertyDefinition,
+  UserPropertyDefinition,
+  UserPropertyDefinitionType,
+  UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -137,8 +142,8 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  const [segment, workspace, traits] = await Promise.all([
-    prisma().segment.findUnique({
+  const [userProperty, workspace, traits] = await Promise.all([
+    prisma().userProperty.findUnique({
       where: {
         id,
       },
@@ -153,48 +158,34 @@ export const getServerSideProps: GetServerSideProps<
     }),
   ]);
 
-  let segmentResource: SegmentResource;
-  if (segment) {
-    const segmentDefinition = unwrap(
-      schemaValidate(segment.definition, SegmentDefinition)
+  let userPropertyResource: UserPropertyResource;
+  if (userProperty) {
+    const definition = unwrap(
+      schemaValidate(userProperty.definition, UserPropertyDefinition)
     );
-    segmentResource = {
-      id: segment.id,
-      name: segment.name,
+    userPropertyResource = {
+      id: userProperty.id,
+      name: userProperty.name,
       workspaceId,
-      definition: segmentDefinition,
+      definition,
+    };
+    serverInitialState.userProperties = {
+      type: CompletionStatus.Successful,
+      value: [userPropertyResource],
     };
   } else {
-    segmentResource = {
-      name: "My Segment",
+    userPropertyResource = {
+      name: "Example User Property",
       id,
       workspaceId,
       definition: {
-        entryNode: {
-          type: SegmentNodeType.And,
-          children: [initTraitId],
-          id: entryId,
-        },
-        nodes: [
-          {
-            type: SegmentNodeType.Trait,
-            id: initTraitId,
-            path: "",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: "",
-            },
-          },
-        ],
+        type: UserPropertyDefinitionType.Trait,
+        path: "$.example.path",
       },
     };
   }
 
-  serverInitialState.segments = {
-    type: CompletionStatus.Successful,
-    value: [segmentResource],
-  };
-  serverInitialState.editedSegment = segmentResource;
+  serverInitialState.editedUserProperty = userPropertyResource;
 
   if (workspace) {
     // TODO PLI-212
@@ -552,39 +543,106 @@ function SegmentNodeComponent({
   return <>{el}</>;
 }
 
+function TraitUserPropertyDefinitionEditor({
+  definition,
+}: {
+  definition: TraitUserPropertyDefinition;
+}) {
+  const traits = useAppStore((store) => store.traits);
+  const traitOptions =
+    traits.type === CompletionStatus.Successful ? traits.value : [];
+
+  const updateUserPropertyDefinition = useAppStore(
+    (state) => state.updateUserPropertyDefinition
+  );
+  const handleTraitChange = (trait: string) => {
+    updateUserPropertyDefinition({
+      ...definition,
+      path: trait,
+    });
+  };
+
+  return (
+    <Autocomplete
+      value={definition.path}
+      freeSolo
+      onChange={(_event, newValue) => {
+        handleTraitChange(newValue);
+      }}
+      disableClearable
+      options={traitOptions}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="Trait"
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            const newValue = event.target.value;
+            handleTraitChange(newValue);
+          }}
+          InputProps={{
+            ...params.InputProps,
+            type: "search",
+          }}
+        />
+      )}
+    />
+  );
+}
+
+function UserPropertyDefinitionEditor({
+  definition,
+}: {
+  definition: UserPropertyDefinition;
+}) {
+  let up;
+  switch (definition.type) {
+    case UserPropertyDefinitionType.Id:
+      up = <>id prop</>;
+      break;
+    case UserPropertyDefinitionType.AnonymousId:
+      up = <>anonymous id prop</>;
+      break;
+    case UserPropertyDefinitionType.Trait:
+      up = <TraitUserPropertyDefinitionEditor definition={definition} />;
+      break;
+  }
+  return <>{up}</>;
+}
+
+// FIXME disable protected
 export default function NewUserProperty() {
-  const editedSegment = useAppStore((state) => state.editedSegment);
-  const setName = useAppStore((state) => state.setEditableSegmentName);
+  const editedUserProperty = useAppStore((state) => state.editedUserProperty);
+  const setName = useAppStore((state) => state.setEditableUserPropertyName);
   const apiBase = useAppStore((state) => state.apiBase);
   const segmentUpdateRequest = useAppStore(
     (state) => state.segmentUpdateRequest
   );
-  const setSegmentUpdateRequest = useAppStore(
-    (state) => state.setSegmentUpdateRequest
+  const setUserPropertyUpdateRequest = useAppStore(
+    (state) => state.setUserPropertyUpdateRequest
   );
-  const upsertSegment = useAppStore((state) => state.upsertSegment);
+  const upsertUserProperty = useAppStore((state) => state.upsertUserProperty);
   const theme = useTheme();
 
-  if (!editedSegment) {
+  if (!editedUserProperty) {
     return null;
   }
-  const { entryNode } = editedSegment.definition;
-  const { name } = editedSegment;
+  const { name } = editedUserProperty;
 
   const handleSave = apiRequestHandlerFactory({
     request: segmentUpdateRequest,
-    setRequest: setSegmentUpdateRequest,
-    responseSchema: SegmentResource,
-    setResponse: upsertSegment,
+    setRequest: setUserPropertyUpdateRequest,
+    responseSchema: UserPropertyResource,
+    setResponse: upsertUserProperty,
     requestConfig: {
       method: "PUT",
       url: `${apiBase}/api/segments`,
-      data: editedSegment,
+      data: editedUserProperty,
       headers: {
         "Content-Type": "application/json",
       },
     },
   });
+  const isProtected = protectedUserProperties.has(editedUserProperty.name);
 
   return (
     <>
@@ -611,7 +669,11 @@ export default function NewUserProperty() {
                 name={name}
                 onChange={(event) => setName(event.target.value)}
               />
-              <Button variant="contained" onClick={handleSave}>
+              <Button
+                variant="contained"
+                onClick={handleSave}
+                disabled={isProtected}
+              >
                 Save
               </Button>
             </Stack>
@@ -624,7 +686,9 @@ export default function NewUserProperty() {
                 border: `1px solid ${theme.palette.grey[200]}`,
               }}
             >
-              <SegmentNodeComponent node={entryNode} />
+              <UserPropertyDefinitionEditor
+                definition={editedUserProperty.definition}
+              />
             </Box>
           </Stack>
         </MainLayout>
