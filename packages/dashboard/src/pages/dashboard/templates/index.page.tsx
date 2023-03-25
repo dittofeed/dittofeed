@@ -12,6 +12,7 @@ import backendConfig from "backend-lib/src/config";
 import {
   CompletionStatus,
   EmailTemplateResource,
+  MessageTemplateResource,
   TemplateResourceType,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -62,7 +63,32 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
-function MessageListContents() {
+function TemplateListItem({ template }: { template: MessageTemplateResource }) {
+  const path = useRouter();
+  return (
+    <ListItem>
+      <ListItemButton
+        sx={{
+          border: 1,
+          borderRadius: 1,
+          borderColor: "grey.200",
+        }}
+        onClick={() => {
+          let messageType: string;
+          switch (template.type) {
+            case TemplateResourceType.Email:
+              messageType = "emails";
+          }
+          path.push(`/dashboard/templates/${messageType}/${template.id}`);
+        }}
+      >
+        <ListItemText primary={template.name} />
+      </ListItemButton>
+    </ListItem>
+  );
+}
+
+function TemplateListContents() {
   const path = useRouter();
   const messagesResult = useAppStore((store) => store.messages);
   const messages =
@@ -75,32 +101,13 @@ function MessageListContents() {
     innerContents = (
       <List
         sx={{
-          padding: 1,
           width: "100%",
           bgcolor: "background.paper",
           borderRadius: 1,
         }}
       >
-        {messages.map((message) => (
-          <ListItem disableGutters key={message.id}>
-            <ListItemButton
-              sx={{
-                border: 1,
-                borderRadius: 1,
-                borderColor: "grey.200",
-              }}
-              onClick={() => {
-                let messageType: string;
-                switch (message.type) {
-                  case TemplateResourceType.Email:
-                    messageType = "emails";
-                }
-                path.push(`/dashboard/templates/${messageType}/${message.id}`);
-              }}
-            >
-              <ListItemText primary={message.name} />
-            </ListItemButton>
-          </ListItem>
+        {messages.map((template) => (
+          <TemplateListItem template={template} key={template.id} />
         ))}
       </List>
     );
@@ -133,7 +140,8 @@ function MessageListContents() {
     </Stack>
   );
 }
-export default function MessageList() {
+
+export default function TemplateList() {
   return (
     <>
       <Head>
@@ -142,7 +150,7 @@ export default function MessageList() {
       </Head>
       <main>
         <MainLayout>
-          <MessageListContents />
+          <TemplateListContents />
         </MainLayout>
       </main>
     </>
