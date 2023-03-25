@@ -10,7 +10,7 @@ import {
   ThunderboltOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { ManageAccounts } from "@mui/icons-material";
+import { ManageAccountsOutlined } from "@mui/icons-material";
 
 import { MenuItemGroup } from "./types";
 
@@ -77,7 +77,7 @@ const menuItems: { items: MenuItemGroup[] } = {
           title: "User Properties",
           type: "item",
           url: "/dashboard/user-properties",
-          icon: ManageAccounts,
+          icon: ManageAccountsOutlined,
           description:
             "Manage the properties which are recorded and computed for users.",
         },
