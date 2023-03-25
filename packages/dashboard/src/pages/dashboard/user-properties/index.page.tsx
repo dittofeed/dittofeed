@@ -9,11 +9,13 @@ import {
   Typography,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
+import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
   DeleteSegmentResponse,
   SegmentResource,
+  UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -33,29 +35,27 @@ import { AppState } from "../../../lib/types";
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState
 > = async () => {
-  const { toSegmentResource } = await import("backend-lib/src/segments");
-
   const workspaceId = backendConfig().defaultWorkspaceId;
-  const segmentResources: SegmentResource[] = (
-    await prisma().segment.findMany({
+  const userPropertyResources: UserPropertyResource[] = (
+    await prisma().userProperty.findMany({
       where: { workspaceId },
     })
   ).flatMap((segment) => {
-    const result = toSegmentResource(segment);
+    const result = toUserPropertyResource(segment);
     if (result.isErr()) {
       return [];
     }
     return result.value;
   });
-  const segments: AppState["segments"] = {
+  const userProperties: AppState["userProperties"] = {
     type: CompletionStatus.Successful,
-    value: segmentResources,
+    value: userPropertyResources,
   };
   return {
     props: addInitialStateToProps(
       {},
       {
-        segments,
+        userProperties,
       }
     ),
   };
