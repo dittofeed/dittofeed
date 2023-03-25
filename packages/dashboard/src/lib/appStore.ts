@@ -185,6 +185,26 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
 
+        messageTemplateDeleteRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+
+        deleteMessage: (id) =>
+          set((state) => {
+            if (state.messages.type !== CompletionStatus.Successful) {
+              return state;
+            }
+            state.messages.value = state.messages.value.filter(
+              (m) => m.id !== id
+            );
+            return state;
+          }),
+
+        setMessageTemplateDeleteRequest: (request) =>
+          set((state) => {
+            state.messageTemplateDeleteRequest = request;
+          }),
+
         // segment update view,
         editedSegment: null,
         segmentUpdateRequest: {

@@ -47,6 +47,7 @@ export interface AppActions {
     dataSource: DataSourceConfigurationResource
   ) => void;
   upsertMessage: (message: MessageTemplateResource) => void;
+  deleteMessage: (id: string) => void;
   upsertSegment: (segment: SegmentResource) => void;
   deleteSegment: (segmentId: string) => void;
   upsertJourney: (journey: JourneyResource) => void;
@@ -80,6 +81,13 @@ export interface UserPropertyEditorContent {
 export interface JourneyIndexContent {
   journeyDeleteRequest: EphemeralRequestStatus<Error>;
   setJourneyDeleteRequest: (request: EphemeralRequestStatus<Error>) => void;
+}
+
+export interface MessageTemplateIndexContent {
+  messageTemplateDeleteRequest: EphemeralRequestStatus<Error>;
+  setMessageTemplateDeleteRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
 }
 
 export interface SegmentEditorState {
@@ -158,6 +166,7 @@ export type PageStoreContents = EmailMessageEditorContents &
   SegmentIndexContent &
   UserPropertyIndexContent &
   JourneyIndexContent &
+  MessageTemplateIndexContent &
   UserPropertyEditorContent &
   JourneyContent;
 
