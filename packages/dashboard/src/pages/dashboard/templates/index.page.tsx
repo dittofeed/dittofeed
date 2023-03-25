@@ -1,4 +1,4 @@
-import { AddCircleOutline } from "@mui/icons-material";
+import { AddCircleOutline, Delete } from "@mui/icons-material";
 import {
   IconButton,
   List,
@@ -11,6 +11,8 @@ import {
 import backendConfig from "backend-lib/src/config";
 import {
   CompletionStatus,
+  DeleteMessageTemplateRequest,
+  DeleteMessageTemplateResponse,
   EmailTemplateResource,
   MessageTemplateResource,
   TemplateResourceType,
@@ -21,6 +23,7 @@ import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import {
   addInitialStateToProps,
   PropsWithInitialState,
@@ -65,8 +68,50 @@ export const getServerSideProps: GetServerSideProps<
 
 function TemplateListItem({ template }: { template: MessageTemplateResource }) {
   const path = useRouter();
+
+  const setMessageTemplateDeleteRequest = useAppStore(
+    (store) => store.setMessageTemplateDeleteRequest
+  );
+  const apiBase = useAppStore((store) => store.apiBase);
+  const journeyDeleteRequest = useAppStore(
+    (store) => store.journeyDeleteRequest
+  );
+  const deleteMessageTemplate = useAppStore((store) => store.deleteMessage);
+
+  const setDeleteResponse = (
+    _response: DeleteMessageTemplateResponse,
+    deleteRequest?: DeleteMessageTemplateRequest
+  ) => {
+    if (!deleteRequest) {
+      return;
+    }
+    deleteMessageTemplate(deleteRequest.id);
+  };
+
+  const handleDelete = apiRequestHandlerFactory({
+    request: journeyDeleteRequest,
+    setRequest: setMessageTemplateDeleteRequest,
+    responseSchema: DeleteMessageTemplateResponse,
+    setResponse: setDeleteResponse,
+    requestConfig: {
+      method: "DELETE",
+      url: `${apiBase}/api/templates`,
+      data: {
+        id: template.id,
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
   return (
-    <ListItem>
+    <ListItem
+      secondaryAction={
+        <IconButton edge="end" onClick={handleDelete}>
+          <Delete />
+        </IconButton>
+      }
+    >
       <ListItemButton
         sx={{
           border: 1,
