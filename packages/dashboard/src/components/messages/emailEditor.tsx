@@ -36,7 +36,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useAppStore } from "../../lib/appStore";
@@ -104,10 +104,11 @@ const BodyBox = styled(Box, {
 
 type Fullscreen = "editor" | "preview" | null;
 
-enum ErrorKeys {
+enum NotifyKey {
   RenderBodyError = "RenderBodyError",
   RenderFromError = "RenderFromError",
   RenderSubjectError = "RenderSubjectError",
+  UserPropertyWarning = "UserPropertyWarning",
 }
 
 const anchorOrigin: SnackbarOrigin = {
@@ -115,7 +116,7 @@ const anchorOrigin: SnackbarOrigin = {
   horizontal: "right",
 };
 
-function errorHash(key: ErrorKeys, message: string) {
+function errorHash(key: NotifyKey, message: string) {
   return hash(`${key}-${message}`);
 }
 
@@ -124,17 +125,27 @@ const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 export default function EmailEditor() {
   const theme = useTheme();
   const path = useRouter();
-  const [errors, setErrors] = useState<Map<ErrorKeys, string>>(new Map());
+  const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
   const [previewBodyHtml, setRenderedBody] = useState<string>("");
   const [previewSubject, setRenderedSubject] = useState<string>("");
   const [previewEmailFrom, setRenderedFrom] = useState<string>("");
 
   const [fullscreen, setFullscreen] = useState<Fullscreen>(null);
+  const userProperties = useAppStore((state) => state.userProperties);
+  const userPropertySet: Set<string> = useMemo(
+    () =>
+      new Set(
+        userProperties.type === CompletionStatus.Successful
+          ? new Set(userProperties.value.map((up) => up.name))
+          : []
+      ),
+    [userProperties]
+  );
   const title = useAppStore((state) => state.emailMessageTitle);
   const setTitle = useAppStore((state) => state.setEmailMessageProps);
   const emailSubject = useAppStore((state) => state.emailMessageSubject);
   const workspaceRequest = useAppStore((store) => store.workspace);
-  const userProperties = useAppStore(
+  const mockUserProperties = useAppStore(
     (state) => state.emailMessageUserProperties
   );
   const setSubject = useAppStore((state) => state.setEmailMessageSubject);
@@ -190,39 +201,39 @@ export default function EmailEditor() {
 
   const [debouncedEmailBody] = useDebounce(emailBody, 300);
   const [debouncedEmailSubject] = useDebounce(emailSubject, 300);
-  const [debouncedUserProperties] = useDebounce(userProperties, 300);
+  const [debouncedUserProperties] = useDebounce(mockUserProperties, 300);
   const [debouncedEmailFrom] = useDebounce(emailFrom, 300);
 
   useEffect(() => {
-    const existingErr = errors.get(ErrorKeys.RenderBodyError);
+    const existingErr = errors.get(NotifyKey.RenderBodyError);
     try {
       const rendered = renderWithUserProperties({
         template: debouncedEmailBody,
         userProperties: debouncedUserProperties,
       });
       if (existingErr) {
-        closeSnackbar(errorHash(ErrorKeys.RenderBodyError, existingErr));
+        closeSnackbar(errorHash(NotifyKey.RenderBodyError, existingErr));
       }
       setRenderedBody(rendered);
       setErrors(
         produce((errorMap) => {
-          errorMap.delete(ErrorKeys.RenderBodyError);
+          errorMap.delete(NotifyKey.RenderBodyError);
         })
       );
     } catch (e) {
       const message = `Body Error: ${String(e)}`;
       if (existingErr && existingErr !== message) {
-        closeSnackbar(errorHash(ErrorKeys.RenderBodyError, existingErr));
+        closeSnackbar(errorHash(NotifyKey.RenderBodyError, existingErr));
       }
       enqueueSnackbar(message, {
         variant: "error",
         persist: true,
-        key: errorHash(ErrorKeys.RenderBodyError, message),
+        key: errorHash(NotifyKey.RenderBodyError, message),
         anchorOrigin,
       });
       setErrors(
         produce((errorMap) => {
-          errorMap.set(ErrorKeys.RenderBodyError, message);
+          errorMap.set(NotifyKey.RenderBodyError, message);
         })
       );
 
@@ -231,7 +242,7 @@ export default function EmailEditor() {
   }, [debouncedEmailBody, debouncedUserProperties, errors]);
 
   useEffect(() => {
-    const existingErr = errors.get(ErrorKeys.RenderSubjectError);
+    const existingErr = errors.get(NotifyKey.RenderSubjectError);
     try {
       const rendered = escapeHtml(
         renderWithUserProperties({
@@ -242,27 +253,27 @@ export default function EmailEditor() {
       setRenderedSubject(rendered);
       setErrors(
         produce((errorMap) => {
-          errorMap.delete(ErrorKeys.RenderSubjectError);
+          errorMap.delete(NotifyKey.RenderSubjectError);
         })
       );
       if (existingErr) {
-        closeSnackbar(errorHash(ErrorKeys.RenderSubjectError, existingErr));
+        closeSnackbar(errorHash(NotifyKey.RenderSubjectError, existingErr));
       }
     } catch (e) {
       const message = `Subject Error: ${String(e)}`;
 
       if (existingErr && existingErr !== message) {
-        closeSnackbar(errorHash(ErrorKeys.RenderSubjectError, existingErr));
+        closeSnackbar(errorHash(NotifyKey.RenderSubjectError, existingErr));
       }
       enqueueSnackbar(message, {
         variant: "error",
         persist: true,
-        key: errorHash(ErrorKeys.RenderSubjectError, message),
+        key: errorHash(NotifyKey.RenderSubjectError, message),
         anchorOrigin,
       });
       setErrors(
         produce((errorMap) => {
-          errorMap.set(ErrorKeys.RenderSubjectError, message);
+          errorMap.set(NotifyKey.RenderSubjectError, message);
         })
       );
       setRenderedSubject("Render Error");
@@ -272,7 +283,7 @@ export default function EmailEditor() {
   const previewEmailTo = debouncedUserProperties.email;
 
   useEffect(() => {
-    const existingErr = errors.get(ErrorKeys.RenderFromError);
+    const existingErr = errors.get(NotifyKey.RenderFromError);
     try {
       const rendered = escapeHtml(
         renderWithUserProperties({
@@ -282,35 +293,76 @@ export default function EmailEditor() {
       );
 
       if (existingErr) {
-        closeSnackbar(errorHash(ErrorKeys.RenderFromError, existingErr));
+        closeSnackbar(errorHash(NotifyKey.RenderFromError, existingErr));
       }
 
       setRenderedFrom(rendered);
       setErrors(
         produce((errorMap) => {
-          errorMap.delete(ErrorKeys.RenderFromError);
+          errorMap.delete(NotifyKey.RenderFromError);
         })
       );
 
-      closeSnackbar(ErrorKeys.RenderFromError);
+      closeSnackbar(NotifyKey.RenderFromError);
     } catch (e) {
       const message = `From Error: ${String(e)}`;
       if (existingErr && existingErr !== message) {
-        closeSnackbar(errorHash(ErrorKeys.RenderFromError, existingErr));
+        closeSnackbar(errorHash(NotifyKey.RenderFromError, existingErr));
       }
       enqueueSnackbar(message, {
         variant: "error",
         persist: true,
-        key: errorHash(ErrorKeys.RenderFromError, message),
+        key: errorHash(NotifyKey.RenderFromError, message),
         anchorOrigin,
       });
       setErrors(
         produce((errorMap) => {
-          errorMap.set(ErrorKeys.RenderFromError, message);
+          errorMap.set(NotifyKey.RenderFromError, message);
         })
       );
     }
   }, [debouncedEmailFrom, debouncedUserProperties, errors]);
+
+  useEffect(() => {
+    let missingUserProperty: string | null = null;
+    for (const userProperty in mockUserProperties) {
+      if (!userPropertySet.has(userProperty)) {
+        missingUserProperty = userProperty;
+        break;
+      }
+    }
+    const existingMsg = errors.get(NotifyKey.UserPropertyWarning);
+    if (!missingUserProperty) {
+      if (existingMsg) {
+        closeSnackbar(errorHash(NotifyKey.UserPropertyWarning, existingMsg));
+      }
+
+      setErrors(
+        produce((errorMap) => {
+          errorMap.delete(NotifyKey.UserPropertyWarning);
+        })
+      );
+      return;
+    }
+
+    const message = `User property named "${missingUserProperty}" is not configured.`;
+    if (existingMsg && existingMsg !== message) {
+      closeSnackbar(errorHash(NotifyKey.UserPropertyWarning, existingMsg));
+    }
+    enqueueSnackbar(message, {
+      variant: "warning",
+      persist: true,
+      key: errorHash(NotifyKey.UserPropertyWarning, message),
+      anchorOrigin,
+    });
+    setErrors(
+      produce((errorMap) => {
+        errorMap.set(NotifyKey.UserPropertyWarning, message);
+      })
+    );
+
+    setRenderedBody(errorBodyHtml);
+  }, [errors, mockUserProperties, userPropertySet]);
 
   const handleSave = async () => {
     if (
@@ -642,13 +694,6 @@ export default function EmailEditor() {
       >
         {preview}
       </Dialog>
-      {/* <Snackbar
-        open={true}
-        autoHideDuration={6000}
-        onClose={handleClose}
-        message="Note archived"
-        action={action}
-      /> */}
     </>
   );
 }

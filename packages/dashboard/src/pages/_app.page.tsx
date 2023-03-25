@@ -7,6 +7,7 @@ import {
 import { enableMapSet } from "immer";
 import type { AppProps } from "next/app";
 import Head from "next/head";
+import { SnackbarProvider } from "notistack";
 
 import {
   PreloadedState,
@@ -15,7 +16,6 @@ import {
 } from "../lib/appStore";
 import createEmotionCache from "../lib/createEmotionCache";
 import ThemeCustomization from "../themeCustomization";
-import { SnackbarProvider } from "notistack";
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();

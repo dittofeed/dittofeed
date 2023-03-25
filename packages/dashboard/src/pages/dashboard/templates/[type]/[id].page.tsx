@@ -1,4 +1,6 @@
 import backendConfig from "backend-lib/src/config";
+import { findAllUserTraits } from "backend-lib/src/userEvents";
+import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import {
   CompletionStatus,
   TemplateResourceType,
@@ -34,7 +36,7 @@ export const getServerSideProps: GetServerSideProps<
         serverInitialState = defaultEmailMessageState;
         break;
       }
-      const [emailMessage, workspace] = await Promise.all([
+      const [emailMessage, workspace, userProperties] = await Promise.all([
         prisma().emailTemplate.findUnique({
           where: {
             id,
@@ -45,9 +47,22 @@ export const getServerSideProps: GetServerSideProps<
             id: workspaceId,
           },
         }),
+        prisma().userProperty.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
       ]);
 
       serverInitialState = defaultEmailMessageState;
+
+      serverInitialState.userProperties = {
+        type: CompletionStatus.Successful,
+        value: userProperties.flatMap((up) =>
+          toUserPropertyResource(up).unwrapOr([])
+        ),
+      };
+
       if (emailMessage) {
         const { from, subject, body, name } = emailMessage;
         Object.assign(serverInitialState, {
