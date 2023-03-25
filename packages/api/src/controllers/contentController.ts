@@ -12,10 +12,10 @@ import {
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function contentController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
-    "/messages",
+    "/templates",
     {
       schema: {
-        description: "Create or update email provider settings",
+        description: "Create or update message template",
         body: UpsertMessageTemplateResource,
         response: {
           200: MessageTemplateResource,
