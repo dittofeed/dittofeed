@@ -1,9 +1,12 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma from "backend-lib/src/prisma";
 import {
+  DeleteJourneyRequest,
+  DeleteJourneyResponse,
   Journey,
   JourneyDefinition,
   JourneyResource,
+  Prisma,
   UpsertJourneyResource,
 } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
@@ -81,6 +84,43 @@ export default async function journeysController(fastify: FastifyInstance) {
         definition: journeyDefinitionResult.value,
       };
       return reply.status(200).send(resource);
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/",
+    {
+      schema: {
+        description: "Delete a journey.",
+        body: DeleteJourneyRequest,
+        response: {
+          204: DeleteJourneyResponse,
+          404: {},
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.body;
+
+      try {
+        await prisma().journey.delete({
+          where: {
+            id,
+          },
+        });
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError) {
+          switch (e.code) {
+            case "P2025":
+              return reply.status(404).send();
+            case "P2023":
+              return reply.status(404).send();
+          }
+        }
+        throw e;
+      }
+
+      return reply.status(204).send();
     }
   );
 }
