@@ -11,6 +11,7 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
+  UserPropertyDefinition,
   UserPropertyResource,
   WorkspaceResource,
 } from "isomorphic-lib/src/types";
@@ -64,6 +65,19 @@ export interface UserPropertyIndexContent {
   setUserPropertyDeleteRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
+}
+
+export interface UserPropertyEditorContent {
+  editedUserProperty: UserPropertyResource | null;
+  updateUserPropertyDefinition: (
+    id: string,
+    definition: UserPropertyDefinition
+  ) => void;
+  userPropertyUpdateRequest: EphemeralRequestStatus<Error>;
+  setUserPropertyUpdateRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
+  setEditableUserPropertyName: (name: string) => void;
 }
 
 export interface JourneyIndexContent {
@@ -147,6 +161,7 @@ export type PageStoreContents = EmailMessageEditorContents &
   SegmentIndexContent &
   UserPropertyIndexContent &
   JourneyIndexContent &
+  UserPropertyEditorContent &
   JourneyContent;
 
 export interface EntryNodeProps {

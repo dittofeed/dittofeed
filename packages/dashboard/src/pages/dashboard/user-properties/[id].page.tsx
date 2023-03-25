@@ -552,7 +552,7 @@ function SegmentNodeComponent({
   return <>{el}</>;
 }
 
-export default function NewSegment() {
+export default function NewUserProperty() {
   const editedSegment = useAppStore((state) => state.editedSegment);
   const setName = useAppStore((state) => state.setEditableSegmentName);
   const apiBase = useAppStore((state) => state.apiBase);
