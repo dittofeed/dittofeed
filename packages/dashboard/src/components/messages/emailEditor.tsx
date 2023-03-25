@@ -231,6 +231,7 @@ export default function EmailEditor() {
   }, [debouncedEmailBody, debouncedUserProperties, errors]);
 
   useEffect(() => {
+    const existingErr = errors.get(ErrorKeys.RenderSubjectError);
     try {
       const rendered = escapeHtml(
         renderWithUserProperties({
@@ -239,32 +240,39 @@ export default function EmailEditor() {
         })
       );
       setRenderedSubject(rendered);
-      // setErrors(
-      //   produce((errorMap) => {
-      //     errorMap.delete(ErrorKeys.RenderSubjectError);
-      //   })
-      // );
-      closeSnackbar(ErrorKeys.RenderSubjectError);
-      console.log("closing");
+      setErrors(
+        produce((errorMap) => {
+          errorMap.delete(ErrorKeys.RenderSubjectError);
+        })
+      );
+      if (existingErr) {
+        closeSnackbar(errorHash(ErrorKeys.RenderSubjectError, existingErr));
+      }
     } catch (e) {
-      console.log("opening");
-      enqueueSnackbar(String(e), {
+      const message = `Subject Error: ${String(e)}`;
+
+      if (existingErr && existingErr !== message) {
+        closeSnackbar(errorHash(ErrorKeys.RenderSubjectError, existingErr));
+      }
+      enqueueSnackbar(message, {
         variant: "error",
         persist: true,
-        key: ErrorKeys.RenderSubjectError,
+        key: errorHash(ErrorKeys.RenderSubjectError, message),
         anchorOrigin,
       });
-      // setErrors(
-      //   produce((errorMap) => {
-      //     errorMap.set(ErrorKeys.RenderSubjectError, String(e));
-      //   })
-      // );
+      setErrors(
+        produce((errorMap) => {
+          errorMap.set(ErrorKeys.RenderSubjectError, message);
+        })
+      );
+      setRenderedSubject("Render Error");
     }
-  }, [debouncedEmailSubject, debouncedUserProperties]);
+  }, [debouncedEmailSubject, debouncedUserProperties, errors]);
 
   const previewEmailTo = debouncedUserProperties.email;
 
   useEffect(() => {
+    const existingErr = errors.get(ErrorKeys.RenderFromError);
     try {
       const rendered = escapeHtml(
         renderWithUserProperties({
@@ -272,6 +280,10 @@ export default function EmailEditor() {
           userProperties: debouncedUserProperties,
         })
       );
+
+      if (existingErr) {
+        closeSnackbar(errorHash(ErrorKeys.RenderFromError, existingErr));
+      }
 
       setRenderedFrom(rendered);
       setErrors(
@@ -282,23 +294,23 @@ export default function EmailEditor() {
 
       closeSnackbar(ErrorKeys.RenderFromError);
     } catch (e) {
-      const message = String(e);
-      if (errors.get(ErrorKeys.RenderFromError) !== message) {
-        closeSnackbar(ErrorKeys.RenderFromError);
+      const message = `From Error: ${String(e)}`;
+      if (existingErr && existingErr !== message) {
+        closeSnackbar(errorHash(ErrorKeys.RenderFromError, existingErr));
       }
       enqueueSnackbar(message, {
         variant: "error",
         persist: true,
-        key: ErrorKeys.RenderFromError,
+        key: errorHash(ErrorKeys.RenderFromError, message),
         anchorOrigin,
       });
       setErrors(
         produce((errorMap) => {
-          errorMap.set(ErrorKeys.RenderFromError, String(e));
+          errorMap.set(ErrorKeys.RenderFromError, message);
         })
       );
     }
-  }, [debouncedEmailFrom, debouncedUserProperties]);
+  }, [debouncedEmailFrom, debouncedUserProperties, errors]);
 
   const handleSave = async () => {
     if (
