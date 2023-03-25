@@ -69,10 +69,7 @@ export interface UserPropertyIndexContent {
 
 export interface UserPropertyEditorContent {
   editedUserProperty: UserPropertyResource | null;
-  updateUserPropertyDefinition: (
-    id: string,
-    definition: UserPropertyDefinition
-  ) => void;
+  updateUserPropertyDefinition: (definition: UserPropertyDefinition) => void;
   userPropertyUpdateRequest: EphemeralRequestStatus<Error>;
   setUserPropertyUpdateRequest: (
     request: EphemeralRequestStatus<Error>
