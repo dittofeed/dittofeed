@@ -193,6 +193,43 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
 
+        setSegmentDeleteRequest: (request) =>
+          set((state) => {
+            state.segmentDeleteRequest = request;
+          }),
+
+        deleteSegment: (segmentId) =>
+          set((state) => {
+            if (state.segments.type !== CompletionStatus.Successful) {
+              return state;
+            }
+            state.segments.value = state.segments.value.filter(
+              (s) => s.id !== segmentId
+            );
+            return state;
+          }),
+
+        // journey index view
+        journeyDeleteRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+
+        setJourneyDeleteRequest: (request) =>
+          set((state) => {
+            state.journeyDeleteRequest = request;
+          }),
+
+        deleteJourney: (journeyId) =>
+          set((state) => {
+            if (state.journeys.type !== CompletionStatus.Successful) {
+              return state;
+            }
+            state.journeys.value = state.journeys.value.filter(
+              (s) => s.id !== journeyId
+            );
+            return state;
+          }),
+
         toggleDrawer: () =>
           set((state) => {
             state.drawerOpen = !state.drawerOpen;
@@ -234,20 +271,6 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             }
             segments.value.push(segment);
             return state;
-          }),
-        deleteSegment: (segmentId) =>
-          set((state) => {
-            if (state.segments.type !== CompletionStatus.Successful) {
-              return state;
-            }
-            state.segments.value = state.segments.value.filter(
-              (s) => s.id !== segmentId
-            );
-            return state;
-          }),
-        setSegmentDeleteRequest: (request) =>
-          set((state) => {
-            state.segmentDeleteRequest = request;
           }),
         upsertEmailProvider: (emailProvider) =>
           set((state) => {

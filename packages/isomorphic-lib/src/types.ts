@@ -591,3 +591,15 @@ export const DeleteSegmentRequest = Type.Object({
 });
 
 export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
+
+export const DeleteJourneyResponse = Type.String({
+  description: "An empty String",
+});
+
+export type DeleteJourneyResponse = Static<typeof DeleteJourneyResponse>;
+
+export const DeleteJourneyRequest = Type.Object({
+  id: Type.String(),
+});
+
+export type DeleteJourneyRequest = Static<typeof DeleteJourneyRequest>;

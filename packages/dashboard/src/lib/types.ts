@@ -47,15 +47,17 @@ export interface AppActions {
   upsertSegment: (segment: SegmentResource) => void;
   deleteSegment: (segmentId: string) => void;
   upsertJourney: (journey: JourneyResource) => void;
-}
-
-export interface SegmentIndexState {
-  segmentDeleteRequest: EphemeralRequestStatus<Error>;
+  deleteJourney: (segmentId: string) => void;
 }
 
 export interface SegmentIndexContent {
   segmentDeleteRequest: EphemeralRequestStatus<Error>;
   setSegmentDeleteRequest: (request: EphemeralRequestStatus<Error>) => void;
+}
+
+export interface JourneyIndexContent {
+  journeyDeleteRequest: EphemeralRequestStatus<Error>;
+  setJourneyDeleteRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
 export interface SegmentEditorState {
@@ -132,6 +134,7 @@ export interface JourneyContent extends JourneyState {
 export type PageStoreContents = EmailMessageEditorContents &
   SegmentEditorContents &
   SegmentIndexContent &
+  JourneyIndexContent &
   JourneyContent;
 
 export interface EntryNodeProps {
