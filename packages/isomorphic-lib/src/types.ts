@@ -357,6 +357,18 @@ export const UpsertSegmentResource = Type.Intersect([
 
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
 
+export const DeleteSegmentResponse = Type.String({
+  description: "An empty String",
+});
+
+export type DeleteSegmentResponse = Static<typeof DeleteSegmentResponse>;
+
+export const DeleteSegmentRequest = Type.Object({
+  id: Type.String(),
+});
+
+export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
+
 export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
   offset: Type.Number(),
@@ -580,18 +592,6 @@ export const UpsertJourneyResource = Type.Intersect([
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
 
-export const DeleteSegmentResponse = Type.String({
-  description: "An empty String",
-});
-
-export type DeleteSegmentResponse = Static<typeof DeleteSegmentResponse>;
-
-export const DeleteSegmentRequest = Type.Object({
-  id: Type.String(),
-});
-
-export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
-
 export const DeleteJourneyResponse = Type.String({
   description: "An empty String",
 });
@@ -603,3 +603,37 @@ export const DeleteJourneyRequest = Type.Object({
 });
 
 export type DeleteJourneyRequest = Static<typeof DeleteJourneyRequest>;
+
+export const UserPropertyResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  definition: UserPropertyDefinition,
+});
+
+export type UserPropertyResource = Static<typeof UserPropertyResource>;
+
+export const UpsertUserPropertyResource = Type.Intersect([
+  Type.Omit(Type.Partial(UserPropertyResource), ["id"]),
+  Type.Pick(UserPropertyResource, ["id"]),
+]);
+
+export type UpsertUserPropertyResource = Static<
+  typeof UpsertUserPropertyResource
+>;
+
+export const DeleteUserPropertyResponse = Type.String({
+  description: "An empty String",
+});
+
+export type DeleteUserPropertyResponse = Static<
+  typeof DeleteUserPropertyResponse
+>;
+
+export const DeleteUserPropertyRequest = Type.Object({
+  id: Type.String(),
+});
+
+export type DeleteUserPropertyRequest = Static<
+  typeof DeleteUserPropertyRequest
+>;
