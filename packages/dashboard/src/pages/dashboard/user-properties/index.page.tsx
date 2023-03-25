@@ -12,9 +12,8 @@ import backendConfig from "backend-lib/src/config";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import {
   CompletionStatus,
-  DeleteSegmentRequest,
-  DeleteSegmentResponse,
-  SegmentResource,
+  DeleteUserPropertyRequest,
+  DeleteUserPropertyResponse,
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -61,37 +60,41 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
-function SegmentItem({ segment }: { segment: SegmentResource }) {
+function UserPropertyItem({
+  userProperty,
+}: {
+  userProperty: UserPropertyResource;
+}) {
   const path = useRouter();
-  const setSegmentDeleteRequest = useAppStore(
-    (store) => store.setSegmentDeleteRequest
+  const setUserPropertyDeleteRequest = useAppStore(
+    (store) => store.setUserPropertyDeleteRequest
   );
   const apiBase = useAppStore((store) => store.apiBase);
-  const segmentDeleteRequest = useAppStore(
-    (store) => store.segmentDeleteRequest
+  const userPropertyDeleteRequest = useAppStore(
+    (store) => store.userPropertyDeleteRequest
   );
-  const deleteSegment = useAppStore((store) => store.deleteSegment);
+  const deleteUserProperty = useAppStore((store) => store.deleteUserProperty);
 
   const setDeleteResponse = (
-    _response: DeleteSegmentResponse,
-    deleteRequest?: DeleteSegmentRequest
+    _response: DeleteUserPropertyResponse,
+    deleteRequest?: DeleteUserPropertyRequest
   ) => {
     if (!deleteRequest) {
       return;
     }
-    deleteSegment(deleteRequest.id);
+    deleteUserProperty(deleteRequest.id);
   };
 
   const handleDelete = apiRequestHandlerFactory({
-    request: segmentDeleteRequest,
-    setRequest: setSegmentDeleteRequest,
-    responseSchema: DeleteSegmentResponse,
+    request: userPropertyDeleteRequest,
+    setRequest: setUserPropertyDeleteRequest,
+    responseSchema: DeleteUserPropertyResponse,
     setResponse: setDeleteResponse,
     requestConfig: {
       method: "DELETE",
-      url: `${apiBase}/api/segments`,
+      url: `${apiBase}/api/userProperties`,
       data: {
-        id: segment.id,
+        id: userProperty.id,
       },
       headers: {
         "Content-Type": "application/json",
@@ -115,25 +118,25 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
           borderColor: "grey.200",
         }}
         onClick={() => {
-          path.push(`/dashboard/segments/${segment.id}`);
+          path.push(`/dashboard/userProperties/${userProperty.id}`);
         }}
       >
-        <ListItemText primary={segment.name} />
+        <ListItemText primary={userProperty.name} />
       </ListItemButton>
     </ListItem>
   );
 }
 
-function SegmentListContents() {
+function UserPropertyListContents() {
   const path = useRouter();
-  const segmentsResult = useAppStore((store) => store.segments);
-  const segments =
-    segmentsResult.type === CompletionStatus.Successful
-      ? segmentsResult.value
+  const userPropertiesResult = useAppStore((store) => store.userProperties);
+  const userProperties =
+    userPropertiesResult.type === CompletionStatus.Successful
+      ? userPropertiesResult.value
       : [];
 
   let innerContents;
-  if (segments.length) {
+  if (userProperties.length) {
     innerContents = (
       <List
         dense
@@ -143,8 +146,8 @@ function SegmentListContents() {
           borderRadius: 1,
         }}
       >
-        {segments.map((segment) => (
-          <SegmentItem segment={segment} key={segment.id} />
+        {userProperties.map((userProperty) => (
+          <UserPropertyItem userProperty={userProperty} key={userProperty.id} />
         ))}
       </List>
     );
@@ -163,11 +166,11 @@ function SegmentListContents() {
     >
       <Stack direction="row" justifyContent="space-between">
         <Typography sx={{ padding: 1 }} variant="h5">
-          Segments
+          User Properties
         </Typography>
         <IconButton
           onClick={() => {
-            path.push(`/dashboard/segments/${uuid()}`);
+            path.push(`/dashboard/userProperties/${uuid()}`);
           }}
         >
           <AddCircleOutline />
@@ -177,7 +180,7 @@ function SegmentListContents() {
     </Stack>
   );
 }
-export default function SegmentList() {
+export default function UserPropertyList() {
   return (
     <>
       <Head>
@@ -186,7 +189,7 @@ export default function SegmentList() {
       </Head>
       <main>
         <MainLayout>
-          <SegmentListContents />
+          <UserPropertyListContents />
         </MainLayout>
       </main>
     </>
