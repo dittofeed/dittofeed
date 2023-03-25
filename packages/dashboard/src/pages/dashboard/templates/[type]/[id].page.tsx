@@ -1,5 +1,4 @@
 import backendConfig from "backend-lib/src/config";
-import { findAllUserTraits } from "backend-lib/src/userEvents";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import {
   CompletionStatus,
