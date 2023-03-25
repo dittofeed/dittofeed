@@ -88,6 +88,10 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
     deleteMessageTemplate(deleteRequest.id);
   };
 
+  const deleteData: DeleteMessageTemplateRequest = {
+    id: template.id,
+    type: template.type,
+  };
   const handleDelete = apiRequestHandlerFactory({
     request: journeyDeleteRequest,
     setRequest: setMessageTemplateDeleteRequest,
@@ -95,10 +99,8 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
     setResponse: setDeleteResponse,
     requestConfig: {
       method: "DELETE",
-      url: `${apiBase}/api/templates`,
-      data: {
-        id: template.id,
-      },
+      url: `${apiBase}/api/content/templates`,
+      data: deleteData,
       headers: {
         "Content-Type": "application/json",
       },

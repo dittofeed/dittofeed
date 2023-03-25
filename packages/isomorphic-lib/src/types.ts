@@ -441,9 +441,12 @@ export type DeleteMessageTemplateResponse = Static<
 
 export const DeleteMessageTemplateRequest = Type.Object({
   id: Type.String(),
+  type: Type.Enum(TemplateResourceType),
 });
 
-export type DeleteMessageTemplateRequest = Static<typeof DeleteJourneyRequest>;
+export type DeleteMessageTemplateRequest = Static<
+  typeof DeleteMessageTemplateRequest
+>;
 
 export enum CompletionStatus {
   NotStarted = "NotStarted",
