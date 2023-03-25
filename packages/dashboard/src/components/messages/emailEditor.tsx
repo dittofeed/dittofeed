@@ -11,6 +11,7 @@ import {
   FormLabel,
   IconButton,
   Slide,
+  SnackbarOrigin,
   Stack,
   styled,
   SxProps,
@@ -23,6 +24,8 @@ import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import axios, { AxiosResponse } from "axios";
 import escapeHtml from "escape-html";
+import hash from "fnv1a";
+import { produce } from "immer";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -32,7 +35,8 @@ import {
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import React, { useMemo, useState } from "react";
+import { closeSnackbar, enqueueSnackbar } from "notistack";
+import React, { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useAppStore } from "../../lib/appStore";
@@ -100,9 +104,31 @@ const BodyBox = styled(Box, {
 
 type Fullscreen = "editor" | "preview" | null;
 
+enum ErrorKeys {
+  RenderBodyError = "RenderBodyError",
+  RenderFromError = "RenderFromError",
+  RenderSubjectError = "RenderSubjectError",
+}
+
+const anchorOrigin: SnackbarOrigin = {
+  vertical: "bottom",
+  horizontal: "right",
+};
+
+function errorHash(key: ErrorKeys, message: string) {
+  return hash(`${key}-${message}`);
+}
+
+const errorBodyHtml = '<div style="color:red;">Render Error</div>';
+
 export default function EmailEditor() {
   const theme = useTheme();
   const path = useRouter();
+  const [errors, setErrors] = useState<Map<ErrorKeys, string>>(new Map());
+  const [previewBodyHtml, setRenderedBody] = useState<string>("");
+  const [previewSubject, setRenderedSubject] = useState<string>("");
+  const [previewEmailFrom, setRenderedFrom] = useState<string>("");
+
   const [fullscreen, setFullscreen] = useState<Fullscreen>(null);
   const title = useAppStore((state) => state.emailMessageTitle);
   const setTitle = useAppStore((state) => state.setEmailMessageProps);
@@ -167,44 +193,124 @@ export default function EmailEditor() {
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
   const [debouncedEmailFrom] = useDebounce(emailFrom, 300);
 
-  const previewBodyHtml = useMemo(() => {
+  useEffect(() => {
+    const existingErr = errors.get(ErrorKeys.RenderBodyError);
     try {
-      return renderWithUserProperties({
+      const rendered = renderWithUserProperties({
         template: debouncedEmailBody,
         userProperties: debouncedUserProperties,
       });
+      if (existingErr) {
+        closeSnackbar(errorHash(ErrorKeys.RenderBodyError, existingErr));
+      }
+      setRenderedBody(rendered);
+      setErrors(
+        produce((errorMap) => {
+          errorMap.delete(ErrorKeys.RenderBodyError);
+        })
+      );
     } catch (e) {
-      return "";
-    }
-  }, [debouncedEmailBody, debouncedUserProperties]);
+      const message = `Body Error: ${String(e)}`;
+      if (existingErr && existingErr !== message) {
+        closeSnackbar(errorHash(ErrorKeys.RenderBodyError, existingErr));
+      }
+      enqueueSnackbar(message, {
+        variant: "error",
+        persist: true,
+        key: errorHash(ErrorKeys.RenderBodyError, message),
+        anchorOrigin,
+      });
+      setErrors(
+        produce((errorMap) => {
+          errorMap.set(ErrorKeys.RenderBodyError, message);
+        })
+      );
 
-  const previewSubject = useMemo(() => {
+      setRenderedBody(errorBodyHtml);
+    }
+  }, [debouncedEmailBody, debouncedUserProperties, errors]);
+
+  useEffect(() => {
+    const existingErr = errors.get(ErrorKeys.RenderSubjectError);
     try {
-      return escapeHtml(
+      const rendered = escapeHtml(
         renderWithUserProperties({
           template: debouncedEmailSubject,
           userProperties: debouncedUserProperties,
         })
       );
+      setRenderedSubject(rendered);
+      setErrors(
+        produce((errorMap) => {
+          errorMap.delete(ErrorKeys.RenderSubjectError);
+        })
+      );
+      if (existingErr) {
+        closeSnackbar(errorHash(ErrorKeys.RenderSubjectError, existingErr));
+      }
     } catch (e) {
-      return "";
+      const message = `Subject Error: ${String(e)}`;
+
+      if (existingErr && existingErr !== message) {
+        closeSnackbar(errorHash(ErrorKeys.RenderSubjectError, existingErr));
+      }
+      enqueueSnackbar(message, {
+        variant: "error",
+        persist: true,
+        key: errorHash(ErrorKeys.RenderSubjectError, message),
+        anchorOrigin,
+      });
+      setErrors(
+        produce((errorMap) => {
+          errorMap.set(ErrorKeys.RenderSubjectError, message);
+        })
+      );
+      setRenderedSubject("Render Error");
     }
-  }, [debouncedEmailSubject, debouncedUserProperties]);
+  }, [debouncedEmailSubject, debouncedUserProperties, errors]);
 
   const previewEmailTo = debouncedUserProperties.email;
 
-  const previewEmailFrom = useMemo(() => {
+  useEffect(() => {
+    const existingErr = errors.get(ErrorKeys.RenderFromError);
     try {
-      return escapeHtml(
+      const rendered = escapeHtml(
         renderWithUserProperties({
           template: debouncedEmailFrom,
           userProperties: debouncedUserProperties,
         })
       );
+
+      if (existingErr) {
+        closeSnackbar(errorHash(ErrorKeys.RenderFromError, existingErr));
+      }
+
+      setRenderedFrom(rendered);
+      setErrors(
+        produce((errorMap) => {
+          errorMap.delete(ErrorKeys.RenderFromError);
+        })
+      );
+
+      closeSnackbar(ErrorKeys.RenderFromError);
     } catch (e) {
-      return "";
+      const message = `From Error: ${String(e)}`;
+      if (existingErr && existingErr !== message) {
+        closeSnackbar(errorHash(ErrorKeys.RenderFromError, existingErr));
+      }
+      enqueueSnackbar(message, {
+        variant: "error",
+        persist: true,
+        key: errorHash(ErrorKeys.RenderFromError, message),
+        anchorOrigin,
+      });
+      setErrors(
+        produce((errorMap) => {
+          errorMap.set(ErrorKeys.RenderFromError, message);
+        })
+      );
     }
-  }, [debouncedEmailFrom, debouncedUserProperties]);
+  }, [debouncedEmailFrom, debouncedUserProperties, errors]);
 
   const handleSave = async () => {
     if (
@@ -536,6 +642,13 @@ export default function EmailEditor() {
       >
         {preview}
       </Dialog>
+      {/* <Snackbar
+        open={true}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        message="Note archived"
+        action={action}
+      /> */}
     </>
   );
 }
