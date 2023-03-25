@@ -1,4 +1,4 @@
-import { AddCircleOutline } from "@mui/icons-material";
+import { AddCircleOutline, Delete } from "@mui/icons-material";
 import {
   IconButton,
   List,
@@ -12,6 +12,8 @@ import backendConfig from "backend-lib/src/config";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
+  DeleteJourneyRequest,
+  DeleteJourneyResponse,
   JourneyDefinition,
   JourneyResource,
 } from "isomorphic-lib/src/types";
@@ -20,6 +22,7 @@ import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import {
   addInitialStateToProps,
   PreloadedState,
@@ -81,8 +84,71 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
+function JourneyItem({ journey }: { journey: JourneyResource }) {
+  const path = useRouter();
+
+  const setJourneyDeleteRequest = useAppStore(
+    (store) => store.setJourneyDeleteRequest
+  );
+  const apiBase = useAppStore((store) => store.apiBase);
+  const journeyDeleteRequest = useAppStore(
+    (store) => store.journeyDeleteRequest
+  );
+  const deleteJourney = useAppStore((store) => store.deleteJourney);
+
+  const setDeleteResponse = (
+    _response: DeleteJourneyResponse,
+    deleteRequest?: DeleteJourneyRequest
+  ) => {
+    if (!deleteRequest) {
+      return;
+    }
+    deleteJourney(deleteRequest.id);
+  };
+
+  const handleDelete = apiRequestHandlerFactory({
+    request: journeyDeleteRequest,
+    setRequest: setJourneyDeleteRequest,
+    responseSchema: DeleteJourneyResponse,
+    setResponse: setDeleteResponse,
+    requestConfig: {
+      method: "DELETE",
+      url: `${apiBase}/api/journeys`,
+      data: {
+        id: journey.id,
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
+  return (
+    <ListItem
+      secondaryAction={
+        <IconButton edge="end" onClick={handleDelete}>
+          <Delete />
+        </IconButton>
+      }
+    >
+      <ListItemButton
+        sx={{
+          border: 1,
+          borderRadius: 1,
+          borderColor: "grey.200",
+        }}
+        onClick={() => {
+          path.push(`/dashboard/journeys/${journey.id}`);
+        }}
+      >
+        <ListItemText primary={journey.name} />
+      </ListItemButton>
+    </ListItem>
+  );
+}
+
 function JourneyListContents() {
   const path = useRouter();
+
   const journeysResult = useAppStore((store) => store.journeys);
   const journeys =
     journeysResult.type === CompletionStatus.Successful
@@ -94,27 +160,13 @@ function JourneyListContents() {
     innerContents = (
       <List
         sx={{
-          padding: 1,
           width: "100%",
           bgcolor: "background.paper",
           borderRadius: 1,
         }}
       >
-        {journeys.map((segment) => (
-          <ListItem disableGutters key={segment.id}>
-            <ListItemButton
-              sx={{
-                border: 1,
-                borderRadius: 1,
-                borderColor: "grey.200",
-              }}
-              onClick={() => {
-                path.push(`/dashboard/journeys/${segment.id}`);
-              }}
-            >
-              <ListItemText primary={segment.name} />
-            </ListItemButton>
-          </ListItem>
+        {journeys.map((journey) => (
+          <JourneyItem key={journey.id} journey={journey} />
         ))}
       </List>
     );
