@@ -11,6 +11,8 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
+  UserPropertyDefinition,
+  UserPropertyResource,
   WorkspaceResource,
 } from "isomorphic-lib/src/types";
 import { Edge, EdgeChange, Node, NodeChange } from "reactflow";
@@ -23,6 +25,7 @@ export type AppState = {
   workspace: RequestStatus<WorkspaceResource, Error>;
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
+  userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   journeys: RequestStatus<JourneyResource[], Error>;
   traits: RequestStatus<string[], Error>;
@@ -48,11 +51,30 @@ export interface AppActions {
   deleteSegment: (segmentId: string) => void;
   upsertJourney: (journey: JourneyResource) => void;
   deleteJourney: (segmentId: string) => void;
+  upsertUserProperty: (userProperty: UserPropertyResource) => void;
+  deleteUserProperty: (userPropertyId: string) => void;
 }
 
 export interface SegmentIndexContent {
   segmentDeleteRequest: EphemeralRequestStatus<Error>;
   setSegmentDeleteRequest: (request: EphemeralRequestStatus<Error>) => void;
+}
+
+export interface UserPropertyIndexContent {
+  userPropertyDeleteRequest: EphemeralRequestStatus<Error>;
+  setUserPropertyDeleteRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
+}
+
+export interface UserPropertyEditorContent {
+  editedUserProperty: UserPropertyResource | null;
+  updateUserPropertyDefinition: (definition: UserPropertyDefinition) => void;
+  userPropertyUpdateRequest: EphemeralRequestStatus<Error>;
+  setUserPropertyUpdateRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
+  setEditableUserPropertyName: (name: string) => void;
 }
 
 export interface JourneyIndexContent {
@@ -134,7 +156,9 @@ export interface JourneyContent extends JourneyState {
 export type PageStoreContents = EmailMessageEditorContents &
   SegmentEditorContents &
   SegmentIndexContent &
+  UserPropertyIndexContent &
   JourneyIndexContent &
+  UserPropertyEditorContent &
   JourneyContent;
 
 export interface EntryNodeProps {

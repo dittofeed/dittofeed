@@ -6,6 +6,7 @@ import indexController from "../controllers/indexController";
 import journeysController from "../controllers/journeysController";
 import segmentsController from "../controllers/segmentsController";
 import settingsController from "../controllers/settingsController";
+import userPropertiesController from "../controllers/userPropertiesController";
 import webhooksController from "../controllers/webhooksController";
 
 export default async function router(fastify: FastifyInstance) {
@@ -19,6 +20,7 @@ export default async function router(fastify: FastifyInstance) {
         f.register(settingsController, { prefix: "/settings" }),
         f.register(contentController, { prefix: "/content" }),
         f.register(eventsController, { prefix: "/events" }),
+        f.register(userPropertiesController, { prefix: "/user-properties" }),
       ]),
     { prefix: "/api" }
   );

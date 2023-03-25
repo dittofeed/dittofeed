@@ -5,7 +5,11 @@ import { err, ok, Result } from "neverthrow";
 
 import logger from "./logger";
 import prisma from "./prisma";
-import { EnrichedUserProperty, UserPropertyDefinition } from "./types";
+import {
+  EnrichedUserProperty,
+  UserPropertyDefinition,
+  UserPropertyResource,
+} from "./types";
 
 export async function upsertComputedProperty() {
   // create computed property pg record
@@ -31,6 +35,19 @@ export function enrichedUserProperty(
     ...userProperty,
     definition: definitionResult.value,
   });
+}
+
+export function toUserPropertyResource(
+  userProperty: UserProperty
+): Result<UserPropertyResource, ValueError[]> {
+  return enrichedUserProperty(userProperty).map(
+    ({ workspaceId, name, id, definition }) => ({
+      workspaceId,
+      name,
+      id,
+      definition,
+    })
+  );
 }
 
 export async function findAllUserProperties({

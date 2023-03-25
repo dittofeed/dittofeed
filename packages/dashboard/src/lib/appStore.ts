@@ -170,6 +170,9 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         journeys: {
           type: CompletionStatus.NotStarted,
         },
+        userProperties: {
+          type: CompletionStatus.NotStarted,
+        },
 
         // email message state
         emailMessageBody: "",
@@ -193,9 +196,24 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
 
-        setSegmentDeleteRequest: (request) =>
+        upsertSegment: (segment) =>
           set((state) => {
-            state.segmentDeleteRequest = request;
+            let { segments } = state;
+            if (segments.type !== CompletionStatus.Successful) {
+              segments = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.segments = segments;
+            }
+            for (const existing of segments.value) {
+              if (segment.id === existing.id) {
+                Object.assign(existing, segment);
+                return state;
+              }
+            }
+            segments.value.push(segment);
+            return state;
           }),
 
         deleteSegment: (segmentId) =>
@@ -207,6 +225,11 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               (s) => s.id !== segmentId
             );
             return state;
+          }),
+
+        setSegmentDeleteRequest: (request) =>
+          set((state) => {
+            state.segmentDeleteRequest = request;
           }),
 
         // journey index view
@@ -227,6 +250,77 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             state.journeys.value = state.journeys.value.filter(
               (s) => s.id !== journeyId
             );
+            return state;
+          }),
+
+        // userProperty index view
+        userPropertyDeleteRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+
+        upsertUserProperty: (userProperty) =>
+          set((state) => {
+            let { userProperties } = state;
+            if (userProperties.type !== CompletionStatus.Successful) {
+              userProperties = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.userProperties = userProperties;
+            }
+            for (const existing of userProperties.value) {
+              if (userProperty.id === existing.id) {
+                Object.assign(existing, userProperty);
+                return state;
+              }
+            }
+            userProperties.value.push(userProperty);
+            return state;
+          }),
+
+        deleteUserProperty: (userPropertyId) =>
+          set((state) => {
+            if (state.userProperties.type !== CompletionStatus.Successful) {
+              return state;
+            }
+            state.userProperties.value = state.userProperties.value.filter(
+              (s) => s.id !== userPropertyId
+            );
+            return state;
+          }),
+
+        setUserPropertyDeleteRequest: (request) =>
+          set((state) => {
+            state.userPropertyDeleteRequest = request;
+          }),
+
+        // user property update view
+        editedUserProperty: null,
+
+        userPropertyUpdateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+
+        updateUserPropertyDefinition: (definition) =>
+          set((state) => {
+            if (!state.editedUserProperty) {
+              return state;
+            }
+            state.editedUserProperty.definition = definition;
+            return state;
+          }),
+
+        setUserPropertyUpdateRequest: (request) =>
+          set((state) => {
+            state.userPropertyUpdateRequest = request;
+          }),
+
+        setEditableUserPropertyName: (name) =>
+          set((state) => {
+            if (!state.editedUserProperty) {
+              return state;
+            }
+            state.editedUserProperty.name = name;
             return state;
           }),
 
@@ -251,25 +345,6 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               }
             }
             messages.value.push(message);
-            return state;
-          }),
-        upsertSegment: (segment) =>
-          set((state) => {
-            let { segments } = state;
-            if (segments.type !== CompletionStatus.Successful) {
-              segments = {
-                type: CompletionStatus.Successful,
-                value: [],
-              };
-              state.segments = segments;
-            }
-            for (const existing of segments.value) {
-              if (segment.id === existing.id) {
-                Object.assign(existing, segment);
-                return state;
-              }
-            }
-            segments.value.push(segment);
             return state;
           }),
         upsertEmailProvider: (emailProvider) =>
