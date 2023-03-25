@@ -45,6 +45,7 @@ const BaseRawConfigProps = {
   startOtel: Type.Optional(BoolStr),
   prettyLogs: Type.Optional(BoolStr),
   logLevel: Type.Optional(LogLevel),
+  googleOps: Type.Optional(BoolStr),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -96,6 +97,7 @@ export type Config = Overwrite<
     startOtel: boolean;
     logLevel: LogLevel;
     prettyLogs: boolean;
+    googleOps: boolean;
   }
 > & {
   defaultWorkspaceId: string;
@@ -239,6 +241,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       (nodeEnv === NodeEnvEnum.Production &&
         rawConfig.bootstrapWorker !== "false"),
     startOtel: rawConfig.startOtel === "true",
+    googleOps: rawConfig.googleOps === "true",
     otelCollector: rawConfig.otelCollector ?? "http://localhost:4317",
     prettyLogs:
       rawConfig.prettyLogs === "true" ||
