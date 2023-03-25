@@ -614,8 +614,8 @@ export const UserPropertyResource = Type.Object({
 export type UserPropertyResource = Static<typeof UserPropertyResource>;
 
 export const UpsertUserPropertyResource = Type.Intersect([
-  Type.Omit(Type.Partial(UserPropertyResource), ["id"]),
-  Type.Pick(UserPropertyResource, ["id"]),
+  Type.Omit(Type.Partial(UserPropertyResource), ["id", "name"]),
+  Type.Pick(UserPropertyResource, ["id", "name"]),
 ]);
 
 export type UpsertUserPropertyResource = Static<

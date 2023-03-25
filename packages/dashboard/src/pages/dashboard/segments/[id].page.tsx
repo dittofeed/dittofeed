@@ -164,6 +164,11 @@ export const getServerSideProps: GetServerSideProps<
       workspaceId,
       definition: segmentDefinition,
     };
+
+    serverInitialState.segments = {
+      type: CompletionStatus.Successful,
+      value: [segmentResource],
+    };
   } else {
     segmentResource = {
       name: "My Segment",
@@ -189,11 +194,6 @@ export const getServerSideProps: GetServerSideProps<
       },
     };
   }
-
-  serverInitialState.segments = {
-    type: CompletionStatus.Successful,
-    value: [segmentResource],
-  };
   serverInitialState.editedSegment = segmentResource;
 
   if (workspace) {

@@ -175,12 +175,12 @@ export const getServerSideProps: GetServerSideProps<
     };
   } else {
     userPropertyResource = {
-      name: "Example User Property",
+      name: "example",
       id,
       workspaceId,
       definition: {
         type: UserPropertyDefinitionType.Trait,
-        path: "$.example.path",
+        path: "example",
       },
     };
   }
@@ -609,7 +609,6 @@ function UserPropertyDefinitionEditor({
   return <>{up}</>;
 }
 
-// FIXME disable protected
 export default function NewUserProperty() {
   const editedUserProperty = useAppStore((state) => state.editedUserProperty);
   const setName = useAppStore((state) => state.setEditableUserPropertyName);
@@ -635,7 +634,7 @@ export default function NewUserProperty() {
     setResponse: upsertUserProperty,
     requestConfig: {
       method: "PUT",
-      url: `${apiBase}/api/segments`,
+      url: `${apiBase}/api/user-properties`,
       data: editedUserProperty,
       headers: {
         "Content-Type": "application/json",
@@ -680,8 +679,7 @@ export default function NewUserProperty() {
             <Box
               sx={{
                 backgroundColor: "white",
-                paddingTop: 3,
-                paddingBottom: 3,
+                p: 3,
                 borderRadius: 1,
                 border: `1px solid ${theme.palette.grey[200]}`,
               }}

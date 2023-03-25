@@ -95,7 +95,7 @@ function UserPropertyItem({
     setResponse: setDeleteResponse,
     requestConfig: {
       method: "DELETE",
-      url: `${apiBase}/api/userProperties`,
+      url: `${apiBase}/api/user-properties`,
       data: {
         id: userProperty.id,
       },
@@ -173,7 +173,7 @@ function UserPropertyListContents() {
         </Typography>
         <IconButton
           onClick={() => {
-            path.push(`/dashboard/userProperties/${uuid()}`);
+            path.push(`/dashboard/user-properties/${uuid()}`);
           }}
         >
           <AddCircleOutline />
