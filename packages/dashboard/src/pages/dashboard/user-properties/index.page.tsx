@@ -33,7 +33,6 @@ import { AppState } from "../../../lib/types";
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState
 > = async () => {
-  // Dynamically import to avoid transitively importing backend config at build time.
   const { toSegmentResource } = await import("backend-lib/src/segments");
 
   const workspaceId = backendConfig().defaultWorkspaceId;
