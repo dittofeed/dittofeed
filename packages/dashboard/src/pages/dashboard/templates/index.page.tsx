@@ -1,4 +1,4 @@
-import { AddCircleOutline } from "@mui/icons-material";
+import { AddCircleOutline, Delete } from "@mui/icons-material";
 import {
   IconButton,
   List,
@@ -11,7 +11,10 @@ import {
 import backendConfig from "backend-lib/src/config";
 import {
   CompletionStatus,
+  DeleteMessageTemplateRequest,
+  DeleteMessageTemplateResponse,
   EmailTemplateResource,
+  MessageTemplateResource,
   TemplateResourceType,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -20,6 +23,7 @@ import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import {
   addInitialStateToProps,
   PropsWithInitialState,
@@ -62,7 +66,76 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
-function MessageListContents() {
+function TemplateListItem({ template }: { template: MessageTemplateResource }) {
+  const path = useRouter();
+
+  const setMessageTemplateDeleteRequest = useAppStore(
+    (store) => store.setMessageTemplateDeleteRequest
+  );
+  const apiBase = useAppStore((store) => store.apiBase);
+  const journeyDeleteRequest = useAppStore(
+    (store) => store.journeyDeleteRequest
+  );
+  const deleteMessageTemplate = useAppStore((store) => store.deleteMessage);
+
+  const setDeleteResponse = (
+    _response: DeleteMessageTemplateResponse,
+    deleteRequest?: DeleteMessageTemplateRequest
+  ) => {
+    if (!deleteRequest) {
+      return;
+    }
+    deleteMessageTemplate(deleteRequest.id);
+  };
+
+  const deleteData: DeleteMessageTemplateRequest = {
+    id: template.id,
+    type: template.type,
+  };
+  const handleDelete = apiRequestHandlerFactory({
+    request: journeyDeleteRequest,
+    setRequest: setMessageTemplateDeleteRequest,
+    responseSchema: DeleteMessageTemplateResponse,
+    setResponse: setDeleteResponse,
+    requestConfig: {
+      method: "DELETE",
+      url: `${apiBase}/api/content/templates`,
+      data: deleteData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
+  return (
+    <ListItem
+      secondaryAction={
+        <IconButton edge="end" onClick={handleDelete}>
+          <Delete />
+        </IconButton>
+      }
+    >
+      <ListItemButton
+        sx={{
+          border: 1,
+          borderRadius: 1,
+          borderColor: "grey.200",
+        }}
+        onClick={() => {
+          let messageType: string;
+          switch (template.type) {
+            case TemplateResourceType.Email:
+              messageType = "emails";
+          }
+          path.push(`/dashboard/templates/${messageType}/${template.id}`);
+        }}
+      >
+        <ListItemText primary={template.name} />
+      </ListItemButton>
+    </ListItem>
+  );
+}
+
+function TemplateListContents() {
   const path = useRouter();
   const messagesResult = useAppStore((store) => store.messages);
   const messages =
@@ -75,32 +148,13 @@ function MessageListContents() {
     innerContents = (
       <List
         sx={{
-          padding: 1,
           width: "100%",
           bgcolor: "background.paper",
           borderRadius: 1,
         }}
       >
-        {messages.map((message) => (
-          <ListItem disableGutters key={message.id}>
-            <ListItemButton
-              sx={{
-                border: 1,
-                borderRadius: 1,
-                borderColor: "grey.200",
-              }}
-              onClick={() => {
-                let messageType: string;
-                switch (message.type) {
-                  case TemplateResourceType.Email:
-                    messageType = "emails";
-                }
-                path.push(`/dashboard/templates/${messageType}/${message.id}`);
-              }}
-            >
-              <ListItemText primary={message.name} />
-            </ListItemButton>
-          </ListItem>
+        {messages.map((template) => (
+          <TemplateListItem template={template} key={template.id} />
         ))}
       </List>
     );
@@ -133,7 +187,8 @@ function MessageListContents() {
     </Stack>
   );
 }
-export default function MessageList() {
+
+export default function TemplateList() {
   return (
     <>
       <Head>
@@ -142,7 +197,7 @@ export default function MessageList() {
       </Head>
       <main>
         <MainLayout>
-          <MessageListContents />
+          <TemplateListContents />
         </MainLayout>
       </main>
     </>

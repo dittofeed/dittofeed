@@ -431,6 +431,23 @@ export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
 >;
 
+export const DeleteMessageTemplateResponse = Type.String({
+  description: "An empty String",
+});
+
+export type DeleteMessageTemplateResponse = Static<
+  typeof DeleteJourneyResponse
+>;
+
+export const DeleteMessageTemplateRequest = Type.Object({
+  id: Type.String(),
+  type: Type.Enum(TemplateResourceType),
+});
+
+export type DeleteMessageTemplateRequest = Static<
+  typeof DeleteMessageTemplateRequest
+>;
+
 export enum CompletionStatus {
   NotStarted = "NotStarted",
   InProgress = "InProgress",

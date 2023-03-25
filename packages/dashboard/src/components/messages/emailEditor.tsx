@@ -387,7 +387,7 @@ export default function EmailEditor() {
         body: emailBody,
         subject: emailSubject,
       };
-      response = await axios.put(`${apiBase}/api/content/messages`, body, {
+      response = await axios.put(`${apiBase}/api/content/templates`, body, {
         headers: {
           "Content-Type": "application/json",
         },
