@@ -294,6 +294,36 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             state.userPropertyDeleteRequest = request;
           }),
 
+        // user property update view
+        editedUserProperty: null,
+
+        userPropertyUpdateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+
+        updateUserPropertyDefinition: (definition) =>
+          set((state) => {
+            if (!state.editedUserProperty) {
+              return state;
+            }
+            state.editedUserProperty.definition = definition;
+            return state;
+          }),
+
+        setUserPropertyUpdateRequest: (request) =>
+          set((state) => {
+            state.userPropertyUpdateRequest = request;
+          }),
+
+        setEditableUserPropertyName: (name) =>
+          set((state) => {
+            if (!state.editedUserProperty) {
+              return state;
+            }
+            state.editedUserProperty.name = name;
+            return state;
+          }),
+
         toggleDrawer: () =>
           set((state) => {
             state.drawerOpen = !state.drawerOpen;
