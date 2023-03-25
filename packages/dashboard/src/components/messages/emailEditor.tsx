@@ -11,7 +11,7 @@ import {
   FormLabel,
   IconButton,
   Slide,
-  Snackbar,
+  SnackbarOrigin,
   Stack,
   styled,
   SxProps,
@@ -24,6 +24,7 @@ import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import axios, { AxiosResponse } from "axios";
 import escapeHtml from "escape-html";
+import hash from "fnv1a";
 import { produce } from "immer";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -34,7 +35,8 @@ import {
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { closeSnackbar, enqueueSnackbar } from "notistack";
+import React, { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useAppStore } from "../../lib/appStore";
@@ -107,6 +109,17 @@ enum ErrorKeys {
   RenderFromError = "RenderFromError",
   RenderSubjectError = "RenderSubjectError",
 }
+
+const anchorOrigin: SnackbarOrigin = {
+  vertical: "bottom",
+  horizontal: "right",
+};
+
+function errorHash(key: ErrorKeys, message: string) {
+  return hash(`${key}-${message}`);
+}
+
+const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 
 export default function EmailEditor() {
   const theme = useTheme();
@@ -181,11 +194,15 @@ export default function EmailEditor() {
   const [debouncedEmailFrom] = useDebounce(emailFrom, 300);
 
   useEffect(() => {
+    const existingErr = errors.get(ErrorKeys.RenderBodyError);
     try {
       const rendered = renderWithUserProperties({
         template: debouncedEmailBody,
         userProperties: debouncedUserProperties,
       });
+      if (existingErr) {
+        closeSnackbar(errorHash(ErrorKeys.RenderBodyError, existingErr));
+      }
       setRenderedBody(rendered);
       setErrors(
         produce((errorMap) => {
@@ -193,13 +210,25 @@ export default function EmailEditor() {
         })
       );
     } catch (e) {
+      const message = `Body Error: ${String(e)}`;
+      if (existingErr && existingErr !== message) {
+        closeSnackbar(errorHash(ErrorKeys.RenderBodyError, existingErr));
+      }
+      enqueueSnackbar(message, {
+        variant: "error",
+        persist: true,
+        key: errorHash(ErrorKeys.RenderBodyError, message),
+        anchorOrigin,
+      });
       setErrors(
         produce((errorMap) => {
-          errorMap.set(ErrorKeys.RenderBodyError, String(e));
+          errorMap.set(ErrorKeys.RenderBodyError, message);
         })
       );
+
+      setRenderedBody(errorBodyHtml);
     }
-  }, [debouncedEmailBody, debouncedUserProperties]);
+  }, [debouncedEmailBody, debouncedUserProperties, errors]);
 
   useEffect(() => {
     try {
@@ -210,17 +239,26 @@ export default function EmailEditor() {
         })
       );
       setRenderedSubject(rendered);
-      setErrors(
-        produce((errorMap) => {
-          errorMap.delete(ErrorKeys.RenderSubjectError);
-        })
-      );
+      // setErrors(
+      //   produce((errorMap) => {
+      //     errorMap.delete(ErrorKeys.RenderSubjectError);
+      //   })
+      // );
+      closeSnackbar(ErrorKeys.RenderSubjectError);
+      console.log("closing");
     } catch (e) {
-      setErrors(
-        produce((errorMap) => {
-          errorMap.set(ErrorKeys.RenderSubjectError, String(e));
-        })
-      );
+      console.log("opening");
+      enqueueSnackbar(String(e), {
+        variant: "error",
+        persist: true,
+        key: ErrorKeys.RenderSubjectError,
+        anchorOrigin,
+      });
+      // setErrors(
+      //   produce((errorMap) => {
+      //     errorMap.set(ErrorKeys.RenderSubjectError, String(e));
+      //   })
+      // );
     }
   }, [debouncedEmailSubject, debouncedUserProperties]);
 
@@ -235,13 +273,25 @@ export default function EmailEditor() {
         })
       );
 
+      setRenderedFrom(rendered);
       setErrors(
         produce((errorMap) => {
           errorMap.delete(ErrorKeys.RenderFromError);
         })
       );
-      setRenderedFrom(rendered);
+
+      closeSnackbar(ErrorKeys.RenderFromError);
     } catch (e) {
+      const message = String(e);
+      if (errors.get(ErrorKeys.RenderFromError) !== message) {
+        closeSnackbar(ErrorKeys.RenderFromError);
+      }
+      enqueueSnackbar(message, {
+        variant: "error",
+        persist: true,
+        key: ErrorKeys.RenderFromError,
+        anchorOrigin,
+      });
       setErrors(
         produce((errorMap) => {
           errorMap.set(ErrorKeys.RenderFromError, String(e));

@@ -15,6 +15,7 @@ import {
 } from "../lib/appStore";
 import createEmotionCache from "../lib/createEmotionCache";
 import ThemeCustomization from "../themeCustomization";
+import { SnackbarProvider } from "notistack";
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
@@ -225,8 +226,11 @@ export default function App({
         <Head>
           <meta name="viewport" content="initial-scale=1, width=device-width" />
         </Head>
+
         <ThemeCustomization>
-          <Component {...pageProps} />
+          <SnackbarProvider preventDuplicate>
+            <Component {...pageProps} />
+          </SnackbarProvider>
         </ThemeCustomization>
       </EmotionCacheProvider>
     </StoreProvider>
