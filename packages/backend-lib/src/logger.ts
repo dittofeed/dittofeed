@@ -6,9 +6,42 @@ let LOGGER: Logger | null = null;
 
 export { type LogFn } from "pino";
 
+const PinoLevelToSeverityLookup = {
+  trace: "DEBUG",
+  debug: "DEBUG",
+  info: "INFO",
+  warn: "WARNING",
+  error: "ERROR",
+  fatal: "CRITICAL",
+};
+
+type PinoLevel = keyof typeof PinoLevelToSeverityLookup;
+
+function isPinoLevel(value: string): value is PinoLevel {
+  return value in PinoLevelToSeverityLookup;
+}
+
+type PinoConf = Parameters<typeof pino>[0];
+
+const googleOpsConfig: PinoConf = {
+  messageKey: "message",
+  formatters: {
+    level(label, number) {
+      const severity: string = isPinoLevel(label)
+        ? PinoLevelToSeverityLookup[label]
+        : PinoLevelToSeverityLookup.info;
+
+      return {
+        severity,
+        level: number,
+      };
+    },
+  },
+};
+
 export default function logger() {
   if (!LOGGER) {
-    let options: Parameters<typeof pino>[0];
+    let options: PinoConf;
     if (config().prettyLogs) {
       options = {
         transport: {
@@ -23,6 +56,9 @@ export default function logger() {
       options = {
         level: config().logLevel,
       };
+      if (config().googleOps) {
+        Object.assign(options, googleOpsConfig);
+      }
     }
     LOGGER = pino(options);
   }
