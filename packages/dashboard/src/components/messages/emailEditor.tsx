@@ -11,6 +11,7 @@ import {
   FormLabel,
   IconButton,
   Slide,
+  Snackbar,
   Stack,
   styled,
   SxProps,
@@ -23,6 +24,7 @@ import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import axios, { AxiosResponse } from "axios";
 import escapeHtml from "escape-html";
+import { produce } from "immer";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -32,7 +34,7 @@ import {
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useAppStore } from "../../lib/appStore";
@@ -100,9 +102,20 @@ const BodyBox = styled(Box, {
 
 type Fullscreen = "editor" | "preview" | null;
 
+enum ErrorKeys {
+  RenderBodyError = "RenderBodyError",
+  RenderFromError = "RenderFromError",
+  RenderSubjectError = "RenderSubjectError",
+}
+
 export default function EmailEditor() {
   const theme = useTheme();
   const path = useRouter();
+  const [errors, setErrors] = useState<Map<ErrorKeys, string>>(new Map());
+  const [previewBodyHtml, setRenderedBody] = useState<string>("");
+  const [previewSubject, setRenderedSubject] = useState<string>("");
+  const [previewEmailFrom, setRenderedFrom] = useState<string>("");
+
   const [fullscreen, setFullscreen] = useState<Fullscreen>(null);
   const title = useAppStore((state) => state.emailMessageTitle);
   const setTitle = useAppStore((state) => state.setEmailMessageProps);
@@ -167,42 +180,73 @@ export default function EmailEditor() {
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
   const [debouncedEmailFrom] = useDebounce(emailFrom, 300);
 
-  const previewBodyHtml = useMemo(() => {
+  useEffect(() => {
     try {
-      return renderWithUserProperties({
+      const rendered = renderWithUserProperties({
         template: debouncedEmailBody,
         userProperties: debouncedUserProperties,
       });
+      setRenderedBody(rendered);
+      setErrors(
+        produce((errorMap) => {
+          errorMap.delete(ErrorKeys.RenderBodyError);
+        })
+      );
     } catch (e) {
-      return "";
+      setErrors(
+        produce((errorMap) => {
+          errorMap.set(ErrorKeys.RenderBodyError, String(e));
+        })
+      );
     }
   }, [debouncedEmailBody, debouncedUserProperties]);
 
-  const previewSubject = useMemo(() => {
+  useEffect(() => {
     try {
-      return escapeHtml(
+      const rendered = escapeHtml(
         renderWithUserProperties({
           template: debouncedEmailSubject,
           userProperties: debouncedUserProperties,
         })
       );
+      setRenderedSubject(rendered);
+      setErrors(
+        produce((errorMap) => {
+          errorMap.delete(ErrorKeys.RenderSubjectError);
+        })
+      );
     } catch (e) {
-      return "";
+      setErrors(
+        produce((errorMap) => {
+          errorMap.set(ErrorKeys.RenderSubjectError, String(e));
+        })
+      );
     }
   }, [debouncedEmailSubject, debouncedUserProperties]);
 
   const previewEmailTo = debouncedUserProperties.email;
 
-  const previewEmailFrom = useMemo(() => {
+  useEffect(() => {
     try {
-      return escapeHtml(
+      const rendered = escapeHtml(
         renderWithUserProperties({
           template: debouncedEmailFrom,
           userProperties: debouncedUserProperties,
         })
       );
+
+      setErrors(
+        produce((errorMap) => {
+          errorMap.delete(ErrorKeys.RenderFromError);
+        })
+      );
+      setRenderedFrom(rendered);
     } catch (e) {
-      return "";
+      setErrors(
+        produce((errorMap) => {
+          errorMap.set(ErrorKeys.RenderFromError, String(e));
+        })
+      );
     }
   }, [debouncedEmailFrom, debouncedUserProperties]);
 
@@ -536,6 +580,13 @@ export default function EmailEditor() {
       >
         {preview}
       </Dialog>
+      {/* <Snackbar
+        open={true}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        message="Note archived"
+        action={action}
+      /> */}
     </>
   );
 }
