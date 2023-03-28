@@ -28,13 +28,14 @@ model Workspace {
 }
 
 model Segment {
-  id          String    @id() @default(uuid()) @db.Uuid
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  workspaceId String    @db.Uuid
-  name        String
-  definition  Json
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                String              @id() @default(uuid()) @db.Uuid
+  workspace         Workspace           @relation(fields: [workspaceId], references: [id])
+  workspaceId       String              @db.Uuid
+  name              String
+  definition        Json
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  SegmentAssignment SegmentAssignment[]
 
   @@unique([workspaceId, name])
 }
@@ -76,7 +77,8 @@ model SegmentAssignment {
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId String    @db.Uuid
   userId      String
-  segmentId   String
+  segment     Segment   @relation(fields: [segmentId], references: [id])
+  segmentId   String    @db.Uuid
   inSegment   Boolean
 
   @@unique([workspaceId, userId, segmentId])

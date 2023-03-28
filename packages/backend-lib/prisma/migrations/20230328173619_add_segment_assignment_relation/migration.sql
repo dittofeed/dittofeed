@@ -5,7 +5,7 @@
 
 */
 -- AlterTable
-ALTER TABLE "SegmentAssignment" ADD COLUMN "segmentId_temp" UUID;
+ALTER TABLE "SegmentAssignment" ADD COLUMN "segmentId_temp" UUID NOT NULL;
 
 UPDATE "SegmentAssignment"
 SET "segmentId_temp" = CAST("segmentId" AS UUID);
