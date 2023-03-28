@@ -66,7 +66,17 @@ export async function getUsers({
     userMap.set(result.userId, user);
   }
 
+  const lastResult = parsedResult[parsedResult.length - 1];
+  const nextCursor = lastResult
+    ? Buffer.from(
+        JSON.stringify({
+          lastUserId: lastResult.userId,
+        })
+      ).toString("base64")
+    : undefined;
+
   return {
     users: Array.from(userMap.values()),
+    nextCursor,
   };
 }
