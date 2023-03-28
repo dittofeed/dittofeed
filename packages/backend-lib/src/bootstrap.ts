@@ -109,7 +109,7 @@ async function bootstrapPostgres() {
         },
       },
       {
-        name: "firstName",
+        name: "lastName",
         workspaceId: defaultWorkspaceId,
         definition: {
           type: UserPropertyDefinitionType.Trait,

@@ -44,6 +44,7 @@ export default function logger() {
     let options: PinoConf;
     if (config().prettyLogs) {
       options = {
+        level: config().logLevel,
         transport: {
           target: "pino-pretty",
           options: {

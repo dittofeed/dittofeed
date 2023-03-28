@@ -654,3 +654,25 @@ export const DeleteUserPropertyRequest = Type.Object({
 export type DeleteUserPropertyRequest = Static<
   typeof DeleteUserPropertyRequest
 >;
+
+export const GetUsersRequest = Type.Object({
+  afterCursor: Type.Optional(Type.String()),
+  limit: Type.Optional(Type.Number()),
+});
+
+export type GetUsersRequest = Static<typeof GetUsersRequest>;
+
+const GetUsersResponseItem = Type.Object({
+  id: Type.String(),
+  properties: Type.Record(Type.String(), Type.String()),
+  segments: Type.Record(Type.String(), Type.Boolean()),
+});
+
+export type GetUsersResponseItem = Static<typeof GetUsersResponseItem>;
+
+export const GetUsersResponse = Type.Object({
+  users: Type.Array(GetUsersResponseItem),
+  nextCursor: Type.Optional(Type.String()),
+});
+
+export type GetUsersResponse = Static<typeof GetUsersResponse>;
