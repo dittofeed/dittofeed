@@ -654,3 +654,20 @@ export const DeleteUserPropertyRequest = Type.Object({
 export type DeleteUserPropertyRequest = Static<
   typeof DeleteUserPropertyRequest
 >;
+
+export const GetUsersRequest = Type.Object({
+  workspaceId: Type.String(),
+  afterCursor: Type.Optional(Type.String()),
+  beforeCursor: Type.Optional(Type.String()),
+});
+
+const GetUsersResponseItem = Type.Object({
+  id: Type.String(),
+  properties: Type.Record(Type.String(), Type.String()),
+  segments: Type.Record(Type.String(), Type.Boolean()),
+});
+
+export const GetUsersResponse = Type.Object({
+  users: Type.Array(GetUsersResponseItem),
+  nextCursor: Type.Optional(Type.String()),
+});
