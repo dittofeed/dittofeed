@@ -35,14 +35,18 @@ export async function getUsers({
           ) AS all_user_ids
           LIMIT ${limit}
       )
-      SELECT 1 AS type, "userId", up.name AS "computedPropertyKey", FALSE AS "segmentValue", value AS "userPropertyValue"
-      FROM "UserPropertyAssignment" as upa
-      JOIN "UserProperty" AS up ON up.id = "userPropertyId"
-      WHERE upa."workspaceId" = CAST(${workspaceId} AS UUID) AND "value" != '' AND "userId" IN (SELECT "userId" FROM unique_user_ids)
-      UNION ALL
-      SELECT 0 AS type, "userId", CAST("segmentId" AS TEXT) AS "computedPropertyKey", "inSegment" AS "segmentValue", '' AS "userPropertyValue"
-      FROM "SegmentAssignment"
-      WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "inSegment" = TRUE AND "userId" IN (SELECT "userId" FROM unique_user_ids);`
+      SELECT * FROM (
+        SELECT 1 AS type, "userId", up.name AS "computedPropertyKey", FALSE AS "segmentValue", value AS "userPropertyValue"
+        FROM "UserPropertyAssignment" as upa
+        JOIN "UserProperty" AS up ON up.id = "userPropertyId"
+        WHERE upa."workspaceId" = CAST(${workspaceId} AS UUID) AND "value" != '' AND "userId" IN (SELECT "userId" FROM unique_user_ids)
+        UNION ALL
+        SELECT 0 AS type, "userId", CAST("segmentId" AS TEXT) AS "computedPropertyKey", "inSegment" AS "segmentValue", '' AS "userPropertyValue"
+        FROM "SegmentAssignment"
+        WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "inSegment" = TRUE AND "userId" IN (SELECT "userId" FROM unique_user_ids)
+      ) AS combined_results
+      ORDER BY "userId" ASC;
+    `
   );
 
   const userMap = new Map<string, GetUsersResponseItem>();
