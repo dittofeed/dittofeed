@@ -2,6 +2,7 @@ import { Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
+import logger from "./logger";
 import prisma from "./prisma";
 import {
   GetUsersRequest,
@@ -20,18 +21,43 @@ const UsersQueryItem = Type.Object({
 
 const UsersQueryResult = Type.Array(UsersQueryItem);
 
+const Cursor = Type.Object({
+  lastUserId: Type.String(),
+});
+
 export async function getUsers({
   workspaceId,
-  limit,
+  afterCursor,
+  limit = 10,
 }: GetUsersRequest & { workspaceId: string }): Promise<GetUsersResponse> {
+  let lastUserId: string | null = null;
+  if (afterCursor) {
+    try {
+      const asciiString = Buffer.from(afterCursor, "base64").toString("ascii");
+      const decoded = JSON.parse(asciiString);
+      const cursor = unwrap(schemaValidate(decoded, Cursor));
+      lastUserId = cursor.lastUserId;
+    } catch (e) {
+      logger().error(
+        {
+          err: e,
+        },
+        "failed to decode user cursor"
+      );
+    }
+  }
+  const lastUserIdCondition = lastUserId
+    ? Prisma.sql`"userId" > ${lastUserId}`
+    : Prisma.sql`1=1`;
+
   const results = await prisma().$queryRaw(
     Prisma.sql`
       WITH unique_user_ids AS (
           SELECT DISTINCT "userId"
           FROM (
-              SELECT "userId" FROM "UserPropertyAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+              SELECT "userId" FROM "UserPropertyAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND ${lastUserIdCondition}
               UNION
-              SELECT "userId" FROM "SegmentAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+              SELECT "userId" FROM "SegmentAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND ${lastUserIdCondition}
           ) AS all_user_ids
           LIMIT ${limit}
       )
@@ -67,13 +93,14 @@ export async function getUsers({
   }
 
   const lastResult = parsedResult[parsedResult.length - 1];
-  const nextCursor = lastResult
-    ? Buffer.from(
-        JSON.stringify({
-          lastUserId: lastResult.userId,
-        })
-      ).toString("base64")
-    : undefined;
+  const nextCursor =
+    lastResult && parsedResult.length >= limit
+      ? Buffer.from(
+          JSON.stringify({
+            lastUserId: lastResult.userId,
+          })
+        ).toString("base64")
+      : undefined;
 
   return {
     users: Array.from(userMap.values()),

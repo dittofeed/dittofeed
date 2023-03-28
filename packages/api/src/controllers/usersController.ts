@@ -19,12 +19,13 @@ export default async function usersController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { defaultWorkspaceId } = backendConfig();
-      const { users } = await getUsers({
+      const { users, nextCursor } = await getUsers({
         workspaceId: defaultWorkspaceId,
         afterCursor: request.query.afterCursor,
       });
       return reply.status(200).send({
         users,
+        nextCursor,
       });
     }
   );

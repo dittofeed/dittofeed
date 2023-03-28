@@ -79,7 +79,16 @@ describe("getUsers", () => {
           },
         },
       ]);
-      expect(result2.nextCursor).toBeUndefined();
+      expect(result2.nextCursor).not.toBeUndefined();
+
+      const result3 = await getUsers({
+        workspaceId: workspace.id,
+        afterCursor: result2.nextCursor,
+        limit: 1,
+      });
+
+      expect(result3.users).toHaveLength(0);
+      expect(result3.nextCursor).toBeUndefined();
     });
   });
 });
