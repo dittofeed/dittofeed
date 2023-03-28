@@ -668,6 +668,8 @@ const GetUsersResponseItem = Type.Object({
   segments: Type.Record(Type.String(), Type.Boolean()),
 });
 
+export type GetUsersResponseItem = Static<typeof GetUsersResponseItem>;
+
 export const GetUsersResponse = Type.Object({
   users: Type.Array(GetUsersResponseItem),
   nextCursor: Type.Optional(Type.String()),

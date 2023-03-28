@@ -1,74 +1,31 @@
+import { Type } from "@sinclair/typebox";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+
 import logger from "./logger";
 import prisma from "./prisma";
-import { GetUsersRequest, GetUsersResponse, Prisma } from "./types";
+import {
+  GetUsersRequest,
+  GetUsersResponse,
+  GetUsersResponseItem,
+  Prisma,
+} from "./types";
 
-/*
+const UsersQueryItem = Type.Object({
+  type: Type.Union([Type.Literal(0), Type.Literal(1)]),
+  userId: Type.String(),
+  computedPropertyId: Type.String(),
+  segmentValue: Type.Boolean(),
+  userPropertyValue: Type.String(),
+});
 
-
-SELECT userId,  FROM UserPropertyAssignment WHERE workspaceId = ${workspaceId}
-
-I have two tables in postgres, `UserPropertyAssignment` and `SegmentAssignment`. They have different structures, but share a `userId` column`.
-
-```
-\d "UserPropertyAssignment";
-
-   Column    |  Type   | Collation | Nullable | Default 
--------------+---------+-----------+----------+---------
- userId      | text    |           | not null | 
- segmentId   | text    |           | not null | 
- inSegment   | boolean |           | not null | 
- workspaceId | uuid    |           | not null | 
-Indexes:
-    "SegmentAssignment_workspaceId_userId_segmentId_key" UNIQUE, btree ("workspaceId", "userId", "segmentId")
-Foreign-key constraints:
-    "SegmentAssignment_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"(id) ON UPDATE CASCADE ON DELETE RESTRICT
-
----
-
- \d "SegmentAssignment";
-
-     Column     | Type | Collation | Nullable | Default 
-----------------+------+-----------+----------+---------
- userId         | text |           | not null | 
- userPropertyId | uuid |           | not null | 
- value          | text |           | not null | 
- workspaceId    | uuid |           | not null | 
-Indexes:
-    "UserPropertyAssignment_userId_idx" btree ("userId")
-    "UserPropertyAssignment_workspaceId_userPropertyId_userId_key" UNIQUE, btree ("workspaceId", "userPropertyId", "userId")
-Foreign-key constraints:
-    "UserPropertyAssignment_userPropertyId_fkey" FOREIGN KEY ("userPropertyId") REFERENCES "UserProperty"(id) ON UPDATE CASCADE ON DELETE RESTRICT
-    "UserPropertyAssignment_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"(id) ON UPDATE CASCADE ON DELETE RESTRICT
-```
-
-How can I query these tables, retrieving all `SegmentAssignment` and `UserPropertyAssignment` records, for the first 10 unique `userId`'s, for a fixed workspaceId?
-*/
-
-// Prisma.sql`
-//   WITH unique_user_ids AS (
-//       SELECT DISTINCT userId
-//       FROM (
-//           SELECT userId FROM UserPropertyAssignment WHERE workspaceId = ${workspaceId}
-//           UNION
-//           SELECT userId FROM SegmentAssignment WHERE workspaceId = ${workspaceId}
-//       ) AS all_user_ids
-//       LIMIT ${limit}
-//   )
-//   SELECT 1 AS type, userId, userPropertyId AS computedPropertyId, NULL AS segmentValue, value AS userPropertyValue
-//   FROM UserPropertyAssignment
-//   WHERE workspaceId = ${workspaceId} AND userId IN (SELECT userId FROM unique_user_ids)
-//   UNION ALL
-//   SELECT 0 AS type, userId, segmentId AS computedPropertyId, value AS segmentValue, NULL AS userPropertyValue
-//   FROM SegmentAssignment
-//   WHERE workspaceId = ${workspaceId} AND userId IN (SELECT userId FROM unique_user_ids);
-
-// `
+const UsersQueryResult = Type.Array(UsersQueryItem);
 
 export async function getUsers({
   workspaceId,
   limit,
 }: GetUsersRequest & { workspaceId: string }): Promise<GetUsersResponse> {
-  const result = await prisma().$queryRaw(
+  const results = await prisma().$queryRaw(
     Prisma.sql`
       WITH unique_user_ids AS (
           SELECT DISTINCT "userId"
@@ -81,17 +38,34 @@ export async function getUsers({
       )
       SELECT 1 AS type, "userId", "userPropertyId" AS "computedPropertyId", FALSE AS "segmentValue", value AS "userPropertyValue"
       FROM "UserPropertyAssignment"
-      WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "userId" IN (SELECT "userId" FROM unique_user_ids)
+      WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "value" != '' AND "userId" IN (SELECT "userId" FROM unique_user_ids)
       UNION ALL
       SELECT 0 AS type, "userId", "segmentId" AS "computedPropertyId", "inSegment" AS "segmentValue", '' AS "userPropertyValue"
       FROM "SegmentAssignment"
-      WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "userId" IN (SELECT "userId" FROM unique_user_ids);
+      WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "inSegment" = TRUE AND "userId" IN (SELECT "userId" FROM unique_user_ids);
 `
   );
 
-  logger().debug(result, "get users query result");
+  logger().debug(results, "get users query result");
+
+  const userMap = new Map<string, GetUsersResponseItem>();
+  const parsedResult = unwrap(schemaValidate(results, UsersQueryResult));
+
+  for (const result of parsedResult) {
+    const user: GetUsersResponseItem = userMap.get(result.userId) ?? {
+      id: result.userId,
+      segments: {},
+      properties: {},
+    };
+    if (result.type === 0) {
+      user.segments[result.computedPropertyId] = result.segmentValue;
+    } else {
+      user.properties[result.computedPropertyId] = result.userPropertyValue;
+    }
+    userMap.set(result.userId, user);
+  }
 
   return {
-    users: [],
+    users: Array.from(userMap.values()),
   };
 }
