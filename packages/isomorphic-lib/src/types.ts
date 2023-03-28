@@ -658,8 +658,10 @@ export type DeleteUserPropertyRequest = Static<
 export const GetUsersRequest = Type.Object({
   workspaceId: Type.String(),
   afterCursor: Type.Optional(Type.String()),
-  beforeCursor: Type.Optional(Type.String()),
+  limit: Type.Optional(Type.Number()),
 });
+
+export type GetUsersRequest = Static<typeof GetUsersRequest>;
 
 const GetUsersResponseItem = Type.Object({
   id: Type.String(),
@@ -671,3 +673,5 @@ export const GetUsersResponse = Type.Object({
   users: Type.Array(GetUsersResponseItem),
   nextCursor: Type.Optional(Type.String()),
 });
+
+export type GetUsersResponse = Static<typeof GetUsersResponse>;
