@@ -656,7 +656,6 @@ export type DeleteUserPropertyRequest = Static<
 >;
 
 export const GetUsersRequest = Type.Object({
-  workspaceId: Type.String(),
   afterCursor: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Number()),
 });

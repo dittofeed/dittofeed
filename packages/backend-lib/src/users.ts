@@ -44,29 +44,49 @@ Foreign-key constraints:
 How can I query these tables, retrieving all `SegmentAssignment` and `UserPropertyAssignment` records, for the first 10 unique `userId`'s, for a fixed workspaceId?
 */
 
+// Prisma.sql`
+//   WITH unique_user_ids AS (
+//       SELECT DISTINCT userId
+//       FROM (
+//           SELECT userId FROM UserPropertyAssignment WHERE workspaceId = ${workspaceId}
+//           UNION
+//           SELECT userId FROM SegmentAssignment WHERE workspaceId = ${workspaceId}
+//       ) AS all_user_ids
+//       LIMIT ${limit}
+//   )
+//   SELECT 1 AS type, userId, userPropertyId AS computedPropertyId, NULL AS segmentValue, value AS userPropertyValue
+//   FROM UserPropertyAssignment
+//   WHERE workspaceId = ${workspaceId} AND userId IN (SELECT userId FROM unique_user_ids)
+//   UNION ALL
+//   SELECT 0 AS type, userId, segmentId AS computedPropertyId, value AS segmentValue, NULL AS userPropertyValue
+//   FROM SegmentAssignment
+//   WHERE workspaceId = ${workspaceId} AND userId IN (SELECT userId FROM unique_user_ids);
+
+// `
+
 export async function getUsers({
   workspaceId,
   limit,
-}: GetUsersRequest): Promise<GetUsersResponse> {
+}: GetUsersRequest & { workspaceId: string }): Promise<GetUsersResponse> {
   const result = await prisma().$queryRaw(
     Prisma.sql`
       WITH unique_user_ids AS (
-          SELECT DISTINCT userId
+          SELECT DISTINCT "userId"
           FROM (
-              SELECT userId FROM UserPropertyAssignment WHERE workspaceId = ${workspaceId}
+              SELECT "userId" FROM "UserPropertyAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
               UNION
-              SELECT userId FROM SegmentAssignment WHERE workspaceId = ${workspaceId}
+              SELECT "userId" FROM "SegmentAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
           ) AS all_user_ids
           LIMIT ${limit}
       )
-      SELECT 1 AS type, userId, userPropertyId AS computedPropertyId, NULL AS segmentValue, value AS userPropertyValue
-      FROM UserPropertyAssignment
-      WHERE workspaceId = ${workspaceId} AND userId IN (SELECT userId FROM unique_user_ids)
+      SELECT 1 AS type, "userId", "userPropertyId" AS "computedPropertyId", FALSE AS "segmentValue", value AS "userPropertyValue"
+      FROM "UserPropertyAssignment"
+      WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "userId" IN (SELECT "userId" FROM unique_user_ids)
       UNION ALL
-      SELECT 0 as type, userId, segmentId as computedPropertyId, value AS segmentValue, NULL AS userPropertyValue
-      FROM SegmentAssignment
-      WHERE workspaceId = ${workspaceId} AND userId IN (SELECT userId FROM unique_user_ids);
-    `
+      SELECT 0 AS type, "userId", "segmentId" AS "computedPropertyId", "inSegment" AS "segmentValue", '' AS "userPropertyValue"
+      FROM "SegmentAssignment"
+      WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "userId" IN (SELECT "userId" FROM unique_user_ids);
+`
   );
 
   logger().debug(result, "get users query result");
