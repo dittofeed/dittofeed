@@ -14,7 +14,7 @@ import {
 const UsersQueryItem = Type.Object({
   type: Type.Union([Type.Literal(0), Type.Literal(1)]),
   userId: Type.String(),
-  computedPropertyId: Type.String(),
+  computedPropertyKey: Type.String(),
   segmentValue: Type.Boolean(),
   userPropertyValue: Type.String(),
 });
