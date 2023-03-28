@@ -2,7 +2,6 @@ import { Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
-import logger from "./logger";
 import prisma from "./prisma";
 import {
   GetUsersRequest,
@@ -45,8 +44,6 @@ export async function getUsers({
       FROM "SegmentAssignment"
       WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "inSegment" = TRUE AND "userId" IN (SELECT "userId" FROM unique_user_ids);`
   );
-
-  logger().debug(results, "get users query result");
 
   const userMap = new Map<string, GetUsersResponseItem>();
   const parsedResult = unwrap(schemaValidate(results, UsersQueryResult));
