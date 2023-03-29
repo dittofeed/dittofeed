@@ -77,7 +77,7 @@ describe("getUsers", () => {
       const result2 = unwrap(
         await getUsers({
           workspaceId: workspace.id,
-          afterCursor: result1.nextCursor,
+          cursor: result1.nextCursor,
           limit: 1,
         })
       );
@@ -96,7 +96,7 @@ describe("getUsers", () => {
       const result3 = unwrap(
         await getUsers({
           workspaceId: workspace.id,
-          afterCursor: result2.nextCursor,
+          cursor: result2.nextCursor,
           limit: 1,
         })
       );

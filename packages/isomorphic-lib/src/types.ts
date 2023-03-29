@@ -655,10 +655,18 @@ export type DeleteUserPropertyRequest = Static<
   typeof DeleteUserPropertyRequest
 >;
 
+export enum CursorDirectionEnum {
+  After = "after",
+  Before = "before",
+}
+
+export const CursorDirection = Type.Enum(CursorDirectionEnum);
+
 export const GetUsersRequest = Type.Object({
-  afterCursor: Type.Optional(Type.String()),
+  cursor: Type.Optional(Type.String()),
   segmentId: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Number()),
+  direction: Type.Optional(CursorDirection),
 });
 
 export type GetUsersRequest = Static<typeof GetUsersRequest>;
@@ -673,6 +681,7 @@ export type GetUsersResponseItem = Static<typeof GetUsersResponseItem>;
 
 export const GetUsersResponse = Type.Object({
   users: Type.Array(GetUsersResponseItem),
+  previousCursor: Type.Optional(Type.String()),
   nextCursor: Type.Optional(Type.String()),
 });
 

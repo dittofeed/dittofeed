@@ -1,4 +1,5 @@
-import { Type } from "@sinclair/typebox";
+import { Sql } from "@prisma/client/runtime";
+import { Static, Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
@@ -7,6 +8,7 @@ import { validate as validateUuid } from "uuid";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
+  CursorDirectionEnum,
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
@@ -23,14 +25,25 @@ const UsersQueryItem = Type.Object({
 
 const UsersQueryResult = Type.Array(UsersQueryItem);
 
+enum CursorKey {
+  UserIdKey = "u",
+}
+
 const Cursor = Type.Object({
-  lastUserId: Type.String(),
+  [CursorKey.UserIdKey]: Type.String(),
 });
+
+type Cursor = Static<typeof Cursor>;
+
+function serializeCursor(cursor: Cursor): string {
+  return Buffer.from(JSON.stringify(cursor)).toString("base64");
+}
 
 export async function getUsers({
   workspaceId,
-  afterCursor,
+  cursor: unparsedCursor,
   segmentId,
+  direction,
   limit = 10,
 }: GetUsersRequest & { workspaceId: string }): Promise<
   Result<GetUsersResponse, Error>
@@ -38,13 +51,14 @@ export async function getUsers({
   if (segmentId && !validateUuid(segmentId)) {
     return err(new Error("segmentId is invalid uuid"));
   }
-  let lastUserId: string | null = null;
-  if (afterCursor) {
+  let cursor: Cursor | null = null;
+  if (unparsedCursor) {
     try {
-      const asciiString = Buffer.from(afterCursor, "base64").toString("ascii");
+      const asciiString = Buffer.from(unparsedCursor, "base64").toString(
+        "ascii"
+      );
       const decoded = JSON.parse(asciiString);
-      const cursor = unwrap(schemaValidate(decoded, Cursor));
-      lastUserId = cursor.lastUserId;
+      cursor = unwrap(schemaValidate(decoded, Cursor));
     } catch (e) {
       logger().error(
         {
@@ -54,9 +68,21 @@ export async function getUsers({
       );
     }
   }
-  const lastUserIdCondition = lastUserId
-    ? Prisma.sql`"userId" > ${lastUserId}`
-    : Prisma.sql`1=1`;
+
+  let lastUserIdCondition: Sql;
+  if (cursor) {
+    if (direction === CursorDirectionEnum.Before) {
+      lastUserIdCondition = Prisma.sql`"userId" < ${
+        cursor[CursorKey.UserIdKey]
+      }`;
+    } else {
+      lastUserIdCondition = Prisma.sql`"userId" > ${
+        cursor[CursorKey.UserIdKey]
+      }`;
+    }
+  } else {
+    lastUserIdCondition = Prisma.sql`1=1`;
+  }
 
   const segmentIdCondition = segmentId
     ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
@@ -139,21 +165,36 @@ export async function getUsers({
   }
 
   const lastResult = parsedResult[parsedResult.length - 1];
-  const nextCursor =
-    lastResult && parsedResult.length >= limit
-      ? Buffer.from(
-          JSON.stringify({
-            lastUserId: lastResult.userId,
-          })
-        ).toString("base64")
-      : undefined;
+  const firstResult = parsedResult[0];
+
+  let nextCursor: Cursor | null;
+  let previousCursor: Cursor | null;
+
+  if (lastResult && parsedResult.length >= limit) {
+    nextCursor = {
+      [CursorKey.UserIdKey]: lastResult.userId,
+    };
+  } else {
+    nextCursor = null;
+  }
+
+  if (firstResult && cursor) {
+    previousCursor = {
+      [CursorKey.UserIdKey]: firstResult.userId,
+    };
+  } else {
+    previousCursor = null;
+  }
 
   const val: GetUsersResponse = {
     users: Array.from(userMap.values()),
   };
 
   if (nextCursor) {
-    val.nextCursor = nextCursor;
+    val.nextCursor = serializeCursor(nextCursor);
+  }
+  if (previousCursor) {
+    val.previousCursor = serializeCursor(previousCursor);
   }
   return ok(val);
 }
