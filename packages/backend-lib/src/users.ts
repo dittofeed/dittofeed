@@ -72,7 +72,7 @@ export async function getUsers({
   let lastUserIdCondition: Sql;
   if (cursor) {
     if (direction === CursorDirectionEnum.Before) {
-      lastUserIdCondition = Prisma.sql`"userId" < ${
+      lastUserIdCondition = Prisma.sql`"userId" <= ${
         cursor[CursorKey.UserIdKey]
       }`;
     } else {
