@@ -1,3 +1,4 @@
+import { DataGrid, GridPaginationModel, GridRowId } from "@mui/x-data-grid";
 import {
   CompletionStatus,
   EphemeralRequestStatus,
@@ -65,62 +66,97 @@ export default function UsersTable({
   direction,
   cursor,
 }: Omit<GetUsersRequest, "limit">) {
+  const mapPageToNextCursor = React.useRef<Record<number, GridRowId>>({});
+
   const apiBase = useAppStore((store) => store.apiBase);
   const getUsersRequest = usersStore((store) => store.getUsersRequest);
   const users = usersStore((store) => store.users);
+  const nextCursor = usersStore((store) => store.nextCursor);
+  const previousCursor = usersStore((store) => store.previousCursor);
   const currentPageUserIds = usersStore((store) => store.currentPageUserIds);
   const setGetUsersRequest = usersStore((store) => store.setGetUsersRequest);
   const setNextCursor = usersStore((store) => store.setNextCursor);
   const setUsers = usersStore((store) => store.setUsers);
   const setUsersPage = usersStore((store) => store.setUsersPage);
   const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
+  const [paginationModel, setPaginationModel] = React.useState({
+    page: 0,
+    pageSize: 10,
+  });
+
+  const handlePaginationModelChange = (
+    newPaginationModel: GridPaginationModel
+  ) => {
+    // We have the cursor, we can allow the page transition.
+    const handledCursor =
+      mapPageToNextCursor.current[newPaginationModel.page - 1];
+
+    if (newPaginationModel.page === 0 || handledCursor) {
+      setPaginationModel(newPaginationModel);
+    }
+  };
 
   const usersPage = useMemo(
     () => currentPageUserIds.flatMap((id) => users[id] ?? []),
     [currentPageUserIds, users]
   );
 
-  const setLoadResponse = (response: GetUsersResponse) => {
-    if (response.nextCursor) {
-      setNextCursor(response.nextCursor);
-    }
-    if (response.previousCursor) {
-      setPreviousCursor(response.previousCursor);
-    }
-    setUsers(response.users);
-    setUsersPage(response.users.map((u) => u.id));
-  };
+  React.useEffect(() => {
+    const setLoadResponse = (response: GetUsersResponse) => {
+      if (response.nextCursor) {
+        setNextCursor(response.nextCursor);
+      }
+      if (response.previousCursor) {
+        setPreviousCursor(response.previousCursor);
+      }
+      setUsers(response.users);
+      setUsersPage(response.users.map((u) => u.id));
+    };
 
-  const params: GetUsersRequest = {
-    segmentId,
-    cursor,
-    direction,
-  };
+    const params: GetUsersRequest = {
+      segmentId,
+      cursor,
+      direction,
+    };
 
-  const handler = apiRequestHandlerFactory({
-    request: getUsersRequest,
-    setRequest: setGetUsersRequest,
-    responseSchema: GetUsersResponse,
-    setResponse: setLoadResponse,
-    requestConfig: {
-      method: "GET",
-      url: `${apiBase}/api/users`,
-      params,
-      headers: {
-        "Content-Type": "application/json",
+    const handler = apiRequestHandlerFactory({
+      request: getUsersRequest,
+      setRequest: setGetUsersRequest,
+      responseSchema: GetUsersResponse,
+      setResponse: setLoadResponse,
+      requestConfig: {
+        method: "GET",
+        url: `${apiBase}/api/users`,
+        params,
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-    },
-  });
+    });
+    handler();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [segmentId, cursor, direction]);
+
+  const isLoading = getUsersRequest.type === CompletionStatus.InProgress;
 
   React.useEffect(() => {
-    handler();
-  }, []);
+    if (cursor) {
+      mapPageToNextCursor.current[paginationModel.page] = cursor;
+    }
+    if (!isLoading && nextCursor) {
+      mapPageToNextCursor.current[paginationModel.page + 1] = nextCursor;
+    }
+    if (!isLoading && previousCursor) {
+      mapPageToNextCursor.current[paginationModel.page - 1] = previousCursor;
+    }
+  }, [cursor, paginationModel.page, previousCursor, nextCursor, isLoading]);
 
   return (
     <>
-      {usersPage.map((u) => (
-        <div key={u.id}>{JSON.stringify(u)}</div>
-      ))}
+      <DataGrid
+        paginationMode="server"
+        onPaginationModelChange={handlePaginationModelChange}
+      />
     </>
   );
 }
