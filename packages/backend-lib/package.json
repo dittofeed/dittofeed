@@ -42,7 +42,8 @@
     "pino": "^8.11.0",
     "pino-pretty": "^10.0.0",
     "prisma": "^4.8.1",
-    "utility-types": "^3.10.0"
+    "utility-types": "^3.10.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@temporalio/testing": "^1.6.0",

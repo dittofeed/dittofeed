@@ -1,6 +1,8 @@
 import { Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { err, ok, Result } from "neverthrow";
+import { validate as validateUuid } from "uuid";
 
 import logger from "./logger";
 import prisma from "./prisma";
@@ -28,8 +30,14 @@ const Cursor = Type.Object({
 export async function getUsers({
   workspaceId,
   afterCursor,
+  segmentId,
   limit = 10,
-}: GetUsersRequest & { workspaceId: string }): Promise<GetUsersResponse> {
+}: GetUsersRequest & { workspaceId: string }): Promise<
+  Result<GetUsersResponse, Error>
+> {
+  if (segmentId && !validateUuid(segmentId)) {
+    return err(new Error("segmentId is invalid uuid"));
+  }
   let lastUserId: string | null = null;
   if (afterCursor) {
     try {
@@ -50,26 +58,64 @@ export async function getUsers({
     ? Prisma.sql`"userId" > ${lastUserId}`
     : Prisma.sql`1=1`;
 
+  const segmentIdCondition = segmentId
+    ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
+    : Prisma.sql`1=1`;
+
+  const userPropertyAssignmentCondition = segmentId
+    ? Prisma.sql`1=0`
+    : Prisma.sql`1=1`;
+
   const results = await prisma().$queryRaw(
     Prisma.sql`
       WITH unique_user_ids AS (
           SELECT DISTINCT "userId"
           FROM (
-              SELECT "userId" FROM "UserPropertyAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND ${lastUserIdCondition}
+              SELECT "userId"
+              FROM "UserPropertyAssignment"
+              WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+                AND ${lastUserIdCondition}
+                AND ${userPropertyAssignmentCondition}
+
               UNION
-              SELECT "userId" FROM "SegmentAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND ${lastUserIdCondition}
+
+              SELECT "userId"
+              FROM "SegmentAssignment"
+              WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+                AND ${lastUserIdCondition}
+                AND ${segmentIdCondition}
           ) AS all_user_ids
           LIMIT ${limit}
       )
-      SELECT * FROM (
-        SELECT 1 AS type, "userId", up.name AS "computedPropertyKey", FALSE AS "segmentValue", value AS "userPropertyValue"
-        FROM "UserPropertyAssignment" as upa
-        JOIN "UserProperty" AS up ON up.id = "userPropertyId"
-        WHERE upa."workspaceId" = CAST(${workspaceId} AS UUID) AND "value" != '' AND "userId" IN (SELECT "userId" FROM unique_user_ids)
-        UNION ALL
-        SELECT 0 AS type, "userId", CAST("segmentId" AS TEXT) AS "computedPropertyKey", "inSegment" AS "segmentValue", '' AS "userPropertyValue"
-        FROM "SegmentAssignment"
-        WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND "inSegment" = TRUE AND "userId" IN (SELECT "userId" FROM unique_user_ids)
+
+      SELECT *
+      FROM (
+          SELECT
+              1 AS type,
+              "userId",
+              up.name AS "computedPropertyKey",
+              FALSE AS "segmentValue",
+              value AS "userPropertyValue"
+          FROM "UserPropertyAssignment" as upa
+          JOIN "UserProperty" AS up ON up.id = "userPropertyId"
+          WHERE
+              upa."workspaceId" = CAST(${workspaceId} AS UUID)
+              AND "value" != ''
+              AND "userId" IN (SELECT "userId" FROM unique_user_ids)
+
+          UNION ALL
+
+          SELECT
+              0 AS type,
+              "userId",
+              CAST("segmentId" AS TEXT) AS "computedPropertyKey",
+              "inSegment" AS "segmentValue",
+              '' AS "userPropertyValue"
+          FROM "SegmentAssignment"
+          WHERE
+              "workspaceId" = CAST(${workspaceId} AS UUID)
+              AND "inSegment" = TRUE
+              AND "userId" IN (SELECT "userId" FROM unique_user_ids)
       ) AS combined_results
       ORDER BY "userId" ASC;
     `
@@ -81,11 +127,11 @@ export async function getUsers({
   for (const result of parsedResult) {
     const user: GetUsersResponseItem = userMap.get(result.userId) ?? {
       id: result.userId,
-      segments: {},
+      segments: [],
       properties: {},
     };
     if (result.type === 0) {
-      user.segments[result.computedPropertyKey] = result.segmentValue;
+      user.segments.push(result.computedPropertyKey);
     } else {
       user.properties[result.computedPropertyKey] = result.userPropertyValue;
     }
@@ -102,8 +148,12 @@ export async function getUsers({
         ).toString("base64")
       : undefined;
 
-  return {
+  const val: GetUsersResponse = {
     users: Array.from(userMap.values()),
-    nextCursor,
   };
+
+  if (nextCursor) {
+    val.nextCursor = nextCursor;
+  }
+  return ok(val);
 }
