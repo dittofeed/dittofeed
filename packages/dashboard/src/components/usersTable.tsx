@@ -22,7 +22,13 @@ import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
 
-const baseColumn: Partial<GridColDef<GetUsersResponseItem>> = {
+interface Row {
+  id: string;
+  properties: string;
+  segments: string;
+}
+
+const baseColumn: Partial<GridColDef<Row>> = {
   flex: 1,
   sortable: false,
   filterable: false,
@@ -132,6 +138,7 @@ export default function UsersTable({
   const usersPage = useMemo(
     () =>
       currentPageUserIds.flatMap((id) => {
+        console.log("id", id, users);
         const user = users[id];
         if (!user) {
           return [];
@@ -145,6 +152,7 @@ export default function UsersTable({
       }),
     [currentPageUserIds, users]
   );
+  console.log("usersPage", usersPage);
 
   React.useEffect(() => {
     const setLoadResponse = (response: GetUsersResponse) => {
@@ -179,6 +187,7 @@ export default function UsersTable({
       },
     });
     handler();
+    console.log("loading");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segmentId, cursor, direction]);
 
@@ -187,7 +196,9 @@ export default function UsersTable({
   return (
     <DataGrid
       rows={usersPage}
+      sx={{ height: "100%" }}
       getRowId={(row) => row.id}
+      autoHeight
       columns={[
         {
           field: "id",

@@ -49,6 +49,7 @@ export default function SegmentUsers() {
         spacing={1}
         sx={{
           width: "100%",
+          height: "100%",
           padding: 3,
           backgroundColor: theme.palette.grey[100],
         }}
