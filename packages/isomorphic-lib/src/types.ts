@@ -678,6 +678,6 @@ export const GetUsersResponse = Type.Object({
 
 export type GetUsersResponse = Static<typeof GetUsersResponse>;
 
-export const BadRequesResponse = Type.Object({
+export const BadRequestResponse = Type.Object({
   message: Type.String(),
 });
