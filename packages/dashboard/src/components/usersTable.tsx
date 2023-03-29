@@ -1,6 +1,5 @@
 import {
   CompletionStatus,
-  CursorDirectionEnum,
   EphemeralRequestStatus,
   GetUsersRequest,
   GetUsersResponse,
@@ -65,11 +64,7 @@ export default function UsersTable({
   segmentId,
   direction,
   cursor,
-}: {
-  segmentId?: string;
-  direction?: CursorDirectionEnum;
-  cursor?: string;
-}) {
+}: Omit<GetUsersRequest, "limit">) {
   const apiBase = useAppStore((store) => store.apiBase);
   const getUsersRequest = usersStore((store) => store.getUsersRequest);
   const users = usersStore((store) => store.users);
@@ -85,57 +80,47 @@ export default function UsersTable({
     [currentPageUserIds, users]
   );
 
-  React.useEffect(() => {
-    const setLoadResponse = (response: GetUsersResponse) => {
-      if (response.nextCursor) {
-        setNextCursor(response.nextCursor);
-      }
-      if (response.previousCursor) {
-        setPreviousCursor(response.previousCursor);
-      }
-      setUsers(response.users);
-      setUsersPage(response.users.map((u) => u.id));
-    };
+  const setLoadResponse = (response: GetUsersResponse) => {
+    if (response.nextCursor) {
+      setNextCursor(response.nextCursor);
+    }
+    if (response.previousCursor) {
+      setPreviousCursor(response.previousCursor);
+    }
+    setUsers(response.users);
+    setUsersPage(response.users.map((u) => u.id));
+  };
 
-    const params: GetUsersRequest = {
-      segmentId,
-      cursor,
-      direction,
-    };
-
-    const handler = apiRequestHandlerFactory({
-      request: getUsersRequest,
-      setRequest: setGetUsersRequest,
-      responseSchema: GetUsersResponse,
-      setResponse: setLoadResponse,
-      requestConfig: {
-        method: "GET",
-        url: `${apiBase}/api/users`,
-        params,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    });
-    handler();
-  }, [
-    apiBase,
+  const params: GetUsersRequest = {
+    segmentId,
     cursor,
     direction,
-    getUsersRequest,
-    segmentId,
-    setGetUsersRequest,
-    setNextCursor,
-    setPreviousCursor,
-    setUsers,
-    setUsersPage,
-  ]);
+  };
+
+  const handler = apiRequestHandlerFactory({
+    request: getUsersRequest,
+    setRequest: setGetUsersRequest,
+    responseSchema: GetUsersResponse,
+    setResponse: setLoadResponse,
+    requestConfig: {
+      method: "GET",
+      url: `${apiBase}/api/users`,
+      params,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
+
+  React.useEffect(() => {
+    handler();
+  }, []);
 
   return (
     <>
-      {usersPage.map((u) => {
-        <div key={u.id}>{JSON.stringify(u)}</div>;
-      })}
+      {usersPage.map((u) => (
+        <div key={u.id}>{JSON.stringify(u)}</div>
+      ))}
     </>
   );
 }

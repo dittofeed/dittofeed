@@ -92,8 +92,7 @@ export async function getUsers({
     ? Prisma.sql`1=0`
     : Prisma.sql`1=1`;
 
-  const results = await prisma().$queryRaw(
-    Prisma.sql`
+  const query = Prisma.sql`
       WITH unique_user_ids AS (
           SELECT DISTINCT "userId"
           FROM (
@@ -144,8 +143,10 @@ export async function getUsers({
               AND "userId" IN (SELECT "userId" FROM unique_user_ids)
       ) AS combined_results
       ORDER BY "userId" ASC;
-    `
-  );
+    `;
+
+  logger().debug(query);
+  const results = await prisma().$queryRaw(query);
 
   const userMap = new Map<string, GetUsersResponseItem>();
   const parsedResult = unwrap(schemaValidate(results, UsersQueryResult));
