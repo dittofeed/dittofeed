@@ -1,6 +1,14 @@
-import { DataGrid, GridPaginationModel, GridRowId } from "@mui/x-data-grid";
+import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
+import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import {
+  DataGrid,
+  GridColDef,
+  GridSlotsComponentsProps,
+} from "@mui/x-data-grid";
 import {
   CompletionStatus,
+  CursorDirectionEnum,
   EphemeralRequestStatus,
   GetUsersRequest,
   GetUsersResponse,
@@ -12,6 +20,40 @@ import { immer } from "zustand/middleware/immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
+import renderCell from "../lib/renderCell";
+
+const baseColumn: Partial<GridColDef<GetUsersResponseItem>> = {
+  flex: 1,
+  sortable: false,
+  filterable: false,
+  renderCell,
+};
+
+declare module "@mui/x-data-grid" {
+  interface FooterPropsOverrides {
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    onNextPage: () => void;
+    onPreviousPage: () => void;
+    status: "a" | "b";
+  }
+}
+
+function CustomPagination(props: GridSlotsComponentsProps["footer"]) {
+  const { hasNextPage, hasPreviousPage, onNextPage, onPreviousPage } =
+    props ?? {};
+
+  return (
+    <Box display="flex" justifyContent="center" alignItems="center">
+      <IconButton disabled={!hasPreviousPage} onClick={onPreviousPage}>
+        <KeyboardArrowLeft />
+      </IconButton>
+      <IconButton disabled={!hasNextPage} onClick={onNextPage}>
+        <KeyboardArrowRight />
+      </IconButton>
+    </Box>
+  );
+}
 
 interface UsersState {
   users: Record<string, GetUsersResponseItem>;
@@ -61,13 +103,20 @@ export const usersStore = create(
   }))
 );
 
+export type OnPaginationChangeProps = Pick<
+  GetUsersRequest,
+  "direction" | "cursor"
+>;
+
+export type Props = Omit<GetUsersRequest, "limit"> & {
+  onPaginationChange: (args: OnPaginationChangeProps) => void;
+};
 export default function UsersTable({
   segmentId,
   direction,
   cursor,
-}: Omit<GetUsersRequest, "limit">) {
-  const mapPageToNextCursor = React.useRef<Record<number, GridRowId>>({});
-
+  onPaginationChange,
+}: Props) {
   const apiBase = useAppStore((store) => store.apiBase);
   const getUsersRequest = usersStore((store) => store.getUsersRequest);
   const users = usersStore((store) => store.users);
@@ -79,25 +128,21 @@ export default function UsersTable({
   const setUsers = usersStore((store) => store.setUsers);
   const setUsersPage = usersStore((store) => store.setUsersPage);
   const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
-  const [paginationModel, setPaginationModel] = React.useState({
-    page: 0,
-    pageSize: 10,
-  });
-
-  const handlePaginationModelChange = (
-    newPaginationModel: GridPaginationModel
-  ) => {
-    // We have the cursor, we can allow the page transition.
-    const handledCursor =
-      mapPageToNextCursor.current[newPaginationModel.page - 1];
-
-    if (newPaginationModel.page === 0 || handledCursor) {
-      setPaginationModel(newPaginationModel);
-    }
-  };
 
   const usersPage = useMemo(
-    () => currentPageUserIds.flatMap((id) => users[id] ?? []),
+    () =>
+      currentPageUserIds.flatMap((id) => {
+        const user = users[id];
+        if (!user) {
+          return [];
+        }
+
+        return {
+          id: user.id,
+          properties: JSON.stringify(user.properties),
+          segments: JSON.stringify(user.segments),
+        };
+      }),
     [currentPageUserIds, users]
   );
 
@@ -139,24 +184,42 @@ export default function UsersTable({
 
   const isLoading = getUsersRequest.type === CompletionStatus.InProgress;
 
-  React.useEffect(() => {
-    if (cursor) {
-      mapPageToNextCursor.current[paginationModel.page] = cursor;
-    }
-    if (!isLoading && nextCursor) {
-      mapPageToNextCursor.current[paginationModel.page + 1] = nextCursor;
-    }
-    if (!isLoading && previousCursor) {
-      mapPageToNextCursor.current[paginationModel.page - 1] = previousCursor;
-    }
-  }, [cursor, paginationModel.page, previousCursor, nextCursor, isLoading]);
-
   return (
-    <>
-      <DataGrid
-        paginationMode="server"
-        onPaginationModelChange={handlePaginationModelChange}
-      />
-    </>
+    <DataGrid
+      rows={usersPage}
+      getRowId={(row) => row.id}
+      columns={[
+        {
+          field: "id",
+        },
+        {
+          field: "properties",
+        },
+        {
+          field: "segments",
+        },
+      ].map((c) => ({ ...baseColumn, ...c }))}
+      loading={isLoading}
+      slots={{
+        footer: CustomPagination,
+      }}
+      slotProps={{
+        footer: {
+          hasNextPage: !!nextCursor,
+          hasPreviousPage: !!previousCursor,
+          onNextPage: () =>
+            onPaginationChange({
+              cursor: nextCursor,
+              direction: CursorDirectionEnum.After,
+            }),
+
+          onPreviousPage: () =>
+            onPaginationChange({
+              cursor: nextCursor,
+              direction: CursorDirectionEnum.Before,
+            }),
+        },
+      }}
+    />
   );
 }

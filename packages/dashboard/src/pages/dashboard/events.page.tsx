@@ -1,4 +1,4 @@
-import { Box, Stack, Tooltip, useTheme } from "@mui/material";
+import { Box, Stack, useTheme } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import backendConfig from "backend-lib/src/config";
@@ -25,6 +25,7 @@ import {
   useAppStore,
 } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
+import renderCell from "../../lib/renderCell";
 
 interface EventsState {
   pageSize: number;
@@ -99,14 +100,6 @@ export const getServerSideProps: GetServerSideProps<
     props: addInitialStateToProps({}, serverInitialState),
   };
 };
-
-function renderCell(params: any) {
-  return (
-    <Tooltip title={params.value} placement="right-start">
-      <Box sx={{ fontFamily: "monospace" }}>{params.value}</Box>
-    </Tooltip>
-  );
-}
 
 const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
   flex: 1,

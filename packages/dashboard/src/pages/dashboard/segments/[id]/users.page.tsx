@@ -6,7 +6,9 @@ import { GetUsersRequest } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import UsersTable from "../../../../components/usersTable";
+import UsersTable, {
+  OnPaginationChangeProps,
+} from "../../../../components/usersTable";
 import { useAppStore } from "../../../../lib/appStore";
 import getSegmentServerSideProps from "./getSegmentServerSideProps";
 import SegmentLayout from "./segmentLayout";
@@ -28,6 +30,19 @@ export default function SegmentUsers() {
     return null;
   }
   const { name } = editedSegment;
+  const onUsersTablePaginate = ({
+    direction,
+    cursor,
+  }: OnPaginationChangeProps) => {
+    router.push({
+      pathname: router.pathname,
+      query: {
+        ...router.query,
+        direction,
+        cursor,
+      },
+    });
+  };
   return (
     <SegmentLayout segmentId={editedSegment.id} tab="users">
       <Stack
@@ -39,7 +54,11 @@ export default function SegmentUsers() {
         }}
       >
         <Typography variant="h4">Users in &quot;{name}&quot;</Typography>
-        <UsersTable segmentId={editedSegment.id} {...queryParams} />
+        <UsersTable
+          segmentId={editedSegment.id}
+          {...queryParams}
+          onPaginationChange={onUsersTablePaginate}
+        />
       </Stack>
     </SegmentLayout>
   );
