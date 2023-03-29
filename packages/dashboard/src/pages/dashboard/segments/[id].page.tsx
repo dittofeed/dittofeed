@@ -479,7 +479,7 @@ export default function NewSegment() {
   });
 
   return (
-    <SegmentLayout>
+    <SegmentLayout segmentId={editedSegment.id} tab="configure">
       <Stack
         spacing={1}
         sx={{
