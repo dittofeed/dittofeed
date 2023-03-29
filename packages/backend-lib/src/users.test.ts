@@ -1,5 +1,6 @@
 import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import prisma from "./prisma";
 import {
@@ -56,10 +57,12 @@ describe("getUsers", () => {
     });
 
     it("can be paginated", async () => {
-      const result1 = await getUsers({
-        workspaceId: workspace.id,
-        limit: 1,
-      });
+      const result1 = unwrap(
+        await getUsers({
+          workspaceId: workspace.id,
+          limit: 1,
+        })
+      );
       expect(result1.users).toEqual([
         {
           id: userIds[0],
@@ -71,11 +74,13 @@ describe("getUsers", () => {
       ]);
       expect(result1.nextCursor).not.toBeUndefined();
 
-      const result2 = await getUsers({
-        workspaceId: workspace.id,
-        afterCursor: result1.nextCursor,
-        limit: 1,
-      });
+      const result2 = unwrap(
+        await getUsers({
+          workspaceId: workspace.id,
+          afterCursor: result1.nextCursor,
+          limit: 1,
+        })
+      );
 
       expect(result2.users).toEqual([
         {
@@ -88,11 +93,13 @@ describe("getUsers", () => {
       ]);
       expect(result2.nextCursor).not.toBeUndefined();
 
-      const result3 = await getUsers({
-        workspaceId: workspace.id,
-        afterCursor: result2.nextCursor,
-        limit: 1,
-      });
+      const result3 = unwrap(
+        await getUsers({
+          workspaceId: workspace.id,
+          afterCursor: result2.nextCursor,
+          limit: 1,
+        })
+      );
 
       expect(result3.users).toHaveLength(0);
       expect(result3.nextCursor).toBeUndefined();
@@ -177,10 +184,12 @@ describe("getUsers", () => {
     });
 
     it("filters users by segment id", async () => {
-      const result = await getUsers({
-        workspaceId: workspace.id,
-        segmentId: segmentId1,
-      });
+      const result = unwrap(
+        await getUsers({
+          workspaceId: workspace.id,
+          segmentId: segmentId1,
+        })
+      );
 
       expect(result).toEqual({
         users: [

@@ -1,6 +1,8 @@
 import { Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { err, ok, Result } from "neverthrow";
+import { validate as validateUuid } from "uuid";
 
 import logger from "./logger";
 import prisma from "./prisma";
@@ -28,8 +30,14 @@ const Cursor = Type.Object({
 export async function getUsers({
   workspaceId,
   afterCursor,
+  segmentId,
   limit = 10,
-}: GetUsersRequest & { workspaceId: string }): Promise<GetUsersResponse> {
+}: GetUsersRequest & { workspaceId: string }): Promise<
+  Result<GetUsersResponse, Error>
+> {
+  if (segmentId && !validateUuid(segmentId)) {
+    return err(new Error("segmentId is invalid uuid"));
+  }
   let lastUserId: string | null = null;
   if (afterCursor) {
     try {
@@ -50,14 +58,22 @@ export async function getUsers({
     ? Prisma.sql`"userId" > ${lastUserId}`
     : Prisma.sql`1=1`;
 
+  const segmentIdCondition = segmentId
+    ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
+    : Prisma.sql`1=1`;
+
+  const userPropertyAssignmentCondition = segmentId
+    ? Prisma.sql`1=0`
+    : Prisma.sql`1=1`;
+
   const results = await prisma().$queryRaw(
     Prisma.sql`
       WITH unique_user_ids AS (
           SELECT DISTINCT "userId"
           FROM (
-              SELECT "userId" FROM "UserPropertyAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND ${lastUserIdCondition}
+              SELECT "userId" FROM "UserPropertyAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND ${lastUserIdCondition} AND ${userPropertyAssignmentCondition}
               UNION
-              SELECT "userId" FROM "SegmentAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND ${lastUserIdCondition}
+              SELECT "userId" FROM "SegmentAssignment" WHERE "workspaceId" = CAST(${workspaceId} AS UUID) AND ${lastUserIdCondition} AND ${segmentIdCondition}
           ) AS all_user_ids
           LIMIT ${limit}
       )
@@ -109,5 +125,5 @@ export async function getUsers({
   if (nextCursor) {
     val.nextCursor = nextCursor;
   }
-  return val;
+  return ok(val);
 }
