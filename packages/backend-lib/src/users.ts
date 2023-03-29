@@ -81,11 +81,11 @@ export async function getUsers({
   for (const result of parsedResult) {
     const user: GetUsersResponseItem = userMap.get(result.userId) ?? {
       id: result.userId,
-      segments: {},
+      segments: [],
       properties: {},
     };
     if (result.type === 0) {
-      user.segments[result.computedPropertyKey] = result.segmentValue;
+      user.segments.push(result.computedPropertyKey);
     } else {
       user.properties[result.computedPropertyKey] = result.userPropertyValue;
     }
@@ -102,8 +102,12 @@ export async function getUsers({
         ).toString("base64")
       : undefined;
 
-  return {
+  const val: GetUsersResponse = {
     users: Array.from(userMap.values()),
-    nextCursor,
   };
+
+  if (nextCursor) {
+    val.nextCursor = nextCursor;
+  }
+  return val;
 }
