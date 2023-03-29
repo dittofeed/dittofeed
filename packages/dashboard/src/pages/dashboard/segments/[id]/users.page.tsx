@@ -38,7 +38,7 @@ export default function SegmentUsers() {
           backgroundColor: theme.palette.grey[100],
         }}
       >
-        <Typography variant="h4">Users in {name}</Typography>
+        <Typography variant="h4">Users in &quot;{name}&quot;</Typography>
         <UsersTable segmentId={editedSegment.id} {...queryParams} />
       </Stack>
     </SegmentLayout>
