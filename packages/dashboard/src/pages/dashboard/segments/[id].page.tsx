@@ -23,15 +23,14 @@ import {
   SegmentWithinOperator,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import Head from "next/head";
 import React, { useMemo } from "react";
 
 import DurationDescription from "../../../components/durationDescription";
 import EditableName from "../../../components/editableName";
-import MainLayout from "../../../components/mainLayout";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../../lib/appStore";
 import getSegmentServerSideProps from "./[id]/getSegmentServerSideProps";
+import SegmentLayout from "./[id]/segmentLayout";
 
 interface GroupedOption {
   id: SegmentNodeType;
@@ -480,48 +479,40 @@ export default function NewSegment() {
   });
 
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <MainLayout>
-          <Stack
-            spacing={1}
-            sx={{
-              width: "100%",
-              padding: 3,
-              backgroundColor: theme.palette.grey[100],
-            }}
-          >
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignContent="center"
-            >
-              <EditableName
-                name={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-              <Button variant="contained" onClick={handleSave}>
-                Save
-              </Button>
-            </Stack>
-            <Box
-              sx={{
-                backgroundColor: "white",
-                paddingTop: 3,
-                paddingBottom: 3,
-                borderRadius: 1,
-                border: `1px solid ${theme.palette.grey[200]}`,
-              }}
-            >
-              <SegmentNodeComponent node={entryNode} />
-            </Box>
-          </Stack>
-        </MainLayout>
-      </main>
-    </>
+    <SegmentLayout>
+      <Stack
+        spacing={1}
+        sx={{
+          width: "100%",
+          padding: 3,
+          backgroundColor: theme.palette.grey[100],
+        }}
+      >
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignContent="center"
+        >
+          <EditableName
+            name={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <Button variant="contained" onClick={handleSave}>
+            Save
+          </Button>
+        </Stack>
+        <Box
+          sx={{
+            backgroundColor: "white",
+            paddingTop: 3,
+            paddingBottom: 3,
+            borderRadius: 1,
+            border: `1px solid ${theme.palette.grey[200]}`,
+          }}
+        >
+          <SegmentNodeComponent node={entryNode} />
+        </Box>
+      </Stack>
+    </SegmentLayout>
   );
 }
