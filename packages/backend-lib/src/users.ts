@@ -23,6 +23,12 @@ const UsersQueryItem = Type.Object({
   userPropertyValue: Type.String(),
 });
 
+const CountQueryResult = Type.Array(
+  Type.Object({
+    userIdsCount: Type.Number(),
+  })
+);
+
 const UsersQueryResult = Type.Array(UsersQueryItem);
 
 enum CursorKey {
@@ -39,11 +45,66 @@ function serializeCursor(cursor: Cursor): string {
   return Buffer.from(JSON.stringify(cursor)).toString("base64");
 }
 
+function buildUserIdQueries({
+  workspaceId,
+  direction,
+  segmentId,
+  cursor,
+}: {
+  workspaceId: string;
+  segmentId?: string;
+  cursor: Cursor | null;
+  direction: CursorDirectionEnum;
+}): Sql {
+  let lastUserIdCondition: Sql;
+  if (cursor) {
+    if (direction === CursorDirectionEnum.Before) {
+      lastUserIdCondition = Prisma.sql`"userId" < ${
+        cursor[CursorKey.UserIdKey]
+      }`;
+    } else {
+      lastUserIdCondition = Prisma.sql`"userId" >= ${
+        cursor[CursorKey.UserIdKey]
+      }`;
+    }
+  } else {
+    lastUserIdCondition = Prisma.sql`1=1`;
+  }
+
+  const segmentIdCondition = segmentId
+    ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
+    : Prisma.sql`1=1`;
+
+  const userPropertyAssignmentCondition = segmentId
+    ? Prisma.sql`1=0`
+    : Prisma.sql`1=1`;
+
+  const userIdQueries = Prisma.sql`
+    SELECT "userId"
+    FROM "UserPropertyAssignment"
+    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+      AND ${lastUserIdCondition}
+      AND "value" != ''
+      AND ${userPropertyAssignmentCondition}
+
+    UNION ALL
+
+    SELECT "userId"
+    FROM "SegmentAssignment"
+    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+      AND ${lastUserIdCondition}
+      AND "inSegment" = TRUE
+      AND ${segmentIdCondition}
+  `;
+
+  return userIdQueries;
+}
+
 export async function getUsers({
   workspaceId,
   cursor: unparsedCursor,
   segmentId,
-  direction,
+  direction = CursorDirectionEnum.After,
   limit = 10,
 }: GetUsersRequest & { workspaceId: string }): Promise<
   Result<GetUsersResponse, Error>
@@ -69,71 +130,14 @@ export async function getUsers({
     }
   }
 
-  let lastUserIdCondition: Sql;
-  let skip = 0;
-  if (cursor) {
-    if (direction === CursorDirectionEnum.Before) {
-      lastUserIdCondition = Prisma.sql`"userId" < ${
-        cursor[CursorKey.UserIdKey]
-      }`;
-    } else {
-      lastUserIdCondition = Prisma.sql`"userId" >= ${
-        cursor[CursorKey.UserIdKey]
-      }`;
-      skip = 1;
-    }
-  } else {
-    lastUserIdCondition = Prisma.sql`1=1`;
-  }
+  const skip = cursor && direction === CursorDirectionEnum.After ? 1 : 0;
 
-  const segmentIdCondition = segmentId
-    ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
-    : Prisma.sql`1=1`;
-
-  const userPropertyAssignmentCondition = segmentId
-    ? Prisma.sql`1=0`
-    : Prisma.sql`1=1`;
-
-  const userIdQueries = Prisma.sql`
-    SELECT "userId"
-    FROM "UserPropertyAssignment"
-    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
-      AND ${lastUserIdCondition}
-      AND "value" != ''
-      AND ${userPropertyAssignmentCondition}
-
-    UNION
-
-    SELECT "userId"
-    FROM "SegmentAssignment"
-    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
-      AND ${lastUserIdCondition}
-      AND "inSegment" = TRUE
-      AND ${segmentIdCondition}
-  `;
-  // const countQuery = Prisma.sql`
-  //   SELECT count("userId")
-  //   FROM (
-  //       SELECT "userId"
-  //       FROM "UserPropertyAssignment"
-  //       WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
-  //         AND ${lastUserIdCondition}
-  //         AND "value" != ''
-  //         AND ${userPropertyAssignmentCondition}
-
-  //       UNION
-
-  //       SELECT "userId"
-  //       FROM "SegmentAssignment"
-  //       WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
-  //         AND ${lastUserIdCondition}
-  //         AND "inSegment" = TRUE
-  //         AND ${segmentIdCondition}
-  //   ) AS all_user_ids
-  //   ORDER BY "userId"
-  //   OFFSET ${skip}
-  //   GROUP BY "userId"
-  // `;
+  const userIdQueries = buildUserIdQueries({
+    workspaceId,
+    cursor,
+    segmentId,
+    direction,
+  });
 
   const query = Prisma.sql`
       WITH unique_user_ids AS (

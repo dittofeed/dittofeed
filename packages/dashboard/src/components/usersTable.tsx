@@ -156,10 +156,20 @@ export default function UsersTable({
 
   React.useEffect(() => {
     const setLoadResponse = (response: GetUsersResponse) => {
-      setNextCursor(response.nextCursor ?? null);
-      setPreviousCursor(response.previousCursor ?? null);
       setUsers(response.users);
       setUsersPage(response.users.map((u) => u.id));
+      if (response.users.length === 0 && cursor) {
+        if (direction === CursorDirectionEnum.Before) {
+          setNextCursor(cursor);
+          setPreviousCursor(null);
+        } else {
+          setNextCursor(null);
+          setPreviousCursor(cursor);
+        }
+      } else {
+        setNextCursor(response.nextCursor ?? null);
+        setPreviousCursor(response.previousCursor ?? null);
+      }
     };
 
     const params: GetUsersRequest = {
