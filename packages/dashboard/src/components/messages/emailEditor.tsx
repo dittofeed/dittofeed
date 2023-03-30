@@ -667,7 +667,11 @@ export default function EmailEditor() {
               lintGutter(),
             ]}
           />
-          <Button variant="contained" onClick={handleSave}>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={errors.size > 0}
+          >
             Save
           </Button>
         </Stack>
