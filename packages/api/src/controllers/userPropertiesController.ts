@@ -105,6 +105,22 @@ export default async function userPropertiesController(
 
       let deletedCount: number;
       try {
+        await prisma().userPropertyAssignment.deleteMany({
+          where: {
+            AND: [
+              {
+                userPropertyId: id,
+              },
+              {
+                userProperty: {
+                  name: {
+                    notIn: Array.from(protectedUserProperties),
+                  },
+                },
+              },
+            ],
+          },
+        });
         const response = await prisma().userProperty.deleteMany({
           where: {
             AND: [
