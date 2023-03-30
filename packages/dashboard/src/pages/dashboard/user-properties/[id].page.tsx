@@ -203,6 +203,9 @@ export default function NewUserProperty() {
     setRequest: setUserPropertyUpdateRequest,
     responseSchema: UserPropertyResource,
     setResponse: upsertUserProperty,
+    onSuccessNotice: `Saved user property ${editedUserProperty.name}`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to save user property ${editedUserProperty.name}`,
     requestConfig: {
       method: "PUT",
       url: `${apiBase}/api/user-properties`,

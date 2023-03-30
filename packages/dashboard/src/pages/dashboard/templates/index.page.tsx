@@ -97,6 +97,9 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
     setRequest: setMessageTemplateDeleteRequest,
     responseSchema: DeleteMessageTemplateResponse,
     setResponse: setDeleteResponse,
+    onSuccessNotice: `Deleted template ${template.name}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to delete template ${template.name}.`,
     requestConfig: {
       method: "DELETE",
       url: `${apiBase}/api/content/templates`,
