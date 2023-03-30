@@ -31,7 +31,7 @@ import {
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
 
 class ClickHouseQueryBuilder {
-  private queries: Record<string, string>;
+  private queries: Record<string, unknown>;
 
   constructor() {
     this.queries = {};
@@ -41,7 +41,7 @@ class ClickHouseQueryBuilder {
     return this.queries;
   }
 
-  addQueryValue(value: string, dataType: string): string {
+  addQueryValue(value: unknown, dataType: string): string {
     const id = getChCompatibleUuid();
     this.queries[id] = value;
     return `{${id}:${dataType}}`;
@@ -548,6 +548,24 @@ export async function computePropertiesPeriodSafe({
     .concat(["(computed_property_id, 'pg')"])
     .join(", ");
 
+  const subscribedSegmentKeys: string[] = [];
+  const subscribedSegmentValues: string[][] = [];
+
+  for (const [segmentId, journeySet] of Array.from(subscribedSegmentPairs)) {
+    subscribedSegmentKeys.push(segmentId);
+    subscribedSegmentValues.push(Array.from(journeySet));
+  }
+
+  const subscribedSegmentKeysQuery = chqb.addQueryValue(
+    subscribedSegmentKeys,
+    "Array(String)"
+  );
+
+  const subscribedSegmentValuesQuery = chqb.addQueryValue(
+    subscribedSegmentValues,
+    "Array(Array(String))"
+  );
+
   const readQuery = `
     SELECT
       cpa.workspace_id,
@@ -566,35 +584,19 @@ export async function computePropertiesPeriodSafe({
           segment_value latest_segment_value,
           user_property_value latest_user_property_value,
           assigned_at max_assigned_at,
-          arrayJoin([${subscribedSegmentPairsCh}]) processed_for_pair,
-          processed_for_pair.2 processed_for,
-          processed_for_pair.1 == computed_property_id property_is_computed
+          arrayJoin(
+              arrayConcat(
+                  if(
+                      type = 'segment' AND indexOf(${subscribedSegmentKeysQuery}, computed_property_id) > 0,
+                      arrayElement(${subscribedSegmentValuesQuery}, indexOf(${subscribedSegmentKeysQuery}, computed_property_id)),
+                      []
+                  ),
+                  ['pg']
+              )
+          ) as processed_for
       FROM computed_property_assignments FINAL
-      WHERE type == 'segment'
-      GROUP BY
-        workspace_id,
-        type,
-        computed_property_id,
-        user_id,
-        segment_value,
-        user_property_value,
-        assigned_at
-
-      UNION ALL
-      SELECT workspace_id,
-          type,
-          computed_property_id,
-          user_id,
-          segment_value latest_segment_value,
-          user_property_value latest_user_property_value,
-          assigned_at max_assigned_at,
-          ('', '') processed_for_pair,
-          'pg' processed_for,
-          True property_is_computed
-      FROM computed_property_assignments FINAL
-      WHERE type == 'user_property'
     ) cpa
-    WHERE property_is_computed AND (
+    WHERE (
       workspace_id,
       computed_property_id,
       user_id,
