@@ -23,12 +23,6 @@ const UsersQueryItem = Type.Object({
   userPropertyValue: Type.String(),
 });
 
-const CountQueryResult = Type.Array(
-  Type.Object({
-    userIdsCount: Type.Number(),
-  })
-);
-
 const UsersQueryResult = Type.Array(UsersQueryItem);
 
 enum CursorKey {
@@ -63,7 +57,7 @@ function buildUserIdQueries({
         cursor[CursorKey.UserIdKey]
       }`;
     } else {
-      lastUserIdCondition = Prisma.sql`"userId" >= ${
+      lastUserIdCondition = Prisma.sql`"userId" > ${
         cursor[CursorKey.UserIdKey]
       }`;
     }
@@ -130,8 +124,6 @@ export async function getUsers({
     }
   }
 
-  const skip = cursor && direction === CursorDirectionEnum.After ? 1 : 0;
-
   const userIdQueries = buildUserIdQueries({
     workspaceId,
     cursor,
@@ -145,7 +137,6 @@ export async function getUsers({
           FROM (${userIdQueries}) AS all_user_ids
           ORDER BY "userId"
           LIMIT ${limit}
-          OFFSET ${skip}
       )
 
       SELECT *
@@ -231,6 +222,6 @@ export async function getUsers({
   if (previousCursor) {
     val.previousCursor = serializeCursor(previousCursor);
   }
-  logger().debug({ getUsersVal: val });
+
   return ok(val);
 }
