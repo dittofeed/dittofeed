@@ -65,16 +65,16 @@ interface UsersState {
   users: Record<string, GetUsersResponseItem>;
   currentPageUserIds: string[];
   getUsersRequest: EphemeralRequestStatus<Error>;
-  previousCursor?: string;
-  nextCursor?: string;
+  previousCursor: string | null;
+  nextCursor: string | null;
 }
 
 interface UsersActions {
   setUsers: (val: GetUsersResponseItem[]) => void;
   setUsersPage: (val: string[]) => void;
   setGetUsersRequest: (val: EphemeralRequestStatus<Error>) => void;
-  setPreviousCursor: (val: string) => void;
-  setNextCursor: (val: string) => void;
+  setPreviousCursor: (val: string | null) => void;
+  setNextCursor: (val: string | null) => void;
 }
 
 export const usersStore = create(
@@ -84,6 +84,8 @@ export const usersStore = create(
     getUsersRequest: {
       type: CompletionStatus.NotStarted,
     },
+    nextCursor: null,
+    previousCursor: null,
     setUsers: (users) =>
       set((state) => {
         for (const user of users) {
@@ -138,7 +140,6 @@ export default function UsersTable({
   const usersPage = useMemo(
     () =>
       currentPageUserIds.flatMap((id) => {
-        console.log("id", id, users);
         const user = users[id];
         if (!user) {
           return [];
@@ -152,16 +153,11 @@ export default function UsersTable({
       }),
     [currentPageUserIds, users]
   );
-  console.log("usersPage", usersPage);
 
   React.useEffect(() => {
     const setLoadResponse = (response: GetUsersResponse) => {
-      if (response.nextCursor) {
-        setNextCursor(response.nextCursor);
-      }
-      if (response.previousCursor) {
-        setPreviousCursor(response.previousCursor);
-      }
+      setNextCursor(response.nextCursor ?? null);
+      setPreviousCursor(response.previousCursor ?? null);
       setUsers(response.users);
       setUsersPage(response.users.map((u) => u.id));
     };
@@ -187,7 +183,7 @@ export default function UsersTable({
       },
     });
     handler();
-    console.log("loading");
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segmentId, cursor, direction]);
 
@@ -220,13 +216,13 @@ export default function UsersTable({
           hasPreviousPage: !!previousCursor,
           onNextPage: () =>
             onPaginationChange({
-              cursor: nextCursor,
+              cursor: nextCursor ?? undefined,
               direction: CursorDirectionEnum.After,
             }),
 
           onPreviousPage: () =>
             onPaginationChange({
-              cursor: nextCursor,
+              cursor: previousCursor ?? undefined,
               direction: CursorDirectionEnum.Before,
             }),
         },

@@ -12,6 +12,10 @@ function buildConfig(): PrismaClientConfig {
       },
     },
   };
+
+  if (config().prettyLogs) {
+    prismaConfig.log = ["query", "info", "warn", "error"];
+  }
   return prismaConfig;
 }
 

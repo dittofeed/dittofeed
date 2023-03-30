@@ -88,9 +88,7 @@ export async function getUsers({
     ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
     : Prisma.sql`1=1`;
 
-  const userPropertyAssignmentCondition = segmentId
-    ? Prisma.sql`1=0`
-    : Prisma.sql`1=1`;
+  const userPropertyAssignmentCondition = segmentId ? "FALSE" : "TRUE";
 
   const query = Prisma.sql`
       WITH unique_user_ids AS (
@@ -171,7 +169,7 @@ export async function getUsers({
   let nextCursor: Cursor | null;
   let previousCursor: Cursor | null;
 
-  if (lastResult && parsedResult.length >= limit) {
+  if (lastResult && userMap.size >= limit) {
     nextCursor = {
       [CursorKey.UserIdKey]: lastResult.userId,
     };

@@ -35,10 +35,11 @@ export default async function usersController(fastify: FastifyInstance) {
           message: result.error.message,
         });
       }
-      const { users, nextCursor } = result.value;
+      const { users, nextCursor, previousCursor } = result.value;
       return reply.status(200).send({
         users,
         nextCursor,
+        previousCursor,
       });
     }
   );
