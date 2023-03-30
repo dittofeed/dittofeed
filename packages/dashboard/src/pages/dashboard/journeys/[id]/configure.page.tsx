@@ -1,6 +1,4 @@
 import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
-import axios, { AxiosResponse } from "axios";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   JourneyResource,
