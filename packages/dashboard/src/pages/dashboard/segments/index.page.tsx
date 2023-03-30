@@ -137,7 +137,6 @@ function SegmentListContents() {
   if (segments.length) {
     innerContents = (
       <List
-        dense
         sx={{
           width: "100%",
           bgcolor: "background.paper",

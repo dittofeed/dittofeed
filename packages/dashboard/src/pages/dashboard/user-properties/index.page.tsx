@@ -142,7 +142,6 @@ function UserPropertyListContents() {
   if (userProperties.length) {
     innerContents = (
       <List
-        dense
         sx={{
           width: "100%",
           bgcolor: "background.paper",
