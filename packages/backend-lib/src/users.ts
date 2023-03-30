@@ -94,26 +94,51 @@ export async function getUsers({
     ? Prisma.sql`1=0`
     : Prisma.sql`1=1`;
 
+  const userIdQueries = Prisma.sql`
+    SELECT "userId"
+    FROM "UserPropertyAssignment"
+    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+      AND ${lastUserIdCondition}
+      AND "value" != ''
+      AND ${userPropertyAssignmentCondition}
+
+    UNION
+
+    SELECT "userId"
+    FROM "SegmentAssignment"
+    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+      AND ${lastUserIdCondition}
+      AND "inSegment" = TRUE
+      AND ${segmentIdCondition}
+  `;
+  // const countQuery = Prisma.sql`
+  //   SELECT count("userId")
+  //   FROM (
+  //       SELECT "userId"
+  //       FROM "UserPropertyAssignment"
+  //       WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+  //         AND ${lastUserIdCondition}
+  //         AND "value" != ''
+  //         AND ${userPropertyAssignmentCondition}
+
+  //       UNION
+
+  //       SELECT "userId"
+  //       FROM "SegmentAssignment"
+  //       WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+  //         AND ${lastUserIdCondition}
+  //         AND "inSegment" = TRUE
+  //         AND ${segmentIdCondition}
+  //   ) AS all_user_ids
+  //   ORDER BY "userId"
+  //   OFFSET ${skip}
+  //   GROUP BY "userId"
+  // `;
+
   const query = Prisma.sql`
       WITH unique_user_ids AS (
           SELECT DISTINCT "userId"
-          FROM (
-              SELECT "userId"
-              FROM "UserPropertyAssignment"
-              WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
-                AND ${lastUserIdCondition}
-                AND "value" != ''
-                AND ${userPropertyAssignmentCondition}
-
-              UNION
-
-              SELECT "userId"
-              FROM "SegmentAssignment"
-              WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
-                AND ${lastUserIdCondition}
-                AND "inSegment" = TRUE
-                AND ${segmentIdCondition}
-          ) AS all_user_ids
+          FROM (${userIdQueries}) AS all_user_ids
           ORDER BY "userId"
           LIMIT ${limit}
           OFFSET ${skip}
