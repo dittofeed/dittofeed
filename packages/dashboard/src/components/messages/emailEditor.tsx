@@ -21,12 +21,10 @@ import {
 } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
-import axios, { AxiosResponse } from "axios";
 import escapeHtml from "escape-html";
 import hash from "fnv1a";
 import { produce } from "immer";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   MessageTemplateResource,
@@ -37,8 +35,8 @@ import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import React, { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
-import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 
+import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import { noticeAnchorOrigin as anchorOrigin } from "../../lib/notices";
 import { EmailMessageEditorState } from "../../lib/types";
