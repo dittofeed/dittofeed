@@ -6,7 +6,9 @@
     "build": "NODE_ENV=production tsc --build",
     "lint": "eslint src/",
     "prisma-dev": "yarn config-env prisma",
-    "config-env": "ts-node scripts/configEnv.ts"
+    "config-env": "ts-node scripts/configEnv.ts",
+    "prisma-prod": "yarn config-env-prod prisma",
+    "config-env-prod": "node scripts/configEnv.js"
   },
   "exports": {
     "./*": "./dist/*.js"
