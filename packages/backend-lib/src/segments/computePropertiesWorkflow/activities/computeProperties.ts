@@ -3,8 +3,9 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
+import { v4 as uuid } from "uuid";
 
-import { clickhouseClient } from "../../../clickhouse";
+import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
 import { getSubscribedSegments } from "../../../journeys";
 import {
   segmentUpdateSignal,
@@ -28,6 +29,24 @@ import {
   UserPropertyDefinitionType,
 } from "../../../types";
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
+
+class ClickHouseQueryBuilder {
+  private queries: Record<string, unknown>;
+
+  constructor() {
+    this.queries = {};
+  }
+
+  getQueries() {
+    return this.queries;
+  }
+
+  addQueryValue(value: unknown, dataType: string): string {
+    const id = getChCompatibleUuid();
+    this.queries[id] = value;
+    return `{${id}:${dataType}}`;
+  }
+}
 
 interface BaseComputedProperty {
   modelIndex: number;
@@ -108,7 +127,7 @@ function buildSegmentQueryExpression({
           }
 
           const val = node.operator.value;
-          const varName = `last_trait_update${node.id.replace(/-/g, "_")}`;
+          const varName = `last_trait_update${getChCompatibleUuid(node.id)}`;
           const upperTraitBound =
             currentTime / 1000 - node.operator.windowSeconds;
 
@@ -141,7 +160,7 @@ function buildSegmentQueryExpression({
         }
         case SegmentOperatorType.Within: {
           const upperTraitBound = currentTime / 1000;
-          const traitIdentifier = node.id.replace(/-/g, "_");
+          const traitIdentifier = getChCompatibleUuid(node.id);
 
           const lowerTraitBound =
             currentTime / 1000 - node.operator.windowSeconds;
@@ -502,6 +521,7 @@ export async function computePropertiesPeriodSafe({
     Map<string, Set<string>>
   >((memo, j) => {
     const subscribedSegments = getSubscribedSegments(j.definition);
+
     subscribedSegments.forEach((segmentId) => {
       const processFor = memo.get(segmentId) ?? new Set();
       processFor.add(j.id);
@@ -510,14 +530,25 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  const subscribedSegmentPairsCh = Array.from(subscribedSegmentPairs)
-    .flatMap(([segmentId, processedForSet]) =>
-      Array.from(processedForSet).map(
-        (processedFor) => `('${segmentId}', '${processedFor}')`
-      )
-    )
-    .concat(["(computed_property_id, 'pg')"])
-    .join(", ");
+  const chqb = new ClickHouseQueryBuilder();
+
+  const subscribedSegmentKeys: string[] = [];
+  const subscribedSegmentValues: string[][] = [];
+
+  for (const [segmentId, journeySet] of Array.from(subscribedSegmentPairs)) {
+    subscribedSegmentKeys.push(segmentId);
+    subscribedSegmentValues.push(Array.from(journeySet));
+  }
+
+  const subscribedSegmentKeysQuery = chqb.addQueryValue(
+    subscribedSegmentKeys,
+    "Array(String)"
+  );
+
+  const subscribedSegmentValuesQuery = chqb.addQueryValue(
+    subscribedSegmentValues,
+    "Array(Array(String))"
+  );
 
   const readQuery = `
     SELECT
@@ -537,35 +568,19 @@ export async function computePropertiesPeriodSafe({
           segment_value latest_segment_value,
           user_property_value latest_user_property_value,
           assigned_at max_assigned_at,
-          arrayJoin([${subscribedSegmentPairsCh}]) processed_for_pair,
-          processed_for_pair.2 processed_for,
-          processed_for_pair.1 == computed_property_id property_is_computed
+          arrayJoin(
+              arrayConcat(
+                  if(
+                      type = 'segment' AND indexOf(${subscribedSegmentKeysQuery}, computed_property_id) > 0,
+                      arrayElement(${subscribedSegmentValuesQuery}, indexOf(${subscribedSegmentKeysQuery}, computed_property_id)),
+                      []
+                  ),
+                  ['pg']
+              )
+          ) as processed_for
       FROM computed_property_assignments FINAL
-      WHERE type == 'segment'
-      GROUP BY
-        workspace_id,
-        type,
-        computed_property_id,
-        user_id,
-        segment_value,
-        user_property_value,
-        assigned_at
-
-      UNION ALL
-      SELECT workspace_id,
-          type,
-          computed_property_id,
-          user_id,
-          segment_value latest_segment_value,
-          user_property_value latest_user_property_value,
-          assigned_at max_assigned_at,
-          ('', '') processed_for_pair,
-          'pg' processed_for,
-          True property_is_computed
-      FROM computed_property_assignments FINAL
-      WHERE type == 'user_property'
     ) cpa
-    WHERE property_is_computed AND (
+    WHERE (
       workspace_id,
       computed_property_id,
       user_id,
@@ -587,6 +602,7 @@ export async function computePropertiesPeriodSafe({
   logger().debug(
     {
       workspaceId,
+      queryParams: chqb.getQueries(),
       query: readQuery,
     },
     "compute properties read query"
@@ -594,6 +610,7 @@ export async function computePropertiesPeriodSafe({
 
   const resultSet = await clickhouseClient().query({
     query: readQuery,
+    query_params: chqb.getQueries(),
     format: "JSONEachRow",
   });
 

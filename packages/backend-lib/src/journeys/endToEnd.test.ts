@@ -7,7 +7,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { segmentIdentifyEvent } from "../../test/factories/segment";
 import { createEnvAndWorker } from "../../test/temporal";
-import { clickhouseClient } from "../clickhouse";
+import { clickhouseClient, getChCompatibleUuid } from "../clickhouse";
 import { enrichJourney } from "../journeys";
 import prisma from "../prisma";
 import {
@@ -78,7 +78,7 @@ describe("end to end journeys", () => {
     let userJourneyWorkflowId: string;
 
     beforeEach(async () => {
-      tableVersion = randomUUID().replace(/-/g, "_");
+      tableVersion = getChCompatibleUuid();
       await createUserEventsTables({ tableVersion });
 
       workspace = await prisma().workspace.create({

@@ -3,8 +3,13 @@ import {
   ClickHouseClientConfigOptions,
   createClient,
 } from "@clickhouse/client";
+import { v4 as uuid } from "uuid";
 
 import config from "./config";
+
+export function getChCompatibleUuid(existing?: string) {
+  return (existing ?? uuid()).replace(/-/g, "_");
+}
 
 function getClientConfig(): ClickHouseClientConfigOptions {
   const {
