@@ -124,7 +124,7 @@ const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 
 export default function EmailEditor() {
   const theme = useTheme();
-  const path = useRouter();
+  const router = useRouter();
   const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
   const [previewBodyHtml, setRenderedBody] = useState<string>("");
   const [previewSubject, setRenderedSubject] = useState<string>("");
@@ -171,7 +171,8 @@ export default function EmailEditor() {
     (state) => state.replaceEmailMessageProps
   );
 
-  const messageId = typeof path.query.id === "string" ? path.query.id : null;
+  const messageId =
+    typeof router.query.id === "string" ? router.query.id : null;
   const workspace =
     workspaceRequest.type === CompletionStatus.Successful
       ? workspaceRequest.value
@@ -203,6 +204,21 @@ export default function EmailEditor() {
   const [debouncedEmailSubject] = useDebounce(emailSubject, 300);
   const [debouncedUserProperties] = useDebounce(mockUserProperties, 300);
   const [debouncedEmailFrom] = useDebounce(emailFrom, 300);
+
+  useEffect(() => {
+    const exitingFunction = () => {
+      errors.forEach((e, key) => {
+        closeSnackbar(errorHash(key, e));
+      });
+    };
+
+    router.events.on("routeChangeStart", exitingFunction);
+
+    return () => {
+      router.events.off("routeChangeStart", exitingFunction);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [errors]);
 
   useEffect(() => {
     const existingErr = errors.get(NotifyKey.RenderBodyError);
