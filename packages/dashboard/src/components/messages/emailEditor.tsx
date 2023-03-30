@@ -37,6 +37,7 @@ import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import React, { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
+import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 
 import { useAppStore } from "../../lib/appStore";
 import { noticeAnchorOrigin as anchorOrigin } from "../../lib/notices";
@@ -375,62 +376,37 @@ export default function EmailEditor() {
     setRenderedBody(errorBodyHtml);
   }, [errors, mockUserProperties, userPropertySet]);
 
-  const handleSave = async () => {
-    if (
-      emailMessageUpdateRequest.type === CompletionStatus.InProgress ||
-      !workspace ||
-      !messageId
-    ) {
-      return;
-    }
+  if (!workspace || !messageId) {
+    return;
+  }
 
-    setEmailMessageUpdateRequest({
-      type: CompletionStatus.InProgress,
-    });
-    let response: AxiosResponse;
-    try {
-      const body: UpsertMessageTemplateResource = {
-        id: messageId,
-        type: TemplateResourceType.Email,
-        workspaceId: workspace.id,
-        name: title,
-        from: emailFrom,
-        body: emailBody,
-        subject: emailSubject,
-      };
-      response = await axios.put(`${apiBase}/api/content/templates`, body, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (e) {
-      const error = e as Error;
-
-      setEmailMessageUpdateRequest({
-        type: CompletionStatus.Failed,
-        error,
-      });
-      return;
-    }
-    const messageResult = schemaValidate(
-      response.data,
-      MessageTemplateResource
-    );
-    if (messageResult.isErr()) {
-      console.error("unable to parse email provider", messageResult.error);
-
-      setEmailMessageUpdateRequest({
-        type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(messageResult.error)),
-      });
-      return;
-    }
-
-    upsertMessage(messageResult.value);
-    setEmailMessageUpdateRequest({
-      type: CompletionStatus.NotStarted,
-    });
+  const updateData: UpsertMessageTemplateResource = {
+    id: messageId,
+    type: TemplateResourceType.Email,
+    workspaceId: workspace.id,
+    name: title,
+    from: emailFrom,
+    body: emailBody,
+    subject: emailSubject,
   };
+
+  const handleSave = apiRequestHandlerFactory({
+    request: emailMessageUpdateRequest,
+    setRequest: setEmailMessageUpdateRequest,
+    responseSchema: MessageTemplateResource,
+    setResponse: upsertMessage,
+    onSuccessNotice: `Saved template ${title}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to save template ${title}.`,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/content/templates`,
+      data: updateData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
 
   const htmlCodeMirrorHandleChange = (val: string) => {
     setEmailBody(val);

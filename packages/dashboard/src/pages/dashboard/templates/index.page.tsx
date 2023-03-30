@@ -73,8 +73,8 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
     (store) => store.setMessageTemplateDeleteRequest
   );
   const apiBase = useAppStore((store) => store.apiBase);
-  const journeyDeleteRequest = useAppStore(
-    (store) => store.journeyDeleteRequest
+  const messageTemplateDeleteRequest = useAppStore(
+    (store) => store.messageTemplateDeleteRequest
   );
   const deleteMessageTemplate = useAppStore((store) => store.deleteMessage);
 
@@ -93,7 +93,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
     type: template.type,
   };
   const handleDelete = apiRequestHandlerFactory({
-    request: journeyDeleteRequest,
+    request: messageTemplateDeleteRequest,
     setRequest: setMessageTemplateDeleteRequest,
     responseSchema: DeleteMessageTemplateResponse,
     setResponse: setDeleteResponse,
