@@ -35,6 +35,7 @@ import { immer } from "zustand/middleware/immer";
 
 import Layout from "../../components/layout";
 import { MenuItemGroup } from "../../components/menuItems/types";
+import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import {
   addInitialStateToProps,
   PreloadedState,
@@ -224,60 +225,33 @@ function SegmentIoConfig() {
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
 
-  const handleSubmit = async () => {
-    if (segmentIoRequest.type === CompletionStatus.InProgress || !workspaceId) {
-      return;
-    }
-
-    updateSegmentIoRequest({
-      type: CompletionStatus.InProgress,
-    });
-    let response: AxiosResponse;
-    try {
-      const body: UpsertDataSourceConfigurationResource = {
-        workspaceId,
-        variant: {
-          type: DataSourceVariantType.SegmentIO,
-          sharedSecret,
-        },
-      };
-
-      response = await axios.put(`${apiBase}/api/settings/data-sources`, body, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (e) {
-      const error = e as Error;
-
-      updateSegmentIoRequest({
-        type: CompletionStatus.Failed,
-        error,
-      });
-      return;
-    }
-    const dataSourceResult = schemaValidate(
-      response.data,
-      DataSourceConfigurationResource
-    );
-    if (dataSourceResult.isErr()) {
-      console.error(
-        "unable to parse segment data source",
-        dataSourceResult.error
-      );
-
-      updateSegmentIoRequest({
-        type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(dataSourceResult.error)),
-      });
-      return;
-    }
-
-    upsertDataSourceConfiguration(dataSourceResult.value);
-    updateSegmentIoRequest({
-      type: CompletionStatus.NotStarted,
-    });
+  if (!workspaceId) {
+    return null;
+  }
+  const body: UpsertDataSourceConfigurationResource = {
+    workspaceId,
+    variant: {
+      type: DataSourceVariantType.SegmentIO,
+      sharedSecret,
+    },
   };
+  const handleSubmit = apiRequestHandlerFactory({
+    request: segmentIoRequest,
+    setRequest: updateSegmentIoRequest,
+    responseSchema: DataSourceConfigurationResource,
+    setResponse: upsertDataSourceConfiguration,
+    onSuccessNotice: "Updated segment.com configuration.",
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to update segment.com configuration.`,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/settings/data-sources`,
+      data: body,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
 
   const requestInProgress =
     segmentIoRequest.type === CompletionStatus.InProgress;
