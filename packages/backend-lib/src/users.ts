@@ -88,7 +88,9 @@ export async function getUsers({
     ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
     : Prisma.sql`1=1`;
 
-  const userPropertyAssignmentCondition = segmentId ? "FALSE" : "TRUE";
+  const userPropertyAssignmentCondition = segmentId
+    ? Prisma.sql`1=0`
+    : Prisma.sql`1=1`;
 
   const query = Prisma.sql`
       WITH unique_user_ids AS (
@@ -98,6 +100,7 @@ export async function getUsers({
               FROM "UserPropertyAssignment"
               WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
                 AND ${lastUserIdCondition}
+                AND "value" != ''
                 AND ${userPropertyAssignmentCondition}
 
               UNION
@@ -106,8 +109,10 @@ export async function getUsers({
               FROM "SegmentAssignment"
               WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
                 AND ${lastUserIdCondition}
+                AND "inSegment" = TRUE
                 AND ${segmentIdCondition}
           ) AS all_user_ids
+          ORDER BY "userId"
           LIMIT ${limit}
       )
 
@@ -123,8 +128,8 @@ export async function getUsers({
           JOIN "UserProperty" AS up ON up.id = "userPropertyId"
           WHERE
               upa."workspaceId" = CAST(${workspaceId} AS UUID)
-              AND "value" != ''
               AND "userId" IN (SELECT "userId" FROM unique_user_ids)
+              AND "value" != ''
 
           UNION ALL
 
@@ -137,13 +142,12 @@ export async function getUsers({
           FROM "SegmentAssignment"
           WHERE
               "workspaceId" = CAST(${workspaceId} AS UUID)
-              AND "inSegment" = TRUE
               AND "userId" IN (SELECT "userId" FROM unique_user_ids)
+              AND "inSegment" = TRUE
       ) AS combined_results
       ORDER BY "userId" ASC;
     `;
 
-  logger().debug(query);
   const results = await prisma().$queryRaw(query);
 
   const userMap = new Map<string, GetUsersResponseItem>();
@@ -195,5 +199,6 @@ export async function getUsers({
   if (previousCursor) {
     val.previousCursor = serializeCursor(previousCursor);
   }
+  logger().debug({ getUsersVal: val });
   return ok(val);
 }
