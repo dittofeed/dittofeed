@@ -5,16 +5,23 @@ import {
   CompletionStatus,
   EphemeralRequestStatus,
 } from "isomorphic-lib/src/types";
+import { enqueueSnackbar } from "notistack";
 
-export default function apiRequestHandlerFactory<D, S extends TSchema, E>({
+import { noticeAnchorOrigin } from "./notices";
+
+export default function apiRequestHandlerFactory<D, S extends TSchema>({
   request,
   requestConfig,
   setRequest,
   responseSchema,
   setResponse,
+  onFailureNoticeHandler,
+  onSuccessNotice,
 }: {
   requestConfig: AxiosRequestConfig<D>;
-  request: EphemeralRequestStatus<E>;
+  request: EphemeralRequestStatus<Error>;
+  onSuccessNotice?: string;
+  onFailureNoticeHandler?: (e: Error) => string;
   setResponse: (response: Static<S>, requestData?: D) => void;
   responseSchema: S;
   setRequest: (request: EphemeralRequestStatus<Error>) => void;
@@ -37,16 +44,33 @@ export default function apiRequestHandlerFactory<D, S extends TSchema, E>({
         type: CompletionStatus.Failed,
         error,
       });
+
+      if (onFailureNoticeHandler) {
+        enqueueSnackbar(onFailureNoticeHandler(error), {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
+      }
       return;
     }
     const parsedResponse = schemaValidate(response.data, responseSchema);
     if (parsedResponse.isErr()) {
       console.error("unable to parse response", parsedResponse.error);
+      const error = new Error(JSON.stringify(parsedResponse.error));
 
       setRequest({
         type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(parsedResponse.error)),
+        error,
       });
+
+      if (onFailureNoticeHandler) {
+        enqueueSnackbar(onFailureNoticeHandler(error), {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
+      }
       return;
     }
 
@@ -54,5 +78,13 @@ export default function apiRequestHandlerFactory<D, S extends TSchema, E>({
     setRequest({
       type: CompletionStatus.NotStarted,
     });
+
+    if (onSuccessNotice) {
+      enqueueSnackbar(onSuccessNotice, {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    }
   };
 }

@@ -11,7 +11,6 @@ import {
   FormLabel,
   IconButton,
   Slide,
-  SnackbarOrigin,
   Stack,
   styled,
   SxProps,
@@ -40,6 +39,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useAppStore } from "../../lib/appStore";
+import { noticeAnchorOrigin as anchorOrigin } from "../../lib/notices";
 import { EmailMessageEditorState } from "../../lib/types";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
@@ -110,11 +110,6 @@ enum NotifyKey {
   RenderSubjectError = "RenderSubjectError",
   UserPropertyWarning = "UserPropertyWarning",
 }
-
-const anchorOrigin: SnackbarOrigin = {
-  vertical: "bottom",
-  horizontal: "right",
-};
 
 function errorHash(key: NotifyKey, message: string) {
   return hash(`${key}-${message}`);
