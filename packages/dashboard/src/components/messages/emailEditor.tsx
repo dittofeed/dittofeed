@@ -375,7 +375,7 @@ export default function EmailEditor() {
   }, [errors, mockUserProperties, userPropertySet]);
 
   if (!workspace || !messageId) {
-    return;
+    return null;
   }
 
   const updateData: UpsertMessageTemplateResource = {
