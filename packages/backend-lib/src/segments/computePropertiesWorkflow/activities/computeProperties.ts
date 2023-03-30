@@ -531,22 +531,6 @@ export async function computePropertiesPeriodSafe({
   }, new Map());
 
   const chqb = new ClickHouseQueryBuilder();
-  const subscribedSegmentPairsCh = Array.from(subscribedSegmentPairs)
-    .flatMap(([segmentId, processedForSet]) => {
-      const segment = segments.find((s) => s.id === segmentId);
-      if (!segment) {
-        return [];
-      }
-      return Array.from(processedForSet).map(
-        (processedFor) =>
-          `(${chqb.addQueryValue(segmentId, "String")}, ${chqb.addQueryValue(
-            processedFor,
-            "String"
-          )})`
-      );
-    })
-    .concat(["(computed_property_id, 'pg')"])
-    .join(", ");
 
   const subscribedSegmentKeys: string[] = [];
   const subscribedSegmentValues: string[][] = [];
