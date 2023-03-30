@@ -69,7 +69,6 @@ const menuItems: { items: MenuItemGroup[] } = {
           type: "item",
           url: "/dashboard/users",
           icon: UserOutlined,
-          disabled: true,
           description: "View users, and their histories.",
         },
         {
