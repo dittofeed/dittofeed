@@ -10,13 +10,8 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import backendConfig from "backend-lib/src/config";
-import { findAllUserTraits } from "backend-lib/src/userEvents";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
-  SegmentDefinition,
   SegmentEqualsOperator,
   SegmentHasBeenOperator,
   SegmentHasBeenOperatorComparator,
@@ -28,22 +23,14 @@ import {
   SegmentWithinOperator,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import { GetServerSideProps } from "next";
-import Head from "next/head";
 import React, { useMemo } from "react";
-import { validate } from "uuid";
 
 import DurationDescription from "../../../components/durationDescription";
 import EditableName from "../../../components/editableName";
-import MainLayout from "../../../components/mainLayout";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
-import {
-  addInitialStateToProps,
-  PreloadedState,
-  PropsWithInitialState,
-  useAppStore,
-} from "../../../lib/appStore";
-import prisma from "../../../lib/prisma";
+import { useAppStore } from "../../../lib/appStore";
+import getSegmentServerSideProps from "./[id]/getSegmentServerSideProps";
+import SegmentLayout from "./[id]/segmentLayout";
 
 interface GroupedOption {
   id: SegmentNodeType;
@@ -120,102 +107,7 @@ const keyedGroupLabels: Record<Group, string> = {
   [SegmentNodeType.Or]: "OR",
 };
 
-const entryId = "entry";
-const initTraitId = "initTraitId";
-
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async (ctx) => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
-  const serverInitialState: PreloadedState = {};
-
-  const id = ctx.params?.id;
-
-  if (typeof id !== "string" || !validate(id)) {
-    return {
-      notFound: true,
-    };
-  }
-
-  const [segment, workspace, traits] = await Promise.all([
-    prisma().segment.findUnique({
-      where: {
-        id,
-      },
-    }),
-    prisma().workspace.findUnique({
-      where: {
-        id: workspaceId,
-      },
-    }),
-    findAllUserTraits({
-      workspaceId,
-    }),
-  ]);
-
-  let segmentResource: SegmentResource;
-  if (segment) {
-    const segmentDefinition = unwrap(
-      schemaValidate(segment.definition, SegmentDefinition)
-    );
-    segmentResource = {
-      id: segment.id,
-      name: segment.name,
-      workspaceId,
-      definition: segmentDefinition,
-    };
-
-    serverInitialState.segments = {
-      type: CompletionStatus.Successful,
-      value: [segmentResource],
-    };
-  } else {
-    segmentResource = {
-      name: "My Segment",
-      id,
-      workspaceId,
-      definition: {
-        entryNode: {
-          type: SegmentNodeType.And,
-          children: [initTraitId],
-          id: entryId,
-        },
-        nodes: [
-          {
-            type: SegmentNodeType.Trait,
-            id: initTraitId,
-            path: "",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: "",
-            },
-          },
-        ],
-      },
-    };
-  }
-  serverInitialState.editedSegment = segmentResource;
-
-  if (workspace) {
-    // TODO PLI-212
-    serverInitialState.workspace = {
-      type: CompletionStatus.Successful,
-      value: {
-        id: workspaceId,
-        name: workspace.name,
-      },
-    };
-  }
-
-  serverInitialState.traits = {
-    type: CompletionStatus.Successful,
-    value: traits,
-  };
-
-  return {
-    props: addInitialStateToProps({}, serverInitialState),
-  };
-};
+export const getServerSideProps = getSegmentServerSideProps;
 
 function ValueSelect({
   nodeId,
@@ -587,48 +479,40 @@ export default function NewSegment() {
   });
 
   return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <MainLayout>
-          <Stack
-            spacing={1}
-            sx={{
-              width: "100%",
-              padding: 3,
-              backgroundColor: theme.palette.grey[100],
-            }}
-          >
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignContent="center"
-            >
-              <EditableName
-                name={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-              <Button variant="contained" onClick={handleSave}>
-                Save
-              </Button>
-            </Stack>
-            <Box
-              sx={{
-                backgroundColor: "white",
-                paddingTop: 3,
-                paddingBottom: 3,
-                borderRadius: 1,
-                border: `1px solid ${theme.palette.grey[200]}`,
-              }}
-            >
-              <SegmentNodeComponent node={entryNode} />
-            </Box>
-          </Stack>
-        </MainLayout>
-      </main>
-    </>
+    <SegmentLayout segmentId={editedSegment.id} tab="configure">
+      <Stack
+        spacing={1}
+        sx={{
+          width: "100%",
+          padding: 3,
+          backgroundColor: theme.palette.grey[100],
+        }}
+      >
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignContent="center"
+        >
+          <EditableName
+            name={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <Button variant="contained" onClick={handleSave}>
+            Save
+          </Button>
+        </Stack>
+        <Box
+          sx={{
+            backgroundColor: "white",
+            paddingTop: 3,
+            paddingBottom: 3,
+            borderRadius: 1,
+            border: `1px solid ${theme.palette.grey[200]}`,
+          }}
+        >
+          <SegmentNodeComponent node={entryNode} />
+        </Box>
+      </Stack>
+    </SegmentLayout>
   );
 }

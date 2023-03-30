@@ -178,6 +178,9 @@ function buildSegmentQueryExpression({
           })
         )
         .filter((query) => query !== null);
+      if (childFragments[0] && childFragments.length === 1) {
+        return childFragments[0];
+      }
       return `and(
         ${childFragments.join(", ")}
       )`;
@@ -194,6 +197,9 @@ function buildSegmentQueryExpression({
           })
         )
         .filter((query) => query !== null);
+      if (childFragments[0] && childFragments.length === 1) {
+        return childFragments[0];
+      }
       return `or(
         ${childFragments.join(", ")}
       )`;
@@ -486,6 +492,11 @@ export async function computePropertiesPeriodSafe({
     "compute properties write query"
   );
 
+  await clickhouseClient().query({
+    query: writeQuery,
+    format: "JSONEachRow",
+  });
+
   // segment id / pg + journey id
   const subscribedSegmentPairs = subscribedJourneys.reduce<
     Map<string, Set<string>>
@@ -580,11 +591,6 @@ export async function computePropertiesPeriodSafe({
     },
     "compute properties read query"
   );
-
-  await clickhouseClient().query({
-    query: writeQuery,
-    format: "JSONEachRow",
-  });
 
   const resultSet = await clickhouseClient().query({
     query: readQuery,

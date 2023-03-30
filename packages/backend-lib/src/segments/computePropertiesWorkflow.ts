@@ -116,11 +116,15 @@ export async function computePropertiesWorkflow({
   }
 
   const params: ComputedPropertiesWorkflowParams = {
+    basePollingPeriod,
     maxPollingAttempts,
+    pollingJitterCoefficient,
+    shouldContinueAsNew,
+    subscribedJourneys: journeys,
     tableVersion,
     workspaceId,
-    subscribedJourneys: journeys,
   };
+
   if (shouldContinueAsNew) {
     await continueAsNew<typeof computePropertiesWorkflow>(params);
   }
