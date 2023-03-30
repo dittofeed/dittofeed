@@ -11,9 +11,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import axios, { AxiosResponse } from "axios";
 import backendConfig from "backend-lib/src/config";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -23,6 +21,7 @@ import {
   EphemeralRequestStatus,
   PersistedEmailProvider,
   UpsertDataSourceConfigurationResource,
+  UpsertEmailProviderResource,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -35,6 +34,7 @@ import { immer } from "zustand/middleware/immer";
 
 import Layout from "../../components/layout";
 import { MenuItemGroup } from "../../components/menuItems/types";
+import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import {
   addInitialStateToProps,
   PreloadedState,
@@ -224,60 +224,33 @@ function SegmentIoConfig() {
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
 
-  const handleSubmit = async () => {
-    if (segmentIoRequest.type === CompletionStatus.InProgress || !workspaceId) {
-      return;
-    }
-
-    updateSegmentIoRequest({
-      type: CompletionStatus.InProgress,
-    });
-    let response: AxiosResponse;
-    try {
-      const body: UpsertDataSourceConfigurationResource = {
-        workspaceId,
-        variant: {
-          type: DataSourceVariantType.SegmentIO,
-          sharedSecret,
-        },
-      };
-
-      response = await axios.put(`${apiBase}/api/settings/data-sources`, body, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (e) {
-      const error = e as Error;
-
-      updateSegmentIoRequest({
-        type: CompletionStatus.Failed,
-        error,
-      });
-      return;
-    }
-    const dataSourceResult = schemaValidate(
-      response.data,
-      DataSourceConfigurationResource
-    );
-    if (dataSourceResult.isErr()) {
-      console.error(
-        "unable to parse segment data source",
-        dataSourceResult.error
-      );
-
-      updateSegmentIoRequest({
-        type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(dataSourceResult.error)),
-      });
-      return;
-    }
-
-    upsertDataSourceConfiguration(dataSourceResult.value);
-    updateSegmentIoRequest({
-      type: CompletionStatus.NotStarted,
-    });
+  if (!workspaceId) {
+    return null;
+  }
+  const body: UpsertDataSourceConfigurationResource = {
+    workspaceId,
+    variant: {
+      type: DataSourceVariantType.SegmentIO,
+      sharedSecret,
+    },
   };
+  const handleSubmit = apiRequestHandlerFactory({
+    request: segmentIoRequest,
+    setRequest: updateSegmentIoRequest,
+    responseSchema: DataSourceConfigurationResource,
+    setResponse: upsertDataSourceConfiguration,
+    onSuccessNotice: "Updated segment.com configuration.",
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to update segment.com configuration.`,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/settings/data-sources`,
+      data: body,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
 
   const requestInProgress =
     segmentIoRequest.type === CompletionStatus.InProgress;
@@ -337,61 +310,33 @@ function SendGridConfig() {
     return null;
   }, [emailProviders, workspaceId]);
 
-  const handleSubmit = async () => {
-    if (sendgridProviderRequest.type === CompletionStatus.InProgress) {
-      return;
-    }
+  if (!workspaceId) {
+    return null;
+  }
 
-    updateSendgridProviderRequest({
-      type: CompletionStatus.InProgress,
-    });
-    let response: AxiosResponse;
-    try {
-      response = await axios.put(
-        `${apiBase}/api/settings/email-providers`,
-        {
-          id: savedSendgridProvider?.id,
-          apiKey,
-          type: EmailProviderType.Sendgrid,
-          workspaceId,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    } catch (e) {
-      const error = e as Error;
-
-      updateSendgridProviderRequest({
-        type: CompletionStatus.Failed,
-        error,
-      });
-      return;
-    }
-    const emailProviderResult = schemaValidate(
-      response.data,
-      PersistedEmailProvider
-    );
-    if (emailProviderResult.isErr()) {
-      console.error(
-        "unable to parse email provider",
-        emailProviderResult.error
-      );
-
-      updateSendgridProviderRequest({
-        type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(emailProviderResult.error)),
-      });
-      return;
-    }
-
-    upsertEmailProvider(emailProviderResult.value);
-    updateSendgridProviderRequest({
-      type: CompletionStatus.NotStarted,
-    });
+  const body: UpsertEmailProviderResource = {
+    id: savedSendgridProvider?.id,
+    apiKey,
+    type: EmailProviderType.Sendgrid,
+    workspaceId,
   };
+  const handleSubmit = apiRequestHandlerFactory({
+    request: sendgridProviderRequest,
+    setRequest: updateSendgridProviderRequest,
+    responseSchema: PersistedEmailProvider,
+    setResponse: upsertEmailProvider,
+    onSuccessNotice: "Updated sendgrid configuration.",
+    onFailureNoticeHandler: () =>
+      "API Error: Failed to update sendgrid configuration.",
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/settings/email-providers`,
+      data: body,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
 
   const requestInProgress =
     sendgridProviderRequest.type === CompletionStatus.InProgress;

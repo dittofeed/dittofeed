@@ -110,6 +110,9 @@ function JourneyItem({ journey }: { journey: JourneyResource }) {
     request: journeyDeleteRequest,
     setRequest: setJourneyDeleteRequest,
     responseSchema: DeleteJourneyResponse,
+    onSuccessNotice: `Deleted journey ${journey.name}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to delete journey ${journey.name}.`,
     setResponse: setDeleteResponse,
     requestConfig: {
       method: "DELETE",

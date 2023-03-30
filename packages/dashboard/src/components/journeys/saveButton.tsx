@@ -1,12 +1,12 @@
 import { Button } from "@mui/material";
-import axios, { AxiosResponse } from "axios";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   JourneyResource,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
+import React from "react";
 
+import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import { journeyDefinitionFromState } from "./store";
 
@@ -27,14 +27,7 @@ export default function SaveButton({ journeyId }: { journeyId: string }) {
   const journeyName = useAppStore((store) => store.journeyName);
   const workspace = useAppStore((store) => store.workspace);
 
-  const handleSave = async () => {
-    if (
-      journeyUpdateRequest.type === CompletionStatus.InProgress ||
-      workspace.type !== CompletionStatus.Successful
-    ) {
-      return;
-    }
-
+  const handleSave = () => {
     const journeyDefinition = journeyDefinitionFromState({
       state: {
         journeyEdges,
@@ -42,9 +35,10 @@ export default function SaveButton({ journeyId }: { journeyId: string }) {
         journeyNodesIndex,
       },
     });
-
-    // TODO add validation error message
-    if (journeyDefinition.isErr()) {
+    if (
+      workspace.type !== CompletionStatus.Successful ||
+      journeyDefinition.isErr()
+    ) {
       return;
     }
 
@@ -54,44 +48,25 @@ export default function SaveButton({ journeyId }: { journeyId: string }) {
       definition: journeyDefinition.value,
       name: journeyName,
     };
-
-    setJourneyUpdateRequest({
-      type: CompletionStatus.InProgress,
-    });
-
-    let response: AxiosResponse;
-    try {
-      response = await axios.put(`${apiBase}/api/journeys`, journeyUpdate, {
+    apiRequestHandlerFactory({
+      request: journeyUpdateRequest,
+      setRequest: setJourneyUpdateRequest,
+      responseSchema: JourneyResource,
+      setResponse: upsertJourney,
+      onSuccessNotice: `Saved journey ${journeyName}.`,
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to save journey ${journeyName}.`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/journeys`,
+        data: journeyUpdate,
         headers: {
           "Content-Type": "application/json",
         },
-      });
-    } catch (e) {
-      const error = e as Error;
-
-      setJourneyUpdateRequest({
-        type: CompletionStatus.Failed,
-        error,
-      });
-      return;
-    }
-
-    const parsedResponse = schemaValidate(response.data, JourneyResource);
-    if (parsedResponse.isErr()) {
-      console.error("unable to parse response", parsedResponse.error);
-
-      setJourneyUpdateRequest({
-        type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(parsedResponse.error)),
-      });
-      return;
-    }
-
-    upsertJourney(parsedResponse.value);
-    setJourneyUpdateRequest({
-      type: CompletionStatus.NotStarted,
-    });
+      },
+    })();
   };
+
   return (
     <Button variant="contained" onClick={handleSave}>
       Save

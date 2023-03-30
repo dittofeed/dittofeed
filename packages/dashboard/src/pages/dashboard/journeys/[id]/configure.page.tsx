@@ -1,6 +1,4 @@
 import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
-import axios, { AxiosResponse } from "axios";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   JourneyResource,
@@ -12,6 +10,7 @@ import { useRouter } from "next/router";
 import EditableName from "../../../../components/editableName";
 import InfoTooltip from "../../../../components/infoTooltip";
 import JourneyLayout from "../../../../components/journeys/layout";
+import apiRequestHandlerFactory from "../../../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../../../lib/appStore";
 import {
   JourneyGetServerSideProps,
@@ -90,59 +89,33 @@ function JourneyConfigure() {
       }
     : statusValues[journey.status];
 
-  const handleChangeStatus = async () => {
-    if (
-      workspace.type !== CompletionStatus.Successful ||
-      !id ||
-      !statusValue.nextStatus ||
-      journeyUpdateRequest.type === CompletionStatus.InProgress
-    ) {
-      return;
-    }
-
-    const journeyUpdate: UpsertJourneyResource = {
-      id,
-      workspaceId: workspace.value.id,
-      status: statusValue.nextStatus,
-    };
-
-    setJourneyUpdateRequest({
-      type: CompletionStatus.InProgress,
-    });
-
-    let response: AxiosResponse;
-    try {
-      response = await axios.put(`${apiBase}/api/journeys`, journeyUpdate, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (e) {
-      const error = e as Error;
-
-      setJourneyUpdateRequest({
-        type: CompletionStatus.Failed,
-        error,
-      });
-      return;
-    }
-
-    const parsedResponse = schemaValidate(response.data, JourneyResource);
-    if (parsedResponse.isErr()) {
-      console.error("unable to parse response", parsedResponse.error);
-
-      setJourneyUpdateRequest({
-        type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(parsedResponse.error)),
-      });
-      return;
-    }
-
-    upsertJourney(parsedResponse.value);
-    setJourneyUpdateRequest({
-      type: CompletionStatus.NotStarted,
-    });
+  if (!id || workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
+  const journeyUpdate: UpsertJourneyResource = {
+    id,
+    workspaceId: workspace.value.id,
+    status: statusValue.nextStatus,
   };
+
+  const handleChangeStatus = apiRequestHandlerFactory({
+    request: journeyUpdateRequest,
+    setRequest: setJourneyUpdateRequest,
+    responseSchema: JourneyResource,
+    setResponse: upsertJourney,
+    onSuccessNotice: `Updated status for journey ${journeyName} to ${statusValue.nextStatus}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to update status for journey ${journeyName} to ${statusValue.nextStatus}.`,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/journeys`,
+      data: journeyUpdate,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
+
   return (
     <JourneyLayout journeyId={id}>
       <Stack direction="column" sx={{ padding: 2 }} spacing={3}>

@@ -11,7 +11,6 @@ import {
   FormLabel,
   IconButton,
   Slide,
-  SnackbarOrigin,
   Stack,
   styled,
   SxProps,
@@ -22,12 +21,10 @@ import {
 } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
-import axios, { AxiosResponse } from "axios";
 import escapeHtml from "escape-html";
 import hash from "fnv1a";
 import { produce } from "immer";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   MessageTemplateResource,
@@ -39,7 +36,9 @@ import { closeSnackbar, enqueueSnackbar } from "notistack";
 import React, { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
+import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
+import { noticeAnchorOrigin as anchorOrigin } from "../../lib/notices";
 import { EmailMessageEditorState } from "../../lib/types";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
@@ -110,11 +109,6 @@ enum NotifyKey {
   RenderSubjectError = "RenderSubjectError",
   UserPropertyWarning = "UserPropertyWarning",
 }
-
-const anchorOrigin: SnackbarOrigin = {
-  vertical: "bottom",
-  horizontal: "right",
-};
 
 function errorHash(key: NotifyKey, message: string) {
   return hash(`${key}-${message}`);
@@ -380,62 +374,37 @@ export default function EmailEditor() {
     setRenderedBody(errorBodyHtml);
   }, [errors, mockUserProperties, userPropertySet]);
 
-  const handleSave = async () => {
-    if (
-      emailMessageUpdateRequest.type === CompletionStatus.InProgress ||
-      !workspace ||
-      !messageId
-    ) {
-      return;
-    }
+  if (!workspace || !messageId) {
+    return;
+  }
 
-    setEmailMessageUpdateRequest({
-      type: CompletionStatus.InProgress,
-    });
-    let response: AxiosResponse;
-    try {
-      const body: UpsertMessageTemplateResource = {
-        id: messageId,
-        type: TemplateResourceType.Email,
-        workspaceId: workspace.id,
-        name: title,
-        from: emailFrom,
-        body: emailBody,
-        subject: emailSubject,
-      };
-      response = await axios.put(`${apiBase}/api/content/templates`, body, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (e) {
-      const error = e as Error;
-
-      setEmailMessageUpdateRequest({
-        type: CompletionStatus.Failed,
-        error,
-      });
-      return;
-    }
-    const messageResult = schemaValidate(
-      response.data,
-      MessageTemplateResource
-    );
-    if (messageResult.isErr()) {
-      console.error("unable to parse email provider", messageResult.error);
-
-      setEmailMessageUpdateRequest({
-        type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(messageResult.error)),
-      });
-      return;
-    }
-
-    upsertMessage(messageResult.value);
-    setEmailMessageUpdateRequest({
-      type: CompletionStatus.NotStarted,
-    });
+  const updateData: UpsertMessageTemplateResource = {
+    id: messageId,
+    type: TemplateResourceType.Email,
+    workspaceId: workspace.id,
+    name: title,
+    from: emailFrom,
+    body: emailBody,
+    subject: emailSubject,
   };
+
+  const handleSave = apiRequestHandlerFactory({
+    request: emailMessageUpdateRequest,
+    setRequest: setEmailMessageUpdateRequest,
+    responseSchema: MessageTemplateResource,
+    setResponse: upsertMessage,
+    onSuccessNotice: `Saved template ${title}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to save template ${title}.`,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/content/templates`,
+      data: updateData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
 
   const htmlCodeMirrorHandleChange = (val: string) => {
     setEmailBody(val);
@@ -672,7 +641,11 @@ export default function EmailEditor() {
               lintGutter(),
             ]}
           />
-          <Button variant="contained" onClick={handleSave}>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={errors.size > 0}
+          >
             Save
           </Button>
         </Stack>

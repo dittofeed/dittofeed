@@ -93,6 +93,9 @@ function UserPropertyItem({
     setRequest: setUserPropertyDeleteRequest,
     responseSchema: DeleteUserPropertyResponse,
     setResponse: setDeleteResponse,
+    onSuccessNotice: `Deleted user property ${userProperty.name}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to user property ${userProperty.name}.`,
     requestConfig: {
       method: "DELETE",
       url: `${apiBase}/api/user-properties`,
@@ -142,7 +145,6 @@ function UserPropertyListContents() {
   if (userProperties.length) {
     innerContents = (
       <List
-        dense
         sx={{
           width: "100%",
           bgcolor: "background.paper",

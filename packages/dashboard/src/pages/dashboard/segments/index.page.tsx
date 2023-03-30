@@ -88,6 +88,9 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
     setRequest: setSegmentDeleteRequest,
     responseSchema: DeleteSegmentResponse,
     setResponse: setDeleteResponse,
+    onSuccessNotice: `Deleted segment ${segment.name}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to delete segment ${segment.name}.`,
     requestConfig: {
       method: "DELETE",
       url: `${apiBase}/api/segments`,
@@ -137,7 +140,6 @@ function SegmentListContents() {
   if (segments.length) {
     innerContents = (
       <List
-        dense
         sx={{
           width: "100%",
           bgcolor: "background.paper",
