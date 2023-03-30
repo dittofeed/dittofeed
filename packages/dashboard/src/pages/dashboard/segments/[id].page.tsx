@@ -468,6 +468,9 @@ export default function NewSegment() {
     setRequest: setSegmentUpdateRequest,
     responseSchema: SegmentResource,
     setResponse: upsertSegment,
+    onSuccessNotice: `Saved segment ${editedSegment.name}`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to saved segment ${editedSegment.name}`,
     requestConfig: {
       method: "PUT",
       url: `${apiBase}/api/segments`,

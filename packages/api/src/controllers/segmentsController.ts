@@ -97,6 +97,11 @@ export default async function segmentsController(fastify: FastifyInstance) {
       const { id } = request.body;
 
       try {
+        await prisma().segmentAssignment.deleteMany({
+          where: {
+            segmentId: id,
+          },
+        });
         await prisma().segment.delete({
           where: {
             id,
