@@ -70,15 +70,17 @@ export async function getUsers({
   }
 
   let lastUserIdCondition: Sql;
+  let skip = 0;
   if (cursor) {
     if (direction === CursorDirectionEnum.Before) {
-      lastUserIdCondition = Prisma.sql`"userId" <= ${
+      lastUserIdCondition = Prisma.sql`"userId" < ${
         cursor[CursorKey.UserIdKey]
       }`;
     } else {
-      lastUserIdCondition = Prisma.sql`"userId" > ${
+      lastUserIdCondition = Prisma.sql`"userId" >= ${
         cursor[CursorKey.UserIdKey]
       }`;
+      skip = 1;
     }
   } else {
     lastUserIdCondition = Prisma.sql`1=1`;
@@ -114,6 +116,7 @@ export async function getUsers({
           ) AS all_user_ids
           ORDER BY "userId"
           LIMIT ${limit}
+          OFFSET ${skip}
       )
 
       SELECT *
