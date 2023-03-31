@@ -576,6 +576,8 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       const edgesToAdd: [string, string][] = [];
 
       if (directChildren.length > 1) {
+        directChildren.forEach((c) => nodesToDelete.add(c));
+
         const ancestorSets = directChildren.map((c) =>
           findAllAncestors(c, state.journeyEdges)
         );
