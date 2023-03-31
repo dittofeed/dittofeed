@@ -502,6 +502,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     set((state) => {
       state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);
     }),
+  deleteNode: (nodeId: string) => set((state) => {}),
   setNodes: (changes: NodeChange[]) =>
     set((state) => {
       state.journeyNodes = applyNodeChanges(changes, state.journeyNodes);

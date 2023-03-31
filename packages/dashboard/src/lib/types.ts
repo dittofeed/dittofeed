@@ -153,6 +153,7 @@ export interface JourneyContent extends JourneyState {
   }) => void;
   setEdges: (changes: EdgeChange[]) => void;
   setNodes: (changes: NodeChange[]) => void;
+  deleteNode: (nodeId: string) => void;
   updateJourneyNodeData: (
     nodeId: string,
     updater: (currentValue: Draft<Node<JourneyNodeProps>>) => void
