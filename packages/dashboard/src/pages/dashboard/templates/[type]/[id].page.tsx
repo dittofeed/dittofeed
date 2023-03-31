@@ -4,6 +4,7 @@ import {
   CompletionStatus,
   TemplateResourceType,
 } from "isomorphic-lib/src/types";
+import { LoremIpsum } from "lorem-ipsum";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import React from "react";
@@ -12,6 +13,7 @@ import { validate } from "uuid";
 import MainLayout from "../../../../components/mainLayout";
 import EmailEditor, {
   defaultEmailMessageState,
+  defaultInitialUserProperties,
 } from "../../../../components/messages/emailEditor";
 import {
   addInitialStateToProps,
@@ -52,8 +54,35 @@ export const getServerSideProps: GetServerSideProps<
           },
         }),
       ]);
+      const lorem = new LoremIpsum({
+        sentencesPerParagraph: {
+          max: 8,
+          min: 4,
+        },
+        wordsPerSentence: {
+          max: 16,
+          min: 4,
+        },
+      });
 
-      serverInitialState = defaultEmailMessageState;
+      const emailMessageUserProperties = {
+        ...userProperties.reduce<Record<string, string>>((memo, up) => {
+          memo[up.name] = lorem.generateWords(1);
+          return memo;
+        }, {}),
+        ...defaultInitialUserProperties,
+      };
+      const emailMessageUserPropertiesJSON = JSON.stringify(
+        emailMessageUserProperties,
+        null,
+        2
+      );
+
+      serverInitialState = {
+        ...defaultEmailMessageState,
+        emailMessageUserProperties,
+        emailMessageUserPropertiesJSON,
+      };
 
       serverInitialState.userProperties = {
         type: CompletionStatus.Successful,
