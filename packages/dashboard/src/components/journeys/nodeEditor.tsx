@@ -1,6 +1,8 @@
+import { Delete } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
+  Button,
   Stack,
   TextField,
   Typography,
@@ -12,7 +14,7 @@ import {
   MessageTemplateResource,
   SegmentResource,
 } from "isomorphic-lib/src/types";
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
 
 import { useAppStore } from "../../lib/appStore";
@@ -244,28 +246,113 @@ function DelayNodeFields({
   );
 }
 
+function NodeLayout({
+  deleteButton,
+  children,
+  nodeId,
+}: {
+  deleteButton?: boolean;
+  children?: ReactNode;
+  nodeId: string;
+}) {
+  const theme = useTheme();
+
+  const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
+  const deleteJourneyNode = useAppStore((state) => state.deleteJourneyNode);
+
+  const handleDelete = () => {
+    setSelectedNodeId(null);
+    deleteJourneyNode(nodeId);
+  };
+  return (
+    <Stack
+      sx={{ height: "100%" }}
+      justifyContent="space-between"
+      direction="column"
+    >
+      <Stack
+        spacing={2}
+        sx={{
+          paddingLeft: 2,
+          paddingRight: 2,
+          paddingTop: 2,
+        }}
+      >
+        {children}
+      </Stack>
+      <Stack
+        flexDirection="row"
+        justifyContent="right"
+        alignItems="center"
+        sx={{
+          height: theme.spacing(8),
+          paddingRight: 2,
+          backgroundColor: theme.palette.grey[200],
+        }}
+      >
+        {deleteButton ? (
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<Delete />}
+            onClick={handleDelete}
+          >
+            Delete Journey Node
+          </Button>
+        ) : null}
+      </Stack>
+    </Stack>
+  );
+}
+
 function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
   const nodeProps = node.data.nodeTypeProps;
 
   switch (nodeProps.type) {
     case JourneyNodeType.EntryNode:
-      return <EntryNodeFields nodeId={node.id} nodeProps={nodeProps} />;
+      return (
+        <NodeLayout nodeId={node.id}>
+          <EntryNodeFields nodeId={node.id} nodeProps={nodeProps} />
+        </NodeLayout>
+      );
     case JourneyNodeType.SegmentSplitNode:
-      return <SegmentSplitNodeFields nodeId={node.id} nodeProps={nodeProps} />;
+      return (
+        <NodeLayout deleteButton nodeId={node.id}>
+          <SegmentSplitNodeFields nodeId={node.id} nodeProps={nodeProps} />
+        </NodeLayout>
+      );
     case JourneyNodeType.MessageNode: {
-      return <MessageNodeFields nodeId={node.id} nodeProps={nodeProps} />;
+      return (
+        <NodeLayout deleteButton nodeId={node.id}>
+          <MessageNodeFields nodeId={node.id} nodeProps={nodeProps} />
+        </NodeLayout>
+      );
     }
     case JourneyNodeType.ExitNode:
-      return null;
+      return <NodeLayout nodeId={node.id} />;
     case JourneyNodeType.DelayNode:
-      return <DelayNodeFields nodeId={node.id} nodeProps={nodeProps} />;
+      return (
+        <NodeLayout deleteButton nodeId={node.id}>
+          <DelayNodeFields nodeId={node.id} nodeProps={nodeProps} />
+        </NodeLayout>
+      );
   }
 }
 
 function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
   return (
-    <Stack sx={{ padding: 2, width: "100%" }} spacing={2}>
-      <Typography variant="h5">
+    <Stack
+      sx={{
+        width: "100%",
+        height: "100%",
+      }}
+    >
+      <Typography
+        variant="h5"
+        sx={{
+          padding: 2,
+        }}
+      >
         Edit {nodeTypeLabel(node.data.nodeTypeProps.type)}
       </Typography>
       <NodeFields node={node} />

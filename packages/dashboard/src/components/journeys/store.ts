@@ -486,6 +486,59 @@ export function journeyToState(
   };
 }
 
+function findDirectChildren(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): string[] {
+  return edges.flatMap((e) => (e.source === parentId ? e.target : []));
+}
+
+function findDirectParents(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): string[] {
+  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
+}
+
+function findAllAncestors(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): Set<string> {
+  const children = new Set<string>();
+  const unprocessed = [parentId];
+
+  while (unprocessed.length) {
+    const next = unprocessed.pop();
+    if (!next) {
+      throw new Error("next should exist");
+    }
+    const directChildren = findDirectChildren(next, edges);
+
+    for (const child of directChildren) {
+      unprocessed.push(child);
+      children.add(child);
+    }
+  }
+  return children;
+}
+
+function intersectionOfSets<T>(sets: Set<T>[]): Set<T> {
+  if (sets.length === 0) {
+    return new Set();
+  }
+
+  const intersection = new Set<T>(sets[0]);
+  for (const set of sets.slice(1)) {
+    for (const element of Array.from(intersection)) {
+      if (!set.has(element)) {
+        intersection.delete(element);
+      }
+    }
+  }
+
+  return intersection;
+}
+
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
 export const createJourneySlice: CreateJourneySlice = (set) => ({
@@ -501,6 +554,82 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
   setEdges: (changes: EdgeChange[]) =>
     set((state) => {
       state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);
+    }),
+  deleteJourneyNode: (nodeId: string) =>
+    set((state) => {
+      const node = state.journeyNodes.find((n) => n.id === nodeId);
+      if (!node || node.data.type !== "JourneyNode") {
+        return state;
+      }
+
+      const nodeType = node.data.nodeTypeProps.type;
+      const directChildren = findDirectChildren(node.id, state.journeyEdges);
+
+      if (
+        nodeType === JourneyNodeType.EntryNode ||
+        nodeType === JourneyNodeType.ExitNode
+      ) {
+        return state;
+      }
+
+      const nodesToDelete = new Set<string>([node.id]);
+      const edgesToAdd: [string, string][] = [];
+
+      if (directChildren.length > 1) {
+        directChildren.forEach((c) => nodesToDelete.add(c));
+
+        const ancestorSets = directChildren.map((c) =>
+          findAllAncestors(c, state.journeyEdges)
+        );
+        const sharedAncestors = Array.from(intersectionOfSets(ancestorSets));
+        const firstSharedAncestor = sharedAncestors[0];
+        const secondSharedAncestor = sharedAncestors[1];
+        if (!firstSharedAncestor || !secondSharedAncestor) {
+          throw new Error(
+            "node with multiple children lacking correct shared ancestors"
+          );
+        }
+
+        nodesToDelete.add(firstSharedAncestor);
+
+        for (const ancestorSet of ancestorSets) {
+          for (const ancestor of Array.from(ancestorSet)) {
+            if (ancestor === firstSharedAncestor) {
+              break;
+            }
+            nodesToDelete.add(ancestor);
+          }
+        }
+        const parents = findDirectParents(node.id, state.journeyEdges);
+        parents.forEach((p) => {
+          edgesToAdd.push([p, secondSharedAncestor]);
+        });
+      } else if (directChildren.length === 1 && directChildren[0]) {
+        const parents = findDirectParents(node.id, state.journeyEdges);
+        const child = directChildren[0];
+        parents.forEach((p) => {
+          edgesToAdd.push([p, child]);
+        });
+      }
+
+      state.journeyEdges = state.journeyEdges.filter(
+        (e) => !(nodesToDelete.has(e.source) || nodesToDelete.has(e.target))
+      );
+      state.journeyNodes = state.journeyNodes.filter(
+        (n) => !nodesToDelete.has(n.id)
+      );
+      edgesToAdd.forEach(([source, target]) => {
+        state.journeyEdges.push({
+          id: `${source}->${target}`,
+          source,
+          target,
+          type: "workflow",
+        });
+      });
+
+      state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+      return state;
     }),
   setNodes: (changes: NodeChange[]) =>
     set((state) => {
