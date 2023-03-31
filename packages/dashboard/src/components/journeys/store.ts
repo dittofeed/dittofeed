@@ -555,7 +555,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     set((state) => {
       state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);
     }),
-  deleteNode: (nodeId: string) =>
+  deleteJourneyNode: (nodeId: string) =>
     set((state) => {
       const node = state.journeyNodes.find((n) => n.id === nodeId);
       if (!node || node.data.type !== "JourneyNode") {

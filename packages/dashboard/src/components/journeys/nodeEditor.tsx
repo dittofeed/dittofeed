@@ -249,11 +249,21 @@ function DelayNodeFields({
 function NodeLayout({
   deleteButton,
   children,
+  nodeId,
 }: {
   deleteButton?: boolean;
   children?: ReactNode;
+  nodeId: string;
 }) {
   const theme = useTheme();
+
+  const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
+  const deleteJourneyNode = useAppStore((state) => state.deleteJourneyNode);
+
+  const handleDelete = () => {
+    setSelectedNodeId(null);
+    deleteJourneyNode(nodeId);
+  };
   return (
     <Stack
       sx={{ height: "100%" }}
@@ -281,7 +291,12 @@ function NodeLayout({
         }}
       >
         {deleteButton ? (
-          <Button variant="contained" color="error" startIcon={<Delete />}>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<Delete />}
+            onClick={handleDelete}
+          >
             Delete Journey Node
           </Button>
         ) : null}
@@ -296,28 +311,28 @@ function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
   switch (nodeProps.type) {
     case JourneyNodeType.EntryNode:
       return (
-        <NodeLayout>
+        <NodeLayout nodeId={node.id}>
           <EntryNodeFields nodeId={node.id} nodeProps={nodeProps} />
         </NodeLayout>
       );
     case JourneyNodeType.SegmentSplitNode:
       return (
-        <NodeLayout deleteButton>
+        <NodeLayout deleteButton nodeId={node.id}>
           <SegmentSplitNodeFields nodeId={node.id} nodeProps={nodeProps} />
         </NodeLayout>
       );
     case JourneyNodeType.MessageNode: {
       return (
-        <NodeLayout deleteButton>
+        <NodeLayout deleteButton nodeId={node.id}>
           <MessageNodeFields nodeId={node.id} nodeProps={nodeProps} />
         </NodeLayout>
       );
     }
     case JourneyNodeType.ExitNode:
-      return <NodeLayout />;
+      return <NodeLayout nodeId={node.id} />;
     case JourneyNodeType.DelayNode:
       return (
-        <NodeLayout deleteButton>
+        <NodeLayout deleteButton nodeId={node.id}>
           <DelayNodeFields nodeId={node.id} nodeProps={nodeProps} />
         </NodeLayout>
       );
