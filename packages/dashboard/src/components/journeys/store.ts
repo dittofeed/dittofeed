@@ -1,4 +1,3 @@
-import SSet, { SortedSet } from "collections/sorted-set";
 import {
   CompletionStatus,
   DelayNode,
@@ -494,11 +493,18 @@ function findDirectChildren(
   return edges.flatMap((e) => (e.source === parentId ? e.target : []));
 }
 
-function findAllChildren(
+function findDirectParents(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
-): SortedSet<string> {
-  const children = new SSet<string>();
+): string[] {
+  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
+}
+
+function findAllAncestors(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): Set<string> {
+  const children = new Set<string>();
   const unprocessed = [parentId];
 
   while (unprocessed.length) {
@@ -514,6 +520,23 @@ function findAllChildren(
     }
   }
   return children;
+}
+
+function intersectionOfSets<T>(sets: Set<T>[]): Set<T> {
+  if (sets.length === 0) {
+    return new Set();
+  }
+
+  const intersection = new Set<T>(sets[0]);
+  for (const set of sets.slice(1)) {
+    for (const element of Array.from(intersection)) {
+      if (!set.has(element)) {
+        intersection.delete(element);
+      }
+    }
+  }
+
+  return intersection;
 }
 
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
@@ -539,10 +562,53 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         return state;
       }
 
-      const nodesToDelete = new Set<string>();
-      const edgesToDelete = new Set<string>();
       const nodeType = node.data.nodeTypeProps.type;
       const directChildren = findDirectChildren(node.id, state.journeyEdges);
+
+      if (
+        nodeType === JourneyNodeType.EntryNode ||
+        nodeType === JourneyNodeType.ExitNode
+      ) {
+        return state;
+      }
+
+      const nodesToDelete = new Set<string>([node.id]);
+      const edgesToAdd: [string, string][] = [];
+
+      if (directChildren.length > 1) {
+        const ancestorSets = directChildren.map((c) =>
+          findAllAncestors(c, state.journeyEdges)
+        );
+        const sharedAncestors = Array.from(intersectionOfSets(ancestorSets));
+        const firstSharedAncestor = sharedAncestors[0];
+        const secondSharedAncestor = sharedAncestors[1];
+        if (!firstSharedAncestor || !secondSharedAncestor) {
+          throw new Error(
+            "node with multiple children lacking correct shared ancestors"
+          );
+        }
+
+        nodesToDelete.add(firstSharedAncestor);
+
+        for (const ancestorSet of ancestorSets) {
+          for (const ancestor of Array.from(ancestorSet)) {
+            if (ancestor === firstSharedAncestor) {
+              break;
+            }
+            nodesToDelete.add(ancestor);
+          }
+        }
+        const parents = findDirectParents(node.id, state.journeyEdges);
+        parents.forEach((p) => {
+          edgesToAdd.push([p, secondSharedAncestor]);
+        });
+      } else if (directChildren.length === 1 && directChildren[0]) {
+        const parents = findDirectParents(node.id, state.journeyEdges);
+        const child = directChildren[0];
+        parents.forEach((p) => {
+          edgesToAdd.push([p, child]);
+        });
+      }
 
       // FIXME use createConnections to re-add connections
 
