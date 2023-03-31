@@ -610,14 +610,20 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         });
       }
 
-      // FIXME use createConnections to re-add connections
-
-      // if (
-      //   nodeType === JourneyNodeType.MessageNode ||
-      //   nodeType === JourneyNodeType.DelayNode
-      // ) {
-      // } else if (nodeType === JourneyNodeType.SegmentSplitNode) {
-      // }
+      state.journeyEdges = state.journeyEdges.filter(
+        (e) => !(nodesToDelete.has(e.source) || nodesToDelete.has(e.target))
+      );
+      state.journeyNodes = state.journeyNodes.filter(
+        (n) => !nodesToDelete.has(n.id)
+      );
+      edgesToAdd.forEach(([source, target]) => {
+        state.journeyEdges.push({
+          id: `${source}->${target}`,
+          source,
+          target,
+          type: "workflow",
+        });
+      });
 
       // 1) find all ancestors of node's children
       // 2) add all ancestors to a sorted sets for each child
@@ -629,13 +635,6 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       // 8) find the child of node from step 4) (should not have more than 1 edge)
       // 9) find the parent of the original node
       // 10) add an edge from the parent of the deleted node, to the child of the last deleted node
-
-      state.journeyNodes = state.journeyNodes.filter(
-        (n) => !nodesToDelete.has(n.id)
-      );
-      state.journeyEdges = state.journeyEdges.filter(
-        (n) => !edgesToDelete.has(n.id)
-      );
 
       state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);

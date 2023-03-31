@@ -237,7 +237,7 @@ function JourneysBuilderInner() {
           },
         }}
         nodeOrigin={[0.5, 0.5]}
-        // TODO get fitview playing nice with nodeOirign
+        // TODO get fitview playing nice with nodeOrigin
         defaultViewport={{ x: 500, y: 0, zoom: 1 }}
         minZoom={0.2}
         panOnScroll
