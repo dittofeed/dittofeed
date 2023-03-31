@@ -513,13 +513,25 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       const edgesToDelete = new Set<string>();
       const nodeType = node.data.nodeTypeProps.type;
 
-      // FIXME use createConnections
-      if (
-        nodeType === JourneyNodeType.MessageNode ||
-        nodeType === JourneyNodeType.DelayNode
-      ) {
-      } else if (nodeType === JourneyNodeType.SegmentSplitNode) {
-      }
+      // FIXME use createConnections to re-add connections
+
+      // if (
+      //   nodeType === JourneyNodeType.MessageNode ||
+      //   nodeType === JourneyNodeType.DelayNode
+      // ) {
+      // } else if (nodeType === JourneyNodeType.SegmentSplitNode) {
+      // }
+
+      // 1) find all ancestors of node's children
+      // 2) add all ancestors to a sorted sets for each child
+      // 3) find intersection of sorted sets
+      // 4) pick the first item in the intersection.
+      // 5) delete all nodes in each sorted set up to and including the first item from the intersection
+      // 6) delete the original node
+      // 7) delete all edges which include the deleted nodes
+      // 8) find the child of node from step 4) (should not have more than 1 edge)
+      // 9) find the parent of the original node
+      // 10) add an edge from the parent of the deleted node, to the child of the last deleted node
 
       state.journeyNodes = state.journeyNodes.filter(
         (n) => !nodesToDelete.has(n.id)
