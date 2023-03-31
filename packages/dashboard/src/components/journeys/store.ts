@@ -487,11 +487,32 @@ export function journeyToState(
   };
 }
 
+function findDirectChildren(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): string[] {
+  return edges.flatMap((e) => (e.source === parentId ? e.target : []));
+}
+
 function findAllChildren(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
 ): SortedSet<string> {
   const children = new SSet<string>();
+  const unprocessed = [parentId];
+
+  while (unprocessed.length) {
+    const next = unprocessed.pop();
+    if (!next) {
+      throw new Error("next should exist");
+    }
+    const directChildren = findDirectChildren(next, edges);
+
+    for (const child of directChildren) {
+      unprocessed.push(child);
+      children.add(child);
+    }
+  }
   return children;
 }
 
@@ -521,9 +542,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       const nodesToDelete = new Set<string>();
       const edgesToDelete = new Set<string>();
       const nodeType = node.data.nodeTypeProps.type;
-      const directChildren = state.journeyEdges.flatMap((e) =>
-        e.source === node.id ? e.target : []
-      );
+      const directChildren = findDirectChildren(node.id, state.journeyEdges);
 
       // FIXME use createConnections to re-add connections
 
