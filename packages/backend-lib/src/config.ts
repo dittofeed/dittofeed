@@ -19,7 +19,7 @@ const BaseRawConfigProps = {
   clickhouseDatabase: Type.Optional(Type.String()),
   clickhouseUser: Type.String(),
   clickhousePassword: Type.String(),
-  kafkaBrokers: Type.String(),
+  kafkaBrokers: Type.Optional(Type.String()),
   kafkaUsername: Type.Optional(Type.String()),
   kafkaPassword: Type.Optional(Type.String()),
   kafkaSsl: Type.Optional(BoolStr),
