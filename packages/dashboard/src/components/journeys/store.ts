@@ -502,7 +502,36 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     set((state) => {
       state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);
     }),
-  deleteNode: (nodeId: string) => set((state) => {}),
+  deleteNode: (nodeId: string) =>
+    set((state) => {
+      const node = state.journeyNodes.find((n) => n.id === nodeId);
+      if (!node || node.data.type !== "JourneyNode") {
+        return state;
+      }
+
+      const nodesToDelete = new Set<string>();
+      const edgesToDelete = new Set<string>();
+      const nodeType = node.data.nodeTypeProps.type;
+
+      // FIXME use createConnections
+      if (
+        nodeType === JourneyNodeType.MessageNode ||
+        nodeType === JourneyNodeType.DelayNode
+      ) {
+      } else if (nodeType === JourneyNodeType.SegmentSplitNode) {
+      }
+
+      state.journeyNodes = state.journeyNodes.filter(
+        (n) => !nodesToDelete.has(n.id)
+      );
+      state.journeyEdges = state.journeyEdges.filter(
+        (n) => !edgesToDelete.has(n.id)
+      );
+
+      state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+      return state;
+    }),
   setNodes: (changes: NodeChange[]) =>
     set((state) => {
       state.journeyNodes = applyNodeChanges(changes, state.journeyNodes);
