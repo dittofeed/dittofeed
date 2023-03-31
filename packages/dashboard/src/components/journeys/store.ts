@@ -627,17 +627,6 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         });
       });
 
-      // 1) find all ancestors of node's children
-      // 2) add all ancestors to a sorted sets for each child
-      // 3) find intersection of sorted sets
-      // 4) pick the first item in the intersection.
-      // 5) delete all nodes in each sorted set up to and including the first item from the intersection
-      // 6) delete the original node
-      // 7) delete all edges which include the deleted nodes
-      // 8) find the child of node from step 4) (should not have more than 1 edge)
-      // 9) find the parent of the original node
-      // 10) add an edge from the parent of the deleted node, to the child of the last deleted node
-
       state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
       return state;
