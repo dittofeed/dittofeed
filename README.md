@@ -41,10 +41,10 @@ Like Braze, One-Signal, Customer.io, and Segment Engage. Create automated user j
 
 Beyond having industry-standard GUI tools, we focus on developer happiness with first-in-class dev-focused features:
 
-* Branch-based git worflows that support marketing campaign version control
+* Branch-based git worflows that support marketing campaign version control.
 * Write email templates in your favorite editor, checked into git - not in an un-versioned web based IDE.
-* Time-traveling testing SDK to test your marketing campaigns in CI. No more manually QAing them in production.
-* Self-hostable. Protect your sensitive PII inside of your own VPC.
+* Testing SDK to test your marketing campaigns in CI. No more manually QAing them in production.
+* Self-hostable. Protect your sensitive PII inside of your own VPC. Avoid volume-based pricing.
 * Journey monitoring and alerting.
 * More to come.
 
