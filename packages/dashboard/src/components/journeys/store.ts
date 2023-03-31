@@ -1,3 +1,4 @@
+import SSet, { SortedSet } from "collections/sorted-set";
 import {
   CompletionStatus,
   DelayNode,
@@ -486,6 +487,14 @@ export function journeyToState(
   };
 }
 
+function findAllChildren(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): SortedSet<string> {
+  const children = new SSet<string>();
+  return children;
+}
+
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
 export const createJourneySlice: CreateJourneySlice = (set) => ({
@@ -512,6 +521,9 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       const nodesToDelete = new Set<string>();
       const edgesToDelete = new Set<string>();
       const nodeType = node.data.nodeTypeProps.type;
+      const directChildren = state.journeyEdges.flatMap((e) =>
+        e.source === node.id ? e.target : []
+      );
 
       // FIXME use createConnections to re-add connections
 

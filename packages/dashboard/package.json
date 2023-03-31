@@ -27,6 +27,7 @@
     "@uiw/react-codemirror": "^4.19.5",
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
+    "collections": "^5.1.13",
     "d3-dag": "^0.11.5",
     "escape-html": "^1.0.3",
     "fnv1a": "^1.1.1",
@@ -51,6 +52,7 @@
     "zustand": "^4.1.4"
   },
   "devDependencies": {
+    "@types/collections": "^5.1.2",
     "@types/escape-html": "^1.0.2",
     "@types/humanize-duration": "^3.27.1",
     "@types/node": "18.11.7",

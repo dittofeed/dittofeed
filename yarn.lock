@@ -2684,6 +2684,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/collections@^5.1.2":
+  version "5.1.2"
+  resolved "https://registry.yarnpkg.com/@types/collections/-/collections-5.1.2.tgz#a9be0796b94bb2fe737d5b2070d49f78a9633b20"
+  integrity sha512-d//S1BKZl/ikhsMXk0TECEUZOu+AIbVtMnYBpUAeZUvyfktX7bhc6DokZ8YFy56XGqXvKQmGLT0aYou/Jnhalw==
+
 "@types/connect@*", "@types/connect@3.4.35":
   version "3.4.35"
   resolved "https://registry.yarnpkg.com/@types/connect/-/connect-3.4.35.tgz#5fcf6ae445e4021d1fc2219a4873cc73a3bb2ad1"
@@ -4439,6 +4444,13 @@ collect-v8-coverage@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/collect-v8-coverage/-/collect-v8-coverage-1.0.1.tgz#cc2c8e94fc18bbdffe64d6534570c8a673b27f59"
   integrity sha512-iBPtljfCNcTKNAto0KEtDfZ3qzjJvqE3aTGZsbhjSBlorqpXJlaWWtPO35D+ZImoC3KWejX64o+yPGxhWSTzfg==
+
+collections@^5.1.13:
+  version "5.1.13"
+  resolved "https://registry.yarnpkg.com/collections/-/collections-5.1.13.tgz#eee204a93b67473c8e74e00e934a997cc2817585"
+  integrity sha512-SCb6Qd+d3Z02corWQ7/mqXiXeeTdHvkP6TeFSYfGYdCFp1WrjSNZ3j6y8Y3T/7osGEe0iOcU2g1d346l99m4Lg==
+  dependencies:
+    weak-map "~1.0.x"
 
 color-convert@^1.9.0:
   version "1.9.3"
@@ -10524,6 +10536,11 @@ wcwidth@^1.0.1:
   integrity sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==
   dependencies:
     defaults "^1.0.3"
+
+weak-map@~1.0.x:
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/weak-map/-/weak-map-1.0.8.tgz#394c18a9e8262e790544ed8b55c6a4ddad1cb1a3"
+  integrity sha512-lNR9aAefbGPpHO7AEnY0hCFjz1eTkWCXYvkTRrTHs9qv8zJp+SkVYpzfLIFXQQiG3tVvbNFQgVg2bQS8YGgxyw==
 
 webidl-conversions@^3.0.0:
   version "3.0.1"
