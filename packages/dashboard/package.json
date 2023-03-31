@@ -34,6 +34,7 @@
     "immer": "^9.0.16",
     "is-hotkey": "^0.2.0",
     "isomorphic-lib": "0.0.3",
+    "lorem-ipsum": "^2.0.8",
     "neverthrow": "^6.0.0",
     "next": "13.1.1",
     "notistack": "^3.0.1",

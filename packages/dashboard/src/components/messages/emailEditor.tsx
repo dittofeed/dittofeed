@@ -59,23 +59,22 @@ const USER_TO = "{{user.email}}";
 const USER_PROPERTIES_TOOLTIP =
   "Edit an example user's properties to see the edits reflected in the rendered template. Properties are computed from user Identify traits and Track events.";
 
-const initialUserProperties = {
+export const defaultInitialUserProperties = {
   email: "test@email.com",
-  firstName: "Joe",
   id: "ad44fb62-91a4-4ec7-be24-7f9364e331b1",
+  phone: "2025550161",
+  language: "en-US",
+  anonymousId: "0b0d3a71-0a86-4e60-892a-d27f0b290c81",
 };
 
-export const defaultEmailMessageState: EmailMessageEditorState = {
+export const defaultEmailMessageState: Omit<
+  EmailMessageEditorState,
+  "emailMessageUserPropertiesJSON" | "emailMessageUserProperties"
+> = {
   emailMessageBody: defaultEmailBody,
   emailMessageTitle: "New Email Message",
   emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
   emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
-  emailMessageUserProperties: initialUserProperties,
-  emailMessageUserPropertiesJSON: JSON.stringify(
-    initialUserProperties,
-    null,
-    2
-  ),
   emailMessageUpdateRequest: {
     type: CompletionStatus.NotStarted,
   },
