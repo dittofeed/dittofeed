@@ -18,8 +18,8 @@ import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
 
 import MainLayout from "../../components/mainLayout";
+import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import {
-  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
   useAppStore,

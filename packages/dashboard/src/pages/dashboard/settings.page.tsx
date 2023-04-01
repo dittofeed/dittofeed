@@ -34,9 +34,9 @@ import { immer } from "zustand/middleware/immer";
 
 import Layout from "../../components/layout";
 import { MenuItemGroup } from "../../components/menuItems/types";
+import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import {
-  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
   useAppStore,

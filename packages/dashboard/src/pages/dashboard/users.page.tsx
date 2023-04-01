@@ -12,11 +12,8 @@ import MainLayout from "../../components/mainLayout";
 import UsersTable, {
   OnPaginationChangeProps,
 } from "../../components/usersTable";
-import {
-  addInitialStateToProps,
-  PreloadedState,
-  PropsWithInitialState,
-} from "../../lib/appStore";
+import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
+import { PreloadedState, PropsWithInitialState } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 
 const QueryParams = Type.Pick(GetUsersRequest, ["cursor", "direction"]);

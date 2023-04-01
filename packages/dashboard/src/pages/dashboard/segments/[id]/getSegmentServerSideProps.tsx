@@ -12,8 +12,8 @@ import {
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
 
+import { addInitialStateToProps } from "../../../../lib/addInitialStateToProps";
 import {
-  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
 } from "../../../../lib/appStore";
