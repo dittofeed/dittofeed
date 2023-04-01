@@ -11,6 +11,7 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
+  SourceControlProviderEnum,
   UserPropertyDefinition,
   UserPropertyResource,
   WorkspaceResource,
@@ -38,6 +39,8 @@ export type AppState = {
     DataSourceConfigurationResource[],
     Error
   >;
+  enableSourceControl: boolean;
+  sourceControlProvider?: SourceControlProviderEnum;
 } & PageStoreContents;
 
 export interface AppActions {

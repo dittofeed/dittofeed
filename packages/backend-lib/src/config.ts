@@ -3,7 +3,12 @@ import { URL } from "url";
 import { Overwrite } from "utility-types";
 
 import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
-import { KafkaSaslMechanism, LogLevel, WriteMode } from "./types";
+import {
+  KafkaSaslMechanism,
+  LogLevel,
+  SourceControlProvider,
+  WriteMode,
+} from "./types";
 
 const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
 
@@ -46,6 +51,8 @@ const BaseRawConfigProps = {
   prettyLogs: Type.Optional(BoolStr),
   logLevel: Type.Optional(LogLevel),
   googleOps: Type.Optional(BoolStr),
+  enableSourceControl: Type.Optional(BoolStr),
+  sourceControlProvider: Type.Optional(SourceControlProvider),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -98,6 +105,7 @@ export type Config = Overwrite<
     logLevel: LogLevel;
     prettyLogs: boolean;
     googleOps: boolean;
+    enableSourceControl: boolean;
   }
 > & {
   defaultWorkspaceId: string;
@@ -247,6 +255,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.prettyLogs === "true" ||
       (nodeEnv === NodeEnvEnum.Development && rawConfig.prettyLogs !== "false"),
     logLevel,
+    enableSourceControl: rawConfig.enableSourceControl === "true",
   };
   return parsedConfig;
 }

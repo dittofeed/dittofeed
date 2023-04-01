@@ -1,3 +1,4 @@
+import backendConfig from "backend-lib/src/config";
 import {
   CompletionStatus,
   SegmentDefinition,
@@ -173,6 +174,8 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         userProperties: {
           type: CompletionStatus.NotStarted,
         },
+
+        enableSourceControl: preloadedState.enableSourceControl ?? false,
 
         // email message state
         emailMessageBody: "",
@@ -613,8 +616,11 @@ export const useCreateStore = (
 ): (() => AppStore) => {
   // For SSR & SSG, always use a new store.
   if (typeof window === "undefined") {
+    const { sourceControlProvider, enableSourceControl } = backendConfig();
     return () =>
       initializeStore({
+        sourceControlProvider,
+        enableSourceControl,
         ...serverInitialState,
       });
   }
