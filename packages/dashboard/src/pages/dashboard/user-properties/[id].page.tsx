@@ -25,9 +25,9 @@ import { validate } from "uuid";
 
 import EditableName from "../../../components/editableName";
 import MainLayout from "../../../components/mainLayout";
+import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import {
-  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
   useAppStore,

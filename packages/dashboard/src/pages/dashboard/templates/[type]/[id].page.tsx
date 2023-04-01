@@ -15,8 +15,8 @@ import EmailEditor, {
   defaultEmailMessageState,
   defaultInitialUserProperties,
 } from "../../../../components/messages/emailEditor";
+import { addInitialStateToProps } from "../../../../lib/addInitialStateToProps";
 import {
-  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
 } from "../../../../lib/appStore";

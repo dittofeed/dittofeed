@@ -174,6 +174,8 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
 
+        enableSourceControl: preloadedState.enableSourceControl ?? false,
+
         // email message state
         emailMessageBody: "",
         emailMessageTitle: "",
@@ -656,19 +658,3 @@ export const useCreateStore = (
 export type PropsWithInitialState<T = object> = {
   serverInitialState: PreloadedState;
 } & T;
-
-export function addInitialStateToProps<T>(
-  props: T,
-  serverInitialState: Partial<AppState>
-): T & PropsWithInitialState {
-  const stateWithEnvVars: Partial<AppState> = {
-    apiBase: process.env.DASHBOARD_API_BASE ?? "http://localhost:3001",
-    ...serverInitialState,
-  };
-  return {
-    ...props,
-    // the "stringify and then parse again" piece is required as next.js
-    // isn't able to serialize it to JSON properly
-    serverInitialState: JSON.parse(JSON.stringify(stateWithEnvVars)),
-  };
-}

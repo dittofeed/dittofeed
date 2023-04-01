@@ -14,8 +14,8 @@ import {
   defaultNodes,
 } from "../../../../components/journeys/defaults";
 import { journeyToState } from "../../../../components/journeys/store";
+import { addInitialStateToProps } from "../../../../lib/addInitialStateToProps";
 import {
-  addInitialStateToProps,
   PreloadedState,
   PropsWithInitialState,
 } from "../../../../lib/appStore";

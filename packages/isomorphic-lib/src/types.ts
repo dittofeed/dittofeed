@@ -690,3 +690,9 @@ export type GetUsersResponse = Static<typeof GetUsersResponse>;
 export const BadRequestResponse = Type.Object({
   message: Type.String(),
 });
+
+export enum SourceControlProviderEnum {
+  GitHub = "github",
+}
+
+export const SourceControlProvider = Type.Enum(SourceControlProviderEnum);

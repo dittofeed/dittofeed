@@ -21,12 +21,9 @@ import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
-import {
-  addInitialStateToProps,
-  PropsWithInitialState,
-  useAppStore,
-} from "../../../lib/appStore";
+import { PropsWithInitialState, useAppStore } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
 import { AppState } from "../../../lib/types";
 
