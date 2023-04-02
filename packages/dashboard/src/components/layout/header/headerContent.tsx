@@ -75,7 +75,12 @@ function BranchSelect() {
       label="Branch"
       sx={{ minWidth: 150, fontSize: ".75rem", ml: 1, mr: 1 }}
       onChange={handleChange}
-      renderValue={(value) => <>{value}</>}
+      renderValue={(value) => (
+        <Stack spacing={1} direction="row" alignItems="center">
+          {value === "main" ? <Lock color="action" /> : <GitBranchIcon />}
+          <Box>{value}</Box>
+        </Stack>
+      )}
     >
       <BranchMenuItem item="main" icon={<Lock color="action" />} />
       <Divider />
