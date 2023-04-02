@@ -36,7 +36,7 @@ function GitBranchIcon(props: SvgIconProps) {
   );
 }
 
-function BranchMenuItem({
+function BranchMenuItemContents({
   item,
   icon,
 }: {
@@ -44,12 +44,10 @@ function BranchMenuItem({
   icon?: React.ReactNode;
 }) {
   return (
-    <MenuItem value={item}>
-      <Stack direction="row" alignItems="center" spacing={1}>
-        {icon ?? <GitBranchIcon color="action" />}
-        <Box sx={{ fontSize: ".75rem" }}>{item}</Box>
-      </Stack>
-    </MenuItem>
+    <Stack direction="row" alignItems="center" spacing={1}>
+      {icon ?? <GitBranchIcon color="action" />}
+      <Box sx={{ fontSize: ".75rem" }}>{item}</Box>
+    </Stack>
   );
 }
 
@@ -74,7 +72,6 @@ function BranchSelect() {
       value={branch}
       label="Branch"
       sx={{
-        minWidth: 150,
         fontSize: ".75rem",
         ml: 1,
         mr: 1,
@@ -88,40 +85,61 @@ function BranchSelect() {
       onChange={handleChange}
       renderValue={(value) => (
         <Stack spacing={1} direction="row" alignItems="center">
-          {value === "main" ? <Lock color="action" /> : <GitBranchIcon />}
+          {value === "main" ? (
+            <Lock color="action" />
+          ) : (
+            <GitBranchIcon color="action" />
+          )}
           <Box>{value}</Box>
         </Stack>
       )}
     >
-      <BranchMenuItem item="main" icon={<Lock color="action" />} />
+      <MenuItem value="main">
+        <BranchMenuItemContents item="main" icon={<Lock color="action" />} />
+      </MenuItem>
       <Divider />
+
       <ListSubheader sx={{ fontSize: ".75rem" }}>your branches</ListSubheader>
-      <BranchMenuItem item="my-feature-branch" />
+
+      <MenuItem value="my-feature-branch">
+        <BranchMenuItemContents item="my-feature-branch" />
+      </MenuItem>
     </Select>
   );
 }
 
-function GitActionsSelect() {
-  return (
-    <Select
-      value={branch}
-      label="Branch"
-      sx={{ minWidth: 150, fontSize: ".75rem", ml: 1, mr: 1 }}
-      onChange={handleChange}
-      renderValue={(value) => (
-        <Stack spacing={1} direction="row" alignItems="center">
-          {value === "main" ? <Lock color="action" /> : <GitBranchIcon />}
-          <Box>{value}</Box>
-        </Stack>
-      )}
-    >
-      <BranchMenuItem item="main" icon={<Lock color="action" />} />
-      <Divider />
-      <ListSubheader sx={{ fontSize: ".75rem" }}>your branches</ListSubheader>
-      <BranchMenuItem item="my-feature-branch" />
-    </Select>
-  );
-}
+// function GitActionsSelect() {
+//   return (
+//     <Select
+//       value={branch}
+//       label="Branch"
+//       sx={{
+//         minWidth: 150,
+//         fontSize: ".75rem",
+//         ml: 1,
+//         mr: 1,
+//         height: "100%",
+//         "& .MuiSelect-select": {
+//           pt: 1,
+//           pb: 1,
+//           height: "100%",
+//         },
+//       }}
+//       onChange={handleChange}
+//       renderValue={(value) => (
+//         <Stack spacing={1} direction="row" alignItems="center">
+//           {value === "main" ? <Lock color="action" /> : <GitBranchIcon />}
+//           <Box>{value}</Box>
+//         </Stack>
+//       )}
+//     >
+//       <BranchMenuItem item="main" icon={<Lock color="action" />} />
+//       <Divider />
+//       <ListSubheader sx={{ fontSize: ".75rem" }}>your branches</ListSubheader>
+//       <BranchMenuItem item="my-feature-branch" />
+//     </Select>
+//   );
+// }
 
 function HeaderContent() {
   const matchesXs = useMediaQuery<Theme>((theme) =>
