@@ -1,6 +1,5 @@
 // material-ui
 import { GithubOutlined } from "@ant-design/icons";
-import { useTheme } from "@emotion/react";
 import { Lock } from "@mui/icons-material";
 import {
   Box,
@@ -18,6 +17,7 @@ import {
   SvgIconProps,
   Theme,
   useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import React from "react";
 
@@ -108,38 +108,73 @@ function BranchSelect() {
   );
 }
 
-// function GitActionsSelect() {
-//   return (
-//     <Select
-//       value={branch}
-//       label="Branch"
-//       sx={{
-//         minWidth: 150,
-//         fontSize: ".75rem",
-//         ml: 1,
-//         mr: 1,
-//         height: "100%",
-//         "& .MuiSelect-select": {
-//           pt: 1,
-//           pb: 1,
-//           height: "100%",
-//         },
-//       }}
-//       onChange={handleChange}
-//       renderValue={(value) => (
-//         <Stack spacing={1} direction="row" alignItems="center">
-//           {value === "main" ? <Lock color="action" /> : <GitBranchIcon />}
-//           <Box>{value}</Box>
-//         </Stack>
-//       )}
-//     >
-//       <BranchMenuItem item="main" icon={<Lock color="action" />} />
-//       <Divider />
-//       <ListSubheader sx={{ fontSize: ".75rem" }}>your branches</ListSubheader>
-//       <BranchMenuItem item="my-feature-branch" />
-//     </Select>
-//   );
-// }
+enum GitAction {
+  CommitAndPush = "CommitAndPush",
+  OpenPR = "OpenPR",
+}
+
+function GitActionsSelect() {
+  const theme = useTheme();
+  const enableSourceControl = useAppStore((store) => store.enableSourceControl);
+  const sourceControlProvider = useAppStore(
+    (store) => store.sourceControlProvider
+  );
+
+  if (!enableSourceControl || !sourceControlProvider) {
+    return null;
+  }
+
+  const handleChange = (event: SelectChangeEvent) => {
+    const value = event.target.value as string;
+    switch (value) {
+      case GitAction.CommitAndPush: {
+        console.log("commit and push");
+        break;
+      }
+      case GitAction.OpenPR: {
+        console.log("open pr");
+        break;
+      }
+      default:
+        console.error("unanticipated select");
+    }
+  };
+
+  return (
+    <Select
+      value=""
+      label="Git Actions"
+      displayEmpty
+      sx={{
+        minWidth: 150,
+        fontSize: ".75rem",
+        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.primary.contrastText,
+        ml: 1,
+        mr: 1,
+        "& svg": {
+          color: theme.palette.primary.contrastText,
+        },
+        height: "100%",
+        "& .MuiSelect-select": {
+          pt: 1,
+          pb: 1,
+          height: "100%",
+        },
+      }}
+      onChange={handleChange}
+      renderValue={() => (
+        <Stack spacing={1} direction="row" alignItems="center">
+          <GitBranchIcon />
+          <Box>Actions</Box>
+        </Stack>
+      )}
+    >
+      <MenuItem value={GitAction.CommitAndPush}>Commit and Push</MenuItem>
+      <MenuItem value={GitAction.OpenPR}>Open Pull Request</MenuItem>
+    </Select>
+  );
+}
 
 function HeaderContent() {
   const matchesXs = useMediaQuery<Theme>((theme) =>
@@ -151,7 +186,7 @@ function HeaderContent() {
       <BranchSelect />
       <Box sx={{ width: "100%", ml: { xs: 0, md: 1 } }} />
       {matchesXs && <Box sx={{ width: "100%", ml: 1 }} />}
-
+      <GitActionsSelect />
       <IconButton
         component={Link}
         href="https://github.com/dittofeed/dittofeed"
