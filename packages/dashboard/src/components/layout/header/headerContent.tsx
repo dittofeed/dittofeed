@@ -70,7 +70,6 @@ function BranchSelect() {
   return (
     <Select
       value={branch}
-      label="Branch"
       sx={{
         fontSize: ".75rem",
         ml: 1,
@@ -143,7 +142,6 @@ function GitActionsSelect() {
   return (
     <Select
       value=""
-      label="Git Actions"
       displayEmpty
       sx={{
         minWidth: 150,
