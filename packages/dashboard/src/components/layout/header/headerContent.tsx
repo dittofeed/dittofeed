@@ -73,6 +73,39 @@ function BranchSelect() {
     <Select
       value={branch}
       label="Branch"
+      sx={{
+        minWidth: 150,
+        fontSize: ".75rem",
+        ml: 1,
+        mr: 1,
+        height: "100%",
+        "& .MuiSelect-select": {
+          pt: 1,
+          pb: 1,
+          height: "100%",
+        },
+      }}
+      onChange={handleChange}
+      renderValue={(value) => (
+        <Stack spacing={1} direction="row" alignItems="center">
+          {value === "main" ? <Lock color="action" /> : <GitBranchIcon />}
+          <Box>{value}</Box>
+        </Stack>
+      )}
+    >
+      <BranchMenuItem item="main" icon={<Lock color="action" />} />
+      <Divider />
+      <ListSubheader sx={{ fontSize: ".75rem" }}>your branches</ListSubheader>
+      <BranchMenuItem item="my-feature-branch" />
+    </Select>
+  );
+}
+
+function GitActionsSelect() {
+  return (
+    <Select
+      value={branch}
+      label="Branch"
       sx={{ minWidth: 150, fontSize: ".75rem", ml: 1, mr: 1 }}
       onChange={handleChange}
       renderValue={(value) => (
