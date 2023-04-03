@@ -3,6 +3,12 @@ import { GithubOutlined } from "@ant-design/icons";
 import { Lock } from "@mui/icons-material";
 import {
   Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   FormControl,
   IconButton,
@@ -10,6 +16,7 @@ import {
   Link,
   ListSubheader,
   MenuItem,
+  Modal,
   Select,
   SelectChangeEvent,
   Stack,
@@ -118,6 +125,9 @@ function GitActionsSelect() {
   const sourceControlProvider = useAppStore(
     (store) => store.sourceControlProvider
   );
+  const [isDiffOpen, setDiffOpen] = React.useState(false);
+  const handleClose = () => setDiffOpen(false);
+  // const fullScreen = useMediaQuery(theme.breakpoints.down("xl"));
 
   if (!enableSourceControl || !sourceControlProvider) {
     return null;
@@ -127,7 +137,7 @@ function GitActionsSelect() {
     const value = event.target.value as string;
     switch (value) {
       case GitAction.CommitAndPush: {
-        console.log("commit and push");
+        setDiffOpen(true);
         break;
       }
       case GitAction.OpenPR: {
@@ -140,37 +150,48 @@ function GitActionsSelect() {
   };
 
   return (
-    <Select
-      value=""
-      displayEmpty
-      sx={{
-        minWidth: 150,
-        fontSize: ".75rem",
-        backgroundColor: theme.palette.primary.main,
-        color: theme.palette.primary.contrastText,
-        ml: 1,
-        mr: 1,
-        "& svg": {
+    <>
+      <Select
+        value=""
+        displayEmpty
+        sx={{
+          minWidth: 150,
+          fontSize: ".75rem",
+          backgroundColor: theme.palette.primary.main,
           color: theme.palette.primary.contrastText,
-        },
-        height: "100%",
-        "& .MuiSelect-select": {
-          pt: 1,
-          pb: 1,
+          ml: 1,
+          mr: 1,
+          "& svg": {
+            color: theme.palette.primary.contrastText,
+          },
           height: "100%",
-        },
-      }}
-      onChange={handleChange}
-      renderValue={() => (
-        <Stack spacing={1} direction="row" alignItems="center">
-          <GitBranchIcon />
-          <Box>Actions</Box>
-        </Stack>
-      )}
-    >
-      <MenuItem value={GitAction.CommitAndPush}>Commit and Push</MenuItem>
-      <MenuItem value={GitAction.OpenPR}>Open Pull Request</MenuItem>
-    </Select>
+          "& .MuiSelect-select": {
+            pt: 1,
+            pb: 1,
+            height: "100%",
+          },
+        }}
+        onChange={handleChange}
+        renderValue={() => (
+          <Stack spacing={1} direction="row" alignItems="center">
+            <GitBranchIcon />
+            <Box>Actions</Box>
+          </Stack>
+        )}
+      >
+        <MenuItem value={GitAction.CommitAndPush}>Commit and Push</MenuItem>
+        <MenuItem value={GitAction.OpenPR}>Open Pull Request</MenuItem>
+      </Select>
+      <Dialog open={isDiffOpen} onClose={handleClose} fullWidth>
+        <DialogTitle>Diff</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Foo Bar</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus>My Button</Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 
