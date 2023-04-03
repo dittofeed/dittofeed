@@ -27,6 +27,7 @@ import {
 import React from "react";
 
 import { useAppStore } from "../../../lib/appStore";
+import CodeDiff from "../../codeDiff";
 import MobileSection from "./headerContent/mobileSection";
 // project import
 import Profile from "./headerContent/profile";
@@ -129,6 +130,28 @@ function GitActionsSelect() {
   if (!enableSourceControl || !sourceControlProvider) {
     return null;
   }
+  const oldText =
+    "[\n" +
+    "    {\n" +
+    '        "age": "22",\n' +
+    '        "name": "Niroj"\n' +
+    "    },\n" +
+    "    {\n" +
+    '        "age": "20",\n' +
+    '        "name": "Dey"\n' +
+    "    }\n" +
+    "]\n";
+  const newText =
+    "[\n" +
+    "    {\n" +
+    '        "age": "22",\n' +
+    '        "name": "Niroj"\n' +
+    "    },\n" +
+    "    {\n" +
+    '        "age": "20",\n' +
+    '        "name": "Dey1"\n' +
+    "    }\n" +
+    "]\n";
   const branchName = "maxgurewitz/my-feature-branch";
 
   const handleChange = (event: SelectChangeEvent) => {
@@ -221,7 +244,10 @@ function GitActionsSelect() {
           </Stack>
         </DialogTitle>
         <DialogContent>
-          <DialogContentText>Foo Bar</DialogContentText>
+          <Stack direction="column" spacing={1} alignItems="center">
+            <DialogContentText>Foo Bar</DialogContentText>
+            <CodeDiff oldText={oldText} newText={newText} />
+          </Stack>
         </DialogContent>
         <DialogActions>
           <Button autoFocus>My Button</Button>
