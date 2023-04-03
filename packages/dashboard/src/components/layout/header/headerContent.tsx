@@ -10,19 +10,17 @@ import {
   DialogContentText,
   DialogTitle,
   Divider,
-  FormControl,
   IconButton,
-  InputLabel,
   Link,
   ListSubheader,
   MenuItem,
-  Modal,
   Select,
   SelectChangeEvent,
   Stack,
   SvgIcon,
   SvgIconProps,
   Theme,
+  Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -108,7 +106,7 @@ function BranchSelect() {
       <ListSubheader sx={{ fontSize: ".75rem" }}>your branches</ListSubheader>
 
       <MenuItem value="my-feature-branch">
-        <BranchMenuItemContents item="my-feature-branch" />
+        <BranchMenuItemContents item="maxgurewitz/my-feature-branch" />
       </MenuItem>
     </Select>
   );
@@ -127,11 +125,11 @@ function GitActionsSelect() {
   );
   const [isDiffOpen, setDiffOpen] = React.useState(false);
   const handleClose = () => setDiffOpen(false);
-  // const fullScreen = useMediaQuery(theme.breakpoints.down("xl"));
 
   if (!enableSourceControl || !sourceControlProvider) {
     return null;
   }
+  const branchName = "maxgurewitz/my-feature-branch";
 
   const handleChange = (event: SelectChangeEvent) => {
     const value = event.target.value as string;
@@ -182,8 +180,46 @@ function GitActionsSelect() {
         <MenuItem value={GitAction.CommitAndPush}>Commit and Push</MenuItem>
         <MenuItem value={GitAction.OpenPR}>Open Pull Request</MenuItem>
       </Select>
-      <Dialog open={isDiffOpen} onClose={handleClose} fullWidth>
-        <DialogTitle>Diff</DialogTitle>
+      <Dialog open={isDiffOpen} onClose={handleClose} fullWidth maxWidth="md">
+        <DialogTitle>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography>Commit and push to remote branch</Typography>
+            <Button
+              sx={{
+                backgroundColor: theme.palette.primary.lighter,
+                p: 1,
+                borderRadius: 1,
+              }}
+            >
+              <a
+                href={`https://github.com/dittofeed/dittofeed/tree/${branchName}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  textDecoration: "none",
+                }}
+              >
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <GitBranchIcon
+                    sx={{
+                      fontSize: "1rem",
+                      color: theme.palette.primary.main,
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      fontSize: ".75rem",
+                      color: theme.palette.primary.main,
+                      textTransform: "none",
+                    }}
+                  >
+                    {branchName}
+                  </Box>
+                </Stack>
+              </a>
+            </Button>
+          </Stack>
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>Foo Bar</DialogContentText>
         </DialogContent>
