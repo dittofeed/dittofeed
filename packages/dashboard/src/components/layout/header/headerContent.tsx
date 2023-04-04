@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
@@ -17,30 +16,20 @@ import {
   Select,
   SelectChangeEvent,
   Stack,
-  SvgIcon,
-  SvgIconProps,
+  TextField,
   Theme,
   Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 
 import { useAppStore } from "../../../lib/appStore";
-import CodeDiff from "../../codeDiff";
+import ErrorBoundary from "../../errorBoundary";
+import { GitBranchIcon } from "../../gitBranchIcon";
 import MobileSection from "./headerContent/mobileSection";
 // project import
 import Profile from "./headerContent/profile";
-
-// ==============================|| HEADER - CONTENT ||============================== //
-
-function GitBranchIcon(props: SvgIconProps) {
-  return (
-    <SvgIcon {...props} viewBox="0 0 512 512">
-      <path d="M416 160a64 64 0 10-96.27 55.24c-2.29 29.08-20.08 37-75 48.42-17.76 3.68-35.93 7.45-52.71 13.93v-126.2a64 64 0 10-64 0v209.22a64 64 0 1064.42.24c2.39-18 16-24.33 65.26-34.52 27.43-5.67 55.78-11.54 79.78-26.95 29-18.58 44.53-46.78 46.36-83.89A64 64 0 00416 160zM160 64a32 32 0 11-32 32 32 32 0 0132-32zm0 384a32 32 0 1132-32 32 32 0 01-32 32zm192-256a32 32 0 1132-32 32 32 0 01-32 32z" />
-    </SvgIcon>
-  );
-}
 
 function BranchMenuItemContents({
   item,
@@ -170,6 +159,8 @@ function GitActionsSelect() {
     }
   };
 
+  const CodeDiff = lazy(() => import("../../codeDiff"));
+
   return (
     <>
       <Select
@@ -206,7 +197,9 @@ function GitActionsSelect() {
       <Dialog open={isDiffOpen} onClose={handleClose} fullWidth maxWidth="md">
         <DialogTitle>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography>Commit and push to remote branch</Typography>
+            <Typography variant="h5">
+              Commit and push to remote branch
+            </Typography>
             <Button
               sx={{
                 backgroundColor: theme.palette.primary.lighter,
@@ -245,13 +238,45 @@ function GitActionsSelect() {
         </DialogTitle>
         <DialogContent>
           <Stack direction="column" spacing={1} alignItems="center">
-            <DialogContentText>Foo Bar</DialogContentText>
-            <CodeDiff oldText={oldText} newText={newText} />
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ width: "100%" }}
+              spacing={1}
+            >
+              <Typography sx={{ fontWeight: 600 }}>title</Typography>
+              <TextField
+                sx={{
+                  flex: 1,
+                  "& .MuiInputLabel-root": {
+                    fontSize: "0.75rem",
+                  },
+                  "& .MuiOutlinedInput-input": {
+                    p: 1,
+                    fontSize: "0.75rem",
+                  },
+                }}
+              />
+              <Typography sx={{ fontWeight: 600 }}>description</Typography>
+              <TextField
+                sx={{
+                  flex: 1,
+                  "& .MuiInputLabel-root": {
+                    fontSize: "0.75rem",
+                  },
+                  "& .MuiOutlinedInput-input": {
+                    p: 1,
+                    fontSize: "0.75rem",
+                  },
+                }}
+              />
+            </Stack>
+            <Suspense>
+              <CodeDiff oldText={oldText} newText={newText} />
+            </Suspense>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button autoFocus>My Button</Button>
-        </DialogActions>
       </Dialog>
     </>
   );
