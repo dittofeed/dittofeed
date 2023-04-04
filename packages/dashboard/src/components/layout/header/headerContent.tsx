@@ -100,6 +100,48 @@ enum GitAction {
   OpenPR = "OpenPR",
 }
 
+const oldConfig = `definition:
+  entryNode:
+    segment: 'Users created within the last 30 minutes'
+    child: 1
+  nodes:
+    - id: 1
+      type: 'MessageNode'
+      child: 2
+      variant:
+        type: 'Email'
+        templateId: '521e0aa8-de1c-480f-a5fa-208b4e8baa1c'
+    - id: 2
+      type: 'DelayNode'
+      child: 3
+      variant:
+        type: 'Second'
+        seconds: 604800
+    - id: 3
+      type: 'MessageNode'
+      child: 4
+      variant:
+        type: 'Email'
+        templateId: '9736eb2e-a494-4371-9ba8-f7246e393fb4'
+    - id: 4
+      type: 'ExitNode'
+`;
+
+const newConfig = `definition:
+  entryNode:
+    segment: 'Users created within the last 30 minutes'
+    child: 1
+  nodes:
+    - id: 1
+      type: 'MessageNode'
+      child: 2
+      variant:
+        type: 'Email'
+        templateId: '521e0aa8-de1c-480f-a5fa-208b4e8baa1c'
+    - id: 2
+      type: 'ExitNode'
+`;
+
 function GitActionsSelect() {
   const theme = useTheme();
   const enableSourceControl = useAppStore((store) => store.enableSourceControl);
@@ -112,28 +154,8 @@ function GitActionsSelect() {
   if (!enableSourceControl || !sourceControlProvider) {
     return null;
   }
-  const oldText =
-    "[\n" +
-    "    {\n" +
-    '        "age": "22",\n' +
-    '        "name": "Niroj"\n' +
-    "    },\n" +
-    "    {\n" +
-    '        "age": "20",\n' +
-    '        "name": "Dey"\n' +
-    "    }\n" +
-    "]\n";
-  const newText =
-    "[\n" +
-    "    {\n" +
-    '        "age": "22",\n' +
-    '        "name": "Niroj"\n' +
-    "    },\n" +
-    "    {\n" +
-    '        "age": "20",\n' +
-    '        "name": "Dey1"\n' +
-    "    }\n" +
-    "]\n";
+  const oldText = oldConfig;
+  const newText = newConfig;
   const branchName = "maxgurewitz/my-feature-branch";
 
   const handleChange = (event: SelectChangeEvent) => {
@@ -191,8 +213,14 @@ function GitActionsSelect() {
         <Suspense>
           <CommitAndPush
             branchName={branchName}
-            newText={newText}
-            oldText={oldText}
+            diffs={[
+              {
+                oldFileName: "Onboarding Journey",
+                newFileName: "Onboarding Journey",
+                newText,
+                oldText,
+              },
+            ]}
             onCommit={handleClose}
           />
         </Suspense>

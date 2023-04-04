@@ -3,16 +3,10 @@ import "react-diff-view/style/index.css";
 import React from "react";
 import { Diff, Hunk, parseDiff } from "react-diff-view";
 
-import unifiedDiff from "../lib/unifiedDiff";
+import unifiedDiff, { UnifiedDiffParams } from "../lib/unifiedDiff";
 
-export default function codeDiff({
-  oldText,
-  newText,
-}: {
-  oldText: string;
-  newText: string;
-}) {
-  const diffText = unifiedDiff({ oldText, newText });
+export default function codeDiff(params: UnifiedDiffParams) {
+  const diffText = unifiedDiff(params);
   const diff = parseDiff(diffText, { nearbySequences: "zip" });
 
   const renderFile: (

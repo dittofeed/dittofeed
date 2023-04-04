@@ -10,22 +10,22 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import hash from "fnv1a";
 import { enqueueSnackbar } from "notistack";
 import React from "react";
 
 import { noticeAnchorOrigin } from "../lib/notices";
+import { UnifiedDiffParams } from "../lib/unifiedDiff";
 import CodeDiff from "./codeDiff";
 import { GitBranchIcon } from "./gitBranchIcon";
 
 export default function CommitAndPush({
   branchName,
-  newText,
-  oldText,
+  diffs,
   onCommit,
 }: {
   branchName: string;
-  newText: string;
-  oldText: string;
+  diffs: UnifiedDiffParams[];
   onCommit?: () => void;
 }) {
   const theme = useTheme();
@@ -136,7 +136,9 @@ export default function CommitAndPush({
               Commit and push
             </LoadingButton>
           </Stack>
-          <CodeDiff oldText={oldText} newText={newText} />
+          {diffs.map((diff) => (
+            <CodeDiff key={hash(diff.oldText + diff.newText)} {...diff} />
+          ))}
         </Stack>
       </DialogContent>
     </>
