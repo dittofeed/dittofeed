@@ -8,7 +8,7 @@ export default function unifiedDiff({
 }) {
   return formatLines(diffLines(oldText, newText), {
     context: 3,
-    aName: oldFileName,
-    bName: newFileName,
+    aname: oldFileName,
+    bname: newFileName,
   });
 }
