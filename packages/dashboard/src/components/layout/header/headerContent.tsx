@@ -3,6 +3,7 @@ import { GithubOutlined } from "@ant-design/icons";
 import { Lock } from "@mui/icons-material";
 import {
   Box,
+  Dialog,
   Divider,
   IconButton,
   Link,
@@ -186,15 +187,15 @@ function GitActionsSelect() {
         <MenuItem value={GitAction.CommitAndPush}>Commit and Push</MenuItem>
         <MenuItem value={GitAction.OpenPR}>Open Pull Request</MenuItem>
       </Select>
-      <Suspense>
-        <CommitAndPush
-          branchName={branchName}
-          open={isDiffOpen}
-          onClose={handleClose}
-          newText={newText}
-          oldText={oldText}
-        />
-      </Suspense>
+      <Dialog fullWidth maxWidth="md" open={isDiffOpen} onClose={handleClose}>
+        <Suspense>
+          <CommitAndPush
+            branchName={branchName}
+            newText={newText}
+            oldText={oldText}
+          />
+        </Suspense>
+      </Dialog>
     </>
   );
 }

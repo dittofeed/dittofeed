@@ -2,7 +2,6 @@
 import {
   Box,
   Button,
-  Dialog,
   DialogContent,
   DialogTitle,
   Stack,
@@ -10,22 +9,20 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import React, { ComponentProps, Suspense } from "react";
+import React, { Suspense } from "react";
 
 import CodeDiff from "./codeDiff";
 import { GitBranchIcon } from "./gitBranchIcon";
 
-export default function CommitAndPush(
-  props: ComponentProps<typeof Dialog> & {
-    branchName: string;
-    newText: string;
-    oldText: string;
-  }
-) {
+export default function CommitAndPush(props: {
+  branchName: string;
+  newText: string;
+  oldText: string;
+}) {
   const theme = useTheme();
   const { branchName, newText, oldText } = props;
   return (
-    <Dialog fullWidth maxWidth="md" {...props}>
+    <>
       <DialogTitle>
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography variant="h5">Commit and push to remote branch</Typography>
@@ -107,6 +104,6 @@ export default function CommitAndPush(
           </Suspense>
         </Stack>
       </DialogContent>
-    </Dialog>
+    </>
   );
 }
