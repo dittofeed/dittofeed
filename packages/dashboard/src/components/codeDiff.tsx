@@ -1,5 +1,6 @@
 import "react-diff-view/style/index.css";
 
+import hash from "fnv1a";
 import React from "react";
 import { Diff, Hunk, parseDiff } from "react-diff-view";
 
@@ -19,7 +20,9 @@ export default function codeDiff(params: UnifiedDiffParams) {
       hunks={hunks}
     >
       {(diffedHunks) =>
-        diffedHunks.map((hunk) => <Hunk key={hunk.content} hunk={hunk} />)
+        diffedHunks.map((hunk, i) => (
+          <Hunk key={hash(hunk.content + i)} hunk={hunk} />
+        ))
       }
     </Diff>
   );
