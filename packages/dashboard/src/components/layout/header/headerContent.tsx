@@ -193,6 +193,7 @@ function GitActionsSelect() {
             branchName={branchName}
             newText={newText}
             oldText={oldText}
+            onCommit={handleClose}
           />
         </Suspense>
       </Dialog>

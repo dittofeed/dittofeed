@@ -1,4 +1,5 @@
 // material-ui
+import LoadingButton from "@mui/lab/LoadingButton";
 import {
   Box,
   Button,
@@ -9,18 +10,43 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import React, { Suspense } from "react";
+import { enqueueSnackbar } from "notistack";
+import React from "react";
 
+import { noticeAnchorOrigin } from "../lib/notices";
 import CodeDiff from "./codeDiff";
 import { GitBranchIcon } from "./gitBranchIcon";
 
-export default function CommitAndPush(props: {
+export default function CommitAndPush({
+  branchName,
+  newText,
+  oldText,
+  onCommit,
+}: {
   branchName: string;
   newText: string;
   oldText: string;
+  onCommit?: () => void;
 }) {
   const theme = useTheme();
-  const { branchName, newText, oldText } = props;
+  const [title, setTitle] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const isCommitDisabled = title.length === 0;
+  const handleSubmit = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      enqueueSnackbar("Successfully committed changes", {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+      if (onCommit) {
+        onCommit();
+      }
+    }, 1000);
+  };
+
   return (
     <>
       <DialogTitle>
@@ -73,6 +99,10 @@ export default function CommitAndPush(props: {
           >
             <Typography sx={{ fontWeight: 600 }}>title</Typography>
             <TextField
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+              }}
               sx={{
                 flex: 1,
                 "& .MuiInputLabel-root": {
@@ -97,11 +127,16 @@ export default function CommitAndPush(props: {
                 },
               }}
             />
-            <Button variant="contained">Commit and push</Button>
+            <LoadingButton
+              variant="contained"
+              loading={loading}
+              disabled={isCommitDisabled}
+              onClick={handleSubmit}
+            >
+              Commit and push
+            </LoadingButton>
           </Stack>
-          <Suspense>
-            <CodeDiff oldText={oldText} newText={newText} />
-          </Suspense>
+          <CodeDiff oldText={oldText} newText={newText} />
         </Stack>
       </DialogContent>
     </>
