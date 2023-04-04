@@ -1,42 +1,30 @@
 // material-ui
 import { GithubOutlined } from "@ant-design/icons";
-import { useTheme } from "@emotion/react";
 import { Lock } from "@mui/icons-material";
 import {
   Box,
+  Dialog,
   Divider,
-  FormControl,
   IconButton,
-  InputLabel,
   Link,
   ListSubheader,
   MenuItem,
   Select,
   SelectChangeEvent,
   Stack,
-  SvgIcon,
-  SvgIconProps,
   Theme,
   useMediaQuery,
+  useTheme,
 } from "@mui/material";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 
 import { useAppStore } from "../../../lib/appStore";
+import { GitBranchIcon } from "../../gitBranchIcon";
 import MobileSection from "./headerContent/mobileSection";
 // project import
 import Profile from "./headerContent/profile";
 
-// ==============================|| HEADER - CONTENT ||============================== //
-
-function GitBranchIcon(props: SvgIconProps) {
-  return (
-    <SvgIcon {...props} viewBox="0 0 512 512">
-      <path d="M416 160a64 64 0 10-96.27 55.24c-2.29 29.08-20.08 37-75 48.42-17.76 3.68-35.93 7.45-52.71 13.93v-126.2a64 64 0 10-64 0v209.22a64 64 0 1064.42.24c2.39-18 16-24.33 65.26-34.52 27.43-5.67 55.78-11.54 79.78-26.95 29-18.58 44.53-46.78 46.36-83.89A64 64 0 00416 160zM160 64a32 32 0 11-32 32 32 32 0 0132-32zm0 384a32 32 0 1132-32 32 32 0 01-32 32zm192-256a32 32 0 1132-32 32 32 0 01-32 32z" />
-    </SvgIcon>
-  );
-}
-
-function BranchMenuItem({
+function BranchMenuItemContents({
   item,
   icon,
 }: {
@@ -44,12 +32,10 @@ function BranchMenuItem({
   icon?: React.ReactNode;
 }) {
   return (
-    <MenuItem value={item}>
-      <Stack direction="row" alignItems="center" spacing={1}>
-        {icon ?? <GitBranchIcon color="action" />}
-        <Box sx={{ fontSize: ".75rem" }}>{item}</Box>
-      </Stack>
-    </MenuItem>
+    <Stack direction="row" alignItems="center" spacing={1}>
+      {icon ?? <GitBranchIcon color="action" />}
+      <Box sx={{ fontSize: ".75rem" }}>{item}</Box>
+    </Stack>
   );
 }
 
@@ -72,16 +58,174 @@ function BranchSelect() {
   return (
     <Select
       value={branch}
-      label="Branch"
-      sx={{ minWidth: 150, fontSize: ".75rem", ml: 1, mr: 1 }}
+      sx={{
+        fontSize: ".75rem",
+        ml: 1,
+        mr: 1,
+        height: "100%",
+        "& .MuiSelect-select": {
+          pt: 1,
+          pb: 1,
+          height: "100%",
+        },
+      }}
       onChange={handleChange}
-      renderValue={(value) => <>{value}</>}
+      renderValue={(value) => (
+        <Stack spacing={1} direction="row" alignItems="center">
+          {value === "main" ? (
+            <Lock color="action" />
+          ) : (
+            <GitBranchIcon color="action" />
+          )}
+          <Box>{value}</Box>
+        </Stack>
+      )}
     >
-      <BranchMenuItem item="main" icon={<Lock color="action" />} />
+      <MenuItem value="main">
+        <BranchMenuItemContents item="main" icon={<Lock color="action" />} />
+      </MenuItem>
       <Divider />
+
       <ListSubheader sx={{ fontSize: ".75rem" }}>your branches</ListSubheader>
-      <BranchMenuItem item="my-feature-branch" />
+
+      <MenuItem value="my-feature-branch">
+        <BranchMenuItemContents item="maxgurewitz/my-feature-branch" />
+      </MenuItem>
     </Select>
+  );
+}
+
+enum GitAction {
+  CommitAndPush = "CommitAndPush",
+  OpenPR = "OpenPR",
+}
+
+const oldConfig = `definition:
+  entryNode:
+    segment: 'Users created within the last 30 minutes'
+    child: 1
+  nodes:
+    - id: 1
+      type: 'MessageNode'
+      child: 2
+      variant:
+        type: 'Email'
+        templateId: '521e0aa8-de1c-480f-a5fa-208b4e8baa1c'
+    - id: 2
+      type: 'DelayNode'
+      child: 3
+      variant:
+        type: 'Second'
+        seconds: 604800
+    - id: 3
+      type: 'MessageNode'
+      child: 4
+      variant:
+        type: 'Email'
+        templateId: '9736eb2e-a494-4371-9ba8-f7246e393fb4'
+    - id: 4
+      type: 'ExitNode'
+`;
+
+const newConfig = `definition:
+  entryNode:
+    segment: 'Users created within the last 30 minutes'
+    child: 1
+  nodes:
+    - id: 1
+      type: 'MessageNode'
+      child: 2
+      variant:
+        type: 'Email'
+        templateId: '521e0aa8-de1c-480f-a5fa-208b4e8baa1c'
+    - id: 2
+      type: 'ExitNode'
+`;
+
+function GitActionsSelect() {
+  const theme = useTheme();
+  const enableSourceControl = useAppStore((store) => store.enableSourceControl);
+  const sourceControlProvider = useAppStore(
+    (store) => store.sourceControlProvider
+  );
+  const [isDiffOpen, setDiffOpen] = React.useState(false);
+  const handleClose = () => setDiffOpen(false);
+
+  if (!enableSourceControl || !sourceControlProvider) {
+    return null;
+  }
+  const oldText = oldConfig;
+  const newText = newConfig;
+  const branchName = "maxgurewitz/my-feature-branch";
+
+  const handleChange = (event: SelectChangeEvent) => {
+    const value = event.target.value as string;
+    switch (value) {
+      case GitAction.CommitAndPush: {
+        setDiffOpen(true);
+        break;
+      }
+      case GitAction.OpenPR: {
+        console.log("open pr");
+        break;
+      }
+      default:
+        console.error("unanticipated select");
+    }
+  };
+
+  const CommitAndPush = lazy(() => import("../../commitAndPush"));
+
+  return (
+    <>
+      <Select
+        value=""
+        displayEmpty
+        sx={{
+          minWidth: 150,
+          fontSize: ".75rem",
+          backgroundColor: theme.palette.primary.main,
+          color: theme.palette.primary.contrastText,
+          ml: 1,
+          mr: 1,
+          "& svg": {
+            color: theme.palette.primary.contrastText,
+          },
+          height: "100%",
+          "& .MuiSelect-select": {
+            pt: 1,
+            pb: 1,
+            height: "100%",
+          },
+        }}
+        onChange={handleChange}
+        renderValue={() => (
+          <Stack spacing={1} direction="row" alignItems="center">
+            <GitBranchIcon />
+            <Box>Actions</Box>
+          </Stack>
+        )}
+      >
+        <MenuItem value={GitAction.CommitAndPush}>Commit and Push</MenuItem>
+        <MenuItem value={GitAction.OpenPR}>Open Pull Request</MenuItem>
+      </Select>
+      <Dialog fullWidth maxWidth="md" open={isDiffOpen} onClose={handleClose}>
+        <Suspense>
+          <CommitAndPush
+            branchName={branchName}
+            diffs={[
+              {
+                oldFileName: "Onboarding Journey",
+                newFileName: "Onboarding Journey",
+                newText,
+                oldText,
+              },
+            ]}
+            onCommit={handleClose}
+          />
+        </Suspense>
+      </Dialog>
+    </>
   );
 }
 
@@ -95,7 +239,7 @@ function HeaderContent() {
       <BranchSelect />
       <Box sx={{ width: "100%", ml: { xs: 0, md: 1 } }} />
       {matchesXs && <Box sx={{ width: "100%", ml: 1 }} />}
-
+      <GitActionsSelect />
       <IconButton
         component={Link}
         href="https://github.com/dittofeed/dittofeed"
