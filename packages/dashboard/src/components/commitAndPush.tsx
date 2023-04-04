@@ -100,6 +100,7 @@ export default function CommitAndPush(
                 },
               }}
             />
+            <Button variant="contained">Commit and push</Button>
           </Stack>
           <Suspense>
             <CodeDiff oldText={oldText} newText={newText} />
