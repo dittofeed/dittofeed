@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #333;
+        margin: 0;
+        padding: 0;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .email-header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .email-header img {
+        max-width: 200px;
+      }
+
+      .email-content {
+        background-color: #f5f5f5;
+        padding: 20px;
+        border-radius: 5px;
+      }
+
+      .cta-button {
+        display: inline-block;
+        background-color: #0071bc;
+        color: #fff;
+        text-decoration: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-weight: bold;
+        margin-top: 20px;
+      }
+
+      .email-footer {
+        margin-top: 20px;
+        font-size: 12px;
+        color: #999;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="email-header">
+        <img src="{{ logo }}" alt="Your Company Logo" />
+        <h1>Welcome to {{ service }}</h1>
+      </div>
+      <div class="email-content">
+        <p>Dear {{ user.name }},</p>
+        <p>
+          We're excited to have you on board! Thank you for choosing {{ service }} to help you [describe the main benefit or purpose of
+          your service].
+        </p>
+        <p>
+          Our platform offers a wide range of features designed to [describe how
+          your service will help the user]. To get started, we recommend
+          exploring [the part of the service they should use first].
+        </p>
+        <p>Click the button below to jump right in!</p>
+        <a href="{{ gettingStartedHref }}" class="cta-button">Get Started Now</a>
+        <p>
+          If you have any questions or need assistance, our support team is here
+          to help. Just reach out to us, and we'll be more than happy to guide
+          you through the process.
+        </p>
+        <p>
+          Once again, welcome to the {{ company }} community, and we can't
+          wait to see what you'll achieve with our platform!
+        </p>
+        <p>Best regards,</p>
+        <p>The {{ company }} Team</p>
+      </div>
+
+      <div class="email-footer">
+        <p>&copy; {{ year }} {{ company }}. All rights reserved.</p>
+        <p>{{ address }}</p>
+        <p>
+          If you no longer wish to receive these emails, you can
+          <a href="{{ unsubscribeHref }}">unsubscribe here</a>.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
