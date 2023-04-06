@@ -205,7 +205,9 @@ function GitActionsSelect() {
       >
         <MenuItem value={GitAction.CommitAndPush}>Commit and Push</MenuItem>
         <MenuItem value={GitAction.OpenPR}>
-          <ExternalLink href="">Open Pull Request</ExternalLink>
+          <ExternalLink href="https://github.com/dittofeed/dittofeed/compare/main...maxgurewitz%2Fmy-feature-branch?body=&expand=1&title=remove+delay+and+message+nodes">
+            Open Pull Request
+          </ExternalLink>
         </MenuItem>
       </Select>
       <Dialog fullWidth maxWidth="md" open={isDiffOpen} onClose={handleClose}>

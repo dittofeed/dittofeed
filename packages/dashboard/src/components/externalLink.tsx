@@ -11,6 +11,7 @@ export default function ExternalLink({
       rel="noopener noreferrer"
       style={{
         textDecoration: "none",
+        color: "inherit",
       }}
       {...linkProps}
     >
