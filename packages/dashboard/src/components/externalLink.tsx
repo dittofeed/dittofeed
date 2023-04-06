@@ -1,8 +1,9 @@
 export default function ExternalLink({
   children,
   ...linkProps
-}: Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "children"> & {
+}: Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "children" | "href"> & {
   children: React.ReactNode;
+  href: string;
 }) {
   return (
     <a

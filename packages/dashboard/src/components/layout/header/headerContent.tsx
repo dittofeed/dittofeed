@@ -19,6 +19,7 @@ import {
 import React, { lazy, Suspense } from "react";
 
 import { useAppStore } from "../../../lib/appStore";
+import ExternalLink from "../../externalLink";
 import { GitBranchIcon } from "../../gitBranchIcon";
 import MobileSection from "./headerContent/mobileSection";
 // project import
@@ -203,7 +204,9 @@ function GitActionsSelect() {
         )}
       >
         <MenuItem value={GitAction.CommitAndPush}>Commit and Push</MenuItem>
-        <MenuItem value={GitAction.OpenPR}>Open Pull Request</MenuItem>
+        <MenuItem value={GitAction.OpenPR}>
+          <ExternalLink href="">Open Pull Request</ExternalLink>
+        </MenuItem>
       </Select>
       <Dialog fullWidth maxWidth="md" open={isDiffOpen} onClose={handleClose}>
         <Suspense>
