@@ -1,0 +1,4 @@
+name: 'welcome'
+definition:
+  from: '{{ user.accountManager | default: "hello@company.com"}}'
+  subject: 'Hi {{ user.fullname | default: "there"}}!'
