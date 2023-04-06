@@ -19,6 +19,7 @@ import {
 import React, { lazy, Suspense } from "react";
 
 import { useAppStore } from "../../../lib/appStore";
+import ExternalLink from "../../externalLink";
 import { GitBranchIcon } from "../../gitBranchIcon";
 import MobileSection from "./headerContent/mobileSection";
 // project import
@@ -165,10 +166,6 @@ function GitActionsSelect() {
         setDiffOpen(true);
         break;
       }
-      case GitAction.OpenPR: {
-        console.log("open pr");
-        break;
-      }
       default:
         console.error("unanticipated select");
     }
@@ -207,7 +204,11 @@ function GitActionsSelect() {
         )}
       >
         <MenuItem value={GitAction.CommitAndPush}>Commit and Push</MenuItem>
-        <MenuItem value={GitAction.OpenPR}>Open Pull Request</MenuItem>
+        <MenuItem value={GitAction.OpenPR}>
+          <ExternalLink href="https://github.com/dittofeed/dittofeed/compare/main...maxgurewitz%2Fmy-feature-branch?body=&expand=1&title=remove+delay+and+message+nodes">
+            Open Pull Request
+          </ExternalLink>
+        </MenuItem>
       </Select>
       <Dialog fullWidth maxWidth="md" open={isDiffOpen} onClose={handleClose}>
         <Suspense>
