@@ -110,7 +110,7 @@ const oldConfig = `definition:
       child: 2
       variant:
         type: 'Email'
-        templateId: '521e0aa8-de1c-480f-a5fa-208b4e8baa1c'
+        template: 'Welcome'
     - id: 2
       type: 'DelayNode'
       child: 3
@@ -122,7 +122,7 @@ const oldConfig = `definition:
       child: 4
       variant:
         type: 'Email'
-        templateId: '9736eb2e-a494-4371-9ba8-f7246e393fb4'
+        template: '10 Reasons to Upgrade'
     - id: 4
       type: 'ExitNode'
 `;
@@ -137,7 +137,7 @@ const newConfig = `definition:
       child: 2
       variant:
         type: 'Email'
-        templateId: '521e0aa8-de1c-480f-a5fa-208b4e8baa1c'
+        template: 'Welcome'
     - id: 2
       type: 'ExitNode'
 `;
