@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>10 Reasons to Upgrade</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #333;
+        margin: 0;
+        padding: 0;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .email-header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .email-header img {
+        max-width: 200px;
+      }
+
+      .email-content {
+        background-color: #f5f5f5;
+        padding: 20px;
+        border-radius: 5px;
+      }
+
+      .reason {
+        margin-bottom: 10px;
+      }
+
+      .reason-number {
+        font-weight: bold;
+        color: #0071bc;
+      }
+
+      .cta-button {
+        display: inline-block;
+        background-color: #0071bc;
+        color: #fff;
+        text-decoration: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-weight: bold;
+        margin-top: 20px;
+      }
+
+      .email-footer {
+        margin-top: 20px;
+        font-size: 12px;
+        color: #999;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="email-header">
+        <img src="{{ logo  }}" alt="Your Company Logo" />
+        <h1>10 Reasons to Upgrade</h1>
+      </div>
+      <div class="email-content">
+        <p>Dear {{ user.name }},</p>
+        <p>
+          Thank you for using our service! We hope you've been enjoying the free
+          plan, but did you know that you can unlock even more amazing features
+                    by upgrading to a paid plan? Here are 10 compelling reasons to upgrade
+                    today:
+        </p>
+
+        <div class="reason">
+          <span class="reason-number">1.</span>
+          Priority customer support: Get
+          faster and more personalized assistance from our dedicated team.
+        </div>
+        <div class="reason">
+          <span class="reason-number">2.</span>
+          Unlimited access: Say goodbye to
+          limits and enjoy unrestricted usage of our service.
+        </div>
+        <div class="reason">
+          <span class="reason-number">3.</span>
+          Advanced analytics: Gain
+          insights and make data-driven decisions with our in-depth reporting
+                    tools.
+        </div>
+        <div class="reason">
+          <span class="reason-number">4.</span>
+          Custom branding: Make our
+          service truly yours by adding your logo and branding.
+        </div>
+        <div class="reason">
+          <span class="reason-number">5.</span>
+          Enhanced security: Keep your
+          data safe with our advanced encryption and security features.
+        </div>
+        <div class="reason">
+          <span class="reason-number">6.</span>
+          Collaboration tools: Work
+          seamlessly with your team using our collaboration features.
+        </div>
+        <div class="reason">
+          <span class="reason-number">7.</span>
+          Exclusive resources: Access
+          premium content and resources only available to paid users.
+        </div>
+        <div class="reason">
+          <span class="reason-number">8.</span>
+          Regular updates: Stay ahead of
+          the curve with access to all our latest features and improvements.
+        </div>
+        <div class="reason">
+          <span class="reason-number">9.</span>
+          No ads: Enjoy an ad-free
+          experience, allowing you to focus on what matters most.
+        </div>
+        <div class="reason">
+          <span class="reason-number">10.</span>
+          Cost-effective plans: Choose
+          from a variety of affordable plans tailored to your needs.
+        </div>
+
+        <p>Ready to make the switch? Click the button below to upgrade now!</p>
+        <a href="{{ upgradeHref }}" class="cta-button">Upgrade Now</a>
+
+        <p>
+          If you have any questions or need assistance, please don't hesitate to
+          contact our support team.
+        </p>
+        <p>Happy {{ service }}!</p>
+        <p>The {{ company }} Team</p>
+      </div>
+
+      <div class="email-footer">
+        <p>&copy; {{ year }} {{ company }}. All rights reserved.</p>
+        <p>{{ address }}</p>
+        <p>
+          If you no longer wish to receive these emails, you can
+          <a href="{{ unsubscribeHref }}">unsubscribe here</a>.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
