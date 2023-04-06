@@ -1,9 +1,12 @@
 // material-ui
 import { GithubOutlined } from "@ant-design/icons";
 import { Lock } from "@mui/icons-material";
+import { LoadingButton } from "@mui/lab";
 import {
   Box,
   Dialog,
+  DialogContent,
+  DialogTitle,
   Divider,
   IconButton,
   Link,
@@ -12,7 +15,9 @@ import {
   Select,
   SelectChangeEvent,
   Stack,
+  TextField,
   Theme,
+  Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -40,6 +45,9 @@ function BranchMenuItemContents({
   );
 }
 
+const newBranch = "new-branch" as const;
+const branchName = "maxgurewitz/my-feature-branch";
+
 function BranchSelect() {
   const enableSourceControl = useAppStore((store) => store.enableSourceControl);
   const sourceControlProvider = useAppStore(
@@ -47,52 +55,118 @@ function BranchSelect() {
   );
 
   const [branch, setBranch] = React.useState("main");
+  const [newBranchIsOpen, setNewBranchIsOpen] = React.useState(false);
+  const [newBranchIsLoading, setNewBranchIsLoading] = React.useState(false);
+  const [availableBranches, setAvailableBranches] = React.useState<string[]>(
+    []
+  );
 
   if (!enableSourceControl || !sourceControlProvider) {
     return null;
   }
 
   const handleChange = (event: SelectChangeEvent) => {
+    if (event.target.value === newBranch) {
+      setNewBranchIsOpen(true);
+      return;
+    }
     setBranch(event.target.value as string);
   };
 
+  const handleCreateNewBranch = () => {
+    setNewBranchIsLoading(true);
+    setTimeout(() => {
+      setAvailableBranches([branchName]);
+      setNewBranchIsOpen(false);
+      setBranch(branchName);
+      setNewBranchIsLoading(false);
+    }, 200);
+  };
+
+  // maxgurewitz/my-feature-branch
   return (
-    <Select
-      value={branch}
-      sx={{
-        fontSize: ".75rem",
-        ml: 1,
-        mr: 1,
-        height: "100%",
-        "& .MuiSelect-select": {
-          pt: 1,
-          pb: 1,
+    <>
+      <Select
+        value={branch}
+        sx={{
+          fontSize: ".75rem",
+          ml: 1,
+          mr: 1,
           height: "100%",
-        },
-      }}
-      onChange={handleChange}
-      renderValue={(value) => (
-        <Stack spacing={1} direction="row" alignItems="center">
-          {value === "main" ? (
-            <Lock color="action" />
-          ) : (
-            <GitBranchIcon color="action" />
-          )}
-          <Box>{value}</Box>
-        </Stack>
-      )}
-    >
-      <MenuItem value="main">
-        <BranchMenuItemContents item="main" icon={<Lock color="action" />} />
-      </MenuItem>
-      <Divider />
+          "& .MuiSelect-select": {
+            pt: 1,
+            pb: 1,
+            height: "100%",
+          },
+        }}
+        onChange={handleChange}
+        renderValue={(value) => (
+          <Stack spacing={1} direction="row" alignItems="center">
+            {value === "main" ? (
+              <Lock color="action" />
+            ) : (
+              <GitBranchIcon color="action" />
+            )}
+            <Box>{value}</Box>
+          </Stack>
+        )}
+      >
+        <MenuItem value="main">
+          <BranchMenuItemContents item="main" icon={<Lock color="action" />} />
+        </MenuItem>
+        <Divider />
+        <ListSubheader sx={{ fontSize: ".75rem" }}>your branches</ListSubheader>
+        <MenuItem value={newBranch}>
+          <BranchMenuItemContents item="New Branch" />
+        </MenuItem>
+        {availableBranches.map((ab) => (
+          <MenuItem value={ab} key={ab}>
+            <BranchMenuItemContents item={ab} />
+          </MenuItem>
+        ))}
+      </Select>
 
-      <ListSubheader sx={{ fontSize: ".75rem" }}>your branches</ListSubheader>
+      <Dialog
+        fullWidth
+        maxWidth="sm"
+        open={newBranchIsOpen}
+        onClose={() => {
+          setNewBranchIsOpen(false);
+        }}
+      >
+        <DialogTitle>
+          <Typography variant="h5">Create a new branch</Typography>
+        </DialogTitle>
 
-      <MenuItem value="my-feature-branch">
-        <BranchMenuItemContents item="maxgurewitz/my-feature-branch" />
-      </MenuItem>
-    </Select>
+        <DialogContent>
+          <Stack direction="column" spacing={1} alignItems="center">
+            <Box sx={{ width: "100%" }}>
+              Create a new branch based off of the main branch
+            </Box>
+            <TextField defaultValue="maxgurewitz/" sx={{ width: "100%" }} />
+            <Typography variant="caption" sx={{ width: "100%" }}>
+              Your branch will be created locally. You will need to commit and
+              push it to see it in GitHub.
+            </Typography>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="right"
+              sx={{ width: "100%" }}
+            >
+              <LoadingButton
+                loading={newBranchIsLoading}
+                variant="contained"
+                sx={{ textTransform: "none" }}
+                onClick={handleCreateNewBranch}
+              >
+                Create new branch
+              </LoadingButton>
+            </Stack>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -157,7 +231,6 @@ function GitActionsSelect() {
   }
   const oldText = oldConfig;
   const newText = newConfig;
-  const branchName = "maxgurewitz/my-feature-branch";
 
   const handleChange = (event: SelectChangeEvent) => {
     const value = event.target.value as string;
