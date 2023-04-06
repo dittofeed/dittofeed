@@ -165,10 +165,6 @@ function GitActionsSelect() {
         setDiffOpen(true);
         break;
       }
-      case GitAction.OpenPR: {
-        console.log("open pr");
-        break;
-      }
       default:
         console.error("unanticipated select");
     }

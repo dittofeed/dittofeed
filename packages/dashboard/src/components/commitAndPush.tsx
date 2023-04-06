@@ -17,6 +17,7 @@ import React from "react";
 import { noticeAnchorOrigin } from "../lib/notices";
 import { UnifiedDiffParams } from "../lib/unifiedDiff";
 import CodeDiff from "./codeDiff";
+import ExternalLink from "./externalLink";
 import { GitBranchIcon } from "./gitBranchIcon";
 
 export default function CommitAndPush({
@@ -59,13 +60,8 @@ export default function CommitAndPush({
               borderRadius: 1,
             }}
           >
-            <a
+            <ExternalLink
               href={`https://github.com/dittofeed/dittofeed/tree/${branchName}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                textDecoration: "none",
-              }}
             >
               <Stack direction="row" spacing={1} alignItems="center">
                 <GitBranchIcon
@@ -84,7 +80,7 @@ export default function CommitAndPush({
                   {branchName}
                 </Box>
               </Stack>
-            </a>
+            </ExternalLink>
           </Button>
         </Stack>
       </DialogTitle>
