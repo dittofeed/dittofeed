@@ -74,10 +74,12 @@ function pathToArgs(path: string): string | null {
 
 function buildSegmentQueryExpression({
   currentTime,
+  queryBuilder,
   node,
   nodes,
 }: {
   currentTime: number;
+  queryBuilder: ClickHouseQueryBuilder;
   node: SegmentNode;
   nodes: SegmentNode[];
 }): string | null {
@@ -95,11 +97,11 @@ function buildSegmentQueryExpression({
 
           switch (typeof val) {
             case "number": {
-              queryVal = String(val);
+              queryVal = queryBuilder.addQueryValue(val, "Int32");
               break;
             }
             case "string": {
-              queryVal = `'${val}'`;
+              queryVal = queryBuilder.addQueryValue(val, "String");
               break;
             }
           }
@@ -132,11 +134,11 @@ function buildSegmentQueryExpression({
 
           switch (typeof val) {
             case "number": {
-              queryVal = String(val);
+              queryVal = queryBuilder.addQueryValue(val, "Int32");
               break;
             }
             case "string": {
-              queryVal = `'${val}'`;
+              queryVal = queryBuilder.addQueryValue(val, "String");
               break;
             }
           }
@@ -188,6 +190,7 @@ function buildSegmentQueryExpression({
       const childFragments = childNodes
         .map((childNode) =>
           buildSegmentQueryExpression({
+            queryBuilder,
             currentTime,
             node: childNode,
             nodes,
@@ -207,6 +210,7 @@ function buildSegmentQueryExpression({
       const childFragments = childNodes
         .map((childNode) =>
           buildSegmentQueryExpression({
+            queryBuilder,
             currentTime,
             node: childNode,
             nodes,
@@ -233,6 +237,7 @@ function buildSegmentQueryFragment({
   queryBuilder: ClickHouseQueryBuilder;
 }): string | null {
   const query = buildSegmentQueryExpression({
+    queryBuilder,
     currentTime,
     node: segment.definition.entryNode,
     nodes: segment.definition.nodes,
@@ -253,7 +258,6 @@ function buildSegmentQueryFragment({
 
 function buildUserPropertyQueryFragment({
   userProperty,
-  queryBuilder,
 }: {
   userProperty: EnrichedUserProperty;
   queryBuilder: ClickHouseQueryBuilder;
@@ -509,6 +513,7 @@ export async function computePropertiesPeriodSafe({
 
   await clickhouseClient().query({
     query: writeQuery,
+    query_params: writeReadChqb.getQueries(),
     format: "JSONEachRow",
   });
 
