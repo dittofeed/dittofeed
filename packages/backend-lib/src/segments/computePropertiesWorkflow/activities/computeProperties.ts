@@ -230,10 +230,12 @@ function buildSegmentQueryFragment({
   currentTime,
   modelIndex,
   segment,
+  queryBuilder,
 }: {
   currentTime: number;
   modelIndex: number;
   segment: EnrichedSegment;
+  queryBuilder: ClickHouseQueryBuilder;
 }): string | null {
   const query = buildSegmentQueryExpression({
     currentTime,
@@ -247,7 +249,6 @@ function buildSegmentQueryFragment({
 
   return `
     (
-      ${modelIndex},
       ${query},
       Null,
       '${segment.id}'
@@ -258,9 +259,11 @@ function buildSegmentQueryFragment({
 function buildUserPropertyQueryFragment({
   modelIndex,
   userProperty,
+  queryBuilder,
 }: {
   modelIndex: number;
   userProperty: EnrichedUserProperty;
+  queryBuilder: ClickHouseQueryBuilder;
 }): string | null {
   let innerQuery: string;
   switch (userProperty.definition.type) {
@@ -298,7 +301,6 @@ function buildUserPropertyQueryFragment({
   }
   return `
     (
-      ${modelIndex},
       Null,
       ${innerQuery},
       '${userProperty.id}'
@@ -309,9 +311,11 @@ function buildUserPropertyQueryFragment({
 function computedToQueryFragments({
   computedProperties,
   currentTime,
+  queryBuilder,
 }: {
   computedProperties: ComputedProperty[];
   currentTime: number;
+  queryBuilder: ClickHouseQueryBuilder;
 }): Map<string, string> {
   const withClause = new Map<string, string>();
   const modelFragments: string[] = [];
@@ -322,6 +326,7 @@ function computedToQueryFragments({
         const fragment = buildUserPropertyQueryFragment({
           userProperty: computedProperty.userProperty,
           modelIndex: computedProperty.modelIndex,
+          queryBuilder,
         });
 
         if (fragment !== null) {
@@ -333,6 +338,7 @@ function computedToQueryFragments({
         const fragment = buildSegmentQueryFragment({
           segment: computedProperty.segment,
           modelIndex: computedProperty.modelIndex,
+          queryBuilder,
           currentTime,
         });
 
@@ -365,10 +371,9 @@ function computedToQueryFragments({
     )
   `;
   withClause.set("models", joinedModelsFragment);
-  withClause.set("model_index", "models.1");
-  withClause.set("in_segment", "models.2");
-  withClause.set("user_property", "models.3");
-  withClause.set("computed_property_id", "models.4");
+  withClause.set("in_segment", "models.1");
+  withClause.set("user_property", "models.2");
+  withClause.set("computed_property_id", "models.3");
   withClause.set(
     "latest_processing_time",
     "arrayMax(m -> toInt64(m.3), timed_messages)"
@@ -466,9 +471,12 @@ export async function computePropertiesPeriodSafe({
     userComputedProperties
   );
 
+  const writeReadChqb = new ClickHouseQueryBuilder();
+
   const withClause = computedToQueryFragments({
     currentTime,
     computedProperties,
+    queryBuilder: writeReadChqb,
   });
 
   // TODO handle anonymous id's, including case where user_id is null
@@ -491,7 +499,6 @@ export async function computePropertiesPeriodSafe({
         ${joinedWithClause},
         user_id,
         history_length,
-        model_index,
         in_segment,
         user_property,
         latest_processing_time,
@@ -530,7 +537,7 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  const chqb = new ClickHouseQueryBuilder();
+  const readChqb = new ClickHouseQueryBuilder();
 
   const subscribedSegmentKeys: string[] = [];
   const subscribedSegmentValues: string[][] = [];
@@ -540,12 +547,12 @@ export async function computePropertiesPeriodSafe({
     subscribedSegmentValues.push(Array.from(journeySet));
   }
 
-  const subscribedSegmentKeysQuery = chqb.addQueryValue(
+  const subscribedSegmentKeysQuery = readChqb.addQueryValue(
     subscribedSegmentKeys,
     "Array(String)"
   );
 
-  const subscribedSegmentValuesQuery = chqb.addQueryValue(
+  const subscribedSegmentValuesQuery = readChqb.addQueryValue(
     subscribedSegmentValues,
     "Array(Array(String))"
   );
@@ -602,7 +609,7 @@ export async function computePropertiesPeriodSafe({
   logger().debug(
     {
       workspaceId,
-      queryParams: chqb.getQueries(),
+      queryParams: readChqb.getQueries(),
       query: readQuery,
     },
     "compute properties read query"
@@ -610,7 +617,7 @@ export async function computePropertiesPeriodSafe({
 
   const resultSet = await clickhouseClient().query({
     query: readQuery,
-    query_params: chqb.getQueries(),
+    query_params: readChqb.getQueries(),
     format: "JSONEachRow",
   });
 
