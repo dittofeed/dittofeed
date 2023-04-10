@@ -48,15 +48,12 @@ class ClickHouseQueryBuilder {
   }
 }
 
-interface BaseComputedProperty {
-  modelIndex: number;
-}
-interface SegmentComputedProperty extends BaseComputedProperty {
+interface SegmentComputedProperty {
   type: "Segment";
   segment: EnrichedSegment;
 }
 
-interface UserComputedProperty extends BaseComputedProperty {
+interface UserComputedProperty {
   type: "UserProperty";
   userProperty: EnrichedUserProperty;
 }
@@ -228,12 +225,10 @@ function buildSegmentQueryExpression({
 
 function buildSegmentQueryFragment({
   currentTime,
-  modelIndex,
   segment,
   queryBuilder,
 }: {
   currentTime: number;
-  modelIndex: number;
   segment: EnrichedSegment;
   queryBuilder: ClickHouseQueryBuilder;
 }): string | null {
@@ -257,11 +252,9 @@ function buildSegmentQueryFragment({
 }
 
 function buildUserPropertyQueryFragment({
-  modelIndex,
   userProperty,
   queryBuilder,
 }: {
-  modelIndex: number;
   userProperty: EnrichedUserProperty;
   queryBuilder: ClickHouseQueryBuilder;
 }): string | null {
@@ -283,7 +276,7 @@ function buildUserPropertyQueryFragment({
                   m -> JSONHas(m.1, 'traits', ${pathArgs}),
                   timed_messages
                 )
-              ) as m${modelIndex}
+              )
             )[1].1,
             '$.traits.${path}'
           )
@@ -325,7 +318,6 @@ function computedToQueryFragments({
       case "UserProperty": {
         const fragment = buildUserPropertyQueryFragment({
           userProperty: computedProperty.userProperty,
-          modelIndex: computedProperty.modelIndex,
           queryBuilder,
         });
 
@@ -337,7 +329,6 @@ function computedToQueryFragments({
       case "Segment": {
         const fragment = buildSegmentQueryFragment({
           segment: computedProperty.segment,
-          modelIndex: computedProperty.modelIndex,
           queryBuilder,
           currentTime,
         });
@@ -446,22 +437,20 @@ export async function computePropertiesPeriodSafe({
   const segments = segmentResult.value;
 
   const segmentComputedProperties: ComputedProperty[] = segments.map(
-    (segment, i) => {
+    (segment) => {
       const p: SegmentComputedProperty = {
         type: "Segment",
         segment,
-        modelIndex: i,
       };
       return p;
     }
   );
 
   const userComputedProperties: ComputedProperty[] = userProperties.map(
-    (userProperty, i) => {
+    (userProperty) => {
       const p: UserComputedProperty = {
         type: "UserProperty",
         userProperty,
-        modelIndex: i + segments.length,
       };
       return p;
     }
