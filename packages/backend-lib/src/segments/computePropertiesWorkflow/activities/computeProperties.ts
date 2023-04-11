@@ -299,7 +299,7 @@ function buildUserPropertyQueryFragment({
   return `
     (
       Null,
-      ${innerQuery},
+      toJSONString(${innerQuery}),
       '${userProperty.id}'
     )
   `;
