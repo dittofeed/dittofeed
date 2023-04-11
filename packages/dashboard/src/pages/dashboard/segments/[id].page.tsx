@@ -62,7 +62,10 @@ const segmentOptions: GroupedOption[] = [
   orGroupedOption,
 ];
 
-const keyedSegmentOptions: Record<SegmentNodeType, GroupedOption> = {
+const keyedSegmentOptions: Record<
+  Exclude<SegmentNodeType, SegmentNodeType.Performed>,
+  GroupedOption
+> = {
   [SegmentNodeType.Trait]: traitGroupedOption,
   [SegmentNodeType.And]: andGroupedOption,
   [SegmentNodeType.Or]: orGroupedOption,
@@ -316,7 +319,6 @@ function SegmentNodeComponent({
   parentId?: string;
   label?: Label;
 }) {
-  const condition = keyedSegmentOptions[node.type];
   const updateNodeType = useAppStore(
     (state) => state.updateEditableSegmentNodeType
   );
@@ -335,10 +337,14 @@ function SegmentNodeComponent({
       ),
     [editedSegment]
   );
+  if (node.type === SegmentNodeType.Performed) {
+    return null;
+  }
   if (!nodeById) {
     return null;
   }
 
+  const condition = keyedSegmentOptions[node.type];
   const conditionSelect = (
     <Box sx={{ width: selectorWith }}>
       <Autocomplete

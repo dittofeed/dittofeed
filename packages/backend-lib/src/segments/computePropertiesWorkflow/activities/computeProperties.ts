@@ -83,6 +83,11 @@ function buildSegmentQueryExpression({
   nodes: SegmentNode[];
 }): string | null {
   switch (node.type) {
+    case SegmentNodeType.Performed: {
+      throw new Error(
+        `Unimplemented segment node type ${SegmentNodeType.Performed}.`
+      );
+    }
     case SegmentNodeType.Trait: {
       const pathArgs = pathToArgs(node.path);
       if (!pathArgs) {
