@@ -44,13 +44,13 @@ describe("getUsers", () => {
             userPropertyId: firstNameProperty.id,
             workspaceId: workspace.id,
             userId: userIds[0],
-            value: "max",
+            value: JSON.stringify("max"),
           },
           {
             userPropertyId: firstNameProperty.id,
             workspaceId: workspace.id,
             userId: userIds[1],
-            value: "chandler",
+            value: JSON.stringify("chandler"),
           },
         ],
       });

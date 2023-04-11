@@ -3,7 +3,6 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
-import { v4 as uuid } from "uuid";
 
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
 import { getSubscribedSegments } from "../../../journeys";
@@ -12,7 +11,7 @@ import {
   userJourneyWorkflow,
 } from "../../../journeys/userWorkflow";
 import logger from "../../../logger";
-import prisma from "../../../prisma";
+import prisma, { Prisma } from "../../../prisma";
 import { findAllEnrichedSegments } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
 import {
@@ -299,7 +298,7 @@ function buildUserPropertyQueryFragment({
   return `
     (
       Null,
-      ${innerQuery},
+      toJSONString(${innerQuery}),
       '${userProperty.id}'
     )
   `;
@@ -464,20 +463,21 @@ export async function computePropertiesPeriodSafe({
     userComputedProperties
   );
 
-  const writeReadChqb = new ClickHouseQueryBuilder();
+  if (computedProperties.length) {
+    const writeReadChqb = new ClickHouseQueryBuilder();
 
-  const withClause = computedToQueryFragments({
-    currentTime,
-    computedProperties,
-    queryBuilder: writeReadChqb,
-  });
+    const withClause = computedToQueryFragments({
+      currentTime,
+      computedProperties,
+      queryBuilder: writeReadChqb,
+    });
 
-  // TODO handle anonymous id's, including case where user_id is null
-  const joinedWithClause = Array.from(withClause)
-    .map(([key, value]) => `${value} AS ${key}`)
-    .join(",\n");
+    // TODO handle anonymous id's, including case where user_id is null
+    const joinedWithClause = Array.from(withClause)
+      .map(([key, value]) => `${value} AS ${key}`)
+      .join(",\n");
 
-  const writeQuery = `
+    const writeQuery = `
     INSERT INTO computed_property_assignments
     SELECT
       '${workspaceId}',
@@ -503,19 +503,20 @@ export async function computePropertiesPeriodSafe({
     ) sas
   `;
 
-  logger().debug(
-    {
-      workspaceId,
-      query: writeQuery,
-    },
-    "compute properties write query"
-  );
+    logger().debug(
+      {
+        workspaceId,
+        query: writeQuery,
+      },
+      "compute properties write query"
+    );
 
-  await clickhouseClient().query({
-    query: writeQuery,
-    query_params: writeReadChqb.getQueries(),
-    format: "JSONEachRow",
-  });
+    await clickhouseClient().query({
+      query: writeQuery,
+      query_params: writeReadChqb.getQueries(),
+      format: "JSONEachRow",
+    });
+  }
 
   // segment id / pg + journey id
   const subscribedSegmentPairs = subscribedJourneys.reduce<
@@ -664,46 +665,70 @@ export async function computePropertiesPeriodSafe({
     );
 
     await Promise.all([
-      ...pgUserPropertyAssignments.map((a) =>
-        prisma().userPropertyAssignment.upsert({
-          where: {
-            workspaceId_userPropertyId_userId: {
+      ...pgUserPropertyAssignments.map(async (a) => {
+        try {
+          await prisma().userPropertyAssignment.upsert({
+            where: {
+              workspaceId_userPropertyId_userId: {
+                workspaceId,
+                userId: a.user_id,
+                userPropertyId: a.computed_property_id,
+              },
+            },
+            update: {
+              value: a.latest_user_property_value,
+            },
+            create: {
               workspaceId,
               userId: a.user_id,
               userPropertyId: a.computed_property_id,
+              value: a.latest_user_property_value,
             },
-          },
-          update: {
-            value: a.latest_user_property_value,
-          },
-          create: {
-            workspaceId,
-            userId: a.user_id,
-            userPropertyId: a.computed_property_id,
-            value: a.latest_user_property_value,
-          },
-        })
-      ),
-      ...pgSegmentAssignments.map((a) => {
+          });
+        } catch (e) {
+          // If reference error due to user assignment not existing anymore, swallow error and continue
+          if (
+            !(
+              e instanceof Prisma.PrismaClientKnownRequestError &&
+              e.code === "P2003"
+            )
+          ) {
+            throw e;
+          }
+        }
+      }),
+      ...pgSegmentAssignments.map(async (a) => {
         const inSegment = Boolean(a.latest_segment_value);
-        return prisma().segmentAssignment.upsert({
-          where: {
-            workspaceId_userId_segmentId: {
+        try {
+          await prisma().segmentAssignment.upsert({
+            where: {
+              workspaceId_userId_segmentId: {
+                workspaceId,
+                userId: a.user_id,
+                segmentId: a.computed_property_id,
+              },
+            },
+            update: {
+              inSegment,
+            },
+            create: {
               workspaceId,
               userId: a.user_id,
               segmentId: a.computed_property_id,
+              inSegment,
             },
-          },
-          update: {
-            inSegment,
-          },
-          create: {
-            workspaceId,
-            userId: a.user_id,
-            segmentId: a.computed_property_id,
-            inSegment,
-          },
-        });
+          });
+        } catch (e) {
+          // If reference error due to segment not existing anymore, swallow error and continue
+          if (
+            !(
+              e instanceof Prisma.PrismaClientKnownRequestError &&
+              e.code === "P2003"
+            )
+          ) {
+            throw e;
+          }
+        }
       }),
     ]);
 
@@ -745,7 +770,6 @@ export async function computePropertiesPeriodSafe({
     });
   }
 
-  // return ok(lastProcessingTime);
   return ok(null);
 }
 
@@ -762,5 +786,10 @@ interface ComputePropertiesPeriodParams {
 export async function computePropertiesPeriod(
   params: ComputePropertiesPeriodParams
 ): Promise<null> {
-  return unwrap(await computePropertiesPeriodSafe(params));
+  try {
+    return unwrap(await computePropertiesPeriodSafe(params));
+  } catch (e) {
+    logger().error({ err: e }, "failed to compute properties");
+    throw e;
+  }
 }

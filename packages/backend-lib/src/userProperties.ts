@@ -94,7 +94,14 @@ export async function findAllUserPropertyAssignments({
   const combinedAssignments: Record<string, string> = {};
 
   for (const assignment of assignments) {
-    combinedAssignments[assignment.userProperty.name] = assignment.value;
+    let parsedValue: string;
+    try {
+      parsedValue = JSON.parse(assignment.value);
+    } catch (e) {
+      // to maintain backwards compatibility before all values have been serialized as json
+      parsedValue = assignment.value;
+    }
+    combinedAssignments[assignment.userProperty.name] = parsedValue;
   }
 
   return combinedAssignments;
