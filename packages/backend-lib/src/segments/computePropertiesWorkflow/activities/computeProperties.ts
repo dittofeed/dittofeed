@@ -598,8 +598,7 @@ export async function computePropertiesPeriodSafe({
         user_property_value,
         processed_for
       FROM processed_computed_properties FINAL
-    ) AND
-    computed_property_id IN ()
+    )
   `;
 
   logger().debug(
