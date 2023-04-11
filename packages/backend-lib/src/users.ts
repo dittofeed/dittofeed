@@ -153,6 +153,7 @@ export async function getUsers({
               upa."workspaceId" = CAST(${workspaceId} AS UUID)
               AND "userId" IN (SELECT "userId" FROM unique_user_ids)
               AND "value" != ''
+              AND "value" != '""'
 
           UNION ALL
 
@@ -185,7 +186,13 @@ export async function getUsers({
     if (result.type === 0) {
       user.segments.push(result.computedPropertyKey);
     } else {
-      user.properties[result.computedPropertyKey] = result.userPropertyValue;
+      let value: string;
+      try {
+        value = JSON.parse(result.userPropertyValue);
+      } catch (e) {
+        value = result.userPropertyValue;
+      }
+      user.properties[result.computedPropertyKey] = value;
     }
     userMap.set(result.userId, user);
   }
