@@ -72,7 +72,24 @@ export enum SegmentNodeType {
   Trait = "Trait",
   And = "And",
   Or = "Or",
+  Performed = "Performed",
 }
+
+export const PerformedSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.Performed),
+  id: Type.String(),
+  event: Type.String(),
+  properties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: SegmentOperator,
+      })
+    )
+  ),
+});
+
+export type PerformedSegmentNode = Static<typeof PerformedSegmentNode>;
 
 export const TraitSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Trait),
@@ -103,6 +120,7 @@ export const SegmentNode = Type.Union([
   TraitSegmentNode,
   AndSegmentNode,
   OrSegmentNode,
+  PerformedSegmentNode,
 ]);
 
 export type SegmentNode = Static<typeof SegmentNode>;
