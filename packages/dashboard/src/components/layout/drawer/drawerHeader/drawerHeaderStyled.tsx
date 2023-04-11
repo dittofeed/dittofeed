@@ -10,6 +10,7 @@ interface DrawerComponentProps {
 
 function DrawerHeaderStyled({
   open,
+  sx,
   ...props
 }: DrawerComponentProps & ComponentProps<typeof Box>) {
   const theme = useTheme();
@@ -21,6 +22,7 @@ function DrawerHeaderStyled({
         alignItems: "center",
         justifyContent: open ? "flex-start" : "center",
         paddingLeft: theme.spacing(open ? 3 : 0),
+        ...sx,
       }}
       {...props}
     />
