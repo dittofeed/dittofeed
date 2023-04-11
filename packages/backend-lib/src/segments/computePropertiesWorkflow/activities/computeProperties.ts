@@ -763,5 +763,10 @@ interface ComputePropertiesPeriodParams {
 export async function computePropertiesPeriod(
   params: ComputePropertiesPeriodParams
 ): Promise<null> {
-  return unwrap(await computePropertiesPeriodSafe(params));
+  try {
+    return unwrap(await computePropertiesPeriodSafe(params));
+  } catch (e) {
+    logger().error({ err: e }, "failed to compute properties");
+    throw e;
+  }
 }
