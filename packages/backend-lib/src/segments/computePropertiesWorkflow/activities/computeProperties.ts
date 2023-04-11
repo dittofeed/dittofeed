@@ -464,20 +464,21 @@ export async function computePropertiesPeriodSafe({
     userComputedProperties
   );
 
-  const writeReadChqb = new ClickHouseQueryBuilder();
+  if (computedProperties.length) {
+    const writeReadChqb = new ClickHouseQueryBuilder();
 
-  const withClause = computedToQueryFragments({
-    currentTime,
-    computedProperties,
-    queryBuilder: writeReadChqb,
-  });
+    const withClause = computedToQueryFragments({
+      currentTime,
+      computedProperties,
+      queryBuilder: writeReadChqb,
+    });
 
-  // TODO handle anonymous id's, including case where user_id is null
-  const joinedWithClause = Array.from(withClause)
-    .map(([key, value]) => `${value} AS ${key}`)
-    .join(",\n");
+    // TODO handle anonymous id's, including case where user_id is null
+    const joinedWithClause = Array.from(withClause)
+      .map(([key, value]) => `${value} AS ${key}`)
+      .join(",\n");
 
-  const writeQuery = `
+    const writeQuery = `
     INSERT INTO computed_property_assignments
     SELECT
       '${workspaceId}',
@@ -503,19 +504,20 @@ export async function computePropertiesPeriodSafe({
     ) sas
   `;
 
-  logger().debug(
-    {
-      workspaceId,
-      query: writeQuery,
-    },
-    "compute properties write query"
-  );
+    logger().debug(
+      {
+        workspaceId,
+        query: writeQuery,
+      },
+      "compute properties write query"
+    );
 
-  await clickhouseClient().query({
-    query: writeQuery,
-    query_params: writeReadChqb.getQueries(),
-    format: "JSONEachRow",
-  });
+    await clickhouseClient().query({
+      query: writeQuery,
+      query_params: writeReadChqb.getQueries(),
+      format: "JSONEachRow",
+    });
+  }
 
   // segment id / pg + journey id
   const subscribedSegmentPairs = subscribedJourneys.reduce<
@@ -745,7 +747,6 @@ export async function computePropertiesPeriodSafe({
     });
   }
 
-  // return ok(lastProcessingTime);
   return ok(null);
 }
 
