@@ -3,7 +3,6 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
-import { v4 as uuid } from "uuid";
 
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
 import { getSubscribedSegments } from "../../../journeys";
@@ -12,7 +11,7 @@ import {
   userJourneyWorkflow,
 } from "../../../journeys/userWorkflow";
 import logger from "../../../logger";
-import prisma from "../../../prisma";
+import prisma, { Prisma } from "../../../prisma";
 import { findAllEnrichedSegments } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
 import {
@@ -599,7 +598,8 @@ export async function computePropertiesPeriodSafe({
         user_property_value,
         processed_for
       FROM processed_computed_properties FINAL
-    )
+    ) AND
+    computed_property_id IN ()
   `;
 
   logger().debug(
@@ -666,46 +666,70 @@ export async function computePropertiesPeriodSafe({
     );
 
     await Promise.all([
-      ...pgUserPropertyAssignments.map((a) =>
-        prisma().userPropertyAssignment.upsert({
-          where: {
-            workspaceId_userPropertyId_userId: {
+      ...pgUserPropertyAssignments.map(async (a) => {
+        try {
+          await prisma().userPropertyAssignment.upsert({
+            where: {
+              workspaceId_userPropertyId_userId: {
+                workspaceId,
+                userId: a.user_id,
+                userPropertyId: a.computed_property_id,
+              },
+            },
+            update: {
+              value: a.latest_user_property_value,
+            },
+            create: {
               workspaceId,
               userId: a.user_id,
               userPropertyId: a.computed_property_id,
+              value: a.latest_user_property_value,
             },
-          },
-          update: {
-            value: a.latest_user_property_value,
-          },
-          create: {
-            workspaceId,
-            userId: a.user_id,
-            userPropertyId: a.computed_property_id,
-            value: a.latest_user_property_value,
-          },
-        })
-      ),
-      ...pgSegmentAssignments.map((a) => {
+          });
+        } catch (e) {
+          // If reference error due to user assignment not existing anymore, swallow error and continue
+          if (
+            !(
+              e instanceof Prisma.PrismaClientKnownRequestError &&
+              e.code === "P2003"
+            )
+          ) {
+            throw e;
+          }
+        }
+      }),
+      ...pgSegmentAssignments.map(async (a) => {
         const inSegment = Boolean(a.latest_segment_value);
-        return prisma().segmentAssignment.upsert({
-          where: {
-            workspaceId_userId_segmentId: {
+        try {
+          await prisma().segmentAssignment.upsert({
+            where: {
+              workspaceId_userId_segmentId: {
+                workspaceId,
+                userId: a.user_id,
+                segmentId: a.computed_property_id,
+              },
+            },
+            update: {
+              inSegment,
+            },
+            create: {
               workspaceId,
               userId: a.user_id,
               segmentId: a.computed_property_id,
+              inSegment,
             },
-          },
-          update: {
-            inSegment,
-          },
-          create: {
-            workspaceId,
-            userId: a.user_id,
-            segmentId: a.computed_property_id,
-            inSegment,
-          },
-        });
+          });
+        } catch (e) {
+          // If reference error due to segment not existing anymore, swallow error and continue
+          if (
+            !(
+              e instanceof Prisma.PrismaClientKnownRequestError &&
+              e.code === "P2003"
+            )
+          ) {
+            throw e;
+          }
+        }
       }),
     ]);
 
