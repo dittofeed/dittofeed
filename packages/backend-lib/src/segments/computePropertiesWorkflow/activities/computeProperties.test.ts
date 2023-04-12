@@ -12,6 +12,7 @@ import {
   EnrichedUserProperty,
   JourneyDefinition,
   JourneyNodeType,
+  JSONValue,
   MessageNodeVariantType,
   SegmentDefinition,
   SegmentHasBeenOperatorComparator,
@@ -23,6 +24,7 @@ import {
 import {
   createUserEventsTables,
   insertUserEvents,
+  InsertValue,
 } from "../../../userEvents/clickhouse";
 import {
   enrichedUserProperty,
@@ -135,9 +137,13 @@ describe("compute properties activities", () => {
   describe("computePropertiesPeriod", () => {
     interface TableTest {
       description: string;
+      currentTime?: number;
       segmentDefinitions?: SegmentDefinition[];
       events?: {
         eventTimeOffset: number;
+        overrides?: (
+          defaults: Record<string, JSONValue>
+        ) => Record<string, JSONValue>;
       }[];
       expectedSignals?: {
         segmentId: string;
@@ -157,10 +163,48 @@ describe("compute properties activities", () => {
         "$description",
         async ({
           segmentDefinitions,
-          events,
+          events = [],
+          currentTime = 1681334178956,
           expectedSegments,
           expectedSignals,
         }) => {
+          userId = randomUUID();
+
+          const eventPayloads: InsertValue[] = events.map(
+            ({ eventTimeOffset, overrides }) => {
+              const defaults = {
+                userId,
+                timestamp: new Date(
+                  currentTime + eventTimeOffset
+                ).toISOString(),
+              };
+
+              return {
+                processingTime: new Date(
+                  currentTime + eventTimeOffset + 50
+                ).toISOString(),
+                messageId: randomUUID(),
+                messageRaw: overrides ? overrides(defaults) : defaults,
+              };
+            }
+          );
+
+          await Promise.all([
+            ...(segmentDefinitions ?? []).map((sd) =>
+              prisma().segment.create({
+                data: {
+                  workspaceId: workspace.id,
+                  name: randomUUID(),
+                  definition: sd,
+                },
+              })
+            ),
+            insertUserEvents({
+              tableVersion,
+              workspaceId: workspace.id,
+              events: eventPayloads,
+            }),
+          ]);
           expect(1).toBe(2);
         }
       );
