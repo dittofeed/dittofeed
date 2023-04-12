@@ -27,6 +27,14 @@ module.exports = {
     "no-shadow": "off",
     "simple-import-sort/exports": "error",
     "simple-import-sort/imports": "error",
+    "no-param-reassign": [
+      "error",
+      {
+        "props": true,
+        // naming convention so that can use array reduce
+        "ignorePropertyModificationsFor": ["memo"]
+      }
+    ]
   },
   root: true,
 };

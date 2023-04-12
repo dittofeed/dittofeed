@@ -230,6 +230,22 @@ describe("compute properties activities", () => {
               })
             );
           }
+
+          if (expectedSegments) {
+            const segmentAssignments =
+              await prisma().segmentAssignment.findMany({
+                where: {
+                  workspaceId: workspace.id,
+                },
+              });
+            const segmentsRecord = segmentAssignments.reduce<
+              Record<string, boolean>
+            >((memo, sa) => {
+              memo[sa.segmentId] = sa.inSegment;
+              return memo;
+            }, {});
+            expect(segmentsRecord).toEqual(expectedSegments);
+          }
         }
       );
     });
