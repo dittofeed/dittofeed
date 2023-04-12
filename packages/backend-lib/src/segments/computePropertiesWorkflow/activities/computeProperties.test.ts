@@ -135,8 +135,8 @@ describe("compute properties activities", () => {
   describe("computePropertiesPeriod", () => {
     interface TableTest {
       description: string;
-      segmentDefinitions: SegmentDefinition[];
-      events: {
+      segmentDefinitions?: SegmentDefinition[];
+      events?: {
         eventTimeOffset: number;
       }[];
       expectedSignals?: {
@@ -145,17 +145,26 @@ describe("compute properties activities", () => {
       expectedSegments?: Record<string, boolean>;
     }
 
-    const tableTests: TableTest[] = [];
+    const tableTests: TableTest[] = [
+      {
+        description:
+          "When a user submits a track event with a perform segment it signals appropriately",
+      },
+    ];
 
-    test.each(tableTests)(
-      "$description",
-      async ({
-        segmentDefinitions,
-        events,
-        expectedSegments,
-        expectedSignals,
-      }) => {}
-    );
+    describe.only("table driven tests", () => {
+      test.each(tableTests)(
+        "$description",
+        async ({
+          segmentDefinitions,
+          events,
+          expectedSegments,
+          expectedSignals,
+        }) => {
+          expect(1).toBe(2);
+        }
+      );
+    });
 
     describe("when segmenting on users who have a trait for longer than 24 hours", () => {
       beforeEach(async () => {
