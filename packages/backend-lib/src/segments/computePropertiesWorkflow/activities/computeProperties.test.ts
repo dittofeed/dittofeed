@@ -133,6 +133,30 @@ describe("compute properties activities", () => {
   });
 
   describe("computePropertiesPeriod", () => {
+    interface TableTest {
+      description: string;
+      segmentDefinitions: SegmentDefinition[];
+      events: {
+        eventTimeOffset: number;
+      }[];
+      expectedSignals?: {
+        segmentId: string;
+      }[];
+      expectedSegments?: Record<string, boolean>;
+    }
+
+    const tableTests: TableTest[] = [];
+
+    test.each(tableTests)(
+      "$description",
+      async ({
+        segmentDefinitions,
+        events,
+        expectedSegments,
+        expectedSignals,
+      }) => {}
+    );
+
     describe("when segmenting on users who have a trait for longer than 24 hours", () => {
       beforeEach(async () => {
         const segmentDefinition: SegmentDefinition = {
