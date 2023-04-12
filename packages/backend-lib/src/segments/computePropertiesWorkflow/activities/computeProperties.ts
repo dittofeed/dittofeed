@@ -417,7 +417,7 @@ function computedToQueryFragments({
           groupArray(event_time),
           groupArray(processing_time),
           groupArray(event_type),
-          groupArray(event)
+          groupArray(if(isNull(event), '', event))
         )
       )
     `
