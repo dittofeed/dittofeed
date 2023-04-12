@@ -71,6 +71,23 @@ function pathToArgs(path: string): string | null {
   }
 }
 
+function jsonValueToCh(
+  queryBuilder: ClickHouseQueryBuilder,
+  val: unknown
+): string {
+  const type = typeof val;
+  switch (type) {
+    case "number": {
+      return queryBuilder.addQueryValue(val, "Int32");
+    }
+    case "string": {
+      return queryBuilder.addQueryValue(val, "String");
+    }
+    default:
+      throw new Error(`Unhandled type ${type}`);
+  }
+}
+
 function buildSegmentQueryExpression({
   currentTime,
   queryBuilder,
@@ -84,9 +101,48 @@ function buildSegmentQueryExpression({
 }): string | null {
   switch (node.type) {
     case SegmentNodeType.Performed: {
-      throw new Error(
-        `Unimplemented segment node type ${SegmentNodeType.Performed}.`
-      );
+      // need to condition on segment id
+      const event = queryBuilder.addQueryValue(node.event, "String");
+      const conditions = ["m.4 == 'track'", `m.5 == ${event}`];
+
+      if (node.properties) {
+        for (const property of node.properties) {
+          const path = queryBuilder.addQueryValue(
+            `$.properties.${property.path}`,
+            "String"
+          );
+          const operatorType = property.operator.type;
+
+          let condition: string;
+          switch (operatorType) {
+            case SegmentOperatorType.Equals: {
+              const value = jsonValueToCh(
+                queryBuilder,
+                property.operator.value
+              );
+              condition = `
+                JSON_VALUE(
+                  m.1,
+                  ${path}
+                ) == ${value}
+              `;
+              break;
+            }
+            default:
+              throw new Error(
+                `Unimplemented segment operator for performed node ${operatorType}`
+              );
+          }
+          conditions.push(condition);
+        }
+      }
+
+      return `
+        arrayFirstIndex(
+          m -> and(${conditions.join(",")}),
+          timed_messages
+        ) > 0
+      `;
     }
     case SegmentNodeType.Trait: {
       const pathArgs = pathToArgs(node.path);
@@ -110,6 +166,7 @@ function buildSegmentQueryExpression({
             }
           }
 
+          // TODO use interpolation for node paths
           return `
             JSON_VALUE(
               (
@@ -349,6 +406,7 @@ function computedToQueryFragments({
     }
   }
 
+  // TODO just sort in parent query
   withClause.set(
     "timed_messages",
     `
@@ -357,7 +415,9 @@ function computedToQueryFragments({
         arrayZip(
           groupArray(message_raw),
           groupArray(event_time),
-          groupArray(processing_time)
+          groupArray(processing_time),
+          groupArray(event_type),
+          groupArray(event)
         )
       )
     `
@@ -493,7 +553,7 @@ export async function computePropertiesPeriodSafe({
       coalesce(sas.user_property, ''),
       now64(3)
     FROM (
-      SELECT 
+      SELECT
         ${joinedWithClause},
         user_id,
         history_length,
@@ -794,7 +854,10 @@ export async function computePropertiesPeriod(
   try {
     return unwrap(await computePropertiesPeriodSafe(params));
   } catch (e) {
-    logger().error({ err: e }, "failed to compute properties");
+    logger().error(
+      { err: e, workspaceId: params.workspaceId },
+      "failed to compute properties"
+    );
     throw e;
   }
 }
