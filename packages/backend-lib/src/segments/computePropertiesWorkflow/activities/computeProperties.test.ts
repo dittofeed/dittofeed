@@ -216,6 +216,20 @@ describe("compute properties activities", () => {
             subscribedJourneys: [journey],
             userProperties: [],
           });
+
+          for (const { segmentId } of expectedSignals ?? []) {
+            expect(signalWithStart).toHaveBeenCalledWith(
+              expect.any(Function),
+              expect.objectContaining({
+                signalArgs: [
+                  expect.objectContaining({
+                    segmentId,
+                    currentlyInSegment: true,
+                  }),
+                ],
+              })
+            );
+          }
         }
       );
     });
