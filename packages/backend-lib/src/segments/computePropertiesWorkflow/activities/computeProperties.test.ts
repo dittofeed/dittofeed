@@ -4,7 +4,10 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { Overwrite } from "utility-types";
 
-import { segmentIdentifyEvent } from "../../../../test/factories/segment";
+import {
+  segmentIdentifyEvent,
+  segmentTrackEvent,
+} from "../../../../test/factories/segment";
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
 import { enrichJourney } from "../../../journeys";
 import prisma, { Prisma } from "../../../prisma";
@@ -179,6 +182,16 @@ describe("compute properties activities", () => {
             },
           },
         ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: InternalEventType.SegmentBroadcast,
+              }),
+          },
+        ],
         expectedSegments: {
           "performed broadcast": true,
         },
@@ -280,7 +293,7 @@ describe("compute properties activities", () => {
           for (const { segmentName } of expectedSignals ?? []) {
             const segmentId = createdSegments.find(
               (s) => s.name === segmentName
-            )?.name;
+            )?.id;
             if (!segmentId) {
               throw new Error(`Unable to find segment ${segmentName}`);
             }
