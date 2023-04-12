@@ -10,6 +10,7 @@ import prisma from "../../../prisma";
 import {
   EnrichedJourney,
   EnrichedUserProperty,
+  InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
@@ -138,7 +139,7 @@ describe("compute properties activities", () => {
     interface TableTest {
       description: string;
       currentTime?: number;
-      segmentDefinitions?: SegmentDefinition[];
+      segmentDefinitions: SegmentDefinition[];
       events?: {
         eventTimeOffset: number;
         overrides?: (
@@ -155,6 +156,16 @@ describe("compute properties activities", () => {
       {
         description:
           "When a user submits a track event with a perform segment it signals appropriately",
+        segmentDefinitions: [
+          {
+            entryNode: {
+              id: "1",
+              type: SegmentNodeType.Performed,
+              event: InternalEventType.SegmentBroadcast,
+            },
+            nodes: [],
+          },
+        ],
       },
     ];
 
@@ -190,22 +201,21 @@ describe("compute properties activities", () => {
           );
 
           await Promise.all([
-            ...(segmentDefinitions ?? []).map((sd) =>
-              prisma().segment.create({
-                data: {
-                  workspaceId: workspace.id,
-                  name: randomUUID(),
-                  definition: sd,
-                },
-              })
-            ),
+            createSegmentsAndJourney(segmentDefinitions),
             insertUserEvents({
               tableVersion,
               workspaceId: workspace.id,
               events: eventPayloads,
             }),
           ]);
-          expect(1).toBe(2);
+
+          await computePropertiesPeriod({
+            currentTime,
+            workspaceId: workspace.id,
+            tableVersion,
+            subscribedJourneys: [journey],
+            userProperties: [],
+          });
         }
       );
     });

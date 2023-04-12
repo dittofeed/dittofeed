@@ -16,7 +16,7 @@ const userEventsColumns = `
   workspace_id String
 `;
 
-interface InsertValue {
+export interface InsertValue {
   processingTime?: string;
   messageRaw: Record<string, JSONValue>;
   messageId: string;
