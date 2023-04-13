@@ -20,7 +20,8 @@ export class CustomActivityInboundInterceptor
     { workflowClient }: { workflowClient: WorkflowClient }
   ) {
     this.workflowClient = workflowClient;
-    (ctx as CustomContext).workflowClient = this.workflowClient;
+    const customCtxt = ctx as CustomContext;
+    customCtxt.workflowClient = this.workflowClient;
   }
 
   // eslint-disable-next-line class-methods-use-this
