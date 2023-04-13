@@ -1,8 +1,11 @@
 import backendConfig from "backend-lib/src/config";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
+import { useMemo } from "react";
+import { v4 as uuid } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
+import { ResourceList } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { PropsWithInitialState } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
@@ -32,5 +35,15 @@ export const getServerSideProps: GetServerSideProps<
 };
 
 export default function Broadcasts() {
-  return <DashboardContent>broadcasts</DashboardContent>;
+  const newItemId = useMemo(() => uuid(), []);
+  return (
+    <DashboardContent>
+      <ResourceList
+        title="Broadcasts"
+        newItemHref={`/dashboard/broadcasts/${newItemId}`}
+      >
+        items
+      </ResourceList>
+    </DashboardContent>
+  );
 }
