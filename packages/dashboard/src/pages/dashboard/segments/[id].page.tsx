@@ -65,6 +65,7 @@ const orGroupedOption = {
 
 const segmentOptions: GroupedOption[] = [
   traitGroupedOption,
+  broadcastGroupedOption,
   andGroupedOption,
   orGroupedOption,
 ];
@@ -454,7 +455,17 @@ function SegmentNodeComponent({
         {deleteButton}
       </Stack>
     );
+  } else if (node.type === SegmentNodeType.Broadcast) {
+    el = (
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {labelEl}
+        {conditionSelect}
+        <Box>Actives when segment receives a broadcast.</Box>
+        {deleteButton}
+      </Stack>
+    );
   }
+
   return <>{el}</>;
 }
 
