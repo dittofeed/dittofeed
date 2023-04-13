@@ -218,7 +218,7 @@ describe("compute properties activities", () => {
       },
     ];
 
-    describe.only("table driven tests", () => {
+    describe("table driven tests", () => {
       test.each(tableTests)(
         "$description",
         async ({
