@@ -165,6 +165,8 @@ describe("compute properties activities", () => {
       expectedSegments?: Record<string, boolean>;
     }
 
+    const broadcastSegmentId = randomUUID();
+
     const tableTests: TableTest[] = [
       {
         description:
@@ -172,11 +174,21 @@ describe("compute properties activities", () => {
         segments: [
           {
             name: "performed broadcast",
+            id: broadcastSegmentId,
             definition: {
               entryNode: {
                 id: "1",
                 type: SegmentNodeType.Performed,
                 event: InternalEventType.SegmentBroadcast,
+                properties: [
+                  {
+                    path: "segmentId",
+                    operator: {
+                      type: SegmentOperatorType.Equals,
+                      value: broadcastSegmentId,
+                    },
+                  },
+                ],
               },
               nodes: [],
             },
@@ -189,6 +201,9 @@ describe("compute properties activities", () => {
               segmentTrackEvent({
                 ...defaults,
                 event: InternalEventType.SegmentBroadcast,
+                properties: {
+                  segmentId: broadcastSegmentId,
+                },
               }),
           },
         ],
@@ -238,7 +253,7 @@ describe("compute properties activities", () => {
             data: { name: `workspace-${randomUUID()}` },
           });
 
-          const firstSegmentId = randomUUID();
+          const firstSegmentId = testSegments[0].id ?? randomUUID();
           const results = await Promise.all([
             prisma().journey.create({
               data: {
