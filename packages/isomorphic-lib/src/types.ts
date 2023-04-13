@@ -94,6 +94,7 @@ export type PerformedSegmentNode = Static<typeof PerformedSegmentNode>;
 
 export const BroadcastSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Broadcast),
+  id: Type.String(),
 });
 
 export type BroadcastSegmentNode = Static<typeof BroadcastSegmentNode>;
