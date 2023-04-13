@@ -25,6 +25,7 @@ model Workspace {
   CurrentUserEventsTable CurrentUserEventsTable?
   UserPropertyAssignment UserPropertyAssignment[]
   SegmentAssignment      SegmentAssignment[]
+  Broadcast              Broadcast[]
 }
 
 model Segment {
@@ -56,6 +57,26 @@ model Journey {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   UserJourneyEvent UserJourneyEvent[]
+
+  @@unique([workspaceId, name])
+}
+
+enum CompletionStatus {
+  NotStarted
+  InProgress
+  Successful
+  Failed
+}
+
+model Broadcast {
+  id          String           @id() @default(uuid()) @db.Uuid
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id])
+  workspaceId String           @db.Uuid
+  name        String
+  status      CompletionStatus @default(NotStarted)
+  triggeredAt DateTime
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@unique([workspaceId, name])
 }
