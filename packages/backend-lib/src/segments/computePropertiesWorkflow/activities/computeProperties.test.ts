@@ -2,16 +2,22 @@ import { Segment, Workspace } from "@prisma/client";
 import { uuid4 } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { Overwrite } from "utility-types";
 
-import { segmentIdentifyEvent } from "../../../../test/factories/segment";
+import {
+  segmentIdentifyEvent,
+  segmentTrackEvent,
+} from "../../../../test/factories/segment";
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
 import { enrichJourney } from "../../../journeys";
-import prisma from "../../../prisma";
+import prisma, { Prisma } from "../../../prisma";
 import {
   EnrichedJourney,
   EnrichedUserProperty,
+  InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
+  JSONValue,
   MessageNodeVariantType,
   SegmentDefinition,
   SegmentHasBeenOperatorComparator,
@@ -23,6 +29,7 @@ import {
 import {
   createUserEventsTables,
   insertUserEvents,
+  InsertValue,
 } from "../../../userEvents/clickhouse";
 import {
   enrichedUserProperty,
@@ -90,11 +97,11 @@ describe("compute properties activities", () => {
       data: { name: `workspace-${randomUUID()}` },
     });
     segments = await Promise.all(
-      segmentDefinitions.map((definition) =>
+      segmentDefinitions.map((definition, i) =>
         prisma().segment.create({
           data: {
             workspaceId: workspace.id,
-            name: `segment-${randomUUID()}`,
+            name: `segment-${i}`,
             definition,
           },
         })
@@ -132,7 +139,205 @@ describe("compute properties activities", () => {
     await clickhouseClient().close();
   });
 
+  type TestSegmentData = Overwrite<
+    Omit<Prisma.SegmentCreateInput, "workspaceId" | "workspace">,
+    {
+      definition: SegmentDefinition;
+    }
+  >;
+
   describe("computePropertiesPeriod", () => {
+    interface TableTest {
+      description: string;
+      currentTime?: number;
+      // arra with at least one item
+      segments: [TestSegmentData, ...TestSegmentData[]];
+      events?: {
+        eventTimeOffset: number;
+        overrides?: (
+          defaults: Record<string, JSONValue>
+        ) => Record<string, JSONValue>;
+      }[];
+      expectedSignals?: {
+        segmentName: string;
+      }[];
+      // map from segment name to value
+      expectedSegments?: Record<string, boolean>;
+    }
+
+    const broadcastSegmentId = randomUUID();
+
+    const tableTests: TableTest[] = [
+      {
+        description:
+          "When a user submits a track event with a perform segment it signals appropriately",
+        segments: [
+          {
+            name: "performed broadcast",
+            id: broadcastSegmentId,
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Performed,
+                event: InternalEventType.SegmentBroadcast,
+                properties: [
+                  {
+                    path: "segmentId",
+                    operator: {
+                      type: SegmentOperatorType.Equals,
+                      value: broadcastSegmentId,
+                    },
+                  },
+                ],
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: InternalEventType.SegmentBroadcast,
+                properties: {
+                  segmentId: broadcastSegmentId,
+                },
+              }),
+          },
+        ],
+        expectedSegments: {
+          "performed broadcast": true,
+        },
+        expectedSignals: [
+          {
+            segmentName: "performed broadcast",
+          },
+        ],
+      },
+    ];
+
+    describe("table driven tests", () => {
+      test.each(tableTests)(
+        "$description",
+        async ({
+          segments: testSegments,
+          events = [],
+          currentTime = 1681334178956,
+          expectedSegments,
+          expectedSignals,
+        }) => {
+          userId = randomUUID();
+
+          const eventPayloads: InsertValue[] = events.map(
+            ({ eventTimeOffset, overrides }) => {
+              const defaults: Record<string, JSONValue> = {
+                userId,
+                timestamp: new Date(
+                  currentTime + eventTimeOffset
+                ).toISOString(),
+              };
+
+              return {
+                processingTime: new Date(
+                  currentTime + eventTimeOffset + 50
+                ).toISOString(),
+                messageId: randomUUID(),
+                messageRaw: overrides ? overrides(defaults) : defaults,
+              };
+            }
+          );
+
+          workspace = await prisma().workspace.create({
+            data: { name: `workspace-${randomUUID()}` },
+          });
+
+          const firstSegmentId = testSegments[0].id ?? randomUUID();
+          const results = await Promise.all([
+            prisma().journey.create({
+              data: {
+                workspaceId: workspace.id,
+                name: `user-journey-${randomUUID()}`,
+                definition: basicJourneyDefinition(
+                  randomUUID(),
+                  firstSegmentId
+                ),
+              },
+            }),
+            prisma().segment.createMany({
+              data: testSegments.map((s, i) => ({
+                workspaceId: workspace.id,
+                id: i === 0 ? firstSegmentId : undefined,
+                ...s,
+              })),
+            }),
+            insertUserEvents({
+              tableVersion,
+              workspaceId: workspace.id,
+              events: eventPayloads,
+            }),
+          ]);
+          journey = results[0] as EnrichedJourney;
+
+          await computePropertiesPeriod({
+            currentTime,
+            workspaceId: workspace.id,
+            tableVersion,
+            subscribedJourneys: [journey],
+            userProperties: [],
+          });
+
+          const [createdSegments, createdSegmentAssignments] =
+            await Promise.all([
+              prisma().segment.findMany({
+                where: {
+                  workspaceId: workspace.id,
+                },
+              }),
+              prisma().segmentAssignment.findMany({
+                where: {
+                  workspaceId: workspace.id,
+                },
+                include: {
+                  segment: true,
+                },
+              }),
+            ]);
+
+          for (const { segmentName } of expectedSignals ?? []) {
+            const segmentId = createdSegments.find(
+              (s) => s.name === segmentName
+            )?.id;
+            if (!segmentId) {
+              throw new Error(`Unable to find segment ${segmentName}`);
+            }
+            expect(signalWithStart).toHaveBeenCalledWith(
+              expect.any(Function),
+              expect.objectContaining({
+                signalArgs: [
+                  expect.objectContaining({
+                    segmentId,
+                    currentlyInSegment: true,
+                  }),
+                ],
+              })
+            );
+          }
+
+          if (expectedSegments) {
+            const segmentsRecord = createdSegmentAssignments.reduce<
+              Record<string, boolean>
+            >((memo, sa) => {
+              memo[sa.segment.name] = sa.inSegment;
+              return memo;
+            }, {});
+            expect(segmentsRecord).toEqual(expectedSegments);
+          }
+        }
+      );
+    });
+
     describe("when segmenting on users who have a trait for longer than 24 hours", () => {
       beforeEach(async () => {
         const segmentDefinition: SegmentDefinition = {
