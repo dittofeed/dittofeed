@@ -45,6 +45,13 @@ const traitGroupedOption = {
   group: "User Data",
   label: "User Trait",
 };
+
+const broadcastGroupedOption = {
+  id: SegmentNodeType.Broadcast,
+  group: "User Data",
+  label: "Broadcast",
+};
+
 const andGroupedOption = {
   id: SegmentNodeType.And,
   group: "Group",
@@ -58,6 +65,7 @@ const orGroupedOption = {
 
 const segmentOptions: GroupedOption[] = [
   traitGroupedOption,
+  broadcastGroupedOption,
   andGroupedOption,
   orGroupedOption,
 ];
@@ -69,6 +77,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.Trait]: traitGroupedOption,
   [SegmentNodeType.And]: andGroupedOption,
   [SegmentNodeType.Or]: orGroupedOption,
+  [SegmentNodeType.Broadcast]: broadcastGroupedOption,
 };
 
 interface Option {
@@ -446,7 +455,17 @@ function SegmentNodeComponent({
         {deleteButton}
       </Stack>
     );
+  } else if (node.type === SegmentNodeType.Broadcast) {
+    el = (
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {labelEl}
+        {conditionSelect}
+        <Box>Actives when segment receives a broadcast.</Box>
+        {deleteButton}
+      </Stack>
+    );
   }
+
   return <>{el}</>;
 }
 

@@ -166,6 +166,7 @@ describe("compute properties activities", () => {
     }
 
     const broadcastSegmentId = randomUUID();
+    const broadcastSegmentId2 = randomUUID();
 
     const tableTests: TableTest[] = [
       {
@@ -203,6 +204,44 @@ describe("compute properties activities", () => {
                 event: InternalEventType.SegmentBroadcast,
                 properties: {
                   segmentId: broadcastSegmentId,
+                },
+              }),
+          },
+        ],
+        expectedSegments: {
+          "performed broadcast": true,
+        },
+        expectedSignals: [
+          {
+            segmentName: "performed broadcast",
+          },
+        ],
+      },
+      {
+        description:
+          "When a user submits a track event with a broadcast segment it signals appropriately",
+        segments: [
+          {
+            name: "performed broadcast",
+            id: broadcastSegmentId2,
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Broadcast,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: InternalEventType.SegmentBroadcast,
+                properties: {
+                  segmentId: broadcastSegmentId2,
                 },
               }),
           },

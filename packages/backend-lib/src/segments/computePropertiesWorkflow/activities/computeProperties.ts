@@ -20,6 +20,8 @@ import {
   EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
+  InternalEventType,
+  PerformedSegmentNode,
   SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
@@ -93,13 +95,38 @@ function buildSegmentQueryExpression({
   queryBuilder,
   node,
   nodes,
+  segmentId,
 }: {
   currentTime: number;
+  segmentId: string;
   queryBuilder: ClickHouseQueryBuilder;
   node: SegmentNode;
   nodes: SegmentNode[];
 }): string | null {
   switch (node.type) {
+    case SegmentNodeType.Broadcast: {
+      const performedNode: PerformedSegmentNode = {
+        id: node.id,
+        type: SegmentNodeType.Performed,
+        event: InternalEventType.SegmentBroadcast,
+        properties: [
+          {
+            path: "segmentId",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: segmentId,
+            },
+          },
+        ],
+      };
+      return buildSegmentQueryExpression({
+        currentTime,
+        queryBuilder,
+        node: performedNode,
+        nodes,
+        segmentId,
+      });
+    }
     case SegmentNodeType.Performed: {
       const event = queryBuilder.addQueryValue(node.event, "String");
       const conditions = ["m.4 == 'track'", `m.5 == ${event}`];
@@ -253,6 +280,7 @@ function buildSegmentQueryExpression({
             queryBuilder,
             currentTime,
             node: childNode,
+            segmentId,
             nodes,
           })
         )
@@ -273,6 +301,7 @@ function buildSegmentQueryExpression({
             queryBuilder,
             currentTime,
             node: childNode,
+            segmentId,
             nodes,
           })
         )
@@ -301,6 +330,7 @@ function buildSegmentQueryFragment({
     currentTime,
     node: segment.definition.entryNode,
     nodes: segment.definition.nodes,
+    segmentId: segment.id,
   });
 
   if (query === null) {
