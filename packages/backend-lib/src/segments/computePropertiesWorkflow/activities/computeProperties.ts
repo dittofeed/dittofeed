@@ -101,7 +101,6 @@ function buildSegmentQueryExpression({
 }): string | null {
   switch (node.type) {
     case SegmentNodeType.Performed: {
-      // need to condition on segment id
       const event = queryBuilder.addQueryValue(node.event, "String");
       const conditions = ["m.4 == 'track'", `m.5 == ${event}`];
 
