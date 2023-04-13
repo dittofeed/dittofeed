@@ -45,6 +45,13 @@ const traitGroupedOption = {
   group: "User Data",
   label: "User Trait",
 };
+
+const broadcastGroupedOption = {
+  id: SegmentNodeType.Broadcast,
+  group: "User Data",
+  label: "Broadcast",
+};
+
 const andGroupedOption = {
   id: SegmentNodeType.And,
   group: "Group",
@@ -69,6 +76,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.Trait]: traitGroupedOption,
   [SegmentNodeType.And]: andGroupedOption,
   [SegmentNodeType.Or]: orGroupedOption,
+  [SegmentNodeType.Broadcast]: broadcastGroupedOption,
 };
 
 interface Option {

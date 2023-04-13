@@ -137,6 +137,15 @@ function mapSegmentNodeToNewType(
         secondary: [],
       };
     }
+    case SegmentNodeType.Broadcast: {
+      return {
+        primary: {
+          type: SegmentNodeType.Broadcast,
+          id: node.id,
+        },
+        secondary: [],
+      };
+    }
     case SegmentNodeType.Performed: {
       throw new Error(
         `Unimplemented segment node type ${SegmentNodeType.Performed}.`
