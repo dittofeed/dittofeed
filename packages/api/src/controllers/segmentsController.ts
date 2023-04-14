@@ -221,7 +221,12 @@ export default async function segmentsController(fastify: FastifyInstance) {
         update: {},
       });
 
-      await submitBroadcast({ workspaceId, segmentId, broadcastId: id });
+      await submitBroadcast({
+        workspaceId,
+        segmentId,
+        broadcastId: id,
+        broadcastName: name,
+      });
 
       const resource: BroadcastResource = {
         workspaceId: broadcast.workspaceId,

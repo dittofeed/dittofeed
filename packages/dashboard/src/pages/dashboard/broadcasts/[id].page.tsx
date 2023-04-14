@@ -20,14 +20,16 @@ import {
   segmentHasBroadcast,
 } from "backend-lib/src/segments";
 import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { BroadcastResource, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
 import DashboardContent from "../../../components/dashboardContent";
 import InfoBox from "../../../components/infoBox";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
+import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { PropsWithInitialState, useAppStore } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
 import { AppState } from "../../../lib/types";
@@ -90,7 +92,64 @@ export const getServerSideProps: GetServerSideProps<
 export default function Broadcast() {
   const segmentsResult = useAppStore((store) => store.segments);
   const journeysResult = useAppStore((store) => store.journeys);
+  const path = useRouter();
+  const broadcastUpdateRequest = useAppStore(
+    (store) => store.broadcastUpdateRequest
+  );
+  const setBroadcastUpdateRequest = useAppStore(
+    (store) => store.setBroadcastUpdateRequest
+  );
+  const apiBase = useAppStore((store) => store.apiBase);
+  const upsertBroadcast = useAppStore((store) => store.upsertBroadcast);
   const [segmentId, setSegmentId] = React.useState("");
+  const [broadcastName, setBroadcastName] = React.useState("");
+  const workspace = useAppStore((store) => store.workspace);
+  const id = typeof path.query.id === "string" ? path.query.id : undefined;
+
+  const handleSubmit = useMemo(() => {
+    if (
+      workspace.type !== CompletionStatus.Successful ||
+      !id ||
+      !segmentId.length
+    ) {
+      return;
+    }
+    const broadcastResource: BroadcastResource = {
+      workspaceId: workspace.value.id,
+      name: broadcastName,
+      segmentId,
+      id,
+    };
+
+    return apiRequestHandlerFactory({
+      request: broadcastUpdateRequest,
+      setRequest: setBroadcastUpdateRequest,
+      responseSchema: BroadcastResource,
+      setResponse: upsertBroadcast,
+      // FIXME redirect on completion
+      onSuccessNotice: `Submitted broadcast ${broadcastName}`,
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to submit broadcast ${broadcastName}`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/segments/broadcast`,
+        data: broadcastResource,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    });
+  }, [
+    apiBase,
+    broadcastName,
+    broadcastUpdateRequest,
+    id,
+    segmentId,
+    setBroadcastUpdateRequest,
+    upsertBroadcast,
+    workspace,
+  ]);
+
   const segments =
     segmentsResult.type === CompletionStatus.Successful
       ? segmentsResult.value
@@ -188,6 +247,10 @@ export default function Broadcast() {
             </FormControl>
           </Box>
           <LoadingButton
+            onClick={handleSubmit}
+            loading={
+              broadcastUpdateRequest.type === CompletionStatus.InProgress
+            }
             disabled={receivingJourneys.length === 0}
             variant="contained"
           >
