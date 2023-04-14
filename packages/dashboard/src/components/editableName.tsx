@@ -25,7 +25,15 @@ export default function EditableName({
   return isNameFocused ? (
     <TextField
       autoFocus
-      sx={{ backgroundColor: "white", ...sx }}
+      sx={{
+        backgroundColor: "white",
+        "& .MuiInputBase-input": {
+          pt: 1,
+          pb: 1,
+        },
+
+        ...sx,
+      }}
       value={name}
       onChange={onChange}
       onBlur={() => setIsNamedFocused(false)}
