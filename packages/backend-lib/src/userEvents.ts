@@ -284,8 +284,10 @@ export async function trackInternalEvents(props: {
 export async function submitBroadcast({
   workspaceId,
   segmentId,
+  broadcastId,
 }: {
   workspaceId: string;
+  broadcastId: string;
   segmentId: string;
 }) {
   const tableVersion = await getTableVersion({
@@ -296,14 +298,42 @@ export async function submitBroadcast({
   }
 
   const qb = new ClickHouseQueryBuilder();
-  const workspaceIdParam = qb.addQueryValue("workspaceId", "String");
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const messageId = qb.addQueryValue(broadcastId, "String");
+  const timestamp = qb.addQueryValue(new Date().toISOString(), "String");
+  const segmentIdParam = qb.addQueryValue(segmentId, "String");
+  const eventName = qb.addQueryValue(
+    InternalEventType.SegmentBroadcast,
+    "String"
+  );
 
-  // const query = `
-  //   INSERT INTO events (message_id, workspace_id, message_raw)
-  //   SELECT user_id FROM ${buildUserEventsTableName(tableVersion)}
-  //   WHERE workspace_id = ${workspaceIdParam}
-  //   GROUP BY user_id
-  // `;
+  const query = `
+    INSERT INTO events (message_id, workspace_id, message_raw)
+    SELECT
+      workspace_id,
+      user_id,
+      ${messageId} as message_id,
+      toJSONString(
+        map(
+          'userId', user_id,
+          'timestamp', ${timestamp},
+          'event', ${eventName},
+          'event_type', 'track',
+          'properties', map(
+            'segmentId', ${segmentIdParam}
+          )
+        )
+      ) as message_raw
+    FROM ${buildUserEventsTableName(tableVersion)}
+    WHERE workspace_id = ${workspaceIdParam}
+    GROUP BY workspace_id, user_id
+  `;
+
+  await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+    format: "JSONEachRow",
+  });
 }
 
 export async function findEventsCount({
