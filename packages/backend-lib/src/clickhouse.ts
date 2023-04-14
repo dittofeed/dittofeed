@@ -11,6 +11,24 @@ export function getChCompatibleUuid(existing?: string) {
   return (existing ?? uuid()).replace(/-/g, "_");
 }
 
+export class ClickHouseQueryBuilder {
+  private queries: Record<string, unknown>;
+
+  constructor() {
+    this.queries = {};
+  }
+
+  getQueries() {
+    return this.queries;
+  }
+
+  addQueryValue(value: unknown, dataType: string): string {
+    const id = getChCompatibleUuid();
+    this.queries[id] = value;
+    return `{${id}:${dataType}}`;
+  }
+}
+
 function getClientConfig(): ClickHouseClientConfigOptions {
   const {
     clickhouseHost: host,

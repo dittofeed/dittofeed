@@ -108,6 +108,7 @@ async function sendEmailWithPayload({
         messageId,
         userId,
         properties: {
+          journeyId,
           message: "Template not found",
           templateId,
           runId,
@@ -127,6 +128,7 @@ async function sendEmailWithPayload({
         messageId,
         userId,
         properties: {
+          journeyId,
           templateId,
           message: "User missing the email property",
           runId,
@@ -159,6 +161,7 @@ async function sendEmailWithPayload({
         messageId,
         userId,
         properties: {
+          journeyId,
           cause: err.message,
           message: "Failed to render template",
           templateId,
@@ -181,6 +184,7 @@ async function sendEmailWithPayload({
         messageId,
         userId,
         properties: {
+          journeyId,
           message: "Missing default email provider",
           runId,
           messageType: MessageNodeVariantType.Email,
@@ -216,6 +220,7 @@ async function sendEmailWithPayload({
             userId,
             messageId,
             properties: {
+              journeyId,
               runId,
               messageType: MessageNodeVariantType.Email,
               emailProvider: defaultEmailProvider.emailProvider.type,
@@ -239,7 +244,6 @@ async function sendEmailWithPayload({
           userId,
           messageId,
           properties: {
-            runId,
             messageType: MessageNodeVariantType.Email,
             emailProvider: defaultEmailProvider.emailProvider.type,
             nodeId,
@@ -248,8 +252,10 @@ async function sendEmailWithPayload({
             from,
             subject,
             body,
-            workspaceId,
             templateId,
+            runId,
+            workspaceId,
+            journeyId,
           },
         },
       ];
@@ -265,6 +271,9 @@ async function sendEmailWithPayload({
       properties: {
         provider: defaultEmailProvider.emailProvider.type,
         message: "Unknown email provider type",
+        runId,
+        workspaceId,
+        journeyId,
       },
     },
   ];

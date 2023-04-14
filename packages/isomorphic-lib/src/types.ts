@@ -377,6 +377,15 @@ export const SegmentResource = Type.Object({
 
 export type SegmentResource = Static<typeof SegmentResource>;
 
+export const BroadcastResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  segmentId: Type.String(),
+});
+
+export type BroadcastResource = Static<typeof BroadcastResource>;
+
 export const UpsertSegmentResource = Type.Intersect([
   Type.Omit(Type.Partial(SegmentResource), ["id"]),
   Type.Pick(SegmentResource, ["id"]),

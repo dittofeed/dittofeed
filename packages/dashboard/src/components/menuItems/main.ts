@@ -2,15 +2,13 @@ import {
   ApartmentOutlined,
   BarChartOutlined,
   BookOutlined,
-  DatabaseOutlined,
   GroupOutlined,
   MessageOutlined,
   ReadOutlined,
-  SendOutlined,
   ThunderboltOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { ManageAccountsOutlined } from "@mui/icons-material";
+import { CampaignOutlined, ManageAccountsOutlined } from "@mui/icons-material";
 
 import { MenuItemGroup } from "./types";
 
@@ -48,13 +46,21 @@ const menuItems: { items: MenuItemGroup[] } = {
           description: "View and, create, and edit user journeys.",
         },
         {
-          id: "deliveries",
-          title: "Deliveries and Drafts",
+          id: "messages",
+          title: "Message Templates",
           type: "item",
-          url: "/dashboard/deliveries",
-          icon: SendOutlined,
+          url: "/dashboard/templates",
+          icon: BookOutlined,
+          description: "View, create, and edit message templates.",
+        },
+        {
+          id: "broadcasts",
+          title: "Broadcasts",
+          type: "item",
           disabled: true,
-          description: "View a feed of messages sent to users.",
+          url: "/dashboard/broadcasts",
+          icon: CampaignOutlined,
+          description: "Broadcast one off messages to users.",
         },
       ],
     },
@@ -95,30 +101,6 @@ const menuItems: { items: MenuItemGroup[] } = {
           url: "/dashboard/segments",
           icon: GroupOutlined,
           description: "View, create, and edit segments.",
-        },
-      ],
-    },
-    {
-      id: "content",
-      title: "Content",
-      type: "group",
-      children: [
-        {
-          id: "messages",
-          title: "Message Templates",
-          type: "item",
-          url: "/dashboard/templates",
-          icon: BookOutlined,
-          description: "View, create, and edit message templates.",
-        },
-        {
-          id: "collections",
-          title: "Collections",
-          type: "item",
-          url: "/dashboard/collections",
-          disabled: true,
-          icon: DatabaseOutlined,
-          description: "Use your business data in your messages.",
         },
       ],
     },

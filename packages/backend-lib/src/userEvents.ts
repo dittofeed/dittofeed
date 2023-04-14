@@ -1,6 +1,6 @@
 import { ok, Result } from "neverthrow";
 
-import { clickhouseClient } from "./clickhouse";
+import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
 import config from "./config";
 import { kafkaProducer } from "./kafka";
 import logger from "./logger";
@@ -278,6 +278,32 @@ export async function trackInternalEvents(props: {
   await insertUserEvents({ workspaceId, userEvents });
 
   return ok(undefined);
+}
+
+// TODO in the future will want to broadcast only to the users who would have been in the segment absent the broadcast, not every user
+export async function submitBroadcast({
+  workspaceId,
+  segmentId,
+}: {
+  workspaceId: string;
+  segmentId: string;
+}) {
+  const tableVersion = await getTableVersion({
+    workspaceId,
+  });
+  if (!tableVersion) {
+    return;
+  }
+
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdParam = qb.addQueryValue("workspaceId", "String");
+
+  // const query = `
+  //   INSERT INTO events (message_id, workspace_id, message_raw)
+  //   SELECT user_id FROM ${buildUserEventsTableName(tableVersion)}
+  //   WHERE workspace_id = ${workspaceIdParam}
+  //   GROUP BY user_id
+  // `;
 }
 
 export async function findEventsCount({
