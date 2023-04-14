@@ -2,6 +2,7 @@ import {
   Box,
   FormControl,
   InputLabel,
+  List,
   MenuItem,
   Select,
   SelectChangeEvent,
@@ -10,17 +11,15 @@ import {
   useTheme,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
-import {
-  findManyJourneys,
-  getSubscribedSegments,
-} from "backend-lib/src/journeys";
+import { findManyJourneys } from "backend-lib/src/journeys";
 import {
   findAllEnrichedSegments,
   segmentHasBroadcast,
 } from "backend-lib/src/segments";
+import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import React from "react";
+import React, { useMemo } from "react";
 
 import DashboardContent from "../../../components/dashboardContent";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
@@ -85,12 +84,26 @@ export const getServerSideProps: GetServerSideProps<
 
 export default function Broadcast() {
   const segmentsResult = useAppStore((store) => store.segments);
+  const journeysResult = useAppStore((store) => store.journeys);
   const theme = useTheme();
   const [segmentId, setSegmentId] = React.useState("");
   const segments =
     segmentsResult.type === CompletionStatus.Successful
       ? segmentsResult.value
       : [];
+
+  const journeys =
+    journeysResult.type === CompletionStatus.Successful
+      ? journeysResult.value
+      : [];
+
+  const receivingJourneys = useMemo(
+    () =>
+      journeys.filter((j) =>
+        getSubscribedSegments(j.definition).has(segmentId)
+      ),
+    [journeys, segmentId]
+  );
 
   const handleChange = (event: SelectChangeEvent) => {
     setSegmentId(event.target.value as string);
