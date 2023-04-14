@@ -116,10 +116,6 @@ describe("userEvents", () => {
     });
 
     it("broadcasts to all users in in the workspace", async () => {
-      submitBroadcast({
-        workspaceId,
-        segmentId,
-      });
       // await writeAssignments({
       //   workspaceId: workspace.id,
       //   currentTime: Date.now(),

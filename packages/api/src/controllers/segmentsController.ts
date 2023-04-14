@@ -194,7 +194,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
-    "/broadcast",
+    "/broadcasts",
     {
       schema: {
         description: "Submit a broadcast for a segment.",
