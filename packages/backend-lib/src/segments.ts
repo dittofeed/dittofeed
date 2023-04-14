@@ -5,8 +5,11 @@ import { err, ok, Result } from "neverthrow";
 import prisma from "./prisma";
 import {
   EnrichedSegment,
+  InternalEventType,
   Segment,
   SegmentDefinition,
+  SegmentNode,
+  SegmentNodeType,
   SegmentResource,
 } from "./types";
 
@@ -95,4 +98,25 @@ export async function findAllEnrichedSegments(
     });
   }
   return ok(enrichedSegments);
+}
+
+export function segmentNodeIsBroadcast(node: SegmentNode): boolean {
+  return (
+    node.type === SegmentNodeType.Broadcast ||
+    (node.type === SegmentNodeType.Performed &&
+      node.event === InternalEventType.SegmentBroadcast)
+  );
+}
+
+export function segmentHasBroadcast(definition: SegmentDefinition): boolean {
+  if (segmentNodeIsBroadcast(definition.entryNode)) {
+    return true;
+  }
+
+  for (const node of definition.nodes) {
+    if (segmentNodeIsBroadcast(node)) {
+      return true;
+    }
+  }
+  return false;
 }

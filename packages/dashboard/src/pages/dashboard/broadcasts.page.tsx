@@ -1,4 +1,8 @@
 import backendConfig from "backend-lib/src/config";
+import {
+  findAllEnrichedSegments,
+  segmentHasBroadcast,
+} from "backend-lib/src/segments";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useMemo } from "react";
@@ -18,11 +22,20 @@ export const getServerSideProps: GetServerSideProps<
 
   const workspaceId = backendConfig().defaultWorkspaceId;
   const appState: Partial<AppState> = {};
-  const workspace = await prisma().workspace.findUnique({
-    where: {
-      id: workspaceId,
-    },
-  });
+  const [workspace, segments] = await Promise.all([
+    prisma().workspace.findUnique({
+      where: {
+        id: workspaceId,
+      },
+    }),
+    findAllEnrichedSegments(workspaceId),
+  ]);
+  if (segments.isOk()) {
+    appState.segments = {
+      type: CompletionStatus.Successful,
+      value: segments.value.filter((s) => segmentHasBroadcast(s.definition)),
+    };
+  }
   if (workspace) {
     appState.workspace = {
       type: CompletionStatus.Successful,
