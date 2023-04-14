@@ -1,0 +1,546 @@
+import jp from "jsonpath";
+
+import {
+  clickhouseClient,
+  ClickHouseQueryBuilder,
+  getChCompatibleUuid,
+} from "../../../../clickhouse";
+import { getSubscribedSegments } from "../../../../journeys";
+import {
+  segmentUpdateSignal,
+  userJourneyWorkflow,
+} from "../../../../journeys/userWorkflow";
+import logger from "../../../../logger";
+import prisma, { Prisma } from "../../../../prisma";
+import { findAllEnrichedSegments } from "../../../../segments";
+import { getContext } from "../../../../temporal/activity";
+import {
+  ComputedAssignment,
+  ComputedPropertyAssignment,
+  EnrichedJourney,
+  EnrichedSegment,
+  EnrichedUserProperty,
+  InternalEventType,
+  PerformedSegmentNode,
+  SegmentHasBeenOperatorComparator,
+  SegmentNode,
+  SegmentNodeType,
+  SegmentOperatorType,
+  SegmentUpdate,
+  UserPropertyDefinitionType,
+} from "../../../../types";
+import { insertProcessedComputedProperties } from "../../../../userEvents/clickhouse";
+interface SegmentComputedProperty {
+  type: "Segment";
+  segment: EnrichedSegment;
+}
+
+interface UserComputedProperty {
+  type: "UserProperty";
+  userProperty: EnrichedUserProperty;
+}
+
+type ComputedProperty = SegmentComputedProperty | UserComputedProperty;
+
+function pathToArgs(path: string): string | null {
+  try {
+    return jp
+      .parse(path)
+      .map((c) => `'${c.expression.value}'`)
+      .join(", ");
+  } catch (e) {
+    logger().error({ err: e });
+    return null;
+  }
+}
+
+function jsonValueToCh(
+  queryBuilder: ClickHouseQueryBuilder,
+  val: unknown
+): string {
+  const type = typeof val;
+  switch (type) {
+    case "number": {
+      return queryBuilder.addQueryValue(val, "Int32");
+    }
+    case "string": {
+      return queryBuilder.addQueryValue(val, "String");
+    }
+    default:
+      throw new Error(`Unhandled type ${type}`);
+  }
+}
+
+function buildSegmentQueryExpression({
+  currentTime,
+  queryBuilder,
+  node,
+  nodes,
+  segmentId,
+}: {
+  currentTime: number;
+  segmentId: string;
+  queryBuilder: ClickHouseQueryBuilder;
+  node: SegmentNode;
+  nodes: SegmentNode[];
+}): string | null {
+  switch (node.type) {
+    case SegmentNodeType.Broadcast: {
+      const performedNode: PerformedSegmentNode = {
+        id: node.id,
+        type: SegmentNodeType.Performed,
+        event: InternalEventType.SegmentBroadcast,
+        properties: [
+          {
+            path: "segmentId",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: segmentId,
+            },
+          },
+        ],
+      };
+      return buildSegmentQueryExpression({
+        currentTime,
+        queryBuilder,
+        node: performedNode,
+        nodes,
+        segmentId,
+      });
+    }
+    case SegmentNodeType.Performed: {
+      const event = queryBuilder.addQueryValue(node.event, "String");
+      const conditions = ["m.4 == 'track'", `m.5 == ${event}`];
+
+      if (node.properties) {
+        for (const property of node.properties) {
+          const path = queryBuilder.addQueryValue(
+            `$.properties.${property.path}`,
+            "String"
+          );
+          const operatorType = property.operator.type;
+
+          let condition: string;
+          switch (operatorType) {
+            case SegmentOperatorType.Equals: {
+              const value = jsonValueToCh(
+                queryBuilder,
+                property.operator.value
+              );
+              condition = `
+                JSON_VALUE(
+                  m.1,
+                  ${path}
+                ) == ${value}
+              `;
+              break;
+            }
+            default:
+              throw new Error(
+                `Unimplemented segment operator for performed node ${operatorType}`
+              );
+          }
+          conditions.push(condition);
+        }
+      }
+
+      return `
+        arrayFirstIndex(
+          m -> and(${conditions.join(",")}),
+          timed_messages
+        ) > 0
+      `;
+    }
+    case SegmentNodeType.Trait: {
+      const pathArgs = pathToArgs(node.path);
+      if (!pathArgs) {
+        return null;
+      }
+
+      switch (node.operator.type) {
+        case SegmentOperatorType.Equals: {
+          const val = node.operator.value;
+          let queryVal: string;
+
+          switch (typeof val) {
+            case "number": {
+              queryVal = queryBuilder.addQueryValue(val, "Int32");
+              break;
+            }
+            case "string": {
+              queryVal = queryBuilder.addQueryValue(val, "String");
+              break;
+            }
+          }
+
+          // TODO use interpolation for node paths
+          return `
+            JSON_VALUE(
+              (
+                arrayFilter(
+                  m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                  timed_messages
+                )
+              )[1].1,
+              '$.traits.${node.path}'
+            ) == ${queryVal}
+          `;
+        }
+        case SegmentOperatorType.HasBeen: {
+          if (
+            node.operator.comparator !== SegmentHasBeenOperatorComparator.GTE
+          ) {
+            throw new Error("Unimplemented comparator.");
+          }
+
+          const val = node.operator.value;
+          const varName = `last_trait_update${getChCompatibleUuid(node.id)}`;
+          const upperTraitBound =
+            currentTime / 1000 - node.operator.windowSeconds;
+
+          let queryVal: string;
+
+          switch (typeof val) {
+            case "number": {
+              queryVal = queryBuilder.addQueryValue(val, "Int32");
+              break;
+            }
+            case "string": {
+              queryVal = queryBuilder.addQueryValue(val, "String");
+              break;
+            }
+          }
+
+          return `
+            and(
+              JSON_VALUE(
+                (
+                  arrayFirst(
+                    m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                    timed_messages
+                  ) as ${varName}
+                ).1,
+                '$.traits.${node.path}'
+              ) == ${queryVal},
+              ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
+            )`;
+        }
+        case SegmentOperatorType.Within: {
+          const upperTraitBound = currentTime / 1000;
+          const traitIdentifier = getChCompatibleUuid(node.id);
+
+          const lowerTraitBound =
+            currentTime / 1000 - node.operator.windowSeconds;
+
+          // TODO replace array find with array first
+          return `
+            and(
+              (
+                parseDateTime64BestEffortOrNull(
+                  JSON_VALUE(
+                    arrayFilter(
+                      m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                      timed_messages
+                    )[1].1,
+                    '$.traits.${node.path}'
+                  )
+                ) as trait_time${traitIdentifier}
+              ) > toDateTime64(${lowerTraitBound}, 3),
+              trait_time${traitIdentifier} < toDateTime64(${upperTraitBound}, 3)
+            )`;
+        }
+      }
+      break;
+    }
+    case SegmentNodeType.And: {
+      const childIds = new Set(node.children);
+      const childNodes = nodes.filter((n) => childIds.has(n.id));
+      const childFragments = childNodes
+        .map((childNode) =>
+          buildSegmentQueryExpression({
+            queryBuilder,
+            currentTime,
+            node: childNode,
+            segmentId,
+            nodes,
+          })
+        )
+        .filter((query) => query !== null);
+      if (childFragments[0] && childFragments.length === 1) {
+        return childFragments[0];
+      }
+      return `and(
+        ${childFragments.join(", ")}
+      )`;
+    }
+    case SegmentNodeType.Or: {
+      const childIds = new Set(node.children);
+      const childNodes = nodes.filter((n) => childIds.has(n.id));
+      const childFragments = childNodes
+        .map((childNode) =>
+          buildSegmentQueryExpression({
+            queryBuilder,
+            currentTime,
+            node: childNode,
+            segmentId,
+            nodes,
+          })
+        )
+        .filter((query) => query !== null);
+      if (childFragments[0] && childFragments.length === 1) {
+        return childFragments[0];
+      }
+      return `or(
+        ${childFragments.join(", ")}
+      )`;
+    }
+  }
+}
+
+function buildSegmentQueryFragment({
+  currentTime,
+  segment,
+  queryBuilder,
+}: {
+  currentTime: number;
+  segment: EnrichedSegment;
+  queryBuilder: ClickHouseQueryBuilder;
+}): string | null {
+  const query = buildSegmentQueryExpression({
+    queryBuilder,
+    currentTime,
+    node: segment.definition.entryNode,
+    nodes: segment.definition.nodes,
+    segmentId: segment.id,
+  });
+
+  if (query === null) {
+    return null;
+  }
+
+  return `
+    (
+      ${query},
+      Null,
+      '${segment.id}'
+    )
+  `;
+}
+
+function buildUserPropertyQueryFragment({
+  userProperty,
+}: {
+  userProperty: EnrichedUserProperty;
+  queryBuilder: ClickHouseQueryBuilder;
+}): string | null {
+  let innerQuery: string;
+  switch (userProperty.definition.type) {
+    case UserPropertyDefinitionType.Trait: {
+      const { path } = userProperty.definition;
+      const pathArgs = pathToArgs(path);
+      if (!pathArgs) {
+        return null;
+      }
+
+      innerQuery = `
+          JSON_VALUE(
+            (
+              arraySort(
+                m -> -toInt64(m.2),
+                arrayFilter(
+                  m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                  timed_messages
+                )
+              )
+            )[1].1,
+            '$.traits.${path}'
+          )
+      `;
+      break;
+    }
+    case UserPropertyDefinitionType.Id: {
+      innerQuery = "user_id";
+      break;
+    }
+    case UserPropertyDefinitionType.AnonymousId: {
+      innerQuery = "any(anonymous_id)";
+      break;
+    }
+  }
+  return `
+    (
+      Null,
+      toJSONString(${innerQuery}),
+      '${userProperty.id}'
+    )
+  `;
+}
+
+function computedToQueryFragments({
+  computedProperties,
+  currentTime,
+  queryBuilder,
+}: {
+  computedProperties: ComputedProperty[];
+  currentTime: number;
+  queryBuilder: ClickHouseQueryBuilder;
+}): Map<string, string> {
+  const withClause = new Map<string, string>();
+  const modelFragments: string[] = [];
+
+  for (const computedProperty of computedProperties) {
+    switch (computedProperty.type) {
+      case "UserProperty": {
+        const fragment = buildUserPropertyQueryFragment({
+          userProperty: computedProperty.userProperty,
+          queryBuilder,
+        });
+
+        if (fragment !== null) {
+          modelFragments.push(fragment);
+        }
+        break;
+      }
+      case "Segment": {
+        const fragment = buildSegmentQueryFragment({
+          segment: computedProperty.segment,
+          queryBuilder,
+          currentTime,
+        });
+
+        if (fragment !== null) {
+          modelFragments.push(fragment);
+        }
+        break;
+      }
+    }
+  }
+
+  // TODO just sort in parent query
+  withClause.set(
+    "timed_messages",
+    `
+      arraySort(
+        m -> -toInt64(m.2),
+        arrayZip(
+          groupArray(message_raw),
+          groupArray(event_time),
+          groupArray(processing_time),
+          groupArray(event_type),
+          groupArray(if(isNull(event), '', event))
+        )
+      )
+    `
+  );
+  const joinedModelsFragment = `
+    arrayJoin(
+        [
+          ${modelFragments.join(",\n")}
+        ]
+    )
+  `;
+  withClause.set("models", joinedModelsFragment);
+  withClause.set("in_segment", "models.1");
+  withClause.set("user_property", "models.2");
+  withClause.set("computed_property_id", "models.3");
+  withClause.set(
+    "latest_processing_time",
+    "arrayMax(m -> toInt64(m.3), timed_messages)"
+  );
+  withClause.set("history_length", "length(timed_messages)");
+
+  return withClause;
+}
+
+export default async function writeAssignments({
+  currentTime,
+  segments,
+  userProperties,
+  tableVersion,
+  workspaceId,
+}: {
+  currentTime: number;
+  segments: EnrichedSegment[];
+  tableVersion: string;
+  workspaceId: string;
+  userProperties: EnrichedUserProperty[];
+}) {
+  const segmentComputedProperties: ComputedProperty[] = segments.map(
+    (segment) => {
+      const p: SegmentComputedProperty = {
+        type: "Segment",
+        segment,
+      };
+      return p;
+    }
+  );
+
+  const userComputedProperties: ComputedProperty[] = userProperties.map(
+    (userProperty) => {
+      const p: UserComputedProperty = {
+        type: "UserProperty",
+        userProperty,
+      };
+      return p;
+    }
+  );
+
+  const computedProperties = segmentComputedProperties.concat(
+    userComputedProperties
+  );
+
+  if (computedProperties.length) {
+    const writeReadChqb = new ClickHouseQueryBuilder();
+
+    const withClause = computedToQueryFragments({
+      currentTime,
+      computedProperties,
+      queryBuilder: writeReadChqb,
+    });
+
+    // TODO handle anonymous id's, including case where user_id is null
+    const joinedWithClause = Array.from(withClause)
+      .map(([key, value]) => `${value} AS ${key}`)
+      .join(",\n");
+
+    const writeQuery = `
+    INSERT INTO computed_property_assignments
+    SELECT
+      '${workspaceId}',
+      sas.user_id,
+      if(isNull(in_segment), 1, 2),
+      sas.computed_property_id,
+      coalesce(sas.in_segment, False),
+      coalesce(sas.user_property, ''),
+      now64(3)
+    FROM (
+      SELECT
+        ${joinedWithClause},
+        user_id,
+        history_length,
+        in_segment,
+        user_property,
+        latest_processing_time,
+        timed_messages
+      FROM user_events_${tableVersion}
+      WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
+      GROUP BY user_id
+      ORDER BY latest_processing_time DESC
+    ) sas
+  `;
+
+    logger().debug(
+      {
+        workspaceId,
+        query: writeQuery,
+      },
+      "compute properties write query"
+    );
+
+    await clickhouseClient().query({
+      query: writeQuery,
+      query_params: writeReadChqb.getQueries(),
+      format: "JSONEachRow",
+    });
+  }
+}

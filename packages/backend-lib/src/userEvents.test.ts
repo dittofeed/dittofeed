@@ -54,13 +54,9 @@ describe("userEvents", () => {
   });
 
   describe("findManyEvents", () => {
-    let workspace: Workspace;
     let messageId1: string;
     let messageId2: string;
     beforeEach(async () => {
-      workspace = await prisma().workspace.create({
-        data: { name: `workspace-${randomUUID()}` },
-      });
       messageId1 = randomUUID();
       messageId2 = randomUUID();
 
@@ -109,7 +105,9 @@ describe("userEvents", () => {
   });
 
   describe("submitBroadcast", () => {
-    beforeEach(async () => {});
+    beforeEach(async () => {
+      // insert events, compute assignments
+    });
 
     it("broadcasts to all users with segment assignments in the workspace", () => {});
   });
