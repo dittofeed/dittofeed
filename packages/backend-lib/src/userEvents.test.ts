@@ -4,6 +4,8 @@ import { randomUUID } from "crypto";
 import { segmentIdentifyEvent } from "../test/factories/segment";
 import config from "./config";
 import prisma from "./prisma";
+import writeAssignments from "./segments/computePropertiesWorkflow/activities/computeProperties/writeAssignments";
+import { SegmentNodeType } from "./types";
 import { findAllUserTraits, findManyEvents } from "./userEvents";
 import { insertUserEvents } from "./userEvents/clickhouse";
 
@@ -106,6 +108,28 @@ describe("userEvents", () => {
 
   describe("submitBroadcast", () => {
     beforeEach(async () => {
+      await writeAssignments({
+        workspaceId: workspace.id,
+        currentTime: Date.now(),
+        userProperties: [],
+        tableVersion: config().defaultUserEventsTableVersion,
+        segments: [
+          {
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "broadcast segment",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Broadcast,
+              },
+              nodes: [],
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      });
       // insert events, compute assignments
     });
 
