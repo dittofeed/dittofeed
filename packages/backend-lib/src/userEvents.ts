@@ -95,50 +95,13 @@ export async function insertUserEvents({
   }
 }
 
-export async function findAllUserTraits({
-  workspaceId,
-  tableVersion: tableVersionParam,
-}: {
-  workspaceId: string;
-  tableVersion?: string;
-}): Promise<string[]> {
-  let tableVersion = tableVersionParam;
-  if (!tableVersion) {
-    const currentTable = await prisma().currentUserEventsTable.findUnique({
-      where: {
-        workspaceId,
-      },
-    });
-
-    if (!currentTable) {
-      return [];
-    }
-    tableVersion = currentTable.version;
-  }
-
-  const query = `SELECT DISTINCT arrayJoin(JSONExtractKeys(message_raw, 'traits')) AS trait FROM ${buildUserEventsTableName(
-    tableVersion
-  )} WHERE workspace_id = {workspaceId:String}`;
-
-  const resultSet = await clickhouseClient().query({
-    query,
-    format: "JSONEachRow",
-    query_params: {
-      workspaceId,
-    },
-  });
-
-  const results = await resultSet.json<{ trait: string }[]>();
-  return results.map((o) => o.trait);
-}
-
 async function getTableVersion({
   workspaceId,
   tableVersion: tableVersionParam,
 }: {
   workspaceId: string;
   tableVersion?: string;
-}): Promise<string | null> {
+}): Promise<string> {
   let tableVersion = tableVersionParam;
   if (!tableVersion) {
     const currentTable = await prisma().currentUserEventsTable.findUnique({
@@ -148,7 +111,7 @@ async function getTableVersion({
     });
 
     if (!currentTable) {
-      return null;
+      return config().defaultUserEventsTableVersion;
     }
     tableVersion = currentTable.version;
   }
@@ -293,34 +256,33 @@ export async function submitBroadcast({
   const tableVersion = await getTableVersion({
     workspaceId,
   });
-  if (!tableVersion) {
-    return;
-  }
 
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-  const messageId = qb.addQueryValue(broadcastId, "String");
   const timestamp = qb.addQueryValue(new Date().toISOString(), "String");
   const segmentIdParam = qb.addQueryValue(segmentId, "String");
+  const broadcastIdParam = qb.addQueryValue(broadcastId, "String");
   const eventName = qb.addQueryValue(
     InternalEventType.SegmentBroadcast,
     "String"
   );
 
   const query = `
-    INSERT INTO events (message_id, workspace_id, message_raw)
+    INSERT INTO ${buildUserEventsTableName(
+      tableVersion
+    )} (message_id, workspace_id, message_raw)
     SELECT
       workspace_id,
-      user_id,
-      ${messageId} as message_id,
+      generateUUIDv4() as message_id,
       toJSONString(
-        map(
+        (
           'userId', user_id,
           'timestamp', ${timestamp},
           'event', ${eventName},
           'event_type', 'track',
-          'properties', map(
-            'segmentId', ${segmentIdParam}
+          'properties', (
+            'segmentId', ${segmentIdParam},
+            'broadcastId', ${broadcastIdParam}
           )
         )
       ) as message_raw
@@ -350,9 +312,6 @@ export async function findEventsCount({
     tableVersion: tableVersionParam,
   });
 
-  if (!tableVersion) {
-    return 0;
-  }
   const query = `SELECT COUNT(message_id) AS event_count FROM ${buildUserEventsTableName(
     tableVersion
   )}
@@ -370,4 +329,32 @@ export async function findEventsCount({
 
   const results = await resultSet.json<{ event_count: number }[]>();
   return results[0]?.event_count ?? 0;
+}
+
+export async function findAllUserTraits({
+  workspaceId,
+  tableVersion: tableVersionParam,
+}: {
+  workspaceId: string;
+  tableVersion?: string;
+}): Promise<string[]> {
+  const tableVersion = await getTableVersion({
+    workspaceId,
+    tableVersion: tableVersionParam,
+  });
+
+  const query = `SELECT DISTINCT arrayJoin(JSONExtractKeys(message_raw, 'traits')) AS trait FROM ${buildUserEventsTableName(
+    tableVersion
+  )} WHERE workspace_id = {workspaceId:String}`;
+
+  const resultSet = await clickhouseClient().query({
+    query,
+    format: "JSONEachRow",
+    query_params: {
+      workspaceId,
+    },
+  });
+
+  const results = await resultSet.json<{ trait: string }[]>();
+  return results.map((o) => o.trait);
 }
