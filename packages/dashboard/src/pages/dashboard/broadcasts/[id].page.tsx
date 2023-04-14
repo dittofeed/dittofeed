@@ -194,7 +194,10 @@ export default function Broadcast() {
             Broadcast
           </LoadingButton>
         </Stack>
-        <Box sx={{ pl: 2 }}>{receivingJourneysEls}</Box>
+        <Box sx={{ pl: 2 }}>
+          <Typography variant="h5">Journeys Receiving Broadcast</Typography>
+          {receivingJourneysEls}
+        </Box>
       </Stack>
     </DashboardContent>
   );
