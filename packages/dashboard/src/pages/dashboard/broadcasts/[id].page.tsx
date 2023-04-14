@@ -27,6 +27,7 @@ import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
 import DashboardContent from "../../../components/dashboardContent";
+import EditableName from "../../../components/editableName";
 import InfoBox from "../../../components/infoBox";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
@@ -92,6 +93,7 @@ export const getServerSideProps: GetServerSideProps<
 export default function Broadcast() {
   const segmentsResult = useAppStore((store) => store.segments);
   const journeysResult = useAppStore((store) => store.journeys);
+  const theme = useTheme();
   const path = useRouter();
   const broadcastUpdateRequest = useAppStore(
     (store) => store.broadcastUpdateRequest
@@ -102,9 +104,10 @@ export default function Broadcast() {
   const apiBase = useAppStore((store) => store.apiBase);
   const upsertBroadcast = useAppStore((store) => store.upsertBroadcast);
   const [segmentId, setSegmentId] = React.useState("");
-  const [broadcastName, setBroadcastName] = React.useState("");
-  const workspace = useAppStore((store) => store.workspace);
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
+
+  const [broadcastName, setBroadcastName] = React.useState(`Broadcast - ${id}`);
+  const workspace = useAppStore((store) => store.workspace);
 
   const handleSubmit = useMemo(() => {
     if (
@@ -219,7 +222,19 @@ export default function Broadcast() {
         sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
         spacing={3}
       >
-        <Typography variant="h4">Create Broadcast</Typography>
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", width: "100%" }}
+          spacing={2}
+        >
+          <Typography variant="h4">Submit a Broadcast</Typography>
+          <EditableName
+            variant="h6"
+            sx={{ minWidth: theme.spacing(52) }}
+            name={broadcastName}
+            onChange={(e) => setBroadcastName(e.target.value)}
+          />
+        </Stack>
         <InfoBox>
           Broadcast to a Segment. Broadcasts are a way to manually trigger
           journeys which have a given segment as their entry criteria.

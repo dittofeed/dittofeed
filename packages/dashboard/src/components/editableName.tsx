@@ -1,13 +1,22 @@
 import { EditFilled } from "@ant-design/icons";
-import { IconButton, Stack, TextField, Typography } from "@mui/material";
+import {
+  IconButton,
+  Stack,
+  SxProps,
+  TextField,
+  Theme,
+  Typography,
+} from "@mui/material";
 import { useState } from "react";
 
 export default function EditableName({
   name,
   variant,
+  sx,
   onChange,
 }: {
   name: string;
+  sx?: SxProps<Theme>;
   variant?: React.ComponentProps<typeof Typography>["variant"];
   onChange: React.ComponentProps<typeof TextField>["onChange"];
 }) {
@@ -16,7 +25,7 @@ export default function EditableName({
   return isNameFocused ? (
     <TextField
       autoFocus
-      sx={{ backgroundColor: "white" }}
+      sx={{ backgroundColor: "white", ...sx }}
       value={name}
       onChange={onChange}
       onBlur={() => setIsNamedFocused(false)}
@@ -29,6 +38,7 @@ export default function EditableName({
   ) : (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
       <Typography
+        sx={sx}
         variant={variant ?? "h4"}
         onClick={() => {
           setIsNamedFocused(true);
