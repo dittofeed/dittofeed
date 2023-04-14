@@ -5,6 +5,7 @@ import {
   InputLabel,
   List,
   ListItem,
+  ListItemButton,
   MenuItem,
   Select,
   SelectChangeEvent,
@@ -21,6 +22,7 @@ import {
 import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
+import Link from "next/link";
 import React, { useMemo } from "react";
 
 import DashboardContent from "../../../components/dashboardContent";
@@ -120,8 +122,22 @@ export default function Broadcast() {
     receivingJourneysEls = (
       <List sx={{ listStyleType: "disc" }}>
         {receivingJourneys.map((j) => (
-          <ListItem key={j.id} sx={{ display: "list-item" }}>
-            {j.name}
+          <ListItem
+            key={j.id}
+            sx={{
+              display: "list-item",
+            }}
+          >
+            <ListItemButton
+              sx={{
+                color: "inherit",
+                textDecoration: "none",
+              }}
+              component={Link}
+              href={`/dashboard/journeys/${j.id}`}
+            >
+              {j.name}
+            </ListItemButton>
           </ListItem>
         ))}
       </List>
@@ -149,31 +165,36 @@ export default function Broadcast() {
           Broadcast to a Segment. Broadcasts are a way to manually trigger
           journeys which have a given segment as their entry criteria.
         </InfoBox>
-        <Box sx={{ minWidth: "30%" }}>
-          <FormControl fullWidth>
-            <InputLabel>Broadcast Segment</InputLabel>
-            <Select
-              value={segmentId}
-              label="Broadcast Segment"
-              onChange={handleChange}
-            >
-              {segments.map((s) => (
-                <MenuItem value={s.id} key={s.id}>
-                  {s.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-        <Stack direction="row" alignItems="center" spacing={4}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={4}
+          sx={{ width: "100%" }}
+        >
+          <Box sx={{ minWidth: "30%" }}>
+            <FormControl fullWidth>
+              <InputLabel>Broadcast Segment</InputLabel>
+              <Select
+                value={segmentId}
+                label="Broadcast Segment"
+                onChange={handleChange}
+              >
+                {segments.map((s) => (
+                  <MenuItem value={s.id} key={s.id}>
+                    {s.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
           <LoadingButton
             disabled={receivingJourneys.length === 0}
             variant="contained"
           >
             Broadcast
           </LoadingButton>
-          {receivingJourneysEls}
         </Stack>
+        <Box sx={{ pl: 2 }}>{receivingJourneysEls}</Box>
       </Stack>
     </DashboardContent>
   );
