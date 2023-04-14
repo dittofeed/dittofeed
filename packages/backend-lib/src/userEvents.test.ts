@@ -4,12 +4,7 @@ import { randomUUID } from "crypto";
 import { segmentIdentifyEvent } from "../test/factories/segment";
 import config from "./config";
 import prisma from "./prisma";
-import writeAssignments from "./segments/computePropertiesWorkflow/activities/computeProperties/writeAssignments";
-import {
-  InternalEventType,
-  SegmentNodeType,
-  SegmentOperatorType,
-} from "./types";
+import { InternalEventType } from "./types";
 import {
   findAllUserTraits,
   findManyEvents,
@@ -161,7 +156,7 @@ describe("userEvents", () => {
         const properties = JSON.parse(e.properties);
         return properties;
       });
-      expect(eventProperties).toContain([
+      expect(eventProperties).toEqual([
         {
           segmentId,
           broadcastId,
@@ -171,47 +166,6 @@ describe("userEvents", () => {
           broadcastId,
         },
       ]);
-      // await writeAssignments({
-      //   workspaceId: workspace.id,
-      //   currentTime: Date.now(),
-      //   userProperties: [],
-      //   tableVersion: config().defaultUserEventsTableVersion,
-      //   segments: [
-      //     {
-      //       id: randomUUID(),
-      //       workspaceId: workspace.id,
-      //       name: "broadcast segment",
-      //       definition: {
-      //         entryNode: {
-      //           id: "1",
-      //           type: SegmentNodeType.Broadcast,
-      //         },
-      //         nodes: [],
-      //       },
-      //       createdAt: new Date(),
-      //       updatedAt: new Date(),
-      //     },
-      //     {
-      //       id: randomUUID(),
-      //       workspaceId: workspace.id,
-      //       name: "unrelated segment",
-      //       definition: {
-      //         entryNode: {
-      //           id: "1",
-      //           type: SegmentNodeType.Trait,
-      //           path: "foo",
-      //           operator: {
-      //             type: SegmentOperatorType.Equals,
-      //             value: "bar",
-      //           },
-      //         },
-      //         nodes: [],
-      //       },
-      //       createdAt: new Date(),
-      //       updatedAt: new Date(),
-      //     },
-      //   ],
-      // });
     });
   });
 });

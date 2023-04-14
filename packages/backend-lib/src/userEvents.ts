@@ -139,10 +139,6 @@ export async function findManyEvents({
     tableVersion: tableVersionParam,
   });
 
-  if (!tableVersion) {
-    return [];
-  }
-
   const paginationClause = limit ? `LIMIT ${offset},${limit}` : "";
   const query = `SELECT
     workspace_id,
@@ -267,34 +263,33 @@ export async function submitBroadcast({
     "String"
   );
 
+  // this code sucks :(
   const query = `
     INSERT INTO ${buildUserEventsTableName(
       tableVersion
     )} (message_id, workspace_id, message_raw)
     SELECT
-      workspace_id,
       generateUUIDv4() as message_id,
-      toJSONString(
-        (
-          'userId', user_id,
-          'timestamp', ${timestamp},
-          'event', ${eventName},
-          'event_type', 'track',
-          'properties', (
-            'segmentId', ${segmentIdParam},
-            'broadcastId', ${broadcastIdParam}
-          )
-        )
-      ) as message_raw
+      workspace_id,
+      '{' ||
+        '"userId": "' || toString(user_id) || '",' ||
+        '"timestamp": "' || toString(${timestamp}) || '",' ||
+        '"event": "' || ${eventName} || '",' ||
+        '"type": "track",' ||
+        '"properties": {' ||
+          '"segmentId": "' || toString(${segmentIdParam}) || '",' ||
+          '"broadcastId": "' || toString(${broadcastIdParam}) || '"' ||
+        '}' ||
+      '}' as message_raw
     FROM ${buildUserEventsTableName(tableVersion)}
     WHERE workspace_id = ${workspaceIdParam}
     GROUP BY workspace_id, user_id
   `;
 
-  await clickhouseClient().query({
+  await clickhouseClient().exec({
     query,
     query_params: qb.getQueries(),
-    format: "JSONEachRow",
+    clickhouse_settings: { wait_end_of_query: 1 },
   });
 }
 
