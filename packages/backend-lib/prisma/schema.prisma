@@ -77,7 +77,7 @@ model Broadcast {
   segmentId   String             @db.Uuid
   name        String
   status      DBCompletionStatus @default(NotStarted)
-  triggeredAt DateTime
+  triggeredAt DateTime?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 

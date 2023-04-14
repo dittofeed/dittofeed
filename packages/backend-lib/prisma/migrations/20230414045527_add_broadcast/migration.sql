@@ -8,7 +8,7 @@ CREATE TABLE "Broadcast" (
     "segmentId" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "status" "DBCompletionStatus" NOT NULL DEFAULT 'NotStarted',
-    "triggeredAt" TIMESTAMP(3) NOT NULL,
+    "triggeredAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
