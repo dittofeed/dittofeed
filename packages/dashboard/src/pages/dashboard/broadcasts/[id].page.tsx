@@ -182,37 +182,49 @@ export default function Broadcast() {
 
   if (receivingJourneys.length) {
     receivingJourneysEls = (
-      <List sx={{ listStyleType: "disc" }}>
-        {receivingJourneys.map((j) => (
-          <ListItem
-            key={j.id}
-            sx={{
-              display: "list-item",
-            }}
-          >
-            <ListItemButton
+      <Box sx={{ pl: 2 }}>
+        <Typography variant="h5">Journeys Receiving Broadcast</Typography>
+        <List sx={{ listStyleType: "disc" }}>
+          {receivingJourneys.map((j) => (
+            <ListItem
+              key={j.id}
               sx={{
-                color: "inherit",
-                textDecoration: "none",
+                display: "list-item",
               }}
-              component={Link}
-              href={`/dashboard/journeys/${j.id}`}
             >
-              {j.name}
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
+              <ListItemButton
+                sx={{
+                  color: "inherit",
+                  textDecoration: "none",
+                }}
+                component={Link}
+                href={`/dashboard/journeys/${j.id}`}
+              >
+                {j.name}
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Box>
     );
-  } else if (segmentId.length > 0) {
-    receivingJourneysEls = (
-      <InfoBox>
-        There aren&apos;t any journeys which are subscribed to this segment.
-        Create a journey with this segment to enable broadcasts.
-      </InfoBox>
-    );
+  } else if (segmentId.length) {
+    if (segments.length > 0) {
+      receivingJourneysEls = (
+        <InfoBox>
+          There aren&apos;t any journeys which are subscribed to this segment.
+          Create a journey with this segment to enable broadcasts.
+        </InfoBox>
+      );
+    } else {
+      receivingJourneysEls = (
+        <InfoBox>
+          There aren&apos;t any available segments to broadcast to. Add a
+          broadcast node to a new or existing segment.
+        </InfoBox>
+      );
+    }
   } else {
-    receivingJourneysEls = null;
+    receivingJourneysEls = <></>;
   }
 
   return (
@@ -250,6 +262,7 @@ export default function Broadcast() {
               <InputLabel>Broadcast Segment</InputLabel>
               <Select
                 value={segmentId}
+                disabled={segments.length === 0}
                 label="Broadcast Segment"
                 onChange={handleChange}
               >
@@ -272,10 +285,7 @@ export default function Broadcast() {
             Broadcast
           </LoadingButton>
         </Stack>
-        <Box sx={{ pl: 2 }}>
-          <Typography variant="h5">Journeys Receiving Broadcast</Typography>
-          {receivingJourneysEls}
-        </Box>
+        {receivingJourneysEls}
       </Stack>
     </DashboardContent>
   );

@@ -31,7 +31,6 @@ export default function EditableName({
           pt: 1,
           pb: 1,
         },
-
         ...sx,
       }}
       value={name}
