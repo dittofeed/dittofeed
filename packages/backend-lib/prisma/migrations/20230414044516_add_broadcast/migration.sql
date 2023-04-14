@@ -5,6 +5,7 @@ CREATE TYPE "DBCompletionStatus" AS ENUM ('NotStarted', 'InProgress', 'Successfu
 CREATE TABLE "Broadcast" (
     "id" UUID NOT NULL,
     "workspaceId" UUID NOT NULL,
+    "segmentId" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "status" "DBCompletionStatus" NOT NULL DEFAULT 'NotStarted',
     "triggeredAt" TIMESTAMP(3) NOT NULL,
@@ -19,3 +20,6 @@ CREATE UNIQUE INDEX "Broadcast_workspaceId_name_key" ON "Broadcast"("workspaceId
 
 -- AddForeignKey
 ALTER TABLE "Broadcast" ADD CONSTRAINT "Broadcast_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Broadcast" ADD CONSTRAINT "Broadcast_segmentId_fkey" FOREIGN KEY ("segmentId") REFERENCES "Segment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
