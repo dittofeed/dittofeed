@@ -4,8 +4,7 @@ import { randomUUID } from "crypto";
 import { segmentIdentifyEvent } from "../test/factories/segment";
 import config from "./config";
 import prisma from "./prisma";
-import writeAssignments from "./segments/computePropertiesWorkflow/activities/computeProperties/writeAssignments";
-import { SegmentNodeType, SegmentOperatorType } from "./types";
+import { InternalEventType } from "./types";
 import {
   findAllUserTraits,
   findManyEvents,
@@ -112,51 +111,61 @@ describe("userEvents", () => {
 
   describe("submitBroadcast", () => {
     beforeEach(async () => {
-      // insert events, compute assignments
+      await insertUserEvents({
+        tableVersion: config().defaultUserEventsTableVersion,
+        workspaceId: workspace.id,
+        events: [
+          {
+            messageId: randomUUID(),
+            messageRaw: segmentIdentifyEvent({
+              traits: {
+                name: "chandler",
+              },
+            }),
+          },
+          {
+            messageId: randomUUID(),
+            messageRaw: segmentIdentifyEvent({
+              traits: {
+                name: "max",
+              },
+            }),
+          },
+        ],
+      });
     });
 
     it("broadcasts to all users in in the workspace", async () => {
-      // await writeAssignments({
-      //   workspaceId: workspace.id,
-      //   currentTime: Date.now(),
-      //   userProperties: [],
-      //   tableVersion: config().defaultUserEventsTableVersion,
-      //   segments: [
-      //     {
-      //       id: randomUUID(),
-      //       workspaceId: workspace.id,
-      //       name: "broadcast segment",
-      //       definition: {
-      //         entryNode: {
-      //           id: "1",
-      //           type: SegmentNodeType.Broadcast,
-      //         },
-      //         nodes: [],
-      //       },
-      //       createdAt: new Date(),
-      //       updatedAt: new Date(),
-      //     },
-      //     {
-      //       id: randomUUID(),
-      //       workspaceId: workspace.id,
-      //       name: "unrelated segment",
-      //       definition: {
-      //         entryNode: {
-      //           id: "1",
-      //           type: SegmentNodeType.Trait,
-      //           path: "foo",
-      //           operator: {
-      //             type: SegmentOperatorType.Equals,
-      //             value: "bar",
-      //           },
-      //         },
-      //         nodes: [],
-      //       },
-      //       createdAt: new Date(),
-      //       updatedAt: new Date(),
-      //     },
-      //   ],
-      // });
+      const segmentId = randomUUID();
+      const broadcastId = randomUUID();
+
+      await submitBroadcast({
+        segmentId,
+        workspaceId: workspace.id,
+        broadcastId,
+      });
+
+      const events = await findManyEvents({
+        workspaceId: workspace.id,
+      });
+      expect(events).toHaveLength(4);
+      const eventProperties = events.flatMap((e) => {
+        if (e.event !== InternalEventType.SegmentBroadcast) {
+          return [];
+        }
+        const properties = JSON.parse(e.properties);
+        return properties;
+      });
+      expect(eventProperties).toEqual([
+        {
+          segmentId,
+          broadcastId,
+        },
+        {
+          segmentId,
+          broadcastId,
+        },
+      ]);
     });
   });
 });
