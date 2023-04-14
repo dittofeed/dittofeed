@@ -18,17 +18,17 @@ export const getServerSideProps: GetServerSideProps<
 
   const workspaceId = backendConfig().defaultWorkspaceId;
   const appState: Partial<AppState> = {};
-  const [workspace, broadcasts] = await Promise.all([
+  const [workspace] = await Promise.all([
     prisma().workspace.findUnique({
       where: {
         id: workspaceId,
       },
     }),
-    prisma().broadcast.findMany({
-      where: {
-        id: workspaceId,
-      },
-    }),
+    // prisma().broadcast.findMany({
+    //   where: {
+    //     id: workspaceId,
+    //   },
+    // }),
   ]);
   if (workspace) {
     appState.workspace = {

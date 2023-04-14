@@ -1,12 +1,12 @@
 -- CreateEnum
-CREATE TYPE "CompletionStatus" AS ENUM ('NotStarted', 'InProgress', 'Successful', 'Failed');
+CREATE TYPE "DBCompletionStatus" AS ENUM ('NotStarted', 'InProgress', 'Successful', 'Failed');
 
 -- CreateTable
 CREATE TABLE "Broadcast" (
     "id" UUID NOT NULL,
     "workspaceId" UUID NOT NULL,
     "name" TEXT NOT NULL,
-    "status" "CompletionStatus" NOT NULL DEFAULT 'NotStarted',
+    "status" "DBCompletionStatus" NOT NULL DEFAULT 'NotStarted',
     "triggeredAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

@@ -61,7 +61,7 @@ model Journey {
   @@unique([workspaceId, name])
 }
 
-enum CompletionStatus {
+enum DBCompletionStatus {
   NotStarted
   InProgress
   Successful
@@ -69,14 +69,14 @@ enum CompletionStatus {
 }
 
 model Broadcast {
-  id          String           @id() @default(uuid()) @db.Uuid
-  workspace   Workspace        @relation(fields: [workspaceId], references: [id])
-  workspaceId String           @db.Uuid
+  id          String             @id() @default(uuid()) @db.Uuid
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id])
+  workspaceId String             @db.Uuid
   name        String
-  status      CompletionStatus @default(NotStarted)
+  status      DBCompletionStatus @default(NotStarted)
   triggeredAt DateTime
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   @@unique([workspaceId, name])
 }
