@@ -1,5 +1,6 @@
 import { Draft } from "immer";
 import {
+  BroadcastResource,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
   EphemeralRequestStatus,
@@ -26,6 +27,7 @@ export type AppState = {
   workspace: RequestStatus<WorkspaceResource, Error>;
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
+  broadcasts: RequestStatus<BroadcastResource[], Error>;
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   journeys: RequestStatus<JourneyResource[], Error>;
@@ -50,6 +52,7 @@ export interface AppActions {
     dataSource: DataSourceConfigurationResource
   ) => void;
   upsertMessage: (message: MessageTemplateResource) => void;
+  upsertBroadcast: (message: BroadcastResource) => void;
   deleteMessage: (id: string) => void;
   upsertSegment: (segment: SegmentResource) => void;
   deleteSegment: (segmentId: string) => void;
@@ -91,6 +94,11 @@ export interface MessageTemplateIndexContent {
   setMessageTemplateDeleteRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
+}
+
+export interface BroadcastEditorContents {
+  broadcastUpdateRequest: EphemeralRequestStatus<Error>;
+  setBroadcastUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
 export interface SegmentEditorState {
@@ -172,7 +180,8 @@ export type PageStoreContents = EmailMessageEditorContents &
   JourneyIndexContent &
   MessageTemplateIndexContent &
   UserPropertyEditorContent &
-  JourneyContent;
+  JourneyContent &
+  BroadcastEditorContents;
 
 export interface EntryNodeProps {
   type: JourneyNodeType.EntryNode;

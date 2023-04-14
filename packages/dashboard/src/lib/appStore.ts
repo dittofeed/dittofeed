@@ -330,6 +330,38 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             state.userPropertyDeleteRequest = request;
           }),
 
+        // broadcast update view
+
+        broadcasts: {
+          type: CompletionStatus.NotStarted,
+        },
+        broadcastUpdateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+        setBroadcastUpdateRequest: (request) =>
+          set((state) => {
+            state.broadcastUpdateRequest = request;
+          }),
+        upsertBroadcast: (broadcast) =>
+          set((state) => {
+            let { broadcasts } = state;
+            if (broadcasts.type !== CompletionStatus.Successful) {
+              broadcasts = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.broadcasts = broadcasts;
+            }
+            for (const existing of broadcasts.value) {
+              if (broadcast.id === existing.id) {
+                Object.assign(existing, broadcast);
+                return state;
+              }
+            }
+            broadcasts.value.push(broadcast);
+            return state;
+          }),
+
         // user property update view
         editedUserProperty: null,
 
