@@ -57,6 +57,7 @@ const menuItems: { items: MenuItemGroup[] } = {
           id: "broadcasts",
           title: "Broadcasts",
           type: "item",
+          disabled: true,
           url: "/dashboard/broadcasts",
           icon: CampaignOutlined,
           description: "Broadcast one off messages to users.",

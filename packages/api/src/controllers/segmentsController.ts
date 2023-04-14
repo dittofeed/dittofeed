@@ -1,6 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
 import { Segment } from "backend-lib/src/types";
+import { submitBroadcast } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -219,6 +220,8 @@ export default async function segmentsController(fastify: FastifyInstance) {
         },
         update: {},
       });
+
+      await submitBroadcast({ workspaceId, segmentId });
 
       const resource: BroadcastResource = {
         workspaceId: broadcast.workspaceId,
