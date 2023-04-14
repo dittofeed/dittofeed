@@ -280,6 +280,14 @@ export async function trackInternalEvents(props: {
   return ok(undefined);
 }
 
+export async function submitBroadcast({
+  workspaceId,
+  segmentId,
+}: {
+  workspaceId: string;
+  segmentId: string;
+}) {}
+
 export async function findEventsCount({
   workspaceId,
   tableVersion: tableVersionParam,

@@ -220,7 +220,13 @@ export default async function segmentsController(fastify: FastifyInstance) {
         update: {},
       });
 
-      return reply.status(200).send(broadcast);
+      const resource: BroadcastResource = {
+        workspaceId: broadcast.workspaceId,
+        id: broadcast.id,
+        name: broadcast.name,
+        segmentId: broadcast.segmentId,
+      };
+      return reply.status(200).send(resource);
     }
   );
 }
