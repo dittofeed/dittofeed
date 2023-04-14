@@ -1,14 +1,9 @@
 import { Row } from "@clickhouse/client";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
 
-import {
-  clickhouseClient,
-  ClickHouseQueryBuilder,
-  getChCompatibleUuid,
-} from "../../../clickhouse";
+import { clickhouseClient, ClickHouseQueryBuilder } from "../../../clickhouse";
 import { getSubscribedSegments } from "../../../journeys";
 import {
   segmentUpdateSignal,
@@ -22,16 +17,8 @@ import {
   ComputedAssignment,
   ComputedPropertyAssignment,
   EnrichedJourney,
-  EnrichedSegment,
   EnrichedUserProperty,
-  InternalEventType,
-  PerformedSegmentNode,
-  SegmentHasBeenOperatorComparator,
-  SegmentNode,
-  SegmentNodeType,
-  SegmentOperatorType,
   SegmentUpdate,
-  UserPropertyDefinitionType,
 } from "../../../types";
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
 import writeAssignments from "./computeProperties/writeAssignments";

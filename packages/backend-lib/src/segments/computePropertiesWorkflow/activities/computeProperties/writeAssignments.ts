@@ -5,19 +5,8 @@ import {
   ClickHouseQueryBuilder,
   getChCompatibleUuid,
 } from "../../../../clickhouse";
-import { getSubscribedSegments } from "../../../../journeys";
-import {
-  segmentUpdateSignal,
-  userJourneyWorkflow,
-} from "../../../../journeys/userWorkflow";
 import logger from "../../../../logger";
-import prisma, { Prisma } from "../../../../prisma";
-import { findAllEnrichedSegments } from "../../../../segments";
-import { getContext } from "../../../../temporal/activity";
 import {
-  ComputedAssignment,
-  ComputedPropertyAssignment,
-  EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
   InternalEventType,
@@ -26,10 +15,9 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
-  SegmentUpdate,
   UserPropertyDefinitionType,
 } from "../../../../types";
-import { insertProcessedComputedProperties } from "../../../../userEvents/clickhouse";
+
 interface SegmentComputedProperty {
   type: "Segment";
   segment: EnrichedSegment;
