@@ -4,7 +4,11 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
 
-import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
+import {
+  clickhouseClient,
+  ClickHouseQueryBuilder,
+  getChCompatibleUuid,
+} from "../../../clickhouse";
 import { getSubscribedSegments } from "../../../journeys";
 import {
   segmentUpdateSignal,
@@ -30,24 +34,6 @@ import {
   UserPropertyDefinitionType,
 } from "../../../types";
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
-
-class ClickHouseQueryBuilder {
-  private queries: Record<string, unknown>;
-
-  constructor() {
-    this.queries = {};
-  }
-
-  getQueries() {
-    return this.queries;
-  }
-
-  addQueryValue(value: unknown, dataType: string): string {
-    const id = getChCompatibleUuid();
-    this.queries[id] = value;
-    return `{${id}:${dataType}}`;
-  }
-}
 
 interface SegmentComputedProperty {
   type: "Segment";
