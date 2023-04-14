@@ -1,8 +1,10 @@
+import { LoadingButton } from "@mui/lab";
 import {
   Box,
   FormControl,
   InputLabel,
   List,
+  ListItem,
   MenuItem,
   Select,
   SelectChangeEvent,
@@ -22,6 +24,7 @@ import { GetServerSideProps } from "next";
 import React, { useMemo } from "react";
 
 import DashboardContent from "../../../components/dashboardContent";
+import InfoBox from "../../../components/infoBox";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { PropsWithInitialState, useAppStore } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
@@ -85,17 +88,19 @@ export const getServerSideProps: GetServerSideProps<
 export default function Broadcast() {
   const segmentsResult = useAppStore((store) => store.segments);
   const journeysResult = useAppStore((store) => store.journeys);
-  const theme = useTheme();
   const [segmentId, setSegmentId] = React.useState("");
   const segments =
     segmentsResult.type === CompletionStatus.Successful
       ? segmentsResult.value
       : [];
 
-  const journeys =
-    journeysResult.type === CompletionStatus.Successful
-      ? journeysResult.value
-      : [];
+  const journeys = useMemo(
+    () =>
+      journeysResult.type === CompletionStatus.Successful
+        ? journeysResult.value
+        : [],
+    [journeysResult]
+  );
 
   const receivingJourneys = useMemo(
     () =>
@@ -109,6 +114,29 @@ export default function Broadcast() {
     setSegmentId(event.target.value as string);
   };
 
+  let receivingJourneysEls;
+
+  if (receivingJourneys.length) {
+    receivingJourneysEls = (
+      <List sx={{ listStyleType: "disc" }}>
+        {receivingJourneys.map((j) => (
+          <ListItem key={j.id} sx={{ display: "list-item" }}>
+            {j.name}
+          </ListItem>
+        ))}
+      </List>
+    );
+  } else if (segmentId.length > 0) {
+    receivingJourneysEls = (
+      <InfoBox>
+        There aren&apos;t any journeys which are subscribed to this segment.
+        Create a journey with this segment to enable broadcasts.
+      </InfoBox>
+    );
+  } else {
+    receivingJourneysEls = null;
+  }
+
   return (
     <DashboardContent>
       <Stack
@@ -117,17 +145,10 @@ export default function Broadcast() {
         spacing={3}
       >
         <Typography variant="h4">Create Broadcast</Typography>
-        <Typography
-          sx={{
-            backgroundColor: theme.palette.grey[200],
-            p: 2,
-            borderRadius: 1,
-          }}
-          variant="subtitle2"
-        >
+        <InfoBox>
           Broadcast to a Segment. Broadcasts are a way to manually trigger
           journeys which have a given segment as their entry criteria.
-        </Typography>
+        </InfoBox>
         <Box sx={{ minWidth: "30%" }}>
           <FormControl fullWidth>
             <InputLabel>Broadcast Segment</InputLabel>
@@ -144,6 +165,15 @@ export default function Broadcast() {
             </Select>
           </FormControl>
         </Box>
+        <Stack direction="row" alignItems="center" spacing={4}>
+          <LoadingButton
+            disabled={receivingJourneys.length === 0}
+            variant="contained"
+          >
+            Broadcast
+          </LoadingButton>
+          {receivingJourneysEls}
+        </Stack>
       </Stack>
     </DashboardContent>
   );
