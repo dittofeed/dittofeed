@@ -147,7 +147,6 @@ export default function Broadcast() {
 
   const workspace = useAppStore((store) => store.workspace);
   const wasBroadcastCreated = editedBroadcast?.createdAt !== undefined;
-  console.log("editedBroadcast", editedBroadcast);
 
   const handleSubmit = useMemo(() => {
     if (
