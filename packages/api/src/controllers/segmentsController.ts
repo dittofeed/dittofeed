@@ -139,6 +139,13 @@ export default async function segmentsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const { id, name, workspaceId, segmentId } = request.body;
 
+      await submitBroadcast({
+        workspaceId,
+        segmentId,
+        broadcastId: id,
+        broadcastName: name,
+      });
+
       const broadcast = await prisma().broadcast.upsert({
         where: {
           id,
@@ -146,18 +153,12 @@ export default async function segmentsController(fastify: FastifyInstance) {
         create: {
           name,
           segmentId,
+          status: "Successful",
           workspaceId,
           id,
           triggeredAt: new Date(),
         },
         update: {},
-      });
-
-      await submitBroadcast({
-        workspaceId,
-        segmentId,
-        broadcastId: id,
-        broadcastName: name,
       });
 
       const resource: BroadcastResource = {
