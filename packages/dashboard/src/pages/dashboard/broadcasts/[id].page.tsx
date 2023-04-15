@@ -131,13 +131,15 @@ export default function Broadcast() {
   const setEditedBroadcastName = useAppStore(
     (store) => store.setEditedBroadcastName
   );
+  const setEditedBroadcastSegmentId = useAppStore(
+    (store) => store.setEditedBroadcastSegmentId
+  );
   const editedBroadcast = useAppStore((store) => store.editedBroadcast);
   const setBroadcastUpdateRequest = useAppStore(
     (store) => store.setBroadcastUpdateRequest
   );
   const apiBase = useAppStore((store) => store.apiBase);
   const upsertBroadcast = useAppStore((store) => store.upsertBroadcast);
-  const [segmentId, setSegmentId] = React.useState("");
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
   const workspace = useAppStore((store) => store.workspace);
@@ -146,16 +148,16 @@ export default function Broadcast() {
     if (
       workspace.type !== CompletionStatus.Successful ||
       !id ||
-      !segmentId.length ||
-      !editedBroadcast
+      !editedBroadcast ||
+      !editedBroadcast.segmentId?.length
     ) {
       return;
     }
     const broadcastResource: BroadcastResource = {
       workspaceId: workspace.value.id,
-      name: editedBroadcast?.name,
-      segmentId,
+      name: editedBroadcast.name,
       id,
+      segmentId: editedBroadcast.segmentId,
     };
 
     const broadcastName = editedBroadcast.name;
@@ -183,7 +185,6 @@ export default function Broadcast() {
     editedBroadcast,
     broadcastUpdateRequest,
     id,
-    segmentId,
     setBroadcastUpdateRequest,
     upsertBroadcast,
     workspace,
@@ -204,10 +205,12 @@ export default function Broadcast() {
 
   const receivingJourneys = useMemo(
     () =>
-      journeys.filter((j) =>
-        getSubscribedSegments(j.definition).has(segmentId)
+      journeys.filter(
+        (j) =>
+          editedBroadcast?.segmentId !== undefined &&
+          getSubscribedSegments(j.definition).has(editedBroadcast.segmentId)
       ),
-    [journeys, segmentId]
+    [journeys, editedBroadcast]
   );
 
   if (!editedBroadcast) {
@@ -215,7 +218,7 @@ export default function Broadcast() {
   }
 
   const handleChange = (event: SelectChangeEvent) => {
-    setSegmentId(event.target.value as string);
+    setEditedBroadcastSegmentId(event.target.value as string);
   };
 
   let receivingJourneysEls;
@@ -247,7 +250,7 @@ export default function Broadcast() {
         </List>
       </Box>
     );
-  } else if (segmentId.length) {
+  } else if (editedBroadcast.segmentId?.length) {
     if (segments.length > 0) {
       receivingJourneysEls = (
         <InfoBox>
@@ -301,7 +304,7 @@ export default function Broadcast() {
             <FormControl fullWidth>
               <InputLabel>Broadcast Segment</InputLabel>
               <Select
-                value={segmentId}
+                value={editedBroadcast.segmentId ?? ""}
                 disabled={segments.length === 0}
                 label="Broadcast Segment"
                 onChange={handleChange}

@@ -102,6 +102,7 @@ export interface BroadcastEditorContents {
   broadcastUpdateRequest: EphemeralRequestStatus<Error>;
   setBroadcastUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   setEditedBroadcastName: (name: string) => void;
+  setEditedBroadcastSegmentId: (id: string) => void;
 }
 
 export interface SegmentEditorState {

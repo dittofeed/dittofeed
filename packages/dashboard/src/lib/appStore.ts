@@ -346,6 +346,14 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             state.editedBroadcast.name = name;
             return state;
           }),
+        setEditedBroadcastSegmentId: (segmentId) =>
+          set((state) => {
+            if (!state.editedBroadcast) {
+              return state;
+            }
+            state.editedBroadcast.segmentId = segmentId;
+            return state;
+          }),
         setBroadcastUpdateRequest: (request) =>
           set((state) => {
             state.broadcastUpdateRequest = request;
