@@ -19,6 +19,7 @@ import {
   findAllEnrichedSegments,
   segmentHasBroadcast,
 } from "backend-lib/src/segments";
+import { format } from "date-fns";
 import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
 import {
   BroadcastResource,
@@ -213,6 +214,13 @@ export default function Broadcast() {
     [journeysResult]
   );
 
+  const formattedTriggeredAt = useMemo(() => {
+    if (!editedBroadcast?.triggeredAt) {
+      return null;
+    }
+    return format(new Date(editedBroadcast.triggeredAt), "EEE MMM d h:mm a");
+  }, [editedBroadcast]);
+
   const receivingJourneys = useMemo(
     () =>
       journeys.filter(
@@ -234,9 +242,22 @@ export default function Broadcast() {
   let receivingJourneysEls;
 
   if (receivingJourneys.length) {
+    let title;
+
+    if (editedBroadcast.triggeredAt) {
+      title = (
+        <Typography variant="h5">
+          Journeys Which Received Broadcast At - {formattedTriggeredAt}
+        </Typography>
+      );
+    } else {
+      title = (
+        <Typography variant="h5">Journeys Receiving Broadcast</Typography>
+      );
+    }
     receivingJourneysEls = (
       <Box sx={{ pl: 2 }}>
-        <Typography variant="h5">Journeys Receiving Broadcast</Typography>
+        {title}
         <List sx={{ listStyleType: "disc" }}>
           {receivingJourneys.map((j) => (
             <ListItem
