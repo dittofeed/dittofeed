@@ -25,6 +25,7 @@ import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useMemo } from "react";
+import { validate } from "uuid";
 
 import DashboardContent from "../../../components/dashboardContent";
 import EditableName from "../../../components/editableName";
@@ -37,20 +38,49 @@ import { AppState } from "../../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState
-> = async () => {
-  // Dynamically import to avoid transitively importing backend config at build time.
-
+> = async (ctx) => {
   const workspaceId = backendConfig().defaultWorkspaceId;
   const appState: Partial<AppState> = {};
-  const [workspace, segmentsResult, journeysResult] = await Promise.all([
-    prisma().workspace.findUnique({
-      where: {
-        id: workspaceId,
-      },
-    }),
-    findAllEnrichedSegments(workspaceId),
-    findManyJourneys({ where: { workspaceId } }),
-  ]);
+
+  const id = ctx.params?.id;
+
+  if (typeof id !== "string" || !validate(id)) {
+    return {
+      notFound: true,
+    };
+  }
+
+  const [workspace, broadcast, segmentsResult, journeysResult] =
+    await Promise.all([
+      prisma().workspace.findUnique({
+        where: {
+          id: workspaceId,
+        },
+      }),
+      prisma().broadcast.findUnique({
+        where: {
+          id,
+        },
+      }),
+      findAllEnrichedSegments(workspaceId),
+      findManyJourneys({ where: { workspaceId } }),
+    ]);
+
+  if (broadcast) {
+    appState.editedBroadcast = {
+      workspaceId,
+      id,
+      name: broadcast.name,
+      segmentId: broadcast.segmentId,
+    };
+  } else {
+    appState.editedBroadcast = {
+      workspaceId,
+      id,
+      name: `Broadcast - ${id}`,
+    };
+  }
+
   if (segmentsResult.isOk()) {
     const segments = segmentsResult.value;
     const broadcastSegments = segments.filter((s) =>
@@ -98,6 +128,10 @@ export default function Broadcast() {
   const broadcastUpdateRequest = useAppStore(
     (store) => store.broadcastUpdateRequest
   );
+  const setEditedBroadcastName = useAppStore(
+    (store) => store.setEditedBroadcastName
+  );
+  const editedBroadcast = useAppStore((store) => store.editedBroadcast);
   const setBroadcastUpdateRequest = useAppStore(
     (store) => store.setBroadcastUpdateRequest
   );
@@ -106,23 +140,25 @@ export default function Broadcast() {
   const [segmentId, setSegmentId] = React.useState("");
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
-  const [broadcastName, setBroadcastName] = React.useState(`Broadcast - ${id}`);
   const workspace = useAppStore((store) => store.workspace);
 
   const handleSubmit = useMemo(() => {
     if (
       workspace.type !== CompletionStatus.Successful ||
       !id ||
-      !segmentId.length
+      !segmentId.length ||
+      !editedBroadcast
     ) {
       return;
     }
     const broadcastResource: BroadcastResource = {
       workspaceId: workspace.value.id,
-      name: broadcastName,
+      name: editedBroadcast?.name,
       segmentId,
       id,
     };
+
+    const broadcastName = editedBroadcast.name;
 
     return apiRequestHandlerFactory({
       request: broadcastUpdateRequest,
@@ -135,7 +171,7 @@ export default function Broadcast() {
         `API Error: Failed to submit broadcast ${broadcastName}`,
       requestConfig: {
         method: "PUT",
-        url: `${apiBase}/api/segments/broadcast`,
+        url: `${apiBase}/api/segments/broadcasts`,
         data: broadcastResource,
         headers: {
           "Content-Type": "application/json",
@@ -144,7 +180,7 @@ export default function Broadcast() {
     });
   }, [
     apiBase,
-    broadcastName,
+    editedBroadcast,
     broadcastUpdateRequest,
     id,
     segmentId,
@@ -173,6 +209,10 @@ export default function Broadcast() {
       ),
     [journeys, segmentId]
   );
+
+  if (!editedBroadcast) {
+    return null;
+  }
 
   const handleChange = (event: SelectChangeEvent) => {
     setSegmentId(event.target.value as string);
@@ -224,7 +264,7 @@ export default function Broadcast() {
       );
     }
   } else {
-    receivingJourneysEls = <></>;
+    receivingJourneysEls = null;
   }
 
   return (
@@ -243,8 +283,8 @@ export default function Broadcast() {
           <EditableName
             variant="h6"
             sx={{ minWidth: theme.spacing(52) }}
-            name={broadcastName}
-            onChange={(e) => setBroadcastName(e.target.value)}
+            name={editedBroadcast.name}
+            onChange={(e) => setEditedBroadcastName(e.target.value)}
           />
         </Stack>
         <InfoBox>

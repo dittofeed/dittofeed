@@ -18,6 +18,7 @@ import {
   WorkspaceResource,
 } from "isomorphic-lib/src/types";
 import { Edge, EdgeChange, Node, NodeChange } from "reactflow";
+import { Optional } from "utility-types";
 
 // README: properties get shallowly overridden when merging serverside state
 // into the default client state, see lib/appStore.ts initializeStore. For that
@@ -97,8 +98,10 @@ export interface MessageTemplateIndexContent {
 }
 
 export interface BroadcastEditorContents {
+  editedBroadcast?: Optional<BroadcastResource, "segmentId">;
   broadcastUpdateRequest: EphemeralRequestStatus<Error>;
   setBroadcastUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
+  setEditedBroadcastName: (name: string) => void;
 }
 
 export interface SegmentEditorState {

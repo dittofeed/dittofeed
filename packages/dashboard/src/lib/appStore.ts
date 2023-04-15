@@ -338,6 +338,14 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         broadcastUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
+        setEditedBroadcastName: (name) =>
+          set((state) => {
+            if (!state.editedBroadcast) {
+              return state;
+            }
+            state.editedBroadcast.name = name;
+            return state;
+          }),
         setBroadcastUpdateRequest: (request) =>
           set((state) => {
             state.broadcastUpdateRequest = request;
