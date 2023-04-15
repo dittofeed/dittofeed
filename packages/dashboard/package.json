@@ -29,6 +29,7 @@
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
     "d3-dag": "^0.11.5",
+    "date-fns": "^2.29.3",
     "escape-html": "^1.0.3",
     "fnv1a": "^1.1.1",
     "humanize-duration": "^3.27.3",
@@ -62,6 +63,7 @@
     "@types/uuid": "^9.0.0",
     "eslint": "8.26.0",
     "eslint-config-next": "13.0.0",
-    "typescript": "4.8.4"
+    "typescript": "4.8.4",
+    "utility-types": "^3.10.0"
   }
 }

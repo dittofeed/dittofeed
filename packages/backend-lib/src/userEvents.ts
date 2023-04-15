@@ -244,9 +244,11 @@ export async function submitBroadcast({
   workspaceId,
   segmentId,
   broadcastId,
+  broadcastName,
 }: {
   workspaceId: string;
   broadcastId: string;
+  broadcastName: string;
   segmentId: string;
 }) {
   const tableVersion = await getTableVersion({
@@ -258,6 +260,7 @@ export async function submitBroadcast({
   const timestamp = qb.addQueryValue(new Date().toISOString(), "String");
   const segmentIdParam = qb.addQueryValue(segmentId, "String");
   const broadcastIdParam = qb.addQueryValue(broadcastId, "String");
+  const broadcastNameParam = qb.addQueryValue(broadcastName, "String");
   const eventName = qb.addQueryValue(
     InternalEventType.SegmentBroadcast,
     "String"
@@ -278,6 +281,7 @@ export async function submitBroadcast({
         '"type": "track",' ||
         '"properties": {' ||
           '"segmentId": "' || toString(${segmentIdParam}) || '",' ||
+          '"broadcastName": "' || toString(${broadcastNameParam}) || '",' ||
           '"broadcastId": "' || toString(${broadcastIdParam}) || '"' ||
         '}' ||
       '}' as message_raw

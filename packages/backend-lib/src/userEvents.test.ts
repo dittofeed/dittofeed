@@ -142,6 +142,7 @@ describe("userEvents", () => {
       await submitBroadcast({
         segmentId,
         workspaceId: workspace.id,
+        broadcastName: "my-broadcast",
         broadcastId,
       });
 
@@ -156,15 +157,14 @@ describe("userEvents", () => {
         const properties = JSON.parse(e.properties);
         return properties;
       });
+      const expectedBroadcastProperties = {
+        segmentId,
+        broadcastName: "my-broadcast",
+        broadcastId,
+      };
       expect(eventProperties).toEqual([
-        {
-          segmentId,
-          broadcastId,
-        },
-        {
-          segmentId,
-          broadcastId,
-        },
+        expectedBroadcastProperties,
+        expectedBroadcastProperties,
       ]);
     });
   });
