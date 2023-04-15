@@ -58,17 +58,19 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
-function BroadcastItem({ broadcast }: { broadcast: BroadcastResource }) {
+function Item({ broadcast }: { broadcast: BroadcastResource }) {
   return (
     <ListItem>
-      <ResourceListItemButton href={`/dashboard/broadcasts/${broadcast.id}`}>
+      <ResourceListItemButton
+        href={`/dashboard/subscription-groups/${broadcast.id}`}
+      >
         <ListItemText>{broadcast.name}</ListItemText>
       </ResourceListItemButton>
     </ListItem>
   );
 }
 
-export default function Broadcasts() {
+export default function SubscriptionGroups() {
   const broadcastsResult = useAppStore((store) => store.broadcasts);
   const broadcasts =
     broadcastsResult.type === CompletionStatus.Successful
@@ -86,7 +88,7 @@ export default function Broadcasts() {
         {broadcasts.length ? (
           <ResourceList>
             {broadcasts.map((broadcast) => (
-              <BroadcastItem key={broadcast.id} broadcast={broadcast} />
+              <Item key={broadcast.id} broadcast={broadcast} />
             ))}
           </ResourceList>
         ) : null}
