@@ -1,16 +1,70 @@
 import { AddCircleOutline } from "@mui/icons-material";
-import { IconButton, Stack, Typography } from "@mui/material";
+import {
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemButtonProps,
+  Stack,
+  SxProps,
+  Theme,
+  Typography,
+} from "@mui/material";
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { v4 as uuid } from "uuid";
 
-export function ResourceList({
+export function ResourceListItemButton({
+  sx,
+  href,
+  children,
+}: {
+  sx?: SxProps<Theme>;
+  href: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <ListItemButton
+      LinkComponent={Link}
+      href={href}
+      sx={{
+        border: 1,
+        borderTopLeftRadius: 1,
+        borderBottomLeftRadius: 1,
+        borderColor: "grey.200",
+        ...sx,
+      }}
+    >
+      {children}
+    </ListItemButton>
+  );
+}
+
+export function ResourceList({ children }: { children: React.ReactNode }) {
+  return (
+    <List
+      sx={{
+        width: "100%",
+        bgcolor: "background.paper",
+        borderRadius: 1,
+      }}
+    >
+      {children}
+    </List>
+  );
+}
+
+export function ResourceListContainer({
   children,
   title,
   newItemHref,
 }: {
   children: React.ReactNode;
-  newItemHref: string;
+  newItemHref: (id: string) => string;
   title: string;
 }) {
+  const [newItemId, setNewItemId] = useState(() => uuid());
+  const href = useMemo(() => newItemHref(newItemId), [newItemHref, newItemId]);
+
   return (
     <Stack
       sx={{
@@ -24,7 +78,13 @@ export function ResourceList({
         <Typography sx={{ padding: 1 }} variant="h5">
           {title}
         </Typography>
-        <IconButton LinkComponent={Link} href={newItemHref}>
+        <IconButton
+          LinkComponent={Link}
+          href={href}
+          onClick={() => {
+            setNewItemId(uuid());
+          }}
+        >
           <AddCircleOutline />
         </IconButton>
       </Stack>
