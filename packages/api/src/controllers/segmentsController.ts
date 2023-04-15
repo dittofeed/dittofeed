@@ -10,8 +10,8 @@ import {
   DeleteSegmentResponse,
   SegmentDefinition,
   SegmentResource,
-  UpsertSegmentResource,
   UpsertBroadcastResource,
+  UpsertSegmentResource,
 } from "isomorphic-lib/src/types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
