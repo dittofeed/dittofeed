@@ -21,17 +21,19 @@ export const getServerSideProps: GetServerSideProps<
 
   const workspaceId = backendConfig().defaultWorkspaceId;
   const appState: Partial<AppState> = {};
-  const [workspace, broadcasts] = await Promise.all([
+
+  // const [workspace, broadcasts] = await Promise.all([
+  const [workspace] = await Promise.all([
     prisma().workspace.findUnique({
       where: {
         id: workspaceId,
       },
     }),
-    prisma().broadcast.findMany({
-      where: {
-        workspaceId,
-      },
-    }),
+    // prisma().broadcast.findMany({
+    //   where: {
+    //     workspaceId,
+    //   },
+    // }),
   ]);
   if (workspace) {
     appState.workspace = {
@@ -40,17 +42,17 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  appState.broadcasts = {
-    type: CompletionStatus.Successful,
-    value: broadcasts.map((b) => ({
-      id: b.id,
-      name: b.name,
-      workspaceId: b.workspaceId,
-      triggeredAt: b.triggeredAt?.getTime(),
-      createdAt: b.createdAt.getTime(),
-      segmentId: b.segmentId,
-    })),
-  };
+  // appState.broadcasts = {
+  //   type: CompletionStatus.Successful,
+  //   value: broadcasts.map((b) => ({
+  //     id: b.id,
+  //     name: b.name,
+  //     workspaceId: b.workspaceId,
+  //     triggeredAt: b.triggeredAt?.getTime(),
+  //     createdAt: b.createdAt.getTime(),
+  //     segmentId: b.segmentId,
+  //   })),
+  // };
   return {
     props: addInitialStateToProps({}, appState),
   };
@@ -76,8 +78,10 @@ export default function Broadcasts() {
   return (
     <DashboardContent>
       <ResourceListContainer
-        title="Broadcasts"
-        newItemHref={(newItemId) => `/dashboard/broadcasts/${newItemId}`}
+        title="Subscription Groups"
+        newItemHref={(newItemId) =>
+          `/dashboard/subscription-groups/${newItemId}`
+        }
       >
         {broadcasts.length ? (
           <ResourceList>
