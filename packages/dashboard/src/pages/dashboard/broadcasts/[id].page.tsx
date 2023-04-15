@@ -337,7 +337,7 @@ export default function Broadcast() {
               <InputLabel>Broadcast Segment</InputLabel>
               <Select
                 value={editedBroadcast.segmentId ?? ""}
-                disabled={segments.length === 0}
+                disabled={segments.length === 0 || wasBroadcastCreated}
                 label="Broadcast Segment"
                 onChange={handleSegmentIdChange}
               >
