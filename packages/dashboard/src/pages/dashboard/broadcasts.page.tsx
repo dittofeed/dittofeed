@@ -1,15 +1,14 @@
-import { ListItem, ListItemButton } from "@mui/material";
+import { ListItem, ListItemButton, ListItemText } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
 import { BroadcastResource, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
-import { useMemo } from "react";
-import { v4 as uuid } from "uuid";
 
 import DashboardContent from "../../components/dashboardContent";
 import {
   ResourceList,
   ResourceListContainer,
+  ResourceListItemButton,
 } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { PropsWithInitialState, useAppStore } from "../../lib/appStore";
@@ -42,7 +41,6 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  console.log({ broadcasts });
   appState.broadcasts = {
     type: CompletionStatus.Successful,
     value: broadcasts.map((b) => ({
@@ -60,22 +58,16 @@ export const getServerSideProps: GetServerSideProps<
 };
 
 function BroadcastItem({ broadcast }: { broadcast: BroadcastResource }) {
-  // xt-dev.js:20 Warning: Prop `href` did not match. Server: "/dashboard/broadcasts/63f6a26e-30e7-4a3a-b463-fc3c7f68b594" Client: "/dashboard/broadcasts/a5c53620-1539-4c87-a063-2fe3d27957e3"
-
   return (
-    <ListItem divider>
-      <ListItemButton
-        LinkComponent={Link}
-        href={`/dashboard/broadcasts/${broadcast.id}`}
-      >
-        {broadcast.name}
-      </ListItemButton>
+    <ListItem>
+      <ResourceListItemButton href={`/dashboard/broadcasts/${broadcast.id}`}>
+        <ListItemText>{broadcast.name}</ListItemText>
+      </ResourceListItemButton>
     </ListItem>
   );
 }
 
 export default function Broadcasts() {
-  const newItemId = useMemo(() => uuid(), []);
   const broadcastsResult = useAppStore((store) => store.broadcasts);
   const broadcasts =
     broadcastsResult.type === CompletionStatus.Successful
@@ -86,7 +78,7 @@ export default function Broadcasts() {
     <DashboardContent>
       <ResourceListContainer
         title="Broadcasts"
-        newItemHref={`/dashboard/broadcasts/${newItemId}`}
+        newItemHref={(newItemId) => `/dashboard/broadcasts/${newItemId}`}
       >
         {broadcasts.length ? (
           <ResourceList>
