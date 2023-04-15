@@ -313,7 +313,9 @@ export default function Broadcast() {
           sx={{ alignItems: "center", width: "100%" }}
           spacing={2}
         >
-          <Typography variant="h4">Submit a Broadcast</Typography>
+          <Typography variant="h4">
+            {wasBroadcastCreated ? "Submitted Broadcast" : "Submit a Broadcast"}
+          </Typography>
           <EditableName
             variant="h6"
             sx={{ minWidth: theme.spacing(52) }}
