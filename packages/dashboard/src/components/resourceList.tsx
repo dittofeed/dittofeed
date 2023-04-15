@@ -1,8 +1,22 @@
 import { AddCircleOutline } from "@mui/icons-material";
-import { IconButton, Stack, Typography } from "@mui/material";
+import { IconButton, List, Stack, Typography } from "@mui/material";
 import Link from "next/link";
 
-export function ResourceList({
+export function ResourceList({ children }: { children: React.ReactNode }) {
+  return (
+    <List
+      sx={{
+        width: "100%",
+        bgcolor: "background.paper",
+        borderRadius: 1,
+      }}
+    >
+      {children}
+    </List>
+  );
+}
+
+export function ResourceListContainer({
   children,
   title,
   newItemHref,
