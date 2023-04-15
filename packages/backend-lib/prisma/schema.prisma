@@ -26,6 +26,7 @@ model Workspace {
   UserPropertyAssignment UserPropertyAssignment[]
   SegmentAssignment      SegmentAssignment[]
   Broadcast              Broadcast[]
+  SubscriptionGroup      SubscriptionGroup?
 }
 
 model Segment {
@@ -188,4 +189,22 @@ model UserJourneyEvent {
   createdAt        DateTime @default(now())
 
   @@unique([journeyId, userId, type, journeyStartedAt])
+}
+
+enum SubscriptionGroupType {
+  OptIn
+  OptOut
+}
+
+model SubscriptionGroup {
+  id          String                @id() @default(uuid()) @db.Uuid
+  workspace   Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String                @db.Uuid
+  name        String
+  type        SubscriptionGroupType
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@unique([workspaceId])
+  @@unique([workspaceId, name])
 }
