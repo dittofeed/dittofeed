@@ -11,6 +11,7 @@ import {
   SegmentDefinition,
   SegmentResource,
   UpsertSegmentResource,
+  UpsertBroadcastResource,
 } from "isomorphic-lib/src/types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -130,7 +131,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Submit a broadcast for a segment.",
-        body: BroadcastResource,
+        body: UpsertBroadcastResource,
         response: {
           200: BroadcastResource,
         },
@@ -166,6 +167,10 @@ export default async function segmentsController(fastify: FastifyInstance) {
         id: broadcast.id,
         name: broadcast.name,
         segmentId: broadcast.segmentId,
+        triggeredAt: broadcast.triggeredAt
+          ? broadcast.triggeredAt.getTime()
+          : undefined,
+        createdAt: broadcast.createdAt.getTime(),
       };
       return reply.status(200).send(resource);
     }

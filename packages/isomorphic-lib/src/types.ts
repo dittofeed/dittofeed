@@ -382,9 +382,18 @@ export const BroadcastResource = Type.Object({
   workspaceId: Type.String(),
   name: Type.String(),
   segmentId: Type.String(),
+  createdAt: Type.Number(),
+  triggeredAt: Type.Optional(Type.Number()),
 });
 
 export type BroadcastResource = Static<typeof BroadcastResource>;
+
+export const UpsertBroadcastResource = Type.Omit(BroadcastResource, [
+  "createdAt",
+  "triggeredAt",
+]);
+
+export type UpsertBroadcastResource = Static<typeof UpsertBroadcastResource>;
 
 export const UpsertSegmentResource = Type.Intersect([
   Type.Omit(Type.Partial(SegmentResource), ["id"]),

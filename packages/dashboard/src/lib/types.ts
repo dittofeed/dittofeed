@@ -97,12 +97,16 @@ export interface MessageTemplateIndexContent {
   ) => void;
 }
 
+export type EditedBroadcast = Optional<
+  BroadcastResource,
+  "segmentId" | "triggeredAt" | "createdAt"
+>;
+
 export interface BroadcastEditorContents {
-  editedBroadcast?: Optional<BroadcastResource, "segmentId">;
+  editedBroadcast: EditedBroadcast | null;
   broadcastUpdateRequest: EphemeralRequestStatus<Error>;
   setBroadcastUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
-  setEditedBroadcastName: (name: string) => void;
-  setEditedBroadcastSegmentId: (id: string) => void;
+  updateEditedBroadcast: (broadcast: Partial<BroadcastResource>) => void;
 }
 
 export interface SegmentEditorState {

@@ -20,7 +20,11 @@ import {
   segmentHasBroadcast,
 } from "backend-lib/src/segments";
 import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
-import { BroadcastResource, CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  BroadcastResource,
+  CompletionStatus,
+  UpsertBroadcastResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -72,6 +76,8 @@ export const getServerSideProps: GetServerSideProps<
       id,
       name: broadcast.name,
       segmentId: broadcast.segmentId,
+      createdAt: broadcast.createdAt.getTime(),
+      triggeredAt: broadcast.triggeredAt?.getTime(),
     };
   } else {
     appState.editedBroadcast = {
@@ -128,11 +134,8 @@ export default function Broadcast() {
   const broadcastUpdateRequest = useAppStore(
     (store) => store.broadcastUpdateRequest
   );
-  const setEditedBroadcastName = useAppStore(
-    (store) => store.setEditedBroadcastName
-  );
-  const setEditedBroadcastSegmentId = useAppStore(
-    (store) => store.setEditedBroadcastSegmentId
+  const updateEditedBroadcast = useAppStore(
+    (store) => store.updateEditedBroadcast
   );
   const editedBroadcast = useAppStore((store) => store.editedBroadcast);
   const setBroadcastUpdateRequest = useAppStore(
@@ -143,17 +146,20 @@ export default function Broadcast() {
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
   const workspace = useAppStore((store) => store.workspace);
+  const wasBroadcastCreated = editedBroadcast?.createdAt !== undefined;
+  console.log("editedBroadcast", editedBroadcast);
 
   const handleSubmit = useMemo(() => {
     if (
       workspace.type !== CompletionStatus.Successful ||
       !id ||
       !editedBroadcast ||
-      !editedBroadcast.segmentId?.length
+      !editedBroadcast.segmentId?.length ||
+      wasBroadcastCreated
     ) {
       return;
     }
-    const broadcastResource: BroadcastResource = {
+    const broadcastResource: UpsertBroadcastResource = {
       workspaceId: workspace.value.id,
       name: editedBroadcast.name,
       id,
@@ -166,8 +172,11 @@ export default function Broadcast() {
       request: broadcastUpdateRequest,
       setRequest: setBroadcastUpdateRequest,
       responseSchema: BroadcastResource,
-      setResponse: upsertBroadcast,
-      // FIXME redirect on completion
+      setResponse: (broadcast) => {
+        upsertBroadcast(broadcast);
+        updateEditedBroadcast(broadcast);
+      },
+      // TODO redirect on completion
       onSuccessNotice: `Submitted broadcast ${broadcastName}`,
       onFailureNoticeHandler: () =>
         `API Error: Failed to submit broadcast ${broadcastName}`,
@@ -184,7 +193,9 @@ export default function Broadcast() {
     apiBase,
     editedBroadcast,
     broadcastUpdateRequest,
+    wasBroadcastCreated,
     id,
+    updateEditedBroadcast,
     setBroadcastUpdateRequest,
     upsertBroadcast,
     workspace,
@@ -217,8 +228,8 @@ export default function Broadcast() {
     return null;
   }
 
-  const handleChange = (event: SelectChangeEvent) => {
-    setEditedBroadcastSegmentId(event.target.value as string);
+  const handleSegmentIdChange = (event: SelectChangeEvent) => {
+    updateEditedBroadcast({ segmentId: event.target.value as string });
   };
 
   let receivingJourneysEls;
@@ -287,7 +298,8 @@ export default function Broadcast() {
             variant="h6"
             sx={{ minWidth: theme.spacing(52) }}
             name={editedBroadcast.name}
-            onChange={(e) => setEditedBroadcastName(e.target.value)}
+            disabled={wasBroadcastCreated}
+            onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
           />
         </Stack>
         <InfoBox>
@@ -307,7 +319,7 @@ export default function Broadcast() {
                 value={editedBroadcast.segmentId ?? ""}
                 disabled={segments.length === 0}
                 label="Broadcast Segment"
-                onChange={handleChange}
+                onChange={handleSegmentIdChange}
               >
                 {segments.map((s) => (
                   <MenuItem value={s.id} key={s.id}>
@@ -322,7 +334,7 @@ export default function Broadcast() {
             loading={
               broadcastUpdateRequest.type === CompletionStatus.InProgress
             }
-            disabled={receivingJourneys.length === 0}
+            disabled={receivingJourneys.length === 0 || wasBroadcastCreated}
             variant="contained"
           >
             Broadcast

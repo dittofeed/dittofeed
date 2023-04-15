@@ -1,4 +1,5 @@
 import {
+  BroadcastResource,
   CompletionStatus,
   SegmentDefinition,
   SegmentNode,
@@ -12,7 +13,7 @@ import createContext from "zustand/context";
 import { immer } from "zustand/middleware/immer";
 
 import { createJourneySlice } from "../components/journeys/store";
-import { AppActions, AppState } from "./types";
+import { AppActions, AppState, EditedBroadcast } from "./types";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();
@@ -338,20 +339,17 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         broadcastUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
-        setEditedBroadcastName: (name) =>
+        editedBroadcast: null,
+        updateEditedBroadcast: (updatedBroadcast) =>
           set((state) => {
             if (!state.editedBroadcast) {
               return state;
             }
-            state.editedBroadcast.name = name;
-            return state;
-          }),
-        setEditedBroadcastSegmentId: (segmentId) =>
-          set((state) => {
-            if (!state.editedBroadcast) {
-              return state;
-            }
-            state.editedBroadcast.segmentId = segmentId;
+
+            state.editedBroadcast = {
+              ...state.editedBroadcast,
+              ...updatedBroadcast,
+            };
             return state;
           }),
         setBroadcastUpdateRequest: (request) =>

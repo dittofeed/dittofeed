@@ -12,10 +12,12 @@ import { useState } from "react";
 export default function EditableName({
   name,
   variant,
+  disabled = false,
   sx,
   onChange,
 }: {
   name: string;
+  disabled?: boolean;
   sx?: SxProps<Theme>;
   variant?: React.ComponentProps<typeof Typography>["variant"];
   onChange: React.ComponentProps<typeof TextField>["onChange"];
@@ -33,6 +35,7 @@ export default function EditableName({
         },
         ...sx,
       }}
+      disabled={disabled}
       value={name}
       onChange={onChange}
       onBlur={() => setIsNamedFocused(false)}
@@ -48,12 +51,15 @@ export default function EditableName({
         sx={sx}
         variant={variant ?? "h4"}
         onClick={() => {
-          setIsNamedFocused(true);
+          if (!disabled) {
+            setIsNamedFocused(true);
+          }
         }}
       >
         {name}
       </Typography>
       <IconButton
+        disabled={disabled}
         onClick={() => {
           setIsNamedFocused(true);
         }}
