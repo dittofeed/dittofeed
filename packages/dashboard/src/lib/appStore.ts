@@ -1,4 +1,5 @@
 import {
+  BroadcastResource,
   CompletionStatus,
   SegmentDefinition,
   SegmentNode,
@@ -12,7 +13,7 @@ import createContext from "zustand/context";
 import { immer } from "zustand/middleware/immer";
 
 import { createJourneySlice } from "../components/journeys/store";
-import { AppActions, AppState } from "./types";
+import { AppActions, AppState, EditedBroadcast } from "./types";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();
@@ -328,6 +329,51 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setUserPropertyDeleteRequest: (request) =>
           set((state) => {
             state.userPropertyDeleteRequest = request;
+          }),
+
+        // broadcast update view
+
+        broadcasts: {
+          type: CompletionStatus.NotStarted,
+        },
+        broadcastUpdateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+        editedBroadcast: null,
+        updateEditedBroadcast: (updatedBroadcast) =>
+          set((state) => {
+            if (!state.editedBroadcast) {
+              return state;
+            }
+
+            state.editedBroadcast = {
+              ...state.editedBroadcast,
+              ...updatedBroadcast,
+            };
+            return state;
+          }),
+        setBroadcastUpdateRequest: (request) =>
+          set((state) => {
+            state.broadcastUpdateRequest = request;
+          }),
+        upsertBroadcast: (broadcast) =>
+          set((state) => {
+            let { broadcasts } = state;
+            if (broadcasts.type !== CompletionStatus.Successful) {
+              broadcasts = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.broadcasts = broadcasts;
+            }
+            for (const existing of broadcasts.value) {
+              if (broadcast.id === existing.id) {
+                Object.assign(existing, broadcast);
+                return state;
+              }
+            }
+            broadcasts.value.push(broadcast);
+            return state;
           }),
 
         // user property update view

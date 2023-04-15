@@ -10,6 +10,7 @@ import {
   DeleteSegmentResponse,
   SegmentDefinition,
   SegmentResource,
+  UpsertBroadcastResource,
   UpsertSegmentResource,
 } from "isomorphic-lib/src/types";
 
@@ -126,79 +127,11 @@ export default async function segmentsController(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
-    "/",
-    {
-      schema: {
-        description: "Create or update a user segment.",
-
-        body: UpsertSegmentResource,
-        response: {
-          200: SegmentResource,
-        },
-      },
-    },
-    async (request, reply) => {
-      let segment: Segment;
-      const { id, name, definition, workspaceId } = request.body;
-
-      const canCreate = workspaceId && name && definition;
-
-      if (canCreate && id) {
-        segment = await prisma().segment.upsert({
-          where: {
-            id,
-          },
-          create: {
-            id,
-            workspaceId,
-            name,
-            definition,
-          },
-          update: {
-            workspaceId,
-            name,
-            definition,
-          },
-        });
-      } else {
-        segment = await prisma().segment.update({
-          where: {
-            id,
-          },
-          data: {
-            workspaceId,
-            name,
-            definition,
-          },
-        });
-      }
-
-      const segmentDefinitionResult = schemaValidate(
-        segment.definition,
-        SegmentDefinition
-      );
-
-      if (segmentDefinitionResult.isErr()) {
-        // TODO add logging
-        return reply.status(500).send();
-      }
-      const resource: SegmentResource = {
-        id: segment.id,
-        name: segment.name,
-        workspaceId: segment.workspaceId,
-        definition: segmentDefinitionResult.value,
-      };
-
-      return reply.status(200).send(resource);
-    }
-  );
-
-  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/broadcasts",
     {
       schema: {
         description: "Submit a broadcast for a segment.",
-        body: BroadcastResource,
+        body: UpsertBroadcastResource,
         response: {
           200: BroadcastResource,
         },
@@ -207,6 +140,13 @@ export default async function segmentsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const { id, name, workspaceId, segmentId } = request.body;
 
+      await submitBroadcast({
+        workspaceId,
+        segmentId,
+        broadcastId: id,
+        broadcastName: name,
+      });
+
       const broadcast = await prisma().broadcast.upsert({
         where: {
           id,
@@ -214,6 +154,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
         create: {
           name,
           segmentId,
+          status: "Successful",
           workspaceId,
           id,
           triggeredAt: new Date(),
@@ -221,13 +162,15 @@ export default async function segmentsController(fastify: FastifyInstance) {
         update: {},
       });
 
-      await submitBroadcast({ workspaceId, segmentId, broadcastId: id });
-
       const resource: BroadcastResource = {
         workspaceId: broadcast.workspaceId,
         id: broadcast.id,
         name: broadcast.name,
         segmentId: broadcast.segmentId,
+        triggeredAt: broadcast.triggeredAt
+          ? broadcast.triggeredAt.getTime()
+          : undefined,
+        createdAt: broadcast.createdAt.getTime(),
       };
       return reply.status(200).send(resource);
     }

@@ -1,5 +1,6 @@
 import { Draft } from "immer";
 import {
+  BroadcastResource,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
   EphemeralRequestStatus,
@@ -17,6 +18,7 @@ import {
   WorkspaceResource,
 } from "isomorphic-lib/src/types";
 import { Edge, EdgeChange, Node, NodeChange } from "reactflow";
+import { Optional } from "utility-types";
 
 // README: properties get shallowly overridden when merging serverside state
 // into the default client state, see lib/appStore.ts initializeStore. For that
@@ -26,6 +28,7 @@ export type AppState = {
   workspace: RequestStatus<WorkspaceResource, Error>;
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
+  broadcasts: RequestStatus<BroadcastResource[], Error>;
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   journeys: RequestStatus<JourneyResource[], Error>;
@@ -50,6 +53,7 @@ export interface AppActions {
     dataSource: DataSourceConfigurationResource
   ) => void;
   upsertMessage: (message: MessageTemplateResource) => void;
+  upsertBroadcast: (message: BroadcastResource) => void;
   deleteMessage: (id: string) => void;
   upsertSegment: (segment: SegmentResource) => void;
   deleteSegment: (segmentId: string) => void;
@@ -91,6 +95,18 @@ export interface MessageTemplateIndexContent {
   setMessageTemplateDeleteRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
+}
+
+export type EditedBroadcast = Optional<
+  BroadcastResource,
+  "segmentId" | "triggeredAt" | "createdAt"
+>;
+
+export interface BroadcastEditorContents {
+  editedBroadcast: EditedBroadcast | null;
+  broadcastUpdateRequest: EphemeralRequestStatus<Error>;
+  setBroadcastUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
+  updateEditedBroadcast: (broadcast: Partial<BroadcastResource>) => void;
 }
 
 export interface SegmentEditorState {
@@ -172,7 +188,8 @@ export type PageStoreContents = EmailMessageEditorContents &
   JourneyIndexContent &
   MessageTemplateIndexContent &
   UserPropertyEditorContent &
-  JourneyContent;
+  JourneyContent &
+  BroadcastEditorContents;
 
 export interface EntryNodeProps {
   type: JourneyNodeType.EntryNode;
