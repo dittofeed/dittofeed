@@ -5,17 +5,29 @@ import Tabs from "@mui/material/Tabs";
 import DashboardContent from "../../../components/dashboardContent";
 import TabLink from "../../../components/tabLink";
 
+export enum SubscriptionGroupTabLabel {
+  Configure = "Configure",
+  Users = "Users",
+  Upload = "Upload",
+}
+
+const TabToIndex: Record<SubscriptionGroupTabLabel, number> = {
+  [SubscriptionGroupTabLabel.Configure]: 0,
+  [SubscriptionGroupTabLabel.Users]: 1,
+  [SubscriptionGroupTabLabel.Upload]: 2,
+};
+
 export default function SubscriptionGroupLayout({
   children,
-  segmentId,
+  id,
   tab,
 }: {
-  segmentId: string;
-  tab: "configure" | "users";
+  id: string;
+  tab: SubscriptionGroupTabLabel;
   children?: React.ReactNode;
 }) {
-  const basePath = `/dashboard/subscription-groups/${segmentId}`;
-  const tabValue = tab === "configure" ? 0 : 1;
+  const basePath = `/dashboard/subscription-groups/${id}`;
+  const tabValue = TabToIndex[tab];
 
   return (
     <DashboardContent>
@@ -24,6 +36,7 @@ export default function SubscriptionGroupLayout({
           <Tabs value={tabValue}>
             <TabLink label="Configure" href={basePath} index={0} />
             <TabLink label="Users" href={`${basePath}/users`} index={1} />
+            <TabLink label="Upload" href={`${basePath}/upload`} index={2} />
           </Tabs>
         </Box>
         <Box>{children}</Box>

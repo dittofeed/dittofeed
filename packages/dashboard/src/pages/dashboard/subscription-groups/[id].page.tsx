@@ -1,13 +1,8 @@
-import { LoadingButton } from "@mui/lab";
 import {
   Box,
-  FormControl,
-  InputLabel,
   List,
   ListItem,
   ListItemButton,
-  MenuItem,
-  Select,
   SelectChangeEvent,
   Stack,
   Typography,
@@ -32,7 +27,7 @@ import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 import { validate } from "uuid";
 
-import DashboardContent from "../../../components/dashboardContent";
+import { BulletList, BulletListItem } from "../../../components/bulletList";
 import EditableName from "../../../components/editableName";
 import InfoBox from "../../../components/infoBox";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
@@ -40,6 +35,9 @@ import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { PropsWithInitialState, useAppStore } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
 import { AppState } from "../../../lib/types";
+import SubscriptionGroupLayout, {
+  SubscriptionGroupTabLabel,
+} from "./subscriptionGroupLayout.page";
 
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState
@@ -301,8 +299,12 @@ export default function Broadcast() {
     receivingJourneysEls = null;
   }
 
+  if (!id) {
+    return null;
+  }
+
   return (
-    <DashboardContent>
+    <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Configure} id={id}>
       <Stack
         direction="column"
         sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
@@ -323,45 +325,19 @@ export default function Broadcast() {
           />
         </Stack>
         <InfoBox>
-          Broadcast to a Segment. Broadcasts are a way to manually trigger
-          journeys which have a given segment as their entry criteria.
+          Subscription groups define a group of users who are eligible to
+          receive a set of messages. They are useful for:
+          <BulletList sx={{ p: 1 }} dense disablePadding>
+            <BulletListItem>
+              Building hand curated lists of users to message.
+            </BulletListItem>
+            <BulletListItem>
+              Providing users with the option to opt in and out of your
+              messaging.
+            </BulletListItem>
+          </BulletList>
         </InfoBox>
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={4}
-          sx={{ width: "100%" }}
-        >
-          <Box sx={{ minWidth: "30%" }}>
-            <FormControl fullWidth>
-              <InputLabel>Broadcast Segment</InputLabel>
-              <Select
-                value={editedBroadcast.segmentId ?? ""}
-                disabled={segments.length === 0 || wasBroadcastCreated}
-                label="Broadcast Segment"
-                onChange={handleSegmentIdChange}
-              >
-                {segments.map((s) => (
-                  <MenuItem value={s.id} key={s.id}>
-                    {s.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-          <LoadingButton
-            onClick={handleSubmit}
-            loading={
-              broadcastUpdateRequest.type === CompletionStatus.InProgress
-            }
-            disabled={receivingJourneys.length === 0 || wasBroadcastCreated}
-            variant="contained"
-          >
-            Broadcast
-          </LoadingButton>
-        </Stack>
-        {receivingJourneysEls}
       </Stack>
-    </DashboardContent>
+    </SubscriptionGroupLayout>
   );
 }

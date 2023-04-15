@@ -3,8 +3,6 @@ import {
   Box,
   FormControl,
   InputLabel,
-  List,
-  ListItem,
   ListItemButton,
   MenuItem,
   Select,
@@ -32,6 +30,7 @@ import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 import { validate } from "uuid";
 
+import { BulletList, BulletListItem } from "../../../components/bulletList";
 import DashboardContent from "../../../components/dashboardContent";
 import EditableName from "../../../components/editableName";
 import InfoBox from "../../../components/infoBox";
@@ -258,9 +257,9 @@ export default function Broadcast() {
     receivingJourneysEls = (
       <Box sx={{ pl: 2 }}>
         {title}
-        <List sx={{ listStyleType: "disc" }}>
+        <BulletList>
           {receivingJourneys.map((j) => (
-            <ListItem
+            <BulletListItem
               key={j.id}
               sx={{
                 display: "list-item",
@@ -276,9 +275,9 @@ export default function Broadcast() {
               >
                 {j.name}
               </ListItemButton>
-            </ListItem>
+            </BulletListItem>
           ))}
-        </List>
+        </BulletList>
       </Box>
     );
   } else if (editedBroadcast.segmentId?.length) {
