@@ -1,27 +1,10 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import Head from "next/head";
-import Link from "next/link";
 
 import MainLayout from "../../../../components/mainLayout";
-
-function TabLink({
-  href,
-  label,
-  index,
-}: {
-  href: string;
-  label: string;
-  index: number;
-}) {
-  return (
-    <Link href={href} passHref>
-      <Tab label={label} tabIndex={index} />
-    </Link>
-  );
-}
+import TabLink from "../../../../components/tabLink";
 
 export default function SegmentLayout({
   children,
