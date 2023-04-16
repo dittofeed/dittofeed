@@ -5,18 +5,33 @@ import {
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { Resource } from "@opentelemetry/resources";
-import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
+import {
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
 import config from "./config";
 import logger from "./logger";
+import { Meter } from "@opentelemetry/api";
 
 export interface OpenTelemetry {
   sdk: NodeSDK;
   resource: Resource;
   traceExporter: OTLPTraceExporter;
   start: () => Promise<void>;
+}
+
+let METER: Meter | null = null;
+
+export function getMeter() {
+  if (!METER) {
+    throw new Error(
+      "Must init opentelemetry before accessing meter provider before"
+    );
+  }
+  return METER;
 }
 
 export function initOpenTelemetry({
@@ -36,11 +51,15 @@ export function initOpenTelemetry({
   const metricExporter = new OTLPMetricExporter({
     url: otelCollector,
   });
+  const meterProvider = new MeterProvider();
+  METER = meterProvider.getMeter(serviceName);
 
   const metricReader = new PeriodicExportingMetricReader({
     exportIntervalMillis: 10_000,
     exporter: metricExporter,
   });
+
+  meterProvider.addMetricReader(metricReader);
 
   const sdk = new NodeSDK({
     resource,

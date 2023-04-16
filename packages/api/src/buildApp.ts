@@ -9,6 +9,7 @@ import { OpenAPIV3_1 } from "openapi-types";
 import cors from "./buildApp/cors";
 import router from "./buildApp/router";
 import config from "./config";
+import apiMetrics from "./buildApp/apiMetrics";
 
 async function buildApp() {
   const fastifyLogger = logger();
@@ -58,6 +59,7 @@ async function buildApp() {
   await Promise.all([
     server.register(router),
     server.register(cors),
+    server.register(apiMetrics),
     server.register(fastifySwaggerUI, {
       routePrefix: "/documentation",
       staticCSP: true,
