@@ -178,6 +178,7 @@ model SegmentIOConfiguration {
   @@unique([workspaceId])
 }
 
+// TODO add workspace id
 model UserJourneyEvent {
   id               String   @id() @default(uuid()) @db.Uuid
   userId           String

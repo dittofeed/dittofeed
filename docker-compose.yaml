@@ -181,6 +181,7 @@ services:
     ports:
       - "9091:3000"
     volumes:
+      - ./grafana-datasource-prometheus.yaml:/etc/grafana/provisioning/datasources/grafana-datasource-prometheus.yaml
       - grafana-storage:/var/lib/grafana
     networks:
       - dittofeed-network-dev
