@@ -1,12 +1,12 @@
 -- CreateEnum
-CREATE TYPE "SubscriptionGroupType" AS ENUM ('OptIn', 'OptOut');
+CREATE TYPE "DBSubscriptionGroupType" AS ENUM ('OptIn', 'OptOut');
 
 -- CreateTable
 CREATE TABLE "SubscriptionGroup" (
     "id" UUID NOT NULL,
     "workspaceId" UUID NOT NULL,
     "name" TEXT NOT NULL,
-    "type" "SubscriptionGroupType" NOT NULL,
+    "type" "DBSubscriptionGroupType" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

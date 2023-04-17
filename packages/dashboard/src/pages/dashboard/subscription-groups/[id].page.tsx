@@ -1,28 +1,14 @@
-import {
-  Box,
-  List,
-  ListItem,
-  ListItemButton,
-  SelectChangeEvent,
-  Stack,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { LoadingButton } from "@mui/lab";
+import { Stack, Typography, useTheme } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
-import { findManyJourneys } from "backend-lib/src/journeys";
+import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import {
-  findAllEnrichedSegments,
-  segmentHasBroadcast,
-} from "backend-lib/src/segments";
-import { format } from "date-fns";
-import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
-import {
-  BroadcastResource,
   CompletionStatus,
-  UpsertBroadcastResource,
+  SubscriptionGroupResource,
+  SubscriptionGroupType,
+  UpsertSubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 import { validate } from "uuid";
@@ -38,7 +24,6 @@ import { AppState } from "../../../lib/types";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,
 } from "./subscriptionGroupLayout.page";
-import { LoadingButton } from "@mui/lab";
 
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState
@@ -54,67 +39,31 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  const [workspace, broadcast, segmentsResult, journeysResult] =
-    await Promise.all([
-      prisma().workspace.findUnique({
-        where: {
-          id: workspaceId,
-        },
-      }),
-      prisma().broadcast.findUnique({
-        where: {
-          id,
-        },
-      }),
-      findAllEnrichedSegments(workspaceId),
-      findManyJourneys({ where: { workspaceId } }),
-    ]);
+  const [workspace, subscriptionGroup] = await Promise.all([
+    prisma().workspace.findUnique({
+      where: {
+        id: workspaceId,
+      },
+    }),
+    prisma().subscriptionGroup.findUnique({
+      where: {
+        id,
+      },
+    }),
+  ]);
 
-  if (broadcast) {
-    appState.editedBroadcast = {
-      workspaceId,
-      id,
-      name: broadcast.name,
-      segmentId: broadcast.segmentId,
-      createdAt: broadcast.createdAt.getTime(),
-      triggeredAt: broadcast.triggeredAt?.getTime(),
-    };
+  if (subscriptionGroup) {
+    appState.editedSubscriptionGroup =
+      subscriptionGroupToResource(subscriptionGroup);
   } else {
-    appState.editedBroadcast = {
+    appState.editedSubscriptionGroup = {
       workspaceId,
       id,
-      name: `Broadcast - ${id}`,
+      name: `Subscription Group - ${id}`,
+      type: SubscriptionGroupType.OptIn,
     };
   }
 
-  if (segmentsResult.isOk()) {
-    const segments = segmentsResult.value;
-    const broadcastSegments = segments.filter((s) =>
-      segmentHasBroadcast(s.definition)
-    );
-    appState.segments = {
-      type: CompletionStatus.Successful,
-      value: broadcastSegments,
-    };
-
-    if (journeysResult.isOk()) {
-      const journeysWithBroadcast = journeysResult.value.filter((j) => {
-        const subscribedSegments = getSubscribedSegments(j.definition);
-        for (const broadcastSegment of broadcastSegments) {
-          if (subscribedSegments.has(broadcastSegment.id)) {
-            return true;
-          }
-        }
-
-        return false;
-      });
-
-      appState.journeys = {
-        type: CompletionStatus.Successful,
-        value: journeysWithBroadcast,
-      };
-    }
-  }
   if (workspace) {
     appState.workspace = {
       type: CompletionStatus.Successful,
@@ -126,178 +75,80 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
-export default function Broadcast() {
-  const segmentsResult = useAppStore((store) => store.segments);
-  const journeysResult = useAppStore((store) => store.journeys);
+export default function SubscriptionGroupConfig() {
   const theme = useTheme();
   const path = useRouter();
-  const broadcastUpdateRequest = useAppStore(
-    (store) => store.broadcastUpdateRequest
+  const subscriptionGroupUpdateRequest = useAppStore(
+    (store) => store.subscriptionGroupUpdateRequest
   );
-  const updateEditedBroadcast = useAppStore(
-    (store) => store.updateEditedBroadcast
+  const updateEditedSubscriptionGroup = useAppStore(
+    (store) => store.updateEditedSubscriptionGroup
   );
-  const editedBroadcast = useAppStore((store) => store.editedBroadcast);
-  const setBroadcastUpdateRequest = useAppStore(
-    (store) => store.setBroadcastUpdateRequest
+  const editedSubscriptionGroup = useAppStore(
+    (store) => store.editedSubscriptionGroup
+  );
+  const setSubscriptionGroupUpdateRequest = useAppStore(
+    (store) => store.setSubscriptionGroupUpdateRequest
   );
   const apiBase = useAppStore((store) => store.apiBase);
-  const upsertBroadcast = useAppStore((store) => store.upsertBroadcast);
+  const upsertSubscriptionGroup = useAppStore(
+    (store) => store.upsertSubscriptionGroup
+  );
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
   const workspace = useAppStore((store) => store.workspace);
-  const wasBroadcastCreated = editedBroadcast?.createdAt !== undefined;
 
   const handleSubmit = useMemo(() => {
     if (
       workspace.type !== CompletionStatus.Successful ||
       !id ||
-      !editedBroadcast ||
-      !editedBroadcast.segmentId?.length ||
-      wasBroadcastCreated
+      !editedSubscriptionGroup
     ) {
+      console.error("failed to submit", workspace, id, editedSubscriptionGroup);
       return;
     }
-    const broadcastResource: UpsertBroadcastResource = {
+    const { name } = editedSubscriptionGroup;
+    const upsertResource: UpsertSubscriptionGroupResource = {
       workspaceId: workspace.value.id,
-      name: editedBroadcast.name,
+      name,
       id,
-      segmentId: editedBroadcast.segmentId,
+      type: SubscriptionGroupType.OptIn,
     };
 
-    const broadcastName = editedBroadcast.name;
-
     return apiRequestHandlerFactory({
-      request: broadcastUpdateRequest,
-      setRequest: setBroadcastUpdateRequest,
-      responseSchema: BroadcastResource,
+      request: subscriptionGroupUpdateRequest,
+      setRequest: setSubscriptionGroupUpdateRequest,
+      responseSchema: SubscriptionGroupResource,
       setResponse: (broadcast) => {
-        upsertBroadcast(broadcast);
-        updateEditedBroadcast(broadcast);
+        upsertSubscriptionGroup(broadcast);
+        updateEditedSubscriptionGroup(broadcast);
       },
       // TODO redirect on completion
-      onSuccessNotice: `Submitted broadcast ${broadcastName}`,
+      onSuccessNotice: `Saved subscription group ${name}`,
       onFailureNoticeHandler: () =>
-        `API Error: Failed to submit broadcast ${broadcastName}`,
+        `API Error: Failed to save subscription group ${name}`,
       requestConfig: {
         method: "PUT",
-        url: `${apiBase}/api/segments/broadcasts`,
-        data: broadcastResource,
+        url: `${apiBase}/api/subscription-groups`,
+        data: upsertResource,
         headers: {
           "Content-Type": "application/json",
         },
       },
     });
   }, [
-    apiBase,
-    editedBroadcast,
-    broadcastUpdateRequest,
-    wasBroadcastCreated,
-    id,
-    updateEditedBroadcast,
-    setBroadcastUpdateRequest,
-    upsertBroadcast,
     workspace,
+    id,
+    editedSubscriptionGroup,
+    subscriptionGroupUpdateRequest,
+    setSubscriptionGroupUpdateRequest,
+    apiBase,
+    upsertSubscriptionGroup,
+    updateEditedSubscriptionGroup,
   ]);
 
-  const segments =
-    segmentsResult.type === CompletionStatus.Successful
-      ? segmentsResult.value
-      : [];
-
-  const journeys = useMemo(
-    () =>
-      journeysResult.type === CompletionStatus.Successful
-        ? journeysResult.value
-        : [],
-    [journeysResult]
-  );
-
-  const formattedTriggeredAt = useMemo(() => {
-    if (!editedBroadcast?.triggeredAt) {
-      return null;
-    }
-    return format(new Date(editedBroadcast.triggeredAt), "EEE MMM d h:mm a");
-  }, [editedBroadcast]);
-
-  const receivingJourneys = useMemo(
-    () =>
-      journeys.filter(
-        (j) =>
-          editedBroadcast?.segmentId !== undefined &&
-          getSubscribedSegments(j.definition).has(editedBroadcast.segmentId)
-      ),
-    [journeys, editedBroadcast]
-  );
-
-  if (!editedBroadcast) {
+  if (!editedSubscriptionGroup) {
     return null;
-  }
-
-  const handleSegmentIdChange = (event: SelectChangeEvent) => {
-    updateEditedBroadcast({ segmentId: event.target.value as string });
-  };
-
-  let receivingJourneysEls;
-
-  if (receivingJourneys.length) {
-    let title;
-
-    if (editedBroadcast.triggeredAt) {
-      title = (
-        <Typography variant="h5">
-          Journeys Which Received Broadcast At - {formattedTriggeredAt}
-        </Typography>
-      );
-    } else {
-      title = (
-        <Typography variant="h5">Journeys Receiving Broadcast</Typography>
-      );
-    }
-    receivingJourneysEls = (
-      <Box sx={{ pl: 2 }}>
-        {title}
-        <List sx={{ listStyleType: "disc" }}>
-          {receivingJourneys.map((j) => (
-            <ListItem
-              key={j.id}
-              sx={{
-                display: "list-item",
-              }}
-            >
-              <ListItemButton
-                sx={{
-                  color: "inherit",
-                  textDecoration: "none",
-                }}
-                component={Link}
-                href={`/dashboard/journeys/${j.id}`}
-              >
-                {j.name}
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </Box>
-    );
-  } else if (editedBroadcast.segmentId?.length) {
-    if (segments.length > 0) {
-      receivingJourneysEls = (
-        <InfoBox>
-          There aren&apos;t any journeys which are subscribed to this segment.
-          Create a journey with this segment to enable broadcasts.
-        </InfoBox>
-      );
-    } else {
-      receivingJourneysEls = (
-        <InfoBox>
-          There aren&apos;t any available segments to broadcast to. Add a
-          broadcast node to a new or existing segment.
-        </InfoBox>
-      );
-    }
-  } else {
-    receivingJourneysEls = null;
   }
 
   if (!id) {
@@ -320,14 +171,16 @@ export default function Broadcast() {
           <EditableName
             variant="h6"
             sx={{ minWidth: theme.spacing(52) }}
-            name={editedBroadcast.name}
-            disabled={wasBroadcastCreated}
-            onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
+            name={editedSubscriptionGroup.name}
+            onChange={(e) =>
+              updateEditedSubscriptionGroup({ name: e.target.value })
+            }
           />
           <LoadingButton
             onClick={handleSubmit}
             loading={
-              broadcastUpdateRequest.type === CompletionStatus.InProgress
+              subscriptionGroupUpdateRequest.type ===
+              CompletionStatus.InProgress
             }
             variant="contained"
           >

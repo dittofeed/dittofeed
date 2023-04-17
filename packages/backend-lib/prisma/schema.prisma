@@ -191,7 +191,7 @@ model UserJourneyEvent {
   @@unique([journeyId, userId, type, journeyStartedAt])
 }
 
-enum SubscriptionGroupType {
+enum DBSubscriptionGroupType {
   OptIn
   OptOut
 }
@@ -201,7 +201,7 @@ model SubscriptionGroup {
   workspace   Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String                @db.Uuid
   name        String
-  type        SubscriptionGroupType
+  type        DBSubscriptionGroupType
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
 

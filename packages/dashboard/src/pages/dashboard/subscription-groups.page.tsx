@@ -1,7 +1,8 @@
-import { ListItem, ListItemText } from "@mui/material";
+import { ListItem, ListItemButton, ListItemText } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
 import { BroadcastResource, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
+import Link from "next/link";
 
 import DashboardContent from "../../components/dashboardContent";
 import {
@@ -21,19 +22,17 @@ export const getServerSideProps: GetServerSideProps<
 
   const workspaceId = backendConfig().defaultWorkspaceId;
   const appState: Partial<AppState> = {};
-
-  // const [workspace, broadcasts] = await Promise.all([
-  const [workspace] = await Promise.all([
+  const [workspace, broadcasts] = await Promise.all([
     prisma().workspace.findUnique({
       where: {
         id: workspaceId,
       },
     }),
-    // prisma().broadcast.findMany({
-    //   where: {
-    //     workspaceId,
-    //   },
-    // }),
+    prisma().broadcast.findMany({
+      where: {
+        workspaceId,
+      },
+    }),
   ]);
   if (workspace) {
     appState.workspace = {
@@ -42,35 +41,33 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  // appState.broadcasts = {
-  //   type: CompletionStatus.Successful,
-  //   value: broadcasts.map((b) => ({
-  //     id: b.id,
-  //     name: b.name,
-  //     workspaceId: b.workspaceId,
-  //     triggeredAt: b.triggeredAt?.getTime(),
-  //     createdAt: b.createdAt.getTime(),
-  //     segmentId: b.segmentId,
-  //   })),
-  // };
+  appState.broadcasts = {
+    type: CompletionStatus.Successful,
+    value: broadcasts.map((b) => ({
+      id: b.id,
+      name: b.name,
+      workspaceId: b.workspaceId,
+      triggeredAt: b.triggeredAt?.getTime(),
+      createdAt: b.createdAt.getTime(),
+      segmentId: b.segmentId,
+    })),
+  };
   return {
     props: addInitialStateToProps({}, appState),
   };
 };
 
-function Item({ broadcast }: { broadcast: BroadcastResource }) {
+function BroadcastItem({ broadcast }: { broadcast: BroadcastResource }) {
   return (
     <ListItem>
-      <ResourceListItemButton
-        href={`/dashboard/subscription-groups/${broadcast.id}`}
-      >
+      <ResourceListItemButton href={`/dashboard/broadcasts/${broadcast.id}`}>
         <ListItemText>{broadcast.name}</ListItemText>
       </ResourceListItemButton>
     </ListItem>
   );
 }
 
-export default function SubscriptionGroups() {
+export default function Broadcasts() {
   const broadcastsResult = useAppStore((store) => store.broadcasts);
   const broadcasts =
     broadcastsResult.type === CompletionStatus.Successful
@@ -80,15 +77,13 @@ export default function SubscriptionGroups() {
   return (
     <DashboardContent>
       <ResourceListContainer
-        title="Subscription Groups"
-        newItemHref={(newItemId) =>
-          `/dashboard/subscription-groups/${newItemId}`
-        }
+        title="Broadcasts"
+        newItemHref={(newItemId) => `/dashboard/broadcasts/${newItemId}`}
       >
         {broadcasts.length ? (
           <ResourceList>
             {broadcasts.map((broadcast) => (
-              <Item key={broadcast.id} broadcast={broadcast} />
+              <BroadcastItem key={broadcast.id} broadcast={broadcast} />
             ))}
           </ResourceList>
         ) : null}
