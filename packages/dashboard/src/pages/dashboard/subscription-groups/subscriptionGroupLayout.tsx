@@ -26,7 +26,6 @@ export default function SubscriptionGroupLayout({
   tab: SubscriptionGroupTabLabel;
   children?: React.ReactNode;
 }) {
-  const basePath = `/dashboard/subscription-groups/${id}`;
   const tabValue = TabToIndex[tab];
 
   return (
@@ -34,9 +33,21 @@ export default function SubscriptionGroupLayout({
       <Stack direction="column" sx={{ width: "100%" }}>
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
           <Tabs value={tabValue}>
-            <TabLink label="Configure" href={basePath} index={0} />
-            <TabLink label="Users" href={`${basePath}/users`} index={1} />
-            <TabLink label="Upload" href={`${basePath}/upload`} index={2} />
+            <TabLink
+              label="Configure"
+              href={`/dashboard/subscription-groups/${id}`}
+              index={0}
+            />
+            <TabLink
+              label="Users"
+              href={`/dashboard/subscription-groups/users/${id}`}
+              index={1}
+            />
+            <TabLink
+              label="Upload"
+              href={`/dashboard/subscription-groups/upload/${id}`}
+              index={2}
+            />
           </Tabs>
         </Box>
         <Box>{children}</Box>

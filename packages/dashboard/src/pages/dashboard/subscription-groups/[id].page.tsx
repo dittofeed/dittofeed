@@ -18,7 +18,7 @@ import { PropsWithInitialState, useAppStore } from "../../../lib/appStore";
 import getSubscriptionGroupsSSP from "./getSubscriptionGroupsSSP";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,
-} from "./subscriptionGroupLayout.page";
+} from "./subscriptionGroupLayout";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   getSubscriptionGroupsSSP;
