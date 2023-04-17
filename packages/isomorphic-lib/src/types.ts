@@ -377,6 +377,28 @@ export const SegmentResource = Type.Object({
 
 export type SegmentResource = Static<typeof SegmentResource>;
 
+export enum SubscriptionGroupType {
+  OptIn = "OptIn",
+  OptOut = "OptOut",
+}
+
+export const SubscriptionGroupResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  type: Type.Enum(SubscriptionGroupType),
+});
+
+export type SubscriptionGroupResource = Static<
+  typeof SubscriptionGroupResource
+>;
+
+export const UpsertSubscriptionGroupResource = SubscriptionGroupResource;
+
+export type UpsertSubscriptionGroupResource = Static<
+  typeof UpsertSubscriptionGroupResource
+>;
+
 export const BroadcastResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
