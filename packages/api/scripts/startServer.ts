@@ -1,5 +1,6 @@
 import {
   ExplicitBucketHistogramAggregation,
+  InstrumentType,
   View,
 } from "@opentelemetry/sdk-metrics";
 import backendConfig from "backend-lib/src/config";
@@ -19,7 +20,8 @@ const otel = initOpenTelemetry({
   meterProviderViews: [
     new View({
       aggregation: new ExplicitBucketHistogramAggregation([200, 300, 400, 500]),
-      instrumentName: "api-statuses",
+      instrumentName: "api_statuses",
+      instrumentType: InstrumentType.HISTOGRAM,
     }),
   ],
 });
@@ -38,8 +40,9 @@ async function start() {
     );
   }
 
-  const app = await buildApp();
   await otel.start();
+
+  const app = await buildApp();
   await app.listen({ port, host });
 }
 
