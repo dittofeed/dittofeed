@@ -38,7 +38,6 @@ let METER: Meter | null = null;
 
 export function getMeter() {
   if (!METER) {
-    METER = api.metrics.getMeter("dittofeed");
     throw new Error("Must init opentelemetry before accessing meter");
   }
   return METER;
@@ -61,10 +60,10 @@ export function initOpenTelemetry({
   const traceExporter = new OTLPTraceExporter({
     url: otelCollector,
   });
-  // const metricExporter = new ConsoleMetricExporter({});
-  const metricExporter = new OTLPMetricExporter({
-    url: otelCollector,
-  });
+  const metricExporter = new ConsoleMetricExporter({});
+  // const metricExporter = new OTLPMetricExporter({
+  //   url: otelCollector,
+  // });
   // METER_PROVIDER = new MeterProvider({
   //   views: meterProviderViews,
   // });
@@ -109,7 +108,6 @@ export function initOpenTelemetry({
     if (!startOtel) {
       return;
     }
-    METER = api.metrics.getMeter(serviceName);
 
     // Graceful shutdown
     ["SIGTERM", "SIGINT"].forEach((signal) =>
@@ -129,6 +127,7 @@ export function initOpenTelemetry({
 
     try {
       await sdk.start();
+      METER = api.metrics.getMeterProvider().getMeter(serviceName);
     } catch (err) {
       logger().error({ err }, "Error initializing telemetry");
       process.exit(1);

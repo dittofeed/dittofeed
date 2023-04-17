@@ -20,7 +20,7 @@ const otel = initOpenTelemetry({
   meterProviderViews: [
     new View({
       aggregation: new ExplicitBucketHistogramAggregation([200, 300, 400, 500]),
-      instrumentName: "api_statuses",
+      instrumentName: "api-statuses",
       instrumentType: InstrumentType.HISTOGRAM,
     }),
   ],
