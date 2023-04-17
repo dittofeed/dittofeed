@@ -12,11 +12,7 @@ import {
   useTheme,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
-import { findManyJourneys } from "backend-lib/src/journeys";
-import {
-  findAllEnrichedSegments,
-  segmentHasBroadcast,
-} from "backend-lib/src/segments";
+import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { format } from "date-fns";
 import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
 import {
@@ -54,31 +50,22 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  const [workspace, broadcast, segmentsResult, journeysResult] =
-    await Promise.all([
-      prisma().workspace.findUnique({
-        where: {
-          id: workspaceId,
-        },
-      }),
-      prisma().broadcast.findUnique({
-        where: {
-          id,
-        },
-      }),
-      findAllEnrichedSegments(workspaceId),
-      findManyJourneys({ where: { workspaceId } }),
-    ]);
+  const [workspace, subscriptionGroup] = await Promise.all([
+    prisma().workspace.findUnique({
+      where: {
+        id: workspaceId,
+      },
+    }),
+    prisma().subscriptionGroup.findUnique({
+      where: {
+        id,
+      },
+    }),
+  ]);
 
-  if (broadcast) {
-    appState.editedBroadcast = {
-      workspaceId,
-      id,
-      name: broadcast.name,
-      segmentId: broadcast.segmentId,
-      createdAt: broadcast.createdAt.getTime(),
-      triggeredAt: broadcast.triggeredAt?.getTime(),
-    };
+  if (subscriptionGroup) {
+    appState.editedSubscriptionGroup =
+      subscriptionGroupToResource(subscriptionGroup);
   } else {
     appState.editedBroadcast = {
       workspaceId,
@@ -87,34 +74,6 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  if (segmentsResult.isOk()) {
-    const segments = segmentsResult.value;
-    const broadcastSegments = segments.filter((s) =>
-      segmentHasBroadcast(s.definition)
-    );
-    appState.segments = {
-      type: CompletionStatus.Successful,
-      value: broadcastSegments,
-    };
-
-    if (journeysResult.isOk()) {
-      const journeysWithBroadcast = journeysResult.value.filter((j) => {
-        const subscribedSegments = getSubscribedSegments(j.definition);
-        for (const broadcastSegment of broadcastSegments) {
-          if (subscribedSegments.has(broadcastSegment.id)) {
-            return true;
-          }
-        }
-
-        return false;
-      });
-
-      appState.journeys = {
-        type: CompletionStatus.Successful,
-        value: journeysWithBroadcast,
-      };
-    }
-  }
   if (workspace) {
     appState.workspace = {
       type: CompletionStatus.Successful,
