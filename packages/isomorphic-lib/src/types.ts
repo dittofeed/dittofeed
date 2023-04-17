@@ -782,3 +782,5 @@ export const UserUploadRow = Type.Union([
     }),
   ]),
 ]);
+
+export type UserUploadRow = Static<typeof UserUploadRow>;

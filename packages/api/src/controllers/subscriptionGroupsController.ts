@@ -1,15 +1,18 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
+import { ValueError } from "@sinclair/typebox/errors";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
   SubscriptionGroupResource,
   UpsertSubscriptionGroupResource,
+  UserUploadRow,
   WorkspaceId,
 } from "backend-lib/src/types";
 import csvParser from "csv-parser";
 import { FastifyInstance } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
+import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { Readable } from "stream";
 
 const bufferToStream = (buffer: Buffer): Readable => {
@@ -84,28 +87,41 @@ export default async function subscriptionGroupsController(
       const csvStream = bufferToStream(await data.toBuffer());
       const workspaceId = request.headers[WORKSPACE_ID_HEADER];
 
-      const rows: any[] = [];
-
       // Parse the CSV stream into a JavaScript object with an array of rows
-      await new Promise<void>((resolve, reject) => {
-        csvStream
-          .pipe(csvParser({ headers: true }))
-          .on("data", (row) => {
-            rows.push(row);
-          })
-          .on("end", () => {
-            logger().debug(
-              `Parsed ${rows.length} rows for workspace: ${workspaceId}`
-            );
-            resolve();
-          })
-          .on("error", (error) => {
-            reject(error);
-          });
-      });
-      console.log("rows", rows);
+      try {
+        await new Promise<UserUploadRow[]>((resolve, reject) => {
+          const parsingErrors: ValueError[] = [];
+          const rows: UserUploadRow[] = [];
 
-      return { statusCode: 200 };
+          csvStream
+            .pipe(csvParser({ headers: true }))
+            .on("data", (row) => {
+              const parsed = schemaValidate(row, UserUploadRow);
+              if (parsed.isOk()) {
+                rows.push(parsed.value);
+              } else {
+                parsed.error.forEach((error) => parsingErrors.push(error));
+              }
+            })
+            .on("end", () => {
+              logger().debug(
+                `Parsed ${rows.length} rows for workspace: ${workspaceId}`
+              );
+              if (parsingErrors.length) {
+                reject(parsingErrors);
+              } else {
+                resolve(rows);
+              }
+            })
+            .on("error", (error) => {
+              reject(error);
+            });
+        });
+        const response = await reply.status(200).send();
+        return response;
+      } catch (e) {
+        return reply.status(400).send();
+      }
     }
   );
 }
