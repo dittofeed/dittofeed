@@ -38,6 +38,7 @@ import { AppState } from "../../../lib/types";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,
 } from "./subscriptionGroupLayout.page";
+import { LoadingButton } from "@mui/lab";
 
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState
@@ -323,6 +324,15 @@ export default function Broadcast() {
             disabled={wasBroadcastCreated}
             onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
           />
+          <LoadingButton
+            onClick={handleSubmit}
+            loading={
+              broadcastUpdateRequest.type === CompletionStatus.InProgress
+            }
+            variant="contained"
+          >
+            Save
+          </LoadingButton>
         </Stack>
         <InfoBox>
           Subscription groups define a group of users who are eligible to

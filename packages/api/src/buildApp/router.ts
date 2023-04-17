@@ -6,6 +6,7 @@ import indexController from "../controllers/indexController";
 import journeysController from "../controllers/journeysController";
 import segmentsController from "../controllers/segmentsController";
 import settingsController from "../controllers/settingsController";
+import subscriptionGroupsController from "../controllers/subscriptionGroupsController";
 import userPropertiesController from "../controllers/userPropertiesController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
@@ -23,6 +24,9 @@ export default async function router(fastify: FastifyInstance) {
         f.register(eventsController, { prefix: "/events" }),
         f.register(usersController, { prefix: "/users" }),
         f.register(userPropertiesController, { prefix: "/user-properties" }),
+        f.register(subscriptionGroupsController, {
+          prefix: "/subscription-groups",
+        }),
       ]),
     { prefix: "/api" }
   );

@@ -18,6 +18,7 @@ import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
 import {
   BroadcastResource,
   CompletionStatus,
+  SubscriptionGroupType,
   UpsertBroadcastResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -67,10 +68,11 @@ export const getServerSideProps: GetServerSideProps<
     appState.editedSubscriptionGroup =
       subscriptionGroupToResource(subscriptionGroup);
   } else {
-    appState.editedBroadcast = {
+    appState.editedSubscriptionGroup = {
       workspaceId,
       id,
-      name: `Broadcast - ${id}`,
+      name: `Subscription Group - ${id}`,
+      type: SubscriptionGroupType.OptIn,
     };
   }
 
