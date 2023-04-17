@@ -6,7 +6,6 @@ import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import { OpenAPIV3_1 } from "openapi-types";
 
-import apiMetrics from "./buildApp/apiMetrics";
 import cors from "./buildApp/cors";
 import router from "./buildApp/router";
 import config from "./config";
@@ -57,7 +56,6 @@ async function buildApp() {
   await server.register(fastifyRawBody);
 
   await Promise.all([
-    server.register(apiMetrics),
     server.register(router),
     server.register(cors),
     server.register(fastifySwaggerUI, {
