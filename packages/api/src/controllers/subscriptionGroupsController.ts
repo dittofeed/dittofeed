@@ -89,8 +89,10 @@ export default async function subscriptionGroupsController(
       // Parse the CSV stream into a JavaScript object with an array of rows
       await new Promise<void>((resolve, reject) => {
         csvStream
-          .pipe(csvParser())
-          .on("data", (row) => rows.push(row))
+          .pipe(csvParser({ headers: true }))
+          .on("data", (row) => {
+            rows.push(row);
+          })
           .on("end", () => {
             logger().debug(
               `Parsed ${rows.length} rows for workspace: ${workspaceId}`
