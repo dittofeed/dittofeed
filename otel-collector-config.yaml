@@ -7,6 +7,10 @@ exporters:
   logging:
   zipkin:
     endpoint: "http://zipkin:9411/api/v2/spans"
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    send_timestamps: true
+
 processors:
   memory_limiter:
     check_interval: 1s
@@ -25,4 +29,4 @@ service:
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [logging]
+      exporters: [logging, prometheus]

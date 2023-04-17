@@ -1,3 +1,4 @@
+import api, { Meter } from "@opentelemetry/api";
 import {
   getNodeAutoInstrumentations,
   InstrumentationConfigMap,
@@ -5,7 +6,10 @@ import {
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { Resource } from "@opentelemetry/resources";
-import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
+import {
+  MeterProviderOptions,
+  PeriodicExportingMetricReader,
+} from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 
@@ -19,17 +23,29 @@ export interface OpenTelemetry {
   start: () => Promise<void>;
 }
 
+let METER: Meter | null = null;
+
+export function getMeter() {
+  if (!METER) {
+    throw new Error("Must init opentelemetry before accessing meter");
+  }
+  return METER;
+}
+
 export function initOpenTelemetry({
   serviceName,
   configOverrides,
+  meterProviderViews,
 }: {
   serviceName: string;
   configOverrides?: InstrumentationConfigMap;
+  meterProviderViews?: MeterProviderOptions["views"];
 }): OpenTelemetry {
   const { otelCollector, startOtel } = config();
   const resource = new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
   });
+
   const traceExporter = new OTLPTraceExporter({
     url: otelCollector,
   });
@@ -49,10 +65,15 @@ export function initOpenTelemetry({
     metricReader,
   });
 
+  sdk.configureMeterProvider({
+    views: meterProviderViews,
+  });
+
   const start = async function start() {
     if (!startOtel) {
       return;
     }
+
     // Graceful shutdown
     ["SIGTERM", "SIGINT"].forEach((signal) =>
       process.on(signal, () => {
@@ -71,6 +92,7 @@ export function initOpenTelemetry({
 
     try {
       await sdk.start();
+      METER = api.metrics.getMeterProvider().getMeter(serviceName);
     } catch (err) {
       logger().error({ err }, "Error initializing telemetry");
       process.exit(1);

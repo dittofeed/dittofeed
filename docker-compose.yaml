@@ -151,14 +151,6 @@ services:
       - clickhouse_log:/var/log/clickhouse-server
     networks:
       - dittofeed-network-dev
-  zipkin:
-    image: openzipkin/zipkin
-    profiles: ["otel"]
-    container_name: zipkin
-    ports:
-      - 9411:9411
-    networks:
-      - dittofeed-network-dev
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     profiles: ["otel"]
@@ -175,11 +167,42 @@ services:
       - 55679:55679 # zpages extension
     networks:
       - dittofeed-network-dev
+  zipkin:
+    image: openzipkin/zipkin
+    profiles: ["otel"]
+    container_name: zipkin
+    ports:
+      - 9411:9411
+    networks:
+      - dittofeed-network-dev
+  grafana:
+    image: grafana/grafana
+    profiles: ["otel"]
+    ports:
+      - "9091:3000"
+    volumes:
+      - ./grafana-datasource-prometheus.yaml:/etc/grafana/provisioning/datasources/grafana-datasource-prometheus.yaml
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - dittofeed-network-dev
+
+  prometheus:
+    image: prom/prometheus
+    profiles: ["otel"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - prometheus-storage:/prometheus
+    networks:
+      - dittofeed-network-dev
 volumes:
   postgres:
   kafka:
   clickhouse_lib:
   clickhouse_log:
+  grafana-storage:
+  prometheus-storage:
 
 networks:
   dittofeed-network-dev:
