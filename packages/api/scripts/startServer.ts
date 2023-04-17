@@ -1,3 +1,7 @@
+import {
+  ExplicitBucketHistogramAggregation,
+  View,
+} from "@opentelemetry/sdk-metrics";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
@@ -12,6 +16,12 @@ const { apiPort: port, apiHost: host, apiServiceName: serviceName } = apiConfig;
 const otel = initOpenTelemetry({
   serviceName,
   configOverrides: telemetryConfig,
+  meterProviderViews: [
+    new View({
+      aggregation: new ExplicitBucketHistogramAggregation([200, 300, 400, 500]),
+      instrumentName: "api-statuses",
+    }),
+  ],
 });
 
 // eslint-disable-next-line import/first

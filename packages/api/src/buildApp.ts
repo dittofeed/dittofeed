@@ -57,9 +57,9 @@ async function buildApp() {
   await server.register(fastifyRawBody);
 
   await Promise.all([
+    server.register(apiMetrics),
     server.register(router),
     server.register(cors),
-    server.register(apiMetrics),
     server.register(fastifySwaggerUI, {
       routePrefix: "/documentation",
       staticCSP: true,

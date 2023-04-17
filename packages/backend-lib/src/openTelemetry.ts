@@ -1,3 +1,4 @@
+import { Meter } from "@opentelemetry/api";
 import {
   getNodeAutoInstrumentations,
   InstrumentationConfigMap,
@@ -7,6 +8,7 @@ import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { Resource } from "@opentelemetry/resources";
 import {
   MeterProvider,
+  MeterProviderOptions,
   PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
@@ -14,7 +16,6 @@ import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions"
 
 import config from "./config";
 import logger from "./logger";
-import { Meter } from "@opentelemetry/api";
 
 export interface OpenTelemetry {
   sdk: NodeSDK;
@@ -23,13 +24,20 @@ export interface OpenTelemetry {
   start: () => Promise<void>;
 }
 
+let METER_PROVIDER: MeterProvider | null = null;
+
+export function getMeterProvider() {
+  if (!METER_PROVIDER) {
+    throw new Error("Must init opentelemetry before accessing meter provider");
+  }
+  return METER_PROVIDER;
+}
+
 let METER: Meter | null = null;
 
 export function getMeter() {
   if (!METER) {
-    throw new Error(
-      "Must init opentelemetry before accessing meter provider before"
-    );
+    throw new Error("Must init opentelemetry before accessing meter");
   }
   return METER;
 }
@@ -37,9 +45,11 @@ export function getMeter() {
 export function initOpenTelemetry({
   serviceName,
   configOverrides,
+  meterProviderViews,
 }: {
   serviceName: string;
   configOverrides?: InstrumentationConfigMap;
+  meterProviderViews?: MeterProviderOptions["views"];
 }): OpenTelemetry {
   const { otelCollector, startOtel } = config();
   const resource = new Resource({
@@ -51,15 +61,17 @@ export function initOpenTelemetry({
   const metricExporter = new OTLPMetricExporter({
     url: otelCollector,
   });
-  const meterProvider = new MeterProvider();
-  METER = meterProvider.getMeter(serviceName);
+  METER_PROVIDER = new MeterProvider({
+    views: meterProviderViews,
+  });
+  METER = METER_PROVIDER.getMeter(serviceName);
 
   const metricReader = new PeriodicExportingMetricReader({
     exportIntervalMillis: 10_000,
     exporter: metricExporter,
   });
 
-  meterProvider.addMetricReader(metricReader);
+  METER_PROVIDER.addMetricReader(metricReader);
 
   const sdk = new NodeSDK({
     resource,
