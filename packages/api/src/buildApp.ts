@@ -54,12 +54,14 @@ async function buildApp() {
   });
 
   // needs to be registered before routes
-  await server.register(fastifyRawBody);
+  await Promise.all([
+    server.register(fastifyRawBody),
+    server.register(fastifyMultipart),
+  ]);
 
   await Promise.all([
     server.register(router),
     server.register(cors),
-    server.register(fastifyMultipart),
     server.register(fastifySwaggerUI, {
       routePrefix: "/documentation",
       staticCSP: true,

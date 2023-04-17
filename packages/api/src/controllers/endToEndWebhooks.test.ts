@@ -24,6 +24,7 @@ import {
 
 import buildApp from "../buildApp";
 import { generateDigest } from "../crypto";
+import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 
 jest.setTimeout(20000);
 
@@ -223,7 +224,7 @@ describe("end to end segment webhooks", () => {
               rawBody: JSON.stringify(payload),
               sharedSecret,
             }),
-            "df-workspace-id": workspace.id,
+            [WORKSPACE_ID_HEADER]: workspace.id,
           },
           payload,
         });

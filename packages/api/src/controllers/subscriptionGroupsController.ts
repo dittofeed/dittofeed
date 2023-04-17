@@ -1,13 +1,16 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { Type } from "@sinclair/typebox";
+import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
   SubscriptionGroupResource,
   UpsertSubscriptionGroupResource,
+  WorkspaceId,
 } from "backend-lib/src/types";
-import { FastifyInstance } from "fastify";
 import csvParser from "csv-parser";
+import { FastifyInstance } from "fastify";
+import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { Readable } from "stream";
-import logger from "backend-lib/src/logger";
 
 const bufferToStream = (buffer: Buffer): Readable => {
   const stream = new Readable();
@@ -60,19 +63,26 @@ export default async function subscriptionGroupsController(
     }
   );
 
-  fastify
-    .withTypeProvider<TypeBoxTypeProvider>()
-    .post("/upload-csv", {}, async (request, reply) => {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/upload-csv",
+    {
+      schema: {
+        headers: Type.Object({
+          [WORKSPACE_ID_HEADER]: WorkspaceId,
+        }),
+      },
+    },
+    async (request, reply) => {
       const data = await request.file();
       if (!data) {
         return reply.status(400).send({
           message: "Missing file.",
         });
       }
-      const { workspaceId } = request.body as { workspaceId: string };
 
       // Convert the file buffer to a readable stream
       const csvStream = bufferToStream(await data.toBuffer());
+      const workspaceId = request.headers[WORKSPACE_ID_HEADER];
 
       const rows: any[] = [];
 
@@ -91,7 +101,9 @@ export default async function subscriptionGroupsController(
             reject(error);
           });
       });
+      console.log("rows", rows);
 
       return { statusCode: 200 };
-    });
+    }
+  );
 }

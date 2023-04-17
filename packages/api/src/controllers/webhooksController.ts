@@ -4,6 +4,8 @@ import backendConfig from "backend-lib/src/config";
 import prisma from "backend-lib/src/prisma";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
+import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
+import { WorkspaceId } from "isomorphic-lib/src/types";
 
 import { generateDigest } from "../crypto";
 
@@ -24,19 +26,14 @@ export default async function webhookController(fastify: FastifyInstance) {
         ),
         headers: Type.Object({
           "x-signature": Type.String(),
-          "df-workspace-id": Type.Optional(
-            Type.String({
-              description:
-                "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems",
-            })
-          ),
+          [WORKSPACE_ID_HEADER]: Type.Optional(WorkspaceId),
         }),
       },
     },
     async (request, reply) => {
       const { defaultWorkspaceId } = backendConfig();
       const workspaceId =
-        request.headers["df-workspace-id"] ?? defaultWorkspaceId;
+        request.headers[WORKSPACE_ID_HEADER] ?? defaultWorkspaceId;
       const config = await prisma().segmentIOConfiguration.findUnique({
         where: { workspaceId },
       });

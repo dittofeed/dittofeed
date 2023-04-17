@@ -1,5 +1,6 @@
 import { Button } from "@mui/material";
 import axios from "axios";
+import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
@@ -23,6 +24,7 @@ export default function SubscriptionGroupConfig() {
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
   const workspace = useAppStore((store) => store.workspace);
+  const apiBase = useAppStore((store) => store.apiBase);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files ? e.target.files[0] : null;
@@ -39,7 +41,14 @@ export default function SubscriptionGroupConfig() {
         const formData = new FormData();
         formData.append("csv", file);
         formData.append("workspaceId", workspace.value.id);
-        await axios.post("/api/subscription-groups/upload", formData);
+        await axios({
+          url: `${apiBase}/api/subscription-groups/upload-csv`,
+          method: "POST",
+          data: formData,
+          headers: {
+            [WORKSPACE_ID_HEADER]: workspace.value.id,
+          },
+        });
       }
     })();
   };
