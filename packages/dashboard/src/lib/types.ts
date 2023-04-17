@@ -13,6 +13,7 @@ import {
   SegmentNodeType,
   SegmentResource,
   SourceControlProviderEnum,
+  SubscriptionGroupResource,
   UserPropertyDefinition,
   UserPropertyResource,
   WorkspaceResource,
@@ -29,6 +30,7 @@ export type AppState = {
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
   broadcasts: RequestStatus<BroadcastResource[], Error>;
+  subscriptionGroups: RequestStatus<SubscriptionGroupResource[], Error>;
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   journeys: RequestStatus<JourneyResource[], Error>;
@@ -59,6 +61,10 @@ export interface AppActions {
   deleteSegment: (segmentId: string) => void;
   upsertJourney: (journey: JourneyResource) => void;
   deleteJourney: (segmentId: string) => void;
+  upsertSubscriptionGroup: (
+    subscriptionGroup: SubscriptionGroupResource
+  ) => void;
+  deleteSubscriptionGroup: (id: string) => void;
   upsertUserProperty: (userProperty: UserPropertyResource) => void;
   deleteUserProperty: (userPropertyId: string) => void;
 }
@@ -107,6 +113,17 @@ export interface BroadcastEditorContents {
   broadcastUpdateRequest: EphemeralRequestStatus<Error>;
   setBroadcastUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   updateEditedBroadcast: (broadcast: Partial<BroadcastResource>) => void;
+}
+
+export interface SubscriptionGroupEditorContents {
+  editedSubscriptionGroup: SubscriptionGroupResource | null;
+  subscriptionGroupUpdateRequest: EphemeralRequestStatus<Error>;
+  setSubscriptionGroupUpdateRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
+  updateEditedSubscriptionGroup: (
+    broadcast: Partial<SubscriptionGroupResource>
+  ) => void;
 }
 
 export interface SegmentEditorState {
@@ -189,7 +206,8 @@ export type PageStoreContents = EmailMessageEditorContents &
   MessageTemplateIndexContent &
   UserPropertyEditorContent &
   JourneyContent &
-  BroadcastEditorContents;
+  BroadcastEditorContents &
+  SubscriptionGroupEditorContents;
 
 export interface EntryNodeProps {
   type: JourneyNodeType.EntryNode;

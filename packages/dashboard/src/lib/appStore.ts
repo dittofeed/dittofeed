@@ -376,6 +376,58 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             return state;
           }),
 
+        subscriptionGroups: {
+          type: CompletionStatus.NotStarted,
+        },
+        subscriptionGroupUpdateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+        editedSubscriptionGroup: null,
+        updateEditedSubscriptionGroup: (updatedSubscriptionGroup) =>
+          set((state) => {
+            if (!state.editedSubscriptionGroup) {
+              return state;
+            }
+
+            state.editedSubscriptionGroup = {
+              ...state.editedSubscriptionGroup,
+              ...updatedSubscriptionGroup,
+            };
+            return state;
+          }),
+        setSubscriptionGroupUpdateRequest: (request) =>
+          set((state) => {
+            state.subscriptionGroupUpdateRequest = request;
+          }),
+        upsertSubscriptionGroup: (subscriptionGroup) =>
+          set((state) => {
+            let { subscriptionGroups } = state;
+            if (subscriptionGroups.type !== CompletionStatus.Successful) {
+              subscriptionGroups = {
+                type: CompletionStatus.Successful,
+                value: [],
+              };
+              state.subscriptionGroups = subscriptionGroups;
+            }
+            for (const existing of subscriptionGroups.value) {
+              if (subscriptionGroup.id === existing.id) {
+                Object.assign(existing, subscriptionGroup);
+                return state;
+              }
+            }
+            subscriptionGroups.value.push(subscriptionGroup);
+            return state;
+          }),
+        deleteSubscriptionGroup: (id) =>
+          set((state) => {
+            if (state.subscriptionGroups.type !== CompletionStatus.Successful) {
+              return state;
+            }
+            state.subscriptionGroups.value =
+              state.subscriptionGroups.value.filter((m) => m.id !== id);
+            return state;
+          }),
+
         // user property update view
         editedUserProperty: null,
 
