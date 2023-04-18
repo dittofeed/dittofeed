@@ -9,13 +9,14 @@ import prisma from "./prisma";
 import { InternalEventType, UserEvent, UserProperty } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
-interface InsertUserEventsParams {
+export interface InsertUserEvent {
+  messageRaw: string;
+  processingTime?: string;
+  messageId: string;
+}
+export interface InsertUserEventsParams {
   workspaceId: string;
-  userEvents: {
-    messageRaw: string;
-    processingTime?: string;
-    messageId: string;
-  }[];
+  userEvents: InsertUserEvent[];
 }
 
 async function insertUserEventsDirect({

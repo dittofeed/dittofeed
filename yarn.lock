@@ -9460,6 +9460,11 @@ remark@^14.0.2:
     remark-stringify "^10.0.0"
     unified "^10.0.0"
 
+remeda@^1.12.0:
+  version "1.12.0"
+  resolved "https://registry.yarnpkg.com/remeda/-/remeda-1.12.0.tgz#dd11ff8640ecf1fd11f3a7a0d8d577cbf579ba40"
+  integrity sha512-IuuWrP1UEyAafKHPQ6bSRGKUxvMh/Kla5LP8ujM/BMf3ciwt5M68j0vlYOl1pIv3J2pS+BMlFKqLtHoYuzcwYQ==
+
 remove-trailing-slash@^0.1.0:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/remove-trailing-slash/-/remove-trailing-slash-0.1.1.tgz#be2285a59f39c74d1bce4f825950061915e3780d"

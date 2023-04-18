@@ -9,11 +9,15 @@ import {
   UserUploadRow,
   WorkspaceId,
 } from "backend-lib/src/types";
-import { findUserIdsByUserProperty } from "backend-lib/src/userEvents";
+import {
+  findUserIdsByUserProperty,
+  InsertUserEvent,
+} from "backend-lib/src/userEvents";
 import csvParser from "csv-parser";
 import { FastifyInstance } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { omit } from "remeda";
 import { Readable } from "stream";
 import { v4 as uuid } from "uuid";
 
@@ -89,9 +93,10 @@ export default async function subscriptionGroupsController(
       const csvStream = bufferToStream(await data.toBuffer());
       const workspaceId = request.headers[WORKSPACE_ID_HEADER];
 
+      let rows: UserUploadRow[];
       // Parse the CSV stream into a JavaScript object with an array of rows
       try {
-        const rows = await new Promise<UserUploadRow[]>((resolve, reject) => {
+        rows = await new Promise<UserUploadRow[]>((resolve, reject) => {
           const parsingErrors: ValueError[] = [];
           const uploadedRows: UserUploadRow[] = [];
 
@@ -119,36 +124,50 @@ export default async function subscriptionGroupsController(
               reject(error);
             });
         });
-
-        const emailsWithoutIds: Set<string> = new Set<string>();
-
-        for (const row of rows) {
-          if (row.email && !row.id) {
-            emailsWithoutIds.add(row.email as string);
-          }
-        }
-
-        const missingUserIdsByEmail = await findUserIdsByUserProperty({
-          userPropertyName: "email",
-          workspaceId,
-          valueSet: emailsWithoutIds,
-        });
-
-        const events = [];
-        for (const row of rows) {
-          const userIds = missingUserIdsByEmail[row.email as string];
-          const userId =
-            (row.id as string | undefined) ??
-            (userIds?.length ? userIds[0] : uuid());
-        }
-
-        const response = await reply.status(200).send();
-        return response;
       } catch (e) {
         return reply.status(400).send({
           message: "misformatted file",
         });
       }
+
+      const emailsWithoutIds: Set<string> = new Set<string>();
+
+      for (const row of rows) {
+        if (row.email && !row.id) {
+          emailsWithoutIds.add(row.email);
+        }
+      }
+
+      const missingUserIdsByEmail = await findUserIdsByUserProperty({
+        userPropertyName: "email",
+        workspaceId,
+        valueSet: emailsWithoutIds,
+      });
+
+      const events: InsertUserEvent[] = [];
+      const timestamp = new Date().toISOString();
+
+      for (const row of rows) {
+        const userIds = missingUserIdsByEmail[row.email];
+        const userId =
+          (row.id as string | undefined) ??
+          (userIds?.length ? userIds[0] : uuid());
+
+        const event: InsertUserEvent = {
+          messageId: uuid(),
+          messageRaw: JSON.stringify({
+            userId,
+            timestamp,
+            type: "identify",
+            traits: omit(row, ["id"]),
+          }),
+        };
+
+        events.push(event);
+      }
+
+      const response = await reply.status(200).send();
+      return response;
     }
   );
 }
