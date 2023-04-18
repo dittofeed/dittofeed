@@ -77,7 +77,9 @@ export default function Broadcasts() {
     <DashboardContent>
       <ResourceListContainer
         title="Broadcasts"
-        newItemHref={(newItemId) => `/dashboard/broadcasts/${newItemId}`}
+        newItemHref={(newItemId) =>
+          `/dashboard/subscription-groups/${newItemId}`
+        }
       >
         {broadcasts.length ? (
           <ResourceList>

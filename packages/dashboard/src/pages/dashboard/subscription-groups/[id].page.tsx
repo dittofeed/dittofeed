@@ -96,10 +96,12 @@ export default function SubscriptionGroupConfig() {
   ]);
 
   if (!editedSubscriptionGroup) {
+    console.error("missing editedSubscriptionGroup");
     return null;
   }
 
   if (!id) {
+    console.error("missing subscription group id");
     return null;
   }
 
