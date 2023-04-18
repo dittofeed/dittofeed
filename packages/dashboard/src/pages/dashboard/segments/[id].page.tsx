@@ -216,7 +216,6 @@ function SubscriptionGroupSelect({
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData
   );
-  const theme = useTheme();
   const subscriptionGroups = useAppStore((state) => state.subscriptionGroups);
   const subscriptionGroupOptions = useMemo(
     () =>

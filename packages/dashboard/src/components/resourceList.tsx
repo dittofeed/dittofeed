@@ -3,7 +3,6 @@ import {
   IconButton,
   List,
   ListItemButton,
-  ListItemButtonProps,
   Stack,
   SxProps,
   Theme,
