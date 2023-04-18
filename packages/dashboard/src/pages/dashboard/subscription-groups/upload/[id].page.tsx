@@ -1,6 +1,9 @@
 import { Button } from "@mui/material";
 import axios from "axios";
-import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
+import {
+  SUBSRIPTION_GROUP_ID_HEADER,
+  WORKSPACE_ID_HEADER,
+} from "isomorphic-lib/src/constants";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
@@ -47,6 +50,7 @@ export default function SubscriptionGroupConfig() {
           data: formData,
           headers: {
             [WORKSPACE_ID_HEADER]: workspace.value.id,
+            [SUBSRIPTION_GROUP_ID_HEADER]: id,
           },
         });
       }

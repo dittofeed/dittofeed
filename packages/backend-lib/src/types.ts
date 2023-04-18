@@ -86,6 +86,7 @@ export enum InternalEventType {
   MessageFailure = "DFMessageFailure",
   MessageSkipped = "DFMessageSkipped",
   SegmentBroadcast = "DFSegmentBroadcast",
+  SubscriptionChange = "DFSubscriptionChange",
 }
 
 export const KafkaSaslMechanism = Type.Union([
@@ -115,3 +116,8 @@ export const LogLevel = Type.Union([
 ]);
 
 export type LogLevel = Static<typeof LogLevel>;
+
+export enum SubscriptionChange {
+  Subscribe = "Subscribe",
+  UnSubscribe = "UnSubscribe",
+}

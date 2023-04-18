@@ -4,6 +4,8 @@ import { ValueError } from "@sinclair/typebox/errors";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
+  InternalEventType,
+  SubscriptionChange,
   SubscriptionGroupResource,
   UpsertSubscriptionGroupResource,
   UserUploadRow,
@@ -16,7 +18,10 @@ import {
 } from "backend-lib/src/userEvents";
 import csvParser from "csv-parser";
 import { FastifyInstance } from "fastify";
-import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
+import {
+  SUBSRIPTION_GROUP_ID_HEADER,
+  WORKSPACE_ID_HEADER,
+} from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { omit } from "remeda";
 import { Readable } from "stream";
@@ -81,6 +86,7 @@ export default async function subscriptionGroupsController(
       schema: {
         headers: Type.Object({
           [WORKSPACE_ID_HEADER]: WorkspaceId,
+          [SUBSRIPTION_GROUP_ID_HEADER]: Type.String(),
         }),
       },
     },
@@ -95,6 +101,7 @@ export default async function subscriptionGroupsController(
       // Convert the file buffer to a readable stream
       const csvStream = bufferToStream(await data.toBuffer());
       const workspaceId = request.headers[WORKSPACE_ID_HEADER];
+      const subscriptionGroupId = request.headers[SUBSRIPTION_GROUP_ID_HEADER];
 
       let rows: UserUploadRow[];
       // Parse the CSV stream into a JavaScript object with an array of rows
@@ -177,7 +184,7 @@ export default async function subscriptionGroupsController(
           (row.id as string | undefined) ??
           (userIds?.length ? userIds[0] : uuid());
 
-        const event: InsertUserEvent = {
+        const identifyEvent: InsertUserEvent = {
           messageId: uuid(),
           messageRaw: JSON.stringify({
             userId,
@@ -187,7 +194,22 @@ export default async function subscriptionGroupsController(
           }),
         };
 
-        userEvents.push(event);
+        const trackEvent: InsertUserEvent = {
+          messageId: uuid(),
+          messageRaw: JSON.stringify({
+            userId,
+            timestamp,
+            type: "track",
+            event: InternalEventType.SubscriptionChange,
+            properties: {
+              subscriptionId: subscriptionGroupId,
+              action: SubscriptionChange.Subscribe,
+            },
+          }),
+        };
+
+        userEvents.push(trackEvent);
+        userEvents.push(identifyEvent);
       }
       await insertUserEvents({
         workspaceId,
