@@ -76,7 +76,7 @@ const getSegmentServerSideProps: GetServerSideProps<
     };
   } else {
     segmentResource = {
-      name: "My Segment",
+      name: `My Segment - ${id}`,
       id,
       workspaceId,
       definition: {
