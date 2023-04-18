@@ -21,6 +21,7 @@ import {
   SegmentOperatorType,
   SegmentResource,
   SegmentWithinOperator,
+  SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
@@ -65,8 +66,8 @@ const orGroupedOption = {
 
 const subscriptionGroupGroupedOption = {
   id: SegmentNodeType.SubscriptionGroup,
-  group: "Group",
-  label: "Any (OR)",
+  group: "User Data",
+  label: "Subscription Group",
 };
 
 const segmentOptions: GroupedOption[] = [
@@ -204,6 +205,62 @@ function DurationValueSelect({
         <DurationDescription durationSeconds={value} />
       </Box>
     </Stack>
+  );
+}
+
+function SubscriptionGroupSelect({
+  node,
+}: {
+  node: SubscriptionGroupSegmentNode;
+}) {
+  const updateSegmentNodeData = useAppStore(
+    (state) => state.updateEditableSegmentNodeData
+  );
+  const theme = useTheme();
+  const subscriptionGroups = useAppStore((state) => state.subscriptionGroups);
+  const subscriptionGroupOptions = useMemo(
+    () =>
+      subscriptionGroups.type === CompletionStatus.Successful
+        ? subscriptionGroups.value.map((sg) => ({
+            label: sg.name,
+            id: sg.id,
+          }))
+        : [],
+    [subscriptionGroups]
+  );
+
+  const subscriptionGroup = useMemo(
+    () =>
+      subscriptionGroupOptions.find(
+        (sg) => sg.id === node.subscriptionGroupId
+      ) ?? null,
+    [subscriptionGroupOptions, node.subscriptionGroupId]
+  );
+
+  return (
+    <Box sx={{ width: theme.spacing(23) }}>
+      <Autocomplete
+        value={subscriptionGroup}
+        onChange={(_event, newValue) => {
+          updateSegmentNodeData(node.id, (segmentNode) => {
+            if (
+              newValue &&
+              segmentNode.type === SegmentNodeType.SubscriptionGroup
+            ) {
+              segmentNode.subscriptionGroupId = newValue.id;
+            }
+          });
+        }}
+        options={subscriptionGroupOptions}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="subscription group"
+            variant="outlined"
+          />
+        )}
+      />
+    </Box>
   );
 }
 
@@ -477,7 +534,7 @@ function SegmentNodeComponent({
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
         {labelEl}
         {conditionSelect}
-        {/* <TraitSelect node={node} /> */}
+        <SubscriptionGroupSelect node={node} />
         {deleteButton}
       </Stack>
     );

@@ -83,7 +83,9 @@ export const SubscriptionGroupSegmentNode = Type.Object({
   subscriptionGroupId: Type.String(),
 });
 
-export type SubscriptionGroupSegmentNode = Static<typeof PerformedSegmentNode>;
+export type SubscriptionGroupSegmentNode = Static<
+  typeof SubscriptionGroupSegmentNode
+>;
 
 export const PerformedSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Performed),
