@@ -1,4 +1,4 @@
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Button, Stack, Typography } from "@mui/material";
 import axios from "axios";
 import {
   SUBSRIPTION_GROUP_ID_HEADER,
@@ -7,15 +7,15 @@ import {
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
+import { enqueueSnackbar } from "notistack";
 import { ChangeEvent, useState } from "react";
 
 import { PropsWithInitialState, useAppStore } from "../../../../lib/appStore";
+import { noticeAnchorOrigin } from "../../../../lib/notices";
 import getSubscriptionGroupsSSP from "../getSubscriptionGroupsSSP";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,
 } from "../subscriptionGroupLayout";
-import { enqueueSnackbar } from "notistack";
-import { noticeAnchorOrigin } from "../../../../lib/notices";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   getSubscriptionGroupsSSP;

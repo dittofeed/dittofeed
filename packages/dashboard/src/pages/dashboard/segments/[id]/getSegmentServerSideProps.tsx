@@ -1,4 +1,5 @@
 import backendConfig from "backend-lib/src/config";
+import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { findAllUserTraits } from "backend-lib/src/userEvents";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -18,7 +19,6 @@ import {
   PropsWithInitialState,
 } from "../../../../lib/appStore";
 import prisma from "../../../../lib/prisma";
-import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 
 const entryId = "entry";
 const initTraitId = "initTraitId";
