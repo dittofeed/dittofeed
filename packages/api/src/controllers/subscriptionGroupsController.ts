@@ -9,11 +9,13 @@ import {
   UserUploadRow,
   WorkspaceId,
 } from "backend-lib/src/types";
+import { findUserIdsByUserProperty } from "backend-lib/src/userEvents";
 import csvParser from "csv-parser";
 import { FastifyInstance } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { Readable } from "stream";
+import { v4 as uuid } from "uuid";
 
 const bufferToStream = (buffer: Buffer): Readable => {
   const stream = new Readable();
@@ -89,34 +91,57 @@ export default async function subscriptionGroupsController(
 
       // Parse the CSV stream into a JavaScript object with an array of rows
       try {
-        await new Promise<UserUploadRow[]>((resolve, reject) => {
+        const rows = await new Promise<UserUploadRow[]>((resolve, reject) => {
           const parsingErrors: ValueError[] = [];
-          const rows: UserUploadRow[] = [];
+          const uploadedRows: UserUploadRow[] = [];
 
           csvStream
             .pipe(csvParser({ headers: true }))
             .on("data", (row) => {
               const parsed = schemaValidate(row, UserUploadRow);
               if (parsed.isOk()) {
-                rows.push(parsed.value);
+                uploadedRows.push(parsed.value);
               } else {
                 parsed.error.forEach((error) => parsingErrors.push(error));
               }
             })
             .on("end", () => {
               logger().debug(
-                `Parsed ${rows.length} rows for workspace: ${workspaceId}`
+                `Parsed ${uploadedRows.length} rows for workspace: ${workspaceId}`
               );
               if (parsingErrors.length) {
                 reject(parsingErrors);
               } else {
-                resolve(rows);
+                resolve(uploadedRows);
               }
             })
             .on("error", (error) => {
               reject(error);
             });
         });
+
+        const emailsWithoutIds: Set<string> = new Set<string>();
+
+        for (const row of rows) {
+          if (row.email && !row.id) {
+            emailsWithoutIds.add(row.email as string);
+          }
+        }
+
+        const missingUserIdsByEmail = await findUserIdsByUserProperty({
+          userPropertyName: "email",
+          workspaceId,
+          valueSet: emailsWithoutIds,
+        });
+
+        const events = [];
+        for (const row of rows) {
+          const userIds = missingUserIdsByEmail[row.email as string];
+          const userId =
+            (row.id as string | undefined) ??
+            (userIds?.length ? userIds[0] : uuid());
+        }
+
         const response = await reply.status(200).send();
         return response;
       } catch (e) {

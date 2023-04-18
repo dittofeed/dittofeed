@@ -359,7 +359,7 @@ export async function findAllUserTraits({
   return results.map((o) => o.trait);
 }
 
-export type UserIdsByPropertyValue = Record<string, Set<string>>;
+export type UserIdsByPropertyValue = Record<string, string[]>;
 
 export async function findUserIdsByUserProperty({
   userPropertyName,
@@ -397,8 +397,9 @@ export async function findUserIdsByUserProperty({
     select user_id, user_property_value
     from computed_property_assignments
     where workspace_id = ${workspaceIdParam}
-    and user_property_value in ${valueSetParam}
-    and computed_property_id = ${computedPropertyId}
+      and user_property_value in ${valueSetParam}
+      and computed_property_id = ${computedPropertyId}
+    order by assigned_at desc
   `;
 
   const queryResults = await clickhouseClient().query({
@@ -419,10 +420,10 @@ export async function findUserIdsByUserProperty({
         }>();
         let userResult = result[user_property_value];
         if (!userResult) {
-          userResult = new Set<string>();
+          userResult = [];
           result[user_property_value] = userResult;
         }
-        userResult.add(user_id);
+        userResult.push(user_id);
       }),
     ]);
   }
