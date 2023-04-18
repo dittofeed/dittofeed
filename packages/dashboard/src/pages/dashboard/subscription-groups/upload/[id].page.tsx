@@ -1,4 +1,4 @@
-import { Button } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import axios from "axios";
 import {
   SUBSRIPTION_GROUP_ID_HEADER,
@@ -14,6 +14,8 @@ import getSubscriptionGroupsSSP from "../getSubscriptionGroupsSSP";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,
 } from "../subscriptionGroupLayout";
+import { enqueueSnackbar } from "notistack";
+import { noticeAnchorOrigin } from "../../../../lib/notices";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   getSubscriptionGroupsSSP;
@@ -53,6 +55,12 @@ export default function SubscriptionGroupConfig() {
             [SUBSRIPTION_GROUP_ID_HEADER]: id,
           },
         });
+
+        enqueueSnackbar("Submitted users to subscription group", {
+          variant: "success",
+          autoHideDuration: 3000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
       }
     })();
   };
@@ -63,19 +71,43 @@ export default function SubscriptionGroupConfig() {
 
   return (
     <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Upload} id={id}>
-      <Button variant="contained" component="label">
-        Choose CSV file of users
-        <input accept=".csv" type="file" hidden onChange={handleFileChange} />
-      </Button>
-      {file ? file.name : null}
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleSubmit}
-        disabled={!file}
+      <Stack
+        direction="column"
+        sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
+        spacing={3}
       >
-        Upload
-      </Button>
+        <Stack direction="row" sx={{ alignItems: "center", width: "100%" }}>
+          <Typography variant="h4">
+            Upload Users to a Subscription Group
+          </Typography>
+        </Stack>
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", width: "100%" }}
+          spacing={3}
+        >
+          <Button variant="contained" component="label">
+            Choose CSV File
+            <input
+              accept=".csv"
+              type="file"
+              hidden
+              onChange={handleFileChange}
+            />
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            disabled={!file}
+          >
+            Upload
+          </Button>
+        </Stack>
+        {file ? (
+          <Typography sx={{ fontFamily: "monospace" }}>{file.name}</Typography>
+        ) : null}
+      </Stack>
     </SubscriptionGroupLayout>
   );
 }

@@ -34,7 +34,10 @@ const bufferToStream = (buffer: Buffer): Readable => {
   return stream;
 };
 
-type RowErrors = { row: number; errors: ValueError[] };
+interface RowErrors {
+  row: number;
+  errors: ValueError[];
+}
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function subscriptionGroupsController(
@@ -216,7 +219,6 @@ export default async function subscriptionGroupsController(
         userEvents,
       });
 
-      // FIXME insert track events for subscriptions
       const response = await reply.status(200).send();
       return response;
     }
