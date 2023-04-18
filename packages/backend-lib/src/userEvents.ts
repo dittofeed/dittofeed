@@ -364,8 +364,10 @@ export type UserIdsByPropertyValue = Record<string, Set<string>>;
 export async function findUserIdsByUserProperty({
   userPropertyName,
   workspaceId,
+  valueSet,
 }: {
   userPropertyName: string;
+  valueSet: Set<string>;
   workspaceId: string;
 }): Promise<UserIdsByPropertyValue> {
   const userProperty = await prisma().userProperty.findUnique({
@@ -386,11 +388,16 @@ export async function findUserIdsByUserProperty({
     userProperty.id,
     "String"
   );
+  const valueSetParam = queryBuilder.addQueryValue(
+    Array.from(valueSet),
+    "Array(String)"
+  );
 
   const query = `
     select user_id, user_property_value
     from computed_property_assignments
     where workspace_id = ${workspaceIdParam}
+    and user_property_value in ${valueSetParam}
     and computed_property_id = ${computedPropertyId}
   `;
 
