@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "liquidjs": "^10.4.0",
-    "@sinclair/typebox": "^0.25.8",
+    "@sinclair/typebox": "^0.27.8",
     "neverthrow": "^6.0.0"
   },
   "devDependencies": {

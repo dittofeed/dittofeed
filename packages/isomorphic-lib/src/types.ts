@@ -377,6 +377,28 @@ export const SegmentResource = Type.Object({
 
 export type SegmentResource = Static<typeof SegmentResource>;
 
+export enum SubscriptionGroupType {
+  OptIn = "OptIn",
+  OptOut = "OptOut",
+}
+
+export const SubscriptionGroupResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  type: Type.Enum(SubscriptionGroupType),
+});
+
+export type SubscriptionGroupResource = Static<
+  typeof SubscriptionGroupResource
+>;
+
+export const UpsertSubscriptionGroupResource = SubscriptionGroupResource;
+
+export type UpsertSubscriptionGroupResource = Static<
+  typeof UpsertSubscriptionGroupResource
+>;
+
 export const BroadcastResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -466,11 +488,10 @@ export const MessageTemplateResource = Type.Union([EmailTemplateResource]);
 
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
 
-export const UpsertMessageTemplateResource = Type.Union(
-  MessageTemplateResource.anyOf.map((t) =>
-    Type.Intersect([Type.Omit(Type.Partial(t), ["id"]), Type.Pick(t, ["id"])])
-  )
-);
+export const UpsertMessageTemplateResource = Type.Intersect([
+  Type.Omit(Type.Partial(MessageTemplateResource), ["id"]),
+  Type.Pick(MessageTemplateResource, ["id"]),
+]);
 
 export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
@@ -560,18 +581,16 @@ export const EmailProviderResource = Type.Union([
 
 export type EmailProviderResource = Static<typeof EmailProviderResource>;
 
-export const UpsertEmailProviderResource = Type.Union(
-  PersistedEmailProvider.anyOf.flatMap((t) => [
-    Type.Intersect([
-      Type.Omit(Type.Partial(t), ["id", "workspaceId"]),
-      Type.Pick(t, ["id", "workspaceId"]),
-    ]),
-    Type.Intersect([
-      Type.Omit(Type.Partial(t), ["type", "workspaceId"]),
-      Type.Pick(t, ["type", "workspaceId"]),
-    ]),
-  ])
-);
+export const UpsertEmailProviderResource = Type.Union([
+  Type.Intersect([
+    Type.Omit(Type.Partial(PersistedEmailProvider), ["id", "workspaceId"]),
+    Type.Pick(PersistedEmailProvider, ["id", "workspaceId"]),
+  ]),
+  Type.Intersect([
+    Type.Omit(Type.Partial(PersistedEmailProvider), ["type", "workspaceId"]),
+    Type.Pick(PersistedEmailProvider, ["type", "workspaceId"]),
+  ]),
+]);
 
 export type UpsertEmailProviderResource = Static<
   typeof UpsertEmailProviderResource
@@ -741,3 +760,27 @@ export enum SourceControlProviderEnum {
 }
 
 export const SourceControlProvider = Type.Enum(SourceControlProviderEnum);
+
+export const WorkspaceId = Type.String({
+  description:
+    "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems",
+});
+
+export type WorkspaceId = Static<typeof WorkspaceId>;
+
+export const UserUploadRow = Type.Union([
+  Type.Intersect([
+    Type.Record(Type.String(), Type.String()),
+    Type.Object({
+      id: Type.String(),
+    }),
+  ]),
+  Type.Intersect([
+    Type.Record(Type.String(), Type.String()),
+    Type.Object({
+      email: Type.String({ format: "email" }),
+    }),
+  ]),
+]);
+
+export type UserUploadRow = Static<typeof UserUploadRow>;

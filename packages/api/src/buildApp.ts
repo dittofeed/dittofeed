@@ -1,3 +1,4 @@
+import fastifyMultipart from "@fastify/multipart";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
@@ -53,7 +54,10 @@ async function buildApp() {
   });
 
   // needs to be registered before routes
-  await server.register(fastifyRawBody);
+  await Promise.all([
+    server.register(fastifyRawBody),
+    server.register(fastifyMultipart),
+  ]);
 
   await Promise.all([
     server.register(router),

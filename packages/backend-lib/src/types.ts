@@ -64,11 +64,11 @@ export const UserEvent = Type.Object({
 export type UserEvent = Static<typeof UserEvent>;
 
 export const SegmentIOIdentifyEvent = Type.Object({
-  traits: Type.Object(Type.Record(Type.String(), Type.Any())),
+  traits: Type.Record(Type.String(), Type.Any()),
 });
 
 export const SegmentIOTrackEvent = Type.Object({
-  properties: Type.Object(Type.Record(Type.String(), Type.Any())),
+  properties: Type.Record(Type.String(), Type.Any()),
 });
 
 export const SegmentIOEvent = Type.Union([
@@ -86,6 +86,7 @@ export enum InternalEventType {
   MessageFailure = "DFMessageFailure",
   MessageSkipped = "DFMessageSkipped",
   SegmentBroadcast = "DFSegmentBroadcast",
+  SubscriptionChange = "DFSubscriptionChange",
 }
 
 export const KafkaSaslMechanism = Type.Union([
@@ -115,3 +116,8 @@ export const LogLevel = Type.Union([
 ]);
 
 export type LogLevel = Static<typeof LogLevel>;
+
+export enum SubscriptionChange {
+  Subscribe = "Subscribe",
+  UnSubscribe = "UnSubscribe",
+}

@@ -26,7 +26,7 @@
     "@prisma/client": "^4.8.1",
     "@sendgrid/helpers": "^7.7.0",
     "@sendgrid/mail": "^7.7.0",
-    "@sinclair/typebox": "^0.25.8",
+    "@sinclair/typebox": "^0.27.8",
     "@temporalio/activity": "^1.6.0",
     "@temporalio/client": "^1.6.0",
     "@temporalio/worker": "^1.6.0",
@@ -44,6 +44,7 @@
     "pino": "^8.11.0",
     "pino-pretty": "^10.0.0",
     "prisma": "^4.8.1",
+    "remeda": "^1.12.0",
     "utility-types": "^3.10.0",
     "uuid": "^9.0.0"
   },

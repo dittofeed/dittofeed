@@ -8,7 +8,11 @@ import {
   ThunderboltOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { CampaignOutlined, ManageAccountsOutlined } from "@mui/icons-material";
+import {
+  CampaignOutlined,
+  ManageAccountsOutlined,
+  PeopleOutlined,
+} from "@mui/icons-material";
 
 import { MenuItemGroup } from "./types";
 
@@ -77,6 +81,14 @@ const menuItems: { items: MenuItemGroup[] } = {
           description: "View users, and their histories.",
         },
         {
+          id: "segments",
+          title: "Segments",
+          type: "item",
+          url: "/dashboard/segments",
+          icon: GroupOutlined,
+          description: "View, create, and edit segments.",
+        },
+        {
           id: "user-properties",
           title: "User Properties",
           type: "item",
@@ -86,20 +98,20 @@ const menuItems: { items: MenuItemGroup[] } = {
             "Manage the properties which are recorded and computed for users.",
         },
         {
+          id: "subscription-groups",
+          title: "Subscription Groups",
+          type: "item",
+          url: "/dashboard/subscription-groups",
+          icon: PeopleOutlined,
+          description: "Manage subscription groups of users.",
+        },
+        {
           id: "events",
           title: "Events",
           type: "item",
           url: "/dashboard/events",
           icon: ThunderboltOutlined,
           description: "View user events.",
-        },
-        {
-          id: "segments",
-          title: "Segments",
-          type: "item",
-          url: "/dashboard/segments",
-          icon: GroupOutlined,
-          description: "View, create, and edit segments.",
         },
       ],
     },

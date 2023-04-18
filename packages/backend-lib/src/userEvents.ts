@@ -1,3 +1,4 @@
+import { Row } from "@clickhouse/client";
 import { ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
@@ -5,16 +6,17 @@ import config from "./config";
 import { kafkaProducer } from "./kafka";
 import logger from "./logger";
 import prisma from "./prisma";
-import { InternalEventType, UserEvent } from "./types";
+import { InternalEventType, UserEvent, UserProperty } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
-interface InsertUserEventsParams {
+export interface InsertUserEvent {
+  messageRaw: string;
+  processingTime?: string;
+  messageId: string;
+}
+export interface InsertUserEventsParams {
   workspaceId: string;
-  userEvents: {
-    messageRaw: string;
-    processingTime?: string;
-    messageId: string;
-  }[];
+  userEvents: InsertUserEvent[];
 }
 
 async function insertUserEventsDirect({
@@ -356,4 +358,75 @@ export async function findAllUserTraits({
 
   const results = await resultSet.json<{ trait: string }[]>();
   return results.map((o) => o.trait);
+}
+
+export type UserIdsByPropertyValue = Record<string, string[]>;
+
+export async function findUserIdsByUserProperty({
+  userPropertyName,
+  workspaceId,
+  valueSet,
+}: {
+  userPropertyName: string;
+  valueSet: Set<string>;
+  workspaceId: string;
+}): Promise<UserIdsByPropertyValue> {
+  const userProperty = await prisma().userProperty.findUnique({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: userPropertyName,
+      },
+    },
+  });
+  if (!userProperty) {
+    return {};
+  }
+
+  const queryBuilder = new ClickHouseQueryBuilder();
+  const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
+  const computedPropertyId = queryBuilder.addQueryValue(
+    userProperty.id,
+    "String"
+  );
+  const valueSetParam = queryBuilder.addQueryValue(
+    Array.from(valueSet),
+    "Array(String)"
+  );
+
+  const query = `
+    select user_id, user_property_value
+    from computed_property_assignments
+    where workspace_id = ${workspaceIdParam}
+      and user_property_value in ${valueSetParam}
+      and computed_property_id = ${computedPropertyId}
+    order by assigned_at desc
+  `;
+
+  const queryResults = await clickhouseClient().query({
+    query,
+    format: "JSONEachRow",
+    query_params: queryBuilder.getQueries(),
+  });
+
+  const result: UserIdsByPropertyValue = {};
+
+  for await (const rows of queryResults.stream()) {
+    await Promise.all([
+      rows.map(async (row: Row) => {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { user_id, user_property_value } = row.json<{
+          user_id: string;
+          user_property_value: string;
+        }>();
+        let userResult = result[user_property_value];
+        if (!userResult) {
+          userResult = [];
+          result[user_property_value] = userResult;
+        }
+        userResult.push(user_id);
+      }),
+    ]);
+  }
+  return result;
 }
