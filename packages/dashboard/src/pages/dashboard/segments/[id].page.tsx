@@ -63,9 +63,16 @@ const orGroupedOption = {
   label: "Any (OR)",
 };
 
+const subscriptionGroupGroupedOption = {
+  id: SegmentNodeType.SubscriptionGroup,
+  group: "Group",
+  label: "Any (OR)",
+};
+
 const segmentOptions: GroupedOption[] = [
   traitGroupedOption,
   broadcastGroupedOption,
+  subscriptionGroupGroupedOption,
   andGroupedOption,
   orGroupedOption,
 ];
@@ -78,6 +85,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.And]: andGroupedOption,
   [SegmentNodeType.Or]: orGroupedOption,
   [SegmentNodeType.Broadcast]: broadcastGroupedOption,
+  [SegmentNodeType.SubscriptionGroup]: subscriptionGroupGroupedOption,
 };
 
 interface Option {
@@ -461,6 +469,15 @@ function SegmentNodeComponent({
         {labelEl}
         {conditionSelect}
         <Box>Actives when segment receives a broadcast.</Box>
+        {deleteButton}
+      </Stack>
+    );
+  } else if (node.type === SegmentNodeType.SubscriptionGroup) {
+    el = (
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {labelEl}
+        {conditionSelect}
+        {/* <TraitSelect node={node} /> */}
         {deleteButton}
       </Stack>
     );

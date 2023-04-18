@@ -1,5 +1,4 @@
 import {
-  BroadcastResource,
   CompletionStatus,
   SegmentDefinition,
   SegmentNode,
@@ -13,7 +12,7 @@ import createContext from "zustand/context";
 import { immer } from "zustand/middleware/immer";
 
 import { createJourneySlice } from "../components/journeys/store";
-import { AppActions, AppState, EditedBroadcast } from "./types";
+import { AppActions, AppState } from "./types";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();
@@ -143,6 +142,16 @@ function mapSegmentNodeToNewType(
         primary: {
           type: SegmentNodeType.Broadcast,
           id: node.id,
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.SubscriptionGroup: {
+      return {
+        primary: {
+          type: SegmentNodeType.SubscriptionGroup,
+          id: node.id,
+          subscriptionGroupId: "",
         },
         secondary: [],
       };
