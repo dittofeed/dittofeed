@@ -76,6 +76,7 @@ function buildSegmentQueryExpression({
   switch (node.type) {
     case SegmentNodeType.SubscriptionGroup: {
       // TODO implement opt-out logic
+      // TODO allow subscriptions to be updated
       const performedNode: PerformedSegmentNode = {
         id: node.id,
         type: SegmentNodeType.Performed,
