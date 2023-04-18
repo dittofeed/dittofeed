@@ -102,7 +102,6 @@ const menuItems: { items: MenuItemGroup[] } = {
           title: "Subscription Groups",
           type: "item",
           url: "/dashboard/subscription-groups",
-          disabled: true,
           icon: PeopleOutlined,
           description: "Manage subscription groups of users.",
         },

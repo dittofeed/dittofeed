@@ -77,7 +77,7 @@ export default function SubscriptionGroups() {
   return (
     <DashboardContent>
       <ResourceListContainer
-        title="subscriptionGroups"
+        title="Subscription Groups"
         newItemHref={(newItemId) =>
           `/dashboard/subscription-groups/${newItemId}`
         }
