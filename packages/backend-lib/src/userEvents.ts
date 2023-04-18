@@ -1,3 +1,4 @@
+import { Row } from "@clickhouse/client";
 import { ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
@@ -5,7 +6,7 @@ import config from "./config";
 import { kafkaProducer } from "./kafka";
 import logger from "./logger";
 import prisma from "./prisma";
-import { InternalEventType, UserEvent } from "./types";
+import { InternalEventType, UserEvent, UserProperty } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 interface InsertUserEventsParams {
@@ -356,4 +357,67 @@ export async function findAllUserTraits({
 
   const results = await resultSet.json<{ trait: string }[]>();
   return results.map((o) => o.trait);
+}
+
+export type UserIdsByPropertyValue = Record<string, Set<string>>;
+
+export async function findUserIdsByUserProperty({
+  userPropertyName,
+  workspaceId,
+}: {
+  userPropertyName: string;
+  workspaceId: string;
+}): Promise<UserIdsByPropertyValue> {
+  const userProperty = await prisma().userProperty.findUnique({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: userPropertyName,
+      },
+    },
+  });
+  if (!userProperty) {
+    return {};
+  }
+
+  const queryBuilder = new ClickHouseQueryBuilder();
+  const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
+  const computedPropertyId = queryBuilder.addQueryValue(
+    userProperty.id,
+    "String"
+  );
+
+  const query = `
+    select user_id, user_property_value
+    from computed_property_assignments
+    where workspace_id = ${workspaceIdParam}
+    and computed_property_id = ${computedPropertyId}
+  `;
+
+  const queryResults = await clickhouseClient().query({
+    query,
+    format: "JSONEachRow",
+    query_params: queryBuilder.getQueries(),
+  });
+
+  const result: UserIdsByPropertyValue = {};
+
+  for await (const rows of queryResults.stream()) {
+    await Promise.all([
+      rows.map(async (row: Row) => {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { user_id, user_property_value } = row.json<{
+          user_id: string;
+          user_property_value: string;
+        }>();
+        let userResult = result[user_property_value];
+        if (!userResult) {
+          userResult = new Set<string>();
+          result[user_property_value] = userResult;
+        }
+        userResult.add(user_id);
+      }),
+    ]);
+  }
+  return result;
 }

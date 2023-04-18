@@ -120,7 +120,9 @@ export default async function subscriptionGroupsController(
         const response = await reply.status(200).send();
         return response;
       } catch (e) {
-        return reply.status(400).send();
+        return reply.status(400).send({
+          message: "misformatted file",
+        });
       }
     }
   );
