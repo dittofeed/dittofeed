@@ -12,6 +12,7 @@ import {
 import {
   findUserIdsByUserProperty,
   InsertUserEvent,
+  insertUserEvents,
 } from "backend-lib/src/userEvents";
 import csvParser from "csv-parser";
 import { FastifyInstance } from "fastify";
@@ -27,6 +28,8 @@ const bufferToStream = (buffer: Buffer): Readable => {
   stream.push(null);
   return stream;
 };
+
+type RowErrors = { row: number; errors: ValueError[] };
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function subscriptionGroupsController(
@@ -97,18 +100,32 @@ export default async function subscriptionGroupsController(
       // Parse the CSV stream into a JavaScript object with an array of rows
       try {
         rows = await new Promise<UserUploadRow[]>((resolve, reject) => {
-          const parsingErrors: ValueError[] = [];
+          const parsingErrors: RowErrors[] = [];
           const uploadedRows: UserUploadRow[] = [];
 
+          let i = 0;
           csvStream
-            .pipe(csvParser({ headers: true }))
+            .pipe(csvParser())
             .on("data", (row) => {
               const parsed = schemaValidate(row, UserUploadRow);
               if (parsed.isOk()) {
                 uploadedRows.push(parsed.value);
               } else {
-                parsed.error.forEach((error) => parsingErrors.push(error));
+                const errors = {
+                  row: i,
+                  errors: parsed.error,
+                };
+                logger().debug(
+                  {
+                    errors,
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    row,
+                  },
+                  "failed to validate csv row"
+                );
+                parsingErrors.push(errors);
               }
+              i += 1;
             })
             .on("end", () => {
               logger().debug(
@@ -125,9 +142,16 @@ export default async function subscriptionGroupsController(
             });
         });
       } catch (e) {
-        return reply.status(400).send({
+        const errorResponse: {
+          message: string;
+          errors?: RowErrors[];
+        } = {
           message: "misformatted file",
-        });
+        };
+        if (e instanceof Array) {
+          errorResponse.errors = e as RowErrors[];
+        }
+        return reply.status(400).send(errorResponse);
       }
 
       const emailsWithoutIds: Set<string> = new Set<string>();
@@ -144,7 +168,7 @@ export default async function subscriptionGroupsController(
         valueSet: emailsWithoutIds,
       });
 
-      const events: InsertUserEvent[] = [];
+      const userEvents: InsertUserEvent[] = [];
       const timestamp = new Date().toISOString();
 
       for (const row of rows) {
@@ -163,8 +187,12 @@ export default async function subscriptionGroupsController(
           }),
         };
 
-        events.push(event);
+        userEvents.push(event);
       }
+      await insertUserEvents({
+        workspaceId,
+        userEvents,
+      });
 
       const response = await reply.status(200).send();
       return response;

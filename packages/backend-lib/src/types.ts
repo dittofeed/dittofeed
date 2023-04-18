@@ -64,11 +64,11 @@ export const UserEvent = Type.Object({
 export type UserEvent = Static<typeof UserEvent>;
 
 export const SegmentIOIdentifyEvent = Type.Object({
-  traits: Type.Object(Type.Record(Type.String(), Type.Any())),
+  traits: Type.Record(Type.String(), Type.Any()),
 });
 
 export const SegmentIOTrackEvent = Type.Object({
-  properties: Type.Object(Type.Record(Type.String(), Type.Any())),
+  properties: Type.Record(Type.String(), Type.Any()),
 });
 
 export const SegmentIOEvent = Type.Union([
