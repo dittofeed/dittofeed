@@ -39,6 +39,7 @@ export default function SubscriptionGroupLayout({
               index={0}
             />
             <TabLink
+              disabled
               label="Users"
               href={`/dashboard/subscription-groups/users/${id}`}
               index={1}
