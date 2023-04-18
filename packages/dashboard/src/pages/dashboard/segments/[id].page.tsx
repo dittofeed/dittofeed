@@ -39,7 +39,7 @@ interface GroupedOption {
   label: string;
 }
 
-const selectorWith = "150px";
+const selectorWidth = "192px";
 
 const traitGroupedOption = {
   id: SegmentNodeType.Trait,
@@ -157,7 +157,7 @@ function ValueSelect({
 
   return (
     <Stack direction="row" spacing={1}>
-      <Box sx={{ width: selectorWith }}>
+      <Box sx={{ width: selectorWidth }}>
         <TextField label="Value" value={value} onChange={handleChange} />
       </Box>
     </Stack>
@@ -191,7 +191,7 @@ function DurationValueSelect({
 
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-      <Box sx={{ width: selectorWith }}>
+      <Box sx={{ width: selectorWidth }}>
         <TextField
           label="Value (Seconds)"
           InputProps={{
@@ -238,7 +238,7 @@ function SubscriptionGroupSelect({
   );
 
   return (
-    <Box sx={{ width: theme.spacing(23) }}>
+    <Box sx={{ width: selectorWidth }}>
       <Autocomplete
         value={subscriptionGroup}
         onChange={(_event, newValue) => {
@@ -304,7 +304,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   };
   return (
     <>
-      <Box sx={{ width: selectorWith }}>
+      <Box sx={{ width: selectorWidth }}>
         <Autocomplete
           value={traitPath}
           freeSolo
@@ -329,7 +329,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           )}
         />
       </Box>
-      <Box sx={{ width: selectorWith }}>
+      <Box sx={{ width: selectorWidth }}>
         <Autocomplete
           value={operator}
           onChange={(_event: unknown, newValue: Option) => {
@@ -420,7 +420,7 @@ function SegmentNodeComponent({
 
   const condition = keyedSegmentOptions[node.type];
   const conditionSelect = (
-    <Box sx={{ width: selectorWith }}>
+    <Box sx={{ width: selectorWidth }}>
       <Autocomplete
         value={condition}
         groupBy={(option) => option.group}
