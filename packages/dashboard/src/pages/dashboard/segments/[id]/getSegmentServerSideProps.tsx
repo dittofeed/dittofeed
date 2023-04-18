@@ -18,6 +18,7 @@ import {
   PropsWithInitialState,
 } from "../../../../lib/appStore";
 import prisma from "../../../../lib/prisma";
+import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 
 const entryId = "entry";
 const initTraitId = "initTraitId";
@@ -36,7 +37,7 @@ const getSegmentServerSideProps: GetServerSideProps<
     };
   }
 
-  const [segment, workspace, traits] = await Promise.all([
+  const [segment, workspace, traits, subscriptionGroups] = await Promise.all([
     prisma().segment.findUnique({
       where: {
         id,
@@ -49,6 +50,11 @@ const getSegmentServerSideProps: GetServerSideProps<
     }),
     findAllUserTraits({
       workspaceId,
+    }),
+    prisma().subscriptionGroup.findMany({
+      where: {
+        workspaceId,
+      },
     }),
   ]);
 
@@ -105,6 +111,11 @@ const getSegmentServerSideProps: GetServerSideProps<
       },
     };
   }
+
+  serverInitialState.subscriptionGroups = {
+    type: CompletionStatus.Successful,
+    value: subscriptionGroups.map(subscriptionGroupToResource),
+  };
 
   serverInitialState.traits = {
     type: CompletionStatus.Successful,

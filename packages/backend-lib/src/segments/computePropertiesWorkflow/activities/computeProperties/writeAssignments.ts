@@ -15,6 +15,7 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
+  SubscriptionChange,
   UserPropertyDefinitionType,
 } from "../../../../types";
 
@@ -73,6 +74,38 @@ function buildSegmentQueryExpression({
   nodes: SegmentNode[];
 }): string | null {
   switch (node.type) {
+    case SegmentNodeType.SubscriptionGroup: {
+      // TODO implement opt-out logic
+      // TODO allow subscriptions to be updated
+      const performedNode: PerformedSegmentNode = {
+        id: node.id,
+        type: SegmentNodeType.Performed,
+        event: InternalEventType.SubscriptionChange,
+        properties: [
+          {
+            path: "subscriptionId",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: node.subscriptionGroupId,
+            },
+          },
+          {
+            path: "action",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: SubscriptionChange.Subscribe,
+            },
+          },
+        ],
+      };
+      return buildSegmentQueryExpression({
+        currentTime,
+        queryBuilder,
+        node: performedNode,
+        nodes,
+        segmentId,
+      });
+    }
     case SegmentNodeType.Broadcast: {
       const performedNode: PerformedSegmentNode = {
         id: node.id,

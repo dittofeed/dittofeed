@@ -21,6 +21,7 @@ import {
   SegmentOperatorType,
   SegmentResource,
   SegmentWithinOperator,
+  SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
@@ -38,7 +39,7 @@ interface GroupedOption {
   label: string;
 }
 
-const selectorWith = "150px";
+const selectorWidth = "192px";
 
 const traitGroupedOption = {
   id: SegmentNodeType.Trait,
@@ -63,9 +64,16 @@ const orGroupedOption = {
   label: "Any (OR)",
 };
 
+const subscriptionGroupGroupedOption = {
+  id: SegmentNodeType.SubscriptionGroup,
+  group: "User Data",
+  label: "Subscription Group",
+};
+
 const segmentOptions: GroupedOption[] = [
   traitGroupedOption,
   broadcastGroupedOption,
+  subscriptionGroupGroupedOption,
   andGroupedOption,
   orGroupedOption,
 ];
@@ -78,6 +86,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.And]: andGroupedOption,
   [SegmentNodeType.Or]: orGroupedOption,
   [SegmentNodeType.Broadcast]: broadcastGroupedOption,
+  [SegmentNodeType.SubscriptionGroup]: subscriptionGroupGroupedOption,
 };
 
 interface Option {
@@ -148,7 +157,7 @@ function ValueSelect({
 
   return (
     <Stack direction="row" spacing={1}>
-      <Box sx={{ width: selectorWith }}>
+      <Box sx={{ width: selectorWidth }}>
         <TextField label="Value" value={value} onChange={handleChange} />
       </Box>
     </Stack>
@@ -182,7 +191,7 @@ function DurationValueSelect({
 
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-      <Box sx={{ width: selectorWith }}>
+      <Box sx={{ width: selectorWidth }}>
         <TextField
           label="Value (Seconds)"
           InputProps={{
@@ -196,6 +205,62 @@ function DurationValueSelect({
         <DurationDescription durationSeconds={value} />
       </Box>
     </Stack>
+  );
+}
+
+function SubscriptionGroupSelect({
+  node,
+}: {
+  node: SubscriptionGroupSegmentNode;
+}) {
+  const updateSegmentNodeData = useAppStore(
+    (state) => state.updateEditableSegmentNodeData
+  );
+  const theme = useTheme();
+  const subscriptionGroups = useAppStore((state) => state.subscriptionGroups);
+  const subscriptionGroupOptions = useMemo(
+    () =>
+      subscriptionGroups.type === CompletionStatus.Successful
+        ? subscriptionGroups.value.map((sg) => ({
+            label: sg.name,
+            id: sg.id,
+          }))
+        : [],
+    [subscriptionGroups]
+  );
+
+  const subscriptionGroup = useMemo(
+    () =>
+      subscriptionGroupOptions.find(
+        (sg) => sg.id === node.subscriptionGroupId
+      ) ?? null,
+    [subscriptionGroupOptions, node.subscriptionGroupId]
+  );
+
+  return (
+    <Box sx={{ width: selectorWidth }}>
+      <Autocomplete
+        value={subscriptionGroup}
+        onChange={(_event, newValue) => {
+          updateSegmentNodeData(node.id, (segmentNode) => {
+            if (
+              newValue &&
+              segmentNode.type === SegmentNodeType.SubscriptionGroup
+            ) {
+              segmentNode.subscriptionGroupId = newValue.id;
+            }
+          });
+        }}
+        options={subscriptionGroupOptions}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="subscription group"
+            variant="outlined"
+          />
+        )}
+      />
+    </Box>
   );
 }
 
@@ -239,7 +304,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   };
   return (
     <>
-      <Box sx={{ width: selectorWith }}>
+      <Box sx={{ width: selectorWidth }}>
         <Autocomplete
           value={traitPath}
           freeSolo
@@ -264,7 +329,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           )}
         />
       </Box>
-      <Box sx={{ width: selectorWith }}>
+      <Box sx={{ width: selectorWidth }}>
         <Autocomplete
           value={operator}
           onChange={(_event: unknown, newValue: Option) => {
@@ -355,7 +420,7 @@ function SegmentNodeComponent({
 
   const condition = keyedSegmentOptions[node.type];
   const conditionSelect = (
-    <Box sx={{ width: selectorWith }}>
+    <Box sx={{ width: selectorWidth }}>
       <Autocomplete
         value={condition}
         groupBy={(option) => option.group}
@@ -461,6 +526,15 @@ function SegmentNodeComponent({
         {labelEl}
         {conditionSelect}
         <Box>Actives when segment receives a broadcast.</Box>
+        {deleteButton}
+      </Stack>
+    );
+  } else if (node.type === SegmentNodeType.SubscriptionGroup) {
+    el = (
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {labelEl}
+        {conditionSelect}
+        <SubscriptionGroupSelect node={node} />
         {deleteButton}
       </Stack>
     );

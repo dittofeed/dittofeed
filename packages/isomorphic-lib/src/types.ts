@@ -74,7 +74,18 @@ export enum SegmentNodeType {
   Or = "Or",
   Performed = "Performed",
   Broadcast = "Broadcast",
+  SubscriptionGroup = "SubscriptionGroup",
 }
+
+export const SubscriptionGroupSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.SubscriptionGroup),
+  id: Type.String(),
+  subscriptionGroupId: Type.String(),
+});
+
+export type SubscriptionGroupSegmentNode = Static<
+  typeof SubscriptionGroupSegmentNode
+>;
 
 export const PerformedSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Performed),
@@ -130,6 +141,7 @@ export const SegmentNode = Type.Union([
   OrSegmentNode,
   PerformedSegmentNode,
   BroadcastSegmentNode,
+  SubscriptionGroupSegmentNode,
 ]);
 
 export type SegmentNode = Static<typeof SegmentNode>;
