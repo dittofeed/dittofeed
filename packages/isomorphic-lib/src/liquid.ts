@@ -35,6 +35,7 @@ function getLayoutUnsafe(layoutName: string): string {
 export const liquidEngine = new Liquid({
   strictVariables: true,
   lenientIf: true,
+  relativeReference: false,
   fs: {
     readFileSync(file) {
       return getLayoutUnsafe(file);
