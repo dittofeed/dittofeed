@@ -56,6 +56,19 @@ const config = {
         ],
       }
     },
+    {
+      ...BASE_CONFIG,
+      displayName: "isomorphic-lib",
+      roots: ["<rootDir>/packages/isomorphic-lib/src"],
+      transform: {
+        '^.+\\.tsx?$': [
+          'ts-jest',
+          {
+            "tsconfig": "<rootDir>/packages/dashboard/tsconfig.jest.json"
+          },
+        ],
+      }
+    },
   ],
 };
 
