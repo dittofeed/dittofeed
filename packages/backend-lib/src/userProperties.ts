@@ -79,6 +79,7 @@ export async function findAllUserPropertyAssignments({
   userId,
 }: {
   userId: string;
+  // TODO change this type when we begin supporting more complex, nested user properties
 }): Promise<Record<string, string>> {
   const assignments = await prisma().userPropertyAssignment.findMany({
     where: { userId },
