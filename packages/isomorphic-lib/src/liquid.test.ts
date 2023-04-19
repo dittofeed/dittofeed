@@ -20,6 +20,24 @@ const expectedRenderedMarkdown = `
 </ul>
 `;
 
+const baseLayoutTemplate = `
+{% layout 'base-email' %}
+{% block style %}color: blue;{% endblock %}
+{% block content %}my content{% endblock %}
+`;
+
+const expectedBaseLayoutTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style type="text/css">color: blue;</style>
+</head>
+<body>my content</body>
+</html>
+`;
+
 describe("renderWithUserProperties", () => {
   it("can render markdown that passes email validation", async () => {
     const rendered = renderWithUserProperties({
@@ -30,5 +48,13 @@ describe("renderWithUserProperties", () => {
       },
     });
     expect(rendered.trim()).toEqual(expectedRenderedMarkdown.trim());
+  });
+
+  it("can render with the base email layout", async () => {
+    const rendered = renderWithUserProperties({
+      template: baseLayoutTemplate,
+      userProperties: {},
+    });
+    expect(rendered.trim()).toEqual(expectedBaseLayoutTemplate.trim());
   });
 });
