@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@sinclair/typebox": "^0.27.8",
-    "email-validator": "^2.0.4",
     "liquidjs": "^10.4.0",
     "markdown-it": "^13.0.1",
     "neverthrow": "^6.0.0"
