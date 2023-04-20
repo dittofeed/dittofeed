@@ -26,7 +26,7 @@ model Workspace {
   UserPropertyAssignment UserPropertyAssignment[]
   SegmentAssignment      SegmentAssignment[]
   Broadcast              Broadcast[]
-  SubscriptionGroup      SubscriptionGroup?
+  SubscriptionGroup      SubscriptionGroup[]
 }
 
 model Segment {
@@ -198,14 +198,14 @@ enum DBSubscriptionGroupType {
 }
 
 model SubscriptionGroup {
-  id          String                @id() @default(uuid()) @db.Uuid
-  workspace   Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId String                @db.Uuid
+  id          String                  @id() @default(uuid()) @db.Uuid
+  workspace   Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String                  @db.Uuid
   name        String
   type        DBSubscriptionGroupType
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
 
-  @@unique([workspaceId])
   @@unique([workspaceId, name])
+  @@index([workspaceId])
 }
