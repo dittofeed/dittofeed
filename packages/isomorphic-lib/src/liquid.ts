@@ -16,7 +16,7 @@ const baseEmailLayout = `<!DOCTYPE html>
 <body>{% block content %}{% endblock %}</body>
 </html>`;
 
-const markdownEmailLayout = `{% layout 'base-email' %}{% block content %}{% capture md %}{% block content %}{% endblock %}{% endcapture %}{{ md | markdown }}{% endblock %}`;
+const markdownEmailLayout = `{% layout 'base-email' %}{% block content %}{% capture md %}{% block md-content %}{% endblock %}{% endcapture %}{{ md | markdown }}{% endblock %}`;
 
 const layouts: Record<string, string> = {
   "base-email": baseEmailLayout,
