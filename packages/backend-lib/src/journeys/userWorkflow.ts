@@ -190,7 +190,7 @@ export async function userJourneyWorkflow({
         });
 
         if (!shouldContinue) {
-          logger.error("message node early exit", {
+          logger.info("message node early exit", {
             child: currentNode.child,
           });
           currentNode = definition.exitNode;

@@ -3,6 +3,7 @@ import escapeHTML from "escape-html";
 import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
 
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
+import logger from "../../logger";
 import prisma from "../../prisma";
 import {
   EmailProviderType,
@@ -213,6 +214,7 @@ async function sendEmailWithPayload({
         apiKey: defaultEmailProvider.emailProvider.apiKey,
       });
       if (result.isErr()) {
+        logger().debug({ err: result.error });
         return [
           false,
           {
@@ -222,6 +224,8 @@ async function sendEmailWithPayload({
             properties: {
               journeyId,
               runId,
+              error: result.error.message,
+              message: "Failed to send message to sendgrid.",
               messageType: MessageNodeVariantType.Email,
               emailProvider: defaultEmailProvider.emailProvider.type,
               nodeId,
