@@ -6,7 +6,7 @@ import config from "./config";
 import { kafkaProducer } from "./kafka";
 import logger from "./logger";
 import prisma from "./prisma";
-import { InternalEventType, UserEvent, UserProperty } from "./types";
+import { InternalEventType, UserEvent } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 export interface InsertUserEvent {

@@ -38,6 +38,33 @@ const expectedBaseLayoutTemplate = `
 </html>
 `;
 
+const markdownEmailTemplate = `
+{% layout 'markdown-email' %}
+{% block md-content %}
+## Welcome, {{ user.name }}
+
+- Point 1
+- Point 2
+{% endblock %}
+`;
+
+const expectedRenderedMarkdownEmail = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style type="text/css"></style>
+</head>
+<body><h2>Welcome, Max</h2>
+<ul>
+<li>Point 1</li>
+<li>Point 2</li>
+</ul>
+</body>
+</html>
+`;
+
 describe("renderWithUserProperties", () => {
   it("can render markdown that passes email validation", async () => {
     const rendered = renderWithUserProperties({
@@ -56,5 +83,15 @@ describe("renderWithUserProperties", () => {
       userProperties: {},
     });
     expect(rendered.trim()).toEqual(expectedBaseLayoutTemplate.trim());
+  });
+
+  it("can render markdown email layout", async () => {
+    const rendered = renderWithUserProperties({
+      template: markdownEmailTemplate,
+      userProperties: {
+        name: "Max",
+      },
+    });
+    expect(rendered.trim()).toEqual(expectedRenderedMarkdownEmail.trim());
   });
 });
