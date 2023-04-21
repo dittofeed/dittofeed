@@ -41,7 +41,6 @@ async function signalJourney({
   };
 
   if (!segmentUpdate.currentlyInSegment) {
-    logger().debug(segmentUpdate, "not signalling for false segment");
     return;
   }
 
@@ -125,6 +124,8 @@ export async function computePropertiesPeriodSafe({
     "Array(Array(String))"
   );
 
+  const workspaceIdParam = readChqb.addQueryValue(workspaceId, "String");
+
   const readQuery = `
     SELECT
       cpa.workspace_id,
@@ -154,6 +155,7 @@ export async function computePropertiesPeriodSafe({
               )
           ) as processed_for
       FROM computed_property_assignments FINAL
+      WHERE workspace_id = ${workspaceIdParam}
     ) cpa
     WHERE (
       workspace_id,
@@ -173,15 +175,6 @@ export async function computePropertiesPeriodSafe({
       FROM processed_computed_properties FINAL
     )
   `;
-
-  logger().debug(
-    {
-      workspaceId,
-      queryParams: readChqb.getQueries(),
-      query: readQuery,
-    },
-    "compute properties read query"
-  );
 
   const resultSet = await clickhouseClient().query({
     query: readQuery,
@@ -243,7 +236,7 @@ export async function computePropertiesPeriodSafe({
           await prisma().userPropertyAssignment.upsert({
             where: {
               workspaceId_userPropertyId_userId: {
-                workspaceId,
+                workspaceId: a.workspace_id,
                 userId: a.user_id,
                 userPropertyId: a.computed_property_id,
               },
@@ -252,7 +245,7 @@ export async function computePropertiesPeriodSafe({
               value: a.latest_user_property_value,
             },
             create: {
-              workspaceId,
+              workspaceId: a.workspace_id,
               userId: a.user_id,
               userPropertyId: a.computed_property_id,
               value: a.latest_user_property_value,
@@ -276,7 +269,7 @@ export async function computePropertiesPeriodSafe({
           await prisma().segmentAssignment.upsert({
             where: {
               workspaceId_userId_segmentId: {
-                workspaceId,
+                workspaceId: a.workspace_id,
                 userId: a.user_id,
                 segmentId: a.computed_property_id,
               },
@@ -285,7 +278,7 @@ export async function computePropertiesPeriodSafe({
               inSegment,
             },
             create: {
-              workspaceId,
+              workspaceId: a.workspace_id,
               userId: a.user_id,
               segmentId: a.computed_property_id,
               inSegment,
@@ -332,7 +325,6 @@ export async function computePropertiesPeriodSafe({
 
     const processedAssignments: ComputedPropertyAssignment[] =
       assignments.flatMap((assignment) => ({
-        workspace_id: workspaceId,
         user_property_value: assignment.latest_user_property_value,
         segment_value: assignment.latest_segment_value,
         ...assignment,

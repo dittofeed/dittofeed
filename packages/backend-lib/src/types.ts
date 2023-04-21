@@ -37,6 +37,7 @@ export interface ComputedPropertyAssignment {
 }
 
 export const ComputedAssignment = Type.Object({
+  workspace_id: Type.String(),
   computed_property_id: Type.String(),
   user_id: Type.String(),
   type: Type.Union([Type.Literal("segment"), Type.Literal("user_property")]),

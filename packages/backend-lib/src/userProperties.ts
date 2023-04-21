@@ -77,12 +77,14 @@ export async function findAllUserProperties({
 
 export async function findAllUserPropertyAssignments({
   userId,
+  workspaceId,
 }: {
   userId: string;
+  workspaceId: string;
   // TODO change this type when we begin supporting more complex, nested user properties
 }): Promise<Record<string, string>> {
   const assignments = await prisma().userPropertyAssignment.findMany({
-    where: { userId },
+    where: { userId, workspaceId },
     include: {
       userProperty: {
         select: {

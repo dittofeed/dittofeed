@@ -489,8 +489,10 @@ describe("compute properties activities", () => {
     });
 
     describe("when segmenting on users created in the last 30 minutes", () => {
+      let segmentDefinition: SegmentDefinition;
+
       beforeEach(async () => {
-        const segmentDefinition: SegmentDefinition = {
+        segmentDefinition = {
           entryNode: {
             type: SegmentNodeType.Trait,
             id: randomUUID(),
@@ -556,9 +558,10 @@ describe("compute properties activities", () => {
 
         describe("when a user property is also specified", () => {
           let userProperty: EnrichedUserProperty;
+          let userPropertyDefinition: UserPropertyDefinition;
 
           beforeEach(async () => {
-            const definition: UserPropertyDefinition = {
+            userPropertyDefinition = {
               type: UserPropertyDefinitionType.Trait,
               path: "email",
             };
@@ -568,7 +571,7 @@ describe("compute properties activities", () => {
                 await prisma().userProperty.create({
                   data: {
                     workspaceId: workspace.id,
-                    definition,
+                    definition: userPropertyDefinition,
                     name: "email",
                   },
                 })
@@ -602,6 +605,7 @@ describe("compute properties activities", () => {
 
             const assignments = await findAllUserPropertyAssignments({
               userId,
+              workspaceId: workspace.id,
             });
             expect(assignments.email).toBe("example@email.com");
           });
@@ -698,6 +702,7 @@ describe("compute properties activities", () => {
 
             const assignments = await findAllUserPropertyAssignments({
               userId,
+              workspaceId: workspace.id,
             });
             expect(assignments).toEqual({
               anonymousId,
@@ -1551,6 +1556,7 @@ describe("compute properties activities", () => {
 
           let userPropertyAssignments = await findAllUserPropertyAssignments({
             userId,
+            workspaceId: workspace.id,
           });
 
           expect(signalWithStart).not.toHaveBeenCalled();
@@ -1586,6 +1592,7 @@ describe("compute properties activities", () => {
           });
           userPropertyAssignments = await findAllUserPropertyAssignments({
             userId,
+            workspaceId: workspace.id,
           });
 
           expect(signalWithStart).toHaveBeenCalledTimes(1);
@@ -1631,6 +1638,7 @@ describe("compute properties activities", () => {
           });
           userPropertyAssignments = await findAllUserPropertyAssignments({
             userId,
+            workspaceId: workspace.id,
           });
 
           expect(signalWithStart).toHaveBeenCalledTimes(1);
