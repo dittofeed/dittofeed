@@ -98,6 +98,7 @@ async function sendEmailWithPayload({
       }),
       findAllUserPropertyAssignments({
         userId,
+        workspaceId,
       }),
     ]);
 
