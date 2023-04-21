@@ -86,6 +86,16 @@
       "pages": [
         "resources/introduction",
         "resources/journeys",
+        {
+          "group": "Journey Nodes",
+          "pages": [
+            "resources/journey-nodes/entry",
+            "resources/journey-nodes/message",
+            "resources/journey-nodes/exit",
+            "resources/journey-nodes/delay",
+            "resources/journey-nodes/delay"
+          ]
+        },
         "resources/segments",
         "resources/message-templates",
         "resources/workspaces",

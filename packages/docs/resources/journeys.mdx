@@ -22,3 +22,25 @@ There are other journey nodes which are available, and we're adding more all of 
 - [Exit Node](/resources/journey-nodes/exit)
 - [Delay Node](/resources/journey-nodes/delay)
 - [Segment Split Node](/resources/journey-nodes/delay)
+
+## Journey Status
+
+Journeys can have one of the three following statuses
+
+"Not Started" &rarr; "Running" &harr; "Paused".
+
+Journeys begin as "Not Started", and can be started so that they're "Running", at which point they can be "Paused" and unpaused.
+
+![Journey Configure](/images/journey-configure.png)
+
+**Not Started**
+
+Users cannot enter a journey until it is Running.
+
+**Running**
+
+Users who satisfy the entry node's segment can enter the journey. 
+
+**Paused**
+
+Additional users cannot enter a Paused journey. Useres already in the journey will progress through it as normal, up until the user would receive a message. At this point, if the journey has not been unpaused the message will be skipped and the user will prematurely exit the journey.
