@@ -82,7 +82,18 @@
       ]
     },
     {
-      "group": "User Guide",
+      "group": "Workspace Resources",
+      "pages": [
+        "resources/introduction",
+        "resources/journeys",
+        "resources/segments",
+        "resources/message-templates",
+        "resources/subscription-groups",
+        "resources/broadcasts"
+      ]
+    },
+    {
+      "group": "User Guides",
       "pages": [
         "guide/git-workflows",
         "guide/testing",
