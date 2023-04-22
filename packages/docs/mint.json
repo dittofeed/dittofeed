@@ -82,7 +82,30 @@
       ]
     },
     {
-      "group": "User Guide",
+      "group": "Workspace Resources",
+      "pages": [
+        "resources/introduction",
+        "resources/journeys",
+        {
+          "group": "Journey Nodes",
+          "pages": [
+            "resources/journey-nodes/entry",
+            "resources/journey-nodes/message",
+            "resources/journey-nodes/delay",
+            "resources/journey-nodes/segment-split",
+            "resources/journey-nodes/exit"
+          ]
+        },
+        "resources/segments",
+        "resources/message-templates",
+        "resources/workspaces",
+        "resources/subscription-groups",
+        "resources/user-properties",
+        "resources/broadcasts"
+      ]
+    },
+    {
+      "group": "User Guides",
       "pages": [
         "guide/git-workflows",
         "guide/testing",
