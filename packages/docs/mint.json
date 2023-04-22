@@ -91,9 +91,9 @@
           "pages": [
             "resources/journey-nodes/entry",
             "resources/journey-nodes/message",
-            "resources/journey-nodes/exit",
             "resources/journey-nodes/delay",
-            "resources/journey-nodes/delay"
+            "resources/journey-nodes/segment-split",
+            "resources/journey-nodes/exit"
           ]
         },
         "resources/segments",
