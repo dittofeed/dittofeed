@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 
 import contentController from "../controllers/contentController";
+import debugController from "../controllers/debugController";
 import eventsController from "../controllers/eventsController";
 import indexController from "../controllers/indexController";
 import journeysController from "../controllers/journeysController";
@@ -29,5 +30,11 @@ export default async function router(fastify: FastifyInstance) {
         }),
       ]),
     { prefix: "/api" }
+  );
+
+  await fastify.register(
+    async (f: FastifyInstance) =>
+      Promise.all([f.register(debugController, { prefix: "/debug" })]),
+    { prefix: "/internal-api" }
   );
 }
