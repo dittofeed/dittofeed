@@ -796,3 +796,11 @@ export const UserUploadRow = Type.Union([
 ]);
 
 export type UserUploadRow = Static<typeof UserUploadRow>;
+
+export const Role = {
+  Admin: "Admin",
+  WorkspaceManager: "WorkspaceManager",
+  Author: "Author",
+  Viewer: "Viewer",
+} as const;
+export type Role = (typeof Role)[keyof typeof Role];
