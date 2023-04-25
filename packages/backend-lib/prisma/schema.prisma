@@ -27,6 +27,7 @@ model Workspace {
   SegmentAssignment      SegmentAssignment[]
   Broadcast              Broadcast[]
   SubscriptionGroup      SubscriptionGroup[]
+  WorkspaceMemberRole    WorkspaceMemberRole[]
 }
 
 model Segment {
@@ -208,4 +209,36 @@ model SubscriptionGroup {
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
+}
+
+model WorkspaceMember {
+  id         String @id() @default(uuid()) @db.Uuid
+  email      String
+  externalId String
+
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  WorkspaceMemberRole WorkspaceMemberRole[]
+
+  @@unique([email])
+  @@unique([externalId])
+}
+
+enum DBRoleType {
+  Admin
+  WorkspaceManager
+  Author
+  Viewer
+}
+
+model WorkspaceMemberRole {
+  workspace         Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId       String          @db.Uuid
+  workspaceMember   WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+  workspaceMemberId String          @db.Uuid
+  role              DBRoleType      @default(Viewer)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([workspaceId, workspaceMemberId])
 }
