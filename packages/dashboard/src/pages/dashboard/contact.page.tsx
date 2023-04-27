@@ -30,7 +30,7 @@ export default function Contact() {
             <p>If you have questions or feedback, feel reach out at</p>
             <a href="mailto:support@dittofeed.com">support@dittofeed.com</a>
             <span>, or </span>
-            <a href="https://dittofeed-community.slack.com/ssb/redirect">
+            <a href="https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A">
               join the Dittofeed Slack community
             </a>
             <span>!</span>
