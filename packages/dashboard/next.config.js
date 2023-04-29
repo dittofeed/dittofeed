@@ -17,7 +17,7 @@ const nextConfig = {
         permanent: false,
       },
       {
-        source: '/dashboard/oauth2/callback',
+        source: '/oauth2/callback',
         destination: '/journeys',
         permanent: false,
       },
