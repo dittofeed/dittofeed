@@ -1,15 +1,30 @@
 import fastifyMultipart from "@fastify/multipart";
+import { fastifyRequestContext } from "@fastify/request-context";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import logger from "backend-lib/src/logger";
+import {
+  Workspace,
+  WorkspaceMember,
+  WorkspaceMemberRole,
+} from "backend-lib/src/types";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import { OpenAPIV3_1 } from "openapi-types";
 
 import cors from "./buildApp/cors";
+import requestContext from "./buildApp/requestContext";
 import router from "./buildApp/router";
 import config from "./config";
+
+declare module "@fastify/request-context" {
+  interface RequestContextData {
+    workspace: Workspace;
+    member: WorkspaceMember;
+    roles: WorkspaceMemberRole;
+  }
+}
 
 async function buildApp() {
   const fastifyLogger = logger();
@@ -57,9 +72,11 @@ async function buildApp() {
   await Promise.all([
     server.register(fastifyRawBody),
     server.register(fastifyMultipart),
+    server.register(fastifyRequestContext),
   ]);
 
   await Promise.all([
+    // FIXME should not be added to webhooks
     server.register(router),
     server.register(cors),
     server.register(fastifySwaggerUI, {

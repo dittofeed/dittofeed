@@ -11,13 +11,15 @@ import subscriptionGroupsController from "../controllers/subscriptionGroupsContr
 import userPropertiesController from "../controllers/userPropertiesController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
+import requestContext from "./requestContext";
 
 export default async function router(fastify: FastifyInstance) {
+  // endpoints with standard authorization
   await fastify.register(
-    async (f: FastifyInstance) =>
-      Promise.all([
-        f.register(indexController),
-        f.register(webhooksController, { prefix: "/webhooks" }),
+    async (f: FastifyInstance) => {
+      await fastify.register(requestContext);
+
+      await Promise.all([
         f.register(journeysController, { prefix: "/journeys" }),
         f.register(segmentsController, { prefix: "/segments" }),
         f.register(settingsController, { prefix: "/settings" }),
@@ -28,7 +30,19 @@ export default async function router(fastify: FastifyInstance) {
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
         }),
-      ]),
+      ]);
+    },
+    { prefix: "/api" }
+  );
+
+  // endpoints without standard authorization
+  await fastify.register(
+    async (f: FastifyInstance) => {
+      await Promise.all([
+        f.register(indexController),
+        f.register(webhooksController, { prefix: "/webhooks" }),
+      ]);
+    },
     { prefix: "/api" }
   );
 
