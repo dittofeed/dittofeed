@@ -18,7 +18,8 @@ const nextConfig = {
       },
       {
         source: '/oauth2/callback',
-        destination: '/journeys',
+        destination: '/dashboard/journeys',
+        basePath: false,
         permanent: false,
       },
     ]
