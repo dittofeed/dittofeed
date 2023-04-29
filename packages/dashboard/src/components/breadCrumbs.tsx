@@ -77,7 +77,7 @@ function Breadcrumbs({
               <MuiBreadcrumbs aria-label="breadcrumb">
                 <Typography
                   component={Link}
-                  href="/dashboard"
+                  href="/"
                   color="textSecondary"
                   variant="h6"
                   sx={{ textDecoration: "none" }}

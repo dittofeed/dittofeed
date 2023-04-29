@@ -2,6 +2,7 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  basePath: "/dashboard",
   output: 'standalone',
   pageExtensions: ['page.tsx', 'page.ts'],
   poweredByHeader: false,
@@ -12,21 +13,13 @@ const nextConfig = {
     return [
       {
         source: '/',
-        destination: '/dashboard/journeys',
-        permanent: true,
+        destination: '/journeys',
+        permanent: false,
       },
       {
-        source: '/dashboard',
-        destination: '/dashboard/journeys',
-        permanent: true,
-      },
-    ]
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/:prefix*/dashboard/:path*',
-        destination: '/dashboard/:path*',
+        source: '/dashboard/oauth2/callback',
+        destination: '/journeys',
+        permanent: false,
       },
     ]
   },

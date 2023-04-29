@@ -9,9 +9,9 @@ export default function JourneyStepper({ journeyId }: { journeyId: string }) {
   const steps: { label: string; path: string }[] = [
     {
       label: "Journey Builder",
-      path: `/dashboard/journeys/${journeyId}`,
+      path: `/journeys/${journeyId}`,
     },
-    { label: "Configure", path: `/dashboard/journeys/${journeyId}/configure` },
+    { label: "Configure", path: `/journeys/${journeyId}/configure` },
   ];
   const activeStep = steps.findIndex((s) => s.path === path.asPath);
   const nextStep = activeStep === steps.length - 1 ? null : activeStep + 1;
