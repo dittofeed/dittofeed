@@ -140,7 +140,7 @@ function JourneyItem({ journey }: { journey: JourneyResource }) {
           borderColor: "grey.200",
         }}
         onClick={() => {
-          path.push(`/dashboard/journeys/${journey.id}`);
+          path.push(`/journeys/${journey.id}`);
         }}
       >
         <ListItemText primary={journey.name} />
@@ -192,7 +192,7 @@ function JourneyListContents() {
         </Typography>
         <IconButton
           onClick={() => {
-            path.push(`/dashboard/journeys/${uuid()}`);
+            path.push(`/journeys/${uuid()}`);
           }}
         >
           <AddCircleOutline />

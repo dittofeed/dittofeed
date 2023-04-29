@@ -27,7 +27,7 @@ function ProfileTab() {
         },
       }}
     >
-      <ListItemButton onClick={() => path.push("/dashboard/settings")}>
+      <ListItemButton onClick={() => path.push("/settings")}>
         <ListItemIcon>
           <Settings />
         </ListItemIcon>

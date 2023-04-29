@@ -116,7 +116,7 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
           borderColor: "grey.200",
         }}
         onClick={() => {
-          path.push(`/dashboard/segments/${segment.id}`);
+          path.push(`/segments/${segment.id}`);
         }}
       >
         <ListItemText primary={segment.name} />
@@ -167,7 +167,7 @@ function SegmentListContents() {
         </Typography>
         <IconButton
           onClick={() => {
-            path.push(`/dashboard/segments/${uuid()}`);
+            path.push(`/segments/${uuid()}`);
           }}
         >
           <AddCircleOutline />

@@ -13,25 +13,14 @@ const nextConfig = {
     return [
       {
         source: '/',
-        destination: '/dashboard/journeys',
-        permanent: true,
-      },
-      {
-        source: '/dashboard/oauth2/callback',
-        destination: '/dashboard/journeys',
+        destination: '/journeys',
         permanent: false,
       },
       {
-        source: '/dashboard',
-        destination: '/dashboard/journeys',
-        permanent: true,
+        source: '/dashboard/oauth2/callback',
+        destination: '/journeys',
+        permanent: false,
       },
-
-    ]
-  },
-  rewrites() {
-    return [
-      { source: '/dashboard/_next/:path*', destination: '/_next/:path*' },
     ]
   },
   experimental: {

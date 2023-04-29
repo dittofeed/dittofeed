@@ -56,9 +56,7 @@ export const getServerSideProps: GetServerSideProps<
 function Item({ item }: { item: SubscriptionGroupResource }) {
   return (
     <ListItem>
-      <ResourceListItemButton
-        href={`/dashboard/subscription-groups/${item.id}`}
-      >
+      <ResourceListItemButton href={`/subscription-groups/${item.id}`}>
         <ListItemText>{item.name}</ListItemText>
       </ResourceListItemButton>
     </ListItem>
@@ -78,9 +76,7 @@ export default function SubscriptionGroups() {
     <DashboardContent>
       <ResourceListContainer
         title="Subscription Groups"
-        newItemHref={(newItemId) =>
-          `/dashboard/subscription-groups/${newItemId}`
-        }
+        newItemHref={(newItemId) => `/subscription-groups/${newItemId}`}
       >
         {subscriptionGroups.length ? (
           <ResourceList>

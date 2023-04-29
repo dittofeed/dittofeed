@@ -126,7 +126,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
             case TemplateResourceType.Email:
               messageType = "emails";
           }
-          path.push(`/dashboard/templates/${messageType}/${template.id}`);
+          path.push(`/templates/${messageType}/${template.id}`);
         }}
       >
         <ListItemText primary={template.name} />
@@ -177,7 +177,7 @@ function TemplateListContents() {
         </Typography>
         <IconButton
           onClick={() => {
-            path.push(`/dashboard/templates/emails/${uuid()}`);
+            path.push(`/templates/emails/${uuid()}`);
           }}
         >
           <AddCircleOutline />

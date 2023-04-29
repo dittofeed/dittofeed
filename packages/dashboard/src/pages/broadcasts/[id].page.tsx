@@ -271,7 +271,7 @@ export default function Broadcast() {
                   textDecoration: "none",
                 }}
                 component={Link}
-                href={`/dashboard/journeys/${j.id}`}
+                href={`/journeys/${j.id}`}
               >
                 {j.name}
               </ListItemButton>

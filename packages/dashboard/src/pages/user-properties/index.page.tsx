@@ -121,7 +121,7 @@ function UserPropertyItem({
           borderColor: "grey.200",
         }}
         onClick={() => {
-          path.push(`/dashboard/user-properties/${userProperty.id}`);
+          path.push(`/user-properties/${userProperty.id}`);
         }}
       >
         <ListItemText primary={userProperty.name} />
@@ -172,7 +172,7 @@ function UserPropertyListContents() {
         </Typography>
         <IconButton
           onClick={() => {
-            path.push(`/dashboard/user-properties/${uuid()}`);
+            path.push(`/user-properties/${uuid()}`);
           }}
         >
           <AddCircleOutline />

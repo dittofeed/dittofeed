@@ -15,7 +15,7 @@ export default function SegmentLayout({
   tab: "configure" | "users";
   children?: React.ReactNode;
 }) {
-  const basePath = `/dashboard/segments/${segmentId}`;
+  const basePath = `/segments/${segmentId}`;
   const tabValue = tab === "configure" ? 0 : 1;
 
   return (

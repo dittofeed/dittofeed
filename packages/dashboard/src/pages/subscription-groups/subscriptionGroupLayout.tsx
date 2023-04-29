@@ -35,18 +35,18 @@ export default function SubscriptionGroupLayout({
           <Tabs value={tabValue}>
             <TabLink
               label="Configure"
-              href={`/dashboard/subscription-groups/${id}`}
+              href={`/subscription-groups/${id}`}
               index={0}
             />
             <TabLink
               disabled
               label="Users"
-              href={`/dashboard/subscription-groups/users/${id}`}
+              href={`/subscription-groups/users/${id}`}
               index={1}
             />
             <TabLink
               label="Upload"
-              href={`/dashboard/subscription-groups/upload/${id}`}
+              href={`/subscription-groups/upload/${id}`}
               index={2}
             />
           </Tabs>
