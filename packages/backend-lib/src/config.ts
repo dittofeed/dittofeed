@@ -53,6 +53,7 @@ const BaseRawConfigProps = {
   googleOps: Type.Optional(BoolStr),
   enableSourceControl: Type.Optional(BoolStr),
   sourceControlProvider: Type.Optional(SourceControlProvider),
+  oidcTokenPublicKey: Type.Optional(Type.String()),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);

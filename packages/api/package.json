@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^8.1.0",
+    "@fastify/jwt": "^6.7.1",
     "@fastify/multipart": "^7.6.0",
     "@fastify/request-context": "^4.2.0",
     "@fastify/swagger": "^8.1.0",
