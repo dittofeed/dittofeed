@@ -212,16 +212,30 @@ model SubscriptionGroup {
 }
 
 model WorkspaceMember {
-  id         String @id() @default(uuid()) @db.Uuid
-  email      String
-  externalId String
+  id            String    @id() @default(uuid()) @db.Uuid
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
 
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  WorkspaceMemberRole WorkspaceMemberRole[]
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  WorkspaceMemberRole   WorkspaceMemberRole[]
+  WorkspaceMembeAccount WorkspaceMembeAccount[]
+}
 
-  @@unique([email])
-  @@unique([externalId])
+model WorkspaceMembeAccount {
+  id String @id() @default(uuid()) @db.Uuid
+
+  workspaceMember   WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+  workspaceMemberId String          @db.Uuid
+
+  provider           String
+  providerAccountId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
 }
 
 enum DBRoleType {

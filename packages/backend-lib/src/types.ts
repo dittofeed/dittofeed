@@ -129,3 +129,11 @@ export enum SubscriptionChange {
   Subscribe = "Subscribe",
   UnSubscribe = "UnSubscribe",
 }
+
+export const DecodedJwt = Type.Object({
+  sub: Type.String(),
+  email: Type.String(),
+  picture: Type.Optional(Type.String()),
+});
+
+export type DecodedJwt = Static<typeof DecodedJwt>;
