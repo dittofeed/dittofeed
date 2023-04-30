@@ -14,7 +14,6 @@ import fastifyRawBody from "fastify-raw-body";
 import { OpenAPIV3_1 } from "openapi-types";
 
 import cors from "./buildApp/cors";
-import requestContext from "./buildApp/requestContext";
 import router from "./buildApp/router";
 import config from "./config";
 
@@ -76,7 +75,6 @@ async function buildApp() {
   ]);
 
   await Promise.all([
-    // FIXME should not be added to webhooks
     server.register(router),
     server.register(cors),
     server.register(fastifySwaggerUI, {

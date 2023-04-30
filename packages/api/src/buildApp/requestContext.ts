@@ -8,7 +8,12 @@ import { getWorkspaceIdFromReq } from "../workspace";
 // eslint-disable-next-line @typescript-eslint/require-await
 const requestContext = fp(async (fastify: FastifyInstance) => {
   fastify.addHook("preHandler", async (request, reply) => {
-    logger().debug("setting request context");
+    logger().debug(
+      {
+        headers: request.headers,
+      },
+      "setting request context"
+    );
     const workspaceId = getWorkspaceIdFromReq(request);
 
     const workspace = await prisma().workspace.findUnique({

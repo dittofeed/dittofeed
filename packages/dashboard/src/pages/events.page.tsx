@@ -76,7 +76,8 @@ export const useEventsStore = create(
 );
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState
-> = async () => {
+> = async (ctx) => {
+  console.log("headers", ctx.req.headers);
   const workspaceId = backendConfig().defaultWorkspaceId;
   const serverInitialState: PreloadedState = {};
 
