@@ -685,17 +685,6 @@
   dependencies:
     fast-json-stringify "^5.0.0"
 
-"@fastify/jwt@^6.7.1":
-  version "6.7.1"
-  resolved "https://registry.yarnpkg.com/@fastify/jwt/-/jwt-6.7.1.tgz#7ebbb7844eecf5bd4da12a878a8d0b1ccb28413e"
-  integrity sha512-pvRcGeyF2H1U+HXaxlRBd6s1y99vbSZjhpxTWECIGIhMXKRxBTBSUPRF7LJGONlW1/pZstQ0/Dp/ZxBFlDuEnw==
-  dependencies:
-    "@fastify/error" "^3.0.0"
-    "@lukeed/ms" "^2.0.0"
-    fast-jwt "^2.0.0"
-    fastify-plugin "^4.0.0"
-    steed "^1.1.3"
-
 "@fastify/multipart@^7.6.0":
   version "7.6.0"
   resolved "https://registry.yarnpkg.com/@fastify/multipart/-/multipart-7.6.0.tgz#8b7baf00945509aac54d249424768c7c520ee741"
@@ -1230,11 +1219,6 @@
   integrity sha512-+GymJB/+3gThkk2zHwseaJTI5oa4AuOuj1I2LCslAVq1dFZLSX8SAe4ZlJq1TjezteDXtF/+d4qeWz9JvnrG9Q==
   dependencies:
     "@lezer/common" "^1.0.0"
-
-"@lukeed/ms@^2.0.0":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@lukeed/ms/-/ms-2.0.1.tgz#3c2bbc258affd9cc0e0cc7828477383c73afa6ee"
-  integrity sha512-Xs/4RZltsAL7pkvaNStUQt7netTkyxrS0K+RILcVr3TRMS/ToOg4I6uNfhB9SlGsnWBym4U+EaXq0f0cEMNkHA==
 
 "@mintlify/validation@^0.1.5":
   version "0.1.5"
@@ -5967,7 +5951,7 @@ fast-json-stringify@^5.0.0:
     fast-uri "^2.1.0"
     rfdc "^1.2.0"
 
-fast-jwt@^2.0.0:
+fast-jwt@^2.2.2:
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/fast-jwt/-/fast-jwt-2.2.2.tgz#5fa3123c8f9a8a39e0a88663ba3cbae54962b287"
   integrity sha512-hjp4OixZaQmYnSdmROOxWXpeOKoZsoMYvCwDnqZ7cRXhBusxKFOzfdim20HA3hDg5KrD2/3NiECkamQrSrY//w==
@@ -6002,13 +5986,6 @@ fast-uri@^2.0.0, fast-uri@^2.1.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/fast-uri/-/fast-uri-2.2.0.tgz#519a0f849bef714aad10e9753d69d8f758f7445a"
   integrity sha512-cIusKBIt/R/oI6z/1nyfe2FvGKVTohVRfvkOhvx0nCEW+xf5NoCXjAHcWp93uOUBchzYcsvPlrapAdX1uW+YGg==
-
-fastfall@^1.5.0:
-  version "1.5.1"
-  resolved "https://registry.yarnpkg.com/fastfall/-/fastfall-1.5.1.tgz#3fee03331a49d1d39b3cdf7a5e9cd66f475e7b94"
-  integrity sha512-KH6p+Z8AKPXnmA7+Iz2Lh8ARCMr+8WNPVludm1LGkZoD2MjY6LVnRMtTKhkdzI+jr0RzQWXKzKyBJm1zoHEL4Q==
-  dependencies:
-    reusify "^1.0.0"
 
 fastify-plugin@^4.0.0, fastify-plugin@^4.5.0:
   version "4.5.0"
@@ -6050,33 +6027,17 @@ fastify@^4.8.1:
     semver "^7.3.7"
     tiny-lru "^10.0.0"
 
-fastparallel@^2.2.0:
-  version "2.4.1"
-  resolved "https://registry.yarnpkg.com/fastparallel/-/fastparallel-2.4.1.tgz#0d984a5813ffa67f30b4a5cb4cb8cbe61c7ee5a5"
-  integrity sha512-qUmhxPgNHmvRjZKBFUNI0oZuuH9OlSIOXmJ98lhKPxMZZ7zS/Fi0wRHOihDSz0R1YiIOjxzOY4bq65YTcdBi2Q==
-  dependencies:
-    reusify "^1.0.4"
-    xtend "^4.0.2"
-
 fastpriorityqueue@0.7.2:
   version "0.7.2"
   resolved "https://registry.yarnpkg.com/fastpriorityqueue/-/fastpriorityqueue-0.7.2.tgz#64dfee2c2adbc18c076cf7552dc4bfbef7befe3f"
   integrity sha512-5DtIKh6vtOmEGkYdEPNNb+mxeYCnBiKbK3s4gq52l6cX8I5QaTDWWw0Wx/iYo80fVOblSycHu1/iJeqeNxG8Jw==
 
-fastq@^1.3.0, fastq@^1.6.0, fastq@^1.6.1:
+fastq@^1.6.0, fastq@^1.6.1:
   version "1.15.0"
   resolved "https://registry.yarnpkg.com/fastq/-/fastq-1.15.0.tgz#d04d07c6a2a68fe4599fea8d2e103a937fae6b3a"
   integrity sha512-wBrocU2LCXXa+lWBt8RoIRD89Fi8OdABODa/kEnyeyjS5aZO5/GNvI5sEINADqP/h8M29UHTHUb53sUu5Ihqdw==
   dependencies:
     reusify "^1.0.4"
-
-fastseries@^1.7.0:
-  version "1.7.2"
-  resolved "https://registry.yarnpkg.com/fastseries/-/fastseries-1.7.2.tgz#d22ce13b9433dff3388d91dbd6b8bda9b21a0f4b"
-  integrity sha512-dTPFrPGS8SNSzAt7u/CbMKCJ3s01N04s4JFbORHcmyvVfVKmbhMD1VtRbh5enGHxkaQDqWyLefiKOGGmohGDDQ==
-  dependencies:
-    reusify "^1.0.0"
-    xtend "^4.0.0"
 
 fault@^2.0.0:
   version "2.0.1"
@@ -9736,7 +9697,7 @@ ret@~0.2.0:
   resolved "https://registry.yarnpkg.com/ret/-/ret-0.2.2.tgz#b6861782a1f4762dce43402a71eb7a283f44573c"
   integrity sha512-M0b3YWQs7R3Z917WRQy1HHA7Ba7D8hvZg6UE5mLykJxQVE2ju0IXbGlaHPPlkY+WN7wFP+wUMXmBFA0aV6vYGQ==
 
-reusify@^1.0.0, reusify@^1.0.4:
+reusify@^1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/reusify/-/reusify-1.0.4.tgz#90da382b1e126efc02146e90845a88db12925d76"
   integrity sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==
@@ -10151,17 +10112,6 @@ statuses@2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/statuses/-/statuses-2.0.1.tgz#55cb000ccf1d48728bd23c685a063998cf1a1b63"
   integrity sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==
-
-steed@^1.1.3:
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/steed/-/steed-1.1.3.tgz#f1525dd5adb12eb21bf74749537668d625b9abc5"
-  integrity sha512-EUkci0FAUiE4IvGTSKcDJIQ/eRUP2JJb56+fvZ4sdnguLTqIdKjSxUe138poW8mkvKWXW2sFPrgTsxqoISnmoA==
-  dependencies:
-    fastfall "^1.5.0"
-    fastparallel "^2.2.0"
-    fastq "^1.3.0"
-    fastseries "^1.7.0"
-    reusify "^1.0.0"
 
 stop-iteration-iterator@^1.0.0:
   version "1.0.0"
@@ -11057,7 +11007,7 @@ xorshift@^1.1.1:
   resolved "https://registry.yarnpkg.com/xorshift/-/xorshift-1.2.0.tgz#30a4cdd8e9f8d09d959ed2a88c42a09c660e8148"
   integrity sha512-iYgNnGyeeJ4t6U11NpA/QiKy+PXn5Aa3Azg5qkwIFz1tBLllQrjjsk9yzD7IAK0naNU4JxdeDgqW9ov4u/hc4g==
 
-xtend@^4.0.0, xtend@^4.0.2, xtend@~4.0.0:
+xtend@^4.0.0, xtend@~4.0.0:
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/xtend/-/xtend-4.0.2.tgz#bb72779f5fa465186b1f438f674fa347fdb5db54"
   integrity sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==

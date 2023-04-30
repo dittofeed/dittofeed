@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@fastify/cors": "^8.1.0",
-    "@fastify/jwt": "^6.7.1",
     "@fastify/multipart": "^7.6.0",
     "@fastify/request-context": "^4.2.0",
     "@fastify/swagger": "^8.1.0",
@@ -30,6 +29,7 @@
     "change-case": "^4.1.2",
     "csv-parser": "^3.0.0",
     "dotenv": "^16.0.3",
+    "fast-jwt": "^2.2.2",
     "fastify": "^4.8.1",
     "fastify-plugin": "^4.5.0",
     "fastify-raw-body": "^4.2.0",
