@@ -10,51 +10,42 @@ import {
   ResourceListItemButton,
 } from "../components/resourceList";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
-import { PropsWithInitialState, useAppStore } from "../lib/appStore";
+import { useAppStore } from "../lib/appStore";
 import prisma from "../lib/prisma";
-import { AppState } from "../lib/types";
+import { requestContext } from "../lib/requestContext";
+import { AppState, PropsWithInitialState } from "../lib/types";
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async () => {
-  // Dynamically import to avoid transitively importing backend config at build time.
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (_ctx, dfContext) => {
+    // Dynamically import to avoid transitively importing backend config at build time.
+    const { workspace } = dfContext;
 
-  const workspaceId = backendConfig().defaultWorkspaceId;
-  const appState: Partial<AppState> = {};
-  const [workspace, broadcasts] = await Promise.all([
-    prisma().workspace.findUnique({
+    const appState: Partial<AppState> = {};
+    const broadcasts = await prisma().broadcast.findMany({
       where: {
-        id: workspaceId,
+        workspaceId: workspace.id,
       },
-    }),
-    prisma().broadcast.findMany({
-      where: {
-        workspaceId,
-      },
-    }),
-  ]);
-  if (workspace) {
-    appState.workspace = {
+    });
+
+    appState.broadcasts = {
       type: CompletionStatus.Successful,
-      value: workspace,
+      value: broadcasts.map((b) => ({
+        id: b.id,
+        name: b.name,
+        workspaceId: b.workspaceId,
+        triggeredAt: b.triggeredAt?.getTime(),
+        createdAt: b.createdAt.getTime(),
+        segmentId: b.segmentId,
+      })),
     };
-  }
-
-  appState.broadcasts = {
-    type: CompletionStatus.Successful,
-    value: broadcasts.map((b) => ({
-      id: b.id,
-      name: b.name,
-      workspaceId: b.workspaceId,
-      triggeredAt: b.triggeredAt?.getTime(),
-      createdAt: b.createdAt.getTime(),
-      segmentId: b.segmentId,
-    })),
-  };
-  return {
-    props: addInitialStateToProps({}, appState),
-  };
-};
+    return {
+      props: addInitialStateToProps({
+        props: {},
+        serverInitialState: appState,
+        dfContext,
+      }),
+    };
+  });
 
 function BroadcastItem({ broadcast }: { broadcast: BroadcastResource }) {
   return (

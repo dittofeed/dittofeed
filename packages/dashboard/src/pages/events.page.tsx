@@ -1,7 +1,6 @@
 import { Box, Stack, useTheme } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
-import backendConfig from "backend-lib/src/config";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
@@ -19,13 +18,10 @@ import { shallow } from "zustand/shallow";
 
 import MainLayout from "../components/mainLayout";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
-import {
-  PreloadedState,
-  PropsWithInitialState,
-  useAppStore,
-} from "../lib/appStore";
-import prisma from "../lib/prisma";
+import { useAppStore } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
+import { requestContext } from "../lib/requestContext";
+import { PropsWithInitialState } from "../lib/types";
 
 interface EventsState {
   pageSize: number;
@@ -74,33 +70,14 @@ export const useEventsStore = create(
       }),
   }))
 );
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async (ctx) => {
-  console.log("headers", ctx.req.headers);
-  const workspaceId = backendConfig().defaultWorkspaceId;
-  const serverInitialState: PreloadedState = {};
-
-  const [workspace] = await Promise.all([
-    prisma().workspace.findFirstOrThrow({
-      where: {
-        id: workspaceId,
-      },
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (_ctx, dfContext) => ({
+    props: addInitialStateToProps({
+      dfContext,
+      props: {},
+      serverInitialState: {},
     }),
-  ]);
-
-  serverInitialState.workspace = {
-    type: CompletionStatus.Successful,
-    value: {
-      id: workspaceId,
-      name: workspace.name,
-    },
-  };
-
-  return {
-    props: addInitialStateToProps({}, serverInitialState),
-  };
-};
+  }));
 
 const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
   flex: 1,

@@ -9,12 +9,9 @@ import type { AppProps } from "next/app";
 import Head from "next/head";
 import { SnackbarProvider } from "notistack";
 
-import {
-  PreloadedState,
-  Provider as StoreProvider,
-  useCreateStore,
-} from "../lib/appStore";
+import { Provider as StoreProvider, useCreateStore } from "../lib/appStore";
 import createEmotionCache from "../lib/createEmotionCache";
+import { PreloadedState } from "../lib/types";
 import ThemeCustomization from "../themeCustomization";
 
 // Client-side cache, shared for the whole session of the user in the browser.

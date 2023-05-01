@@ -12,11 +12,11 @@ export function addInitialStateToProps<
 >({
   props,
   serverInitialState,
-  requestContext,
+  dfContext,
 }: {
   props: T;
   serverInitialState: Partial<AppState>;
-  requestContext: DFRequestContext;
+  dfContext: DFRequestContext;
 }): T & PropsWithInitialState {
   const { sourceControlProvider, enableSourceControl } = backendConfig();
 
@@ -27,7 +27,7 @@ export function addInitialStateToProps<
     ...serverInitialState,
     workspace: {
       type: CompletionStatus.Successful,
-      value: requestContext.workspace,
+      value: dfContext.workspace,
     },
   });
   return {
