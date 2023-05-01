@@ -5,8 +5,8 @@ import { DecodedJwt } from "./types";
 
 const decoder = createDecoder();
 
-export function decodeJwtHeader(header?: string): DecodedJwt | null {
-  const bearerToken = header?.replace("Bearer ", "");
+export function decodeJwtHeader(header: string): DecodedJwt | null {
+  const bearerToken = header.replace("Bearer ", "");
   const decoded: unknown | null = bearerToken ? decoder(bearerToken) : null;
 
   if (!decoded) {
