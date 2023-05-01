@@ -214,7 +214,7 @@ model SubscriptionGroup {
 model WorkspaceMember {
   id            String    @id() @default(uuid()) @db.Uuid
   email         String?   @unique
-  emailVerified DateTime?
+  emailVerified Boolean
   image         String?
 
   createdAt             DateTime                @default(now())

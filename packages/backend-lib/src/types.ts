@@ -133,7 +133,10 @@ export enum SubscriptionChange {
 export const DecodedJwt = Type.Object({
   sub: Type.String(),
   email: Type.String(),
+  email_verified: Type.Boolean(),
   picture: Type.Optional(Type.String()),
+  name: Type.Optional(Type.String()),
+  nickname: Type.Optional(Type.String()),
 });
 
 export type DecodedJwt = Static<typeof DecodedJwt>;

@@ -18,7 +18,7 @@ import router from "./buildApp/router";
 import config from "./config";
 
 declare module "@fastify/request-context" {
-  interface RequestContextData {
+  export interface RequestContextData {
     workspace: Workspace;
     member: WorkspaceMember;
     roles: WorkspaceMemberRole;
