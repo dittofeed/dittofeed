@@ -1,7 +1,7 @@
 import { decodeJwtHeader } from "backend-lib/src/auth";
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import prisma from "../../../../lib/prisma";
+import prisma from "../../../lib/prisma";
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,7 +12,7 @@ export default async function handler(
     ? req.query.providerId[0]
     : req.query.providerId;
 
-  console.log("oauth2/callback/[providerId]");
+  console.log("oauth2/callback");
   // FIXME redirect to waiting room
   if (typeof providerIdStr !== "string") {
     return res.redirect("/404");
