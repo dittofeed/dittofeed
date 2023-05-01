@@ -14,8 +14,8 @@ import { GetServerSideProps } from "next";
 import { validate } from "uuid";
 
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
-import { PreloadedState, PropsWithInitialState } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
+import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
 
 const entryId = "entry";
 const initTraitId = "initTraitId";

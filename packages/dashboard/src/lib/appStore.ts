@@ -12,16 +12,12 @@ import createContext from "zustand/context";
 import { immer } from "zustand/middleware/immer";
 
 import { createJourneySlice } from "../components/journeys/store";
-import { AppActions, AppState } from "./types";
+import { AppContents, AppState, PreloadedState } from "./types";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();
 export const { Provider } = zustandContext;
 export const useAppStore = zustandContext.useStore;
-
-export type PreloadedState = Partial<AppState>;
-
-type AppContents = AppState & AppActions;
 
 function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
   const nonOrphanNodes = new Set<string>();
@@ -775,7 +771,3 @@ export const useCreateStore = (
 
   return () => initializedStore;
 };
-
-export type PropsWithInitialState<T = object> = {
-  serverInitialState: PreloadedState;
-} & T;

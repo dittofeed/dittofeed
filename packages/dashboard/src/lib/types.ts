@@ -16,10 +16,42 @@ import {
   SubscriptionGroupResource,
   UserPropertyDefinition,
   UserPropertyResource,
+  WorkspaceMemberResource,
+  WorkspaceMemberRoleResource,
   WorkspaceResource,
 } from "isomorphic-lib/src/types";
+import {
+  GetServerSidePropsContext,
+  GetServerSidePropsResult,
+  PreviewData,
+} from "next";
+import { ParsedUrlQuery } from "querystring";
 import { Edge, EdgeChange, Node, NodeChange } from "reactflow";
 import { Optional } from "utility-types";
+
+export type PropsWithInitialState<T = object> = {
+  serverInitialState: PreloadedState;
+} & T;
+
+export type PreloadedState = Partial<AppState>;
+
+export type AppContents = AppState & AppActions;
+
+export interface DFRequestContext {
+  workspace: WorkspaceResource;
+  member: WorkspaceMemberResource;
+  memberRoles: WorkspaceMemberRoleResource[];
+}
+
+export type GetDFServerSideProps<
+  // eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style, @typescript-eslint/no-explicit-any
+  P extends { [key: string]: any } = { [key: string]: any },
+  Q extends ParsedUrlQuery = ParsedUrlQuery,
+  D extends PreviewData = PreviewData
+> = (
+  context: GetServerSidePropsContext<Q, D>,
+  dfContext: DFRequestContext
+) => Promise<GetServerSidePropsResult<P>>;
 
 // README: properties get shallowly overridden when merging serverside state
 // into the default client state, see lib/appStore.ts initializeStore. For that

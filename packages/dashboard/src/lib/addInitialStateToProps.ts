@@ -1,7 +1,6 @@
 import backendConfig from "backend-lib/src/config";
 
-import { PropsWithInitialState } from "./appStore";
-import { AppState } from "./types";
+import { AppState, PropsWithInitialState } from "./types";
 
 export function addInitialStateToProps<T>(
   props: T,
