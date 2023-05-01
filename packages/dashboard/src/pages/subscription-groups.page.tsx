@@ -14,44 +14,35 @@ import {
   ResourceListItemButton,
 } from "../components/resourceList";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
-import { PropsWithInitialState, useAppStore } from "../lib/appStore";
+import { useAppStore } from "../lib/appStore";
 import prisma from "../lib/prisma";
-import { AppState } from "../lib/types";
+import { requestContext } from "../lib/requestContext";
+import { AppState, PropsWithInitialState } from "../lib/types";
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async () => {
-  // Dynamically import to avoid transitively importing backend config at build time.
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (_ctx, dfContext) => {
+    // Dynamically import to avoid transitively importing backend config at build time.
 
-  const workspaceId = backendConfig().defaultWorkspaceId;
-  const appState: Partial<AppState> = {};
-  const [workspace, subscriptionGroup] = await Promise.all([
-    prisma().workspace.findUnique({
-      where: {
-        id: workspaceId,
-      },
-    }),
-    prisma().subscriptionGroup.findMany({
+    const workspaceId = dfContext.workspace.id;
+    const serverInitialState: Partial<AppState> = {};
+    const subscriptionGroup = await prisma().subscriptionGroup.findMany({
       where: {
         workspaceId,
       },
-    }),
-  ]);
-  if (workspace) {
-    appState.workspace = {
-      type: CompletionStatus.Successful,
-      value: workspace,
-    };
-  }
+    });
 
-  appState.subscriptionGroups = {
-    type: CompletionStatus.Successful,
-    value: subscriptionGroup.map(subscriptionGroupToResource),
-  };
-  return {
-    props: addInitialStateToProps({}, appState),
-  };
-};
+    serverInitialState.subscriptionGroups = {
+      type: CompletionStatus.Successful,
+      value: subscriptionGroup.map(subscriptionGroupToResource),
+    };
+    return {
+      props: addInitialStateToProps({
+        serverInitialState,
+        dfContext,
+        props: {},
+      }),
+    };
+  });
 
 function Item({ item }: { item: SubscriptionGroupResource }) {
   return (

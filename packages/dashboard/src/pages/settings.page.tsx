@@ -36,72 +36,73 @@ import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import {
-  PreloadedState,
-  PropsWithInitialState,
-  useAppStore,
-} from "../lib/appStore";
+import { PreloadedState, useAppStore } from "../lib/appStore";
 import prisma from "../lib/prisma";
+import { requestContext } from "../lib/requestContext";
+import { PropsWithInitialState } from "../lib/types";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
 }
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async () => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (_ctx, dfContext) => {
+    const workspaceId = backendConfig().defaultWorkspaceId;
 
-  const [emailProviders, defaultEmailProviderRecord, workspace] =
-    await Promise.all([
-      (
-        await prisma().emailProvider.findMany({
+    const [emailProviders, defaultEmailProviderRecord, workspace] =
+      await Promise.all([
+        (
+          await prisma().emailProvider.findMany({
+            where: { workspaceId },
+          })
+        ).map(({ id, type, apiKey }) => {
+          let providerType: EmailProviderType;
+          switch (type) {
+            case "SendGrid":
+              providerType = EmailProviderType.Sendgrid;
+              break;
+            default:
+              throw new Error("Unknown email provider type");
+          }
+          return { type: providerType, id, apiKey, workspaceId };
+        }),
+        prisma().defaultEmailProvider.findFirst({
           where: { workspaceId },
-        })
-      ).map(({ id, type, apiKey }) => {
-        let providerType: EmailProviderType;
-        switch (type) {
-          case "SendGrid":
-            providerType = EmailProviderType.Sendgrid;
-            break;
-          default:
-            throw new Error("Unknown email provider type");
-        }
-        return { type: providerType, id, apiKey, workspaceId };
-      }),
-      prisma().defaultEmailProvider.findFirst({
-        where: { workspaceId },
-      }),
-      prisma().workspace.findFirst({
-        where: { id: workspaceId },
-      }),
-    ]);
+        }),
+        prisma().workspace.findFirst({
+          where: { id: workspaceId },
+        }),
+      ]);
 
-  const serverInitialState: PreloadedState = {
-    emailProviders: {
-      type: CompletionStatus.Successful,
-      value: emailProviders,
-    },
-    defaultEmailProvider: {
-      type: CompletionStatus.Successful,
-      value: defaultEmailProviderRecord,
-    },
-  };
-  if (workspace) {
-    // TODO PLI-212
-    serverInitialState.workspace = {
-      type: CompletionStatus.Successful,
-      value: {
-        id: workspaceId,
-        name: workspace.name,
+    const serverInitialState: PreloadedState = {
+      emailProviders: {
+        type: CompletionStatus.Successful,
+        value: emailProviders,
+      },
+      defaultEmailProvider: {
+        type: CompletionStatus.Successful,
+        value: defaultEmailProviderRecord,
       },
     };
-  }
+    if (workspace) {
+      // TODO PLI-212
+      serverInitialState.workspace = {
+        type: CompletionStatus.Successful,
+        value: {
+          id: workspaceId,
+          name: workspace.name,
+        },
+      };
+    }
 
-  return {
-    props: addInitialStateToProps({}, serverInitialState),
-  };
-};
+    return {
+      props: addInitialStateToProps({
+        dfContext,
+        serverInitialState,
+        props: {},
+      }),
+    };
+  });
 
 const ExpandMore = styled((props: ExpandMoreProps) => {
   const iconProps: Partial<ExpandMoreProps> = { ...props };
