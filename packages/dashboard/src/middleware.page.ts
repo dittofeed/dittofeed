@@ -3,6 +3,7 @@ import backendConfig from "backend-lib/src/config";
 import {
   EMAIL_NOT_VERIFIED_PAGE,
   UNAUTHORIZED_PAGE,
+  WAITING_ROOM_PAGE,
 } from "isomorphic-lib/src/constants";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -35,6 +36,14 @@ export async function middleware(req: NextRequest) {
     let [member, account] = await Promise.all([
       prisma().workspaceMember.findUnique({
         where: { email },
+        include: {
+          WorkspaceMemberRole: {
+            take: 1,
+            include: {
+              workspace: true,
+            },
+          },
+        },
       }),
       prisma().workspaceMembeAccount.findUnique({
         where: {
@@ -58,6 +67,14 @@ export async function middleware(req: NextRequest) {
           emailVerified: email_verified,
           image: picture,
         },
+        include: {
+          WorkspaceMemberRole: {
+            take: 1,
+            include: {
+              workspace: true,
+            },
+          },
+        },
         update: {
           emailVerified: email_verified,
           image: picture,
@@ -80,6 +97,13 @@ export async function middleware(req: NextRequest) {
         },
         update: {},
       });
+    }
+
+    // TODO allow users to switch between workspaces
+    const role = member.WorkspaceMemberRole[0];
+
+    if (!role) {
+      return NextResponse.redirect(new URL(WAITING_ROOM_PAGE, req.url));
     }
   }
   return undefined;
