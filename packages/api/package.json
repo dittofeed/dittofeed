@@ -38,13 +38,15 @@
     "openapi-types": "^12.1.0",
     "remeda": "^1.12.0",
     "utility-types": "^3.10.0",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@temporalio/testing": "^1.6.0",
     "@temporalio/worker": "^1.6.0",
     "@types/node": "^18.8.5",
     "@types/uuid": "^9.0.0",
+    "@types/yargs": "^17.0.24",
     "fastify-tsconfig": "^1.0.1",
     "ts-node": "^10.9.1",
     "tsc-watch": "^6.0.0",

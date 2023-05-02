@@ -1,8 +1,40 @@
 import { Stack, Typography, useTheme } from "@mui/material";
+import backendConfig from "backend-lib/src/config";
+import { getRequestContext } from "backend-lib/src/requestContext";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 
 import SlackLink from "../components/slackLink";
 import SupportEmailLink from "../components/supportEmailLink";
+import { PropsWithInitialState } from "../lib/types";
+
+export const getServerSideProps: GetServerSideProps<
+  PropsWithInitialState<{
+    logoutUrl: string;
+    oauthStartUrl: string;
+  }>
+> = async (ctx) => {
+  const { oauthStartUrl, logoutUrl } = backendConfig();
+  if (!oauthStartUrl || !logoutUrl) {
+    throw new Error("oauthStartUrl or logoutUrl not set in backend config");
+  }
+  const rc = await getRequestContext(ctx.req.headers.authorization ?? null);
+  if (rc.isOk()) {
+    return {
+      redirect: {
+        permanent: false,
+        destination: "/dashboard",
+      },
+    };
+  }
+  return {
+    props: {
+      logoutUrl,
+      oauthStartUrl,
+      serverInitialState: {},
+    },
+  };
+};
 
 export default function WaitingRoom() {
   const theme = useTheme();
