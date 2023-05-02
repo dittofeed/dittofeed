@@ -4,6 +4,7 @@ import { Overwrite } from "utility-types";
 
 import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
 import {
+  AuthMode,
   KafkaSaslMechanism,
   LogLevel,
   SourceControlProvider,
@@ -53,6 +54,9 @@ const BaseRawConfigProps = {
   googleOps: Type.Optional(BoolStr),
   enableSourceControl: Type.Optional(BoolStr),
   sourceControlProvider: Type.Optional(SourceControlProvider),
+  oidcTokenPublicKey: Type.Optional(Type.String()),
+  authMode: Type.Optional(AuthMode),
+  authProvider: Type.Optional(Type.String()),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -106,6 +110,7 @@ export type Config = Overwrite<
     prettyLogs: boolean;
     googleOps: boolean;
     enableSourceControl: boolean;
+    authMode: AuthMode;
   }
 > & {
   defaultWorkspaceId: string;
@@ -256,6 +261,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       (nodeEnv === NodeEnvEnum.Development && rawConfig.prettyLogs !== "false"),
     logLevel,
     enableSourceControl: rawConfig.enableSourceControl === "true",
+    authMode: rawConfig.authMode ?? "anonymous",
   };
   return parsedConfig;
 }

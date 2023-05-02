@@ -25,38 +25,39 @@ import { v4 as uuid } from "uuid";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { PropsWithInitialState, useAppStore } from "../../lib/appStore";
+import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
-import { AppState } from "../../lib/types";
+import { requestContext } from "../../lib/requestContext";
+import { AppState, PropsWithInitialState } from "../../lib/types";
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async () => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
-  const userPropertyResources: UserPropertyResource[] = (
-    await prisma().userProperty.findMany({
-      where: { workspaceId },
-    })
-  ).flatMap((segment) => {
-    const result = toUserPropertyResource(segment);
-    if (result.isErr()) {
-      return [];
-    }
-    return result.value;
-  });
-  const userProperties: AppState["userProperties"] = {
-    type: CompletionStatus.Successful,
-    value: userPropertyResources,
-  };
-  return {
-    props: addInitialStateToProps(
-      {},
-      {
-        userProperties,
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (_ctx, dfContext) => {
+    const workspaceId = backendConfig().defaultWorkspaceId;
+    const userPropertyResources: UserPropertyResource[] = (
+      await prisma().userProperty.findMany({
+        where: { workspaceId },
+      })
+    ).flatMap((segment) => {
+      const result = toUserPropertyResource(segment);
+      if (result.isErr()) {
+        return [];
       }
-    ),
-  };
-};
+      return result.value;
+    });
+    const userProperties: AppState["userProperties"] = {
+      type: CompletionStatus.Successful,
+      value: userPropertyResources,
+    };
+    return {
+      props: addInitialStateToProps({
+        serverInitialState: {
+          userProperties,
+        },
+        dfContext,
+        props: {},
+      }),
+    };
+  });
 
 function UserPropertyItem({
   userProperty,

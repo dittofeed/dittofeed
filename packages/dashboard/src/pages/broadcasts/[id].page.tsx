@@ -11,7 +11,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import backendConfig from "backend-lib/src/config";
 import { findManyJourneys } from "backend-lib/src/journeys";
 import {
   findAllEnrichedSegments,
@@ -36,31 +35,26 @@ import EditableName from "../../components/editableName";
 import InfoBox from "../../components/infoBox";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { PropsWithInitialState, useAppStore } from "../../lib/appStore";
+import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
-import { AppState } from "../../lib/types";
+import { requestContext } from "../../lib/requestContext";
+import { AppState, PropsWithInitialState } from "../../lib/types";
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async (ctx) => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
-  const appState: Partial<AppState> = {};
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (ctx, dfContext) => {
+    const appState: Partial<AppState> = {};
 
-  const id = ctx.params?.id;
+    const id = ctx.params?.id;
 
-  if (typeof id !== "string" || !validate(id)) {
-    return {
-      notFound: true,
-    };
-  }
+    if (typeof id !== "string" || !validate(id)) {
+      return {
+        notFound: true,
+      };
+    }
 
-  const [workspace, broadcast, segmentsResult, journeysResult] =
-    await Promise.all([
-      prisma().workspace.findUnique({
-        where: {
-          id: workspaceId,
-        },
-      }),
+    const workspaceId = dfContext.workspace.id;
+
+    const [broadcast, segmentsResult, journeysResult] = await Promise.all([
       prisma().broadcast.findUnique({
         where: {
           id,
@@ -70,61 +64,59 @@ export const getServerSideProps: GetServerSideProps<
       findManyJourneys({ where: { workspaceId } }),
     ]);
 
-  if (broadcast) {
-    appState.editedBroadcast = {
-      workspaceId,
-      id,
-      name: broadcast.name,
-      segmentId: broadcast.segmentId,
-      createdAt: broadcast.createdAt.getTime(),
-      triggeredAt: broadcast.triggeredAt?.getTime(),
-    };
-  } else {
-    appState.editedBroadcast = {
-      workspaceId,
-      id,
-      name: `Broadcast - ${id}`,
-    };
-  }
-
-  if (segmentsResult.isOk()) {
-    const segments = segmentsResult.value;
-    const broadcastSegments = segments.filter((s) =>
-      segmentHasBroadcast(s.definition)
-    );
-    appState.segments = {
-      type: CompletionStatus.Successful,
-      value: broadcastSegments,
-    };
-
-    if (journeysResult.isOk()) {
-      const journeysWithBroadcast = journeysResult.value.filter((j) => {
-        const subscribedSegments = getSubscribedSegments(j.definition);
-        for (const broadcastSegment of broadcastSegments) {
-          if (subscribedSegments.has(broadcastSegment.id)) {
-            return true;
-          }
-        }
-
-        return false;
-      });
-
-      appState.journeys = {
-        type: CompletionStatus.Successful,
-        value: journeysWithBroadcast,
+    if (broadcast) {
+      appState.editedBroadcast = {
+        workspaceId,
+        id,
+        name: broadcast.name,
+        segmentId: broadcast.segmentId,
+        createdAt: broadcast.createdAt.getTime(),
+        triggeredAt: broadcast.triggeredAt?.getTime(),
+      };
+    } else {
+      appState.editedBroadcast = {
+        workspaceId,
+        id,
+        name: `Broadcast - ${id}`,
       };
     }
-  }
-  if (workspace) {
-    appState.workspace = {
-      type: CompletionStatus.Successful,
-      value: workspace,
+
+    if (segmentsResult.isOk()) {
+      const segments = segmentsResult.value;
+      const broadcastSegments = segments.filter((s) =>
+        segmentHasBroadcast(s.definition)
+      );
+      appState.segments = {
+        type: CompletionStatus.Successful,
+        value: broadcastSegments,
+      };
+
+      if (journeysResult.isOk()) {
+        const journeysWithBroadcast = journeysResult.value.filter((j) => {
+          const subscribedSegments = getSubscribedSegments(j.definition);
+          for (const broadcastSegment of broadcastSegments) {
+            if (subscribedSegments.has(broadcastSegment.id)) {
+              return true;
+            }
+          }
+
+          return false;
+        });
+
+        appState.journeys = {
+          type: CompletionStatus.Successful,
+          value: journeysWithBroadcast,
+        };
+      }
+    }
+    return {
+      props: addInitialStateToProps({
+        serverInitialState: appState,
+        props: {},
+        dfContext,
+      }),
     };
-  }
-  return {
-    props: addInitialStateToProps({}, appState),
-  };
-};
+  });
 
 export default function Broadcast() {
   const segmentsResult = useAppStore((store) => store.segments);

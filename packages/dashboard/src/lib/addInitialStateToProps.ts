@@ -1,24 +1,39 @@
 import backendConfig from "backend-lib/src/config";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 
-import { PropsWithInitialState } from "./appStore";
-import { AppState } from "./types";
+import { AppState, DFRequestContext, PropsWithInitialState } from "./types";
 
-export function addInitialStateToProps<T>(
-  props: T,
-  serverInitialState: Partial<AppState>
-): T & PropsWithInitialState {
-  // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+function clone<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+export function addInitialStateToProps<
+  T extends Record<string, unknown> = Record<string, never>
+>({
+  props,
+  serverInitialState,
+  dfContext,
+}: {
+  props: T;
+  serverInitialState: Partial<AppState>;
+  dfContext: DFRequestContext;
+}): T & PropsWithInitialState {
   const { sourceControlProvider, enableSourceControl } = backendConfig();
-  const stateWithEnvVars: Partial<AppState> = {
+
+  const stateWithEnvVars: Partial<AppState> = clone({
     apiBase: process.env.DASHBOARD_API_BASE ?? "http://localhost:3001",
     sourceControlProvider,
     enableSourceControl,
     ...serverInitialState,
-  };
+    workspace: {
+      type: CompletionStatus.Successful,
+      value: dfContext.workspace,
+    },
+  });
   return {
     ...props,
     // the "stringify and then parse again" piece is required as next.js
     // isn't able to serialize it to JSON properly
-    serverInitialState: JSON.parse(JSON.stringify(stateWithEnvVars)),
+    serverInitialState: stateWithEnvVars,
   };
 }

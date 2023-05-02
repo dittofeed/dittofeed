@@ -1,15 +1,22 @@
 import fastifyMultipart from "@fastify/multipart";
+import { fastifyRequestContext } from "@fastify/request-context";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import logger from "backend-lib/src/logger";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
+import { DFRequestContext } from "isomorphic-lib/src/types";
 import { OpenAPIV3_1 } from "openapi-types";
 
 import cors from "./buildApp/cors";
 import router from "./buildApp/router";
 import config from "./config";
+
+declare module "@fastify/request-context" {
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  export interface RequestContextData extends DFRequestContext {}
+}
 
 async function buildApp() {
   const fastifyLogger = logger();
@@ -57,6 +64,7 @@ async function buildApp() {
   await Promise.all([
     server.register(fastifyRawBody),
     server.register(fastifyMultipart),
+    server.register(fastifyRequestContext),
   ]);
 
   await Promise.all([

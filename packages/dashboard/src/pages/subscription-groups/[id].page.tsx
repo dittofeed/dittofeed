@@ -14,7 +14,8 @@ import { BulletList, BulletListItem } from "../../components/bulletList";
 import EditableName from "../../components/editableName";
 import InfoBox from "../../components/infoBox";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { PropsWithInitialState, useAppStore } from "../../lib/appStore";
+import { useAppStore } from "../../lib/appStore";
+import { PropsWithInitialState } from "../../lib/types";
 import getSubscriptionGroupsSSP from "./getSubscriptionGroupsSSP";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,

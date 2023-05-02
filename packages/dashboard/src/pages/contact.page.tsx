@@ -2,6 +2,8 @@ import { Box, Stack, useTheme } from "@mui/material";
 import Head from "next/head";
 
 import MainLayout from "../components/mainLayout";
+import SlackLink from "../components/slackLink";
+import SupportEmailLink from "../components/supportEmailLink";
 
 export default function Contact() {
   const theme = useTheme();
@@ -28,11 +30,9 @@ export default function Contact() {
           >
             <p>We&apos;re a small team, and we&apos;d love to hear from you.</p>
             <p>If you have questions or feedback, feel reach out at</p>
-            <a href="mailto:support@dittofeed.com">support@dittofeed.com</a>
+            <SupportEmailLink />
             <span>, or </span>
-            <a href="https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A">
-              join the Dittofeed Slack community
-            </a>
+            <SlackLink>join the Dittofeed Slack community</SlackLink>
             <span>!</span>
           </Box>
         </Stack>

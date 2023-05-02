@@ -106,6 +106,13 @@ export const WriteMode = Type.Union([
 
 export type WriteMode = Static<typeof WriteMode>;
 
+export const AuthMode = Type.Union([
+  Type.Literal("anonymous"),
+  Type.Literal("multi-tenant"),
+]);
+
+export type AuthMode = Static<typeof AuthMode>;
+
 export const LogLevel = Type.Union([
   Type.Literal("fatal"),
   Type.Literal("error"),
@@ -122,3 +129,14 @@ export enum SubscriptionChange {
   Subscribe = "Subscribe",
   UnSubscribe = "UnSubscribe",
 }
+
+export const DecodedJwt = Type.Object({
+  sub: Type.String(),
+  email: Type.String(),
+  email_verified: Type.Boolean(),
+  picture: Type.Optional(Type.String()),
+  name: Type.Optional(Type.String()),
+  nickname: Type.Optional(Type.String()),
+});
+
+export type DecodedJwt = Static<typeof DecodedJwt>;

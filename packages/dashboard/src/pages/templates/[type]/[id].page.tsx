@@ -16,13 +16,13 @@ import EmailEditor, {
   defaultInitialUserProperties,
 } from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
-import { PreloadedState, PropsWithInitialState } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
+import { requestContext } from "../../../lib/requestContext";
+import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState<{ messageResourceType: TemplateResourceType }>
-> = async (ctx) => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
+> = requestContext(async (ctx, dfContext) => {
   let serverInitialState: PreloadedState;
   let messageResourceType: TemplateResourceType;
   switch (ctx.params?.type) {
@@ -34,15 +34,11 @@ export const getServerSideProps: GetServerSideProps<
         serverInitialState = defaultEmailMessageState;
         break;
       }
-      const [emailMessage, workspace, userProperties] = await Promise.all([
+      const workspaceId = dfContext.workspace.id;
+      const [emailMessage, userProperties] = await Promise.all([
         prisma().emailTemplate.findUnique({
           where: {
             id,
-          },
-        }),
-        prisma().workspace.findUnique({
-          where: {
-            id: workspaceId,
           },
         }),
         prisma().userProperty.findMany({
@@ -98,16 +94,6 @@ export const getServerSideProps: GetServerSideProps<
         });
       }
 
-      if (workspace) {
-        // TODO PLI-212
-        serverInitialState.workspace = {
-          type: CompletionStatus.Successful,
-          value: {
-            id: workspaceId,
-            name: workspace.name,
-          },
-        };
-      }
       break;
     }
     default:
@@ -115,14 +101,15 @@ export const getServerSideProps: GetServerSideProps<
   }
 
   return {
-    props: addInitialStateToProps(
-      {
+    props: addInitialStateToProps({
+      dfContext,
+      serverInitialState,
+      props: {
         messageResourceType,
       },
-      serverInitialState
-    ),
+    }),
   };
-};
+});
 
 export default function MessageEditor() {
   return (

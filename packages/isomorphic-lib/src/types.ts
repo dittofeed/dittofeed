@@ -797,10 +797,37 @@ export const UserUploadRow = Type.Union([
 
 export type UserUploadRow = Static<typeof UserUploadRow>;
 
-export const Role = {
+export const RoleEnum = {
   Admin: "Admin",
   WorkspaceManager: "WorkspaceManager",
   Author: "Author",
   Viewer: "Viewer",
 } as const;
-export type Role = (typeof Role)[keyof typeof Role];
+
+export type Role = (typeof RoleEnum)[keyof typeof RoleEnum];
+export const Role = Type.Enum(RoleEnum);
+
+export const WorkspaceMemberResource = Type.Object({
+  id: Type.String(),
+  email: Type.String(),
+  emailVerified: Type.Boolean(),
+  picture: Type.Optional(Type.String()),
+});
+
+export type WorkspaceMemberResource = Static<typeof WorkspaceMemberResource>;
+
+export const WorkspaceMemberRoleResource = Type.Object({
+  role: Role,
+  workspaceMemberId: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type WorkspaceMemberRoleResource = Static<
+  typeof WorkspaceMemberRoleResource
+>;
+
+export interface DFRequestContext {
+  workspace: WorkspaceResource;
+  member: WorkspaceMemberResource;
+  memberRoles: WorkspaceMemberRoleResource[];
+}
