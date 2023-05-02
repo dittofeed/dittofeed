@@ -4,13 +4,10 @@ import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import logger from "backend-lib/src/logger";
-import {
-  Workspace,
-  WorkspaceMember,
-  WorkspaceMemberRole,
-} from "backend-lib/src/types";
+import {} from "backend-lib/src/types";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
+import { DFRequestContext } from "isomorphic-lib/src/types";
 import { OpenAPIV3_1 } from "openapi-types";
 
 import cors from "./buildApp/cors";
@@ -18,11 +15,8 @@ import router from "./buildApp/router";
 import config from "./config";
 
 declare module "@fastify/request-context" {
-  export interface RequestContextData {
-    workspace: Workspace;
-    member: WorkspaceMember;
-    roles: WorkspaceMemberRole;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  export interface RequestContextData extends DFRequestContext {}
 }
 
 async function buildApp() {

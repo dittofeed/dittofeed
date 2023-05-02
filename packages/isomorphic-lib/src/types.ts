@@ -825,3 +825,9 @@ export const WorkspaceMemberRoleResource = Type.Object({
 export type WorkspaceMemberRoleResource = Static<
   typeof WorkspaceMemberRoleResource
 >;
+
+export interface DFRequestContext {
+  workspace: WorkspaceResource;
+  member: WorkspaceMemberResource;
+  memberRoles: WorkspaceMemberRoleResource[];
+}

@@ -3,6 +3,7 @@ import {
   BroadcastResource,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
+  DFRequestContext,
   EphemeralRequestStatus,
   JourneyNodeType,
   JourneyResource,
@@ -16,8 +17,6 @@ import {
   SubscriptionGroupResource,
   UserPropertyDefinition,
   UserPropertyResource,
-  WorkspaceMemberResource,
-  WorkspaceMemberRoleResource,
   WorkspaceResource,
 } from "isomorphic-lib/src/types";
 import {
@@ -36,12 +35,6 @@ export type PropsWithInitialState<T = object> = {
 export type PreloadedState = Partial<AppState>;
 
 export type AppContents = AppState & AppActions;
-
-export interface DFRequestContext {
-  workspace: WorkspaceResource;
-  member: WorkspaceMemberResource;
-  memberRoles: WorkspaceMemberRoleResource[];
-}
 
 export type GetDFServerSideProps<
   // eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style, @typescript-eslint/no-explicit-any
