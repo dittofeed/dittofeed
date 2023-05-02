@@ -83,7 +83,7 @@ export async function getRequestContext(
 
   if (!decodedJwt) {
     return err({
-      type: RequestContextError.Unauthorized,
+      type: RequestContextErrorType.Unauthorized,
       message: "Unable to decode jwt",
     });
   }
@@ -93,7 +93,7 @@ export async function getRequestContext(
 
   if (!email_verified) {
     return err({
-      type: RequestContextError.EmailNotVerified,
+      type: RequestContextErrorType.EmailNotVerified,
     });
   }
 
@@ -169,14 +169,14 @@ export async function getRequestContext(
 
   if (!role) {
     return err({
-      type: RequestContextError.NotOnboarded,
+      type: RequestContextErrorType.NotOnboarded,
       message: "User missing role",
     });
   }
 
   if (!member.email) {
     return err({
-      type: RequestContextError.ApplicationError,
+      type: RequestContextErrorType.ApplicationError,
       message: "User missing email",
     });
   }
