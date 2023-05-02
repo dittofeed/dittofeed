@@ -1,12 +1,12 @@
 import { err, ok, Result } from "neverthrow";
 
-import { Role } from "./types";
+import { Role, RoleEnum } from "./types";
 
 export const authCodes: Record<Role, number> = {
-  [Role.Admin]: 10,
-  [Role.WorkspaceManager]: 20,
-  [Role.Author]: 30,
-  [Role.Viewer]: 40,
+  [RoleEnum.Admin]: 10,
+  [RoleEnum.WorkspaceManager]: 20,
+  [RoleEnum.Author]: 30,
+  [RoleEnum.Viewer]: 40,
 };
 
 export function isAuthorized({

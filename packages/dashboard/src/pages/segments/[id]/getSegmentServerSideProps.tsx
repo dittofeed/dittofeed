@@ -15,113 +15,101 @@ import { validate } from "uuid";
 
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import prisma from "../../../lib/prisma";
+import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
 
 const entryId = "entry";
 const initTraitId = "initTraitId";
 
-const getSegmentServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async (ctx) => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
-  const serverInitialState: PreloadedState = {};
+const getSegmentServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (ctx, dfContext) => {
+    const serverInitialState: PreloadedState = {};
 
-  const id = ctx.params?.id;
+    const id = ctx.params?.id;
 
-  if (typeof id !== "string" || !validate(id)) {
-    return {
-      notFound: true,
-    };
-  }
+    if (typeof id !== "string" || !validate(id)) {
+      return {
+        notFound: true,
+      };
+    }
 
-  const [segment, workspace, traits, subscriptionGroups] = await Promise.all([
-    prisma().segment.findUnique({
-      where: {
-        id,
-      },
-    }),
-    prisma().workspace.findUnique({
-      where: {
-        id: workspaceId,
-      },
-    }),
-    findAllUserTraits({
-      workspaceId,
-    }),
-    prisma().subscriptionGroup.findMany({
-      where: {
-        workspaceId,
-      },
-    }),
-  ]);
-
-  let segmentResource: SegmentResource;
-  if (segment) {
-    const segmentDefinition = unwrap(
-      schemaValidate(segment.definition, SegmentDefinition)
-    );
-    segmentResource = {
-      id: segment.id,
-      name: segment.name,
-      workspaceId,
-      definition: segmentDefinition,
-    };
-
-    serverInitialState.segments = {
-      type: CompletionStatus.Successful,
-      value: [segmentResource],
-    };
-  } else {
-    segmentResource = {
-      name: `My Segment - ${id}`,
-      id,
-      workspaceId,
-      definition: {
-        entryNode: {
-          type: SegmentNodeType.And,
-          children: [initTraitId],
-          id: entryId,
+    const workspaceId = dfContext.workspace.id;
+    const [segment, traits, subscriptionGroups] = await Promise.all([
+      prisma().segment.findUnique({
+        where: {
+          id,
         },
-        nodes: [
-          {
-            type: SegmentNodeType.Trait,
-            id: initTraitId,
-            path: "",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: "",
-            },
+      }),
+      findAllUserTraits({
+        workspaceId,
+      }),
+      prisma().subscriptionGroup.findMany({
+        where: {
+          workspaceId,
+        },
+      }),
+    ]);
+
+    let segmentResource: SegmentResource;
+    if (segment) {
+      const segmentDefinition = unwrap(
+        schemaValidate(segment.definition, SegmentDefinition)
+      );
+      segmentResource = {
+        id: segment.id,
+        name: segment.name,
+        workspaceId,
+        definition: segmentDefinition,
+      };
+
+      serverInitialState.segments = {
+        type: CompletionStatus.Successful,
+        value: [segmentResource],
+      };
+    } else {
+      segmentResource = {
+        name: `My Segment - ${id}`,
+        id,
+        workspaceId,
+        definition: {
+          entryNode: {
+            type: SegmentNodeType.And,
+            children: [initTraitId],
+            id: entryId,
           },
-        ],
-      },
-    };
-  }
-  serverInitialState.editedSegment = segmentResource;
+          nodes: [
+            {
+              type: SegmentNodeType.Trait,
+              id: initTraitId,
+              path: "",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "",
+              },
+            },
+          ],
+        },
+      };
+    }
+    serverInitialState.editedSegment = segmentResource;
 
-  if (workspace) {
-    // TODO PLI-212
-    serverInitialState.workspace = {
+    serverInitialState.subscriptionGroups = {
       type: CompletionStatus.Successful,
-      value: {
-        id: workspaceId,
-        name: workspace.name,
-      },
+      value: subscriptionGroups.map(subscriptionGroupToResource),
     };
-  }
 
-  serverInitialState.subscriptionGroups = {
-    type: CompletionStatus.Successful,
-    value: subscriptionGroups.map(subscriptionGroupToResource),
-  };
+    serverInitialState.traits = {
+      type: CompletionStatus.Successful,
+      value: traits,
+    };
 
-  serverInitialState.traits = {
-    type: CompletionStatus.Successful,
-    value: traits,
-  };
-
-  return {
-    props: addInitialStateToProps({}, serverInitialState),
-  };
-};
+    return {
+      props: addInitialStateToProps({
+        serverInitialState,
+        props: {},
+        dfContext,
+      }),
+    };
+  });
 
 export default getSegmentServerSideProps;

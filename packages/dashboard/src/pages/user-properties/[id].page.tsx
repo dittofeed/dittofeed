@@ -27,92 +27,77 @@ import EditableName from "../../components/editableName";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import {
-  PreloadedState,
-  PropsWithInitialState,
-  useAppStore,
-} from "../../lib/appStore";
+import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
+import { requestContext } from "../../lib/requestContext";
+import { PreloadedState, PropsWithInitialState } from "../../lib/types";
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async (ctx) => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
-  const serverInitialState: PreloadedState = {};
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (ctx, dfContext) => {
+    const serverInitialState: PreloadedState = {};
 
-  const id = ctx.params?.id;
+    const id = ctx.params?.id;
 
-  if (typeof id !== "string" || !validate(id)) {
-    return {
-      notFound: true,
-    };
-  }
+    if (typeof id !== "string" || !validate(id)) {
+      return {
+        notFound: true,
+      };
+    }
 
-  const [userProperty, workspace, traits] = await Promise.all([
-    prisma().userProperty.findUnique({
-      where: {
+    const workspaceId = dfContext.workspace.id;
+    const [userProperty, traits] = await Promise.all([
+      prisma().userProperty.findUnique({
+        where: {
+          id,
+        },
+      }),
+      findAllUserTraits({
+        workspaceId,
+      }),
+    ]);
+
+    let userPropertyResource: UserPropertyResource;
+    if (userProperty) {
+      const definition = unwrap(
+        schemaValidate(userProperty.definition, UserPropertyDefinition)
+      );
+      userPropertyResource = {
+        id: userProperty.id,
+        name: userProperty.name,
+        workspaceId,
+        definition,
+      };
+      serverInitialState.userProperties = {
+        type: CompletionStatus.Successful,
+        value: [userPropertyResource],
+      };
+    } else {
+      userPropertyResource = {
+        name: "example",
         id,
-      },
-    }),
-    prisma().workspace.findUnique({
-      where: {
-        id: workspaceId,
-      },
-    }),
-    findAllUserTraits({
-      workspaceId,
-    }),
-  ]);
+        workspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "example",
+        },
+      };
+    }
 
-  let userPropertyResource: UserPropertyResource;
-  if (userProperty) {
-    const definition = unwrap(
-      schemaValidate(userProperty.definition, UserPropertyDefinition)
-    );
-    userPropertyResource = {
-      id: userProperty.id,
-      name: userProperty.name,
-      workspaceId,
-      definition,
-    };
-    serverInitialState.userProperties = {
+    serverInitialState.editedUserProperty = userPropertyResource;
+
+    serverInitialState.traits = {
       type: CompletionStatus.Successful,
-      value: [userPropertyResource],
+      value: traits,
     };
-  } else {
-    userPropertyResource = {
-      name: "example",
-      id,
-      workspaceId,
-      definition: {
-        type: UserPropertyDefinitionType.Trait,
-        path: "example",
-      },
+
+    return {
+      props: addInitialStateToProps({
+        serverInitialState,
+        props: {},
+        dfContext,
+      }),
     };
-  }
-
-  serverInitialState.editedUserProperty = userPropertyResource;
-
-  if (workspace) {
-    // TODO PLI-212
-    serverInitialState.workspace = {
-      type: CompletionStatus.Successful,
-      value: {
-        id: workspaceId,
-        name: workspace.name,
-      },
-    };
-  }
-
-  serverInitialState.traits = {
-    type: CompletionStatus.Successful,
-    value: traits,
-  };
-
-  return {
-    props: addInitialStateToProps({}, serverInitialState),
-  };
-};
+  });
 
 function TraitUserPropertyDefinitionEditor({
   definition,

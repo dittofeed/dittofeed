@@ -25,43 +25,44 @@ import { v4 as uuid } from "uuid";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { PropsWithInitialState, useAppStore } from "../../lib/appStore";
+import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
-import { AppState } from "../../lib/types";
+import { requestContext } from "../../lib/requestContext";
+import { AppState, PropsWithInitialState } from "../../lib/types";
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async () => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (_ctx, dfContext) => {
+    const workspaceId = backendConfig().defaultWorkspaceId;
 
-  const emails: EmailTemplateResource[] = (
-    await prisma().emailTemplate.findMany({
-      where: { workspaceId },
-    })
-  ).map((e) => ({
-    type: TemplateResourceType.Email,
-    name: e.name,
-    id: e.id,
-    workspaceId: e.workspaceId,
-    from: e.from,
-    subject: e.subject,
-    body: e.body,
-  }));
+    const emails: EmailTemplateResource[] = (
+      await prisma().emailTemplate.findMany({
+        where: { workspaceId },
+      })
+    ).map((e) => ({
+      type: TemplateResourceType.Email,
+      name: e.name,
+      id: e.id,
+      workspaceId: e.workspaceId,
+      from: e.from,
+      subject: e.subject,
+      body: e.body,
+    }));
 
-  const messages: AppState["messages"] = {
-    type: CompletionStatus.Successful,
-    value: emails,
-  };
+    const messages: AppState["messages"] = {
+      type: CompletionStatus.Successful,
+      value: emails,
+    };
 
-  return {
-    props: addInitialStateToProps(
-      {},
-      {
-        messages,
-      }
-    ),
-  };
-};
+    return {
+      props: addInitialStateToProps({
+        dfContext,
+        props: {},
+        serverInitialState: {
+          messages,
+        },
+      }),
+    };
+  });
 
 function TemplateListItem({ template }: { template: MessageTemplateResource }) {
   const path = useRouter();

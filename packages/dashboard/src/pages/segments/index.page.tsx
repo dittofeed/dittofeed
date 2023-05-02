@@ -23,41 +23,42 @@ import { v4 as uuid } from "uuid";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { PropsWithInitialState, useAppStore } from "../../lib/appStore";
+import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
-import { AppState } from "../../lib/types";
+import { requestContext } from "../../lib/requestContext";
+import { AppState, PropsWithInitialState } from "../../lib/types";
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async () => {
-  // Dynamically import to avoid transitively importing backend config at build time.
-  const { toSegmentResource } = await import("backend-lib/src/segments");
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (_ctx, dfContext) => {
+    // Dynamically import to avoid transitively importing backend config at build time.
+    const { toSegmentResource } = await import("backend-lib/src/segments");
 
-  const workspaceId = backendConfig().defaultWorkspaceId;
-  const segmentResources: SegmentResource[] = (
-    await prisma().segment.findMany({
-      where: { workspaceId },
-    })
-  ).flatMap((segment) => {
-    const result = toSegmentResource(segment);
-    if (result.isErr()) {
-      return [];
-    }
-    return result.value;
-  });
-  const segments: AppState["segments"] = {
-    type: CompletionStatus.Successful,
-    value: segmentResources,
-  };
-  return {
-    props: addInitialStateToProps(
-      {},
-      {
-        segments,
+    const workspaceId = backendConfig().defaultWorkspaceId;
+    const segmentResources: SegmentResource[] = (
+      await prisma().segment.findMany({
+        where: { workspaceId },
+      })
+    ).flatMap((segment) => {
+      const result = toSegmentResource(segment);
+      if (result.isErr()) {
+        return [];
       }
-    ),
-  };
-};
+      return result.value;
+    });
+    const segments: AppState["segments"] = {
+      type: CompletionStatus.Successful,
+      value: segmentResources,
+    };
+    return {
+      props: addInitialStateToProps({
+        props: {},
+        dfContext,
+        serverInitialState: {
+          segments,
+        },
+      }),
+    };
+  });
 
 function SegmentItem({ segment }: { segment: SegmentResource }) {
   const path = useRouter();

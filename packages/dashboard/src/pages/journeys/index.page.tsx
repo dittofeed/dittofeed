@@ -8,7 +8,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import backendConfig from "backend-lib/src/config";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
@@ -24,20 +23,15 @@ import { v4 as uuid } from "uuid";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import {
-  PreloadedState,
-  PropsWithInitialState,
-  useAppStore,
-} from "../../lib/appStore";
+import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
+import { requestContext } from "../../lib/requestContext";
+import { PreloadedState, PropsWithInitialState } from "../../lib/types";
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState
-> = async () => {
-  const workspaceId = backendConfig().defaultWorkspaceId;
-
-  const [journeys, workspace] = await Promise.all([
-    (
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (_ctx, dfContext) => {
+    const workspaceId = dfContext.workspace.id;
+    const journeys = (
       await prisma().journey.findMany({
         where: { workspaceId },
       })
@@ -54,35 +48,24 @@ export const getServerSideProps: GetServerSideProps<
         status,
       };
       return resource;
-    }),
-    prisma().workspace.findFirst({
-      where: { id: workspaceId },
-    }),
-  ]);
+    });
 
-  const serverInitialState: PreloadedState = {
-    journeys: {
-      type: CompletionStatus.Successful,
-      value: journeys,
-    },
-  };
-
-  if (workspace) {
-    // TODO PLI-212
-    serverInitialState.workspace = {
-      type: CompletionStatus.Successful,
-      value: {
-        id: workspaceId,
-        name: workspace.name,
+    const serverInitialState: PreloadedState = {
+      journeys: {
+        type: CompletionStatus.Successful,
+        value: journeys,
       },
     };
-  }
 
-  const props = addInitialStateToProps({}, serverInitialState);
-  return {
-    props,
-  };
-};
+    const props = addInitialStateToProps({
+      serverInitialState,
+      dfContext,
+      props: {},
+    });
+    return {
+      props,
+    };
+  });
 
 function JourneyItem({ journey }: { journey: JourneyResource }) {
   const path = useRouter();
