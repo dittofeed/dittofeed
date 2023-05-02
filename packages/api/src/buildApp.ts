@@ -4,7 +4,6 @@ import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import logger from "backend-lib/src/logger";
-import {} from "backend-lib/src/types";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import { DFRequestContext } from "isomorphic-lib/src/types";

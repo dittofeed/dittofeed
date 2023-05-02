@@ -49,7 +49,10 @@ export async function getRequestContext(
       },
     });
     if (!workspace) {
-      throw new Error("Misconfigured default workspace, missing.");
+      return err({
+        type: RequestContextErrorType.NotOnboarded,
+        message: `Workspace ${workspaceId} not found`,
+      });
     }
     return ok({
       workspace: {
@@ -74,7 +77,10 @@ export async function getRequestContext(
   const { authProvider } = config();
 
   if (!authProvider) {
-    throw new Error("Misconfigured auth provider, missing.");
+    return err({
+      type: RequestContextErrorType.ApplicationError,
+      message: "Misconfigured auth provider, missing.",
+    });
   }
 
   const decodedJwt = authorizationToken
