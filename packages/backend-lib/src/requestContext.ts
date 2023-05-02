@@ -5,7 +5,7 @@ import config from "./config";
 import prisma from "./prisma";
 import { DFRequestContext } from "./types";
 
-export enum RequestContextError {
+export enum RequestContextErrorType {
   Unauthorized = "Unauthorized",
   NotOnboarded = "NotOnboarded",
   EmailNotVerified = "EmailNotVerified",
@@ -13,25 +13,25 @@ export enum RequestContextError {
 }
 
 export interface UnauthorizedError {
-  type: RequestContextError.Unauthorized;
+  type: RequestContextErrorType.Unauthorized;
   message: string;
 }
 
 export interface NotOnboardedError {
-  type: RequestContextError.NotOnboarded;
+  type: RequestContextErrorType.NotOnboarded;
   message: string;
 }
 
 export interface ApplicationError {
-  type: RequestContextError.ApplicationError;
+  type: RequestContextErrorType.ApplicationError;
   message: string;
 }
 
 export interface EmailNotVerifiedError {
-  type: RequestContextError.EmailNotVerified;
+  type: RequestContextErrorType.EmailNotVerified;
 }
 
-export type RequestContextErrorType =
+export type RequestContextError =
   | UnauthorizedError
   | NotOnboardedError
   | ApplicationError
@@ -39,7 +39,7 @@ export type RequestContextErrorType =
 
 export async function getRequestContext(
   authorizationToken: string | null
-): Promise<Result<DFRequestContext, RequestContextErrorType>> {
+): Promise<Result<DFRequestContext, RequestContextError>> {
   if (config().authMode === "anonymous") {
     const workspaceId = config().defaultWorkspaceId;
 
