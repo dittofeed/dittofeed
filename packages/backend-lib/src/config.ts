@@ -57,6 +57,8 @@ const BaseRawConfigProps = {
   oidcTokenPublicKey: Type.Optional(Type.String()),
   authMode: Type.Optional(AuthMode),
   authProvider: Type.Optional(Type.String()),
+  oauthStartUrl: Type.Optional(Type.String()),
+  logoutUrl: Type.Optional(Type.String()),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);

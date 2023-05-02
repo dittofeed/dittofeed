@@ -2,6 +2,7 @@ import { err, ok, Result } from "neverthrow";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
+import logger from "./logger";
 import prisma from "./prisma";
 import { DFRequestContext } from "./types";
 
