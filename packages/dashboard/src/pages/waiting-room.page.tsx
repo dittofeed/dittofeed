@@ -1,22 +1,25 @@
-import { Stack, Typography, useTheme } from "@mui/material";
+import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
+import logger from "backend-lib/src/logger";
 import { getRequestContext } from "backend-lib/src/requestContext";
-import { GetServerSideProps } from "next";
+import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
+import Link from "next/link";
 
 import SlackLink from "../components/slackLink";
 import SupportEmailLink from "../components/supportEmailLink";
 import { PropsWithInitialState } from "../lib/types";
 
+interface WaitingRoomProps {
+  oauthStartUrl: string;
+}
+
 export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState<{
-    logoutUrl: string;
-    oauthStartUrl: string;
-  }>
+  PropsWithInitialState<WaitingRoomProps>
 > = async (ctx) => {
-  const { oauthStartUrl, logoutUrl } = backendConfig();
-  if (!oauthStartUrl || !logoutUrl) {
-    throw new Error("oauthStartUrl or logoutUrl not set in backend config");
+  const { oauthStartUrl } = backendConfig();
+  if (!oauthStartUrl) {
+    throw new Error("oauthStartUrl not set in backend config");
   }
   const rc = await getRequestContext(ctx.req.headers.authorization ?? null);
   if (rc.isOk()) {
@@ -27,16 +30,18 @@ export const getServerSideProps: GetServerSideProps<
       },
     };
   }
+  logger().info(rc.error, "waiting room onboarding incomplete");
   return {
     props: {
-      logoutUrl,
       oauthStartUrl,
       serverInitialState: {},
     },
   };
 };
 
-export default function WaitingRoom() {
+const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
+  oauthStartUrl,
+}) {
   const theme = useTheme();
   return (
     <>
@@ -67,6 +72,21 @@ export default function WaitingRoom() {
               Get in touch and we will finish setting up your workspace.
             </Typography>
             <Stack direction="row" spacing={1}>
+              <Typography sx={{ fontSize: "1.5rem" }}>
+                When we are are done click the Refresh button
+              </Typography>
+            </Stack>
+            <Box>
+              <Button
+                href={oauthStartUrl}
+                LinkComponent={Link}
+                sx={{ fontSize: "1.5rem" }}
+                variant="outlined"
+              >
+                Refresh
+              </Button>
+            </Box>
+            <Stack direction="row" spacing={1}>
               <Typography variant="subtitle1">Send us an email:</Typography>
               <SupportEmailLink />
             </Stack>
@@ -79,4 +99,6 @@ export default function WaitingRoom() {
       </main>
     </>
   );
-}
+};
+
+export default WaitingRoom;
