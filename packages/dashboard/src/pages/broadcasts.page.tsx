@@ -16,7 +16,6 @@ import { AppState, PropsWithInitialState } from "../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
-    // Dynamically import to avoid transitively importing backend config at build time.
     const { workspace } = dfContext;
 
     const appState: Partial<AppState> = {};
