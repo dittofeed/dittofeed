@@ -1,5 +1,4 @@
 import { ListItem, ListItemText } from "@mui/material";
-import backendConfig from "backend-lib/src/config";
 import { BroadcastResource, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 
