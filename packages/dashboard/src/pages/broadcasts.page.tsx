@@ -48,7 +48,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 function BroadcastItem({ broadcast }: { broadcast: BroadcastResource }) {
   return (
     <ListItem>
-      <ResourceListItemButton href={`/broadcasts/${broadcast.id}`}>
+      <ResourceListItemButton href={`/dashboard/broadcasts/${broadcast.id}`}>
         <ListItemText>{broadcast.name}</ListItemText>
       </ResourceListItemButton>
     </ListItem>

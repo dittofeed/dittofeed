@@ -1,5 +1,5 @@
 // assets
-import { Settings } from "@mui/icons-material";
+import { Logout, Settings } from "@mui/icons-material";
 import {
   List,
   ListItemButton,
@@ -8,13 +8,15 @@ import {
 } from "@mui/material";
 // material-ui
 import { useTheme } from "@mui/material/styles";
-import { useRouter } from "next/router";
+import Link from "next/link";
+
+import { useAppStore } from "../../../../../lib/appStore";
 
 // ==============================|| HEADER PROFILE - PROFILE TAB ||============================== //
 
 function ProfileTab() {
   const theme = useTheme();
-  const path = useRouter();
+  const signoutUrl = useAppStore((store) => store.signoutUrl);
 
   return (
     <List
@@ -27,12 +29,20 @@ function ProfileTab() {
         },
       }}
     >
-      <ListItemButton onClick={() => path.push("/settings")}>
+      <ListItemButton LinkComponent={Link} href="/dashboard/settings">
         <ListItemIcon>
           <Settings />
         </ListItemIcon>
         <ListItemText primary="Settings" />
       </ListItemButton>
+      {signoutUrl ? (
+        <ListItemButton LinkComponent={Link} href={signoutUrl}>
+          <ListItemIcon>
+            <Logout />
+          </ListItemIcon>
+          <ListItemText primary="Sign Out" />
+        </ListItemButton>
+      ) : null}
     </List>
   );
 }

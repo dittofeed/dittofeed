@@ -47,7 +47,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 function Item({ item }: { item: SubscriptionGroupResource }) {
   return (
     <ListItem>
-      <ResourceListItemButton href={`/subscription-groups/${item.id}`}>
+      <ResourceListItemButton
+        href={`/dashboard/subscription-groups/${item.id}`}
+      >
         <ListItemText>{item.name}</ListItemText>
       </ResourceListItemButton>
     </ListItem>
