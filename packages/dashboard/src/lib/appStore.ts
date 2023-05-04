@@ -168,6 +168,8 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         workspace: {
           type: CompletionStatus.NotStarted,
         },
+        signoutUrl: null,
+        member: null,
         dataSourceConfigurations: {
           type: CompletionStatus.NotStarted,
         },

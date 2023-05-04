@@ -812,6 +812,8 @@ export const WorkspaceMemberResource = Type.Object({
   email: Type.String(),
   emailVerified: Type.Boolean(),
   picture: Type.Optional(Type.String()),
+  name: Type.Optional(Type.String()),
+  nickname: Type.Optional(Type.String()),
 });
 
 export type WorkspaceMemberResource = Static<typeof WorkspaceMemberResource>;

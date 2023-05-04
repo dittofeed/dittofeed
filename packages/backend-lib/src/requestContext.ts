@@ -2,7 +2,6 @@ import { err, ok, Result } from "neverthrow";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
-import logger from "./logger";
 import prisma from "./prisma";
 import { DFRequestContext } from "./types";
 
@@ -96,7 +95,7 @@ export async function getRequestContext(
   }
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { sub, email, picture, email_verified } = decodedJwt;
+  const { sub, email, picture, email_verified, name, nickname } = decodedJwt;
 
   if (!email_verified) {
     return err({
@@ -138,6 +137,8 @@ export async function getRequestContext(
         email,
         emailVerified: email_verified,
         image: picture,
+        name,
+        nickname,
       },
       include: {
         WorkspaceMemberRole: {
@@ -150,6 +151,8 @@ export async function getRequestContext(
       update: {
         emailVerified: email_verified,
         image: picture,
+        name,
+        nickname,
       },
     });
   }
@@ -193,6 +196,8 @@ export async function getRequestContext(
       id: member.id,
       email: member.email,
       emailVerified: member.emailVerified,
+      name: member.name ?? undefined,
+      nickname: member.nickname ?? undefined,
     },
     workspace: {
       id: role.workspace.id,
