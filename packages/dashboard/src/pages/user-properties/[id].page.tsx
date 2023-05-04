@@ -6,7 +6,6 @@ import {
   TextField,
   useTheme,
 } from "@mui/material";
-import backendConfig from "backend-lib/src/config";
 import { findAllUserTraits } from "backend-lib/src/userEvents";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";

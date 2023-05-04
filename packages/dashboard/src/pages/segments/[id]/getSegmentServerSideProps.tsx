@@ -1,4 +1,3 @@
-import backendConfig from "backend-lib/src/config";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { findAllUserTraits } from "backend-lib/src/userEvents";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";

@@ -1,4 +1,3 @@
-import backendConfig from "backend-lib/src/config";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import {
   CompletionStatus,
