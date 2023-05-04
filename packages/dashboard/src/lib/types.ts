@@ -17,6 +17,7 @@ import {
   SubscriptionGroupResource,
   UserPropertyDefinition,
   UserPropertyResource,
+  WorkspaceMemberResource,
   WorkspaceResource,
 } from "isomorphic-lib/src/types";
 import {
@@ -52,6 +53,8 @@ export type GetDFServerSideProps<
 export type AppState = {
   apiBase: string;
   workspace: RequestStatus<WorkspaceResource, Error>;
+  member: WorkspaceMemberResource | null;
+  signoutUrl: string | null;
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
   broadcasts: RequestStatus<BroadcastResource[], Error>;

@@ -1,7 +1,7 @@
 import backendConfig from "backend-lib/src/config";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { CompletionStatus, DFRequestContext } from "isomorphic-lib/src/types";
 
-import { AppState, DFRequestContext, PropsWithInitialState } from "./types";
+import { AppState, PropsWithInitialState } from "./types";
 
 function clone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
@@ -29,6 +29,8 @@ export function addInitialStateToProps<
       type: CompletionStatus.Successful,
       value: dfContext.workspace,
     },
+    member: dfContext.member,
+    signoutUrl: backendConfig().signoutUrl,
   });
   return {
     ...props,
