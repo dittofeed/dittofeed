@@ -12,8 +12,10 @@ import {
 } from "@mui/material";
 // material-ui
 import { useTheme } from "@mui/material/styles";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import React, { useRef, useState } from "react";
 
+import { useAppStore } from "../../../../lib/appStore";
 import isNode from "../../../../lib/isNode";
 // project import
 import MainCard from "../../../mainCard";
@@ -39,7 +41,15 @@ function Profile() {
   };
 
   const iconBackColorOpen = "grey.300";
-  const name = "Anonymous User";
+  const member = useAppStore((store) => store.member);
+  const name = member
+    ? member.name ?? member.nickname ?? member.email
+    : "Anonymous";
+  const workspace = useAppStore((store) => store.workspace);
+  const workspaceName =
+    workspace.type === CompletionStatus.Successful
+      ? workspace.value.name
+      : "Default";
 
   return (
     <Box sx={{ flexShrink: 0, ml: 0.75 }}>
@@ -110,12 +120,13 @@ function Profile() {
                           >
                             <Avatar
                               alt="profile user"
+                              src={member?.picture}
                               sx={{ width: 32, height: 32 }}
                             />
                             <Stack>
                               <Typography variant="h6">{name}</Typography>
                               <Typography variant="body2" color="textSecondary">
-                                Default Workspace
+                                {workspaceName} Workspace
                               </Typography>
                             </Stack>
                           </Stack>
