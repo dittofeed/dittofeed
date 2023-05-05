@@ -41,28 +41,28 @@ async function prismaMigrate() {
   });
 }
 
-async function bootstrapPostgres() {
-  const { defaultWorkspaceId, defaultUserEventsTableVersion } = config();
+async function bootstrapPostgres({ workspaceId }: { workspaceId: string }) {
+  const { defaultUserEventsTableVersion } = config();
 
   await prismaMigrate();
 
   await prisma().workspace.upsert({
     where: {
-      id: defaultWorkspaceId,
+      id: workspaceId,
     },
     update: {},
     create: {
-      id: defaultWorkspaceId,
+      id: workspaceId,
       name: "Default",
     },
   });
 
   await prisma().currentUserEventsTable.upsert({
     where: {
-      workspaceId: defaultWorkspaceId,
+      workspaceId,
     },
     create: {
-      workspaceId: defaultWorkspaceId,
+      workspaceId,
       version: defaultUserEventsTableVersion,
     },
     update: {},
@@ -72,21 +72,21 @@ async function bootstrapPostgres() {
     [
       {
         name: "id",
-        workspaceId: defaultWorkspaceId,
+        workspaceId,
         definition: {
           type: UserPropertyDefinitionType.Id,
         },
       },
       {
         name: "anonymousId",
-        workspaceId: defaultWorkspaceId,
+        workspaceId,
         definition: {
           type: UserPropertyDefinitionType.AnonymousId,
         },
       },
       {
         name: "email",
-        workspaceId: defaultWorkspaceId,
+        workspaceId,
         definition: {
           type: UserPropertyDefinitionType.Trait,
           path: "email",
@@ -94,7 +94,7 @@ async function bootstrapPostgres() {
       },
       {
         name: "phone",
-        workspaceId: defaultWorkspaceId,
+        workspaceId,
         definition: {
           type: UserPropertyDefinitionType.Trait,
           path: "phone",
@@ -102,7 +102,7 @@ async function bootstrapPostgres() {
       },
       {
         name: "firstName",
-        workspaceId: defaultWorkspaceId,
+        workspaceId,
         definition: {
           type: UserPropertyDefinitionType.Trait,
           path: "firstName",
@@ -110,7 +110,7 @@ async function bootstrapPostgres() {
       },
       {
         name: "lastName",
-        workspaceId: defaultWorkspaceId,
+        workspaceId,
         definition: {
           type: UserPropertyDefinitionType.Trait,
           path: "lastName",
@@ -118,7 +118,7 @@ async function bootstrapPostgres() {
       },
       {
         name: "language",
-        workspaceId: defaultWorkspaceId,
+        workspaceId,
         definition: {
           type: UserPropertyDefinitionType.Trait,
           path: "language",
@@ -126,7 +126,7 @@ async function bootstrapPostgres() {
       },
       {
         name: "accountManager",
-        workspaceId: defaultWorkspaceId,
+        workspaceId,
         definition: {
           type: UserPropertyDefinitionType.Trait,
           path: "accountManager",
@@ -203,12 +203,12 @@ async function bootstrapWorker() {
   }
 }
 
-async function insertDefaultEvents() {
+async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
   const messageId1 = randomUUID();
   const messageId2 = randomUUID();
   await insertUserEvents({
     tableVersion: config().defaultUserEventsTableVersion,
-    workspaceId: config().defaultWorkspaceId,
+    workspaceId,
     events: [
       {
         messageId: messageId1,
@@ -243,9 +243,13 @@ async function insertDefaultEvents() {
   });
 }
 
-export default async function bootstrap() {
+export default async function bootstrap({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
   const initialBootstrap = [
-    bootstrapPostgres().catch((err) =>
+    bootstrapPostgres({ workspaceId }).catch((err) =>
       logger().error({ err }, "failed to bootstrap postgres")
     ),
     bootstrapClickhouse().catch((err) =>
@@ -262,7 +266,7 @@ export default async function bootstrap() {
   await Promise.all(initialBootstrap);
 
   if (config().bootstrapEvents) {
-    await insertDefaultEvents();
+    await insertDefaultEvents({ workspaceId });
   }
 
   if (config().bootstrapWorker) {
