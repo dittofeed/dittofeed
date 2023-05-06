@@ -1,7 +1,10 @@
 import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
-import { getRequestContext } from "backend-lib/src/requestContext";
+import {
+  getRequestContext,
+  RequestContextErrorType,
+} from "backend-lib/src/requestContext";
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
@@ -12,6 +15,7 @@ import { PropsWithInitialState } from "../lib/types";
 
 interface WaitingRoomProps {
   oauthStartUrl: string;
+  emailVerified: boolean;
 }
 
 export const getServerSideProps: GetServerSideProps<
@@ -31,9 +35,12 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
   logger().info(rc.error, "waiting room onboarding incomplete");
+  const emailVerified =
+    rc.error.type !== RequestContextErrorType.EmailNotVerified;
   return {
     props: {
       oauthStartUrl,
+      emailVerified,
       serverInitialState: {},
     },
   };
@@ -41,6 +48,7 @@ export const getServerSideProps: GetServerSideProps<
 
 const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
   oauthStartUrl,
+  emailVerified,
 }) {
   const theme = useTheme();
   return (
@@ -68,12 +76,17 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
             <Typography sx={{ fontSize: "1.5rem" }}>
               Thank you for signing up for Dittofeed!
             </Typography>
+            {!emailVerified ? (
+              <Typography sx={{ fontSize: "1.5rem" }}>
+                Please check your email to verify your email address.
+              </Typography>
+            ) : null}
             <Typography sx={{ fontSize: "1.5rem" }}>
               Get in touch and we will finish setting up your workspace.
             </Typography>
             <Stack direction="row" spacing={1}>
               <Typography sx={{ fontSize: "1.5rem" }}>
-                When we are are done click the Refresh button
+                When we are done click the Refresh button.
               </Typography>
             </Stack>
             <Box>
