@@ -4,7 +4,7 @@ import logger from "backend-lib/src/logger";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-async function boostrapStart() {
+async function bootsrapStart() {
   if (backendConfig().logConfig) {
     logger().info(backendConfig(), "Initialized with config");
   }
@@ -37,7 +37,7 @@ async function boostrapStart() {
   return bootstrap({ workspaceId, workspaceName });
 }
 
-boostrapStart().catch((e) => {
+bootsrapStart().catch((e) => {
   console.error(e);
   process.exit(1);
 });
