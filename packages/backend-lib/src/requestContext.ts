@@ -203,6 +203,7 @@ export async function getRequestContext(
       emailVerified: member.emailVerified,
       name: member.name ?? undefined,
       nickname: member.nickname ?? undefined,
+      picture: member.image ?? undefined,
     },
     workspace: {
       id: role.workspace.id,
