@@ -30,12 +30,22 @@ export const requestContext: <T>(
             },
           };
         case RequestContextErrorType.NotOnboarded:
-          logger().info(`user not onboarded: ${rc.error.message}`);
+          logger().info(
+            {
+              contextErrorMsg: rc.error.message,
+            },
+            "user not onboarded"
+          );
           return {
             redirect: { destination: WAITING_ROOM_PAGE, permanent: false },
           };
         case RequestContextErrorType.Unauthorized:
-          logger().info("user unauthorized");
+          logger().info(
+            {
+              contextErrorMsg: rc.error.message,
+            },
+            "user unauthorized"
+          );
           return {
             redirect: { destination: UNAUTHORIZED_PAGE, permanent: false },
           };

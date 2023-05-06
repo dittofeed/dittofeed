@@ -83,9 +83,14 @@ export async function getRequestContext(
     });
   }
 
-  const decodedJwt = authorizationToken
-    ? decodeJwtHeader(authorizationToken)
-    : null;
+  if (!authorizationToken) {
+    return err({
+      type: RequestContextErrorType.ApplicationError,
+      message: "authorizationToken is missing",
+    });
+  }
+
+  const decodedJwt = decodeJwtHeader(authorizationToken);
 
   if (!decodedJwt) {
     return err({
