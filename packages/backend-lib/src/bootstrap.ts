@@ -1,5 +1,4 @@
 import { Prisma } from "@prisma/client";
-import spawn from "cross-spawn";
 import { randomUUID } from "crypto";
 
 import { segmentIdentifyEvent } from "../test/factories/segment";
@@ -8,6 +7,7 @@ import config from "./config";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
 import prisma from "./prisma";
+import { prismaMigrate } from "./prisma/migrate";
 import {
   computePropertiesWorkflow,
   generateComputePropertiesId,
@@ -19,29 +19,13 @@ import {
   insertUserEvents,
 } from "./userEvents/clickhouse";
 
-async function prismaMigrate() {
-  await new Promise<void>((resolve, reject) => {
-    spawn("yarn", ["workspace", "backend-lib", "prisma", "migrate", "deploy"], {
-      stdio: "inherit",
-    }).once("exit", (exitCode, signal) => {
-      if (typeof exitCode === "number") {
-        if (exitCode === 0) {
-          resolve();
-        } else {
-          reject(
-            new Error(`Migration failed with exit code: ${String(exitCode)}`)
-          );
-        }
-      } else if (signal) {
-        reject(new Error(`Migration failed with signal: ${String(signal)}`));
-      } else {
-        resolve();
-      }
-    });
-  });
-}
-
-async function bootstrapPostgres({ workspaceId }: { workspaceId: string }) {
+async function bootstrapPostgres({
+  workspaceId,
+  workspaceName,
+}: {
+  workspaceId: string;
+  workspaceName: string;
+}) {
   const { defaultUserEventsTableVersion } = config();
 
   await prismaMigrate();
@@ -53,7 +37,7 @@ async function bootstrapPostgres({ workspaceId }: { workspaceId: string }) {
     update: {},
     create: {
       id: workspaceId,
-      name: "Default",
+      name: workspaceName,
     },
   });
 
@@ -245,11 +229,13 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
 
 export default async function bootstrap({
   workspaceId,
+  workspaceName,
 }: {
   workspaceId: string;
+  workspaceName: string;
 }) {
   const initialBootstrap = [
-    bootstrapPostgres({ workspaceId }).catch((err) =>
+    bootstrapPostgres({ workspaceId, workspaceName }).catch((err) =>
       logger().error({ err }, "failed to bootstrap postgres")
     ),
     bootstrapClickhouse().catch((err) =>
