@@ -67,7 +67,11 @@ function Profile() {
         onClick={handleToggle}
       >
         <Stack direction="row" spacing={2} alignItems="center" sx={{ p: 0.5 }}>
-          <Avatar alt="profile user" sx={{ width: 32, height: 32 }} />
+          <Avatar
+            alt="profile user"
+            sx={{ width: 32, height: 32 }}
+            src={member?.picture}
+          />
           <Typography variant="subtitle1">{name}</Typography>
         </Stack>
       </ButtonBase>
