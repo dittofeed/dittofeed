@@ -97,6 +97,16 @@
           ]
         },
         "resources/segments",
+        {
+          "group": "Segment Nodes",
+          "pages": [
+            "resources/segment-nodes/trait",
+            "resources/segment-nodes/and",
+            "resources/segment-nodes/or",
+            "resources/segment-nodes/subscription-group",
+            "resources/segment-nodes/broadcast"
+          ]
+        },
         "resources/message-templates",
         "resources/workspaces",
         "resources/subscription-groups",
