@@ -23,7 +23,6 @@ Populate this `.env` file with the following values, substituting placeholder va
 
 ```properties .env
 # Without these values, Dittofeed will select default values for you.
-DATABASE_HOST=my-postgres-host
 DATABASE_USER=my-postgres-user
 DATABASE_PASSWORD=my-postgres-password
 CLICKHOUSE_USER=my-clickhouse-user
@@ -34,7 +33,11 @@ Finally, start Dittofeed's services, and run Dittofeed's bootstrap script.
 
 ```bash
 docker compose -f docker-compose.prod.yaml up -d
-# Run once the above services have successfully started.
+```
+
+Then once the above services have successfully started.
+
+```bash
 ./scripts/bootstrap.sh
 ```
 
