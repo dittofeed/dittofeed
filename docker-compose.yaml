@@ -23,7 +23,6 @@ services:
     depends_on:
       - postgres
       - temporal
-      - kafka
       - api
       - clickhouse-server
     environment:
@@ -43,7 +42,6 @@ services:
       - postgres
       - clickhouse-server
       - temporal
-      - kafka
       - worker
     environment:
       <<: *backend-app-env
@@ -61,7 +59,6 @@ services:
       - postgres
       - temporal
       - clickhouse-server
-      - kafka
     environment:
       <<: *backend-app-env
     networks:
@@ -101,6 +98,7 @@ services:
       - dittofeed-network-dev
   kafka:
     image: redpandadata/redpanda:v23.1.1
+    profiles: ["kafka"]
     ports:
       - 9092:9092
       - 18081:18081
