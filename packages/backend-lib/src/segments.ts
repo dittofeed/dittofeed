@@ -1,17 +1,21 @@
 import { ValueError } from "@sinclair/typebox/errors";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+import R from "remeda";
 
 import prisma from "./prisma";
 import {
   EnrichedSegment,
   InternalEventType,
+  Prisma,
   Segment,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
+  UpsertSegmentResource,
 } from "./types";
+import logger from "./logger";
 
 export function enrichSegment(
   segment: Segment
@@ -98,6 +102,32 @@ export async function findAllEnrichedSegments(
     });
   }
   return ok(enrichedSegments);
+}
+
+export async function upsertSegment(
+  segment: UpsertSegmentResource
+): Promise<SegmentResource> {
+  const { id, workspaceId, name, definition } = segment;
+  const query = Prisma.sql`
+    INSERT INTO "Segment" ("id", "workspaceId", "name", "definition", "updatedAt")
+    VALUES (${id}::uuid, ${workspaceId}::uuid, ${name}, ${definition}::jsonb, NOW())
+    ON CONFLICT ("id")
+    DO UPDATE SET
+        "workspaceId" = excluded."workspaceId",
+        "name" = COALESCE(excluded."name", "Segment"."name"),
+        "definition" = COALESCE(excluded."definition", "Segment"."definition"),
+        "updatedAt" = NOW()
+    WHERE "Segment"."resourceType" <> 'Internal'
+    RETURNING *`;
+  const [result] = (await prisma().$queryRaw(query)) as [Segment];
+  const updatedDefinition = result.definition as SegmentDefinition;
+
+  return {
+    id: result.id,
+    workspaceId: result.workspaceId,
+    name: result.name,
+    definition: updatedDefinition,
+  };
 }
 
 export function segmentNodeIsBroadcast(node: SegmentNode): boolean {
