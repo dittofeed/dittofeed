@@ -42,7 +42,6 @@ services:
       - postgres
       - clickhouse-server
       - temporal
-      - worker
     environment:
       <<: *backend-app-env
       BOOTSTRAP_EVENTS: true
@@ -141,8 +140,6 @@ services:
       - "9009:9009"
     environment:
       <<: *clickhouse-credentials
-    depends_on:
-      - kafka
     volumes:
       - ./packages/backend-lib/clickhouse_config.dev.xml:/etc/clickhouse-server/config.xml
       - clickhouse_lib:/var/lib/clickhouse
