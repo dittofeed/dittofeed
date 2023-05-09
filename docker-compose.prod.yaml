@@ -18,7 +18,7 @@ x-backend-app-env: &backend-app-env
   TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
 services:
   dashboard:
-    image: dittofeed/dittofeed-dashboard:latest
+    image: dittofeed/dittofeed-dashboard:${IMAGE_TAG:-v0.0.14}
     ports:
       - "3000:3000"
     depends_on:
@@ -30,7 +30,7 @@ services:
     networks:
       - dittofeed-network
   api:
-    image: dittofeed/dittofeed-api:latest
+    image: dittofeed/dittofeed-api:${IMAGE_TAG:-v0.0.14}
     ports:
       - "3001:3001"
     depends_on:
@@ -42,7 +42,7 @@ services:
     networks:
       - dittofeed-network
   worker:
-    image: dittofeed/dittofeed-worker:latest
+    image: dittofeed/dittofeed-worker:${IMAGE_TAG:-v0.0.14}
     depends_on:
       - postgres
       - temporal
