@@ -127,6 +127,8 @@ services:
     volumes:
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
+    networks:
+      - dittofeed-network
 volumes:
   postgres:
   kafka:
