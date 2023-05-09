@@ -1,17 +1,18 @@
 version: "3.9"
+x-database-credentials: &database-credentials
+  DATABASE_USER: ${DATABASE_USER:-postgres}
+  DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
 x-kafka-credentials: &kafka-credentials
-  KAFKA_USERNAME: $KAFKA_USERNAME
-  KAFKA_PASSWORD: $KAFKA_PASSWORD
+  KAFKA_USERNAME: ${KAFKA_USERNAME:-dittofeed}
+  KAFKA_PASSWORD: ${KAFKA_PASSWORD:-password}
 x-clickhouse-credentials: &clickhouse-credentials
-  CLICKHOUSE_USER: $CLICKHOUSE_USER
-  CLICKHOUSE_PASSWORD: $CLICKHOUSE_PASSWORD
+  CLICKHOUSE_USER: ${CLICKHOUSE_USER:-dittofeed}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-password}
 x-backend-app-env: &backend-app-env
-  <<: [*clickhouse-credentials, *kafka-credentials]
+  <<: [*clickhouse-credentials, *kafka-credentials, *database-credentials]
   NODE_ENV: production
   DATABASE_HOST: ${DATABASE_HOST:-postgres}
   DATABASE_PORT: ${DATABASE_PORT:-5432}
-  DATABASE_USER: $DATABASE_USER
-  DATABASE_PASSWORD: $DATABASE_PASSWORD
   KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
   CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-http://clickhouse-server:8123}
   TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
@@ -23,7 +24,6 @@ services:
     depends_on:
       - postgres
       - temporal
-      - kafka
       - api
     environment:
       <<: *backend-app-env
@@ -36,7 +36,6 @@ services:
     depends_on:
       - postgres
       - temporal
-      - kafka
       - worker
     environment:
       <<: *backend-app-env
@@ -47,7 +46,6 @@ services:
     depends_on:
       - postgres
       - temporal
-      - kafka
     environment:
       <<: *backend-app-env
     networks:
@@ -59,9 +57,10 @@ services:
     environment:
       - DB=postgresql
       - DB_PORT=${DATABASE_PORT:-5432}
-      - POSTGRES_USER=${DATABASE_USER}
-      - POSTGRES_PWD=${DATABASE_PASSWORD}
+      - POSTGRES_USER=${DATABASE_USER:-postgres}
+      - POSTGRES_PWD=${DATABASE_PASSWORD:-password}
       - POSTGRES_SEEDS=${DATABASE_HOST:-postgres}
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml
     image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.18.5}
     labels:
       kompose.volume.type: configMap
@@ -75,8 +74,8 @@ services:
     image: postgres:${POSTGRES_VERSION:-15}
     restart: always
     environment:
-      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
-      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-password}
+      - POSTGRES_USER=${DATABASE_USER:-postgres}
       - POSTGRES_DB=dittofeed
     ports:
       - "5432:5432"
@@ -86,6 +85,7 @@ services:
       - dittofeed-network
   kafka:
     image: redpandadata/redpanda:v23.1.1
+    profiles: ["kafka"]
     ports:
       - 9092:9092
       - 18081:18081
@@ -124,8 +124,6 @@ services:
       - "8123:8123"
       - "9000:9000"
       - "9009:9009"
-    depends_on:
-      - kafka
     volumes:
       - clickhouse_lib:/var/lib/clickhouse
       - clickhouse_log:/var/log/clickhouse-server
