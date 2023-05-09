@@ -32,20 +32,22 @@ model Workspace {
 
 enum DBResourceType {
   Declarative // For Declarative Configurable Resources
-  Internal  // For Internal Dynamic Resources
+  Internal // For Internal Dynamic Resources
 }
 
 model Segment {
-  id                String              @id() @default(uuid()) @db.Uuid
-  workspace         Workspace           @relation(fields: [workspaceId], references: [id])
-  workspaceId       String              @db.Uuid
-  resourceType      DBResourceType      @default(Declarative)
-  name              String
-  definition        Json
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  SegmentAssignment SegmentAssignment[]
-  Broadcast         Broadcast[]
+  id                  String              @id() @default(uuid()) @db.Uuid
+  workspace           Workspace           @relation(fields: [workspaceId], references: [id])
+  workspaceId         String              @db.Uuid
+  resourceType        DBResourceType      @default(Declarative)
+  name                String
+  definition          Json
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  subscriptionGroupId String?             @db.Uuid
+  subscriptionGroup   SubscriptionGroup?  @relation(fields: [subscriptionGroupId], references: [id])
+  SegmentAssignment   SegmentAssignment[]
+  Broadcast           Broadcast[]
 
   @@unique([workspaceId, name])
   @@index([resourceType])
@@ -213,6 +215,7 @@ model SubscriptionGroup {
   type        DBSubscriptionGroupType
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
+  Segment     Segment[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
