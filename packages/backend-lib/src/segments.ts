@@ -1,7 +1,6 @@
 import { ValueError } from "@sinclair/typebox/errors";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
-import R from "remeda";
 
 import prisma from "./prisma";
 import {
@@ -15,7 +14,6 @@ import {
   SegmentResource,
   UpsertSegmentResource,
 } from "./types";
-import logger from "./logger";
 
 export function enrichSegment(
   segment: Segment
