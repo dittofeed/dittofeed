@@ -30,10 +30,16 @@ model Workspace {
   WorkspaceMemberRole    WorkspaceMemberRole[]
 }
 
+enum DBResourceType {
+  Declarative // For Declarative Configurable Resources
+  Internal  // For Internal Dynamic Resources
+}
+
 model Segment {
   id                String              @id() @default(uuid()) @db.Uuid
   workspace         Workspace           @relation(fields: [workspaceId], references: [id])
   workspaceId       String              @db.Uuid
+  resourceType      DBResourceType      @default(Declarative)
   name              String
   definition        Json
   createdAt         DateTime            @default(now())
@@ -42,6 +48,7 @@ model Segment {
   Broadcast         Broadcast[]
 
   @@unique([workspaceId, name])
+  @@index([resourceType])
 }
 
 enum JourneyStatus {
