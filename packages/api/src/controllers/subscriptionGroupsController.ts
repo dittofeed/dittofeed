@@ -84,6 +84,7 @@ export default async function subscriptionGroupsController(
             workspaceId,
             definition: segmentDefinition,
             subscriptionGroupId: id,
+            resourceType: "Internal",
           },
         }),
       ]);
