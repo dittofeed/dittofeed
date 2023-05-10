@@ -43,20 +43,22 @@ export async function validateSubscriptionHash({
 
 export async function changeSubscriptionStatus({
   workspaceId,
-  userId,
   subscriptionGroupId,
+  identifier,
 }: {
   workspaceId: string;
-  userId: string;
   subscriptionGroupId: string;
+  identifier: string;
 }) {}
 
 export async function changeSubscriptionStatusProtected({
-  userId,
+  workspaceId,
+  identifier,
   subscriptionGroupId,
   hash,
 }: {
-  userId: string;
+  identifier: string;
+  workspaceId: string;
   hash: string;
   subscriptionGroupId: string;
 }): Promise<Result<null, Error>> {
@@ -65,9 +67,11 @@ export async function changeSubscriptionStatusProtected({
 
 export async function getUserSubscriptions({
   workspaceId,
-  userId,
+  identifier,
+  identifierKey,
 }: {
-  userId: string;
+  identifier: string;
+  identifierKey: string;
   workspaceId: string;
 }): Promise<UserSubscriptionsResource> {
   return {
