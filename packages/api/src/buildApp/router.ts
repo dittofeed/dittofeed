@@ -1,3 +1,4 @@
+import fastifyMultipart from "@fastify/multipart";
 import { FastifyInstance } from "fastify";
 
 import contentController from "../controllers/contentController";
@@ -18,6 +19,9 @@ export default async function router(fastify: FastifyInstance) {
   await fastify.register(
     async (f: FastifyInstance) => {
       await fastify.register(requestContext);
+      await fastify.register(fastifyMultipart, {
+        attachFieldsToBody: "keyValues",
+      });
 
       await Promise.all([
         f.register(journeysController, { prefix: "/journeys" }),

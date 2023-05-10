@@ -27,13 +27,6 @@ import { omit } from "remeda";
 import { Readable } from "stream";
 import { v4 as uuid } from "uuid";
 
-const bufferToStream = (buffer: Buffer): Readable => {
-  const stream = new Readable();
-  stream.push(buffer);
-  stream.push(null);
-  return stream;
-};
-
 interface RowErrors {
   row: number;
   errors: ValueError[];
@@ -87,6 +80,10 @@ export default async function subscriptionGroupsController(
     "/upload-csv",
     {
       schema: {
+        // TODO upload files to S3 and use a presigned URL
+        body: Type.Object({
+          csv: Type.String(),
+        }),
         headers: Type.Object({
           [WORKSPACE_ID_HEADER]: WorkspaceId,
           [SUBSRIPTION_GROUP_ID_HEADER]: Type.String(),
@@ -94,15 +91,7 @@ export default async function subscriptionGroupsController(
       },
     },
     async (request, reply) => {
-      const data = await request.file();
-      if (!data) {
-        return reply.status(400).send({
-          message: "Missing file.",
-        });
-      }
-
-      // Convert the file buffer to a readable stream
-      const csvStream = bufferToStream(await data.toBuffer());
+      const csvStream = Readable.from(request.body.csv);
       const workspaceId = request.headers[WORKSPACE_ID_HEADER];
       const subscriptionGroupId = request.headers[SUBSRIPTION_GROUP_ID_HEADER];
 
