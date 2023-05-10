@@ -1,4 +1,3 @@
-import logger from "backend-lib/src/logger";
 import {
   getRequestContext,
   RequestContextErrorType,
