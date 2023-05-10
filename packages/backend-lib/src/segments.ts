@@ -104,6 +104,11 @@ export async function findAllEnrichedSegments(
   return ok(enrichedSegments);
 }
 
+/**
+ * Upsert segment resource if the existing segment is not internal.
+ * @param segment
+ * @returns
+ */
 export async function upsertSegment(
   segment: UpsertSegmentResource
 ): Promise<SegmentResource> {
