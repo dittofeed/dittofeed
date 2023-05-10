@@ -385,6 +385,7 @@ export const SegmentResource = Type.Object({
   workspaceId: Type.String(),
   name: Type.String(),
   definition: SegmentDefinition,
+  subscriptionGroupId: Type.Optional(Type.String()),
 });
 
 export type SegmentResource = Static<typeof SegmentResource>;

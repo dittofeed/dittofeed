@@ -1,5 +1,9 @@
+import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { SubscriptionGroupType } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  SubscriptionGroupType,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
 
@@ -24,11 +28,27 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
       where: {
         id,
       },
+      include: {
+        Segment: true,
+      },
     });
 
     if (subscriptionGroup) {
       serverInitialState.editedSubscriptionGroup =
         subscriptionGroupToResource(subscriptionGroup);
+
+      const segment = subscriptionGroup.Segment[0];
+
+      const segmentResource = segment
+        ? toSegmentResource(segment).unwrapOr(null)
+        : null;
+
+      if (segmentResource) {
+        serverInitialState.segments = {
+          type: CompletionStatus.Successful,
+          value: [segmentResource],
+        };
+      }
     } else {
       serverInitialState.editedSubscriptionGroup = {
         workspaceId,

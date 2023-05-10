@@ -43,7 +43,12 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         where: { id },
       }),
       prisma().segment.findMany({
-        where: { workspaceId },
+        where: {
+          workspaceId,
+          resourceType: {
+            not: "Internal",
+          },
+        },
       }),
       prisma().emailTemplate.findMany({
         where: { workspaceId },

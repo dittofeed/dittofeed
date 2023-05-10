@@ -6,6 +6,8 @@ import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
   InternalEventType,
+  SegmentDefinition,
+  SegmentNodeType,
   SubscriptionChange,
   SubscriptionGroupResource,
   UpsertSubscriptionGroupResource,
@@ -50,22 +52,49 @@ export default async function subscriptionGroupsController(
     },
     async (request, reply) => {
       const { id, name, type, workspaceId } = request.body;
+      const segmentName = `subscriptionGroup-${id}`;
+      const segmentDefinition: SegmentDefinition = {
+        entryNode: {
+          type: SegmentNodeType.SubscriptionGroup,
+          id: "1",
+          subscriptionGroupId: id,
+        },
+        nodes: [],
+      };
 
-      await prisma().subscriptionGroup.upsert({
-        where: {
-          id,
-        },
-        create: {
-          name,
-          type,
-          workspaceId,
-          id,
-        },
-        update: {
-          name,
-          type,
-        },
-      });
+      await prisma().$transaction([
+        prisma().subscriptionGroup.upsert({
+          where: {
+            id,
+          },
+          create: {
+            name,
+            type,
+            workspaceId,
+            id,
+          },
+          update: {
+            name,
+            type,
+          },
+        }),
+        prisma().segment.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name: segmentName,
+            },
+          },
+          create: {
+            name: segmentName,
+            workspaceId,
+            definition: segmentDefinition,
+            subscriptionGroupId: id,
+            resourceType: "Internal",
+          },
+          update: {},
+        }),
+      ]);
 
       const resource: SubscriptionGroupResource = {
         id,

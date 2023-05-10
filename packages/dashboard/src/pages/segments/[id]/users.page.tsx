@@ -1,13 +1,12 @@
 import { Typography, useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
-import { Type } from "@sinclair/typebox";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { GetUsersRequest } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import UsersTable, {
-  OnPaginationChangeProps,
+  usersTablePaginationHandler,
+  UsersTableParams,
 } from "../../../components/usersTable";
 import { useAppStore } from "../../../lib/appStore";
 import getSegmentServerSideProps from "./getSegmentServerSideProps";
@@ -15,14 +14,12 @@ import SegmentLayout from "./segmentLayout";
 
 export const getServerSideProps = getSegmentServerSideProps;
 
-const QueryParams = Type.Pick(GetUsersRequest, ["cursor", "direction"]);
-
 export default function SegmentUsers() {
   const editedSegment = useAppStore((state) => state.editedSegment);
   const theme = useTheme();
   const router = useRouter();
   const queryParams = useMemo(
-    () => schemaValidate(router.query, QueryParams).unwrapOr({}),
+    () => schemaValidate(router.query, UsersTableParams).unwrapOr({}),
     [router.query]
   );
 
@@ -30,19 +27,7 @@ export default function SegmentUsers() {
     return null;
   }
   const { name } = editedSegment;
-  const onUsersTablePaginate = ({
-    direction,
-    cursor,
-  }: OnPaginationChangeProps) => {
-    router.push({
-      pathname: router.pathname,
-      query: {
-        ...router.query,
-        direction,
-        cursor,
-      },
-    });
-  };
+  const onUsersTablePaginate = usersTablePaginationHandler(router);
   return (
     <SegmentLayout segmentId={editedSegment.id} tab="users">
       <Stack

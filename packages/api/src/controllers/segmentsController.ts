@@ -1,14 +1,12 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
-import { Segment } from "backend-lib/src/types";
+import { upsertSegment } from "backend-lib/src/segments";
 import { submitBroadcast } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   BroadcastResource,
   DeleteSegmentRequest,
   DeleteSegmentResponse,
-  SegmentDefinition,
   SegmentResource,
   UpsertBroadcastResource,
   UpsertSegmentResource,
@@ -29,57 +27,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      let segment: Segment;
-      const { id, name, definition, workspaceId } = request.body;
-
-      const canCreate = workspaceId && name && definition;
-
-      if (canCreate && id) {
-        segment = await prisma().segment.upsert({
-          where: {
-            id,
-          },
-          create: {
-            id,
-            workspaceId,
-            name,
-            definition,
-          },
-          update: {
-            workspaceId,
-            name,
-            definition,
-          },
-        });
-      } else {
-        segment = await prisma().segment.update({
-          where: {
-            id,
-          },
-          data: {
-            workspaceId,
-            name,
-            definition,
-          },
-        });
-      }
-
-      const segmentDefinitionResult = schemaValidate(
-        segment.definition,
-        SegmentDefinition
-      );
-
-      if (segmentDefinitionResult.isErr()) {
-        // TODO add logging
-        return reply.status(500).send();
-      }
-      const resource: SegmentResource = {
-        id: segment.id,
-        name: segment.name,
-        workspaceId: segment.workspaceId,
-        definition: segmentDefinitionResult.value,
-      };
-
+      const resource = await upsertSegment(request.body);
       return reply.status(200).send(resource);
     }
   );

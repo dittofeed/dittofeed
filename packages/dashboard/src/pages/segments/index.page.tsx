@@ -36,7 +36,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const workspaceId = backendConfig().defaultWorkspaceId;
     const segmentResources: SegmentResource[] = (
       await prisma().segment.findMany({
-        where: { workspaceId },
+        where: {
+          workspaceId,
+          resourceType: {
+            not: "Internal",
+          },
+        },
       })
     ).flatMap((segment) => {
       const result = toSegmentResource(segment);

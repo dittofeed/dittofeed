@@ -6,6 +6,7 @@ import {
   GridColDef,
   GridSlotsComponentsProps,
 } from "@mui/x-data-grid";
+import { Type } from "@sinclair/typebox";
 import {
   CompletionStatus,
   CursorDirectionEnum,
@@ -14,6 +15,7 @@ import {
   GetUsersResponse,
   GetUsersResponseItem,
 } from "isomorphic-lib/src/types";
+import { NextRouter } from "next/router";
 import React, { useMemo } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
@@ -21,6 +23,28 @@ import { immer } from "zustand/middleware/immer";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
+
+export const UsersTableParams = Type.Pick(GetUsersRequest, [
+  "cursor",
+  "direction",
+]);
+
+export function usersTablePaginationHandler(router: NextRouter) {
+  const onUsersTablePaginate = ({
+    direction,
+    cursor,
+  }: OnPaginationChangeProps) => {
+    router.push({
+      pathname: router.pathname,
+      query: {
+        ...router.query,
+        direction,
+        cursor,
+      },
+    });
+  };
+  return onUsersTablePaginate;
+}
 
 interface Row {
   id: string;
@@ -201,7 +225,7 @@ export default function UsersTable({
   return (
     <DataGrid
       rows={usersPage}
-      sx={{ height: "100%" }}
+      sx={{ height: "100%", width: "100%" }}
       getRowId={(row) => row.id}
       autoHeight
       columns={[

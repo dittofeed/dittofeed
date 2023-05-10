@@ -6,11 +6,13 @@ import prisma from "./prisma";
 import {
   EnrichedSegment,
   InternalEventType,
+  Prisma,
   Segment,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
+  UpsertSegmentResource,
 } from "./types";
 
 export function enrichSegment(
@@ -54,12 +56,14 @@ export function toSegmentResource(
   if (result.isErr()) {
     return err(result.error);
   }
-  const { id, name, workspaceId, definition } = result.value;
+  const { id, name, workspaceId, definition, subscriptionGroupId } =
+    result.value;
   return ok({
     id,
     name,
     workspaceId,
     definition,
+    subscriptionGroupId: subscriptionGroupId ?? undefined,
   });
 }
 
@@ -98,6 +102,37 @@ export async function findAllEnrichedSegments(
     });
   }
   return ok(enrichedSegments);
+}
+
+/**
+ * Upsert segment resource if the existing segment is not internal.
+ * @param segment
+ * @returns
+ */
+export async function upsertSegment(
+  segment: UpsertSegmentResource
+): Promise<SegmentResource> {
+  const { id, workspaceId, name, definition } = segment;
+  const query = Prisma.sql`
+    INSERT INTO "Segment" ("id", "workspaceId", "name", "definition", "updatedAt")
+    VALUES (${id}::uuid, ${workspaceId}::uuid, ${name}, ${definition}::jsonb, NOW())
+    ON CONFLICT ("id")
+    DO UPDATE SET
+        "workspaceId" = excluded."workspaceId",
+        "name" = COALESCE(excluded."name", "Segment"."name"),
+        "definition" = COALESCE(excluded."definition", "Segment"."definition"),
+        "updatedAt" = NOW()
+    WHERE "Segment"."resourceType" <> 'Internal'
+    RETURNING *`;
+  const [result] = (await prisma().$queryRaw(query)) as [Segment];
+  const updatedDefinition = result.definition as SegmentDefinition;
+
+  return {
+    id: result.id,
+    workspaceId: result.workspaceId,
+    name: result.name,
+    definition: updatedDefinition,
+  };
 }
 
 export function segmentNodeIsBroadcast(node: SegmentNode): boolean {
