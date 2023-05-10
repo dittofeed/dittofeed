@@ -1,9 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 
 import { segmentIdentifyEvent } from "../test/factories/segment";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
+import { generateSecureKey } from "./crypto";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
 import prisma from "./prisma";
@@ -118,8 +120,8 @@ async function bootstrapPostgres({
       },
     ];
 
-  await Promise.all(
-    userProperties.map((up) =>
+  await Promise.all([
+    ...userProperties.map((up) =>
       prisma().userProperty.upsert({
         where: {
           workspaceId_name: {
@@ -130,8 +132,36 @@ async function bootstrapPostgres({
         create: up,
         update: up,
       })
-    )
-  );
+    ),
+    prisma().channel.upsert({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: "email",
+        },
+      },
+      create: {
+        workspaceId,
+        name: "email",
+        identifier: "email",
+      },
+      update: {},
+    }),
+    prisma().secret.upsert({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: SUBSCRIPTION_SECRET_NAME,
+        },
+      },
+      create: {
+        workspaceId,
+        name: SUBSCRIPTION_SECRET_NAME,
+        value: generateSecureKey(),
+      },
+      update: {},
+    }),
+  ]);
 }
 
 async function bootstrapKafka() {

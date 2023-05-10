@@ -2,6 +2,7 @@ import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { type Config } from "backend-lib/src/config";
 import backendConfig from "backend-lib/src/config";
+import { generateDigest } from "backend-lib/src/crypto";
 import prisma from "backend-lib/src/prisma";
 import { computePropertiesWorkflow } from "backend-lib/src/segments/computePropertiesWorkflow";
 import { InternalEventType, UserEvent, Workspace } from "backend-lib/src/types";
@@ -12,6 +13,7 @@ import KafkaSkaffold from "backend-lib/test/kafkaSkaffold";
 import { createEnvAndWorker } from "backend-lib/test/temporal";
 import { sleep } from "backend-lib/test/testHelpers";
 import { randomUUID } from "crypto";
+import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import {
   JourneyDefinition,
   JourneyNodeType,
@@ -23,8 +25,6 @@ import {
 } from "isomorphic-lib/src/types";
 
 import buildApp from "../buildApp";
-import { generateDigest } from "../crypto";
-import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 
 jest.setTimeout(20000);
 
