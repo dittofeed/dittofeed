@@ -14,32 +14,31 @@ import SupportEmailLink from "../components/supportEmailLink";
 import { PropsWithInitialState } from "../lib/types";
 
 interface WaitingRoomProps {
-  oauthStartUrl: string;
+  refreshUrl: string;
   emailVerified: boolean;
 }
 
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState<WaitingRoomProps>
 > = async (ctx) => {
-  const { oauthStartUrl } = backendConfig();
-  if (!oauthStartUrl) {
-    throw new Error("oauthStartUrl not set in backend config");
-  }
   const rc = await getRequestContext(ctx.req.headers.authorization ?? null);
   if (rc.isOk()) {
     return {
       redirect: {
         permanent: false,
-        destination: "/dashboard",
+        destination: "/",
       },
     };
   }
   logger().info(rc.error, "waiting room onboarding incomplete");
+
+  const { oauthStartUrl } = backendConfig();
+
   const emailVerified =
     rc.error.type !== RequestContextErrorType.EmailNotVerified;
   return {
     props: {
-      oauthStartUrl,
+      refreshUrl: oauthStartUrl ?? "/waiting-room",
       emailVerified,
       serverInitialState: {},
     },
@@ -47,7 +46,7 @@ export const getServerSideProps: GetServerSideProps<
 };
 
 const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
-  oauthStartUrl,
+  refreshUrl,
   emailVerified,
 }) {
   const theme = useTheme();
@@ -91,7 +90,7 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
             </Stack>
             <Box>
               <Button
-                href={oauthStartUrl}
+                href={refreshUrl}
                 LinkComponent={Link}
                 sx={{ fontSize: "1.5rem" }}
                 variant="outlined"

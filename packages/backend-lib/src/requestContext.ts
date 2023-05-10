@@ -40,7 +40,8 @@ export type RequestContextError =
 export async function getRequestContext(
   authorizationToken: string | null
 ): Promise<Result<DFRequestContext, RequestContextError>> {
-  if (config().authMode === "anonymous") {
+  const { authMode } = config();
+  if (authMode === "anonymous") {
     const workspaceId = config().defaultWorkspaceId;
 
     const workspace = await prisma().workspace.findUnique({

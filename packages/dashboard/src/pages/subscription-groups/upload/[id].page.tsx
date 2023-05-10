@@ -27,10 +27,10 @@ export default function SubscriptionGroupConfig() {
   const path = useRouter();
   const [file, setFile] = useState<File | null>(null);
 
-  const id = typeof path.query.id === "string" ? path.query.id : undefined;
-
   const workspace = useAppStore((store) => store.workspace);
   const apiBase = useAppStore((store) => store.apiBase);
+
+  const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files ? e.target.files[0] : null;
