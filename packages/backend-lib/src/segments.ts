@@ -56,12 +56,14 @@ export function toSegmentResource(
   if (result.isErr()) {
     return err(result.error);
   }
-  const { id, name, workspaceId, definition } = result.value;
+  const { id, name, workspaceId, definition, subscriptionGroupId } =
+    result.value;
   return ok({
     id,
     name,
     workspaceId,
     definition,
+    subscriptionGroupId: subscriptionGroupId ?? undefined,
   });
 }
 

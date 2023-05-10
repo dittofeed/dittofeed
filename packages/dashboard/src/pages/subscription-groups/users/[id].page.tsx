@@ -1,4 +1,4 @@
-import { Stack } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -24,6 +24,9 @@ export default function SubscriptionGroupUsers() {
   const id = typeof router.query.id === "string" ? router.query.id : undefined;
 
   const segmentsResult = useAppStore((store) => store.segments);
+  const editedSubscriptionGroup = useAppStore(
+    (store) => store.editedSubscriptionGroup
+  );
 
   const queryParams = useMemo(
     () => schemaValidate(router.query, UsersTableParams).unwrapOr({}),
@@ -44,6 +47,11 @@ export default function SubscriptionGroupUsers() {
 
   const onUsersTablePaginate = usersTablePaginationHandler(router);
 
+  if (!editedSubscriptionGroup) {
+    console.error("missing editedSubscriptionGroup");
+    return null;
+  }
+
   return (
     <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Users} id={id}>
       <Stack
@@ -52,11 +60,16 @@ export default function SubscriptionGroupUsers() {
         spacing={3}
       >
         {segment ? (
-          <UsersTable
-            segmentId={segment.id}
-            {...queryParams}
-            onPaginationChange={onUsersTablePaginate}
-          />
+          <>
+            <Typography variant="h4">
+              Users in &quot;{editedSubscriptionGroup.name}&quot;
+            </Typography>
+            <UsersTable
+              segmentId={segment.id}
+              {...queryParams}
+              onPaginationChange={onUsersTablePaginate}
+            />
+          </>
         ) : null}
       </Stack>
     </SubscriptionGroupLayout>

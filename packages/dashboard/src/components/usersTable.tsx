@@ -225,7 +225,7 @@ export default function UsersTable({
   return (
     <DataGrid
       rows={usersPage}
-      sx={{ height: "100%" }}
+      sx={{ height: "100%", width: "100%" }}
       getRowId={(row) => row.id}
       autoHeight
       columns={[
