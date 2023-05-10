@@ -834,3 +834,12 @@ export interface DFRequestContext {
   member: WorkspaceMemberResource;
   memberRoles: WorkspaceMemberRoleResource[];
 }
+
+export const UserSubscriptionsResource = Type.Object({
+  subscribed: Type.Array(SubscriptionGroupResource),
+  unsubscribed: Type.Array(SubscriptionGroupResource),
+});
+
+export type UserSubscriptionsResource = Static<
+  typeof UserSubscriptionsResource
+>;

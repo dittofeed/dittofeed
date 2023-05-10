@@ -36,6 +36,7 @@ export default async function router(fastify: FastifyInstance) {
   );
 
   // endpoints without standard authorization
+  // TODO use public prefix
   await fastify.register(
     async (f: FastifyInstance) => {
       await Promise.all([

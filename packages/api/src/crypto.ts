@@ -12,3 +12,13 @@ export function generateDigest({
     .update(Buffer.from(rawBody, "utf-8"))
     .digest("hex");
 }
+
+export function generateSecureHash({
+  key,
+  value,
+}: {
+  key: string;
+  value: string;
+}): string {
+  return "";
+}
