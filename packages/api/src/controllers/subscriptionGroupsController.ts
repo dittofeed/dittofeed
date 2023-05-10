@@ -78,14 +78,21 @@ export default async function subscriptionGroupsController(
             type,
           },
         }),
-        prisma().segment.create({
-          data: {
+        prisma().segment.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name: segmentName,
+            },
+          },
+          create: {
             name: segmentName,
             workspaceId,
             definition: segmentDefinition,
             subscriptionGroupId: id,
             resourceType: "Internal",
           },
+          update: {},
         }),
       ]);
 
