@@ -1,4 +1,3 @@
-import fastifyMultipart from "@fastify/multipart";
 import { fastifyRequestContext } from "@fastify/request-context";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
@@ -63,7 +62,6 @@ async function buildApp() {
   // needs to be registered before routes
   await Promise.all([
     server.register(fastifyRawBody),
-    server.register(fastifyMultipart),
     server.register(fastifyRequestContext),
   ]);
 
