@@ -1,3 +1,4 @@
+import { Checkbox, FormControlLabel, FormGroup } from "@mui/material";
 import {
   buildSubscriptionChangeEvent,
   generateSubscriptionHash,
@@ -14,6 +15,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
+import React from "react";
 
 import prisma from "../lib/prisma";
 
@@ -116,13 +118,51 @@ export const getServerSideProps: GetServerSideProps<
 
 const SubscriptionManagement: NextPage<SubscriptionManagementProps> =
   function SubscriptionManagement({ subscriptions }) {
+    const initialSubscriptionManagementState = React.useMemo(
+      () =>
+        subscriptions.reduce<Record<string, boolean>>((acc, subscription) => {
+          acc[subscription.id] = true;
+          return acc;
+        }, {}),
+      [subscriptions]
+    );
+    const [state, setState] = React.useState(
+      initialSubscriptionManagementState
+    );
+
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      setState({
+        ...state,
+        [event.target.name]: event.target.checked,
+      });
+    };
+
     return (
       <>
         <Head>
           <title>Dittofeed</title>
           <meta name="description" content="Open Source Customer Engagement" />
         </Head>
-        <main>subscription management</main>
+        <main>
+          subscription management
+          <FormGroup>
+            {subscriptions.map((subscription) => (
+              <FormControlLabel
+                key={subscription.id}
+                control={
+                  <Checkbox
+                    checked={state[subscription.id] === true}
+                    onChange={handleChange}
+                    name={subscription.id}
+                  />
+                }
+                label={subscription.name}
+              />
+            ))}
+          </FormGroup>
+        </main>
       </>
     );
   };
+
+export default SubscriptionManagement;

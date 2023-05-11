@@ -244,6 +244,9 @@ export async function getUserSubscriptions({
     where: {
       workspaceId,
     },
+    orderBy: {
+      name: "asc",
+    },
     include: {
       Segment: {
         include: {
