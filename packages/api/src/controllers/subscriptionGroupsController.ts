@@ -63,6 +63,19 @@ export default async function subscriptionGroupsController(
         nodes: [],
       };
 
+      const emailChannel = await prisma().channel.findUnique({
+        where: {
+          workspaceId_name: {
+            workspaceId,
+            name: "email",
+          },
+        },
+      });
+
+      if (!emailChannel) {
+        return reply.status(400).send();
+      }
+
       await prisma().$transaction([
         prisma().subscriptionGroup.upsert({
           where: {
@@ -72,6 +85,7 @@ export default async function subscriptionGroupsController(
             name,
             type,
             workspaceId,
+            channelId: emailChannel.id,
             id,
           },
           update: {

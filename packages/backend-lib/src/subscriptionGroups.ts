@@ -16,7 +16,7 @@ import {
   SubscriptionParams,
   UserSubscriptionsResource,
 } from "./types";
-import { InsertUserEvent } from "./userEvents";
+import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
 export function subscriptionGroupToResource(
   subscriptionGroup: SubscriptionGroup
@@ -224,27 +224,48 @@ export function buildSubscriptionChangeEvent({
   };
 }
 
-export async function changeSubscriptionStatus({
-  workspaceId,
-  subscriptionGroupId,
-  identifier,
-}: {
-  workspaceId: string;
-  subscriptionGroupId: string;
-  identifier: string;
-}) {}
-
 export async function changeSubscriptionStatusProtected({
-  workspaceId,
   identifier,
   subscriptionGroupId,
   hash,
+  subscriptionChange,
 }: {
   identifier: string;
   workspaceId: string;
   hash: string;
   subscriptionGroupId: string;
+  subscriptionChange: SubscriptionChange;
 }): Promise<Result<null, Error>> {
+  const context = await getSubscriptionContext({
+    identifier,
+    subscriptionGroupId,
+  });
+  if (context.isErr()) {
+    return err(context.error);
+  }
+  const { userId, workspaceId, identifierKey, subscriptionSecret } =
+    context.value;
+
+  const expectedHash = generateSubscriptionHash({
+    workspaceId,
+    userId,
+    identifierKey,
+    identifier,
+    subscriptionSecret,
+  });
+  if (expectedHash !== hash) {
+    return err(new Error("Invalid hash"));
+  }
+  const event = buildSubscriptionChangeEvent({
+    userId,
+    subscriptionGroupId,
+    action: subscriptionChange,
+  });
+
+  await insertUserEvents({
+    workspaceId,
+    userEvents: [event],
+  });
   return ok(null);
 }
 
