@@ -844,15 +844,28 @@ export type UserSubscriptionsResource = Static<
   typeof UserSubscriptionsResource
 >;
 
-export const UrlBoolean = Type.Union([Type.Literal("1"), Type.Literal("0")]);
-
-export type UrlBoolean = Static<typeof UrlBoolean>;
-
 export const SubscriptionParams = Type.Object({
-  i: Type.String(),
-  s: Type.String(),
-  h: Type.String(),
-  sub: Type.Optional(UrlBoolean),
+  i: Type.String({
+    description:
+      'Identifier value for subscription group e.g. "name@email.com".',
+  }),
+  s: Type.String({
+    description: "Subscription group Id.",
+  }),
+  h: Type.String({
+    description:
+      "Subscription change hash, used to authenticate subscription changes.",
+  }),
+  sub: Type.Optional(
+    Type.Union([
+      Type.Literal("1", {
+        description: "Subscribing user to subscription group.",
+      }),
+      Type.Literal("0", {
+        description: "Unsubscribing user from subscription group.",
+      }),
+    ])
+  ),
 });
 
 export type SubscriptionParams = Static<typeof SubscriptionParams>;

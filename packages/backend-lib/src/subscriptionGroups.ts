@@ -103,18 +103,41 @@ export async function getSubscriptionContext({
   });
 }
 
-export async function generateSubscriptionChangeUrl({
+function generateSubscriptionHash({
+  workspaceId,
+  userId,
+  identifierKey,
   identifier,
-  subscriptionGroupId,
-  subscribed,
+  subscriptionSecret,
 }: {
+  workspaceId: string;
+  userId: string;
+  identifierKey: string;
   identifier: string;
-  subscriptionGroupId: string;
-  subscribed: boolean;
-}): Promise<Result<string, Error>> {
+  subscriptionSecret: string;
+}): string {
+  const toHash = {
+    u: userId,
+    w: workspaceId,
+    i: identifier,
+    k: identifierKey,
+  };
+
+  const hash = generateSecureHash({
+    key: subscriptionSecret,
+    value: toHash,
+  });
+  return hash;
+}
+
+export async function generateSubscriptionChangeUrl({
+  i,
+  s,
+  sub,
+}: SubscriptionParams): Promise<Result<string, Error>> {
   const context = await getSubscriptionContext({
-    identifier,
-    subscriptionGroupId,
+    identifier: i,
+    subscriptionGroupId: s,
   });
 
   if (context.isErr()) {
@@ -123,23 +146,19 @@ export async function generateSubscriptionChangeUrl({
   const { workspaceId, userId, identifierKey, subscriptionSecret } =
     context.value;
 
-  const toHash = {
-    userId,
+  const hash = generateSubscriptionHash({
     workspaceId,
-    identifier,
+    userId,
     identifierKey,
-  };
-
-  const hash = generateSecureHash({
-    key: subscriptionSecret,
-    value: toHash,
+    identifier: i,
+    subscriptionSecret,
   });
 
   const params: SubscriptionParams = {
-    i: identifier,
-    s: subscriptionGroupId,
+    i,
+    s,
     h: hash,
-    sub: subscribed ? "1" : "0",
+    sub: sub ? "1" : "0",
   };
   const queryString = new URLSearchParams(params).toString();
   const url = `${SUBSCRIPTION_MANAGEMENT_PAGE}?${queryString}`;
@@ -150,8 +169,26 @@ export async function validateSubscriptionHash({
   h,
   s,
   i,
-}: Omit<SubscriptionParams, "sub">): Promise<Result<null, Error>> {
-  return ok(null);
+}: Omit<SubscriptionParams, "sub">): Promise<Result<boolean, Error>> {
+  const context = await getSubscriptionContext({
+    identifier: i,
+    subscriptionGroupId: s,
+  });
+
+  if (context.isErr()) {
+    return err(context.error);
+  }
+  const { workspaceId, userId, identifierKey, subscriptionSecret } =
+    context.value;
+
+  const hash = generateSubscriptionHash({
+    workspaceId,
+    userId,
+    identifierKey,
+    identifier: i,
+    subscriptionSecret,
+  });
+  return ok(hash === h);
 }
 
 export async function changeSubscriptionStatus({
