@@ -6,7 +6,6 @@ import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { buildSubscriptionChangeEvent } from "backend-lib/src/subscriptionGroups";
 import {
-  InternalEventType,
   SegmentDefinition,
   SegmentNodeType,
   SubscriptionChange,

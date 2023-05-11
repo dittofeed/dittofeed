@@ -836,8 +836,10 @@ export interface DFRequestContext {
 }
 
 export const UserSubscriptionsResource = Type.Object({
-  subscribed: Type.Array(SubscriptionGroupResource),
-  unsubscribed: Type.Array(SubscriptionGroupResource),
+  subscribed: Type.Array(Type.Pick(SubscriptionGroupResource, ["id", "name"])),
+  unsubscribed: Type.Array(
+    Type.Pick(SubscriptionGroupResource, ["id", "name"])
+  ),
 });
 
 export type UserSubscriptionsResource = Static<
@@ -845,6 +847,7 @@ export type UserSubscriptionsResource = Static<
 >;
 
 export const SubscriptionParams = Type.Object({
+  w: Type.String({ description: "Workspace Id." }),
   i: Type.String({
     description:
       'Identifier value for subscription group e.g. "name@email.com".',

@@ -35,34 +35,29 @@ export function subscriptionGroupToResource(
 }
 
 export interface SubscriptionContext {
-  workspaceId: string;
   userId: string;
   identifierKey: string;
   subscriptionSecret: string;
 }
 
 export async function getSubscriptionContext({
+  workspaceId,
   subscriptionGroupId,
   identifier,
 }: {
+  workspaceId: string;
   subscriptionGroupId: string;
   identifier: string;
 }): Promise<Result<SubscriptionContext, Error>> {
-  const subscriptionGroup = await prisma().subscriptionGroup.findUnique({
-    where: {
-      id: subscriptionGroupId,
-    },
-    include: {
-      channel: true,
-    },
-  });
-  if (!subscriptionGroup) {
-    return err(new Error("Subscription group not found"));
-  }
-  const { workspaceId } = subscriptionGroup;
-  const identifierKey = subscriptionGroup.channel.identifier;
-
-  const [subscriptionSecret, userProperties] = await Promise.all([
+  const [subscriptionGroup, subscriptionSecret] = await Promise.all([
+    prisma().subscriptionGroup.findUnique({
+      where: {
+        id: subscriptionGroupId,
+      },
+      include: {
+        channel: true,
+      },
+    }),
     prisma().secret.findUnique({
       where: {
         workspaceId_name: {
@@ -71,22 +66,26 @@ export async function getSubscriptionContext({
         },
       },
     }),
-    prisma().userProperty.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: identifierKey,
-        },
-      },
-      include: {
-        UserPropertyAssignment: {
-          where: {
-            value: identifier,
-          },
-        },
-      },
-    }),
   ]);
+  if (!subscriptionGroup) {
+    return err(new Error("Subscription group not found"));
+  }
+  const identifierKey = subscriptionGroup.channel.identifier;
+  const userProperties = await prisma().userProperty.findUnique({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: identifierKey,
+      },
+    },
+    include: {
+      UserPropertyAssignment: {
+        where: {
+          value: identifier,
+        },
+      },
+    },
+  });
 
   const userPropertyAssignment = userProperties?.UserPropertyAssignment[0];
   if (!userPropertyAssignment) {
@@ -107,7 +106,7 @@ export async function getSubscriptionContext({
   });
 }
 
-function generateSubscriptionHash({
+export function generateSubscriptionHash({
   workspaceId,
   userId,
   identifierKey,
@@ -135,11 +134,13 @@ function generateSubscriptionHash({
 }
 
 export async function generateSubscriptionChangeUrl({
+  w,
   i,
   s,
   sub,
 }: SubscriptionParams): Promise<Result<string, Error>> {
   const context = await getSubscriptionContext({
+    workspaceId: w,
     identifier: i,
     subscriptionGroupId: s,
   });
@@ -147,11 +148,10 @@ export async function generateSubscriptionChangeUrl({
   if (context.isErr()) {
     return err(context.error);
   }
-  const { workspaceId, userId, identifierKey, subscriptionSecret } =
-    context.value;
+  const { userId, identifierKey, subscriptionSecret } = context.value;
 
   const hash = generateSubscriptionHash({
-    workspaceId,
+    workspaceId: w,
     userId,
     identifierKey,
     identifier: i,
@@ -159,6 +159,7 @@ export async function generateSubscriptionChangeUrl({
   });
 
   const params: SubscriptionParams = {
+    w,
     i,
     s,
     h: hash,
@@ -170,11 +171,13 @@ export async function generateSubscriptionChangeUrl({
 }
 
 export async function validateSubscriptionHash({
+  w,
   h,
   s,
   i,
 }: Omit<SubscriptionParams, "sub">): Promise<Result<boolean, Error>> {
   const context = await getSubscriptionContext({
+    workspaceId: w,
     identifier: i,
     subscriptionGroupId: s,
   });
@@ -182,11 +185,10 @@ export async function validateSubscriptionHash({
   if (context.isErr()) {
     return err(context.error);
   }
-  const { workspaceId, userId, identifierKey, subscriptionSecret } =
-    context.value;
+  const { userId, identifierKey, subscriptionSecret } = context.value;
 
   const hash = generateSubscriptionHash({
-    workspaceId,
+    workspaceId: w,
     userId,
     identifierKey,
     identifier: i,
@@ -224,62 +226,50 @@ export function buildSubscriptionChangeEvent({
   };
 }
 
-export async function changeSubscriptionStatusProtected({
-  identifier,
-  subscriptionGroupId,
-  hash,
-  subscriptionChange,
-}: {
-  identifier: string;
-  workspaceId: string;
-  hash: string;
-  subscriptionGroupId: string;
-  subscriptionChange: SubscriptionChange;
-}): Promise<Result<null, Error>> {
-  const context = await getSubscriptionContext({
-    identifier,
-    subscriptionGroupId,
-  });
-  if (context.isErr()) {
-    return err(context.error);
-  }
-  const { userId, workspaceId, identifierKey, subscriptionSecret } =
-    context.value;
-
-  const expectedHash = generateSubscriptionHash({
-    workspaceId,
-    userId,
-    identifierKey,
-    identifier,
-    subscriptionSecret,
-  });
-  if (expectedHash !== hash) {
-    return err(new Error("Invalid hash"));
-  }
-  const event = buildSubscriptionChangeEvent({
-    userId,
-    subscriptionGroupId,
-    action: subscriptionChange,
-  });
-
-  await insertUserEvents({
-    workspaceId,
-    userEvents: [event],
-  });
-  return ok(null);
-}
-
 export async function getUserSubscriptions({
   workspaceId,
-  identifier,
-  identifierKey,
+  userId,
 }: {
-  identifier: string;
-  identifierKey: string;
   workspaceId: string;
+  userId: string;
 }): Promise<UserSubscriptionsResource> {
+  const subscriptionGroups = await prisma().subscriptionGroup.findMany({
+    where: {
+      workspaceId,
+    },
+    include: {
+      Segment: {
+        include: {
+          SegmentAssignment: {
+            where: {
+              userId,
+            },
+          },
+        },
+      },
+    },
+  });
+  const subscribed: UserSubscriptionsResource["subscribed"] = [];
+  const unsubscribed: UserSubscriptionsResource["unsubscribed"] = [];
+
+  for (const subscriptionGroup of subscriptionGroups) {
+    const { Segment, name, id } = subscriptionGroup;
+    const segment = Segment[0];
+    if (!segment) {
+      continue;
+    }
+    const assignment = segment.SegmentAssignment[0];
+
+    if (assignment?.inSegment) {
+      subscribed.push({ name, id });
+      continue;
+    }
+
+    unsubscribed.push({ name, id });
+  }
+
   return {
-    subscribed: [],
-    unsubscribed: [],
+    subscribed,
+    unsubscribed,
   };
 }
