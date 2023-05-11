@@ -843,3 +843,16 @@ export const UserSubscriptionsResource = Type.Object({
 export type UserSubscriptionsResource = Static<
   typeof UserSubscriptionsResource
 >;
+
+export const UrlBoolean = Type.Union([Type.Literal("1"), Type.Literal("0")]);
+
+export type UrlBoolean = Static<typeof UrlBoolean>;
+
+export const SubscriptionParams = Type.Object({
+  i: Type.String(),
+  s: Type.String(),
+  h: Type.String(),
+  sub: Type.Optional(UrlBoolean),
+});
+
+export type SubscriptionParams = Static<typeof SubscriptionParams>;
