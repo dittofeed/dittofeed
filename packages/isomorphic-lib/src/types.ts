@@ -835,16 +835,13 @@ export interface DFRequestContext {
   memberRoles: WorkspaceMemberRoleResource[];
 }
 
-export const UserSubscriptionsResource = Type.Object({
-  subscribed: Type.Array(Type.Pick(SubscriptionGroupResource, ["id", "name"])),
-  unsubscribed: Type.Array(
-    Type.Pick(SubscriptionGroupResource, ["id", "name"])
-  ),
+export const UserSubscriptionResource = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  isSubscribed: Type.Boolean(),
 });
 
-export type UserSubscriptionsResource = Static<
-  typeof UserSubscriptionsResource
->;
+export type UserSubscriptionResource = Static<typeof UserSubscriptionResource>;
 
 export const SubscriptionParams = Type.Object({
   w: Type.String({ description: "Workspace Id." }),

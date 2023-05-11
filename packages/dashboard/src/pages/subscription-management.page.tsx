@@ -10,13 +10,15 @@ import { UNAUTHORIZED_PAGE } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   SubscriptionParams,
-  UserSubscriptionsResource,
+  UserSubscriptionResource,
 } from "isomorphic-lib/src/types";
-import { GetServerSideProps } from "next";
+import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 
+import prisma from "../lib/prisma";
+
 interface SubscriptionManagementProps {
-  subscriptions: UserSubscriptionsResource;
+  subscriptions: UserSubscriptionResource[];
 }
 
 export const getServerSideProps: GetServerSideProps<
@@ -48,7 +50,8 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  const { identifierKey, subscriptionSecret, userId } = context.value;
+  const { segmentId, identifierKey, subscriptionSecret, userId } =
+    context.value;
 
   const expectedHash = generateSubscriptionHash({
     workspaceId: w,
@@ -79,10 +82,24 @@ export const getServerSideProps: GetServerSideProps<
       userId,
     });
 
-    await insertUserEvents({
-      workspaceId: w,
-      userEvents: [event],
-    });
+    await Promise.all([
+      prisma().segmentAssignment.update({
+        where: {
+          workspaceId_userId_segmentId: {
+            workspaceId: w,
+            userId,
+            segmentId,
+          },
+        },
+        data: {
+          inSegment: sub === "1",
+        },
+      }),
+      insertUserEvents({
+        workspaceId: w,
+        userEvents: [event],
+      }),
+    ]);
   }
 
   const subscriptions = await getUserSubscriptions({
@@ -97,14 +114,15 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
-export default function SubscriptionManagement() {
-  return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>subscription management</main>
-    </>
-  );
-}
+const SubscriptionManagement: NextPage<SubscriptionManagementProps> =
+  function SubscriptionManagement({ subscriptions }) {
+    return (
+      <>
+        <Head>
+          <title>Dittofeed</title>
+          <meta name="description" content="Open Source Customer Engagement" />
+        </Head>
+        <main>subscription management</main>
+      </>
+    );
+  };

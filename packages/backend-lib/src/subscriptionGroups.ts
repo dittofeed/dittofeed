@@ -14,7 +14,7 @@ import {
   SubscriptionGroupResource,
   SubscriptionGroupType,
   SubscriptionParams,
-  UserSubscriptionsResource,
+  UserSubscriptionResource,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
@@ -38,6 +38,7 @@ export interface SubscriptionContext {
   userId: string;
   identifierKey: string;
   subscriptionSecret: string;
+  segmentId: string;
 }
 
 export async function getSubscriptionContext({
@@ -56,6 +57,7 @@ export async function getSubscriptionContext({
       },
       include: {
         channel: true,
+        Segment: true,
       },
     }),
     prisma().secret.findUnique({
@@ -69,6 +71,10 @@ export async function getSubscriptionContext({
   ]);
   if (!subscriptionGroup) {
     return err(new Error("Subscription group not found"));
+  }
+  const segment = subscriptionGroup.Segment[0];
+  if (!segment) {
+    return err(new Error("Segment not found"));
   }
   const identifierKey = subscriptionGroup.channel.identifier;
   const userProperties = await prisma().userProperty.findUnique({
@@ -103,6 +109,7 @@ export async function getSubscriptionContext({
     userId,
     identifierKey,
     subscriptionSecret: subscriptionSecret.value,
+    segmentId: segment.id,
   });
 }
 
@@ -232,7 +239,7 @@ export async function getUserSubscriptions({
 }: {
   workspaceId: string;
   userId: string;
-}): Promise<UserSubscriptionsResource> {
+}): Promise<UserSubscriptionResource[]> {
   const subscriptionGroups = await prisma().subscriptionGroup.findMany({
     where: {
       workspaceId,
@@ -249,27 +256,18 @@ export async function getUserSubscriptions({
       },
     },
   });
-  const subscribed: UserSubscriptionsResource["subscribed"] = [];
-  const unsubscribed: UserSubscriptionsResource["unsubscribed"] = [];
+  const subscriptions: UserSubscriptionResource[] = [];
 
   for (const subscriptionGroup of subscriptionGroups) {
     const { Segment, name, id } = subscriptionGroup;
-    const segment = Segment[0];
-    if (!segment) {
-      continue;
-    }
-    const assignment = segment.SegmentAssignment[0];
+    const inSegment = Segment[0]?.SegmentAssignment[0]?.inSegment === true;
 
-    if (assignment?.inSegment) {
-      subscribed.push({ name, id });
-      continue;
-    }
-
-    unsubscribed.push({ name, id });
+    subscriptions.push({
+      id,
+      name,
+      isSubscribed: inSegment,
+    });
   }
 
-  return {
-    subscribed,
-    unsubscribed,
-  };
+  return subscriptions;
 }
