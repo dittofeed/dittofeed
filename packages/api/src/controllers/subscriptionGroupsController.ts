@@ -4,6 +4,7 @@ import { Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
+import { buildSubscriptionChangeEvent } from "backend-lib/src/subscriptionGroups";
 import {
   InternalEventType,
   SegmentDefinition,
@@ -204,13 +205,18 @@ export default async function subscriptionGroupsController(
         });
 
         const userEvents: InsertUserEvent[] = [];
-        const timestamp = new Date().toISOString();
+        const currentTime = new Date();
+        const timestamp = currentTime.toISOString();
 
         for (const row of rows) {
           const userIds = missingUserIdsByEmail[row.email];
           const userId =
             (row.id as string | undefined) ??
             (userIds?.length ? userIds[0] : uuid());
+
+          if (!userId) {
+            continue;
+          }
 
           const identifyEvent: InsertUserEvent = {
             messageId: uuid(),
@@ -222,19 +228,12 @@ export default async function subscriptionGroupsController(
             }),
           };
 
-          const trackEvent: InsertUserEvent = {
-            messageId: uuid(),
-            messageRaw: JSON.stringify({
-              userId,
-              timestamp,
-              type: "track",
-              event: InternalEventType.SubscriptionChange,
-              properties: {
-                subscriptionId: subscriptionGroupId,
-                action: SubscriptionChange.Subscribe,
-              },
-            }),
-          };
+          const trackEvent = buildSubscriptionChangeEvent({
+            userId,
+            currentTime,
+            subscriptionGroupId,
+            action: SubscriptionChange.Subscribe,
+          });
 
           userEvents.push(trackEvent);
           userEvents.push(identifyEvent);

@@ -4,15 +4,19 @@ import {
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
+import { v4 as uuid } from "uuid";
 
 import { generateSecureHash } from "./crypto";
 import prisma from "./prisma";
 import {
+  InternalEventType,
+  SubscriptionChange,
   SubscriptionGroupResource,
   SubscriptionGroupType,
   SubscriptionParams,
   UserSubscriptionsResource,
 } from "./types";
+import { InsertUserEvent } from "./userEvents";
 
 export function subscriptionGroupToResource(
   subscriptionGroup: SubscriptionGroup
@@ -189,6 +193,35 @@ export async function validateSubscriptionHash({
     subscriptionSecret,
   });
   return ok(hash === h);
+}
+
+export function buildSubscriptionChangeEvent({
+  messageId = uuid(),
+  userId,
+  action,
+  subscriptionGroupId,
+  currentTime = new Date(),
+}: {
+  userId: string;
+  messageId?: string;
+  subscriptionGroupId: string;
+  currentTime?: Date;
+  action: SubscriptionChange;
+}): InsertUserEvent {
+  const timestamp = currentTime.toISOString();
+  return {
+    messageId,
+    messageRaw: JSON.stringify({
+      userId,
+      timestamp,
+      type: "track",
+      event: InternalEventType.SubscriptionChange,
+      properties: {
+        subscriptionId: subscriptionGroupId,
+        action,
+      },
+    }),
+  };
 }
 
 export async function changeSubscriptionStatus({
