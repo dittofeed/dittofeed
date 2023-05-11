@@ -30,15 +30,20 @@ export function subscriptionGroupToResource(
   };
 }
 
-export async function generateSubscriptionChangeUrl({
-  identifier,
+export interface SubscriptionContext {
+  workspaceId: string;
+  userId: string;
+  identifierKey: string;
+  subscriptionSecret: string;
+}
+
+export async function getSubscriptionContext({
   subscriptionGroupId,
-  subscribed,
+  identifier,
 }: {
-  identifier: string;
   subscriptionGroupId: string;
-  subscribed: boolean;
-}): Promise<Result<string, Error>> {
+  identifier: string;
+}): Promise<Result<SubscriptionContext, Error>> {
   const subscriptionGroup = await prisma().subscriptionGroup.findUnique({
     where: {
       id: subscriptionGroupId,
@@ -90,6 +95,34 @@ export async function generateSubscriptionChangeUrl({
 
   const { userId } = userPropertyAssignment;
 
+  return ok({
+    workspaceId,
+    userId,
+    identifierKey,
+    subscriptionSecret: subscriptionSecret.value,
+  });
+}
+
+export async function generateSubscriptionChangeUrl({
+  identifier,
+  subscriptionGroupId,
+  subscribed,
+}: {
+  identifier: string;
+  subscriptionGroupId: string;
+  subscribed: boolean;
+}): Promise<Result<string, Error>> {
+  const context = await getSubscriptionContext({
+    identifier,
+    subscriptionGroupId,
+  });
+
+  if (context.isErr()) {
+    return err(context.error);
+  }
+  const { workspaceId, userId, identifierKey, subscriptionSecret } =
+    context.value;
+
   const toHash = {
     userId,
     workspaceId,
@@ -98,7 +131,7 @@ export async function generateSubscriptionChangeUrl({
   };
 
   const hash = generateSecureHash({
-    key: subscriptionSecret.value,
+    key: subscriptionSecret,
     value: toHash,
   });
 
@@ -114,10 +147,10 @@ export async function generateSubscriptionChangeUrl({
 }
 
 export async function validateSubscriptionHash({
-  hash,
-}: {
-  hash: string;
-}): Promise<Result<null, Error>> {
+  h,
+  s,
+  i,
+}: Omit<SubscriptionParams, "sub">): Promise<Result<null, Error>> {
   return ok(null);
 }
 
