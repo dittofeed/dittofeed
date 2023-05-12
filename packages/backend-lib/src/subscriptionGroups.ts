@@ -36,7 +36,6 @@ export function subscriptionGroupToResource(
 
 export interface SubscriptionContext {
   userId: string;
-  identifierKey: string;
   subscriptionSecret: string;
   segmentId: string;
 }
@@ -45,10 +44,12 @@ export async function getSubscriptionContext({
   workspaceId,
   subscriptionGroupId,
   identifier,
+  identifierKey,
 }: {
   workspaceId: string;
   subscriptionGroupId: string;
   identifier: string;
+  identifierKey: string;
 }): Promise<Result<SubscriptionContext, Error>> {
   const [subscriptionGroup, subscriptionSecret] = await Promise.all([
     prisma().subscriptionGroup.findUnique({
@@ -56,7 +57,6 @@ export async function getSubscriptionContext({
         id: subscriptionGroupId,
       },
       include: {
-        channel: true,
         Segment: true,
       },
     }),
@@ -76,7 +76,6 @@ export async function getSubscriptionContext({
   if (!segment) {
     return err(new Error("Segment not found"));
   }
-  const identifierKey = subscriptionGroup.channel.identifier;
   const userProperties = await prisma().userProperty.findUnique({
     where: {
       workspaceId_name: {
@@ -107,7 +106,6 @@ export async function getSubscriptionContext({
   return ok({
     workspaceId,
     userId,
-    identifierKey,
     subscriptionSecret: subscriptionSecret.value,
     segmentId: segment.id,
   });
@@ -143,65 +141,63 @@ export function generateSubscriptionHash({
 export async function generateSubscriptionChangeUrl({
   w,
   i,
+  ik,
   s,
   sub,
 }: SubscriptionParams): Promise<Result<string, Error>> {
-  const context = await getSubscriptionContext({
-    workspaceId: w,
-    identifier: i,
-    subscriptionGroupId: s,
-  });
-
-  if (context.isErr()) {
-    return err(context.error);
+  const [subscriptionSecret, userProperty] = await Promise.all([
+    prisma().secret.findUnique({
+      where: {
+        workspaceId_name: {
+          name: SUBSCRIPTION_SECRET_NAME,
+          workspaceId: w,
+        },
+      },
+    }),
+    prisma().userProperty.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId: w,
+          name: ik,
+        },
+      },
+      include: {
+        UserPropertyAssignment: {
+          where: {
+            value: i,
+          },
+        },
+      },
+    }),
+  ]);
+  const userId = userProperty?.UserPropertyAssignment[0]?.userId;
+  if (!userId) {
+    return err(new Error("User not found"));
   }
-  const { userId, identifierKey, subscriptionSecret } = context.value;
+
+  if (!subscriptionSecret) {
+    return err(new Error("Subscription secret not found"));
+  }
 
   const hash = generateSubscriptionHash({
     workspaceId: w,
     userId,
-    identifierKey,
+    identifierKey: ik,
     identifier: i,
-    subscriptionSecret,
+    subscriptionSecret: subscriptionSecret.value,
   });
 
   const params: SubscriptionParams = {
     w,
     i,
     s,
+    ik,
     h: hash,
     sub: sub ? "1" : "0",
   };
   const queryString = new URLSearchParams(params).toString();
   const url = `${SUBSCRIPTION_MANAGEMENT_PAGE}?${queryString}`;
   return ok(url);
-}
-
-export async function validateSubscriptionHash({
-  w,
-  h,
-  s,
-  i,
-}: Omit<SubscriptionParams, "sub">): Promise<Result<boolean, Error>> {
-  const context = await getSubscriptionContext({
-    workspaceId: w,
-    identifier: i,
-    subscriptionGroupId: s,
-  });
-
-  if (context.isErr()) {
-    return err(context.error);
-  }
-  const { userId, identifierKey, subscriptionSecret } = context.value;
-
-  const hash = generateSubscriptionHash({
-    workspaceId: w,
-    userId,
-    identifierKey,
-    identifier: i,
-    subscriptionSecret,
-  });
-  return ok(hash === h);
 }
 
 export function buildSubscriptionChangeEvent({

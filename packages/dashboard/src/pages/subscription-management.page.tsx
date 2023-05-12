@@ -1,12 +1,14 @@
 import {
   buildSubscriptionChangeEvent,
   generateSubscriptionHash,
-  getSubscriptionContext,
   getUserSubscriptions,
 } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
-import { UNAUTHORIZED_PAGE } from "isomorphic-lib/src/constants";
+import {
+  SUBSCRIPTION_SECRET_NAME,
+  UNAUTHORIZED_PAGE,
+} from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { SubscriptionParams } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
@@ -28,16 +30,37 @@ export const getServerSideProps: GetServerSideProps<
       },
     };
   }
-  // FIXME make s optional and make identifierKey required
-  const { i, w, h, sub, s } = params.value;
+  const { i, w, h, sub, s, ik } = params.value;
 
-  const context = await getSubscriptionContext({
-    workspaceId: w,
-    identifier: i,
-    subscriptionGroupId: s,
-  });
+  const [subscriptionSecret, userProperties] = await Promise.all([
+    prisma().secret.findUnique({
+      where: {
+        workspaceId_name: {
+          name: SUBSCRIPTION_SECRET_NAME,
+          workspaceId: w,
+        },
+      },
+    }),
+    prisma().userProperty.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId: w,
+          name: ik,
+        },
+      },
+      include: {
+        UserPropertyAssignment: {
+          where: {
+            value: i,
+          },
+        },
+      },
+    }),
+  ]);
 
-  if (context.isErr()) {
+  const userPropertyAssignment = userProperties?.UserPropertyAssignment[0];
+
+  if (!userPropertyAssignment || !subscriptionSecret) {
     return {
       redirect: {
         destination: UNAUTHORIZED_PAGE,
@@ -46,15 +69,14 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  const { segmentId, identifierKey, subscriptionSecret, userId } =
-    context.value;
+  const { userId } = userPropertyAssignment;
 
   const expectedHash = generateSubscriptionHash({
     workspaceId: w,
     userId,
-    identifierKey,
+    identifierKey: ik,
     identifier: i,
-    subscriptionSecret,
+    subscriptionSecret: subscriptionSecret.value,
   });
 
   if (expectedHash !== h) {
@@ -66,11 +88,22 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  if (sub) {
+  if (s && sub) {
     const subscriptionChange =
       sub === "1"
         ? SubscriptionChange.Subscribe
         : SubscriptionChange.UnSubscribe;
+
+    const segment = await prisma().segment.findFirst({
+      where: {
+        workspaceId: w,
+        subscriptionGroupId: s,
+      },
+    });
+
+    if (!segment) {
+      throw new Error(`Segment not found for subscription group ${s}`);
+    }
 
     const event = buildSubscriptionChangeEvent({
       action: subscriptionChange,
@@ -84,7 +117,7 @@ export const getServerSideProps: GetServerSideProps<
           workspaceId_userId_segmentId: {
             workspaceId: w,
             userId,
-            segmentId,
+            segmentId: segment.id,
           },
         },
         data: {

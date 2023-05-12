@@ -846,16 +846,20 @@ export type UserSubscriptionResource = Static<typeof UserSubscriptionResource>;
 export const SubscriptionParams = Type.Object({
   w: Type.String({ description: "Workspace Id." }),
   i: Type.String({
-    description:
-      'Identifier value for subscription group e.g. "name@email.com".',
+    description: 'Identifier value for channel e.g. "name@email.com".',
   }),
-  s: Type.String({
-    description: "Subscription group Id.",
+  ik: Type.String({
+    description: 'Identifier key for channel e.g. "email".',
   }),
   h: Type.String({
     description:
       "Subscription change hash, used to authenticate subscription changes.",
   }),
+  s: Type.Optional(
+    Type.String({
+      description: "Subscription group Id.",
+    })
+  ),
   sub: Type.Optional(
     Type.Union([
       Type.Literal("1", {
