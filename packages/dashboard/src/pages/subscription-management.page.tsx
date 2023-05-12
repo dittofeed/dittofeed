@@ -88,8 +88,9 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
+  let subscriptionChange: SubscriptionChange | undefined;
   if (s && sub) {
-    const subscriptionChange =
+    subscriptionChange =
       sub === "1"
         ? SubscriptionChange.Subscribe
         : SubscriptionChange.UnSubscribe;
@@ -139,12 +140,18 @@ export const getServerSideProps: GetServerSideProps<
   return {
     props: {
       subscriptions,
+      subscriptionChange,
+      changedSubscription: s,
     },
   };
 };
 
 const SubscriptionManagement: NextPage<SubscriptionManagementProps> =
-  function SubscriptionManagement({ subscriptions }) {
+  function SubscriptionManagement({
+    subscriptions,
+    subscriptionChange,
+    changedSubscription,
+  }) {
     return (
       <>
         <Head>
@@ -152,7 +159,11 @@ const SubscriptionManagement: NextPage<SubscriptionManagementProps> =
           <meta name="description" content="Open Source Customer Engagement" />
         </Head>
         <main>
-          <SubscriptionManagement subscriptions={subscriptions} />
+          <SubscriptionManagement
+            subscriptions={subscriptions}
+            subscriptionChange={subscriptionChange}
+            changedSubscription={changedSubscription}
+          />
         </main>
       </>
     );

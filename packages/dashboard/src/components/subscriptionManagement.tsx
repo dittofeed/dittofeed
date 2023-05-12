@@ -5,15 +5,20 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { SubscriptionChange } from "backend-lib/src/types";
 import { UserSubscriptionResource } from "isomorphic-lib/src/types";
 import React from "react";
 
 export interface SubscriptionManagementProps {
   subscriptions: UserSubscriptionResource[];
+  changedSubscription?: string;
+  subscriptionChange?: SubscriptionChange;
 }
 
 export function SubscriptionManagement({
   subscriptions,
+  changedSubscription,
+  subscriptionChange,
 }: SubscriptionManagementProps) {
   const initialSubscriptionManagementState = React.useMemo(
     () =>
