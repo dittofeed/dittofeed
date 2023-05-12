@@ -142,16 +142,16 @@ export const getServerSideProps: GetServerSideProps<
       subscriptions,
       subscriptionChange,
       changedSubscription: s,
+      hash: h,
+      identifier: i,
+      identifierKey: ik,
+      workspaceId: w,
     },
   };
 };
 
 const SubscriptionManagement: NextPage<SubscriptionManagementProps> =
-  function SubscriptionManagement({
-    subscriptions,
-    subscriptionChange,
-    changedSubscription,
-  }) {
+  function SubscriptionManagement(props) {
     return (
       <>
         <Head>
@@ -159,11 +159,7 @@ const SubscriptionManagement: NextPage<SubscriptionManagementProps> =
           <meta name="description" content="Open Source Customer Engagement" />
         </Head>
         <main>
-          <SubscriptionManagement
-            subscriptions={subscriptions}
-            subscriptionChange={subscriptionChange}
-            changedSubscription={changedSubscription}
-          />
+          <SubscriptionManagement {...props} />
         </main>
       </>
     );

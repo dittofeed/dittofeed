@@ -6,10 +6,12 @@ import {
   Collapse,
   IconButton,
   IconButtonProps,
+  Paper,
   Stack,
   styled,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
@@ -229,6 +231,7 @@ export const useSettingsStore = create(
 );
 
 function SegmentIoConfig() {
+  const theme = useTheme();
   const sharedSecret = useSettingsStore((store) => store.segmentIoSharedSecret);
   const segmentIoRequest = useSettingsStore((store) => store.segmentIoRequest);
   const apiBase = useAppStore((store) => store.apiBase);
@@ -277,7 +280,7 @@ function SegmentIoConfig() {
     segmentIoRequest.type === CompletionStatus.InProgress;
 
   return (
-    <Stack sx={{ padding: 1 }} spacing={1}>
+    <Stack sx={{ padding: 1, width: theme.spacing(65) }} spacing={1}>
       <TextField
         label="Shared Secret"
         variant="outlined"
@@ -298,6 +301,7 @@ function SegmentIoConfig() {
 }
 
 function SendGridConfig() {
+  const theme = useTheme();
   const emailProviders = useAppStore((store) => store.emailProviders);
   const apiKey = useSettingsStore((store) => store.sendgridProviderApiKey);
   const apiBase = useAppStore((store) => store.apiBase);
@@ -363,7 +367,7 @@ function SendGridConfig() {
     sendgridProviderRequest.type === CompletionStatus.InProgress;
 
   return (
-    <Stack sx={{ padding: 1 }} spacing={1}>
+    <Stack sx={{ padding: 1, width: theme.spacing(65) }} spacing={1}>
       <TextField
         label="API Key"
         variant="outlined"
@@ -387,6 +391,10 @@ function SubscriptionManagementSettings() {
   const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
   const [open, setOpen] = useState<boolean>(true);
 
+  const workspace = useAppStore((store) => store.workspace);
+  const workspaceId =
+    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+
   const handleSendgridOpen = () => {
     setOpen((o) => !o);
   };
@@ -399,12 +407,15 @@ function SubscriptionManagementSettings() {
         }))
       : [];
 
+  if (!workspaceId) {
+    return null;
+  }
   return (
     <>
       <Box sx={{ width: "100%" }}>
         <Button variant="text" onClick={handleSendgridOpen}>
           <Typography variant="h4" sx={{ color: "black" }}>
-            Using SendGrid
+            Subscription Management
           </Typography>
         </Button>
         <ExpandMore
@@ -416,8 +427,16 @@ function SubscriptionManagementSettings() {
           <ExpandMoreIcon />
         </ExpandMore>
       </Box>
-      <Collapse in={open} unmountOnExit>
-        <SubscriptionManagement subscriptions={subscriptions} />
+      <Collapse in={open} unmountOnExit sx={{ p: 1 }}>
+        <Paper elevation={1} sx={{ p: 1 }}>
+          <SubscriptionManagement
+            subscriptions={subscriptions}
+            workspaceId={workspaceId}
+            hash="example-hash"
+            identifier="example@email.com"
+            identifierKey="email"
+          />
+        </Paper>
       </Collapse>
     </>
   );
@@ -437,7 +456,7 @@ const Settings: NextPage<
 
   return (
     <SettingsLayout>
-      <Stack spacing={1} sx={{ padding: 2, width: 500 }}>
+      <Stack spacing={1} sx={{ padding: 2, width: "100%" }}>
         <Typography
           id="data-sources-title"
           variant="h2"
