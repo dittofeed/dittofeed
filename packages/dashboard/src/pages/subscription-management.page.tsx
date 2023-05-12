@@ -2,6 +2,7 @@ import {
   buildSubscriptionChangeEvent,
   generateSubscriptionHash,
   getUserSubscriptions,
+  lookupUserForSubscriptions,
 } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
@@ -32,54 +33,14 @@ export const getServerSideProps: GetServerSideProps<
   }
   const { i, w, h, sub, s, ik } = params.value;
 
-  const [subscriptionSecret, userProperties] = await Promise.all([
-    prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          name: SUBSCRIPTION_SECRET_NAME,
-          workspaceId: w,
-        },
-      },
-    }),
-    prisma().userProperty.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId: w,
-          name: ik,
-        },
-      },
-      include: {
-        UserPropertyAssignment: {
-          where: {
-            value: i,
-          },
-        },
-      },
-    }),
-  ]);
-
-  const userPropertyAssignment = userProperties?.UserPropertyAssignment[0];
-
-  if (!userPropertyAssignment || !subscriptionSecret) {
-    return {
-      redirect: {
-        destination: UNAUTHORIZED_PAGE,
-        permanent: false,
-      },
-    };
-  }
-
-  const { userId } = userPropertyAssignment;
-
-  const expectedHash = generateSubscriptionHash({
+  const userLookupResult = await lookupUserForSubscriptions({
     workspaceId: w,
-    userId,
-    identifierKey: ik,
     identifier: i,
-    subscriptionSecret: subscriptionSecret.value,
+    identifierKey: ik,
+    hash: h,
   });
 
-  if (expectedHash !== h) {
+  if (userLookupResult.isErr()) {
     return {
       redirect: {
         destination: UNAUTHORIZED_PAGE,
@@ -87,6 +48,8 @@ export const getServerSideProps: GetServerSideProps<
       },
     };
   }
+
+  const { userId } = userLookupResult.value;
 
   let subscriptionChange: SubscriptionChange | undefined;
   if (s && sub) {

@@ -14,6 +14,7 @@ import {
   SubscriptionGroupResource,
   SubscriptionGroupType,
   SubscriptionParams,
+  UserSubscriptionLookup,
   UserSubscriptionResource,
 } from "./types";
 import { InsertUserEvent } from "./userEvents";
@@ -269,4 +270,67 @@ export async function getUserSubscriptions({
   }
 
   return subscriptions;
+}
+
+/**
+ * Lookup a user for subscriptions by identifier and identifier key (email, phone, etc)
+ * If the user is found, return the userId. When the hash is invalid, return an error.
+ * @param param0
+ * @returns
+ */
+export async function lookupUserForSubscriptions({
+  workspaceId,
+  identifier,
+  identifierKey,
+  hash,
+}: UserSubscriptionLookup): Promise<Result<{ userId: string }, Error>> {
+  const [subscriptionSecret, userProperties] = await Promise.all([
+    prisma().secret.findUnique({
+      where: {
+        workspaceId_name: {
+          name: SUBSCRIPTION_SECRET_NAME,
+          workspaceId,
+        },
+      },
+    }),
+    prisma().userProperty.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: identifierKey,
+        },
+      },
+      include: {
+        UserPropertyAssignment: {
+          where: {
+            value: identifier,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const userPropertyAssignment = userProperties?.UserPropertyAssignment[0];
+  if (!userPropertyAssignment) {
+    return err(new Error("User not found"));
+  }
+
+  if (!subscriptionSecret) {
+    return err(new Error("Subscription secret not found"));
+  }
+
+  const { userId } = userPropertyAssignment;
+
+  const expectedHash = generateSubscriptionHash({
+    workspaceId,
+    userId,
+    identifierKey,
+    identifier,
+    subscriptionSecret: subscriptionSecret.value,
+  });
+
+  if (expectedHash !== hash) {
+    return err(new Error("Hash mismatch"));
+  }
+  return ok({ userId });
 }

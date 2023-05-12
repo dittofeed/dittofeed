@@ -44,7 +44,7 @@ export default async function router(fastify: FastifyInstance) {
         f.register(webhooksController, { prefix: "/webhooks" }),
       ]);
     },
-    { prefix: "/api" }
+    { prefix: "/api/public" }
   );
 
   await fastify.register(

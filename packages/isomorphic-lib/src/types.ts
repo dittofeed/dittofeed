@@ -843,33 +843,62 @@ export const UserSubscriptionResource = Type.Object({
 
 export type UserSubscriptionResource = Static<typeof UserSubscriptionResource>;
 
-export const SubscriptionParams = Type.Object({
-  w: Type.String({ description: "Workspace Id." }),
-  i: Type.String({
-    description: 'Identifier value for channel e.g. "name@email.com".',
-  }),
-  ik: Type.String({
-    description: 'Identifier key for channel e.g. "email".',
-  }),
-  h: Type.String({
+export const SubscriptionParams = Type.Object(
+  {
+    w: Type.String({ description: "Workspace Id." }),
+    i: Type.String({
+      description: 'Identifier value for channel e.g. "name@email.com".',
+    }),
+    ik: Type.String({
+      description: 'Identifier key for channel e.g. "email".',
+    }),
+    h: Type.String({
+      description:
+        "Subscription change hash, used to authenticate subscription changes.",
+    }),
+    s: Type.Optional(
+      Type.String({
+        description: "Subscription group Id.",
+      })
+    ),
+    sub: Type.Optional(
+      Type.Union([
+        Type.Literal("1", {
+          description: "Subscribing user to subscription group.",
+        }),
+        Type.Literal("0", {
+          description: "Unsubscribing user from subscription group.",
+        }),
+      ])
+    ),
+  },
+  {
+    description:
+      "Subscription management parameters with shorted parameter names for efficient query param serialization.",
+  }
+);
+
+export type SubscriptionParams = Static<typeof SubscriptionParams>;
+
+export const UserSubscriptionLookup = Type.Object({
+  workspaceId: Type.String({ description: "Workspace Id." }),
+  hash: Type.String({
     description:
       "Subscription change hash, used to authenticate subscription changes.",
   }),
-  s: Type.Optional(
-    Type.String({
-      description: "Subscription group Id.",
-    })
-  ),
-  sub: Type.Optional(
-    Type.Union([
-      Type.Literal("1", {
-        description: "Subscribing user to subscription group.",
-      }),
-      Type.Literal("0", {
-        description: "Unsubscribing user from subscription group.",
-      }),
-    ])
-  ),
+  identifier: Type.String({ description: "Identifier value for channel." }),
+  identifierKey: Type.String({ description: "Identifier key for channel." }),
 });
 
-export type SubscriptionParams = Static<typeof SubscriptionParams>;
+export type UserSubscriptionLookup = Static<typeof UserSubscriptionLookup>;
+
+export const UserSubscriptionsUpdate = Type.Intersect([
+  UserSubscriptionLookup,
+  Type.Object({
+    changes: Type.Record(Type.String(), Type.Boolean(), {
+      description: "Subscription changes.",
+    }),
+  }),
+]);
+
+export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
