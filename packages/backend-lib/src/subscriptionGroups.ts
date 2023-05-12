@@ -16,7 +16,7 @@ import {
   SubscriptionParams,
   UserSubscriptionResource,
 } from "./types";
-import { InsertUserEvent, insertUserEvents } from "./userEvents";
+import { InsertUserEvent } from "./userEvents";
 
 export function subscriptionGroupToResource(
   subscriptionGroup: SubscriptionGroup

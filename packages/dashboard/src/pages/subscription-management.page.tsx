@@ -28,6 +28,7 @@ export const getServerSideProps: GetServerSideProps<
       },
     };
   }
+  // FIXME make s optional and make identifierKey required
   const { i, w, h, sub, s } = params.value;
 
   const context = await getSubscriptionContext({

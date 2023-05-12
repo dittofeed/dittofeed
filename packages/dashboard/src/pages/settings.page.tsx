@@ -12,6 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
+import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -34,6 +35,7 @@ import { immer } from "zustand/middleware/immer";
 
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
+import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
@@ -49,30 +51,39 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const workspaceId = backendConfig().defaultWorkspaceId;
 
-    const [emailProviders, defaultEmailProviderRecord, workspace] =
-      await Promise.all([
-        (
-          await prisma().emailProvider.findMany({
-            where: { workspaceId },
-          })
-        ).map(({ id, type, apiKey }) => {
-          let providerType: EmailProviderType;
-          switch (type) {
-            case "SendGrid":
-              providerType = EmailProviderType.Sendgrid;
-              break;
-            default:
-              throw new Error("Unknown email provider type");
-          }
-          return { type: providerType, id, apiKey, workspaceId };
-        }),
-        prisma().defaultEmailProvider.findFirst({
+    const [
+      emailProviders,
+      defaultEmailProviderRecord,
+      workspace,
+      subscriptionGroups,
+    ] = await Promise.all([
+      (
+        await prisma().emailProvider.findMany({
           where: { workspaceId },
-        }),
-        prisma().workspace.findFirst({
-          where: { id: workspaceId },
-        }),
-      ]);
+        })
+      ).map(({ id, type, apiKey }) => {
+        let providerType: EmailProviderType;
+        switch (type) {
+          case "SendGrid":
+            providerType = EmailProviderType.Sendgrid;
+            break;
+          default:
+            throw new Error("Unknown email provider type");
+        }
+        return { type: providerType, id, apiKey, workspaceId };
+      }),
+      prisma().defaultEmailProvider.findFirst({
+        where: { workspaceId },
+      }),
+      prisma().workspace.findFirst({
+        where: { id: workspaceId },
+      }),
+      prisma().subscriptionGroup.findMany({
+        where: {
+          workspaceId,
+        },
+      }),
+    ]);
 
     const serverInitialState: PreloadedState = {
       emailProviders: {
@@ -94,6 +105,15 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         },
       };
     }
+
+    const subscriptionGroupResources = subscriptionGroups.map(
+      subscriptionGroupToResource
+    );
+
+    serverInitialState.subscriptionGroups = {
+      type: CompletionStatus.Successful,
+      value: subscriptionGroupResources,
+    };
 
     return {
       props: addInitialStateToProps({
@@ -363,6 +383,46 @@ function SendGridConfig() {
   );
 }
 
+function SubscriptionManagementSettings() {
+  const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
+  const [open, setOpen] = useState<boolean>(true);
+
+  const handleSendgridOpen = () => {
+    setOpen((o) => !o);
+  };
+  const subscriptions =
+    subscriptionGroups.type === CompletionStatus.Successful
+      ? subscriptionGroups.value.map((sg) => ({
+          name: sg.name,
+          id: sg.id,
+          isSubscribed: true,
+        }))
+      : [];
+
+  return (
+    <>
+      <Box sx={{ width: "100%" }}>
+        <Button variant="text" onClick={handleSendgridOpen}>
+          <Typography variant="h4" sx={{ color: "black" }}>
+            Using SendGrid
+          </Typography>
+        </Button>
+        <ExpandMore
+          expand={open}
+          onClick={handleSendgridOpen}
+          aria-expanded={open}
+          aria-label="show more"
+        >
+          <ExpandMoreIcon />
+        </ExpandMore>
+      </Box>
+      <Collapse in={open} unmountOnExit>
+        <SubscriptionManagement subscriptions={subscriptions} />
+      </Collapse>
+    </>
+  );
+}
+
 const Settings: NextPage<
   InferGetServerSidePropsType<typeof getServerSideProps>
 > = function Settings() {
@@ -431,6 +491,7 @@ const Settings: NextPage<
         <Collapse in={sendgridOpen} unmountOnExit>
           <SendGridConfig />
         </Collapse>
+        <SubscriptionManagementSettings />
       </Stack>
     </SettingsLayout>
   );

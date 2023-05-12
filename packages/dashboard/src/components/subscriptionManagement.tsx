@@ -1,4 +1,10 @@
-import { Checkbox, FormControlLabel, FormGroup } from "@mui/material";
+import {
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { UserSubscriptionResource } from "isomorphic-lib/src/types";
 import React from "react";
 
@@ -27,8 +33,8 @@ export function SubscriptionManagement({
   };
 
   return (
-    <>
-      subscription management
+    <Stack>
+      <Typography variant="h4">Choose</Typography>
       <FormGroup>
         {subscriptions.map((subscription) => (
           <FormControlLabel
@@ -44,6 +50,6 @@ export function SubscriptionManagement({
           />
         ))}
       </FormGroup>
-    </>
+    </Stack>
   );
 }
