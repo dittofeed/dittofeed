@@ -1,3 +1,4 @@
+import { Stack } from "@mui/material";
 import axios from "axios";
 import logger from "backend-lib/src/logger";
 import {
@@ -20,10 +21,10 @@ import {
   SubscriptionManagement,
   SubscriptionManagementProps,
 } from "../components/subscriptionManagement";
-import { useAppStore } from "../lib/appStore";
-import { Stack } from "@mui/material";
 
-type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate">;
+type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate"> & {
+  apiBase: string;
+};
 export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   const params = schemaValidate(ctx.query, SubscriptionParams);
   if (params.isErr()) {
@@ -84,6 +85,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   });
 
   const props: SSP = {
+    apiBase: process.env.DASHBOARD_API_BASE ?? "http://localhost:3001",
     subscriptions,
     hash: h,
     identifier: i,
@@ -102,7 +104,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
 
 const SubscriptionManagementPage: NextPage<SSP> =
   function SubscriptionManagementPage(props) {
-    const apiBase = useAppStore((state) => state.apiBase);
+    const { apiBase } = props;
     const onUpdate: SubscriptionManagementProps["onSubscriptionUpdate"] =
       async (update) => {
         const data: UserSubscriptionsUpdate = update;
