@@ -18,7 +18,7 @@ import {
   generateComputePropertiesId,
 } from "./segments/computePropertiesWorkflow";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
-import { UserPropertyDefinitionType } from "./types";
+import { SubscriptionGroupType, UserPropertyDefinitionType } from "./types";
 import {
   createUserEventsTables,
   insertUserEvents,
@@ -123,19 +123,7 @@ async function bootstrapPostgres({
       },
     ];
 
-  await Promise.all([
-    ...userProperties.map((up) =>
-      prisma().userProperty.upsert({
-        where: {
-          workspaceId_name: {
-            workspaceId: up.workspaceId,
-            name: up.name,
-          },
-        },
-        create: up,
-        update: up,
-      })
-    ),
+  const [emailChannel] = await Promise.all([
     prisma().channel.upsert({
       where: {
         workspaceId_name: {
@@ -150,6 +138,18 @@ async function bootstrapPostgres({
       },
       update: {},
     }),
+    ...userProperties.map((up) =>
+      prisma().userProperty.upsert({
+        where: {
+          workspaceId_name: {
+            workspaceId: up.workspaceId,
+            name: up.name,
+          },
+        },
+        create: up,
+        update: up,
+      })
+    ),
     prisma().secret.upsert({
       where: {
         workspaceId_name: {
@@ -165,6 +165,22 @@ async function bootstrapPostgres({
       update: {},
     }),
   ]);
+
+  await prisma().subscriptionGroup.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: workspaceName,
+      },
+    },
+    create: {
+      workspaceId,
+      name: `${workspaceName} - Email`,
+      type: SubscriptionGroupType.OptIn,
+      channelId: emailChannel.id,
+    },
+    update: {},
+  });
 }
 
 async function bootstrapKafka() {

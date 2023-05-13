@@ -125,7 +125,7 @@ export async function generateSubscriptionChangeUrl({
     ik,
     h: hash,
     s,
-    sub: sub ? "1" : "0",
+    sub,
   };
   const queryString = new URLSearchParams(params).toString();
   const url = `/dashboard${SUBSCRIPTION_MANAGEMENT_PAGE}?${queryString}`;
@@ -325,6 +325,7 @@ export async function updateUserSubscriptions({
       if (!segment) {
         return [];
       }
+      // FIXME not workign
       return prisma().segmentAssignment.upsert({
         where: {
           workspaceId_userId_segmentId: {

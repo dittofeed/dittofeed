@@ -1,7 +1,5 @@
-import {
-  DEBUG_USER_ID1,
-  SUBSCRIPTION_SECRET_NAME,
-} from "isomorphic-lib/src/constants";
+import { SubscriptionGroup } from "@prisma/client";
+import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
 
 import config from "./config";
 import logger from "./logger";
@@ -11,29 +9,33 @@ import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 describe("generateSubscriptionChangeUrl", () => {
   let userId: string;
   let email: string;
-  let secret: string;
+  let subscriptionGroup: SubscriptionGroup;
+
   beforeEach(async () => {
     userId = DEBUG_USER_ID1;
     email = "max@email.com";
-    secret = "my-subscription-secret";
 
-    const up = await prisma().userProperty.findUniqueOrThrow({
-      where: {
-        workspaceId_name: {
-          workspaceId: config().defaultWorkspaceId,
-          name: "email",
+    const results = await Promise.all([
+      prisma().userProperty.findUniqueOrThrow({
+        where: {
+          workspaceId_name: {
+            workspaceId: config().defaultWorkspaceId,
+            name: "email",
+          },
         },
-      },
-    });
-
-    await prisma().secret.findUniqueOrThrow({
-      where: {
-        workspaceId_name: {
-          workspaceId: config().defaultWorkspaceId,
-          name: SUBSCRIPTION_SECRET_NAME,
+      }),
+      prisma().subscriptionGroup.findUniqueOrThrow({
+        where: {
+          workspaceId_name: {
+            workspaceId: config().defaultWorkspaceId,
+            name: "Default - Email",
+          },
         },
-      },
-    });
+      }),
+    ]);
+    const [up] = results;
+    // eslint-disable-next-line prefer-destructuring
+    subscriptionGroup = results[1];
 
     await prisma().userPropertyAssignment.upsert({
       where: {
@@ -57,7 +59,8 @@ describe("generateSubscriptionChangeUrl", () => {
       w: config().defaultWorkspaceId,
       i: email,
       ik: "email",
-      s: secret,
+      s: subscriptionGroup.id,
+      sub: "0",
     });
 
     if (url.isErr()) {
