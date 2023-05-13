@@ -22,9 +22,8 @@ import {
 } from "../components/subscriptionManagement";
 import { useAppStore } from "../lib/appStore";
 
-export const getServerSideProps: GetServerSideProps<
-  Omit<SubscriptionManagementProps, "onSubscriptionUpdate">
-> = async (ctx) => {
+type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate">;
+export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   const params = schemaValidate(ctx.query, SubscriptionParams);
   if (params.isErr()) {
     logger().info(
@@ -83,65 +82,67 @@ export const getServerSideProps: GetServerSideProps<
     workspaceId: w,
   });
 
-  return {
-    props: {
-      subscriptions,
-      subscriptionChange,
-      changedSubscription: s,
-      hash: h,
-      identifier: i,
-      identifierKey: ik,
-      workspaceId: w,
-    },
+  const props: SSP = {
+    subscriptions,
+    hash: h,
+    identifier: i,
+    identifierKey: ik,
+    workspaceId: w,
   };
+  if (subscriptionChange) {
+    props.subscriptionChange = subscriptionChange;
+  }
+  if (s) {
+    props.changedSubscription = s;
+  }
+
+  return { props };
 };
 
-const SubscriptionManagementPage: NextPage<
-  Omit<SubscriptionManagementProps, "onSubscriptionUpdate">
-> = function SubscriptionManagementPage(props) {
-  const apiBase = useAppStore((state) => state.apiBase);
-  const onUpdate: SubscriptionManagementProps["onSubscriptionUpdate"] = async (
-    update
-  ) => {
-    const data: UserSubscriptionsUpdate = update;
-    await axios({
-      method: "PUT",
-      url: `${apiBase}/api/public/subscription-management/user-subscriptions`,
-      data,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+const SubscriptionManagementPage: NextPage<SSP> =
+  function SubscriptionManagementPage(props) {
+    const apiBase = useAppStore((state) => state.apiBase);
+    const onUpdate: SubscriptionManagementProps["onSubscriptionUpdate"] =
+      async (update) => {
+        const data: UserSubscriptionsUpdate = update;
+        await axios({
+          method: "PUT",
+          url: `${apiBase}/api/public/subscription-management/user-subscriptions`,
+          data,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+      };
+    const {
+      workspaceId,
+      subscriptions,
+      subscriptionChange,
+      changedSubscription,
+      hash,
+      identifier,
+      identifierKey,
+    } = props;
+    return (
+      <>
+        <Head>
+          <title>Dittofeed</title>
+          <meta name="description" content="Open Source Customer Engagement" />
+        </Head>
+        <main>
+          <SubscriptionManagement
+            workspaceId={workspaceId}
+            subscriptions={subscriptions}
+            subscriptionChange={subscriptionChange}
+            changedSubscription={changedSubscription}
+            hash={hash}
+            identifier={identifier}
+            identifierKey={identifierKey}
+            onSubscriptionUpdate={onUpdate}
+          />
+        </main>
+      </>
+    );
   };
-  const {
-    workspaceId,
-    subscriptions,
-    subscriptionChange,
-    changedSubscription,
-    hash,
-    identifier,
-    identifierKey,
-  } = props;
-  return (
-    <>
-      <Head>
-        <title>Dittofeed</title>
-        <meta name="description" content="Open Source Customer Engagement" />
-      </Head>
-      <main>
-        <SubscriptionManagement
-          workspaceId={workspaceId}
-          subscriptions={subscriptions}
-          subscriptionChange={subscriptionChange}
-          changedSubscription={changedSubscription}
-          hash={hash}
-          identifier={identifier}
-          identifierKey={identifierKey}
-          onSubscriptionUpdate={onUpdate}
-        />
-      </main>
-    </>
-  );
-};
 
 export default SubscriptionManagementPage;
