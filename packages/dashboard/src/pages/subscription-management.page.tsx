@@ -1,4 +1,5 @@
 import axios from "axios";
+import logger from "backend-lib/src/logger";
 import {
   getUserSubscriptions,
   lookupUserForSubscriptions,
@@ -26,6 +27,13 @@ export const getServerSideProps: GetServerSideProps<
 > = async (ctx) => {
   const params = schemaValidate(ctx.query, SubscriptionParams);
   if (params.isErr()) {
+    logger().info(
+      {
+        query: ctx.query,
+        err: params.error,
+      },
+      "Invalid subscription management params"
+    );
     return {
       redirect: {
         destination: UNAUTHORIZED_PAGE,
@@ -43,6 +51,12 @@ export const getServerSideProps: GetServerSideProps<
   });
 
   if (userLookupResult.isErr()) {
+    logger().info(
+      {
+        err: userLookupResult.error,
+      },
+      "Failed user lookup"
+    );
     return {
       redirect: {
         destination: UNAUTHORIZED_PAGE,

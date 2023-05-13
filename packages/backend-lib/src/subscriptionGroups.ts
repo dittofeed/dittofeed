@@ -43,77 +43,6 @@ export interface SubscriptionContext {
   segmentId: string;
 }
 
-export async function getSubscriptionContext({
-  workspaceId,
-  subscriptionGroupId,
-  identifier,
-  identifierKey,
-}: {
-  workspaceId: string;
-  subscriptionGroupId: string;
-  identifier: string;
-  identifierKey: string;
-}): Promise<Result<SubscriptionContext, Error>> {
-  const [subscriptionGroup, subscriptionSecret] = await Promise.all([
-    prisma().subscriptionGroup.findUnique({
-      where: {
-        id: subscriptionGroupId,
-      },
-      include: {
-        Segment: true,
-      },
-    }),
-    prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          name: SUBSCRIPTION_SECRET_NAME,
-          workspaceId,
-        },
-      },
-    }),
-  ]);
-  if (!subscriptionGroup) {
-    return err(new Error("Subscription group not found"));
-  }
-  const segment = subscriptionGroup.Segment[0];
-  if (!segment) {
-    return err(new Error("Segment not found"));
-  }
-  const userProperties = await prisma().userProperty.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: identifierKey,
-      },
-    },
-    include: {
-      UserPropertyAssignment: {
-        where: {
-          value: identifier,
-        },
-      },
-    },
-  });
-
-  const userPropertyAssignment = userProperties?.UserPropertyAssignment[0];
-  if (!userPropertyAssignment) {
-    return err(new Error("User not found"));
-  }
-
-  if (!subscriptionSecret) {
-    return err(new Error("Subscription secret not found"));
-  }
-
-  const { userId } = userPropertyAssignment;
-
-  return ok({
-    workspaceId,
-    userId,
-    subscriptionSecret: subscriptionSecret.value,
-    segmentId: segment.id,
-  });
-}
-
 export function generateSubscriptionHash({
   workspaceId,
   userId,
@@ -147,7 +76,7 @@ export async function generateSubscriptionChangeUrl({
   ik,
   s,
   sub,
-}: SubscriptionParams): Promise<Result<string, Error>> {
+}: Omit<SubscriptionParams, "h">): Promise<Result<string, Error>> {
   const [subscriptionSecret, userProperty] = await Promise.all([
     prisma().secret.findUnique({
       where: {
@@ -167,7 +96,7 @@ export async function generateSubscriptionChangeUrl({
       include: {
         UserPropertyAssignment: {
           where: {
-            value: i,
+            value: JSON.stringify(i),
           },
         },
       },
@@ -193,13 +122,12 @@ export async function generateSubscriptionChangeUrl({
   const params: SubscriptionParams = {
     w,
     i,
-    s,
     ik,
     h: hash,
     sub: sub ? "1" : "0",
   };
   const queryString = new URLSearchParams(params).toString();
-  const url = `${SUBSCRIPTION_MANAGEMENT_PAGE}?${queryString}`;
+  const url = `/dashboard${SUBSCRIPTION_MANAGEMENT_PAGE}?${queryString}`;
   return ok(url);
 }
 
@@ -307,7 +235,7 @@ export async function lookupUserForSubscriptions({
       include: {
         UserPropertyAssignment: {
           where: {
-            value: identifier,
+            value: JSON.stringify(identifier),
           },
         },
       },

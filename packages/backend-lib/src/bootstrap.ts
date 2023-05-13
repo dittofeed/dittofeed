@@ -1,6 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
-import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
+import {
+  DEBUG_USER_ID1,
+  SUBSCRIPTION_SECRET_NAME,
+} from "isomorphic-lib/src/constants";
 
 import { segmentIdentifyEvent } from "../test/factories/segment";
 import { createClickhouseDb } from "./clickhouse";
@@ -220,6 +223,8 @@ async function bootstrapWorker() {
 async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
   const messageId1 = randomUUID();
   const messageId2 = randomUUID();
+  logger().debug("Inserting default events.");
+
   await insertUserEvents({
     tableVersion: config().defaultUserEventsTableVersion,
     workspaceId,
@@ -228,10 +233,12 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
         messageId: messageId1,
         messageRaw: segmentIdentifyEvent({
           messageId: messageId1,
+          userId: DEBUG_USER_ID1,
           traits: {
             status: "onboarding",
             firstName: "Max",
             lastName: "Gurewitz",
+            email: "max@email.com",
             plan: "free",
             phone: "8005551234",
             // 1 day ago
@@ -247,6 +254,7 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
             status: "onboarded",
             firstName: "Chandler",
             lastName: "Craig",
+            email: "chandler@email.com",
             plan: "paid",
             // 2 days ago
             createdAt: new Date(Date.now() - 2 * 8.64 * 1000000).toISOString(),
