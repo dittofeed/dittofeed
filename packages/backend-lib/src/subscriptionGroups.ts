@@ -187,8 +187,7 @@ export async function getUserSubscriptions({
   for (const subscriptionGroup of subscriptionGroups) {
     const segment = subscriptionGroup.Segment[0];
     if (!segment) {
-      // FIXME getting import error when using from dashboard
-      console.error(
+      logger().error(
         { subscriptionGroup },
         "No segment found for subscription group"
       );
@@ -326,9 +325,7 @@ export async function updateUserSubscriptions({
     ([subscriptionGroupId, isSubscribed]) => {
       const segment = segmentBySubscriptionGroupId[subscriptionGroupId];
       if (!segment) {
-        // FIXME not working from dashboard
-        // logger().error({
-        console.error(
+        logger().error(
           {
             segmentBySubscriptionGroupId,
             subscriptionGroupId,
