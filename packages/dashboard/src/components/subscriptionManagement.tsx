@@ -114,8 +114,10 @@ export function SubscriptionManagement({
       sx={{
         padding: 2,
         borderWidth: 1,
+        display: "inline-block",
         borderStyle: "solid",
         borderRadius: 1,
+        boxShadow: theme.shadows[2],
         borderColor: theme.palette.grey[200],
       }}
     >

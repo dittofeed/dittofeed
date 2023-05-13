@@ -468,7 +468,15 @@ function SubscriptionManagementSettings() {
               />
             </FormGroup>
           </Box>
-          <Paper elevation={1} sx={{ p: 1 }}>
+          <Paper
+            elevation={1}
+            sx={{
+              p: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <SubscriptionManagement
               key={`${fromSubscribe}-${fromSubscriptionChange}`}
               subscriptions={subscriptions}

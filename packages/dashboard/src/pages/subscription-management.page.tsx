@@ -21,6 +21,7 @@ import {
   SubscriptionManagementProps,
 } from "../components/subscriptionManagement";
 import { useAppStore } from "../lib/appStore";
+import { Stack } from "@mui/material";
 
 type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate">;
 export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
@@ -130,16 +131,22 @@ const SubscriptionManagementPage: NextPage<SSP> =
           <meta name="description" content="Open Source Customer Engagement" />
         </Head>
         <main>
-          <SubscriptionManagement
-            workspaceId={workspaceId}
-            subscriptions={subscriptions}
-            subscriptionChange={subscriptionChange}
-            changedSubscription={changedSubscription}
-            hash={hash}
-            identifier={identifier}
-            identifierKey={identifierKey}
-            onSubscriptionUpdate={onUpdate}
-          />
+          <Stack
+            justifyContent="center"
+            alignItems="center"
+            sx={{ height: "100vh" }}
+          >
+            <SubscriptionManagement
+              workspaceId={workspaceId}
+              subscriptions={subscriptions}
+              subscriptionChange={subscriptionChange}
+              changedSubscription={changedSubscription}
+              hash={hash}
+              identifier={identifier}
+              identifierKey={identifierKey}
+              onSubscriptionUpdate={onUpdate}
+            />
+          </Stack>
         </main>
       </>
     );
