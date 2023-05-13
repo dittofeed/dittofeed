@@ -10,14 +10,15 @@ import {
   useTheme,
 } from "@mui/material";
 import { SubscriptionChange } from "backend-lib/src/types";
+import { set } from "date-fns";
 import {
   UserSubscriptionResource,
   UserSubscriptionsUpdate,
 } from "isomorphic-lib/src/types";
 import { enqueueSnackbar } from "notistack";
 import React, { useMemo } from "react";
+
 import { noticeAnchorOrigin } from "../lib/notices";
-import { set } from "date-fns";
 
 export type SubscriptionState = Record<string, boolean>;
 export interface SubscriptionManagementProps {

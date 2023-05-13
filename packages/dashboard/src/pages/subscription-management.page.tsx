@@ -1,3 +1,4 @@
+import axios from "axios";
 import {
   getUserSubscriptions,
   lookupUserForSubscriptions,
@@ -6,7 +7,10 @@ import {
 import { SubscriptionChange } from "backend-lib/src/types";
 import { UNAUTHORIZED_PAGE } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { SubscriptionParams } from "isomorphic-lib/src/types";
+import {
+  SubscriptionParams,
+  UserSubscriptionsUpdate,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import React from "react";
@@ -15,6 +19,7 @@ import {
   SubscriptionManagement,
   SubscriptionManagementProps,
 } from "../components/subscriptionManagement";
+import { useAppStore } from "../lib/appStore";
 
 export const getServerSideProps: GetServerSideProps<
   Omit<SubscriptionManagementProps, "onSubscriptionUpdate">
@@ -77,15 +82,23 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
-const onUpdate: SubscriptionManagementProps["onSubscriptionUpdate"] = async (
-  changes
-) => {
-  return;
-};
-
 const SubscriptionManagementPage: NextPage<
   Omit<SubscriptionManagementProps, "onSubscriptionUpdate">
 > = function SubscriptionManagementPage(props) {
+  const apiBase = useAppStore((state) => state.apiBase);
+  const onUpdate: SubscriptionManagementProps["onSubscriptionUpdate"] = async (
+    update
+  ) => {
+    const data: UserSubscriptionsUpdate = update;
+    await axios({
+      method: "PUT",
+      url: `${apiBase}/api/public/subscription-management/user-subscriptions`,
+      data,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  };
   const {
     workspaceId,
     subscriptions,
