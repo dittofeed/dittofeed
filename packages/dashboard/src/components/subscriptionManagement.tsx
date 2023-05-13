@@ -1,10 +1,13 @@
+import LoadingButton from "@mui/lab/LoadingButton";
 import {
   Alert,
+  Box,
   Checkbox,
   FormControlLabel,
   FormGroup,
   Stack,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { UserSubscriptionResource } from "isomorphic-lib/src/types";
@@ -39,6 +42,7 @@ export function SubscriptionManagement({
     [subscriptions]
   );
 
+  const theme = useTheme();
   const [state, setState] = React.useState<SubscriptionState>(
     initialSubscriptionManagementState
   );
@@ -70,7 +74,16 @@ export function SubscriptionManagement({
     );
   }
   return (
-    <Stack>
+    <Stack
+      spacing={2}
+      sx={{
+        padding: 2,
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderRadius: 1,
+        borderColor: theme.palette.grey[200],
+      }}
+    >
       <Typography variant="h4">
         Choose what messages you would like to receive
       </Typography>
@@ -90,6 +103,9 @@ export function SubscriptionManagement({
           />
         ))}
       </FormGroup>
+      <Box>
+        <LoadingButton variant="contained">Save Preferences</LoadingButton>
+      </Box>
     </Stack>
   );
 }

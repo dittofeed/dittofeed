@@ -428,15 +428,21 @@ function SubscriptionManagementSettings() {
         </ExpandMore>
       </Box>
       <Collapse in={open} unmountOnExit sx={{ p: 1 }}>
-        <Paper elevation={1} sx={{ p: 1 }}>
-          <SubscriptionManagement
-            subscriptions={subscriptions}
-            workspaceId={workspaceId}
-            hash="example-hash"
-            identifier="example@email.com"
-            identifierKey="email"
-          />
-        </Paper>
+        <Stack spacing={1}>
+          <Box>
+            Preview of the subscription management page, that will be shown to
+            users.
+          </Box>
+          <Paper elevation={1} sx={{ p: 1 }}>
+            <SubscriptionManagement
+              subscriptions={subscriptions}
+              workspaceId={workspaceId}
+              hash="example-hash"
+              identifier="example@email.com"
+              identifierKey="email"
+            />
+          </Paper>
+        </Stack>
       </Collapse>
     </>
   );
