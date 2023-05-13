@@ -129,7 +129,7 @@
     },
     {
       "group": "Contributing",
-      "pages": ["contributing/running-locally"]
+      "pages": ["contributing/running-locally", "contributing/updating-api-docs"]
     }
   ],
   "footerSocials": {

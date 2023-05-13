@@ -5,49 +5,18 @@
     "description": "Interactive API documentation.",
     "version": "0.0.0"
   },
-  "components": { "schemas": {} },
+  "components": {
+    "schemas": {}
+  },
   "paths": {
     "/api/": {
       "get": {
         "description": "Application health check endpoint.",
-        "responses": { "200": { "description": "Default Response" } }
-      }
-    },
-    "/api/webhooks/segment": {
-      "post": {
-        "description": "Used to consume segment.io webhook payloads. Must be exposed publicly to the internet.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object",
-                "properties": {
-                  "messageId": { "type": "string" },
-                  "timestamp": { "type": "string" }
-                },
-                "required": ["messageId", "timestamp"]
-              }
-            }
-          },
-          "required": true
-        },
-        "parameters": [
-          {
-            "schema": { "type": "string" },
-            "in": "header",
-            "name": "x-signature",
-            "required": true
-          },
-          {
-            "schema": { "type": "string" },
-            "in": "header",
-            "name": "df-workspace-id",
-            "required": false,
-            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+        "responses": {
+          "200": {
+            "description": "Default Response"
           }
-        ],
-        "responses": { "200": { "description": "Default Response" } }
+        }
       }
     },
     "/api/journeys/": {
@@ -58,107 +27,143 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {
-                  "workspaceId": { "type": "string" },
-                  "name": { "type": "string" },
-                  "status": {
-                    "anyOf": [
-                      { "type": "string", "enum": ["NotStarted"] },
-                      { "type": "string", "enum": ["Running"] },
-                      { "type": "string", "enum": ["Paused"] }
-                    ]
-                  },
-                  "definition": {
+                "allOf": [
+                  {
                     "type": "object",
                     "properties": {
-                      "entryNode": {
-                        "title": "Entry Node",
-                        "description": "The first node in a journey, which limits it to a specific segment.",
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": ["NotStarted"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["Running"]
+                          },
+                          {
+                            "type": "string",
+                            "enum": ["Paused"]
+                          }
+                        ]
+                      },
+                      "definition": {
                         "type": "object",
                         "properties": {
-                          "type": { "type": "string", "enum": ["EntryNode"] },
-                          "segment": { "type": "string" },
-                          "child": { "type": "string" }
-                        },
-                        "required": ["type", "segment", "child"]
-                      },
-                      "exitNode": {
-                        "title": "Exit Node",
-                        "description": "Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.",
-                        "type": "object",
-                        "properties": {
-                          "type": { "type": "string", "enum": ["ExitNode"] }
-                        },
-                        "required": ["type"]
-                      },
-                      "nodes": {
-                        "type": "array",
-                        "items": {
-                          "anyOf": [
-                            {
-                              "title": "Delay Node",
-                              "description": "Delays a users progression through the journey for either a set amount of time, or until a specific date time.",
-                              "type": "object",
-                              "properties": {
-                                "id": { "type": "string" },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["DelayNode"]
-                                },
-                                "variant": {
-                                  "anyOf": [
-                                    {
+                          "entryNode": {
+                            "title": "Entry Node",
+                            "description": "The first node in a journey, which limits it to a specific segment.",
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["EntryNode"]
+                              },
+                              "segment": {
+                                "type": "string"
+                              },
+                              "child": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["type", "segment", "child"]
+                          },
+                          "exitNode": {
+                            "title": "Exit Node",
+                            "description": "Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.",
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["ExitNode"]
+                              }
+                            },
+                            "required": ["type"]
+                          },
+                          "nodes": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "title": "Delay Node",
+                                  "description": "Delays a users progression through the journey for either a set amount of time, or until a specific date time.",
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["DelayNode"]
+                                    },
+                                    "variant": {
                                       "type": "object",
                                       "properties": {
                                         "type": {
                                           "type": "string",
                                           "enum": ["Second"]
                                         },
-                                        "seconds": { "type": "number" }
+                                        "seconds": {
+                                          "type": "number"
+                                        }
                                       },
                                       "required": ["type", "seconds"]
+                                    },
+                                    "child": {
+                                      "type": "string"
                                     }
-                                  ]
+                                  },
+                                  "required": ["id", "type", "variant", "child"]
                                 },
-                                "child": { "type": "string" }
-                              },
-                              "required": ["id", "type", "variant", "child"]
-                            },
-                            {
-                              "title": "Rate Limit Node",
-                              "description": "Used to limit the frequency with which users are contacted by a given Journey.",
-                              "type": "object",
-                              "properties": {
-                                "id": { "type": "string" },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["RateLimitNode"]
-                                }
-                              },
-                              "required": ["id", "type"]
-                            },
-                            {
-                              "title": "Segment Split Node",
-                              "description": "Used to split users among audiences, based on the behavior and attributes.",
-                              "type": "object",
-                              "properties": {
-                                "id": { "type": "string" },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["SegmentSplitNode"]
+                                {
+                                  "title": "Rate Limit Node",
+                                  "description": "Used to limit the frequency with which users are contacted by a given Journey.",
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["RateLimitNode"]
+                                    }
+                                  },
+                                  "required": ["id", "type"]
                                 },
-                                "variant": {
-                                  "anyOf": [
-                                    {
+                                {
+                                  "title": "Segment Split Node",
+                                  "description": "Used to split users among audiences, based on the behavior and attributes.",
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["SegmentSplitNode"]
+                                    },
+                                    "variant": {
                                       "type": "object",
                                       "properties": {
                                         "type": {
                                           "type": "string",
                                           "enum": ["Boolean"]
                                         },
-                                        "segment": { "type": "string" },
-                                        "trueChild": { "type": "string" },
-                                        "falseChild": { "type": "string" }
+                                        "segment": {
+                                          "type": "string"
+                                        },
+                                        "trueChild": {
+                                          "type": "string"
+                                        },
+                                        "falseChild": {
+                                          "type": "string"
+                                        }
                                       },
                                       "required": [
                                         "type",
@@ -166,69 +171,83 @@
                                         "trueChild",
                                         "falseChild"
                                       ]
+                                    },
+                                    "name": {
+                                      "type": "string"
                                     }
-                                  ]
+                                  },
+                                  "required": ["id", "type", "variant"]
                                 },
-                                "name": { "type": "string" }
-                              },
-                              "required": ["id", "type", "variant"]
-                            },
-                            {
-                              "title": "Message Node",
-                              "description": "Used to contact a user on a message channel.",
-                              "type": "object",
-                              "properties": {
-                                "id": { "type": "string" },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["MessageNode"]
-                                },
-                                "name": { "type": "string" },
-                                "variant": {
-                                  "anyOf": [
-                                    {
+                                {
+                                  "title": "Message Node",
+                                  "description": "Used to contact a user on a message channel.",
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["MessageNode"]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "variant": {
                                       "type": "object",
                                       "properties": {
                                         "type": {
                                           "type": "string",
                                           "enum": ["Email"]
                                         },
-                                        "templateId": { "type": "string" }
+                                        "templateId": {
+                                          "type": "string"
+                                        }
                                       },
                                       "required": ["type", "templateId"]
+                                    },
+                                    "child": {
+                                      "type": "string"
                                     }
-                                  ]
+                                  },
+                                  "required": ["id", "type", "variant", "child"]
                                 },
-                                "child": { "type": "string" }
-                              },
-                              "required": ["id", "type", "variant", "child"]
-                            },
-                            {
-                              "title": "Experiment Split Node",
-                              "description": "Used to split users among experiment paths, to test their effectiveness.",
-                              "type": "object",
-                              "properties": {
-                                "id": { "type": "string" },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["ExperimentSplitNode"]
+                                {
+                                  "title": "Experiment Split Node",
+                                  "description": "Used to split users among experiment paths, to test their effectiveness.",
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["ExperimentSplitNode"]
+                                    }
+                                  },
+                                  "required": ["id", "type"]
                                 }
-                              },
-                              "required": ["id", "type"]
+                              ]
                             }
-                          ]
-                        }
+                          }
+                        },
+                        "required": ["entryNode", "exitNode", "nodes"]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
                       }
                     },
-                    "required": ["entryNode", "exitNode", "nodes"]
-                  },
-                  "id": { "type": "string" }
-                },
-                "required": ["id"]
+                    "required": ["id"]
+                  }
+                ]
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -238,14 +257,29 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "string" },
-                    "workspaceId": { "type": "string" },
-                    "name": { "type": "string" },
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
                     "status": {
                       "anyOf": [
-                        { "type": "string", "enum": ["NotStarted"] },
-                        { "type": "string", "enum": ["Running"] },
-                        { "type": "string", "enum": ["Paused"] }
+                        {
+                          "type": "string",
+                          "enum": ["NotStarted"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["Running"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["Paused"]
+                        }
                       ]
                     },
                     "definition": {
@@ -256,9 +290,16 @@
                           "description": "The first node in a journey, which limits it to a specific segment.",
                           "type": "object",
                           "properties": {
-                            "type": { "type": "string", "enum": ["EntryNode"] },
-                            "segment": { "type": "string" },
-                            "child": { "type": "string" }
+                            "type": {
+                              "type": "string",
+                              "enum": ["EntryNode"]
+                            },
+                            "segment": {
+                              "type": "string"
+                            },
+                            "child": {
+                              "type": "string"
+                            }
                           },
                           "required": ["type", "segment", "child"]
                         },
@@ -267,7 +308,10 @@
                           "description": "Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.",
                           "type": "object",
                           "properties": {
-                            "type": { "type": "string", "enum": ["ExitNode"] }
+                            "type": {
+                              "type": "string",
+                              "enum": ["ExitNode"]
+                            }
                           },
                           "required": ["type"]
                         },
@@ -280,27 +324,29 @@
                                 "description": "Delays a users progression through the journey for either a set amount of time, or until a specific date time.",
                                 "type": "object",
                                 "properties": {
-                                  "id": { "type": "string" },
+                                  "id": {
+                                    "type": "string"
+                                  },
                                   "type": {
                                     "type": "string",
                                     "enum": ["DelayNode"]
                                   },
                                   "variant": {
-                                    "anyOf": [
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": ["Second"]
-                                          },
-                                          "seconds": { "type": "number" }
-                                        },
-                                        "required": ["type", "seconds"]
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": ["Second"]
+                                      },
+                                      "seconds": {
+                                        "type": "number"
                                       }
-                                    ]
+                                    },
+                                    "required": ["type", "seconds"]
                                   },
-                                  "child": { "type": "string" }
+                                  "child": {
+                                    "type": "string"
+                                  }
                                 },
                                 "required": ["id", "type", "variant", "child"]
                               },
@@ -309,7 +355,9 @@
                                 "description": "Used to limit the frequency with which users are contacted by a given Journey.",
                                 "type": "object",
                                 "properties": {
-                                  "id": { "type": "string" },
+                                  "id": {
+                                    "type": "string"
+                                  },
                                   "type": {
                                     "type": "string",
                                     "enum": ["RateLimitNode"]
@@ -322,34 +370,40 @@
                                 "description": "Used to split users among audiences, based on the behavior and attributes.",
                                 "type": "object",
                                 "properties": {
-                                  "id": { "type": "string" },
+                                  "id": {
+                                    "type": "string"
+                                  },
                                   "type": {
                                     "type": "string",
                                     "enum": ["SegmentSplitNode"]
                                   },
                                   "variant": {
-                                    "anyOf": [
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": ["Boolean"]
-                                          },
-                                          "segment": { "type": "string" },
-                                          "trueChild": { "type": "string" },
-                                          "falseChild": { "type": "string" }
-                                        },
-                                        "required": [
-                                          "type",
-                                          "segment",
-                                          "trueChild",
-                                          "falseChild"
-                                        ]
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": ["Boolean"]
+                                      },
+                                      "segment": {
+                                        "type": "string"
+                                      },
+                                      "trueChild": {
+                                        "type": "string"
+                                      },
+                                      "falseChild": {
+                                        "type": "string"
                                       }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "segment",
+                                      "trueChild",
+                                      "falseChild"
                                     ]
                                   },
-                                  "name": { "type": "string" }
+                                  "name": {
+                                    "type": "string"
+                                  }
                                 },
                                 "required": ["id", "type", "variant"]
                               },
@@ -358,28 +412,32 @@
                                 "description": "Used to contact a user on a message channel.",
                                 "type": "object",
                                 "properties": {
-                                  "id": { "type": "string" },
+                                  "id": {
+                                    "type": "string"
+                                  },
                                   "type": {
                                     "type": "string",
                                     "enum": ["MessageNode"]
                                   },
-                                  "name": { "type": "string" },
-                                  "variant": {
-                                    "anyOf": [
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": ["Email"]
-                                          },
-                                          "templateId": { "type": "string" }
-                                        },
-                                        "required": ["type", "templateId"]
-                                      }
-                                    ]
+                                  "name": {
+                                    "type": "string"
                                   },
-                                  "child": { "type": "string" }
+                                  "variant": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "type": "string",
+                                        "enum": ["Email"]
+                                      },
+                                      "templateId": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": ["type", "templateId"]
+                                  },
+                                  "child": {
+                                    "type": "string"
+                                  }
                                 },
                                 "required": ["id", "type", "variant", "child"]
                               },
@@ -388,7 +446,9 @@
                                 "description": "Used to split users among experiment paths, to test their effectiveness.",
                                 "type": "object",
                                 "properties": {
-                                  "id": { "type": "string" },
+                                  "id": {
+                                    "type": "string"
+                                  },
                                   "type": {
                                     "type": "string",
                                     "enum": ["ExperimentSplitNode"]
@@ -415,171 +475,648 @@
             }
           }
         }
-      }
-    },
-    "/api/segments/": {
-      "put": {
-        "description": "Create or update an audience segment within journeys.",
+      },
+      "delete": {
+        "description": "Delete a journey.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "workspaceId": { "type": "string" },
-                  "name": { "type": "string" },
-                  "definition": {
-                    "type": "object",
-                    "properties": {
-                      "entryNode": {
-                        "anyOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "type": { "type": "string", "enum": ["Trait"] },
-                              "id": { "type": "string" },
-                              "path": { "type": "string" },
-                              "operator": {
-                                "anyOf": [
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "enum": ["Within"]
-                                      },
-                                      "windowSeconds": { "type": "number" }
-                                    },
-                                    "required": ["type", "windowSeconds"]
-                                  },
-                                  {
-                                    "type": "object",
-                                    "properties": {
-                                      "type": {
-                                        "type": "string",
-                                        "enum": ["Equals"]
-                                      },
-                                      "value": {
-                                        "anyOf": [
-                                          { "type": "string" },
-                                          { "type": "number" }
-                                        ]
-                                      }
-                                    },
-                                    "required": ["type", "value"]
-                                  }
-                                ]
-                              }
-                            },
-                            "required": ["type", "id", "path", "operator"]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "type": { "type": "string", "enum": ["And"] },
-                              "id": { "type": "string" },
-                              "children": {
-                                "type": "array",
-                                "items": { "type": "string" }
-                              }
-                            },
-                            "required": ["type", "id", "children"]
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "type": { "type": "string", "enum": ["Or"] },
-                              "id": { "type": "string" },
-                              "children": {
-                                "type": "array",
-                                "items": { "type": "string" }
-                              }
-                            },
-                            "required": ["type", "id", "children"]
-                          }
-                        ]
-                      },
-                      "nodes": {
-                        "type": "array",
-                        "items": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": { "type": "string", "enum": ["Trait"] },
-                                "id": { "type": "string" },
-                                "path": { "type": "string" },
-                                "operator": {
-                                  "anyOf": [
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "enum": ["Within"]
-                                        },
-                                        "windowSeconds": { "type": "number" }
-                                      },
-                                      "required": ["type", "windowSeconds"]
-                                    },
-                                    {
-                                      "type": "object",
-                                      "properties": {
-                                        "type": {
-                                          "type": "string",
-                                          "enum": ["Equals"]
-                                        },
-                                        "value": {
-                                          "anyOf": [
-                                            { "type": "string" },
-                                            { "type": "number" }
-                                          ]
-                                        }
-                                      },
-                                      "required": ["type", "value"]
-                                    }
-                                  ]
-                                }
-                              },
-                              "required": ["type", "id", "path", "operator"]
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": { "type": "string", "enum": ["And"] },
-                                "id": { "type": "string" },
-                                "children": {
-                                  "type": "array",
-                                  "items": { "type": "string" }
-                                }
-                              },
-                              "required": ["type", "id", "children"]
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": { "type": "string", "enum": ["Or"] },
-                                "id": { "type": "string" },
-                                "children": {
-                                  "type": "array",
-                                  "items": { "type": "string" }
-                                }
-                              },
-                              "required": ["type", "id", "children"]
-                            }
-                          ]
-                        }
-                      }
-                    },
-                    "required": ["entryNode", "nodes"]
-                  },
-                  "id": { "type": "string" }
+                  "id": {
+                    "type": "string"
+                  }
                 },
                 "required": ["id"]
               }
             }
           },
           "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/segments/": {
+      "put": {
+        "description": "Create or update a user segment.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "definition": {
+                        "type": "object",
+                        "properties": {
+                          "entryNode": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["Trait"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "operator": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["Within"]
+                                          },
+                                          "windowSeconds": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        "required": ["type", "windowSeconds"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["Equals"]
+                                          },
+                                          "value": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "number"
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "required": ["type", "value"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["HasBeen"]
+                                          },
+                                          "comparator": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "enum": ["GTE"]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": ["LT"]
+                                              }
+                                            ]
+                                          },
+                                          "value": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "number"
+                                              }
+                                            ]
+                                          },
+                                          "windowSeconds": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "comparator",
+                                          "value",
+                                          "windowSeconds"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": ["type", "id", "path", "operator"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["And"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": ["type", "id", "children"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["Or"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "children": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": ["type", "id", "children"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["Performed"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "event": {
+                                    "type": "string"
+                                  },
+                                  "properties": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "path": {
+                                          "type": "string"
+                                        },
+                                        "operator": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": ["Within"]
+                                                },
+                                                "windowSeconds": {
+                                                  "type": "number"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "windowSeconds"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": ["Equals"]
+                                                },
+                                                "value": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              "required": ["type", "value"]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": ["HasBeen"]
+                                                },
+                                                "comparator": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string",
+                                                      "enum": ["GTE"]
+                                                    },
+                                                    {
+                                                      "type": "string",
+                                                      "enum": ["LT"]
+                                                    }
+                                                  ]
+                                                },
+                                                "value": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    }
+                                                  ]
+                                                },
+                                                "windowSeconds": {
+                                                  "type": "number"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "comparator",
+                                                "value",
+                                                "windowSeconds"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": ["path", "operator"]
+                                    }
+                                  }
+                                },
+                                "required": ["type", "id", "event"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["Broadcast"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["type", "id"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["SubscriptionGroup"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "subscriptionGroupId": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id",
+                                  "subscriptionGroupId"
+                                ]
+                              }
+                            ]
+                          },
+                          "nodes": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["Trait"]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "path": {
+                                      "type": "string"
+                                    },
+                                    "operator": {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": ["Within"]
+                                            },
+                                            "windowSeconds": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": ["type", "windowSeconds"]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": ["Equals"]
+                                            },
+                                            "value": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "number"
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "required": ["type", "value"]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": ["HasBeen"]
+                                            },
+                                            "comparator": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": ["GTE"]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": ["LT"]
+                                                }
+                                              ]
+                                            },
+                                            "value": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "number"
+                                                }
+                                              ]
+                                            },
+                                            "windowSeconds": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "comparator",
+                                            "value",
+                                            "windowSeconds"
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "required": ["type", "id", "path", "operator"]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["And"]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "children": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": ["type", "id", "children"]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["Or"]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "children": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": ["type", "id", "children"]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["Performed"]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "event": {
+                                      "type": "string"
+                                    },
+                                    "properties": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "path": {
+                                            "type": "string"
+                                          },
+                                          "operator": {
+                                            "anyOf": [
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "type": {
+                                                    "type": "string",
+                                                    "enum": ["Within"]
+                                                  },
+                                                  "windowSeconds": {
+                                                    "type": "number"
+                                                  }
+                                                },
+                                                "required": [
+                                                  "type",
+                                                  "windowSeconds"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "type": {
+                                                    "type": "string",
+                                                    "enum": ["Equals"]
+                                                  },
+                                                  "value": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                "required": ["type", "value"]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "type": {
+                                                    "type": "string",
+                                                    "enum": ["HasBeen"]
+                                                  },
+                                                  "comparator": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string",
+                                                        "enum": ["GTE"]
+                                                      },
+                                                      {
+                                                        "type": "string",
+                                                        "enum": ["LT"]
+                                                      }
+                                                    ]
+                                                  },
+                                                  "value": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "number"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "windowSeconds": {
+                                                    "type": "number"
+                                                  }
+                                                },
+                                                "required": [
+                                                  "type",
+                                                  "comparator",
+                                                  "value",
+                                                  "windowSeconds"
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "required": ["path", "operator"]
+                                      }
+                                    }
+                                  },
+                                  "required": ["type", "id", "event"]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["Broadcast"]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": ["type", "id"]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["SubscriptionGroup"]
+                                    },
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "subscriptionGroupId": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "id",
+                                    "subscriptionGroupId"
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "required": ["entryNode", "nodes"]
+                      },
+                      "subscriptionGroupId": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["id"]
+                  }
+                ]
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -589,9 +1126,15 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "string" },
-                    "workspaceId": { "type": "string" },
-                    "name": { "type": "string" },
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
                     "definition": {
                       "type": "object",
                       "properties": {
@@ -600,9 +1143,16 @@
                             {
                               "type": "object",
                               "properties": {
-                                "type": { "type": "string", "enum": ["Trait"] },
-                                "id": { "type": "string" },
-                                "path": { "type": "string" },
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["Trait"]
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                },
                                 "operator": {
                                   "anyOf": [
                                     {
@@ -612,7 +1162,9 @@
                                           "type": "string",
                                           "enum": ["Within"]
                                         },
-                                        "windowSeconds": { "type": "number" }
+                                        "windowSeconds": {
+                                          "type": "number"
+                                        }
                                       },
                                       "required": ["type", "windowSeconds"]
                                     },
@@ -625,12 +1177,56 @@
                                         },
                                         "value": {
                                           "anyOf": [
-                                            { "type": "string" },
-                                            { "type": "number" }
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "number"
+                                            }
                                           ]
                                         }
                                       },
                                       "required": ["type", "value"]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["HasBeen"]
+                                        },
+                                        "comparator": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "enum": ["GTE"]
+                                            },
+                                            {
+                                              "type": "string",
+                                              "enum": ["LT"]
+                                            }
+                                          ]
+                                        },
+                                        "value": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "number"
+                                            }
+                                          ]
+                                        },
+                                        "windowSeconds": {
+                                          "type": "number"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "comparator",
+                                        "value",
+                                        "windowSeconds"
+                                      ]
                                     }
                                   ]
                                 }
@@ -640,11 +1236,18 @@
                             {
                               "type": "object",
                               "properties": {
-                                "type": { "type": "string", "enum": ["And"] },
-                                "id": { "type": "string" },
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["And"]
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
                                 "children": {
                                   "type": "array",
-                                  "items": { "type": "string" }
+                                  "items": {
+                                    "type": "string"
+                                  }
                                 }
                               },
                               "required": ["type", "id", "children"]
@@ -652,14 +1255,158 @@
                             {
                               "type": "object",
                               "properties": {
-                                "type": { "type": "string", "enum": ["Or"] },
-                                "id": { "type": "string" },
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["Or"]
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
                                 "children": {
                                   "type": "array",
-                                  "items": { "type": "string" }
+                                  "items": {
+                                    "type": "string"
+                                  }
                                 }
                               },
                               "required": ["type", "id", "children"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["Performed"]
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "event": {
+                                  "type": "string"
+                                },
+                                "properties": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "path": {
+                                        "type": "string"
+                                      },
+                                      "operator": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": ["Within"]
+                                              },
+                                              "windowSeconds": {
+                                                "type": "number"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "windowSeconds"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": ["Equals"]
+                                              },
+                                              "value": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "number"
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "required": ["type", "value"]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": ["HasBeen"]
+                                              },
+                                              "comparator": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string",
+                                                    "enum": ["GTE"]
+                                                  },
+                                                  {
+                                                    "type": "string",
+                                                    "enum": ["LT"]
+                                                  }
+                                                ]
+                                              },
+                                              "value": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "number"
+                                                  }
+                                                ]
+                                              },
+                                              "windowSeconds": {
+                                                "type": "number"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "comparator",
+                                              "value",
+                                              "windowSeconds"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "required": ["path", "operator"]
+                                  }
+                                }
+                              },
+                              "required": ["type", "id", "event"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["Broadcast"]
+                                },
+                                "id": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["type", "id"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["SubscriptionGroup"]
+                                },
+                                "id": {
+                                  "type": "string"
+                                },
+                                "subscriptionGroupId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["type", "id", "subscriptionGroupId"]
                             }
                           ]
                         },
@@ -674,8 +1421,12 @@
                                     "type": "string",
                                     "enum": ["Trait"]
                                   },
-                                  "id": { "type": "string" },
-                                  "path": { "type": "string" },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  },
                                   "operator": {
                                     "anyOf": [
                                       {
@@ -685,7 +1436,9 @@
                                             "type": "string",
                                             "enum": ["Within"]
                                           },
-                                          "windowSeconds": { "type": "number" }
+                                          "windowSeconds": {
+                                            "type": "number"
+                                          }
                                         },
                                         "required": ["type", "windowSeconds"]
                                       },
@@ -698,12 +1451,56 @@
                                           },
                                           "value": {
                                             "anyOf": [
-                                              { "type": "string" },
-                                              { "type": "number" }
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "number"
+                                              }
                                             ]
                                           }
                                         },
                                         "required": ["type", "value"]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["HasBeen"]
+                                          },
+                                          "comparator": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "enum": ["GTE"]
+                                              },
+                                              {
+                                                "type": "string",
+                                                "enum": ["LT"]
+                                              }
+                                            ]
+                                          },
+                                          "value": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "number"
+                                              }
+                                            ]
+                                          },
+                                          "windowSeconds": {
+                                            "type": "number"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "comparator",
+                                          "value",
+                                          "windowSeconds"
+                                        ]
                                       }
                                     ]
                                   }
@@ -713,11 +1510,18 @@
                               {
                                 "type": "object",
                                 "properties": {
-                                  "type": { "type": "string", "enum": ["And"] },
-                                  "id": { "type": "string" },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["And"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
                                   "children": {
                                     "type": "array",
-                                    "items": { "type": "string" }
+                                    "items": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "required": ["type", "id", "children"]
@@ -725,23 +1529,286 @@
                               {
                                 "type": "object",
                                 "properties": {
-                                  "type": { "type": "string", "enum": ["Or"] },
-                                  "id": { "type": "string" },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["Or"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
                                   "children": {
                                     "type": "array",
-                                    "items": { "type": "string" }
+                                    "items": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "required": ["type", "id", "children"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["Performed"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "event": {
+                                    "type": "string"
+                                  },
+                                  "properties": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "path": {
+                                          "type": "string"
+                                        },
+                                        "operator": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": ["Within"]
+                                                },
+                                                "windowSeconds": {
+                                                  "type": "number"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "windowSeconds"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": ["Equals"]
+                                                },
+                                                "value": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              "required": ["type", "value"]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": ["HasBeen"]
+                                                },
+                                                "comparator": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string",
+                                                      "enum": ["GTE"]
+                                                    },
+                                                    {
+                                                      "type": "string",
+                                                      "enum": ["LT"]
+                                                    }
+                                                  ]
+                                                },
+                                                "value": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "number"
+                                                    }
+                                                  ]
+                                                },
+                                                "windowSeconds": {
+                                                  "type": "number"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "comparator",
+                                                "value",
+                                                "windowSeconds"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": ["path", "operator"]
+                                    }
+                                  }
+                                },
+                                "required": ["type", "id", "event"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["Broadcast"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": ["type", "id"]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": ["SubscriptionGroup"]
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "subscriptionGroupId": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "id",
+                                  "subscriptionGroupId"
+                                ]
                               }
                             ]
                           }
                         }
                       },
                       "required": ["entryNode", "nodes"]
+                    },
+                    "subscriptionGroupId": {
+                      "type": "string"
                     }
                   },
                   "required": ["id", "workspaceId", "name", "definition"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete a segment.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/segments/broadcasts": {
+      "put": {
+        "description": "Submit a broadcast for a segment.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "segmentId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "workspaceId", "name", "segmentId"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "segmentId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "number"
+                    },
+                    "triggeredAt": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "workspaceId",
+                    "name",
+                    "segmentId",
+                    "createdAt"
+                  ]
                 }
               }
             }
@@ -758,18 +1825,21 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "workspaceId": { "type": "string" },
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "variant": {
-                    "anyOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": { "type": "string", "enum": ["SegmentIO"] },
-                          "sharedSecret": { "type": "string" }
-                        },
-                        "required": ["type", "sharedSecret"]
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["SegmentIO"]
+                      },
+                      "sharedSecret": {
+                        "type": "string"
                       }
-                    ]
+                    },
+                    "required": ["type", "sharedSecret"]
                   }
                 },
                 "required": ["workspaceId", "variant"]
@@ -786,19 +1856,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "string" },
-                    "workspaceId": { "type": "string" },
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
                     "variant": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "type": { "type": "string", "enum": ["SegmentIO"] },
-                            "sharedSecret": { "type": "string" }
-                          },
-                          "required": ["type", "sharedSecret"]
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": ["SegmentIO"]
+                        },
+                        "sharedSecret": {
+                          "type": "string"
                         }
-                      ]
+                      },
+                      "required": ["type", "sharedSecret"]
                     }
                   },
                   "required": ["id", "workspaceId", "variant"]
@@ -812,7 +1887,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": { "error": { "type": "string" } },
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
                   "required": ["error"]
                 }
               }
@@ -831,23 +1910,61 @@
                 "anyOf": [
                   {
                     "type": "object",
-                    "properties": {
-                      "workspaceId": { "type": "string" },
-                      "type": { "type": "string", "enum": ["SendGrid"] },
-                      "apiKey": { "type": "string" },
-                      "id": { "type": "string" }
-                    },
-                    "required": ["id"]
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["SendGrid"]
+                          },
+                          "apiKey": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "workspaceId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "workspaceId"]
+                      }
+                    ]
                   },
                   {
                     "type": "object",
-                    "properties": {
-                      "id": { "type": "string" },
-                      "apiKey": { "type": "string" },
-                      "workspaceId": { "type": "string" },
-                      "type": { "type": "string", "enum": ["SendGrid"] }
-                    },
-                    "required": ["workspaceId", "type"]
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "apiKey": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "workspaceId": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": ["SendGrid"]
+                          }
+                        },
+                        "required": ["workspaceId", "type"]
+                      }
+                    ]
                   }
                 ]
               }
@@ -862,23 +1979,31 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "id": { "type": "string" },
-                            "workspaceId": { "type": "string" },
-                            "type": { "type": "string", "enum": ["SendGrid"] },
-                            "apiKey": { "type": "string" }
-                          },
-                          "required": ["id", "workspaceId", "type", "apiKey"]
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "workspaceId": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": ["SendGrid"]
+                        },
+                        "apiKey": {
+                          "type": "string"
                         }
-                      ]
+                      },
+                      "required": ["id", "workspaceId", "type", "apiKey"]
                     },
                     {
                       "type": "object",
                       "properties": {
-                        "type": { "type": "string", "enum": ["Test"] }
+                        "type": {
+                          "type": "string",
+                          "enum": ["Test"]
+                        }
                       },
                       "required": ["type"]
                     }
@@ -890,24 +2015,45 @@
         }
       }
     },
-    "/api/content/messages": {
+    "/api/content/templates": {
       "put": {
-        "description": "Create or update email provider settings",
+        "description": "Create or update message template",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "anyOf": [
+                "type": "object",
+                "allOf": [
                   {
                     "type": "object",
                     "properties": {
-                      "type": { "type": "string", "enum": ["Email"] },
-                      "workspaceId": { "type": "string" },
-                      "name": { "type": "string" },
-                      "from": { "type": "string" },
-                      "subject": { "type": "string" },
-                      "body": { "type": "string" },
-                      "id": { "type": "string" }
+                      "type": {
+                        "type": "string",
+                        "enum": ["Email"]
+                      },
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "from": {
+                        "type": "string"
+                      },
+                      "subject": {
+                        "type": "string"
+                      },
+                      "body": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
                     },
                     "required": ["id"]
                   }
@@ -922,36 +2068,748 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "type": { "type": "string", "enum": ["Email"] },
-                        "workspaceId": { "type": "string" },
-                        "id": { "type": "string" },
-                        "name": { "type": "string" },
-                        "from": { "type": "string" },
-                        "subject": { "type": "string" },
-                        "body": { "type": "string" }
-                      },
-                      "required": [
-                        "type",
-                        "workspaceId",
-                        "id",
-                        "name",
-                        "from",
-                        "subject",
-                        "body"
-                      ]
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["Email"]
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "from": {
+                      "type": "string"
+                    },
+                    "subject": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
                     }
+                  },
+                  "required": [
+                    "type",
+                    "workspaceId",
+                    "id",
+                    "name",
+                    "from",
+                    "subject",
+                    "body"
                   ]
                 }
               }
             }
           }
         }
+      },
+      "delete": {
+        "description": "Delete a message template.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["Email"]
+                      }
+                    ]
+                  }
+                },
+                "required": ["id", "type"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/": {
+      "get": {
+        "description": "Get list of events",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "messageId": {
+                            "type": "string"
+                          },
+                          "eventType": {
+                            "type": "string"
+                          },
+                          "event": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "anonymousId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "processingTime": {
+                            "type": "string"
+                          },
+                          "eventTime": {
+                            "type": "string"
+                          },
+                          "traits": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "messageId",
+                          "eventType",
+                          "event",
+                          "userId",
+                          "anonymousId",
+                          "processingTime",
+                          "eventTime",
+                          "traits"
+                        ]
+                      }
+                    },
+                    "count": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["events", "count"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/": {
+      "get": {
+        "description": "Get list of users",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "segmentId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["after"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["before"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "direction",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "properties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "segments": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["id", "properties", "segments"]
+                      }
+                    },
+                    "previousCursor": {
+                      "type": "string"
+                    },
+                    "nextCursor": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["users"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user-properties/": {
+      "put": {
+        "description": "Create or update a user property.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "definition": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["Trait"]
+                              },
+                              "path": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["type", "path"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["Id"]
+                              }
+                            },
+                            "required": ["type"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["AnonymousId"]
+                              }
+                            },
+                            "required": ["type"]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["id", "name"]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "definition": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["Trait"]
+                            },
+                            "path": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["type", "path"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["Id"]
+                            }
+                          },
+                          "required": ["type"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["AnonymousId"]
+                            }
+                          },
+                          "required": ["type"]
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["id", "workspaceId", "name", "definition"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete a user property.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/subscription-groups/": {
+      "put": {
+        "description": "Create or update a journey.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["OptIn"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["OptOut"]
+                      }
+                    ]
+                  }
+                },
+                "required": ["id", "workspaceId", "name", "type"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["OptIn"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["OptOut"]
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["id", "workspaceId", "name", "type"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/subscription-groups/upload-csv": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csv": {
+                    "type": "string"
+                  }
+                },
+                "required": ["csv"]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-workspace-id",
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-subscription-group-id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/public/subscription-management/user-subscriptions": {
+      "put": {
+        "description": "Allows users to manage their subscriptions.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "description": "Workspace Id.",
+                        "type": "string"
+                      },
+                      "hash": {
+                        "description": "Subscription change hash, used to authenticate subscription changes.",
+                        "type": "string"
+                      },
+                      "identifier": {
+                        "description": "Identifier value for channel.",
+                        "type": "string"
+                      },
+                      "identifierKey": {
+                        "description": "Identifier key for channel.",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "hash",
+                      "identifier",
+                      "identifierKey"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "changes": {
+                        "description": "Subscription changes.",
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "required": ["changes"]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["message"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/webhooks/segment": {
+      "post": {
+        "description": "Used to consume segment.io webhook payloads. Must be exposed publicly to the internet.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "properties": {
+                  "messageId": {
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "type": "string"
+                  }
+                },
+                "required": ["messageId", "timestamp"]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "x-signature",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-workspace-id",
+            "required": false,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/internal-api/debug/boom": {
+      "get": {
+        "description": "Boom endpoint for throwing errors and testing telemetry.",
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
       }
     }
   },
-  "servers": [{ "url": "http://localhost" }]
+  "servers": [
+    {
+      "url": "http://localhost"
+    }
+  ]
 }
