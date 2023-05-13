@@ -316,21 +316,23 @@ function SendGridConfig() {
   const updateSendgridProviderRequest = useSettingsStore(
     (store) => store.updateSendgridProviderRequest
   );
-  const workspace = useAppStore((store) => store.workspace);
+  const workspaceResult = useAppStore((store) => store.workspace);
   const upsertEmailProvider = useAppStore((store) => store.upsertEmailProvider);
   const updateSendgridProviderApiKey = useSettingsStore(
     (store) => store.updateSendgridProviderApiKey
   );
-  const workspaceId =
-    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+  const workspace =
+    workspaceResult.type === CompletionStatus.Successful
+      ? workspaceResult.value
+      : null;
 
   const savedSendgridProvider: EmailProviderResource | null = useMemo(() => {
-    if (emailProviders.type !== CompletionStatus.Successful || !workspaceId) {
+    if (emailProviders.type !== CompletionStatus.Successful || !workspace?.id) {
       return null;
     }
     for (const emailProvider of emailProviders.value) {
       if (
-        emailProvider.workspaceId === workspaceId &&
+        emailProvider.workspaceId === workspace.id &&
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         emailProvider.type === EmailProviderType.Sendgrid
       ) {
@@ -338,9 +340,9 @@ function SendGridConfig() {
       }
     }
     return null;
-  }, [emailProviders, workspaceId]);
+  }, [emailProviders, workspace]);
 
-  if (!workspaceId) {
+  if (!workspace) {
     return null;
   }
 
@@ -348,7 +350,7 @@ function SendGridConfig() {
     id: savedSendgridProvider?.id,
     apiKey,
     type: EmailProviderType.Sendgrid,
-    workspaceId,
+    workspaceId: workspace.id,
   };
   const handleSubmit = apiRequestHandlerFactory({
     request: sendgridProviderRequest,
@@ -399,9 +401,11 @@ function SubscriptionManagementSettings() {
     useState<boolean>(true);
   const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
 
-  const workspace = useAppStore((store) => store.workspace);
-  const workspaceId =
-    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+  const workspaceResult = useAppStore((store) => store.workspace);
+  const workspace =
+    workspaceResult.type === CompletionStatus.Successful
+      ? workspaceResult.value
+      : null;
 
   const handleSendgridOpen = () => {
     setOpen((o) => !o);
@@ -415,7 +419,7 @@ function SubscriptionManagementSettings() {
         }))
       : [];
 
-  if (!workspaceId) {
+  if (!workspace) {
     return null;
   }
   const changedSubscription = fromSubscriptionChange
@@ -480,6 +484,7 @@ function SubscriptionManagementSettings() {
             <SubscriptionManagement
               key={`${fromSubscribe}-${fromSubscriptionChange}`}
               subscriptions={subscriptions}
+              workspaceName={workspace.name}
               onSubscriptionUpdate={async () => {}}
               subscriptionChange={
                 fromSubscribe
@@ -487,7 +492,7 @@ function SubscriptionManagementSettings() {
                   : SubscriptionChange.UnSubscribe
               }
               changedSubscription={changedSubscription}
-              workspaceId={workspaceId}
+              workspaceId={workspace.id}
               hash="example-hash"
               identifier="example@email.com"
               identifierKey="email"
