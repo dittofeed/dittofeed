@@ -29,6 +29,7 @@ export interface SubscriptionManagementProps {
   identifierKey: string;
   workspaceId: string;
   onSubscriptionUpdate: (update: UserSubscriptionsUpdate) => Promise<void>;
+  workspaceName: string;
 }
 
 export function SubscriptionManagement({
@@ -39,6 +40,7 @@ export function SubscriptionManagement({
   hash,
   identifier,
   identifierKey,
+  workspaceName,
   onSubscriptionUpdate,
 }: SubscriptionManagementProps) {
   const initialSubscriptionManagementState = React.useMemo(
@@ -122,7 +124,7 @@ export function SubscriptionManagement({
       }}
     >
       <Typography variant="h4">
-        Choose what messages you would like to receive
+        Choose what messages you would like to receive from {workspaceName}
       </Typography>
       {subscriptionChangeSection}
       <FormGroup>

@@ -21,6 +21,7 @@ import {
   SubscriptionManagement,
   SubscriptionManagementProps,
 } from "../components/subscriptionManagement";
+import prisma from "../lib/prisma";
 
 type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate"> & {
   apiBase: string;
@@ -44,12 +45,19 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
   }
   const { i, w, h, sub, s, ik } = params.value;
 
-  const userLookupResult = await lookupUserForSubscriptions({
-    workspaceId: w,
-    identifier: i,
-    identifierKey: ik,
-    hash: h,
-  });
+  const [userLookupResult, workspace] = await Promise.all([
+    lookupUserForSubscriptions({
+      workspaceId: w,
+      identifier: i,
+      identifierKey: ik,
+      hash: h,
+    }),
+    prisma().workspace.findUnique({
+      where: {
+        id: w,
+      },
+    }),
+  ]);
 
   if (userLookupResult.isErr()) {
     logger().info(
@@ -66,10 +74,31 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
     };
   }
 
+  if (!workspace) {
+    logger().error({
+      err: new Error("Workspace not found"),
+    });
+
+    return {
+      redirect: {
+        destination: UNAUTHORIZED_PAGE,
+        permanent: false,
+      },
+    };
+  }
+
   const { userId } = userLookupResult.value;
 
   let subscriptionChange: SubscriptionChange | undefined;
   if (s && sub) {
+    logger().debug(
+      {
+        subscriptionId: s,
+        subscriptionChange: sub,
+      },
+      "Subscription change"
+    );
+
     await updateUserSubscriptions({
       workspaceId: w,
       userId,
@@ -91,6 +120,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
     identifier: i,
     identifierKey: ik,
     workspaceId: w,
+    workspaceName: workspace.name,
   };
   if (subscriptionChange) {
     props.subscriptionChange = subscriptionChange;
@@ -125,6 +155,7 @@ const SubscriptionManagementPage: NextPage<SSP> =
       hash,
       identifier,
       identifierKey,
+      workspaceName,
     } = props;
     return (
       <>
@@ -146,6 +177,7 @@ const SubscriptionManagementPage: NextPage<SSP> =
               hash={hash}
               identifier={identifier}
               identifierKey={identifierKey}
+              workspaceName={workspaceName}
               onSubscriptionUpdate={onUpdate}
             />
           </Stack>

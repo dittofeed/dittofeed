@@ -8,6 +8,7 @@ import * as R from "remeda";
 import { v4 as uuid } from "uuid";
 
 import { generateSecureHash } from "./crypto";
+import logger from "./logger";
 import prisma from "./prisma";
 import {
   InternalEventType,
@@ -35,12 +36,6 @@ export function subscriptionGroupToResource(
     name: subscriptionGroup.name,
     type,
   };
-}
-
-export interface SubscriptionContext {
-  userId: string;
-  subscriptionSecret: string;
-  segmentId: string;
 }
 
 export function generateSubscriptionHash({
@@ -190,8 +185,16 @@ export async function getUserSubscriptions({
   const subscriptions: UserSubscriptionResource[] = [];
 
   for (const subscriptionGroup of subscriptionGroups) {
-    const inSegment =
-      subscriptionGroup.Segment[0]?.SegmentAssignment[0]?.inSegment === true;
+    const segment = subscriptionGroup.Segment[0];
+    if (!segment) {
+      // FIXME getting import error when using from dashboard
+      console.error(
+        { subscriptionGroup },
+        "No segment found for subscription group"
+      );
+      continue;
+    }
+    const inSegment = segment.SegmentAssignment[0]?.inSegment === true;
 
     const { id, name } = subscriptionGroup;
 
@@ -323,9 +326,20 @@ export async function updateUserSubscriptions({
     ([subscriptionGroupId, isSubscribed]) => {
       const segment = segmentBySubscriptionGroupId[subscriptionGroupId];
       if (!segment) {
+        // FIXME not working from dashboard
+        // logger().error({
+        console.error(
+          {
+            segmentBySubscriptionGroupId,
+            subscriptionGroupId,
+            segments,
+            changes,
+            changesKeys: Object.keys(changes),
+          },
+          "Segment not found for subscription group id"
+        );
         return [];
       }
-      // FIXME not workign
       return prisma().segmentAssignment.upsert({
         where: {
           workspaceId_userId_segmentId: {

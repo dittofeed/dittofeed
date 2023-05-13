@@ -18,7 +18,11 @@ import {
   generateComputePropertiesId,
 } from "./segments/computePropertiesWorkflow";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
-import { SubscriptionGroupType, UserPropertyDefinitionType } from "./types";
+import {
+  SegmentNodeType,
+  SubscriptionGroupType,
+  UserPropertyDefinitionType,
+} from "./types";
 import {
   createUserEventsTables,
   insertUserEvents,
@@ -35,6 +39,7 @@ async function bootstrapPostgres({
 
   await prismaMigrate();
 
+  // TODO allow workspace name to be updated
   await prisma().workspace.upsert({
     where: {
       id: workspaceId,
@@ -166,18 +171,43 @@ async function bootstrapPostgres({
     }),
   ]);
 
-  await prisma().subscriptionGroup.upsert({
+  const subscriptionGroupName = `${workspaceName} - Email`;
+
+  const emailSubscriptionGroup = await prisma().subscriptionGroup.upsert({
     where: {
       workspaceId_name: {
         workspaceId,
-        name: workspaceName,
+        name: subscriptionGroupName,
       },
     },
     create: {
       workspaceId,
-      name: `${workspaceName} - Email`,
+      name: subscriptionGroupName,
       type: SubscriptionGroupType.OptIn,
       channelId: emailChannel.id,
+    },
+    update: {},
+  });
+  await prisma().segment.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: subscriptionGroupName,
+      },
+    },
+    create: {
+      workspaceId,
+      name: subscriptionGroupName,
+      definition: {
+        entryNode: {
+          type: SegmentNodeType.SubscriptionGroup,
+          id: "1",
+          subscriptionGroupId: emailSubscriptionGroup.id,
+        },
+        nodes: [],
+      },
+      resourceType: "Internal",
+      subscriptionGroupId: emailSubscriptionGroup.id,
     },
     update: {},
   });
