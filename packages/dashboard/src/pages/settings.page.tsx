@@ -3,15 +3,23 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
   Button,
+  Checkbox,
   Collapse,
+  FormControlLabel,
+  FormGroup,
   IconButton,
   IconButtonProps,
+  Paper,
   Stack,
   styled,
+  Switch,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
+import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { SubscriptionChange } from "backend-lib/src/types";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -34,6 +42,7 @@ import { immer } from "zustand/middleware/immer";
 
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
+import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
@@ -49,30 +58,39 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const workspaceId = backendConfig().defaultWorkspaceId;
 
-    const [emailProviders, defaultEmailProviderRecord, workspace] =
-      await Promise.all([
-        (
-          await prisma().emailProvider.findMany({
-            where: { workspaceId },
-          })
-        ).map(({ id, type, apiKey }) => {
-          let providerType: EmailProviderType;
-          switch (type) {
-            case "SendGrid":
-              providerType = EmailProviderType.Sendgrid;
-              break;
-            default:
-              throw new Error("Unknown email provider type");
-          }
-          return { type: providerType, id, apiKey, workspaceId };
-        }),
-        prisma().defaultEmailProvider.findFirst({
+    const [
+      emailProviders,
+      defaultEmailProviderRecord,
+      workspace,
+      subscriptionGroups,
+    ] = await Promise.all([
+      (
+        await prisma().emailProvider.findMany({
           where: { workspaceId },
-        }),
-        prisma().workspace.findFirst({
-          where: { id: workspaceId },
-        }),
-      ]);
+        })
+      ).map(({ id, type, apiKey }) => {
+        let providerType: EmailProviderType;
+        switch (type) {
+          case "SendGrid":
+            providerType = EmailProviderType.Sendgrid;
+            break;
+          default:
+            throw new Error("Unknown email provider type");
+        }
+        return { type: providerType, id, apiKey, workspaceId };
+      }),
+      prisma().defaultEmailProvider.findFirst({
+        where: { workspaceId },
+      }),
+      prisma().workspace.findFirst({
+        where: { id: workspaceId },
+      }),
+      prisma().subscriptionGroup.findMany({
+        where: {
+          workspaceId,
+        },
+      }),
+    ]);
 
     const serverInitialState: PreloadedState = {
       emailProviders: {
@@ -94,6 +112,15 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         },
       };
     }
+
+    const subscriptionGroupResources = subscriptionGroups.map(
+      subscriptionGroupToResource
+    );
+
+    serverInitialState.subscriptionGroups = {
+      type: CompletionStatus.Successful,
+      value: subscriptionGroupResources,
+    };
 
     return {
       props: addInitialStateToProps({
@@ -209,6 +236,7 @@ export const useSettingsStore = create(
 );
 
 function SegmentIoConfig() {
+  const theme = useTheme();
   const sharedSecret = useSettingsStore((store) => store.segmentIoSharedSecret);
   const segmentIoRequest = useSettingsStore((store) => store.segmentIoRequest);
   const apiBase = useAppStore((store) => store.apiBase);
@@ -257,7 +285,7 @@ function SegmentIoConfig() {
     segmentIoRequest.type === CompletionStatus.InProgress;
 
   return (
-    <Stack sx={{ padding: 1 }} spacing={1}>
+    <Stack sx={{ padding: 1, width: theme.spacing(65) }} spacing={1}>
       <TextField
         label="Shared Secret"
         variant="outlined"
@@ -278,6 +306,7 @@ function SegmentIoConfig() {
 }
 
 function SendGridConfig() {
+  const theme = useTheme();
   const emailProviders = useAppStore((store) => store.emailProviders);
   const apiKey = useSettingsStore((store) => store.sendgridProviderApiKey);
   const apiBase = useAppStore((store) => store.apiBase);
@@ -287,21 +316,23 @@ function SendGridConfig() {
   const updateSendgridProviderRequest = useSettingsStore(
     (store) => store.updateSendgridProviderRequest
   );
-  const workspace = useAppStore((store) => store.workspace);
+  const workspaceResult = useAppStore((store) => store.workspace);
   const upsertEmailProvider = useAppStore((store) => store.upsertEmailProvider);
   const updateSendgridProviderApiKey = useSettingsStore(
     (store) => store.updateSendgridProviderApiKey
   );
-  const workspaceId =
-    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+  const workspace =
+    workspaceResult.type === CompletionStatus.Successful
+      ? workspaceResult.value
+      : null;
 
   const savedSendgridProvider: EmailProviderResource | null = useMemo(() => {
-    if (emailProviders.type !== CompletionStatus.Successful || !workspaceId) {
+    if (emailProviders.type !== CompletionStatus.Successful || !workspace?.id) {
       return null;
     }
     for (const emailProvider of emailProviders.value) {
       if (
-        emailProvider.workspaceId === workspaceId &&
+        emailProvider.workspaceId === workspace.id &&
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         emailProvider.type === EmailProviderType.Sendgrid
       ) {
@@ -309,9 +340,9 @@ function SendGridConfig() {
       }
     }
     return null;
-  }, [emailProviders, workspaceId]);
+  }, [emailProviders, workspace]);
 
-  if (!workspaceId) {
+  if (!workspace) {
     return null;
   }
 
@@ -319,7 +350,7 @@ function SendGridConfig() {
     id: savedSendgridProvider?.id,
     apiKey,
     type: EmailProviderType.Sendgrid,
-    workspaceId,
+    workspaceId: workspace.id,
   };
   const handleSubmit = apiRequestHandlerFactory({
     request: sendgridProviderRequest,
@@ -343,7 +374,7 @@ function SendGridConfig() {
     sendgridProviderRequest.type === CompletionStatus.InProgress;
 
   return (
-    <Stack sx={{ padding: 1 }} spacing={1}>
+    <Stack sx={{ padding: 1, width: theme.spacing(65) }} spacing={1}>
       <TextField
         label="API Key"
         variant="outlined"
@@ -363,6 +394,116 @@ function SendGridConfig() {
   );
 }
 
+function SubscriptionManagementSettings() {
+  const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
+  const [open, setOpen] = useState<boolean>(true);
+  const [fromSubscriptionChange, setFromSubscriptionChange] =
+    useState<boolean>(true);
+  const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
+
+  const workspaceResult = useAppStore((store) => store.workspace);
+  const workspace =
+    workspaceResult.type === CompletionStatus.Successful
+      ? workspaceResult.value
+      : null;
+
+  const handleSendgridOpen = () => {
+    setOpen((o) => !o);
+  };
+  const subscriptions =
+    subscriptionGroups.type === CompletionStatus.Successful
+      ? subscriptionGroups.value.map((sg, i) => ({
+          name: sg.name,
+          id: sg.id,
+          isSubscribed: !(i === 0 && fromSubscriptionChange && !fromSubscribe),
+        }))
+      : [];
+
+  if (!workspace) {
+    return null;
+  }
+  const changedSubscription = fromSubscriptionChange
+    ? subscriptions[0]?.id
+    : undefined;
+  return (
+    <>
+      <Box sx={{ width: "100%" }}>
+        <Button variant="text" onClick={handleSendgridOpen}>
+          <Typography variant="h4" sx={{ color: "black" }}>
+            Subscription Management
+          </Typography>
+        </Button>
+        <ExpandMore
+          expand={open}
+          onClick={handleSendgridOpen}
+          aria-expanded={open}
+          aria-label="show more"
+        >
+          <ExpandMoreIcon />
+        </ExpandMore>
+      </Box>
+      <Collapse in={open} unmountOnExit sx={{ p: 1 }}>
+        <Stack spacing={1}>
+          <Box>
+            <Box>
+              Preview of the subscription management page, that will be shown to
+              users.
+            </Box>
+            <FormGroup>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={fromSubscriptionChange}
+                    onChange={(e) =>
+                      setFromSubscriptionChange(e.target.checked)
+                    }
+                  />
+                }
+                label="User clicked subscription change link."
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={fromSubscribe}
+                    onChange={(e) => setFromSubscribe(e.target.checked)}
+                  />
+                }
+                label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
+              />
+            </FormGroup>
+          </Box>
+          <Paper
+            elevation={1}
+            sx={{
+              p: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <SubscriptionManagement
+              key={`${fromSubscribe}-${fromSubscriptionChange}`}
+              subscriptions={subscriptions}
+              workspaceName={workspace.name}
+              onSubscriptionUpdate={async () => {}}
+              subscriptionChange={
+                fromSubscribe
+                  ? SubscriptionChange.Subscribe
+                  : SubscriptionChange.UnSubscribe
+              }
+              changedSubscription={changedSubscription}
+              workspaceId={workspace.id}
+              hash="example-hash"
+              identifier="example@email.com"
+              identifierKey="email"
+            />
+          </Paper>
+        </Stack>
+      </Collapse>
+    </>
+  );
+}
+
 const Settings: NextPage<
   InferGetServerSidePropsType<typeof getServerSideProps>
 > = function Settings() {
@@ -377,7 +518,7 @@ const Settings: NextPage<
 
   return (
     <SettingsLayout>
-      <Stack spacing={1} sx={{ padding: 2, width: 500 }}>
+      <Stack spacing={1} sx={{ padding: 2, width: "100%" }}>
         <Typography
           id="data-sources-title"
           variant="h2"
@@ -431,6 +572,7 @@ const Settings: NextPage<
         <Collapse in={sendgridOpen} unmountOnExit>
           <SendGridConfig />
         </Collapse>
+        <SubscriptionManagementSettings />
       </Stack>
     </SettingsLayout>
   );

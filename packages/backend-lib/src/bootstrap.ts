@@ -1,9 +1,14 @@
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
+import {
+  DEBUG_USER_ID1,
+  SUBSCRIPTION_SECRET_NAME,
+} from "isomorphic-lib/src/constants";
 
 import { segmentIdentifyEvent } from "../test/factories/segment";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
+import { generateSecureKey } from "./crypto";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
 import prisma from "./prisma";
@@ -13,7 +18,11 @@ import {
   generateComputePropertiesId,
 } from "./segments/computePropertiesWorkflow";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
-import { UserPropertyDefinitionType } from "./types";
+import {
+  SegmentNodeType,
+  SubscriptionGroupType,
+  UserPropertyDefinitionType,
+} from "./types";
 import {
   createUserEventsTables,
   insertUserEvents,
@@ -30,6 +39,7 @@ async function bootstrapPostgres({
 
   await prismaMigrate();
 
+  // TODO allow workspace name to be updated
   await prisma().workspace.upsert({
     where: {
       id: workspaceId,
@@ -118,8 +128,22 @@ async function bootstrapPostgres({
       },
     ];
 
-  await Promise.all(
-    userProperties.map((up) =>
+  const [emailChannel] = await Promise.all([
+    prisma().channel.upsert({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: "email",
+        },
+      },
+      create: {
+        workspaceId,
+        name: "email",
+        identifier: "email",
+      },
+      update: {},
+    }),
+    ...userProperties.map((up) =>
       prisma().userProperty.upsert({
         where: {
           workspaceId_name: {
@@ -130,8 +154,63 @@ async function bootstrapPostgres({
         create: up,
         update: up,
       })
-    )
-  );
+    ),
+    prisma().secret.upsert({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: SUBSCRIPTION_SECRET_NAME,
+        },
+      },
+      create: {
+        workspaceId,
+        name: SUBSCRIPTION_SECRET_NAME,
+        value: generateSecureKey(),
+      },
+      update: {},
+    }),
+  ]);
+
+  const subscriptionGroupName = `${workspaceName} - Email`;
+
+  const emailSubscriptionGroup = await prisma().subscriptionGroup.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: subscriptionGroupName,
+      },
+    },
+    create: {
+      workspaceId,
+      name: subscriptionGroupName,
+      type: SubscriptionGroupType.OptIn,
+      channelId: emailChannel.id,
+    },
+    update: {},
+  });
+  await prisma().segment.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: subscriptionGroupName,
+      },
+    },
+    create: {
+      workspaceId,
+      name: subscriptionGroupName,
+      definition: {
+        entryNode: {
+          type: SegmentNodeType.SubscriptionGroup,
+          id: "1",
+          subscriptionGroupId: emailSubscriptionGroup.id,
+        },
+        nodes: [],
+      },
+      resourceType: "Internal",
+      subscriptionGroupId: emailSubscriptionGroup.id,
+    },
+    update: {},
+  });
 }
 
 async function bootstrapKafka() {
@@ -190,6 +269,8 @@ async function bootstrapWorker() {
 async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
   const messageId1 = randomUUID();
   const messageId2 = randomUUID();
+  logger().debug("Inserting default events.");
+
   await insertUserEvents({
     tableVersion: config().defaultUserEventsTableVersion,
     workspaceId,
@@ -198,10 +279,12 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
         messageId: messageId1,
         messageRaw: segmentIdentifyEvent({
           messageId: messageId1,
+          userId: DEBUG_USER_ID1,
           traits: {
             status: "onboarding",
             firstName: "Max",
             lastName: "Gurewitz",
+            email: "max@email.com",
             plan: "free",
             phone: "8005551234",
             // 1 day ago
@@ -217,6 +300,7 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
             status: "onboarded",
             firstName: "Chandler",
             lastName: "Craig",
+            email: "chandler@email.com",
             plan: "paid",
             // 2 days ago
             createdAt: new Date(Date.now() - 2 * 8.64 * 1000000).toISOString(),

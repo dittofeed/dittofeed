@@ -1,7 +1,7 @@
 // material-ui
 import { GithubOutlined } from "@ant-design/icons";
 import { Lock } from "@mui/icons-material";
-import { LoadingButton } from "@mui/lab";
+import LoadingButton from "@mui/lab/LoadingButton";
 import {
   Box,
   Dialog,

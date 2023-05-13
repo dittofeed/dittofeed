@@ -1,0 +1,20 @@
+---
+title: Updating Dittofeed's API docs
+---
+
+Updating Dittofeed's API docs requires running Dittofeed's API server locally, and copying the OpenAPI / Swagger spec to the docs package.
+
+First, start the API server:
+
+```bash
+yarn workspace api dev
+```
+
+Then, in a separate terminal, run the following command to copy the OpenAPI / Swagger spec to the docs package:
+
+```bash
+curl "http://localhost:3001/documentation/json" | jq "." > packages/docs/open-api.json
+```
+
+Note this command assumes you have [jq](https://stedolan.github.io/jq/) installed, which formats the JSON output from the API server.
+

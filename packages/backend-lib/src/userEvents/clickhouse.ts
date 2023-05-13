@@ -1,5 +1,6 @@
 import { clickhouseClient } from "../clickhouse";
 import config from "../config";
+import logger from "../logger";
 import prisma from "../prisma";
 import { ComputedPropertyAssignment, JSONValue } from "../types";
 
@@ -76,6 +77,12 @@ export async function insertUserEvents({
         processing_time: e.processingTime ?? null,
         message_id: e.messageId,
       };
+      logger().debug(
+        {
+          event: value,
+        },
+        "inserted user event"
+      );
       return value;
     }),
     format: "JSONEachRow",

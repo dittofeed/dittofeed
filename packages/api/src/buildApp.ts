@@ -50,6 +50,7 @@ async function buildApp() {
   // needs to be registered before fastifySwaggerUI
   await server.register(fastifySwagger, {
     openapi: {
+      openapi: "3.1.0",
       info: {
         title: "Dittofeed API",
         description: "Interactive API documentation.",

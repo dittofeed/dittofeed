@@ -1,4 +1,4 @@
-import { LoadingButton } from "@mui/lab";
+import LoadingButton from "@mui/lab/LoadingButton";
 import {
   Box,
   FormControl,
@@ -15,6 +15,7 @@ import { findManyJourneys } from "backend-lib/src/journeys";
 import {
   findAllEnrichedSegments,
   segmentHasBroadcast,
+  toSegmentResource,
 } from "backend-lib/src/segments";
 import { format } from "date-fns";
 import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
@@ -83,9 +84,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     if (segmentsResult.isOk()) {
       const segments = segmentsResult.value;
-      const broadcastSegments = segments.filter((s) =>
-        segmentHasBroadcast(s.definition)
-      );
+      const broadcastSegments = segments
+        .filter((s) => segmentHasBroadcast(s.definition))
+        .flatMap((s) => toSegmentResource(s).unwrapOr([]));
+
       appState.segments = {
         type: CompletionStatus.Successful,
         value: broadcastSegments,
