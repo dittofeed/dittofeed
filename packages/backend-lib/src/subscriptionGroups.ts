@@ -4,7 +4,7 @@ import {
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
-import R from "remeda";
+import * as R from "remeda";
 import { v4 as uuid } from "uuid";
 
 import { generateSecureHash } from "./crypto";
@@ -124,6 +124,7 @@ export async function generateSubscriptionChangeUrl({
     i,
     ik,
     h: hash,
+    s,
     sub: sub ? "1" : "0",
   };
   const queryString = new URLSearchParams(params).toString();
