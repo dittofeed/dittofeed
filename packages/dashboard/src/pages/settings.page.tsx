@@ -406,7 +406,6 @@ function SubscriptionManagementSettings() {
   const handleSendgridOpen = () => {
     setOpen((o) => !o);
   };
-  // FIXME debug why not updating when changing?
   const subscriptions =
     subscriptionGroups.type === CompletionStatus.Successful
       ? subscriptionGroups.value.map((sg, i) => ({
@@ -471,6 +470,7 @@ function SubscriptionManagementSettings() {
           </Box>
           <Paper elevation={1} sx={{ p: 1 }}>
             <SubscriptionManagement
+              key={`${fromSubscribe}-${fromSubscriptionChange}`}
               subscriptions={subscriptions}
               onSubmit={() => {}}
               subscriptionChange={
