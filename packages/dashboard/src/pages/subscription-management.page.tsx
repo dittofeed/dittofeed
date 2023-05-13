@@ -14,7 +14,7 @@ import React from "react";
 import { SubscriptionManagementProps } from "../components/subscriptionManagement";
 
 export const getServerSideProps: GetServerSideProps<
-  SubscriptionManagementProps
+  Omit<SubscriptionManagementProps, "onSubmit">
 > = async (ctx) => {
   const params = schemaValidate(ctx.query, SubscriptionParams);
   if (params.isErr()) {

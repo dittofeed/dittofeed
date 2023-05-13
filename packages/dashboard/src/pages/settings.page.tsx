@@ -3,18 +3,23 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
   Button,
+  Checkbox,
   Collapse,
+  FormControlLabel,
+  FormGroup,
   IconButton,
   IconButtonProps,
   Paper,
   Stack,
   styled,
+  Switch,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
 import backendConfig from "backend-lib/src/config";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { SubscriptionChange } from "backend-lib/src/types";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -390,6 +395,9 @@ function SendGridConfig() {
 function SubscriptionManagementSettings() {
   const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
   const [open, setOpen] = useState<boolean>(true);
+  const [fromSubscriptionChange, setFromSubscriptionChange] =
+    useState<boolean>(true);
+  const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
 
   const workspace = useAppStore((store) => store.workspace);
   const workspaceId =
@@ -398,18 +406,22 @@ function SubscriptionManagementSettings() {
   const handleSendgridOpen = () => {
     setOpen((o) => !o);
   };
+  // FIXME debug why not updating when changing?
   const subscriptions =
     subscriptionGroups.type === CompletionStatus.Successful
-      ? subscriptionGroups.value.map((sg) => ({
+      ? subscriptionGroups.value.map((sg, i) => ({
           name: sg.name,
           id: sg.id,
-          isSubscribed: true,
+          isSubscribed: !(i === 0 && fromSubscriptionChange && !fromSubscribe),
         }))
       : [];
 
   if (!workspaceId) {
     return null;
   }
+  const changedSubscription = fromSubscriptionChange
+    ? subscriptions[0]?.id
+    : undefined;
   return (
     <>
       <Box sx={{ width: "100%" }}>
@@ -430,12 +442,43 @@ function SubscriptionManagementSettings() {
       <Collapse in={open} unmountOnExit sx={{ p: 1 }}>
         <Stack spacing={1}>
           <Box>
-            Preview of the subscription management page, that will be shown to
-            users.
+            <Box>
+              Preview of the subscription management page, that will be shown to
+              users.
+            </Box>
+            <FormGroup>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={fromSubscriptionChange}
+                    onChange={(e) =>
+                      setFromSubscriptionChange(e.target.checked)
+                    }
+                  />
+                }
+                label="User clicked subscription change link."
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={fromSubscribe}
+                    onChange={(e) => setFromSubscribe(e.target.checked)}
+                  />
+                }
+                label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
+              />
+            </FormGroup>
           </Box>
           <Paper elevation={1} sx={{ p: 1 }}>
             <SubscriptionManagement
               subscriptions={subscriptions}
+              onSubmit={() => {}}
+              subscriptionChange={
+                fromSubscribe
+                  ? SubscriptionChange.Subscribe
+                  : SubscriptionChange.UnSubscribe
+              }
+              changedSubscription={changedSubscription}
               workspaceId={workspaceId}
               hash="example-hash"
               identifier="example@email.com"

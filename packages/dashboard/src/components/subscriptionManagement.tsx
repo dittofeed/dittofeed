@@ -10,7 +10,10 @@ import {
   useTheme,
 } from "@mui/material";
 import { SubscriptionChange } from "backend-lib/src/types";
-import { UserSubscriptionResource } from "isomorphic-lib/src/types";
+import {
+  UserSubscriptionResource,
+  UserSubscriptionsUpdate,
+} from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
 export type SubscriptionState = Record<string, boolean>;
@@ -22,6 +25,7 @@ export interface SubscriptionManagementProps {
   identifier: string;
   identifierKey: string;
   workspaceId: string;
+  onSubmit: (update: UserSubscriptionsUpdate) => void;
 }
 
 export function SubscriptionManagement({
@@ -32,11 +36,12 @@ export function SubscriptionManagement({
   hash,
   identifier,
   identifierKey,
+  onSubmit,
 }: SubscriptionManagementProps) {
   const initialSubscriptionManagementState = React.useMemo(
     () =>
       subscriptions.reduce<SubscriptionState>((acc, subscription) => {
-        acc[subscription.id] = true;
+        acc[subscription.id] = subscription.isSubscribed;
         return acc;
       }, {}),
     [subscriptions]
