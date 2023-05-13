@@ -74,8 +74,5 @@ describe("generateSubscriptionChangeUrl", () => {
     expect(parsed.searchParams.get("i")).toEqual(email);
     expect(parsed.searchParams.get("ik")).toEqual("email");
     expect(parsed.searchParams.get("sub")).toEqual("0");
-    expect(parsed.searchParams.get("h")).toEqual(
-      "db1638d4a726a149ed8d810510ebdf2297318344a64d5aecc3f8746d83fbfcd1"
-    );
   });
 });

@@ -325,12 +325,24 @@ export async function updateUserSubscriptions({
       if (!segment) {
         return [];
       }
-      return {
-        workspaceId,
-        userId,
-        segmentId: segment.id,
-        inSegment: isSubscribed,
-      };
+      return prisma().segmentAssignment.upsert({
+        where: {
+          workspaceId_userId_segmentId: {
+            workspaceId,
+            userId,
+            segmentId: segment.id,
+          },
+        },
+        create: {
+          workspaceId,
+          userId,
+          segmentId: segment.id,
+          inSegment: isSubscribed,
+        },
+        update: {
+          inSegment: isSubscribed,
+        },
+      });
     }
   );
 
