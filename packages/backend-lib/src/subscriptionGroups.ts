@@ -1,9 +1,10 @@
-import { SubscriptionGroup } from "@prisma/client";
+import { Segment, SubscriptionGroup } from "@prisma/client";
 import {
   SUBSCRIPTION_MANAGEMENT_PAGE,
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
+import R from "remeda";
 import { v4 as uuid } from "uuid";
 
 import { generateSecureHash } from "./crypto";
@@ -16,8 +17,9 @@ import {
   SubscriptionParams,
   UserSubscriptionLookup,
   UserSubscriptionResource,
+  UserSubscriptionsUpdate,
 } from "./types";
-import { InsertUserEvent } from "./userEvents";
+import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
 export function subscriptionGroupToResource(
   subscriptionGroup: SubscriptionGroup
@@ -259,8 +261,10 @@ export async function getUserSubscriptions({
   const subscriptions: UserSubscriptionResource[] = [];
 
   for (const subscriptionGroup of subscriptionGroups) {
-    const { Segment, name, id } = subscriptionGroup;
-    const inSegment = Segment[0]?.SegmentAssignment[0]?.inSegment === true;
+    const inSegment =
+      subscriptionGroup.Segment[0]?.SegmentAssignment[0]?.inSegment === true;
+
+    const { id, name } = subscriptionGroup;
 
     subscriptions.push({
       id,
@@ -315,8 +319,9 @@ export async function lookupUserForSubscriptions({
     return err(new Error("User not found"));
   }
 
+  // This is a programmatic error, should never happen
   if (!subscriptionSecret) {
-    return err(new Error("Subscription secret not found"));
+    throw new Error("Subscription secret not found");
   }
 
   const { userId } = userPropertyAssignment;
@@ -333,4 +338,78 @@ export async function lookupUserForSubscriptions({
     return err(new Error("Hash mismatch"));
   }
   return ok({ userId });
+}
+
+/**
+ *
+ * @param param0.userId id of the user to update
+ * @param param0.changes changes to apply to the user's subscriptions. Record of
+ * subscription group id -> isSubscribed
+ * @returns
+ */
+export async function updateUserSubscriptions({
+  workspaceId,
+  userId,
+  changes,
+}: {
+  workspaceId: string;
+  userId: string;
+  changes: UserSubscriptionsUpdate["changes"];
+}) {
+  const segments = await prisma().segment.findMany({
+    where: {
+      workspaceId,
+      subscriptionGroupId: {
+        in: Object.keys(changes),
+      },
+    },
+  });
+
+  const segmentBySubscriptionGroupId = segments.reduce<Record<string, Segment>>(
+    (acc, segment) => {
+      if (!segment.subscriptionGroupId) {
+        return acc;
+      }
+      return {
+        ...acc,
+        [segment.subscriptionGroupId]: segment,
+      };
+    },
+    {}
+  );
+
+  const changePairs = R.toPairs(changes);
+  const userEvents = changePairs.flatMap(
+    ([subscriptionGroupId, isSubscribed]) =>
+      buildSubscriptionChangeEvent({
+        action: isSubscribed
+          ? SubscriptionChange.Subscribe
+          : SubscriptionChange.UnSubscribe,
+        subscriptionGroupId,
+        userId,
+      })
+  );
+
+  const segmentAssignmentUpdates = changePairs.flatMap(
+    ([subscriptionGroupId, isSubscribed]) => {
+      const segment = segmentBySubscriptionGroupId[subscriptionGroupId];
+      if (!segment) {
+        return [];
+      }
+      return {
+        workspaceId,
+        userId,
+        segmentId: segment.id,
+        inSegment: isSubscribed,
+      };
+    }
+  );
+
+  await Promise.all([
+    ...segmentAssignmentUpdates,
+    insertUserEvents({
+      workspaceId,
+      userEvents,
+    }),
+  ]);
 }

@@ -1,15 +1,10 @@
 import {
-  buildSubscriptionChangeEvent,
-  generateSubscriptionHash,
   getUserSubscriptions,
   lookupUserForSubscriptions,
+  updateUserSubscriptions,
 } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
-import { insertUserEvents } from "backend-lib/src/userEvents";
-import {
-  SUBSCRIPTION_SECRET_NAME,
-  UNAUTHORIZED_PAGE,
-} from "isomorphic-lib/src/constants";
+import { UNAUTHORIZED_PAGE } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { SubscriptionParams } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
@@ -17,7 +12,6 @@ import Head from "next/head";
 import React from "react";
 
 import { SubscriptionManagementProps } from "../components/subscriptionManagement";
-import prisma from "../lib/prisma";
 
 export const getServerSideProps: GetServerSideProps<
   SubscriptionManagementProps
@@ -53,46 +47,13 @@ export const getServerSideProps: GetServerSideProps<
 
   let subscriptionChange: SubscriptionChange | undefined;
   if (s && sub) {
-    subscriptionChange =
-      sub === "1"
-        ? SubscriptionChange.Subscribe
-        : SubscriptionChange.UnSubscribe;
-
-    const segment = await prisma().segment.findFirst({
-      where: {
-        workspaceId: w,
-        subscriptionGroupId: s,
+    await updateUserSubscriptions({
+      workspaceId: w,
+      userId,
+      changes: {
+        [s]: sub === "1",
       },
     });
-
-    if (!segment) {
-      throw new Error(`Segment not found for subscription group ${s}`);
-    }
-
-    const event = buildSubscriptionChangeEvent({
-      action: subscriptionChange,
-      subscriptionGroupId: s,
-      userId,
-    });
-
-    await Promise.all([
-      prisma().segmentAssignment.update({
-        where: {
-          workspaceId_userId_segmentId: {
-            workspaceId: w,
-            userId,
-            segmentId: segment.id,
-          },
-        },
-        data: {
-          inSegment: sub === "1",
-        },
-      }),
-      insertUserEvents({
-        workspaceId: w,
-        userEvents: [event],
-      }),
-    ]);
   }
 
   const subscriptions = await getUserSubscriptions({
