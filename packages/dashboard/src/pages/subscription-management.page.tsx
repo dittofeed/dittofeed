@@ -11,10 +11,13 @@ import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import React from "react";
 
-import { SubscriptionManagementProps } from "../components/subscriptionManagement";
+import {
+  SubscriptionManagement,
+  SubscriptionManagementProps,
+} from "../components/subscriptionManagement";
 
 export const getServerSideProps: GetServerSideProps<
-  Omit<SubscriptionManagementProps, "onSubmit">
+  Omit<SubscriptionManagementProps, "onSubscriptionUpdate">
 > = async (ctx) => {
   const params = schemaValidate(ctx.query, SubscriptionParams);
   if (params.isErr()) {
@@ -74,19 +77,44 @@ export const getServerSideProps: GetServerSideProps<
   };
 };
 
-const SubscriptionManagement: NextPage<SubscriptionManagementProps> =
-  function SubscriptionManagement(props) {
-    return (
-      <>
-        <Head>
-          <title>Dittofeed</title>
-          <meta name="description" content="Open Source Customer Engagement" />
-        </Head>
-        <main>
-          <SubscriptionManagement {...props} />
-        </main>
-      </>
-    );
-  };
+const onUpdate: SubscriptionManagementProps["onSubscriptionUpdate"] = async (
+  changes
+) => {
+  return;
+};
 
-export default SubscriptionManagement;
+const SubscriptionManagementPage: NextPage<
+  Omit<SubscriptionManagementProps, "onSubscriptionUpdate">
+> = function SubscriptionManagementPage(props) {
+  const {
+    workspaceId,
+    subscriptions,
+    subscriptionChange,
+    changedSubscription,
+    hash,
+    identifier,
+    identifierKey,
+  } = props;
+  return (
+    <>
+      <Head>
+        <title>Dittofeed</title>
+        <meta name="description" content="Open Source Customer Engagement" />
+      </Head>
+      <main>
+        <SubscriptionManagement
+          workspaceId={workspaceId}
+          subscriptions={subscriptions}
+          subscriptionChange={subscriptionChange}
+          changedSubscription={changedSubscription}
+          hash={hash}
+          identifier={identifier}
+          identifierKey={identifierKey}
+          onSubscriptionUpdate={onUpdate}
+        />
+      </main>
+    </>
+  );
+};
+
+export default SubscriptionManagementPage;

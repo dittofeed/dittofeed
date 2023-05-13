@@ -472,7 +472,7 @@ function SubscriptionManagementSettings() {
             <SubscriptionManagement
               key={`${fromSubscribe}-${fromSubscriptionChange}`}
               subscriptions={subscriptions}
-              onSubmit={() => {}}
+              onSubscriptionUpdate={async () => {}}
               subscriptionChange={
                 fromSubscribe
                   ? SubscriptionChange.Subscribe

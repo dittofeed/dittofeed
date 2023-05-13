@@ -14,7 +14,10 @@ import {
   UserSubscriptionResource,
   UserSubscriptionsUpdate,
 } from "isomorphic-lib/src/types";
+import { enqueueSnackbar } from "notistack";
 import React, { useMemo } from "react";
+import { noticeAnchorOrigin } from "../lib/notices";
+import { set } from "date-fns";
 
 export type SubscriptionState = Record<string, boolean>;
 export interface SubscriptionManagementProps {
@@ -25,7 +28,7 @@ export interface SubscriptionManagementProps {
   identifier: string;
   identifierKey: string;
   workspaceId: string;
-  onSubmit: (update: UserSubscriptionsUpdate) => void;
+  onSubscriptionUpdate: (update: UserSubscriptionsUpdate) => Promise<void>;
 }
 
 export function SubscriptionManagement({
@@ -36,7 +39,7 @@ export function SubscriptionManagement({
   hash,
   identifier,
   identifierKey,
-  onSubmit,
+  onSubscriptionUpdate,
 }: SubscriptionManagementProps) {
   const initialSubscriptionManagementState = React.useMemo(
     () =>
@@ -48,6 +51,7 @@ export function SubscriptionManagement({
   );
 
   const theme = useTheme();
+  const [loading, setLoading] = React.useState(false);
   const [state, setState] = React.useState<SubscriptionState>(
     initialSubscriptionManagementState
   );
@@ -78,6 +82,32 @@ export function SubscriptionManagement({
       </Alert>
     );
   }
+
+  const handleUpdate = async () => {
+    try {
+      setLoading(true);
+      await onSubscriptionUpdate({
+        workspaceId,
+        hash,
+        identifier,
+        identifierKey,
+        changes: state,
+      });
+      enqueueSnackbar("Updated subscription preferences.", {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    } catch (e) {
+      console.error(e);
+      enqueueSnackbar("API Error: failed to update subscription preferences.", {
+        variant: "error",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    }
+    setLoading(false);
+  };
   return (
     <Stack
       spacing={2}
@@ -109,7 +139,13 @@ export function SubscriptionManagement({
         ))}
       </FormGroup>
       <Box>
-        <LoadingButton variant="contained">Save Preferences</LoadingButton>
+        <LoadingButton
+          loading={loading}
+          variant="contained"
+          onClick={handleUpdate}
+        >
+          Save Preferences
+        </LoadingButton>
       </Box>
     </Stack>
   );
