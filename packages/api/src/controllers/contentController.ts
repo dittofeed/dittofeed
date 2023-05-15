@@ -10,9 +10,11 @@ import {
   DeleteMessageTemplateRequest,
   DeleteMessageTemplateResponse,
   EmailTemplateResource,
+  JsonResultType,
   MessageTemplateResource,
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
+  RenderMessageTemplateResponseContent,
   TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
@@ -69,17 +71,32 @@ export default async function contentController(fastify: FastifyInstance) {
       ]);
 
       let responseContents: RenderMessageTemplateResponse["contents"] = {};
+
       if (channel) {
-        responseContents = R.mapValues(contents, (content) =>
-          renderLiquid({
-            workspaceId,
-            template: content,
-            subscriptionGroupId,
-            userProperties,
-            identifierKey: channel.identifier,
-            secrets: templateSecrets,
-          })
-        );
+        responseContents = R.mapValues(contents, (content) => {
+          let value: RenderMessageTemplateResponseContent;
+          try {
+            const rendered = renderLiquid({
+              workspaceId,
+              template: content,
+              subscriptionGroupId,
+              userProperties,
+              identifierKey: channel.identifier,
+              secrets: templateSecrets,
+            });
+            value = {
+              type: JsonResultType.Ok,
+              value: rendered,
+            };
+          } catch (e) {
+            const err = e as Error;
+            value = {
+              type: JsonResultType.Err,
+              err: err.message,
+            };
+          }
+          return value;
+        });
       }
 
       return reply.status(200).send({

@@ -1,5 +1,27 @@
 import { Static, TSchema, Type } from "@sinclair/typebox";
 
+export enum JsonResultType {
+  Ok = "Ok",
+  Err = "Err",
+}
+
+export const JsonOk = <T extends TSchema>(type: T) =>
+  Type.Object({
+    type: Type.Literal(JsonResultType.Ok),
+    value: type,
+  });
+
+export const JsonErr = <E extends TSchema>(type: E) =>
+  Type.Object({
+    type: Type.Literal(JsonResultType.Err),
+    err: type,
+  });
+
+export const JsonResult = <T extends TSchema, E extends TSchema>(
+  resultType: T,
+  errorType: E
+) => Type.Union([JsonOk(resultType), JsonErr(errorType)]);
+
 export const Nullable = <T extends TSchema>(type: T) =>
   Type.Union([type, Type.Null()]);
 
@@ -915,32 +937,19 @@ export type RenderMessageTemplateRequest = Static<
   typeof RenderMessageTemplateRequest
 >;
 
+export const RenderMessageTemplateResponseContent = JsonResult(
+  Type.String(),
+  Type.String()
+);
+
+export type RenderMessageTemplateResponseContent = Static<
+  typeof RenderMessageTemplateResponseContent
+>;
+
 export const RenderMessageTemplateResponse = Type.Object({
-  contents: Type.Record(Type.String(), Type.String()),
+  contents: Type.Record(Type.String(), RenderMessageTemplateResponseContent),
 });
 
 export type RenderMessageTemplateResponse = Static<
   typeof RenderMessageTemplateResponse
 >;
-
-export enum JsonResultType {
-  Ok = "Ok",
-  Err = "Err",
-}
-
-export const JsonOk = <T extends TSchema>(type: T) =>
-  Type.Object({
-    type: Type.Literal(JsonResultType.Ok),
-    value: type,
-  });
-
-export const JsonErr = <E extends TSchema>(type: E) =>
-  Type.Object({
-    type: Type.Literal(JsonResultType.Err),
-    err: type,
-  });
-
-export const JsonResult = <T extends TSchema, E extends TSchema>(
-  resultType: T,
-  errorType: E
-) => Type.Union([JsonOk(resultType), JsonErr(errorType)]);
