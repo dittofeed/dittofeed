@@ -77,13 +77,14 @@ type UserProperties = Record<string, string>;
 liquidEngine.registerTag("unsubscribe_link", {
   parse() {},
   render(scope) {
-    const secrets = scope.getSync(["secrets"]) as Secrets | undefined;
-    const workspaceId = scope.getSync(["workspace_id"]) as string;
-    const subscriptionGroupId = scope.getSync(["subscription_group_id"]) as
+    const allScope = scope.getAll() as Record<string, unknown>;
+    const secrets = allScope.secrets as Secrets | undefined;
+    const workspaceId = allScope.workspace_id as string;
+    const subscriptionGroupId = allScope.subscription_group_id as
       | string
       | undefined;
-    const userProperties = scope.getSync(["user"]) as UserProperties;
-    const identifierKey = scope.getSync(["identifier_key"]) as string;
+    const userProperties = allScope.user as UserProperties;
+    const identifierKey = allScope.identifier_key as string;
 
     let href = "";
 
