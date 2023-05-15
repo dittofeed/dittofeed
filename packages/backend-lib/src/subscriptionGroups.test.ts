@@ -5,6 +5,7 @@ import config from "./config";
 import logger from "./logger";
 import prisma from "./prisma";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
+import { SubscriptionChange } from "./types";
 
 describe("generateSubscriptionChangeUrl", () => {
   let userId: string;
@@ -55,25 +56,25 @@ describe("generateSubscriptionChangeUrl", () => {
     });
   });
   it("should generate a valid URL", async () => {
-    // const url = await generateSubscriptionChangeUrl({
-    //   w: config().defaultWorkspaceId,
-    //   i: email,
-    //   ik: "email",
-    //   s: subscriptionGroup.id,
-    //   sub: "0",
-    // });
-    // if (url.isErr()) {
-    //   throw url.error;
-    // }
-    // const fullUrl = `http://localhost:3000${url.value}`;
-    // const parsed = new URL(fullUrl);
-    // logger().debug({
-    //   fullUrl,
-    // });
-    // expect(parsed.pathname).toEqual("/dashboard/subscription-management");
-    // expect(parsed.searchParams.get("w")).toEqual(config().defaultWorkspaceId);
-    // expect(parsed.searchParams.get("i")).toEqual(email);
-    // expect(parsed.searchParams.get("ik")).toEqual("email");
-    // expect(parsed.searchParams.get("sub")).toEqual("0");
+    const url = await generateSubscriptionChangeUrl({
+      workspaceId: config().defaultWorkspaceId,
+      identifier: email,
+      identifierKey: "email",
+      changedSubscription: subscriptionGroup.id,
+      subscriptionChange: SubscriptionChange.UnSubscribe,
+    });
+    if (url.isErr()) {
+      throw url.error;
+    }
+    const fullUrl = `http://localhost:3000${url.value}`;
+    const parsed = new URL(fullUrl);
+    logger().debug({
+      fullUrl,
+    });
+    expect(parsed.pathname).toEqual("/dashboard/subscription-management");
+    expect(parsed.searchParams.get("w")).toEqual(config().defaultWorkspaceId);
+    expect(parsed.searchParams.get("i")).toEqual(email);
+    expect(parsed.searchParams.get("ik")).toEqual("email");
+    expect(parsed.searchParams.get("sub")).toEqual("0");
   });
 });

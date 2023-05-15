@@ -1,10 +1,10 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { renderLiquid } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { EmailTemplate, Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
-import { renderLiquid } from "isomorphic-lib/src/liquid";
 import {
   DeleteMessageTemplateRequest,
   DeleteMessageTemplateResponse,

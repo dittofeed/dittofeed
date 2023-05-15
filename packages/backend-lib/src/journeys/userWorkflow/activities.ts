@@ -1,8 +1,8 @@
 import { SegmentAssignment } from "@prisma/client";
 import escapeHTML from "escape-html";
-import { renderLiquid } from "isomorphic-lib/src/liquid";
 
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
+import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
 import prisma from "../../prisma";
 import {

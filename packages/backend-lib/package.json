@@ -40,6 +40,7 @@
     "jsonpath": "^1.1.1",
     "kafkajs": "^2.2.2",
     "liquidjs": "^10.4.0",
+    "markdown-it": "^13.0.1",
     "minimist": "^1.2.7",
     "neverthrow": "^6.0.0",
     "pino": "^8.11.0",

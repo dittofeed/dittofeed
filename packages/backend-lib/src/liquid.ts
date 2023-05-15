@@ -95,17 +95,14 @@ liquidEngine.registerTag("unsubscribe", {
       UserProperties,
       string
     ];
-
-    // const url = generateSubscriptionChangeUrl({
-
-    // })
-    const url = "";
+    // const url = generateSubscriptionChangeUrl({});
 
     // workspaceId,
     // identifier,
     // identifierKey,
     // changedSubscription,
     // subscriptionChange,
+    const url = "";
     return `<a href="${url}">Unsubscribe</a>`;
   },
 });
