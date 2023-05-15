@@ -315,12 +315,13 @@ export default function EmailEditor() {
       };
 
       try {
-        const { contents } = (await axios({
+        const response = await axios({
           method: "POST",
           url: `${apiBase}/api/content/templates/render`,
           data,
-        })) as RenderMessageTemplateResponse;
+        });
 
+        const { contents } = response.data as RenderMessageTemplateResponse;
         for (const contentKey in contents) {
           const content = contents[contentKey];
           if (content === undefined) {
@@ -406,44 +407,6 @@ export default function EmailEditor() {
     errors,
     workspace,
   ]);
-
-  useEffect(() => {
-    // const existingErr = errors.get(NotifyKey.RenderFromError);
-    // try {
-    //   const rendered = escapeHtml(
-    //     renderLiquid({
-    //       template: debouncedEmailFrom,
-    //       userProperties: debouncedUserProperties,
-    //     })
-    //   );
-    //   if (existingErr) {
-    //     closeSnackbar(errorHash(NotifyKey.RenderFromError, existingErr));
-    //   }
-    //   setRenderedFrom(rendered);
-    //   setErrors(
-    //     produce((errorMap) => {
-    //       errorMap.delete(NotifyKey.RenderFromError);
-    //     })
-    //   );
-    //   closeSnackbar(NotifyKey.RenderFromError);
-    // } catch (e) {
-    //   const message = `From Error: ${String(e)}`;
-    //   if (existingErr && existingErr !== message) {
-    //     closeSnackbar(errorHash(NotifyKey.RenderFromError, existingErr));
-    //   }
-    //   enqueueSnackbar(message, {
-    //     variant: "error",
-    //     persist: true,
-    //     key: errorHash(NotifyKey.RenderFromError, message),
-    //     anchorOrigin,
-    //   });
-    //   setErrors(
-    //     produce((errorMap) => {
-    //       errorMap.set(NotifyKey.RenderFromError, message);
-    //     })
-    //   );
-    // }
-  }, [debouncedEmailFrom, debouncedUserProperties, errors]);
 
   useEffect(() => {
     let missingUserProperty: string | null = null;
