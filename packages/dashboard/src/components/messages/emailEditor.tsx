@@ -21,10 +21,10 @@ import {
 } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import axios from "axios";
 import escapeHtml from "escape-html";
 import hash from "fnv1a";
 import { produce } from "immer";
-import { renderLiquid } from "isomorphic-lib/src/liquid";
 import {
   CompletionStatus,
   JsonResultType,
@@ -49,7 +49,6 @@ import { EmailMessageEditorState } from "../../lib/types";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 import defaultEmailBody from "./defaultEmailBody";
-import axios from "axios";
 
 function TransitionInner(
   props: TransitionProps & {
@@ -296,7 +295,7 @@ export default function EmailEditor() {
   //   }
   // }, [debouncedEmailSubject, debouncedUserProperties, errors]);
 
-  // const previewEmailTo = debouncedUserProperties.email;
+  const previewEmailTo = debouncedUserProperties.email;
 
   useEffect(() => {
     (async () => {
@@ -327,8 +326,7 @@ export default function EmailEditor() {
           if (content === undefined) {
             continue;
           }
-          let setter: ((value: React.SetStateAction<string>) => void) | null =
-            null;
+          let setter: ((value: string) => void) | null = null;
           let errorKey: NotifyKey | null = null;
 
           switch (contentKey) {
@@ -337,11 +335,11 @@ export default function EmailEditor() {
               errorKey = NotifyKey.RenderBodyError;
               break;
             case "subject":
-              setter = setRenderedSubject;
+              setter = (c: string) => setRenderedSubject(escapeHtml(c));
               errorKey = NotifyKey.RenderSubjectError;
               break;
             case "from":
-              setter = setRenderedFrom;
+              setter = (c: string) => setRenderedFrom(escapeHtml(c));
               errorKey = NotifyKey.RenderFromError;
               break;
           }
