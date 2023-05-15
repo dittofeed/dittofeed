@@ -1,4 +1,4 @@
-import { renderWithUserProperties } from "./liquid";
+import { renderLiquid } from "./liquid";
 
 const markdownTemplate = `
 {% capture md %}
@@ -67,7 +67,7 @@ const expectedRenderedMarkdownEmail = `
 
 describe("renderWithUserProperties", () => {
   it("can render markdown that passes email validation", async () => {
-    const rendered = renderWithUserProperties({
+    const rendered = renderLiquid({
       template: markdownTemplate,
       userProperties: {
         name: "Max",
@@ -78,7 +78,7 @@ describe("renderWithUserProperties", () => {
   });
 
   it("can render with the base email layout", async () => {
-    const rendered = renderWithUserProperties({
+    const rendered = renderLiquid({
       template: baseLayoutTemplate,
       userProperties: {},
     });
@@ -86,7 +86,7 @@ describe("renderWithUserProperties", () => {
   });
 
   it("can render markdown email layout", async () => {
-    const rendered = renderWithUserProperties({
+    const rendered = renderLiquid({
       template: markdownEmailTemplate,
       userProperties: {
         name: "Max",

@@ -24,7 +24,7 @@ import ReactCodeMirror from "@uiw/react-codemirror";
 import escapeHtml from "escape-html";
 import hash from "fnv1a";
 import { produce } from "immer";
-import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
+import { renderLiquid } from "isomorphic-lib/src/liquid";
 import {
   CompletionStatus,
   MessageTemplateResource,
@@ -216,7 +216,7 @@ export default function EmailEditor() {
   useEffect(() => {
     const existingErr = errors.get(NotifyKey.RenderBodyError);
     try {
-      const rendered = renderWithUserProperties({
+      const rendered = renderLiquid({
         template: debouncedEmailBody,
         userProperties: debouncedUserProperties,
       });
@@ -254,7 +254,7 @@ export default function EmailEditor() {
     const existingErr = errors.get(NotifyKey.RenderSubjectError);
     try {
       const rendered = escapeHtml(
-        renderWithUserProperties({
+        renderLiquid({
           template: debouncedEmailSubject,
           userProperties: debouncedUserProperties,
         })
@@ -295,7 +295,7 @@ export default function EmailEditor() {
     const existingErr = errors.get(NotifyKey.RenderFromError);
     try {
       const rendered = escapeHtml(
-        renderWithUserProperties({
+        renderLiquid({
           template: debouncedEmailFrom,
           userProperties: debouncedUserProperties,
         })

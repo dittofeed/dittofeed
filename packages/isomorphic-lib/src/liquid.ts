@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import { Liquid } from "liquidjs";
 import MarkdownIt from "markdown-it";
 
@@ -63,14 +64,72 @@ export const liquidEngine = new Liquid({
 
 liquidEngine.registerFilter("markdown", (value) => md.render(value));
 
-export function renderWithUserProperties({
+type Secrets = Record<string, string>;
+type UserProperties = Record<string, string>;
+
+liquidEngine.registerTag("unsubscribe", {
+  parse(tagToken, remainTokens) {
+    this.str = tagToken.args; // This is your immediate argument
+  },
+  async render(scope, hash) {
+    const scopedProperties = Array.from(
+      scope._get([
+        "secrets",
+        "workspace_id",
+        "subscription_group_id",
+        "user",
+        "identifier_key",
+      ])
+    );
+
+    const [
+      secrets,
+      workspaceId,
+      subscriptionGroupId,
+      userProperties,
+      identifierKey,
+    ] = scopedProperties as [
+      Secrets | undefined,
+      string,
+      string | undefined,
+      UserProperties,
+      string
+    ];
+
+    // const url = generateSubscriptionChangeUrl({
+
+    // })
+    const url = "";
+
+    // workspaceId,
+    // identifier,
+    // identifierKey,
+    // changedSubscription,
+    // subscriptionChange,
+    return `<a href="${url}">Unsubscribe</a>`;
+  },
+});
+
+export function renderLiquid({
   template,
   userProperties,
+  workspaceId,
+  subscriptionGroupId,
+  identifierKey,
+  secrets = {},
 }: {
   template: string;
-  userProperties: Record<string, string>;
+  identifierKey: string;
+  userProperties: UserProperties;
+  secrets?: Secrets;
+  subscriptionGroupId?: string;
+  workspaceId: string;
 }): string {
   return liquidEngine.parseAndRenderSync(template, {
     user: userProperties,
+    workspace_id: workspaceId,
+    subscription_group_id: subscriptionGroupId,
+    secrets,
+    identifier_key: identifierKey,
   });
 }

@@ -66,32 +66,38 @@ export function generateSubscriptionHash({
 }
 
 export async function generateSubscriptionChangeUrl({
-  w,
-  i,
-  ik,
-  s,
-  sub,
-}: Omit<SubscriptionParams, "h">): Promise<Result<string, Error>> {
+  workspaceId,
+  identifier,
+  identifierKey,
+  changedSubscription,
+  subscriptionChange,
+}: {
+  workspaceId: string;
+  identifier: string;
+  identifierKey: string;
+  changedSubscription?: string;
+  subscriptionChange?: SubscriptionChange;
+}): Promise<Result<string, Error>> {
   const [subscriptionSecret, userProperty] = await Promise.all([
     prisma().secret.findUnique({
       where: {
         workspaceId_name: {
           name: SUBSCRIPTION_SECRET_NAME,
-          workspaceId: w,
+          workspaceId,
         },
       },
     }),
     prisma().userProperty.findUnique({
       where: {
         workspaceId_name: {
-          workspaceId: w,
-          name: ik,
+          workspaceId,
+          name: identifierKey,
         },
       },
       include: {
         UserPropertyAssignment: {
           where: {
-            value: JSON.stringify(i),
+            value: JSON.stringify(identifier),
           },
         },
       },
@@ -107,20 +113,20 @@ export async function generateSubscriptionChangeUrl({
   }
 
   const hash = generateSubscriptionHash({
-    workspaceId: w,
+    workspaceId,
     userId,
-    identifierKey: ik,
-    identifier: i,
+    identifierKey,
+    identifier,
     subscriptionSecret: subscriptionSecret.value,
   });
 
   const params: SubscriptionParams = {
-    w,
-    i,
-    ik,
+    w: workspaceId,
+    i: identifier,
+    ik: identifierKey,
     h: hash,
-    s,
-    sub,
+    s: changedSubscription,
+    sub: subscriptionChange === SubscriptionChange.Subscribe ? "1" : "0",
   };
   const queryString = new URLSearchParams(params).toString();
   const url = `/dashboard${SUBSCRIPTION_MANAGEMENT_PAGE}?${queryString}`;
