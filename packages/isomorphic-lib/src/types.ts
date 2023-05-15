@@ -902,3 +902,23 @@ export const UserSubscriptionsUpdate = Type.Intersect([
 ]);
 
 export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
+
+export const RenderMessageTemplateRequest = Type.Object({
+  workspaceId: Type.String(),
+  userId: Type.String(),
+  channe: Type.String(),
+  subscriptionGroupId: Type.Optional(Type.String()),
+  contents: Type.Record(Type.String(), Type.String()),
+});
+
+export type RenderMessageTemplateRequest = Static<
+  typeof RenderMessageTemplateRequest
+>;
+
+export const RenderMessageTemplateResponse = Type.Object({
+  contents: Type.Record(Type.String(), Type.String()),
+});
+
+export type RenderMessageTemplateResponse = Static<
+  typeof RenderMessageTemplateResponse
+>;

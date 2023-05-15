@@ -2,18 +2,92 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { EmailTemplate, Prisma } from "backend-lib/src/types";
+import { findAllUserPropertyAssignments } from "backend-lib/src/userProperties";
 import { FastifyInstance } from "fastify";
+import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { renderLiquid } from "isomorphic-lib/src/liquid";
 import {
   DeleteMessageTemplateRequest,
   DeleteMessageTemplateResponse,
   EmailTemplateResource,
   MessageTemplateResource,
+  RenderMessageTemplateRequest,
+  RenderMessageTemplateResponse,
   TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
+import * as R from "remeda";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function contentController(fastify: FastifyInstance) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/templates/render",
+    {
+      schema: {
+        description: "Render message template.",
+        body: RenderMessageTemplateRequest,
+        response: {
+          200: RenderMessageTemplateResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const {
+        contents,
+        workspaceId,
+        userId,
+        subscriptionGroupId,
+        channel: channelName,
+      } = request.body;
+
+      const [userProperties, channel, secrets] = await Promise.all([
+        findAllUserPropertyAssignments({
+          workspaceId,
+          userId,
+        }),
+        prisma().channel.findUnique({
+          where: {
+            workspaceId_name: {
+              name: channelName,
+              workspaceId,
+            },
+          },
+        }),
+        prisma().secret.findMany({
+          where: {
+            workspaceId,
+            name: {
+              in: [SUBSCRIPTION_SECRET_NAME],
+            },
+          },
+        }),
+      ]);
+
+      const templateSecrets = R.mapToObj(secrets, (secret) => [
+        secret.name,
+        secret.value,
+      ]);
+
+      let responseContents: RenderMessageTemplateResponse["contents"] = {};
+      if (channel) {
+        responseContents = R.mapValues(contents, (content) =>
+          renderLiquid({
+            workspaceId,
+            template: content,
+            subscriptionGroupId,
+            userProperties,
+            identifierKey: channel.identifier,
+            secrets: templateSecrets,
+          })
+        );
+      }
+
+      return reply.status(200).send({
+        contents: responseContents,
+      });
+    }
+  );
+
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/templates",
     {
