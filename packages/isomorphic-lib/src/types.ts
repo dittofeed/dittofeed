@@ -906,7 +906,7 @@ export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
 export const RenderMessageTemplateRequest = Type.Object({
   workspaceId: Type.String(),
   userId: Type.String(),
-  channe: Type.String(),
+  channel: Type.String(),
   subscriptionGroupId: Type.Optional(Type.String()),
   contents: Type.Record(Type.String(), Type.String()),
 });
@@ -922,3 +922,25 @@ export const RenderMessageTemplateResponse = Type.Object({
 export type RenderMessageTemplateResponse = Static<
   typeof RenderMessageTemplateResponse
 >;
+
+export enum JsonResultType {
+  Ok = "Ok",
+  Err = "Err",
+}
+
+export const JsonOk = <T extends TSchema>(type: T) =>
+  Type.Object({
+    type: Type.Literal(JsonResultType.Ok),
+    value: type,
+  });
+
+export const JsonErr = <E extends TSchema>(type: E) =>
+  Type.Object({
+    type: Type.Literal(JsonResultType.Err),
+    err: type,
+  });
+
+export const JsonResult = <T extends TSchema, E extends TSchema>(
+  resultType: T,
+  errorType: E
+) => Type.Union([JsonOk(resultType), JsonErr(errorType)]);
