@@ -1,6 +1,10 @@
 /* eslint-disable no-underscore-dangle */
+import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { Liquid } from "liquidjs";
 import MarkdownIt from "markdown-it";
+
+import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
+import { SubscriptionChange } from "./types";
 
 const md = new MarkdownIt({
   html: true,
@@ -68,10 +72,11 @@ type Secrets = Record<string, string>;
 type UserProperties = Record<string, string>;
 
 liquidEngine.registerTag("unsubscribe", {
-  parse(tagToken, remainTokens) {
-    this.str = tagToken.args; // This is your immediate argument
-  },
-  async render(scope, hash) {
+  parse() {},
+  // parse(tagToken, remainTokens) {
+  //   this.str = tagToken.args; // This is your immediate argument
+  // },
+  async render(scope) {
     const scopedProperties = Array.from(
       scope._get([
         "secrets",
@@ -95,15 +100,26 @@ liquidEngine.registerTag("unsubscribe", {
       UserProperties,
       string
     ];
-    // const url = generateSubscriptionChangeUrl({});
 
-    // workspaceId,
-    // identifier,
-    // identifierKey,
-    // changedSubscription,
-    // subscriptionChange,
-    const url = "";
-    return `<a href="${url}">Unsubscribe</a>`;
+    let href = "";
+
+    const identifier = userProperties[identifierKey];
+    const userId = userProperties.id;
+    const subscriptionSecret = secrets?.[SUBSCRIPTION_SECRET_NAME];
+    if (subscriptionSecret && identifier && userId) {
+      const url = generateSubscriptionChangeUrl({
+        workspaceId,
+        identifier,
+        identifierKey,
+        subscriptionSecret,
+        userId,
+        changedSubscription: subscriptionGroupId,
+        subscriptionChange: SubscriptionChange.UnSubscribe,
+      });
+      href = `href="${url}"`;
+    }
+
+    return `<a class="df-unsubscribe" ${href}>Unsubscribe</a>`;
   },
 });
 
