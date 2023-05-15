@@ -4687,6 +4687,11 @@ combined-stream@^1.0.8:
   dependencies:
     delayed-stream "~1.0.0"
 
+commander@^10.0.0:
+  version "10.0.1"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-10.0.1.tgz#881ee46b4f77d1c1dccc5823433aa39b022cbe06"
+  integrity sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==
+
 commander@^2.20.0:
   version "2.20.3"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.20.3.tgz#fd485e84c03eb4881c20722ba48035e8531aeb33"
@@ -7596,10 +7601,12 @@ linkify-it@^4.0.1:
   dependencies:
     uc.micro "^1.0.1"
 
-liquidjs@^10.4.0:
-  version "10.4.0"
-  resolved "https://registry.yarnpkg.com/liquidjs/-/liquidjs-10.4.0.tgz#4993135c87a582389bccd3a4be2cabf044c01474"
-  integrity sha512-4fpR8KFJ96bXkzynK9Yo1jwn7sjOkJfKawSbEXINc39DZfy7r5SYtcAM5T/Ccg5n0xoZf6ap5Gap4VwFCJiQ1g==
+liquidjs@^10.7.1:
+  version "10.7.1"
+  resolved "https://registry.yarnpkg.com/liquidjs/-/liquidjs-10.7.1.tgz#c74b9f2cecedb8f5975eac439d536bd019b7ade2"
+  integrity sha512-tl9nWBZrrKcC61yfih3lbtSjAn+k7e0HhwydPjQKI4+metLk927HYBfXfbf6yrCcYjnBnLzk8xMjUF83yknAQQ==
+  dependencies:
+    commander "^10.0.0"
 
 loader-runner@^4.2.0:
   version "4.3.0"

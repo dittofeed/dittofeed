@@ -1,5 +1,7 @@
 import { randomUUID } from "crypto";
+import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 
+import config from "./config";
 import { renderLiquid } from "./liquid";
 
 const markdownTemplate = `
@@ -101,5 +103,32 @@ describe("renderWithUserProperties", () => {
       },
     });
     expect(rendered.trim()).toEqual(expectedRenderedMarkdownEmail.trim());
+  });
+
+  describe("with all of the necessary values to render un unsubscribe link", () => {
+    const unsubscribeTemplate = `
+      {% unsubscribe_link %}
+    `;
+
+    const expectedRenderedUnsubscribeEmail = `
+      <a class="df-unsubscribe" href="/dashboard/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&s=92edd119-3566-4c42-a91a-ff80498a1f57&sub=0">Unsubscribe</a>
+    `;
+
+    it("can render an unsubscribe link", async () => {
+      const rendered = renderLiquid({
+        template: unsubscribeTemplate,
+        workspaceId: config().defaultWorkspaceId,
+        identifierKey: "email",
+        subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
+        secrets: {
+          [SUBSCRIPTION_SECRET_NAME]: "secret",
+        },
+        userProperties: {
+          email: "max@email.com",
+          id: "123",
+        },
+      });
+      expect(rendered.trim()).toEqual(expectedRenderedUnsubscribeEmail.trim());
+    });
   });
 });

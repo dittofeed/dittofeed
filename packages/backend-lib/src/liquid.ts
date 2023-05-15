@@ -70,36 +70,20 @@ liquidEngine.registerFilter("markdown", (value) => md.render(value));
 
 type Secrets = Record<string, string>;
 type UserProperties = Record<string, string>;
+// parse(tagToken, remainTokens) {
+//   this.str = tagToken.args; // This is your immediate argument
+// },
 
-liquidEngine.registerTag("unsubscribe", {
+liquidEngine.registerTag("unsubscribe_link", {
   parse() {},
-  // parse(tagToken, remainTokens) {
-  //   this.str = tagToken.args; // This is your immediate argument
-  // },
-  async render(scope) {
-    const scopedProperties = Array.from(
-      scope._get([
-        "secrets",
-        "workspace_id",
-        "subscription_group_id",
-        "user",
-        "identifier_key",
-      ])
-    );
-
-    const [
-      secrets,
-      workspaceId,
-      subscriptionGroupId,
-      userProperties,
-      identifierKey,
-    ] = scopedProperties as [
-      Secrets | undefined,
-      string,
-      string | undefined,
-      UserProperties,
-      string
-    ];
+  render(scope) {
+    const secrets = scope.getSync(["secrets"]) as Secrets | undefined;
+    const workspaceId = scope.getSync(["workspace_id"]) as string;
+    const subscriptionGroupId = scope.getSync(["subscription_group_id"]) as
+      | string
+      | undefined;
+    const userProperties = scope.getSync(["user"]) as UserProperties;
+    const identifierKey = scope.getSync(["identifier_key"]) as string;
 
     let href = "";
 
