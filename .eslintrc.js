@@ -25,6 +25,7 @@ module.exports = {
     "no-plusplus": ["error", { allowForLoopAfterthoughts: true }],
     "no-restricted-syntax": "off",
     "no-shadow": "off",
+    "guard-for-in": "off",
     "simple-import-sort/exports": "error",
     "simple-import-sort/imports": "error",
     "import/no-extraneous-dependencies": ["error", { includeTypes: false }],

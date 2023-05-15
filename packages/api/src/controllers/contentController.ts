@@ -2,7 +2,6 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { EmailTemplate, Prisma } from "backend-lib/src/types";
-import { findAllUserPropertyAssignments } from "backend-lib/src/userProperties";
 import { FastifyInstance } from "fastify";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { renderLiquid } from "isomorphic-lib/src/liquid";
@@ -22,7 +21,7 @@ import * as R from "remeda";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function contentController(fastify: FastifyInstance) {
-  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/templates/render",
     {
       schema: {
@@ -37,16 +36,12 @@ export default async function contentController(fastify: FastifyInstance) {
       const {
         contents,
         workspaceId,
-        userId,
         subscriptionGroupId,
         channel: channelName,
+        userProperties,
       } = request.body;
 
-      const [userProperties, channel, secrets] = await Promise.all([
-        findAllUserPropertyAssignments({
-          workspaceId,
-          userId,
-        }),
+      const [channel, secrets] = await Promise.all([
         prisma().channel.findUnique({
           where: {
             workspaceId_name: {

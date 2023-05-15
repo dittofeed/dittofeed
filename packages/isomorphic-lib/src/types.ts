@@ -927,10 +927,10 @@ export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
 
 export const RenderMessageTemplateRequest = Type.Object({
   workspaceId: Type.String(),
-  userId: Type.String(),
   channel: Type.String(),
   subscriptionGroupId: Type.Optional(Type.String()),
   contents: Type.Record(Type.String(), Type.String()),
+  userProperties: Type.Record(Type.String(), Type.String()),
 });
 
 export type RenderMessageTemplateRequest = Static<
