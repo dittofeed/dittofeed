@@ -344,8 +344,14 @@ export default function EmailEditor() {
               errorKey = NotifyKey.RenderFromError;
               break;
           }
+
           if (errorKey && setter) {
+            const existingErr = errors.get(errorKey);
+
             if (content.type === JsonResultType.Ok) {
+              if (existingErr) {
+                closeSnackbar(errorHash(errorKey, existingErr));
+              }
               setter(content.value);
               setErrors(
                 produce((errorMap) => {
@@ -355,7 +361,6 @@ export default function EmailEditor() {
                 })
               );
             } else {
-              const existingErr = errors.get(errorKey);
               let message: string;
               switch (errorKey) {
                 case NotifyKey.RenderBodyError:
