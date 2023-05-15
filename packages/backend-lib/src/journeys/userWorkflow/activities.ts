@@ -144,7 +144,12 @@ async function sendEmailWithPayload({
   }
 
   const render = (template: string) =>
-    renderLiquid({ userProperties, template });
+    renderLiquid({
+      userProperties,
+      template,
+      workspaceId,
+      identifierKey: "email",
+    });
 
   let from: string;
   let subject: string;

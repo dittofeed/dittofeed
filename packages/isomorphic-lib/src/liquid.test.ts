@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import { renderLiquid } from "./liquid";
 
 const markdownTemplate = `
@@ -69,6 +71,8 @@ describe("renderWithUserProperties", () => {
   it("can render markdown that passes email validation", async () => {
     const rendered = renderLiquid({
       template: markdownTemplate,
+      workspaceId: randomUUID(),
+      identifierKey: "email",
       userProperties: {
         name: "Max",
         title: "Co-Founder",
@@ -80,6 +84,8 @@ describe("renderWithUserProperties", () => {
   it("can render with the base email layout", async () => {
     const rendered = renderLiquid({
       template: baseLayoutTemplate,
+      workspaceId: randomUUID(),
+      identifierKey: "email",
       userProperties: {},
     });
     expect(rendered.trim()).toEqual(expectedBaseLayoutTemplate.trim());
@@ -88,6 +94,8 @@ describe("renderWithUserProperties", () => {
   it("can render markdown email layout", async () => {
     const rendered = renderLiquid({
       template: markdownEmailTemplate,
+      workspaceId: randomUUID(),
+      identifierKey: "email",
       userProperties: {
         name: "Max",
       },
