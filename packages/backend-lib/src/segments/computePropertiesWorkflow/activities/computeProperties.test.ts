@@ -304,6 +304,41 @@ describe("compute properties activities", () => {
         },
         expectedSignals: [],
       },
+      {
+        description:
+          "When a user submits a subscribe track event the user is in the segment",
+        segments: [
+          {
+            name: "in last value subscription group",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.SubscriptionGroup,
+                subscriptionGroupId: subscriptionGroupId1,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              buildSubscriptionChangeEventInner({
+                userId,
+                subscriptionGroupId: subscriptionGroupId1,
+                action: SubscriptionChange.Subscribe,
+                timestamp: defaults.timestamp as string,
+                messageId: defaults.messageId as string,
+              }),
+          },
+        ],
+        expectedSegments: {
+          "in last value subscription group": true,
+        },
+        expectedSignals: [],
+      },
     ];
 
     describe("table driven tests", () => {
