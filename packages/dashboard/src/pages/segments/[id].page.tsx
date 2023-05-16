@@ -79,7 +79,10 @@ const segmentOptions: GroupedOption[] = [
 ];
 
 const keyedSegmentOptions: Record<
-  Exclude<SegmentNodeType, SegmentNodeType.Performed>,
+  Exclude<
+    SegmentNodeType,
+    SegmentNodeType.Performed | SegmentNodeType.LastPerformed
+  >,
   GroupedOption
 > = {
   [SegmentNodeType.Trait]: traitGroupedOption,
@@ -410,8 +413,11 @@ function SegmentNodeComponent({
       ),
     [editedSegment]
   );
-  if (node.type === SegmentNodeType.Performed) {
-    return null;
+  if (
+    node.type === SegmentNodeType.Performed ||
+    node.type === SegmentNodeType.LastPerformed
+  ) {
+    throw new Error(`Unimplemented node type ${node.type}`);
   }
   if (!nodeById) {
     return null;

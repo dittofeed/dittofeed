@@ -11,6 +11,7 @@ import {
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
 import { enrichJourney } from "../../../journeys";
 import prisma, { Prisma } from "../../../prisma";
+import { buildSubscriptionChangeEventInner } from "../../../subscriptionGroups";
 import {
   EnrichedJourney,
   EnrichedUserProperty,
@@ -23,6 +24,7 @@ import {
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,
   SegmentOperatorType,
+  SubscriptionChange,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "../../../types";
@@ -167,6 +169,7 @@ describe("compute properties activities", () => {
 
     const broadcastSegmentId = randomUUID();
     const broadcastSegmentId2 = randomUUID();
+    const subscriptionGroupId1 = randomUUID();
 
     const tableTests: TableTest[] = [
       {
@@ -255,6 +258,87 @@ describe("compute properties activities", () => {
           },
         ],
       },
+      {
+        description:
+          "When a user submits a subscribe track event and then an unsubscribe track event, the user is not in the segment",
+        segments: [
+          {
+            name: "in last value subscription group",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.SubscriptionGroup,
+                subscriptionGroupId: subscriptionGroupId1,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              buildSubscriptionChangeEventInner({
+                userId,
+                subscriptionGroupId: subscriptionGroupId1,
+                action: SubscriptionChange.Subscribe,
+                timestamp: defaults.timestamp as string,
+                messageId: defaults.messageId as string,
+              }),
+          },
+          {
+            eventTimeOffset: -500,
+            overrides: (defaults) =>
+              buildSubscriptionChangeEventInner({
+                userId,
+                subscriptionGroupId: subscriptionGroupId1,
+                action: SubscriptionChange.UnSubscribe,
+                timestamp: defaults.timestamp as string,
+                messageId: defaults.messageId as string,
+              }),
+          },
+        ],
+        expectedSegments: {
+          "in last value subscription group": false,
+        },
+        expectedSignals: [],
+      },
+      {
+        description:
+          "When a user submits a subscribe track event the user is in the segment",
+        segments: [
+          {
+            name: "in last value subscription group",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.SubscriptionGroup,
+                subscriptionGroupId: subscriptionGroupId1,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              buildSubscriptionChangeEventInner({
+                userId,
+                subscriptionGroupId: subscriptionGroupId1,
+                action: SubscriptionChange.Subscribe,
+                timestamp: defaults.timestamp as string,
+                messageId: defaults.messageId as string,
+              }),
+          },
+        ],
+        expectedSegments: {
+          "in last value subscription group": true,
+        },
+        expectedSignals: [],
+      },
     ];
 
     describe("table driven tests", () => {
@@ -271,8 +355,10 @@ describe("compute properties activities", () => {
 
           const eventPayloads: InsertValue[] = events.map(
             ({ eventTimeOffset, overrides }) => {
+              const messageId = randomUUID();
               const defaults: Record<string, JSONValue> = {
                 userId,
+                messageId,
                 timestamp: new Date(
                   currentTime + eventTimeOffset
                 ).toISOString(),
@@ -282,7 +368,7 @@ describe("compute properties activities", () => {
                 processingTime: new Date(
                   currentTime + eventTimeOffset + 50
                 ).toISOString(),
-                messageId: randomUUID(),
+                messageId,
                 messageRaw: overrides ? overrides(defaults) : defaults,
               };
             }

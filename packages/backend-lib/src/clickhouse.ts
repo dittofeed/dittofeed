@@ -7,8 +7,8 @@ import { v4 as uuid } from "uuid";
 
 import config from "./config";
 
-export function getChCompatibleUuid(existing?: string) {
-  return (existing ?? uuid()).replace(/-/g, "_");
+export function getChCompatibleUuid() {
+  return uuid().replace(/-/g, "_");
 }
 
 export class ClickHouseQueryBuilder {
