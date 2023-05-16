@@ -1,8 +1,8 @@
 import { SegmentAssignment } from "@prisma/client";
 import escapeHTML from "escape-html";
-import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
 
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
+import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
 import prisma from "../../prisma";
 import {
@@ -144,7 +144,12 @@ async function sendEmailWithPayload({
   }
 
   const render = (template: string) =>
-    renderWithUserProperties({ userProperties, template });
+    renderLiquid({
+      userProperties,
+      template,
+      workspaceId,
+      identifierKey: "email",
+    });
 
   let from: string;
   let subject: string;

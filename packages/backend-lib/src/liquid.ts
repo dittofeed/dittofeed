@@ -1,5 +1,10 @@
+/* eslint-disable no-underscore-dangle */
+import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { Liquid } from "liquidjs";
 import MarkdownIt from "markdown-it";
+
+import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
+import { SubscriptionChange } from "./types";
 
 const md = new MarkdownIt({
   html: true,
@@ -63,14 +68,63 @@ export const liquidEngine = new Liquid({
 
 liquidEngine.registerFilter("markdown", (value) => md.render(value));
 
-export function renderWithUserProperties({
+type Secrets = Record<string, string>;
+type UserProperties = Record<string, string>;
+
+liquidEngine.registerTag("unsubscribe_link", {
+  parse() {},
+  render(scope) {
+    const allScope = scope.getAll() as Record<string, unknown>;
+    const secrets = allScope.secrets as Secrets | undefined;
+    const workspaceId = allScope.workspace_id as string;
+    const subscriptionGroupId = allScope.subscription_group_id as
+      | string
+      | undefined;
+    const userProperties = allScope.user as UserProperties;
+    const identifierKey = allScope.identifier_key as string;
+
+    let href = "";
+
+    const identifier = userProperties[identifierKey];
+    const userId = userProperties.id;
+    const subscriptionSecret = secrets?.[SUBSCRIPTION_SECRET_NAME];
+    if (subscriptionSecret && identifier && userId) {
+      const url = generateSubscriptionChangeUrl({
+        workspaceId,
+        identifier,
+        identifierKey,
+        subscriptionSecret,
+        userId,
+        changedSubscription: subscriptionGroupId,
+        subscriptionChange: SubscriptionChange.UnSubscribe,
+      });
+      href = `href="${url}"`;
+    }
+
+    return `<a class="df-unsubscribe" ${href}>Unsubscribe</a>`;
+  },
+});
+
+export function renderLiquid({
   template,
   userProperties,
+  workspaceId,
+  subscriptionGroupId,
+  identifierKey,
+  secrets = {},
 }: {
   template: string;
-  userProperties: Record<string, string>;
+  identifierKey: string;
+  userProperties: UserProperties;
+  secrets?: Secrets;
+  subscriptionGroupId?: string;
+  workspaceId: string;
 }): string {
   return liquidEngine.parseAndRenderSync(template, {
     user: userProperties,
+    workspace_id: workspaceId,
+    subscription_group_id: subscriptionGroupId,
+    secrets,
+    identifier_key: identifierKey,
   });
 }
