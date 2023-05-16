@@ -1,3 +1,4 @@
+import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import {
   CompletionStatus,
   MessageTemplateResource,
@@ -38,22 +39,26 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [journey, segments, emailTemplates] = await Promise.all([
-      await prisma().journey.findUnique({
-        where: { id },
-      }),
-      prisma().segment.findMany({
-        where: {
-          workspaceId,
-          resourceType: {
-            not: "Internal",
+    const [journey, segments, emailTemplates, subscriptionGroups] =
+      await Promise.all([
+        await prisma().journey.findUnique({
+          where: { id },
+        }),
+        prisma().segment.findMany({
+          where: {
+            workspaceId,
+            resourceType: {
+              not: "Internal",
+            },
           },
-        },
-      }),
-      prisma().emailTemplate.findMany({
-        where: { workspaceId },
-      }),
-    ]);
+        }),
+        prisma().emailTemplate.findMany({
+          where: { workspaceId },
+        }),
+        prisma().subscriptionGroup.findMany({
+          where: { workspaceId },
+        }),
+      ]);
 
     const templateResources: MessageTemplateResource[] = emailTemplates.map(
       ({
@@ -78,6 +83,10 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
       messages: {
         type: CompletionStatus.Successful,
         value: templateResources,
+      },
+      subscriptionGroups: {
+        type: CompletionStatus.Successful,
+        value: subscriptionGroups.map(subscriptionGroupToResource),
       },
     };
 

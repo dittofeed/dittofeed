@@ -250,6 +250,7 @@ export interface MessageNodeProps {
   type: JourneyNodeType.MessageNode;
   name: string;
   templateId?: string;
+  subscriptionGroupId?: string;
 }
 export interface DelayNodeProps {
   type: JourneyNodeType.DelayNode;

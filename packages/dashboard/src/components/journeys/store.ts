@@ -250,6 +250,7 @@ export function journeyDefinitionFromState({
           type: JourneyNodeType.MessageNode,
           child: nextNode.id,
           name: props.name,
+          subscriptionGroupId: props.subscriptionGroupId,
           variant: {
             type: MessageNodeVariantType.Email,
             templateId: props.templateId,
@@ -421,6 +422,7 @@ export function journeyToState(
               type: JourneyNodeType.MessageNode,
               name: node.name ?? `Message - ${node.id}`,
               templateId: node.variant.templateId,
+              subscriptionGroupId: node.subscriptionGroupId,
             },
           },
         };
