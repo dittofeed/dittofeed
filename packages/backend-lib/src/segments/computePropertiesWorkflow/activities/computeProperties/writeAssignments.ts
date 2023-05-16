@@ -171,7 +171,7 @@ function buildSegmentQueryExpression({
       const assignment = `arrayFirst(
         m -> and(${whereConditions.join(",")}),
         timed_messages
-      ) as ${assignmentVarName}`;
+      ).1 as ${assignmentVarName}`;
 
       const hasConditions: string[] = [];
 
