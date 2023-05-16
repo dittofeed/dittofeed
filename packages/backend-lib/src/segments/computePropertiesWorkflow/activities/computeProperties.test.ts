@@ -268,17 +268,8 @@ describe("compute properties activities", () => {
             definition: {
               entryNode: {
                 id: "1",
-                type: SegmentNodeType.Performed,
-                event: InternalEventType.SubscriptionChange,
-                properties: [
-                  {
-                    path: "subscriptionId",
-                    operator: {
-                      type: SegmentOperatorType.Equals,
-                      value: subscriptionGroupId1,
-                    },
-                  },
-                ],
+                type: SegmentNodeType.SubscriptionGroup,
+                subscriptionGroupId: subscriptionGroupId1,
               },
               nodes: [],
             },

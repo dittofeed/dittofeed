@@ -95,6 +95,7 @@ export enum SegmentNodeType {
   And = "And",
   Or = "Or",
   Performed = "Performed",
+  LastPerformed = "LastPerformed",
   Broadcast = "Broadcast",
   SubscriptionGroup = "SubscriptionGroup",
 }
@@ -124,6 +125,36 @@ export const PerformedSegmentNode = Type.Object({
 });
 
 export type PerformedSegmentNode = Static<typeof PerformedSegmentNode>;
+
+export const LastPerformedSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.LastPerformed),
+  id: Type.String(),
+  event: Type.String(),
+  whereProperties: Type.Optional(
+    Type.Array(
+      Type.Object({
+        path: Type.String(),
+        operator: SegmentOperator,
+      }),
+      {
+        description:
+          "Used to select which events are eligible to be considered.",
+      }
+    )
+  ),
+  hasProperties: Type.Array(
+    Type.Object({
+      path: Type.String(),
+      operator: SegmentOperator,
+    }),
+    {
+      description:
+        "Used to evaluate whether the user is in the segment based on the properties of the selected event.",
+    }
+  ),
+});
+
+export type LastPerformedSegmentNode = Static<typeof LastPerformedSegmentNode>;
 
 export const BroadcastSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Broadcast),
@@ -162,6 +193,7 @@ export const SegmentNode = Type.Union([
   AndSegmentNode,
   OrSegmentNode,
   PerformedSegmentNode,
+  LastPerformedSegmentNode,
   BroadcastSegmentNode,
   SubscriptionGroupSegmentNode,
 ]);

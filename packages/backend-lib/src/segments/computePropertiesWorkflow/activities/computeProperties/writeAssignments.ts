@@ -10,6 +10,7 @@ import {
   EnrichedSegment,
   EnrichedUserProperty,
   InternalEventType,
+  LastPerformedSegmentNode,
   PerformedSegmentNode,
   SegmentHasBeenOperatorComparator,
   SegmentNode,
@@ -75,13 +76,11 @@ function buildSegmentQueryExpression({
 }): string | null {
   switch (node.type) {
     case SegmentNodeType.SubscriptionGroup: {
-      // TODO implement opt-out logic
-      // TODO allow subscriptions to be updated
-      const performedNode: PerformedSegmentNode = {
+      const lastPerformedNode: LastPerformedSegmentNode = {
         id: node.id,
-        type: SegmentNodeType.Performed,
+        type: SegmentNodeType.LastPerformed,
         event: InternalEventType.SubscriptionChange,
-        properties: [
+        whereProperties: [
           {
             path: "subscriptionId",
             operator: {
@@ -89,6 +88,8 @@ function buildSegmentQueryExpression({
               value: node.subscriptionGroupId,
             },
           },
+        ],
+        hasProperties: [
           {
             path: "action",
             operator: {
@@ -101,7 +102,7 @@ function buildSegmentQueryExpression({
       return buildSegmentQueryExpression({
         currentTime,
         queryBuilder,
-        node: performedNode,
+        node: lastPerformedNode,
         nodes,
         segmentId,
       });
@@ -128,6 +129,90 @@ function buildSegmentQueryExpression({
         nodes,
         segmentId,
       });
+    }
+    case SegmentNodeType.LastPerformed: {
+      const event = queryBuilder.addQueryValue(node.event, "String");
+      const whereConditions = ["m.4 == 'track'", `m.5 == ${event}`];
+
+      if (node.whereProperties) {
+        for (const property of node.whereProperties) {
+          const path = queryBuilder.addQueryValue(
+            `$.properties.${property.path}`,
+            "String"
+          );
+          const operatorType = property.operator.type;
+
+          let condition: string;
+          switch (operatorType) {
+            case SegmentOperatorType.Equals: {
+              const value = jsonValueToCh(
+                queryBuilder,
+                property.operator.value
+              );
+              condition = `
+                JSON_VALUE(
+                  m.1,
+                  ${path}
+                ) == ${value}
+              `;
+              break;
+            }
+            default:
+              throw new Error(
+                `Unimplemented operator for ${node.type} segment node ${operatorType}`
+              );
+          }
+          whereConditions.push(condition);
+        }
+      }
+
+      const assignmentVarName = getChCompatibleUuid();
+
+      const assignment = `arrayFirst(
+        m -> and(${whereConditions.join(",")}),
+        timed_messages
+      ) as ${assignmentVarName}`;
+
+      const hasConditions: string[] = [];
+
+      for (let i = 0; i < node.hasProperties.length; i++) {
+        const where = i === 0 ? assignment : `${assignmentVarName}`;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const property = node.hasProperties[i]!;
+        const operatorType = property.operator.type;
+        const path = queryBuilder.addQueryValue(
+          `$.properties.${property.path}`,
+          "String"
+        );
+
+        let condition: string;
+        switch (property.operator.type) {
+          case SegmentOperatorType.Equals: {
+            const value = jsonValueToCh(queryBuilder, property.operator.value);
+            condition = `
+                JSON_VALUE(
+                  ${where},
+                  ${path}
+                ) == ${value}
+              `;
+            break;
+          }
+          default:
+            throw new Error(
+              `Unimplemented operator for ${node.type} segment node ${operatorType}`
+            );
+        }
+        hasConditions.push(condition);
+      }
+
+      if (hasConditions.length === 0) {
+        return "1=0";
+      }
+      if (hasConditions.length === 1) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return hasConditions[0]!;
+      }
+      return `and(${hasConditions.join(",")})`;
     }
     case SegmentNodeType.Performed: {
       const event = queryBuilder.addQueryValue(node.event, "String");
@@ -215,7 +300,7 @@ function buildSegmentQueryExpression({
           }
 
           const val = node.operator.value;
-          const varName = `last_trait_update${getChCompatibleUuid(node.id)}`;
+          const varName = `last_trait_update${getChCompatibleUuid()}`;
           const upperTraitBound =
             currentTime / 1000 - node.operator.windowSeconds;
 
@@ -248,7 +333,7 @@ function buildSegmentQueryExpression({
         }
         case SegmentOperatorType.Within: {
           const upperTraitBound = currentTime / 1000;
-          const traitIdentifier = getChCompatibleUuid(node.id);
+          const traitIdentifier = getChCompatibleUuid();
 
           const lowerTraitBound =
             currentTime / 1000 - node.operator.windowSeconds;
