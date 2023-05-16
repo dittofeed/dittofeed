@@ -21,13 +21,16 @@ import {
 } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import axios from "axios";
 import escapeHtml from "escape-html";
 import hash from "fnv1a";
 import { produce } from "immer";
-import { renderWithUserProperties } from "isomorphic-lib/src/liquid";
 import {
   CompletionStatus,
+  JsonResultType,
   MessageTemplateResource,
+  RenderMessageTemplateRequest,
+  RenderMessageTemplateResponse,
   TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
@@ -38,7 +41,10 @@ import { useDebounce } from "use-debounce";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
-import { noticeAnchorOrigin as anchorOrigin } from "../../lib/notices";
+import {
+  noticeAnchorOrigin as anchorOrigin,
+  noticeAnchorOrigin,
+} from "../../lib/notices";
 import { EmailMessageEditorState } from "../../lib/types";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
@@ -213,124 +219,123 @@ export default function EmailEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errors]);
 
-  useEffect(() => {
-    const existingErr = errors.get(NotifyKey.RenderBodyError);
-    try {
-      const rendered = renderWithUserProperties({
-        template: debouncedEmailBody,
-        userProperties: debouncedUserProperties,
-      });
-      if (existingErr) {
-        closeSnackbar(errorHash(NotifyKey.RenderBodyError, existingErr));
-      }
-      setRenderedBody(rendered);
-      setErrors(
-        produce((errorMap) => {
-          errorMap.delete(NotifyKey.RenderBodyError);
-        })
-      );
-    } catch (e) {
-      const message = `Body Error: ${String(e)}`;
-      if (existingErr && existingErr !== message) {
-        closeSnackbar(errorHash(NotifyKey.RenderBodyError, existingErr));
-      }
-      enqueueSnackbar(message, {
-        variant: "error",
-        persist: true,
-        key: errorHash(NotifyKey.RenderBodyError, message),
-        anchorOrigin,
-      });
-      setErrors(
-        produce((errorMap) => {
-          errorMap.set(NotifyKey.RenderBodyError, message);
-        })
-      );
-
-      setRenderedBody(errorBodyHtml);
-    }
-  }, [debouncedEmailBody, debouncedUserProperties, errors]);
-
-  useEffect(() => {
-    const existingErr = errors.get(NotifyKey.RenderSubjectError);
-    try {
-      const rendered = escapeHtml(
-        renderWithUserProperties({
-          template: debouncedEmailSubject,
-          userProperties: debouncedUserProperties,
-        })
-      );
-      setRenderedSubject(rendered);
-      setErrors(
-        produce((errorMap) => {
-          errorMap.delete(NotifyKey.RenderSubjectError);
-        })
-      );
-      if (existingErr) {
-        closeSnackbar(errorHash(NotifyKey.RenderSubjectError, existingErr));
-      }
-    } catch (e) {
-      const message = `Subject Error: ${String(e)}`;
-
-      if (existingErr && existingErr !== message) {
-        closeSnackbar(errorHash(NotifyKey.RenderSubjectError, existingErr));
-      }
-      enqueueSnackbar(message, {
-        variant: "error",
-        persist: true,
-        key: errorHash(NotifyKey.RenderSubjectError, message),
-        anchorOrigin,
-      });
-      setErrors(
-        produce((errorMap) => {
-          errorMap.set(NotifyKey.RenderSubjectError, message);
-        })
-      );
-      setRenderedSubject("Render Error");
-    }
-  }, [debouncedEmailSubject, debouncedUserProperties, errors]);
-
   const previewEmailTo = debouncedUserProperties.email;
 
   useEffect(() => {
-    const existingErr = errors.get(NotifyKey.RenderFromError);
-    try {
-      const rendered = escapeHtml(
-        renderWithUserProperties({
-          template: debouncedEmailFrom,
-          userProperties: debouncedUserProperties,
-        })
-      );
-
-      if (existingErr) {
-        closeSnackbar(errorHash(NotifyKey.RenderFromError, existingErr));
+    (async () => {
+      if (!workspace) {
+        return;
       }
 
-      setRenderedFrom(rendered);
-      setErrors(
-        produce((errorMap) => {
-          errorMap.delete(NotifyKey.RenderFromError);
-        })
-      );
+      const data: RenderMessageTemplateRequest = {
+        workspaceId: workspace.id,
+        channel: "email",
+        userProperties: debouncedUserProperties,
+        contents: {
+          from: debouncedEmailFrom,
+          subject: debouncedEmailSubject,
+          body: debouncedEmailBody,
+        },
+      };
 
-      closeSnackbar(NotifyKey.RenderFromError);
-    } catch (e) {
-      const message = `From Error: ${String(e)}`;
-      if (existingErr && existingErr !== message) {
-        closeSnackbar(errorHash(NotifyKey.RenderFromError, existingErr));
+      try {
+        const response = await axios({
+          method: "POST",
+          url: `${apiBase}/api/content/templates/render`,
+          data,
+        });
+
+        const { contents } = response.data as RenderMessageTemplateResponse;
+        for (const contentKey in contents) {
+          const content = contents[contentKey];
+          if (content === undefined) {
+            continue;
+          }
+          let setter: ((value: string) => void) | null = null;
+          let errorKey: NotifyKey | null = null;
+
+          switch (contentKey) {
+            case "body":
+              setter = setRenderedBody;
+              errorKey = NotifyKey.RenderBodyError;
+              break;
+            case "subject":
+              setter = (c: string) => setRenderedSubject(escapeHtml(c));
+              errorKey = NotifyKey.RenderSubjectError;
+              break;
+            case "from":
+              setter = (c: string) => setRenderedFrom(escapeHtml(c));
+              errorKey = NotifyKey.RenderFromError;
+              break;
+          }
+
+          if (errorKey && setter) {
+            const existingErr = errors.get(errorKey);
+
+            if (content.type === JsonResultType.Ok) {
+              if (existingErr) {
+                closeSnackbar(errorHash(errorKey, existingErr));
+              }
+              setter(content.value);
+              setErrors(
+                produce((errorMap) => {
+                  if (errorKey) {
+                    errorMap.delete(errorKey);
+                  }
+                })
+              );
+            } else {
+              let message: string;
+              switch (errorKey) {
+                case NotifyKey.RenderBodyError:
+                  message = `Body Error: ${content.err}`;
+                  break;
+                case NotifyKey.RenderSubjectError:
+                  message = `Subject Error: ${content.err}`;
+                  break;
+                case NotifyKey.RenderFromError:
+                  message = `From Error: ${content.err}`;
+                  break;
+              }
+
+              if (existingErr && existingErr !== message) {
+                closeSnackbar(errorHash(errorKey, existingErr));
+              }
+
+              enqueueSnackbar(message, {
+                variant: "error",
+                persist: true,
+                key: errorHash(errorKey, message),
+                anchorOrigin,
+              });
+              setErrors(
+                produce((errorMap) => {
+                  if (errorKey) {
+                    errorMap.set(errorKey, message);
+                  }
+                })
+              );
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+        enqueueSnackbar("API Error: failed to render template preview.", {
+          variant: "error",
+          autoHideDuration: 3000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
       }
-      enqueueSnackbar(message, {
-        variant: "error",
-        persist: true,
-        key: errorHash(NotifyKey.RenderFromError, message),
-        anchorOrigin,
-      });
-      setErrors(
-        produce((errorMap) => {
-          errorMap.set(NotifyKey.RenderFromError, message);
-        })
-      );
-    }
-  }, [debouncedEmailFrom, debouncedUserProperties, errors]);
+    })();
+  }, [
+    apiBase,
+    debouncedEmailBody,
+    debouncedEmailFrom,
+    debouncedEmailSubject,
+    debouncedUserProperties,
+    errors,
+    workspace,
+  ]);
 
   useEffect(() => {
     let missingUserProperty: string | null = null;

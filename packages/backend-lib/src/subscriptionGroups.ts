@@ -65,66 +65,42 @@ export function generateSubscriptionHash({
   return hash;
 }
 
-export async function generateSubscriptionChangeUrl({
-  w,
-  i,
-  ik,
-  s,
-  sub,
-}: Omit<SubscriptionParams, "h">): Promise<Result<string, Error>> {
-  const [subscriptionSecret, userProperty] = await Promise.all([
-    prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          name: SUBSCRIPTION_SECRET_NAME,
-          workspaceId: w,
-        },
-      },
-    }),
-    prisma().userProperty.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId: w,
-          name: ik,
-        },
-      },
-      include: {
-        UserPropertyAssignment: {
-          where: {
-            value: JSON.stringify(i),
-          },
-        },
-      },
-    }),
-  ]);
-  const userId = userProperty?.UserPropertyAssignment[0]?.userId;
-  if (!userId) {
-    return err(new Error("User not found"));
-  }
-
-  if (!subscriptionSecret) {
-    return err(new Error("Subscription secret not found"));
-  }
-
+export function generateSubscriptionChangeUrl({
+  workspaceId,
+  subscriptionSecret,
+  userId,
+  identifier,
+  identifierKey,
+  changedSubscription,
+  subscriptionChange,
+}: {
+  workspaceId: string;
+  userId: string;
+  subscriptionSecret: string;
+  identifier: string;
+  identifierKey: string;
+  changedSubscription?: string;
+  subscriptionChange?: SubscriptionChange;
+}): string {
   const hash = generateSubscriptionHash({
-    workspaceId: w,
+    workspaceId,
     userId,
-    identifierKey: ik,
-    identifier: i,
-    subscriptionSecret: subscriptionSecret.value,
+    identifierKey,
+    identifier,
+    subscriptionSecret,
   });
 
   const params: SubscriptionParams = {
-    w,
-    i,
-    ik,
+    w: workspaceId,
+    i: identifier,
+    ik: identifierKey,
     h: hash,
-    s,
-    sub,
+    s: changedSubscription,
+    sub: subscriptionChange === SubscriptionChange.Subscribe ? "1" : "0",
   };
   const queryString = new URLSearchParams(params).toString();
   const url = `/dashboard${SUBSCRIPTION_MANAGEMENT_PAGE}?${queryString}`;
-  return ok(url);
+  return url;
 }
 
 export function buildSubscriptionChangeEvent({

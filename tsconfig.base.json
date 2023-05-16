@@ -3,6 +3,7 @@
     "allowSyntheticDefaultImports": true,
     "composite": true,
     "declaration": true,
+    "downlevelIteration": true,
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
