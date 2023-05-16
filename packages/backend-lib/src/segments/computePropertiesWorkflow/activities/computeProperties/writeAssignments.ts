@@ -339,6 +339,7 @@ function buildSegmentQueryFragment({
     return null;
   }
 
+  // TODO use query builder for this
   return `
     (
       ${query},
@@ -363,6 +364,7 @@ function buildUserPropertyQueryFragment({
         return null;
       }
 
+      // TODO use query builder for this
       innerQuery = `
           JSON_VALUE(
             (
@@ -388,6 +390,8 @@ function buildUserPropertyQueryFragment({
       break;
     }
   }
+
+  // TODO use query builder for this
   return `
     (
       Null,
