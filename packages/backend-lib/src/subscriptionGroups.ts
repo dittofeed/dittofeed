@@ -12,6 +12,7 @@ import logger from "./logger";
 import prisma from "./prisma";
 import {
   InternalEventType,
+  JSONValue,
   SubscriptionChange,
   SubscriptionGroupResource,
   SubscriptionGroupType,
@@ -103,6 +104,32 @@ export function generateSubscriptionChangeUrl({
   return url;
 }
 
+export function buildSubscriptionChangeEventInner({
+  messageId,
+  userId,
+  action,
+  subscriptionGroupId,
+  timestamp,
+}: {
+  userId: string;
+  messageId: string;
+  subscriptionGroupId: string;
+  timestamp: string;
+  action: SubscriptionChange;
+}): Record<string, JSONValue> {
+  return {
+    userId,
+    timestamp,
+    messageId,
+    type: "track",
+    event: InternalEventType.SubscriptionChange,
+    properties: {
+      subscriptionId: subscriptionGroupId,
+      action,
+    },
+  };
+}
+
 export function buildSubscriptionChangeEvent({
   messageId = uuid(),
   userId,
@@ -119,16 +146,15 @@ export function buildSubscriptionChangeEvent({
   const timestamp = currentTime.toISOString();
   return {
     messageId,
-    messageRaw: JSON.stringify({
-      userId,
-      timestamp,
-      type: "track",
-      event: InternalEventType.SubscriptionChange,
-      properties: {
-        subscriptionId: subscriptionGroupId,
+    messageRaw: JSON.stringify(
+      buildSubscriptionChangeEventInner({
+        userId,
         action,
-      },
-    }),
+        subscriptionGroupId,
+        timestamp,
+        messageId,
+      })
+    ),
   };
 }
 
