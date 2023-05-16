@@ -343,6 +343,7 @@ export const MessageNode = Type.Object(
     ...BaseNode,
     type: Type.Literal(JourneyNodeType.MessageNode),
     name: Type.Optional(Type.String()),
+    subscriptionGroupId: Type.Optional(Type.String()),
     variant: MessageVariant,
     child: Type.String(),
   },

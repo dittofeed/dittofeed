@@ -13,6 +13,7 @@ import {
   JourneyNodeType,
   MessageTemplateResource,
   SegmentResource,
+  SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
@@ -146,6 +147,10 @@ function getTemplateLabel(tr: MessageTemplateResource) {
   return tr.name;
 }
 
+function getSubscriptionGroupLabel(sg: SubscriptionGroupResource) {
+  return sg.name;
+}
+
 function MessageNodeFields({
   nodeId,
   nodeProps,
@@ -156,7 +161,10 @@ function MessageNodeFields({
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData
   );
-  const templates = useAppStore((state) => state.messages);
+  const templatesResult = useAppStore((state) => state.messages);
+  const subscriptionGroupsResult = useAppStore(
+    (state) => state.subscriptionGroups
+  );
 
   const onNameChangeHandler: React.ChangeEventHandler<
     HTMLTextAreaElement | HTMLInputElement
@@ -181,12 +189,32 @@ function MessageNodeFields({
     });
   };
 
-  if (templates.type !== CompletionStatus.Successful) {
-    return null;
-  }
+  const onSubscriptionGroupChangeHandler = (
+    _event: unknown,
+    subscriptionGroup: SubscriptionGroupResource | null
+  ) => {
+    updateJourneyNodeData(nodeId, (node) => {
+      const props = node.data.nodeTypeProps;
+      if (props.type === JourneyNodeType.MessageNode) {
+        props.subscriptionGroupId = subscriptionGroup?.id;
+      }
+    });
+  };
 
-  const template =
-    templates.value.find((t) => t.id === nodeProps.templateId) ?? null;
+  const templates =
+    templatesResult.type === CompletionStatus.Successful
+      ? templatesResult.value
+      : [];
+
+  const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;
+
+  const subscriptionGroups =
+    subscriptionGroupsResult.type === CompletionStatus.Successful
+      ? subscriptionGroupsResult.value
+      : [];
+  const subscriptionGroup =
+    subscriptionGroups.find((s) => s.id === nodeProps.subscriptionGroupId) ??
+    null;
 
   return (
     <>
@@ -197,11 +225,24 @@ function MessageNodeFields({
       />
       <Autocomplete
         value={template}
-        options={templates.value}
+        options={templates}
         getOptionLabel={getTemplateLabel}
         onChange={onTemplateChangeHandler}
         renderInput={(params) => (
-          <TextField {...params} label="template" variant="outlined" />
+          <TextField {...params} label="Template" variant="outlined" />
+        )}
+      />
+      <Autocomplete
+        value={subscriptionGroup}
+        options={subscriptionGroups}
+        getOptionLabel={getSubscriptionGroupLabel}
+        onChange={onSubscriptionGroupChangeHandler}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Subscription Group"
+            variant="outlined"
+          />
         )}
       />
     </>
