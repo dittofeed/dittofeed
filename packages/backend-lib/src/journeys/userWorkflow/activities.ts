@@ -11,6 +11,7 @@ import {
   JourneyNode,
   JourneyNodeType,
   MessageNodeVariantType,
+  SubscriptionGroupType,
 } from "../../types";
 import { InternalEvent, trackInternalEvents } from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
@@ -25,8 +26,10 @@ interface SendEmailParams {
   templateId: string;
   journeyId: string;
   messageId: string;
+  subscriptionGroupId?: string;
 }
 
+// TODO write test
 async function sendEmailWithPayload({
   journeyId,
   templateId,
@@ -35,12 +38,54 @@ async function sendEmailWithPayload({
   runId,
   nodeId,
   messageId,
+  subscriptionGroupId,
 }: SendEmailParams): Promise<[boolean, InternalEvent]> {
-  const journey = await prisma().journey.findUnique({
-    where: {
-      id: journeyId,
-    },
-  });
+  const [
+    journey,
+    subscriptionGroup,
+    defaultEmailProvider,
+    emailTemplate,
+    userProperties,
+  ] = await Promise.all([
+    prisma().journey.findUnique({
+      where: {
+        id: journeyId,
+      },
+    }),
+    subscriptionGroupId
+      ? prisma().subscriptionGroup.findUnique({
+          where: {
+            id: subscriptionGroupId,
+          },
+          include: {
+            Segment: {
+              include: {
+                SegmentAssignment: {
+                  where: {
+                    userId,
+                  },
+                },
+              },
+            },
+          },
+        })
+      : null,
+    prisma().defaultEmailProvider.findUnique({
+      where: {
+        workspaceId,
+      },
+      include: { emailProvider: true },
+    }),
+    prisma().emailTemplate.findUnique({
+      where: {
+        id: templateId,
+      },
+    }),
+    findAllUserPropertyAssignments({
+      userId,
+      workspaceId,
+    }),
+  ]);
   if (!journey) {
     return [
       false,
@@ -60,6 +105,60 @@ async function sendEmailWithPayload({
         },
       },
     ];
+  }
+  if (subscriptionGroupId) {
+    if (!subscriptionGroup) {
+      return [
+        false,
+        {
+          event: InternalEventType.BadWorkspaceConfiguration,
+          messageId,
+          userId,
+          properties: {
+            journeyId,
+            message: "Subscription group not found",
+            subscriptionGroupId,
+            templateId,
+            runId,
+            messageType: MessageNodeVariantType.Email,
+            nodeId,
+            userId,
+            workspaceId,
+          },
+        },
+      ];
+    }
+    const segmentAssignment =
+      subscriptionGroup.Segment[0]?.SegmentAssignment[0];
+
+    if (
+      segmentAssignment?.inSegment === false ||
+      (segmentAssignment === undefined &&
+        subscriptionGroup.type === SubscriptionGroupType.OptIn)
+    ) {
+      return [
+        false,
+        {
+          event: InternalEventType.MessageSkipped,
+          messageId,
+          userId,
+          properties: {
+            journeyStatus: journey.status,
+            subscriptionGroupId,
+            SubscriptionGroupType: subscriptionGroup.type,
+            inSubscriptionGroupSegment: String(!!segmentAssignment?.inSegment),
+            message: "User is not in subscription group",
+            journeyId,
+            templateId,
+            runId,
+            messageType: MessageNodeVariantType.Email,
+            nodeId,
+            userId,
+            workspaceId,
+          },
+        },
+      ];
+    }
   }
   if (journey.status !== "Running") {
     return [
@@ -82,25 +181,6 @@ async function sendEmailWithPayload({
       },
     ];
   }
-
-  const [defaultEmailProvider, emailTemplate, userProperties] =
-    await Promise.all([
-      prisma().defaultEmailProvider.findUnique({
-        where: {
-          workspaceId,
-        },
-        include: { emailProvider: true },
-      }),
-      prisma().emailTemplate.findUnique({
-        where: {
-          id: templateId,
-        },
-      }),
-      findAllUserPropertyAssignments({
-        userId,
-        workspaceId,
-      }),
-    ]);
 
   if (!emailTemplate) {
     return [

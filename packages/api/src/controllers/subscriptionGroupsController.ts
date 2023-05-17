@@ -4,12 +4,17 @@ import { Type } from "@sinclair/typebox";
 import { ValueError } from "@sinclair/typebox/errors";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
-import { buildSubscriptionChangeEvent } from "backend-lib/src/subscriptionGroups";
+import {
+  buildSubscriptionChangeEvent,
+  subscriptionGroupToResource,
+  upsertSubscriptionGroup,
+} from "backend-lib/src/subscriptionGroups";
 import {
   SegmentDefinition,
   SegmentNodeType,
   SubscriptionChange,
   SubscriptionGroupResource,
+  SubscriptionGroupType,
   UpsertSubscriptionGroupResource,
   UserUploadRow,
   WorkspaceId,
@@ -47,75 +52,20 @@ export default async function subscriptionGroupsController(
         body: UpsertSubscriptionGroupResource,
         response: {
           200: SubscriptionGroupResource,
+          400: Type.Object({
+            message: Type.String(),
+          }),
         },
       },
     },
     async (request, reply) => {
-      const { id, name, type, workspaceId } = request.body;
-      const segmentName = `subscriptionGroup-${id}`;
-      const segmentDefinition: SegmentDefinition = {
-        entryNode: {
-          type: SegmentNodeType.SubscriptionGroup,
-          id: "1",
-          subscriptionGroupId: id,
-        },
-        nodes: [],
-      };
-
-      const emailChannel = await prisma().channel.findUnique({
-        where: {
-          workspaceId_name: {
-            workspaceId,
-            name: "email",
-          },
-        },
-      });
-
-      if (!emailChannel) {
-        return reply.status(400).send();
+      const result = await upsertSubscriptionGroup(request.body);
+      if (result.isErr()) {
+        return reply.status(400).send({
+          message: result.error.message,
+        });
       }
-
-      await prisma().$transaction([
-        prisma().subscriptionGroup.upsert({
-          where: {
-            id,
-          },
-          create: {
-            name,
-            type,
-            workspaceId,
-            channelId: emailChannel.id,
-            id,
-          },
-          update: {
-            name,
-            type,
-          },
-        }),
-        prisma().segment.upsert({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name: segmentName,
-            },
-          },
-          create: {
-            name: segmentName,
-            workspaceId,
-            definition: segmentDefinition,
-            subscriptionGroupId: id,
-            resourceType: "Internal",
-          },
-          update: {},
-        }),
-      ]);
-
-      const resource: SubscriptionGroupResource = {
-        id,
-        name,
-        workspaceId,
-        type,
-      };
+      const resource = subscriptionGroupToResource(result.value);
       return reply.status(200).send(resource);
     }
   );

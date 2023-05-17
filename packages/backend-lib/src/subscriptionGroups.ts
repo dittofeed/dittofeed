@@ -13,15 +13,84 @@ import prisma from "./prisma";
 import {
   InternalEventType,
   JSONValue,
+  SegmentDefinition,
+  SegmentNodeType,
   SubscriptionChange,
   SubscriptionGroupResource,
   SubscriptionGroupType,
   SubscriptionParams,
+  UpsertSubscriptionGroupResource,
   UserSubscriptionLookup,
   UserSubscriptionResource,
   UserSubscriptionsUpdate,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
+
+export async function upsertSubscriptionGroup({
+  id,
+  name,
+  type,
+  workspaceId,
+}: UpsertSubscriptionGroupResource): Promise<Result<SubscriptionGroup, Error>> {
+  const segmentName = `subscriptionGroup-${id}`;
+  const segmentDefinition: SegmentDefinition = {
+    entryNode: {
+      type: SegmentNodeType.SubscriptionGroup,
+      id: "1",
+      subscriptionGroupId: id,
+    },
+    nodes: [],
+  };
+
+  const emailChannel = await prisma().channel.findUnique({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: "email",
+      },
+    },
+  });
+
+  if (!emailChannel) {
+    return err(new Error("Email channel not found"));
+  }
+
+  const [subscriptionGroup] = await prisma().$transaction([
+    prisma().subscriptionGroup.upsert({
+      where: {
+        id,
+      },
+      create: {
+        name,
+        type,
+        workspaceId,
+        channelId: emailChannel.id,
+        id,
+      },
+      update: {
+        name,
+        type,
+      },
+    }),
+    prisma().segment.upsert({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: segmentName,
+        },
+      },
+      create: {
+        name: segmentName,
+        workspaceId,
+        definition: segmentDefinition,
+        subscriptionGroupId: id,
+        resourceType: "Internal",
+      },
+      update: {},
+    }),
+  ]);
+  return ok(subscriptionGroup);
+}
 
 export function subscriptionGroupToResource(
   subscriptionGroup: SubscriptionGroup
