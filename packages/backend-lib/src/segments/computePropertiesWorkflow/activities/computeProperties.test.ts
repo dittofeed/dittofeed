@@ -339,6 +339,52 @@ describe("compute properties activities", () => {
         },
         expectedSignals: [],
       },
+      {
+        description:
+          "with opt-out subscription groups all identified users are subscribed by default",
+        segments: [
+          {
+            name: "in last value subscription group",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.SubscriptionGroup,
+                subscriptionGroupId: subscriptionGroupId1,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              buildSubscriptionChangeEventInner({
+                userId,
+                subscriptionGroupId: subscriptionGroupId1,
+                action: SubscriptionChange.Subscribe,
+                timestamp: defaults.timestamp as string,
+                messageId: defaults.messageId as string,
+              }),
+          },
+          {
+            eventTimeOffset: -500,
+            overrides: (defaults) =>
+              buildSubscriptionChangeEventInner({
+                userId,
+                subscriptionGroupId: subscriptionGroupId1,
+                action: SubscriptionChange.UnSubscribe,
+                timestamp: defaults.timestamp as string,
+                messageId: defaults.messageId as string,
+              }),
+          },
+        ],
+        expectedSegments: {
+          "in last value subscription group": false,
+        },
+        expectedSignals: [],
+      },
     ];
 
     describe("table driven tests", () => {

@@ -355,8 +355,11 @@ function buildSegmentQueryExpression({
               trait_time${traitIdentifier} < toDateTime64(${upperTraitBound}, 3)
             )`;
         }
+        default:
+          throw new Error(
+            `Unimplemented operator for ${node.type} segment node ${node.operator.type}`
+          );
       }
-      break;
     }
     case SegmentNodeType.And: {
       const childIds = new Set(node.children);
