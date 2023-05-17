@@ -19,11 +19,7 @@ import {
 } from "./segments/computePropertiesWorkflow";
 import { upsertSubscriptionGroup } from "./subscriptionGroups";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
-import {
-  SegmentNodeType,
-  SubscriptionGroupType,
-  UserPropertyDefinitionType,
-} from "./types";
+import { SubscriptionGroupType, UserPropertyDefinitionType } from "./types";
 import {
   createUserEventsTables,
   insertUserEvents,
