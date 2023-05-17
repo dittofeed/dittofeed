@@ -14,6 +14,7 @@ import {
   ComputedPropertiesWorkflowParams,
   computePropertiesWorkflow,
 } from "../segments/computePropertiesWorkflow";
+import { upsertSubscriptionGroup } from "../subscriptionGroups";
 import {
   DelayVariantType,
   EnrichedJourney,
@@ -30,7 +31,6 @@ import {
   createUserEventsTables,
   insertUserEvents,
 } from "../userEvents/clickhouse";
-import { upsertSubscriptionGroup } from "../subscriptionGroups";
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {

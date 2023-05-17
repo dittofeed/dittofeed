@@ -29,6 +29,7 @@ interface SendEmailParams {
   subscriptionGroupId?: string;
 }
 
+// TODO write test
 async function sendEmailWithPayload({
   journeyId,
   templateId,
