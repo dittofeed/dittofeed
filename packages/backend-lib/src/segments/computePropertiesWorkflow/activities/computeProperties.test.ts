@@ -344,6 +344,28 @@ describe("compute properties activities", () => {
       },
       {
         description:
+          "when users have not submitted any subscription change events they are not in the opt-in subscription group",
+        segments: [
+          {
+            name: "in opt in subscription group",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                subscriptionGroupType: SubscriptionGroupType.OptIn,
+                type: SegmentNodeType.SubscriptionGroup,
+                subscriptionGroupId: subscriptionGroupId1,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [],
+        expectedSegments: {},
+        expectedSignals: [],
+      },
+      {
+        description:
           "with opt-out subscription groups all identified users are subscribed by default",
         segments: [
           {

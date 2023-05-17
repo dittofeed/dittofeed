@@ -186,7 +186,6 @@ function buildSegmentQueryExpression({
 
       const assignmentVarName = getChCompatibleUuid();
 
-      // FIXME test when no relevant events
       const assignment = `arrayFirst(
         m -> and(${whereConditions.join(",")}),
         timed_messages
