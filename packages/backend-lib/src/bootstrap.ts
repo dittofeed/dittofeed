@@ -17,6 +17,7 @@ import {
   computePropertiesWorkflow,
   generateComputePropertiesId,
 } from "./segments/computePropertiesWorkflow";
+import { upsertSubscriptionGroup } from "./subscriptionGroups";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import {
   SegmentNodeType,
@@ -128,7 +129,7 @@ async function bootstrapPostgres({
       },
     ];
 
-  const [emailChannel] = await Promise.all([
+  await Promise.all([
     prisma().channel.upsert({
       where: {
         workspaceId_name: {
@@ -171,45 +172,10 @@ async function bootstrapPostgres({
     }),
   ]);
 
-  const subscriptionGroupName = `${workspaceName} - Email`;
-
-  const emailSubscriptionGroup = await prisma().subscriptionGroup.upsert({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: subscriptionGroupName,
-      },
-    },
-    create: {
-      workspaceId,
-      name: subscriptionGroupName,
-      type: SubscriptionGroupType.OptIn,
-      channelId: emailChannel.id,
-    },
-    update: {},
-  });
-  await prisma().segment.upsert({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: subscriptionGroupName,
-      },
-    },
-    create: {
-      workspaceId,
-      name: subscriptionGroupName,
-      definition: {
-        entryNode: {
-          type: SegmentNodeType.SubscriptionGroup,
-          id: "1",
-          subscriptionGroupId: emailSubscriptionGroup.id,
-        },
-        nodes: [],
-      },
-      resourceType: "Internal",
-      subscriptionGroupId: emailSubscriptionGroup.id,
-    },
-    update: {},
+  await upsertSubscriptionGroup({
+    workspaceId,
+    name: `${workspaceName} - Email`,
+    type: SubscriptionGroupType.OptOut,
   });
 }
 
