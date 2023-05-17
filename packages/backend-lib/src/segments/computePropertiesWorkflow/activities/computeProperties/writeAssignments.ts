@@ -17,6 +17,7 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SubscriptionChange,
+  SubscriptionGroupType,
   UserPropertyDefinitionType,
 } from "../../../../types";
 
@@ -76,6 +77,31 @@ function buildSegmentQueryExpression({
 }): string | null {
   switch (node.type) {
     case SegmentNodeType.SubscriptionGroup: {
+      let hasProperties: LastPerformedSegmentNode["hasProperties"];
+      switch (node.subscriptionGroupType) {
+        case SubscriptionGroupType.OptIn:
+          hasProperties = [
+            {
+              path: "action",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: SubscriptionChange.Subscribe,
+              },
+            },
+          ];
+          break;
+        case SubscriptionGroupType.OptOut:
+          hasProperties = [
+            {
+              path: "action",
+              operator: {
+                type: SegmentOperatorType.NotEquals,
+                value: SubscriptionChange.UnSubscribe,
+              },
+            },
+          ];
+          break;
+      }
       const lastPerformedNode: LastPerformedSegmentNode = {
         id: node.id,
         type: SegmentNodeType.LastPerformed,
@@ -89,15 +115,7 @@ function buildSegmentQueryExpression({
             },
           },
         ],
-        hasProperties: [
-          {
-            path: "action",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: SubscriptionChange.Subscribe,
-            },
-          },
-        ],
+        hasProperties,
       };
       return buildSegmentQueryExpression({
         currentTime,
@@ -194,6 +212,16 @@ function buildSegmentQueryExpression({
                   ${where},
                   ${path}
                 ) == ${value}
+              `;
+            break;
+          }
+          case SegmentOperatorType.NotEquals: {
+            const value = jsonValueToCh(queryBuilder, property.operator.value);
+            condition = `
+                JSON_VALUE(
+                  ${where},
+                  ${path}
+                ) != ${value}
               `;
             break;
           }
@@ -355,8 +383,11 @@ function buildSegmentQueryExpression({
               trait_time${traitIdentifier} < toDateTime64(${upperTraitBound}, 3)
             )`;
         }
+        default:
+          throw new Error(
+            `Unimplemented operator for ${node.type} segment node ${node.operator.type}`
+          );
       }
-      break;
     }
     case SegmentNodeType.And: {
       const childIds = new Set(node.children);

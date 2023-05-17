@@ -42,6 +42,22 @@ export enum EventType {
   Alias = "alias",
 }
 
+export enum SubscriptionGroupType {
+  OptIn = "OptIn",
+  OptOut = "OptOut",
+}
+
+export const SubscriptionGroupResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  type: Type.Enum(SubscriptionGroupType),
+});
+
+export type SubscriptionGroupResource = Static<
+  typeof SubscriptionGroupResource
+>;
+
 export interface SegmentUpdate {
   segmentId: string;
   currentlyInSegment: boolean;
@@ -52,6 +68,7 @@ export enum SegmentOperatorType {
   Within = "Within",
   Equals = "Equals",
   HasBeen = "HasBeen",
+  NotEquals = "NotEquals",
 }
 
 export enum SegmentHasBeenOperatorComparator {
@@ -82,9 +99,17 @@ export const SegmentEqualsOperator = Type.Object({
 
 export type SegmentEqualsOperator = Static<typeof SegmentEqualsOperator>;
 
+export const SegmentNotEqualsOperator = Type.Object({
+  type: Type.Literal(SegmentOperatorType.NotEquals),
+  value: Type.Union([Type.String(), Type.Number()]),
+});
+
+export type SegmentNotEqualsOperator = Static<typeof SegmentNotEqualsOperator>;
+
 export const SegmentOperator = Type.Union([
   SegmentWithinOperator,
   SegmentEqualsOperator,
+  SegmentNotEqualsOperator,
   SegmentHasBeenOperator,
 ]);
 
@@ -104,6 +129,7 @@ export const SubscriptionGroupSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.SubscriptionGroup),
   id: Type.String(),
   subscriptionGroupId: Type.String(),
+  subscriptionGroupType: Type.Enum(SubscriptionGroupType),
 });
 
 export type SubscriptionGroupSegmentNode = Static<
@@ -445,23 +471,10 @@ export const SegmentResource = Type.Object({
 
 export type SegmentResource = Static<typeof SegmentResource>;
 
-export enum SubscriptionGroupType {
-  OptIn = "OptIn",
-  OptOut = "OptOut",
-}
-
-export const SubscriptionGroupResource = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  name: Type.String(),
-  type: Type.Enum(SubscriptionGroupType),
-});
-
-export type SubscriptionGroupResource = Static<
-  typeof SubscriptionGroupResource
->;
-
-export const UpsertSubscriptionGroupResource = SubscriptionGroupResource;
+export const UpsertSubscriptionGroupResource = Type.Intersect([
+  Type.Omit(SubscriptionGroupResource, ["id"]),
+  Type.Pick(Type.Partial(SubscriptionGroupResource), ["id"]),
+]);
 
 export type UpsertSubscriptionGroupResource = Static<
   typeof UpsertSubscriptionGroupResource

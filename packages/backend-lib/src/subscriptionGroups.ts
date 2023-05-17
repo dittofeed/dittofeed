@@ -1,4 +1,4 @@
-import { Segment, SubscriptionGroup } from "@prisma/client";
+import { Prisma, Segment, SubscriptionGroup } from "@prisma/client";
 import {
   SUBSCRIPTION_MANAGEMENT_PAGE,
   SUBSCRIPTION_SECRET_NAME,
@@ -32,16 +32,6 @@ export async function upsertSubscriptionGroup({
   type,
   workspaceId,
 }: UpsertSubscriptionGroupResource): Promise<Result<SubscriptionGroup, Error>> {
-  const segmentName = `subscriptionGroup-${id}`;
-  const segmentDefinition: SegmentDefinition = {
-    entryNode: {
-      type: SegmentNodeType.SubscriptionGroup,
-      id: "1",
-      subscriptionGroupId: id,
-    },
-    nodes: [],
-  };
-
   const emailChannel = await prisma().channel.findUnique({
     where: {
       workspaceId_name: {
@@ -55,11 +45,20 @@ export async function upsertSubscriptionGroup({
     return err(new Error("Email channel not found"));
   }
 
-  const [subscriptionGroup] = await prisma().$transaction([
-    prisma().subscriptionGroup.upsert({
-      where: {
-        id,
-      },
+  const sg = await prisma().$transaction(async (tx) => {
+    const where: Prisma.SubscriptionGroupUpsertArgs["where"] = id
+      ? {
+          id,
+        }
+      : {
+          workspaceId_name: {
+            workspaceId,
+            name,
+          },
+        };
+
+    const subscriptionGroup = await tx.subscriptionGroup.upsert({
+      where,
       create: {
         name,
         type,
@@ -71,8 +70,20 @@ export async function upsertSubscriptionGroup({
         name,
         type,
       },
-    }),
-    prisma().segment.upsert({
+    });
+
+    const segmentName = `subscriptionGroup-${id}`;
+    const segmentDefinition: SegmentDefinition = {
+      entryNode: {
+        type: SegmentNodeType.SubscriptionGroup,
+        id: "1",
+        subscriptionGroupId: subscriptionGroup.id,
+        subscriptionGroupType: type,
+      },
+      nodes: [],
+    };
+
+    await tx.segment.upsert({
       where: {
         workspaceId_name: {
           workspaceId,
@@ -83,13 +94,18 @@ export async function upsertSubscriptionGroup({
         name: segmentName,
         workspaceId,
         definition: segmentDefinition,
-        subscriptionGroupId: id,
+        subscriptionGroupId: subscriptionGroup.id,
         resourceType: "Internal",
       },
-      update: {},
-    }),
-  ]);
-  return ok(subscriptionGroup);
+      update: {
+        name: segmentName,
+        definition: segmentDefinition,
+      },
+    });
+    return subscriptionGroup;
+  });
+
+  return ok(sg);
 }
 
 export function subscriptionGroupToResource(

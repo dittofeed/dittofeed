@@ -25,6 +25,7 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SubscriptionChange,
+  SubscriptionGroupType,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "../../../types";
@@ -270,6 +271,7 @@ describe("compute properties activities", () => {
                 id: "1",
                 type: SegmentNodeType.SubscriptionGroup,
                 subscriptionGroupId: subscriptionGroupId1,
+                subscriptionGroupType: SubscriptionGroupType.OptIn,
               },
               nodes: [],
             },
@@ -309,11 +311,12 @@ describe("compute properties activities", () => {
           "When a user submits a subscribe track event the user is in the segment",
         segments: [
           {
-            name: "in last value subscription group",
+            name: "in opt in subscription group",
             id: randomUUID(),
             definition: {
               entryNode: {
                 id: "1",
+                subscriptionGroupType: SubscriptionGroupType.OptIn,
                 type: SegmentNodeType.SubscriptionGroup,
                 subscriptionGroupId: subscriptionGroupId1,
               },
@@ -335,7 +338,110 @@ describe("compute properties activities", () => {
           },
         ],
         expectedSegments: {
-          "in last value subscription group": true,
+          "in opt in subscription group": true,
+        },
+        expectedSignals: [],
+      },
+      {
+        description:
+          "when users have not submitted any subscription change events they are not in the opt-in subscription group",
+        segments: [
+          {
+            name: "in opt in subscription group",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                subscriptionGroupType: SubscriptionGroupType.OptIn,
+                type: SegmentNodeType.SubscriptionGroup,
+                subscriptionGroupId: subscriptionGroupId1,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [],
+        expectedSegments: {},
+        expectedSignals: [],
+      },
+      {
+        description:
+          "with opt-out subscription groups all identified users are subscribed by default",
+        segments: [
+          {
+            name: "in opt-out subscription group",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                subscriptionGroupType: SubscriptionGroupType.OptOut,
+                type: SegmentNodeType.SubscriptionGroup,
+                subscriptionGroupId: subscriptionGroupId1,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                traits: {
+                  email: "max@email.com",
+                },
+              }),
+          },
+        ],
+        expectedSegments: {
+          "in opt-out subscription group": true,
+        },
+        expectedSignals: [],
+      },
+      {
+        description:
+          "with opt-out subscription groups unsubscribes are respected",
+        segments: [
+          {
+            name: "in opt-out subscription group",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                subscriptionGroupType: SubscriptionGroupType.OptOut,
+                type: SegmentNodeType.SubscriptionGroup,
+                subscriptionGroupId: subscriptionGroupId1,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                traits: {
+                  email: "max@email.com",
+                },
+              }),
+          },
+          {
+            eventTimeOffset: -500,
+            overrides: (defaults) =>
+              buildSubscriptionChangeEventInner({
+                userId,
+                subscriptionGroupId: subscriptionGroupId1,
+                action: SubscriptionChange.UnSubscribe,
+                timestamp: defaults.timestamp as string,
+                messageId: defaults.messageId as string,
+              }),
+          },
+        ],
+        expectedSegments: {
+          "in opt-out subscription group": false,
         },
         expectedSignals: [],
       },
