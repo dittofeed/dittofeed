@@ -20,6 +20,7 @@ import React, { useMemo } from "react";
 import { BulletList, BulletListItem } from "../../components/bulletList";
 import EditableName from "../../components/editableName";
 import InfoBox from "../../components/infoBox";
+import InfoTooltip from "../../components/infoTooltip";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import { PropsWithInitialState } from "../../lib/types";
@@ -113,7 +114,7 @@ export default function SubscriptionGroupConfig() {
     return null;
   }
 
-  const optOut = editedSubscriptionGroup.type === SubscriptionGroupType.OptOut;
+  const optIn = editedSubscriptionGroup.type === SubscriptionGroupType.OptIn;
   return (
     <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Configure} id={id}>
       <Stack
@@ -151,17 +152,27 @@ export default function SubscriptionGroupConfig() {
           <FormControlLabel
             control={
               <Switch
-                checked={optOut}
-                onChange={(e) =>
+                checked={optIn}
+                onChange={(e) => {
                   updateEditedSubscriptionGroup({
-                    type: e.target.value
-                      ? SubscriptionGroupType.OptOut
-                      : SubscriptionGroupType.OptIn,
-                  })
-                }
+                    type: e.target.checked
+                      ? SubscriptionGroupType.OptIn
+                      : SubscriptionGroupType.OptOut,
+                  });
+                }}
               />
             }
-            label={optOut ? "Opt-Out" : "Opt-In"}
+            label={
+              <InfoTooltip
+                title={
+                  optIn
+                    ? "Users will only be members of this subscription group if they explicitly opt in."
+                    : "Users will be members of this subscription group by default unless they explicitly opt out."
+                }
+              >
+                <>{optIn ? "Opt-In" : "Opt-Out"}</>
+              </InfoTooltip>
+            }
           />
         </FormGroup>
         <InfoBox>
