@@ -1,5 +1,12 @@
 import LoadingButton from "@mui/lab/LoadingButton";
-import { Stack, Typography, useTheme } from "@mui/material";
+import {
+  FormControlLabel,
+  FormGroup,
+  Stack,
+  Switch,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import {
   CompletionStatus,
   SubscriptionGroupResource,
@@ -106,6 +113,7 @@ export default function SubscriptionGroupConfig() {
     return null;
   }
 
+  const optOut = editedSubscriptionGroup.type === SubscriptionGroupType.OptOut;
   return (
     <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Configure} id={id}>
       <Stack
@@ -138,6 +146,24 @@ export default function SubscriptionGroupConfig() {
             Save
           </LoadingButton>
         </Stack>
+
+        <FormGroup>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={optOut}
+                onChange={(e) =>
+                  updateEditedSubscriptionGroup({
+                    type: e.target.value
+                      ? SubscriptionGroupType.OptOut
+                      : SubscriptionGroupType.OptIn,
+                  })
+                }
+              />
+            }
+            label={optOut ? "Opt-Out" : "Opt-In"}
+          />
+        </FormGroup>
         <InfoBox>
           Subscription groups define a group of users who are eligible to
           receive a set of messages. They are useful for:
