@@ -69,16 +69,16 @@ export default function SubscriptionGroupConfig() {
       workspaceId: workspace.value.id,
       name,
       id,
-      type: SubscriptionGroupType.OptIn,
+      type: editedSubscriptionGroup.type,
     };
 
     return apiRequestHandlerFactory({
       request: subscriptionGroupUpdateRequest,
       setRequest: setSubscriptionGroupUpdateRequest,
       responseSchema: SubscriptionGroupResource,
-      setResponse: (broadcast) => {
-        upsertSubscriptionGroup(broadcast);
-        updateEditedSubscriptionGroup(broadcast);
+      setResponse: (sg) => {
+        upsertSubscriptionGroup(sg);
+        updateEditedSubscriptionGroup(sg);
       },
       // TODO redirect on completion
       onSuccessNotice: `Saved subscription group ${name}`,

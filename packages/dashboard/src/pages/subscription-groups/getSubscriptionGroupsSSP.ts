@@ -34,8 +34,13 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
     });
 
     if (subscriptionGroup) {
-      serverInitialState.editedSubscriptionGroup =
-        subscriptionGroupToResource(subscriptionGroup);
+      const resource = subscriptionGroupToResource(subscriptionGroup);
+
+      serverInitialState.subscriptionGroups = {
+        type: CompletionStatus.Successful,
+        value: [resource],
+      };
+      serverInitialState.editedSubscriptionGroup = resource;
 
       const segment = subscriptionGroup.Segment[0];
 
@@ -54,7 +59,7 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
         workspaceId,
         id,
         name: `Subscription Group - ${id}`,
-        type: SubscriptionGroupType.OptIn,
+        type: SubscriptionGroupType.OptOut,
       };
     }
 
