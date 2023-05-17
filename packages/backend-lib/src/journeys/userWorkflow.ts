@@ -173,6 +173,7 @@ export async function userJourneyWorkflow({
               userId,
               workspaceId,
               journeyId,
+              subscriptionGroupId: currentNode.subscriptionGroupId,
               runId,
               nodeId: currentNode.id,
               templateId: currentNode.variant.templateId,

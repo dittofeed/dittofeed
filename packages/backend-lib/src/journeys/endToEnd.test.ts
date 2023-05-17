@@ -24,11 +24,13 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SegmentSplitVariantType,
+  SubscriptionGroupType,
 } from "../types";
 import {
   createUserEventsTables,
   insertUserEvents,
 } from "../userEvents/clickhouse";
+import { upsertSubscriptionGroup } from "../subscriptionGroups";
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {
@@ -269,6 +271,23 @@ describe("end to end journeys", () => {
 
         const nodeId1 = randomUUID();
 
+        await prisma().channel.create({
+          data: {
+            workspaceId: workspace.id,
+            name: "email",
+            identifier: "email",
+          },
+        });
+
+        const subscriptionGroup = unwrap(
+          await upsertSubscriptionGroup({
+            id: randomUUID(),
+            workspaceId: workspace.id,
+            name: "default",
+            type: SubscriptionGroupType.OptIn,
+          })
+        );
+
         const journeyDefinition: JourneyDefinition = {
           entryNode: {
             type: JourneyNodeType.EntryNode,
@@ -283,6 +302,7 @@ describe("end to end journeys", () => {
               type: JourneyNodeType.MessageNode,
               id: nodeId1,
               child: "ExitNode",
+              subscriptionGroupId: subscriptionGroup.id,
               variant: {
                 type: MessageNodeVariantType.Email,
                 templateId: randomUUID(),
