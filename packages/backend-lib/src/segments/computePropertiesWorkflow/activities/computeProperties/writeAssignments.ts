@@ -89,15 +89,18 @@ function buildSegmentQueryExpression({
               },
             },
           ];
+          break;
         case SubscriptionGroupType.OptOut:
           hasProperties = [
             {
               path: "action",
               operator: {
                 type: SegmentOperatorType.NotEquals,
+                value: SubscriptionChange.UnSubscribe,
               },
             },
           ];
+          break;
       }
       const lastPerformedNode: LastPerformedSegmentNode = {
         id: node.id,
@@ -210,6 +213,16 @@ function buildSegmentQueryExpression({
                   ${where},
                   ${path}
                 ) == ${value}
+              `;
+            break;
+          }
+          case SegmentOperatorType.NotEquals: {
+            const value = jsonValueToCh(queryBuilder, property.operator.value);
+            condition = `
+                JSON_VALUE(
+                  ${where},
+                  ${path}
+                ) != ${value}
               `;
             break;
           }
