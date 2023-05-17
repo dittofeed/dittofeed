@@ -17,6 +17,7 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SubscriptionChange,
+  SubscriptionGroupType,
   UserPropertyDefinitionType,
 } from "../../../../types";
 
@@ -76,6 +77,28 @@ function buildSegmentQueryExpression({
 }): string | null {
   switch (node.type) {
     case SegmentNodeType.SubscriptionGroup: {
+      let hasProperties: LastPerformedSegmentNode["hasProperties"];
+      switch (node.subscriptionGroupType) {
+        case SubscriptionGroupType.OptIn:
+          hasProperties = [
+            {
+              path: "action",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: SubscriptionChange.Subscribe,
+              },
+            },
+          ];
+        case SubscriptionGroupType.OptOut:
+          hasProperties = [
+            {
+              path: "action",
+              operator: {
+                type: SegmentOperatorType.NotEquals,
+              },
+            },
+          ];
+      }
       const lastPerformedNode: LastPerformedSegmentNode = {
         id: node.id,
         type: SegmentNodeType.LastPerformed,
@@ -89,15 +112,7 @@ function buildSegmentQueryExpression({
             },
           },
         ],
-        hasProperties: [
-          {
-            path: "action",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: SubscriptionChange.Subscribe,
-            },
-          },
-        ],
+        hasProperties,
       };
       return buildSegmentQueryExpression({
         currentTime,
@@ -168,6 +183,7 @@ function buildSegmentQueryExpression({
 
       const assignmentVarName = getChCompatibleUuid();
 
+      // FIXME test when no relevant events
       const assignment = `arrayFirst(
         m -> and(${whereConditions.join(",")}),
         timed_messages
