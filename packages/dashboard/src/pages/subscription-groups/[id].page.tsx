@@ -1,5 +1,12 @@
 import LoadingButton from "@mui/lab/LoadingButton";
-import { Stack, Typography, useTheme } from "@mui/material";
+import {
+  FormControlLabel,
+  FormGroup,
+  Stack,
+  Switch,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import {
   CompletionStatus,
   SubscriptionGroupResource,
@@ -13,6 +20,7 @@ import React, { useMemo } from "react";
 import { BulletList, BulletListItem } from "../../components/bulletList";
 import EditableName from "../../components/editableName";
 import InfoBox from "../../components/infoBox";
+import InfoTooltip from "../../components/infoTooltip";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import { PropsWithInitialState } from "../../lib/types";
@@ -61,16 +69,16 @@ export default function SubscriptionGroupConfig() {
       workspaceId: workspace.value.id,
       name,
       id,
-      type: SubscriptionGroupType.OptIn,
+      type: editedSubscriptionGroup.type,
     };
 
     return apiRequestHandlerFactory({
       request: subscriptionGroupUpdateRequest,
       setRequest: setSubscriptionGroupUpdateRequest,
       responseSchema: SubscriptionGroupResource,
-      setResponse: (broadcast) => {
-        upsertSubscriptionGroup(broadcast);
-        updateEditedSubscriptionGroup(broadcast);
+      setResponse: (sg) => {
+        upsertSubscriptionGroup(sg);
+        updateEditedSubscriptionGroup(sg);
       },
       // TODO redirect on completion
       onSuccessNotice: `Saved subscription group ${name}`,
@@ -106,6 +114,7 @@ export default function SubscriptionGroupConfig() {
     return null;
   }
 
+  const optIn = editedSubscriptionGroup.type === SubscriptionGroupType.OptIn;
   return (
     <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Configure} id={id}>
       <Stack
@@ -138,6 +147,34 @@ export default function SubscriptionGroupConfig() {
             Save
           </LoadingButton>
         </Stack>
+
+        <FormGroup>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={optIn}
+                onChange={(e) => {
+                  updateEditedSubscriptionGroup({
+                    type: e.target.checked
+                      ? SubscriptionGroupType.OptIn
+                      : SubscriptionGroupType.OptOut,
+                  });
+                }}
+              />
+            }
+            label={
+              <InfoTooltip
+                title={
+                  optIn
+                    ? "Users will only be members of this subscription group if they explicitly opt in."
+                    : "Users will be members of this subscription group by default unless they explicitly opt out."
+                }
+              >
+                <>{optIn ? "Opt-In" : "Opt-Out"}</>
+              </InfoTooltip>
+            }
+          />
+        </FormGroup>
         <InfoBox>
           Subscription groups define a group of users who are eligible to
           receive a set of messages. They are useful for:
