@@ -38,6 +38,7 @@ export async function upsertSubscriptionGroup({
       type: SegmentNodeType.SubscriptionGroup,
       id: "1",
       subscriptionGroupId: id,
+      subscriptionGroupType: type,
     },
     nodes: [],
   };
@@ -86,7 +87,10 @@ export async function upsertSubscriptionGroup({
         subscriptionGroupId: id,
         resourceType: "Internal",
       },
-      update: {},
+      update: {
+        name: segmentName,
+        definition: segmentDefinition,
+      },
     }),
   ]);
   return ok(subscriptionGroup);

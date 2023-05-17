@@ -118,11 +118,11 @@ const operatorOptions: Option[] = [
   hasBeenOperatorOption,
 ];
 
-const keyedOperatorOptions: Record<SegmentOperatorType, Option> = {
-  [SegmentOperatorType.Equals]: equalsOperatorOption,
-  [SegmentOperatorType.Within]: withinOperatorOption,
-  [SegmentOperatorType.HasBeen]: hasBeenOperatorOption,
-};
+const keyedOperatorOptions = new Map<SegmentOperatorType, Option>([
+  [SegmentOperatorType.Equals, equalsOperatorOption],
+  [SegmentOperatorType.Within, withinOperatorOption],
+  [SegmentOperatorType.HasBeen, hasBeenOperatorOption],
+]);
 
 type Group = SegmentNodeType.And | SegmentNodeType.Or;
 
@@ -275,7 +275,10 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const traits = useAppStore((store) => store.traits);
   const traitOptions =
     traits.type === CompletionStatus.Successful ? traits.value : [];
-  const operator = keyedOperatorOptions[node.operator.type];
+  const operator = keyedOperatorOptions.get(node.operator.type);
+  if (!operator) {
+    throw new Error(`Unsupported operator type: ${node.operator.type}`);
+  }
 
   let valueSelect: React.ReactElement;
   switch (node.operator.type) {
@@ -295,6 +298,8 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
         </>
       );
       break;
+    default:
+      throw new Error(`Unsupported operator type: ${node.operator.type}`);
   }
 
   const traitOnChange = (newValue: string) => {
@@ -365,6 +370,8 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                     };
                     break;
                   }
+                  default:
+                    throw new Error("Unhandled operator type");
                 }
                 segmentNode.operator = nodeOperator;
               }

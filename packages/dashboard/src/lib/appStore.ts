@@ -4,6 +4,7 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentOperatorType,
+  SubscriptionGroupType,
 } from "isomorphic-lib/src/types";
 import { useLayoutEffect } from "react";
 import { v4 as uuid } from "uuid";
@@ -148,6 +149,7 @@ function mapSegmentNodeToNewType(
           type: SegmentNodeType.SubscriptionGroup,
           id: node.id,
           subscriptionGroupId: "",
+          subscriptionGroupType: SubscriptionGroupType.OptIn,
         },
         secondary: [],
       };
