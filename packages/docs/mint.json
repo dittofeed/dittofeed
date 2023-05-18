@@ -117,6 +117,7 @@
     {
       "group": "User Guides",
       "pages": [
+        "guide/submitting-user-events",
         "guide/git-workflows",
         "guide/testing",
         "guide/monitoring-alerting",

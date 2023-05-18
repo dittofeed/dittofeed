@@ -2,3 +2,103 @@
 title: "Subscription Groups"
 description: "Manage groups of specific users, and their messaging preferences."
 ---
+
+## Introduction
+
+Subscription groups help you manage groups of specific end users, and their messaging preferences. They are important both for obtaining end user's trust, as well as achieving regulatory compliance.
+
+{/* --rephrase start-- */}
+* one subscription group per channel
+* start with opt-out subscribe for email channel
+{/* --rephrase end-- */}
+
+
+## Creating a Subscription Group
+
+{/* --rephrase start-- */}
+* navigate to "Subscription Groups"
+* press (+) button for new
+* edit name
+* press save
+{/* --rephrase end-- */}
+
+## Types of Subscription Groups
+
+
+### Opt-In Subscription Groups
+
+{/* --rephrase start-- */}
+* end users are members IFF they have subscribed.
+{/* --rephrase end-- */}
+
+### Opt-Out Subscription Groups
+
+{/* --rephrase start-- */}
+* users are members of the subscription group so long as they haven't explicitly unsubscribed.
+{/* --rephrase end-- */}
+
+## Adding and Removing Users from a Subscription Group
+    
+{/* --rephrase start-- */}
+* users can be added and removed from subscription groups either programmatically, or manually via the dashboard.
+* this is especially important for opt-in subscription groups which will always require adding users to subscription groups.
+{/* --rephrase end-- */}
+
+### Adding Users to a Subscription Group
+
+#### CSV Upload
+{/* --rephrase start-- */}
+* navigate to subscription group page
+* click on upload
+{/* --rephrase end-- */}
+
+#### Submit a Track Event
+
+{/* --rephrase start-- */}
+* include code block for relevant track event 
+* [Submitting User Events](/guide/submitting-user-events)
+{/* --rephrase end-- */}
+
+### Removing Users from a Subscription Group
+
+#### Submit a Track Event
+
+#### Unsubscribe API
+
+## Adding Subscription Groups to a User Journey
+
+## Adding Unsubscribe Links to Emails
+
+## The Importance of Subscription Groups for Regulatory Compliance
+
+## Viewing Users in a Subscription Group
+
+
+
+I'm writing the documentation for a service that is broadly similar to Braze, Customer.io, Segment engage and other multi-channel customer engagement platforms. I'd like you to write a page which documents subscription groups, with background information provided below.
+
+This platform has "resources" that represent the configuration of a "workspace". Workspaces have "subscription groups" that allow users to subscribe, and unsubscribe from messages. Subscription groups are assigned to a "channel" e.g. the email channel, sms channel etc. Subscription groups can be either Opt-In (end users are members IFF they have subscribed), or Opt-Out (users are members of the subscription group so long as they haven't explicitly unsubscribed). This functionality is similar to Braze's "Subscription Groups" feature, and is necessary to comply with regulations like the CAN-SPAM act. There's also a subscription manager page hosted from the dashboard that's accessible to end users and can be used to manage their subscriptions. Unsubscribe links in emails route to this page, which unsubscribes the user on page load in addition to displaying their subscriptions on the page.
+
+Before you write the contents of the page, please write out an outline of the page, and the headings you would use (in markdown syntax). Please also write a short paragraph describing the documentation page, and what it would contain.
+
+## Introduction
+
+### What are Subscription Groups?
+
+Subscription Groups are like buckets where you put different types of messages—like emails, SMS, push notifications—that users can choose to receive or not. Imagine a user says, "Sure, I'd love your emails" (that's opt-in), or "No more promotional texts, please" (that's opt-out). These groups help you send the right stuff to the right people and give your users control over what they get.
+
+### The Importance of Subscription Groups in Regulatory Compliance
+
+Besides helping you manage messages and keep users happy, Subscription Groups also keep you on the right side of the law. Some laws, like the CAN-SPAM Act in the U.S., say you must let people opt out of your messages easily. With Subscription Groups, users can opt in or opt out with a few clicks, helping you follow the rules, respect user choices, and build trust.
+
+## Types of Subscription Groups
+
+When it comes to Subscription Groups, there are two main types: Opt-In and Opt-Out. The primary difference is how users join or leave these groups. Each type serves a specific purpose in managing your communications, depending on the level of user engagement you're aiming for.
+
+### Opt-In Subscription Groups
+
+Opt-In Subscription Groups are the kind where users have to actively say, "Yes, I want this." When a user subscribes to an Opt-In group, they're giving you the green light to send messages through that channel. It's like signing up for a newsletter or deciding to get alerts from a particular blog.
+
+### Opt-Out Subscription Groups
+
+Opt-Out Subscription Groups are the default. Users are automatically included in these groups. But just like they can turn off notifications from an app on their phone, they can unsubscribe from an Opt-Out group whenever they want. Until they say "No more, thanks," you can continue to send messages through that channel.
