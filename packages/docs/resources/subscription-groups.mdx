@@ -40,7 +40,7 @@ Users can be added and removed from subscription groups either programmatically,
 
 ### CSV Upload
 
-Users can be added to subscription groups with csv uploads. To do so navigate to a particular subscription group's upload page `/dashboard/subscription-groups/upload/[id]`.
+Users can be added to subscription groups with manual csv uploads form the dashboard. To do so navigate to a particular subscription group's upload page `/dashboard/subscription-groups/upload/[id]`.
 
 The provided CSV file should have the following format.
 
@@ -53,13 +53,13 @@ b8c5cd71-214d-4d62-92a4-85e9e4d4efbe,bob@example.com,Bob,Smith
 7b73a62c-bfd2-4a8a-ba9f-bfcbfd234c89,charlie@example.com,Charlie,Brown
 ```
 
-Either the `id` or `email` field must be present. If both are present, the `id` field will be used to identify the user. If neither are present, the upload will fail. Non-identifying fields such as `firstName` and `lastName` are optional and will map to user traits.
+Either the `id` or `email` field must be present. If both are present, the `id` field will be used to identify the user. If neither are present, the upload will fail.
+
+Non-identifying fields such as `firstName` and `lastName` are optional and will map to and update user traits. Users will be created if they do not already exist.
 
 ### Submit a Track Event
 
-{/* --rephrase start-- */}
-* mention that this is async
-* [Submitting User Events](/guide/submitting-user-events)
+Users' subscription state can also be updated programmatically, by submitting user events. For more information on how sumit user events, see [Submitting User Events](/guide/submitting-user-events).
 
 ```json Subscribe Track Event
 {
@@ -89,16 +89,25 @@ Either the `id` or `email` field must be present. If both are present, the `id` 
     },
 }
 ```
-{/* --rephrase end-- */}
+
+Note that users' subscription state will be updated asynchronously, and will not be updated immediately with this method.
 
 ### Loading the Subscription Management Page
 
-{/* --rephrase start-- */}
-* include link to relevant endpoint
-* explain that this is intended to be used by end users themselves in the context of an unsubscribe link
-* mention preview in settngs
-* mention that this is synchronous
-{/* --rephrase end-- */}
+Users have access to the dashboard's subscription management page, which allows them to manage their subscription state.
+
+The subscription management will either unsubscribe, or subscribe the user to a specific users to a subscription group on page load. Unsubscribe links link to the subscription management page with the unsubscribe action.
+
+Note that this subscription state change occurs synchronously, and will be reflected immediately. This is in contrast to the asynchronous subscription state change that occurs when submitting a track event.
+
+{/* FIXME image  of the page */}
+
+This page is exempt from the dashboard's standard authentication requirements, and can be accessed by any user. Instead, it is authenticated by a cryptographically signed hash, which is generated on the backend and included in the link to the page.
+
+The subscription management page can be previewed from the dashboard's settings page [`/dashboard/settings`](https://demo.dittofeed.com/dashboard/settings).
+
+{/* FIXME image of the preview */}
+
 
 ## Adding Subscription Groups to a User Journey
 
