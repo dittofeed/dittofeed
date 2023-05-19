@@ -22,34 +22,38 @@ To create a new subscription group, click the (+) button. Then edit the subscrip
 
 ## Opt-In vs Opt-Out Subscription Groups
 
-{/* --rephrase start-- */}
-* over arching
-{/* --rephrase end-- */}
+There are two types of subscription groups, opt-in, and opt-out.
 
 ### Opt-In Subscription Groups
 
-{/* --rephrase start-- */}
-* end users are members IFF they have subscribed.
-{/* --rephrase end-- */}
+Opt-in subscription groups require end users to explicitly subscribe to the subscription group.
+
+They are a great option for newsletters, and other marketing messages, where you want to ensure that users are actively interested in receiving messages.
 
 ### Opt-Out Subscription Groups
 
-{/* --rephrase start-- */}
-* users are members of the subscription group so long as they haven't explicitly unsubscribed.
-{/* --rephrase end-- */}
+Opt-out subscription groups automatically include all users, unless they explicitly unsubscribe. They are great for messages which users are likely to want to receive. For example, an email notifying user of a new friend invitations on a social network.
 
 ## Adding and Removing Users from a Subscription Group
-    
-{/* --rephrase start-- */}
-* users can be added and removed from subscription groups either programmatically, or manually via the dashboard.
-* this is especially important for opt-in subscription groups which will always require adding users to subscription groups.
-{/* --rephrase end-- */}
+
+Users can be added and removed from subscription groups either programmatically, or manually via the dashboard. Understanding how to add users to subscription groups is important for opt-in subscription groups, which will be empty by default.
 
 ### CSV Upload
-{/* --rephrase start-- */}
-* navigate to subscription group page
-* click on upload
-{/* --rephrase end-- */}
+
+Users can be added to subscription groups with csv uploads. To do so navigate to a particular subscription group's upload page `/dashboard/subscription-groups/upload/[id]`.
+
+The provided CSV file should have the following format.
+
+```csv users.csv
+id,email,firstName,lastName
+d1bdf186-7dd9-485e-9f93-6e0e3f3e6b8a,johndoe@example.com,John,Doe
+f5c5d1e5-d1f5-4d65-8b8f-7d4d153c4a51,janedoe@example.com,Jane,Doe
+a4ef2311-cd4c-4e5d-9d21-7c3e8b29c7b1,alice@example.com,Alice,Johnson
+b8c5cd71-214d-4d62-92a4-85e9e4d4efbe,bob@example.com,Bob,Smith
+7b73a62c-bfd2-4a8a-ba9f-bfcbfd234c89,charlie@example.com,Charlie,Brown
+```
+
+Either the `id` or `email` field must be present. If both are present, the `id` field will be used to identify the user. If neither are present, the upload will fail. Non-identifying fields such as `firstName` and `lastName` are optional and will map to user traits.
 
 ### Submit a Track Event
 
