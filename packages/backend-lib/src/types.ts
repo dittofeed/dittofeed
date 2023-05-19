@@ -127,7 +127,7 @@ export type LogLevel = Static<typeof LogLevel>;
 
 export enum SubscriptionChange {
   Subscribe = "Subscribe",
-  UnSubscribe = "UnSubscribe",
+  Unsubscribe = "Unsubscribe",
 }
 
 export const DecodedJwt = Type.Object({

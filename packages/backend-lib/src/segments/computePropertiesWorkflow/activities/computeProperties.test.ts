@@ -295,7 +295,7 @@ describe("compute properties activities", () => {
               buildSubscriptionChangeEventInner({
                 userId,
                 subscriptionGroupId: subscriptionGroupId1,
-                action: SubscriptionChange.UnSubscribe,
+                action: SubscriptionChange.Unsubscribe,
                 timestamp: defaults.timestamp as string,
                 messageId: defaults.messageId as string,
               }),
@@ -434,7 +434,7 @@ describe("compute properties activities", () => {
               buildSubscriptionChangeEventInner({
                 userId,
                 subscriptionGroupId: subscriptionGroupId1,
-                action: SubscriptionChange.UnSubscribe,
+                action: SubscriptionChange.Unsubscribe,
                 timestamp: defaults.timestamp as string,
                 messageId: defaults.messageId as string,
               }),

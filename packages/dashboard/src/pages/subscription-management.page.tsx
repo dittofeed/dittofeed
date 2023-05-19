@@ -102,7 +102,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
     subscriptionChange =
       sub === "1"
         ? SubscriptionChange.Subscribe
-        : SubscriptionChange.UnSubscribe;
+        : SubscriptionChange.Unsubscribe;
 
     await updateUserSubscriptions({
       workspaceId: w,

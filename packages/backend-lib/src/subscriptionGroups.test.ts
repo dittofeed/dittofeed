@@ -75,7 +75,7 @@ describe("generateSubscriptionChangeUrl", () => {
       identifier: email,
       identifierKey: "email",
       changedSubscription: subscriptionGroup.id,
-      subscriptionChange: SubscriptionChange.UnSubscribe,
+      subscriptionChange: SubscriptionChange.Unsubscribe,
     });
     const fullUrl = `http://localhost:3000${url}`;
     const parsed = new URL(fullUrl);

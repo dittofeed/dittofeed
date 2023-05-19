@@ -75,7 +75,22 @@ Subscription groups help you manage groups of specific end users, and their mess
 * [Submitting User Events](/guide/submitting-user-events)
 {/* --rephrase end-- */}
 
-#### Unsubscribe API
+```json Unsubscribe Track Event
+{
+    "userId": "4f40e10c-2a45-4215-8f6b-51c01c06beb7",
+    "timestamp": "2023-05-19T00:48:43.494Z",
+    "messageId": "550700ed-f92a-4b9f-86dd-40e76e03fb6f",
+    "type": "track",
+    "event": "DFSubscriptionChange",
+    "properties": {
+      "subscriptionId": "225c4f51-9137-417e-9ce1-c537c761bd9a",
+      "action": "Unsubscribe",
+    },
+
+}
+```
+
+#### Loading the Subscription Management Page
 
 {/* --rephrase start-- */}
 * include link to relevant endpoint
@@ -95,6 +110,7 @@ Subscription groups help you manage groups of specific end users, and their mess
 {/* --rephrase start-- */}
 * show screenshot of how to add unsubscribe link to email template
 * include code snippet
+
 {/* --rephrase end-- */}
 
 ## The Importance of Subscription Groups for Regulatory Compliance
