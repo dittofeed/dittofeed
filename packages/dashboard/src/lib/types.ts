@@ -146,7 +146,11 @@ export interface BroadcastEditorContents {
 export interface SubscriptionGroupEditorContents {
   editedSubscriptionGroup: SubscriptionGroupResource | null;
   subscriptionGroupUpdateRequest: EphemeralRequestStatus<Error>;
+  subscriptionGroupDeleteRequest: EphemeralRequestStatus<Error>;
   setSubscriptionGroupUpdateRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
+  setSubscriptionGroupDeleteRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
   updateEditedSubscriptionGroup: (

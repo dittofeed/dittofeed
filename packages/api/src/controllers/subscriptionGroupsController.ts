@@ -10,6 +10,7 @@ import {
   upsertSubscriptionGroup,
 } from "backend-lib/src/subscriptionGroups";
 import {
+  DeleteSubscriptionGroupRequest,
   EmptyResponse,
   SubscriptionChange,
   SubscriptionGroupResource,
@@ -216,9 +217,7 @@ export default async function subscriptionGroupsController(
       schema: {
         description:
           "Delete a subscription group and its corresponding segment.",
-        body: Type.Object({
-          id: Type.String(),
-        }),
+        body: DeleteSubscriptionGroupRequest,
         response: {
           204: EmptyResponse,
           400: Type.Object({

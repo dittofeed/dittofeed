@@ -977,3 +977,11 @@ export const RenderMessageTemplateResponse = Type.Object({
 export type RenderMessageTemplateResponse = Static<
   typeof RenderMessageTemplateResponse
 >;
+
+export const DeleteSubscriptionGroupRequest = Type.Object({
+  id: Type.String(),
+});
+
+export type DeleteSubscriptionGroupRequest = Static<
+  typeof DeleteSubscriptionGroupRequest
+>;
