@@ -12,8 +12,8 @@ import backendConfig from "backend-lib/src/config";
 import {
   CompletionStatus,
   DeleteMessageTemplateRequest,
-  DeleteMessageTemplateResponse,
   EmailTemplateResource,
+  EmptyResponse,
   MessageTemplateResource,
   TemplateResourceType,
 } from "isomorphic-lib/src/types";
@@ -77,7 +77,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
   const deleteMessageTemplate = useAppStore((store) => store.deleteMessage);
 
   const setDeleteResponse = (
-    _response: DeleteMessageTemplateResponse,
+    _response: EmptyResponse,
     deleteRequest?: DeleteMessageTemplateRequest
   ) => {
     if (!deleteRequest) {
@@ -93,7 +93,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
   const handleDelete = apiRequestHandlerFactory({
     request: messageTemplateDeleteRequest,
     setRequest: setMessageTemplateDeleteRequest,
-    responseSchema: DeleteMessageTemplateResponse,
+    responseSchema: EmptyResponse,
     setResponse: setDeleteResponse,
     onSuccessNotice: `Deleted template ${template.name}.`,
     onFailureNoticeHandler: () =>

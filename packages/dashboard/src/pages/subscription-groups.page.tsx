@@ -1,5 +1,4 @@
 import { ListItem, ListItemText } from "@mui/material";
-import backendConfig from "backend-lib/src/config";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import {
   CompletionStatus,
@@ -45,6 +44,44 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 function Item({ item }: { item: SubscriptionGroupResource }) {
+  // const setSubscriptionGroupDeleteRequest = useAppStore(
+  //   (store) => store.setSubscriptionGroupDeleteRequest
+  // );
+  // const apiBase = useAppStore((store) => store.apiBase);
+  // const segmentDeleteRequest = useAppStore(
+  //   (store) => store.segmentDeleteRequest
+  // );
+
+  // const deleteSubscriptionGroup = useAppStore((store) => store.deleteSubscriptionGroup);
+  // const setDeleteResponse = (
+  //   _response: DeleteSubscriptionGroupResponse,
+  //   deleteRequest?: DeleteSubscriptionGroupRequest
+  // ) => {
+  //   if (!deleteRequest) {
+  //     return;
+  //   }
+  //   deleteSubscriptionGroup(deleteRequest.id);
+  // };
+
+  // const handleDelete = apiRequestHandlerFactory({
+  //   request: segmentDeleteRequest,
+  //   setRequest: setSubscriptionGroupDeleteRequest,
+  //   responseSchema: DeleteSubscriptionGroupResponse,
+  //   setResponse: setDeleteResponse,
+  //   onSuccessNotice: `Deleted segment ${segment.name}.`,
+  //   onFailureNoticeHandler: () =>
+  //     `API Error: Failed to delete segment ${segment.name}.`,
+  //   requestConfig: {
+  //     method: "DELETE",
+  //     url: `${apiBase}/api/segments`,
+  //     data: {
+  //       id: segment.id,
+  //     },
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //   },
+  // });
   return (
     <ListItem>
       <ResourceListItemButton

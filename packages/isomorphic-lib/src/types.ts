@@ -505,12 +505,6 @@ export const UpsertSegmentResource = Type.Intersect([
 
 export type UpsertSegmentResource = Static<typeof UpsertSegmentResource>;
 
-export const DeleteSegmentResponse = Type.String({
-  description: "An empty String",
-});
-
-export type DeleteSegmentResponse = Static<typeof DeleteSegmentResponse>;
-
 export const DeleteSegmentRequest = Type.Object({
   id: Type.String(),
 });
@@ -577,12 +571,6 @@ export const UpsertMessageTemplateResource = Type.Intersect([
 export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
 >;
-
-export const DeleteMessageTemplateResponse = Type.String({
-  description: "An empty String",
-});
-
-export type DeleteMessageTemplateResponse = Static<typeof EmptyResponse>;
 
 export const DeleteMessageTemplateRequest = Type.Object({
   id: Type.String(),
@@ -756,7 +744,7 @@ export const EmptyResponse = Type.String({
   description: "An empty String",
 });
 
-export type DeleteJourneyResponse = Static<typeof EmptyResponse>;
+export type EmptyResponse = Static<typeof EmptyResponse>;
 
 export const DeleteJourneyRequest = Type.Object({
   id: Type.String(),
@@ -780,14 +768,6 @@ export const UpsertUserPropertyResource = Type.Intersect([
 
 export type UpsertUserPropertyResource = Static<
   typeof UpsertUserPropertyResource
->;
-
-export const DeleteUserPropertyResponse = Type.String({
-  description: "An empty String",
-});
-
-export type DeleteUserPropertyResponse = Static<
-  typeof DeleteUserPropertyResponse
 >;
 
 export const DeleteUserPropertyRequest = Type.Object({

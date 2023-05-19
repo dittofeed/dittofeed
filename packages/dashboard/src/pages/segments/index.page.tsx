@@ -12,7 +12,7 @@ import backendConfig from "backend-lib/src/config";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
-  DeleteSegmentResponse,
+  EmptyResponse,
   SegmentResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -77,7 +77,7 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
   const deleteSegment = useAppStore((store) => store.deleteSegment);
 
   const setDeleteResponse = (
-    _response: DeleteSegmentResponse,
+    _response: EmptyResponse,
     deleteRequest?: DeleteSegmentRequest
   ) => {
     if (!deleteRequest) {
@@ -89,7 +89,7 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
   const handleDelete = apiRequestHandlerFactory({
     request: segmentDeleteRequest,
     setRequest: setSegmentDeleteRequest,
-    responseSchema: DeleteSegmentResponse,
+    responseSchema: EmptyResponse,
     setResponse: setDeleteResponse,
     onSuccessNotice: `Deleted segment ${segment.name}.`,
     onFailureNoticeHandler: () =>
@@ -122,6 +122,7 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
           borderColor: "grey.200",
         }}
         onClick={() => {
+          // TODO use next/link
           path.push(`/segments/${segment.id}`);
         }}
       >

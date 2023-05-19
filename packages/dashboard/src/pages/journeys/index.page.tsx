@@ -80,7 +80,7 @@ function JourneyItem({ journey }: { journey: JourneyResource }) {
   const deleteJourney = useAppStore((store) => store.deleteJourney);
 
   const setDeleteResponse = (
-    _response: DeleteJourneyResponse,
+    _response: EmptyResponse,
     deleteRequest?: DeleteJourneyRequest
   ) => {
     if (!deleteRequest) {
