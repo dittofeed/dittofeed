@@ -22,7 +22,9 @@ Subscription groups help you manage groups of specific end users, and their mess
 {/* --rephrase end-- */}
 
 
-## Types of Subscription Groups
+## Opt-In vs Opt-Out Subscription Groups
+
+{/* --rephrase start-- */}
 
 {/* --rephrase start-- */}
 * over arching
@@ -47,18 +49,17 @@ Subscription groups help you manage groups of specific end users, and their mess
 * this is especially important for opt-in subscription groups which will always require adding users to subscription groups.
 {/* --rephrase end-- */}
 
-### Adding Users to a Subscription Group
-
-#### CSV Upload
+### CSV Upload
 {/* --rephrase start-- */}
 * navigate to subscription group page
 * click on upload
 {/* --rephrase end-- */}
 
-#### Submit a Track Event
+### Submit a Track Event
 
 {/* --rephrase start-- */}
 * include code block for relevant track event 
+* mention that this is async
 * [Submitting User Events](/guide/submitting-user-events)
 
 ```json Subscribe Track Event
@@ -75,20 +76,6 @@ Subscription groups help you manage groups of specific end users, and their mess
 
 }
 ```
-{/* --rephrase end-- */}
-
-### Removing Users from a Subscription Group
-
-{/* --rephrase start-- */}
-* describe why important
-{/* --rephrase end-- */}
-
-#### Submit a Track Event
-
-{/* --rephrase start-- */}
-* include code block for relevant track event 
-* [Submitting User Events](/guide/submitting-user-events)
-{/* --rephrase end-- */}
 
 ```json Unsubscribe Track Event
 {
@@ -101,15 +88,17 @@ Subscription groups help you manage groups of specific end users, and their mess
       "subscriptionId": "225c4f51-9137-417e-9ce1-c537c761bd9a",
       "action": "Unsubscribe",
     },
-
 }
 ```
+{/* --rephrase end-- */}
 
-#### Loading the Subscription Management Page
+### Loading the Subscription Management Page
 
 {/* --rephrase start-- */}
 * include link to relevant endpoint
 * explain that this is intended to be used by end users themselves in the context of an unsubscribe link
+* mention preview in settngs
+* mention that this is synchronous
 {/* --rephrase end-- */}
 
 ## Adding Subscription Groups to a User Journey
