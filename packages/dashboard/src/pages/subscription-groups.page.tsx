@@ -1,8 +1,10 @@
-import { ListItem, ListItemText } from "@mui/material";
-import backendConfig from "backend-lib/src/config";
+import { Delete } from "@mui/icons-material";
+import { IconButton, ListItem, ListItemText } from "@mui/material";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import {
   CompletionStatus,
+  DeleteSubscriptionGroupRequest,
+  EmptyResponse,
   SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -14,6 +16,7 @@ import {
   ResourceListItemButton,
 } from "../components/resourceList";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
@@ -45,8 +48,54 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 function Item({ item }: { item: SubscriptionGroupResource }) {
+  const setSubscriptionGroupDeleteRequest = useAppStore(
+    (store) => store.setSubscriptionGroupDeleteRequest
+  );
+  const apiBase = useAppStore((store) => store.apiBase);
+  const subscriptionGroupDeleteRequest = useAppStore(
+    (store) => store.subscriptionGroupDeleteRequest
+  );
+
+  const deleteSubscriptionGroup = useAppStore(
+    (store) => store.deleteSubscriptionGroup
+  );
+  const setDeleteResponse = (
+    _response: EmptyResponse,
+    deleteRequest?: DeleteSubscriptionGroupRequest
+  ) => {
+    if (!deleteRequest) {
+      return;
+    }
+    deleteSubscriptionGroup(deleteRequest.id);
+  };
+
+  const handleDelete = apiRequestHandlerFactory({
+    request: subscriptionGroupDeleteRequest,
+    setRequest: setSubscriptionGroupDeleteRequest,
+    responseSchema: EmptyResponse,
+    setResponse: setDeleteResponse,
+    onSuccessNotice: `Deleted subscription group ${item.name}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to delete subscription group ${item.name}.`,
+    requestConfig: {
+      method: "DELETE",
+      url: `${apiBase}/api/subscription-groups`,
+      data: {
+        id: item.id,
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
   return (
-    <ListItem>
+    <ListItem
+      secondaryAction={
+        <IconButton edge="end" onClick={handleDelete}>
+          <Delete />
+        </IconButton>
+      }
+    >
       <ResourceListItemButton
         href={`/dashboard/subscription-groups/${item.id}`}
       >

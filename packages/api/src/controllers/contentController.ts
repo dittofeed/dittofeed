@@ -7,8 +7,8 @@ import { FastifyInstance } from "fastify";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
   DeleteMessageTemplateRequest,
-  DeleteMessageTemplateResponse,
   EmailTemplateResource,
+  EmptyResponse,
   JsonResultType,
   MessageTemplateResource,
   RenderMessageTemplateRequest,
@@ -172,7 +172,7 @@ export default async function contentController(fastify: FastifyInstance) {
         description: "Delete a message template.",
         body: DeleteMessageTemplateRequest,
         response: {
-          204: DeleteMessageTemplateResponse,
+          204: EmptyResponse,
           404: {},
         },
       },

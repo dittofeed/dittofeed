@@ -4,7 +4,7 @@ import {
   lookupUserForSubscriptions,
   updateUserSubscriptions,
 } from "backend-lib/src/subscriptionGroups";
-import { UserSubscriptionsUpdate } from "backend-lib/src/types";
+import { EmptyResponse, UserSubscriptionsUpdate } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -18,7 +18,7 @@ export default async function subscriptionManagementController(
         description: "Allows users to manage their subscriptions.",
         body: UserSubscriptionsUpdate,
         response: {
-          204: Type.Null(),
+          204: EmptyResponse,
           401: Type.Object({
             message: Type.String(),
           }),
@@ -50,7 +50,7 @@ export default async function subscriptionManagementController(
         changes,
       });
 
-      return reply.status(204).send(null);
+      return reply.status(204).send();
     }
   );
 }

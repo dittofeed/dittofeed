@@ -6,7 +6,7 @@ import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties"
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   DeleteUserPropertyRequest,
-  DeleteUserPropertyResponse,
+  EmptyResponse,
   UpsertUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyResource,
@@ -95,7 +95,7 @@ export default async function userPropertiesController(
         description: "Delete a user property.",
         body: DeleteUserPropertyRequest,
         response: {
-          204: DeleteUserPropertyResponse,
+          204: EmptyResponse,
           404: {},
         },
       },

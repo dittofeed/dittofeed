@@ -6,7 +6,7 @@ import { FastifyInstance } from "fastify";
 import {
   BroadcastResource,
   DeleteSegmentRequest,
-  DeleteSegmentResponse,
+  EmptyResponse,
   SegmentResource,
   UpsertBroadcastResource,
   UpsertSegmentResource,
@@ -39,7 +39,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
         description: "Delete a segment.",
         body: DeleteSegmentRequest,
         response: {
-          204: DeleteSegmentResponse,
+          204: EmptyResponse,
           404: {},
         },
       },

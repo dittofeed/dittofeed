@@ -10,11 +10,10 @@ import {
   upsertSubscriptionGroup,
 } from "backend-lib/src/subscriptionGroups";
 import {
-  SegmentDefinition,
-  SegmentNodeType,
+  DeleteSubscriptionGroupRequest,
+  EmptyResponse,
   SubscriptionChange,
   SubscriptionGroupResource,
-  SubscriptionGroupType,
   UpsertSubscriptionGroupResource,
   UserUploadRow,
   WorkspaceId,
@@ -211,4 +210,29 @@ export default async function subscriptionGroupsController(
       }
     );
   });
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/",
+    {
+      schema: {
+        description:
+          "Delete a subscription group and its corresponding segment.",
+        body: DeleteSubscriptionGroupRequest,
+        response: {
+          204: EmptyResponse,
+          400: Type.Object({
+            message: Type.String(),
+          }),
+        },
+      },
+    },
+    async (request, reply) => {
+      await prisma().subscriptionGroup.delete({
+        where: {
+          id: request.body.id,
+        },
+      });
+      return reply.status(204).send();
+    }
+  );
 }

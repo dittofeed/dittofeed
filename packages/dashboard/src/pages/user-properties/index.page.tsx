@@ -14,7 +14,7 @@ import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties"
 import {
   CompletionStatus,
   DeleteUserPropertyRequest,
-  DeleteUserPropertyResponse,
+  EmptyResponse,
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -75,7 +75,7 @@ function UserPropertyItem({
   const deleteUserProperty = useAppStore((store) => store.deleteUserProperty);
 
   const setDeleteResponse = (
-    _response: DeleteUserPropertyResponse,
+    _response: EmptyResponse,
     deleteRequest?: DeleteUserPropertyRequest
   ) => {
     if (!deleteRequest) {
@@ -89,7 +89,7 @@ function UserPropertyItem({
   const handleDelete = apiRequestHandlerFactory({
     request: userPropertyDeleteRequest,
     setRequest: setUserPropertyDeleteRequest,
-    responseSchema: DeleteUserPropertyResponse,
+    responseSchema: EmptyResponse,
     setResponse: setDeleteResponse,
     onSuccessNotice: `Deleted user property ${userProperty.name}.`,
     onFailureNoticeHandler: () =>

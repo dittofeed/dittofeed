@@ -392,6 +392,9 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         subscriptionGroupUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
+        subscriptionGroupDeleteRequest: {
+          type: CompletionStatus.NotStarted,
+        },
         editedSubscriptionGroup: null,
         updateEditedSubscriptionGroup: (updatedSubscriptionGroup) =>
           set((state) => {
@@ -408,6 +411,10 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setSubscriptionGroupUpdateRequest: (request) =>
           set((state) => {
             state.subscriptionGroupUpdateRequest = request;
+          }),
+        setSubscriptionGroupDeleteRequest: (request) =>
+          set((state) => {
+            state.subscriptionGroupDeleteRequest = request;
           }),
         upsertSubscriptionGroup: (subscriptionGroup) =>
           set((state) => {

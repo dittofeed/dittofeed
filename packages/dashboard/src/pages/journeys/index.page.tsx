@@ -12,7 +12,7 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import {
   CompletionStatus,
   DeleteJourneyRequest,
-  DeleteJourneyResponse,
+  EmptyResponse,
   JourneyDefinition,
   JourneyResource,
 } from "isomorphic-lib/src/types";
@@ -80,7 +80,7 @@ function JourneyItem({ journey }: { journey: JourneyResource }) {
   const deleteJourney = useAppStore((store) => store.deleteJourney);
 
   const setDeleteResponse = (
-    _response: DeleteJourneyResponse,
+    _response: EmptyResponse,
     deleteRequest?: DeleteJourneyRequest
   ) => {
     if (!deleteRequest) {
@@ -92,7 +92,7 @@ function JourneyItem({ journey }: { journey: JourneyResource }) {
   const handleDelete = apiRequestHandlerFactory({
     request: journeyDeleteRequest,
     setRequest: setJourneyDeleteRequest,
-    responseSchema: DeleteJourneyResponse,
+    responseSchema: EmptyResponse,
     onSuccessNotice: `Deleted journey ${journey.name}.`,
     onFailureNoticeHandler: () =>
       `API Error: Failed to delete journey ${journey.name}.`,

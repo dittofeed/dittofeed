@@ -2,7 +2,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma from "backend-lib/src/prisma";
 import {
   DeleteJourneyRequest,
-  DeleteJourneyResponse,
+  EmptyResponse,
   Journey,
   JourneyDefinition,
   JourneyResource,
@@ -94,7 +94,7 @@ export default async function journeysController(fastify: FastifyInstance) {
         description: "Delete a journey.",
         body: DeleteJourneyRequest,
         response: {
-          204: DeleteJourneyResponse,
+          204: EmptyResponse,
           404: {},
         },
       },
