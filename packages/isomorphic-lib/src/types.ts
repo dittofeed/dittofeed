@@ -932,8 +932,14 @@ export const UserSubscriptionLookup = Type.Object({
     description:
       "Subscription change hash, used to authenticate subscription changes.",
   }),
-  identifier: Type.String({ description: "Identifier value for channel." }),
-  identifierKey: Type.String({ description: "Identifier key for channel." }),
+  identifier: Type.String({
+    description: "Identifier value for channel.",
+    examples: ["user@email.com"],
+  }),
+  identifierKey: Type.String({
+    description: "Identifier key for channel.",
+    examples: ["email"],
+  }),
 });
 
 export type UserSubscriptionLookup = Static<typeof UserSubscriptionLookup>;
