@@ -582,9 +582,7 @@ export const DeleteMessageTemplateResponse = Type.String({
   description: "An empty String",
 });
 
-export type DeleteMessageTemplateResponse = Static<
-  typeof DeleteJourneyResponse
->;
+export type DeleteMessageTemplateResponse = Static<typeof EmptyResponse>;
 
 export const DeleteMessageTemplateRequest = Type.Object({
   id: Type.String(),
@@ -754,11 +752,11 @@ export const UpsertJourneyResource = Type.Intersect([
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
 
-export const DeleteJourneyResponse = Type.String({
+export const EmptyResponse = Type.String({
   description: "An empty String",
 });
 
-export type DeleteJourneyResponse = Static<typeof DeleteJourneyResponse>;
+export type DeleteJourneyResponse = Static<typeof EmptyResponse>;
 
 export const DeleteJourneyRequest = Type.Object({
   id: Type.String(),
