@@ -7,19 +7,17 @@ description: "Manage groups of specific users, and their messaging preferences."
 
 Subscription groups help you manage groups of specific end users, and their messaging preferences. They are important both for obtaining end user's trust, as well as achieving regulatory compliance.
 
-{/* --rephrase start-- */}
-* one subscription group per channel
-* start with opt-out subscribe for email channel
-{/* --rephrase end-- */}
+Subscription groups are associated with a specific channel e.g. email, SMS, or push. One can have multiple subscription groups per channel. Subscription groups can be assigned to journey message nodes, to allow those messages to render unsubscribe links, and to ensure that users are not messaged unless they are subscribed to the relevant subscription group.
 
 ## Creating a Subscription Group
 
-{/* --rephrase start-- */}
-* navigate to "Subscription Groups"
-* press (+) button for new
-* edit name
-* press save
-{/* --rephrase end-- */}
+By default, workspaces are populated with one subscription group per channel. Additional subscription groups can be created via [`/dashboard/subscription-groups`](https://demo.dittofeed.com/dashboard/subscription-groups) page.
+
+![Subscription Groups Page](/images/subscription-groups-page.png)
+
+To create a new subscription group, click the (+) button. Then edit the subscription group name, and press save.
+
+![Subscription Groups Configuration Page](/images/subscription-groups-configure-page.png)
 
 
 ## Opt-In vs Opt-Out Subscription Groups
