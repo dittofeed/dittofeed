@@ -402,7 +402,7 @@ export async function updateUserSubscriptions({
       buildSubscriptionChangeEvent({
         action: isSubscribed
           ? SubscriptionChange.Subscribe
-          : SubscriptionChange.UnSubscribe,
+          : SubscriptionChange.Unsubscribe,
         subscriptionGroupId,
         userId,
       })

@@ -136,6 +136,7 @@ async function sendEmailWithPayload({
       (segmentAssignment === undefined &&
         subscriptionGroup.type === SubscriptionGroupType.OptIn)
     ) {
+      // TODO this should skip message, but not cause user to drop out of journey. return value should not be simple boolean
       return [
         false,
         {

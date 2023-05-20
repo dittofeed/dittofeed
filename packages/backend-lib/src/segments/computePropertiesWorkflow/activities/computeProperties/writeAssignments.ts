@@ -96,7 +96,7 @@ function buildSegmentQueryExpression({
               path: "action",
               operator: {
                 type: SegmentOperatorType.NotEquals,
-                value: SubscriptionChange.UnSubscribe,
+                value: SubscriptionChange.Unsubscribe,
               },
             },
           ];

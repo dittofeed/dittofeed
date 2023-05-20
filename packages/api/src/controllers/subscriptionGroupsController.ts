@@ -47,7 +47,7 @@ export default async function subscriptionGroupsController(
     "/",
     {
       schema: {
-        description: "Create or update a journey.",
+        description: "Create or update a subscription group.",
         body: UpsertSubscriptionGroupResource,
         response: {
           200: SubscriptionGroupResource,

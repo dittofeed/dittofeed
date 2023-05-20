@@ -96,7 +96,7 @@ liquidEngine.registerTag("unsubscribe_link", {
         subscriptionSecret,
         userId,
         changedSubscription: subscriptionGroupId,
-        subscriptionChange: SubscriptionChange.UnSubscribe,
+        subscriptionChange: SubscriptionChange.Unsubscribe,
       });
       href = `href="${url}"`;
     }

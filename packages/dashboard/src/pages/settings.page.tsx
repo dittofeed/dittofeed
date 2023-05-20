@@ -489,7 +489,7 @@ function SubscriptionManagementSettings() {
               subscriptionChange={
                 fromSubscribe
                   ? SubscriptionChange.Subscribe
-                  : SubscriptionChange.UnSubscribe
+                  : SubscriptionChange.Unsubscribe
               }
               changedSubscription={changedSubscription}
               workspaceId={workspace.id}
