@@ -100,75 +100,39 @@ The subscription management will either unsubscribe, or subscribe the user to a 
 
 Note that this subscription state change occurs synchronously, and will be reflected immediately. This is in contrast to the asynchronous subscription state change that occurs when submitting a track event.
 
-{/* FIXME image  of the page */}
+![Subscription Management Page](/images/subscription-management-page.png)
 
 This page is exempt from the dashboard's standard authentication requirements, and can be accessed by any user. Instead, it is authenticated by a cryptographically signed hash, which is generated on the backend and included in the link to the page.
 
 The subscription management page can be previewed from the dashboard's settings page [`/dashboard/settings`](https://demo.dittofeed.com/dashboard/settings).
 
-{/* FIXME image of the preview */}
+![Subscription Management Preview](/images/subscription-management-preview.png)
 
 
 ## Adding Subscription Groups to a User Journey
 
-{/* --rephrase start-- */}
-* show screenshot of how to add to user journey
-* explain that this will ensure users are not messaged from message nodes unless they are in subscription group at time of send
-* explain that this is a requirement for message templates with unsubscribe links
-{/* --rephrase end-- */}
+In order to use a subscription group, it must be added to a user journey. This ensures that users are not messaged from message nodes unless they are in subscription group at time of send.
+
+{/* FIXME image of adding subscription group */}
+
+It also allows unsubscribe links to be rendered in emails.
 
 ## Adding Unsubscribe Links to Emails
 
-{/* --rephrase start-- */}
-* show screenshot of how to add unsubscribe link to email template
-* include code snippet
+When journey message nodes have subscription groups associated with them, unsubscribe links can be added to emails.
 
-{/* --rephrase end-- */}
+{/* FIXME add screenshot of template */}
+{/* FIXME add code snippet */}
+
+Users clicking on the page will be directed to the subscription management page, where will be unsubscribed from the subscription group on page load.
 
 ## The Importance of Subscription Groups for Regulatory Compliance
 
-{/* --rephrase start-- */}
-* describe how important for regulatory compliance
-* link to documentation on transactional vs marketing messaging
-* link to documentation on CAN-SPAM
-{/* --rephrase end-- */}
+Subscription groups are important for regulatory compliance. Regulations like [CAN-SPAM](https://en.wikipedia.org/wiki/CAN-SPAM_Act_of_2003) require that users be able to unsubscribe from marketing messages. Providing unsubscribe links is also important for ensuring email deliverability.
 
 ## Viewing Users in a Subscription Group
 
-{/* --rephrase start-- */}
-* link to dashboard page
-* describe how under the hood creating a user segment associated with the subscription group
-* show screenshot
-{/* --rephrase end-- */}
+It's possible to view which users are in a subscription group by viewing the subscription group's user page in the dashboard `/dashboard/subscription-groups/users/[id]`.
 
+{/* FIXME add screenshot of subscription group user page */}
 
-scratch
---------
-
-I'm writing the documentation for a service that is broadly similar to Braze, Customer.io, Segment engage and other multi-channel customer engagement platforms. I'd like you to write a page which documents subscription groups, with background information provided below.
-
-This platform has "resources" that represent the configuration of a "workspace". Workspaces have "subscription groups" that allow users to subscribe, and unsubscribe from messages. Subscription groups are assigned to a "channel" e.g. the email channel, sms channel etc. Subscription groups can be either Opt-In (end users are members IFF they have subscribed), or Opt-Out (users are members of the subscription group so long as they haven't explicitly unsubscribed). This functionality is similar to Braze's "Subscription Groups" feature, and is necessary to comply with regulations like the CAN-SPAM act. There's also a subscription manager page hosted from the dashboard that's accessible to end users and can be used to manage their subscriptions. Unsubscribe links in emails route to this page, which unsubscribes the user on page load in addition to displaying their subscriptions on the page.
-
-Before you write the contents of the page, please write out an outline of the page, and the headings you would use (in markdown syntax). Please also write a short paragraph describing the documentation page, and what it would contain.
-
-## Introduction
-
-### What are Subscription Groups?
-
-Subscription Groups are like buckets where you put different types of messages—like emails, SMS, push notifications—that users can choose to receive or not. Imagine a user says, "Sure, I'd love your emails" (that's opt-in), or "No more promotional texts, please" (that's opt-out). These groups help you send the right stuff to the right people and give your users control over what they get.
-
-### The Importance of Subscription Groups in Regulatory Compliance
-
-Besides helping you manage messages and keep users happy, Subscription Groups also keep you on the right side of the law. Some laws, like the CAN-SPAM Act in the U.S., say you must let people opt out of your messages easily. With Subscription Groups, users can opt in or opt out with a few clicks, helping you follow the rules, respect user choices, and build trust.
-
-## Types of Subscription Groups
-
-When it comes to Subscription Groups, there are two main types: Opt-In and Opt-Out. The primary difference is how users join or leave these groups. Each type serves a specific purpose in managing your communications, depending on the level of user engagement you're aiming for.
-
-### Opt-In Subscription Groups
-
-Opt-In Subscription Groups are the kind where users have to actively say, "Yes, I want this." When a user subscribes to an Opt-In group, they're giving you the green light to send messages through that channel. It's like signing up for a newsletter or deciding to get alerts from a particular blog.
-
-### Opt-Out Subscription Groups
-
-Opt-Out Subscription Groups are the default. Users are automatically included in these groups. But just like they can turn off notifications from an app on their phone, they can unsubscribe from an Opt-Out group whenever they want. Until they say "No more, thanks," you can continue to send messages through that channel.
