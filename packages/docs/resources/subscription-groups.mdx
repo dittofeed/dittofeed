@@ -5,7 +5,7 @@ description: "Manage groups of specific users, and their messaging preferences."
 
 ## Introduction
 
-Subscription groups help you manage groups of specific end users, and their messaging preferences. They are important both for obtaining end user's trust, as well as achieving regulatory compliance.
+Subscription groups help you manage groups of specific end users, and their messaging preferences. They are important both for obtaining end users' trust, as well as achieving regulatory compliance.
 
 Subscription groups are associated with a specific channel e.g. email, SMS, or push. One can have multiple subscription groups per channel. Subscription groups can be assigned to journey message nodes, to allow those messages to render unsubscribe links, and to ensure that users are not messaged unless they are subscribed to the relevant subscription group.
 
@@ -32,15 +32,15 @@ They are a great option for newsletters, and other marketing messages, where you
 
 ### Opt-Out Subscription Groups
 
-Opt-out subscription groups automatically include all users, unless they explicitly unsubscribe. They are great for messages which users are likely to want to receive. For example, an email notifying user of a new friend invitations on a social network.
+Opt-out subscription groups automatically include all users, unless they explicitly unsubscribe. They are great for messages which users are likely to want to receive. For example, an email notifying user of new friend invitations on a social network.
 
 ## Adding and Removing Users from a Subscription Group
 
-Users can be added and removed from subscription groups either programmatically, or manually via the dashboard. Understanding how to add users to subscription groups is important for opt-in subscription groups, which will be empty by default.
+Users can be added and removed from subscription groups either programmatically, or manually via the dashboard. It's important to understand how to add users to opt-in subscription groups, which are empty by default.
 
 ### CSV Upload
 
-Users can be added to subscription groups with manual csv uploads form the dashboard. To do so navigate to a particular subscription group's upload page `/dashboard/subscription-groups/upload/[id]`.
+Users can be added to subscription groups with manual csv uploads from the dashboard. To do so navigate to a particular subscription group's upload page `/dashboard/subscription-groups/upload/[id]`.
 
 The provided CSV file should have the following format.
 
@@ -96,7 +96,7 @@ Note that users' subscription state will be updated asynchronously, and will not
 
 Users have access to the dashboard's subscription management page, which allows them to manage their subscription state.
 
-The subscription management will either unsubscribe, or subscribe the user to a specific users to a subscription group on page load. Unsubscribe links link to the subscription management page with the unsubscribe action.
+The subscription management will either unsubscribe, or subscribe the user to a specific users to a subscription group on page load. Unsubscribe links direct users to the subscription management page,performing the unsubscribe action."
 
 Note that this subscription state change occurs synchronously, and will be reflected immediately. This is in contrast to the asynchronous subscription state change that occurs when submitting a track event.
 
@@ -111,7 +111,7 @@ The subscription management page can be previewed from the dashboard's settings 
 
 ## Adding Subscription Groups to a User Journey
 
-In order to use a subscription group, it must be added to a user journey. This ensures that users are not messaged from message nodes unless they are in subscription group at time of send.
+In order to use a subscription group, it must be added to a user journey. This ensures that users are not messaged from message nodes unless they are in the subscription group at the time of send.
 
 ![Subscription Groups in User Journeys](/images/journey-message-subscription-group.png)
 
@@ -127,7 +127,7 @@ When journey message nodes have subscription groups associated with them, unsubs
 
 ![Unsubscribe Link in Email](/images/template-unsubscribe-link.png)
 
-Users clicking on the page will be directed to the subscription management page, where will be unsubscribed from the subscription group on page load.
+On loading the Subscription Management page, users will be either subscribed or unsubscribed to a specific subscription group.
 
 ## The Importance of Subscription Groups for Regulatory Compliance
 
@@ -135,7 +135,4 @@ Subscription groups are important for regulatory compliance. Regulations like [C
 
 ## Viewing Users in a Subscription Group
 
-It's possible to view which users are in a subscription group by viewing the subscription group's user page in the dashboard `/dashboard/subscription-groups/users/[id]`.
-
-{/* FIXME add screenshot of subscription group user page */}
-
+You can view which users are in a subscription group by navigating to the subscription group's user page in the dashboard `/dashboard/subscription-groups/users/[id]`.
