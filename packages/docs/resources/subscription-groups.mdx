@@ -113,16 +113,19 @@ The subscription management page can be previewed from the dashboard's settings 
 
 In order to use a subscription group, it must be added to a user journey. This ensures that users are not messaged from message nodes unless they are in subscription group at time of send.
 
-{/* FIXME image of adding subscription group */}
+![Subscription Groups in User Journeys](/images/journey-message-subscription-group.png)
 
 It also allows unsubscribe links to be rendered in emails.
 
 ## Adding Unsubscribe Links to Emails
 
-When journey message nodes have subscription groups associated with them, unsubscribe links can be added to emails.
+When journey message nodes have subscription groups associated with them, unsubscribe links can be added to emails with the `unsubscribe_link` liquid tag.
 
-{/* FIXME add screenshot of template */}
-{/* FIXME add code snippet */}
+```html
+{% unsubscribe_link %}
+```
+
+![Unsubscribe Link in Email](/images/template-unsubscribe-link.png)
 
 Users clicking on the page will be directed to the subscription management page, where will be unsubscribed from the subscription group on page load.
 
