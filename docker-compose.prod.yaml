@@ -2,18 +2,14 @@ version: "3.9"
 x-database-credentials: &database-credentials
   DATABASE_USER: ${DATABASE_USER:-postgres}
   DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
-x-kafka-credentials: &kafka-credentials
-  KAFKA_USERNAME: ${KAFKA_USERNAME:-dittofeed}
-  KAFKA_PASSWORD: ${KAFKA_PASSWORD:-password}
 x-clickhouse-credentials: &clickhouse-credentials
   CLICKHOUSE_USER: ${CLICKHOUSE_USER:-dittofeed}
   CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-password}
 x-backend-app-env: &backend-app-env
-  <<: [*clickhouse-credentials, *kafka-credentials, *database-credentials]
+  <<: [*clickhouse-credentials, *database-credentials]
   NODE_ENV: production
   DATABASE_HOST: ${DATABASE_HOST:-postgres}
   DATABASE_PORT: ${DATABASE_PORT:-5432}
-  KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:29092}
   CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-http://clickhouse-server:8123}
   TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
 services:
@@ -83,39 +79,6 @@ services:
       - postgres:/var/lib/postgresql/data
     networks:
       - dittofeed-network
-  kafka:
-    image: redpandadata/redpanda:v23.1.1
-    profiles: ["kafka"]
-    ports:
-      - 9092:9092
-      - 18081:18081
-      - 18082:18082
-      - 19644:9644
-    environment:
-      <<: *kafka-credentials
-    command:
-      - redpanda
-      - start
-      - --kafka-addr internal://0.0.0.0:29092,external://0.0.0.0:9092
-      # Address the broker advertises to clients that connect to the Kafka API.
-      # Use the internal addresses to connect to the Redpanda brokers'
-      # from inside the same Docker network.
-      # Use the external addresses to connect to the Redpanda brokers'
-      # from outside the Docker network.
-      - --advertise-kafka-addr internal://kafka:29092,external://localhost:9092
-      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
-      # Address the broker advertises to clients that connect to the HTTP Proxy.
-      - --advertise-pandaproxy-addr internal://kafka:8082,external://localhost:18082
-      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
-      # Redpanda brokers use the RPC API to communicate with eachother internally.
-      - --rpc-addr kafka:33145
-      - --advertise-rpc-addr kafka:33145
-      # enable logs for debugging.
-      - --default-log-level=debug
-    volumes:
-      - kafka:/var/lib/redpanda/data
-    networks:
-      - dittofeed-network
   clickhouse-server:
     image: clickhouse/clickhouse-server:22.9.5.25-alpine
     environment:
@@ -131,7 +94,6 @@ services:
       - dittofeed-network
 volumes:
   postgres:
-  kafka:
   clickhouse_lib:
   clickhouse_log:
 
