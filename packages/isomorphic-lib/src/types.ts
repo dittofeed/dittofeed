@@ -1167,3 +1167,5 @@ export const BatchAppData = Type.Object({
   ),
   context: AppDataContext,
 });
+
+export type BatchAppData = Static<typeof BatchAppData>;

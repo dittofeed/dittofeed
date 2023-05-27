@@ -1,4 +1,4 @@
-import { IdentifyData } from "./types";
+import { BatchAppData, IdentifyData } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
 export async function submitIdentify({
@@ -26,17 +26,20 @@ export async function submitBatch({
   data,
 }: {
   workspaceId: string;
-  data: IdentifyData;
+  data: BatchAppData;
 }) {
-  const userEvent: InsertUserEvent = {
+  const { context, batch } = data;
+
+  const userEvents: InsertUserEvent[] = batch.map((message) => ({
+    messageId: message.messageId,
     messageRaw: JSON.stringify({
-      type: "identify",
-      ...data,
+      ...message,
+      context,
     }),
-    messageId: data.messageId,
-  };
+  }));
+
   await insertUserEvents({
     workspaceId,
-    userEvents: [userEvent],
+    userEvents,
   });
 }

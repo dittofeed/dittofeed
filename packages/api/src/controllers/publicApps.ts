@@ -1,6 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
-import { submitIdentify } from "backend-lib/src/apps";
+import { submitBatch, submitIdentify } from "backend-lib/src/apps";
 import logger from "backend-lib/src/logger";
 import { FastifyInstance } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
@@ -105,8 +105,17 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     {
       schema: {
         body: BatchAppData,
+        headers: Type.Object({
+          [WORKSPACE_ID_HEADER]: WorkspaceId,
+          authorization: Type.String(),
+        }),
       },
     },
-    async (request, reply) => {}
+    async (request, reply) => {
+      await submitBatch({
+        workspaceId: request.headers[WORKSPACE_ID_HEADER],
+        data: request.body,
+      });
+    }
   );
 }
