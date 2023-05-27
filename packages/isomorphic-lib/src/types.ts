@@ -1003,6 +1003,12 @@ export const BaseIdentifyData = {
   traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
+export const BaseBatchIdentifyData = {
+  ...BaseAppData,
+  type: Type.Literal("identify"),
+  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
 export const IdentifyData = Type.Union([
   Type.Object({
     ...BaseIdentifyData,
@@ -1015,3 +1021,54 @@ export const IdentifyData = Type.Union([
 ]);
 
 export type IdentifyData = Static<typeof IdentifyData>;
+
+export const BatchIdentifyData = Type.Union([
+  Type.Object({
+    ...BaseBatchIdentifyData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchIdentifyData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type BatchIdentifyData = Static<typeof BatchIdentifyData>;
+
+export const BaseTrackData = {
+  ...BaseAppData,
+  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const BaseBatchTrackData = {
+  ...BaseAppData,
+  type: Type.Literal("track"),
+  event: Type.String(),
+  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const TrackData = Type.Union([
+  Type.Object({
+    ...BaseTrackData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseTrackData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type TrackData = Static<typeof TrackData>;
+
+export const BatchTrackData = Type.Union([
+  Type.Object({
+    ...BaseBatchTrackData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchTrackData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type BatchTrackData = Static<typeof BatchTrackData>;

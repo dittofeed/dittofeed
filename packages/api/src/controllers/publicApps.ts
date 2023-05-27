@@ -18,6 +18,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         body: IdentifyData,
         headers: Type.Object({
           [WORKSPACE_ID_HEADER]: WorkspaceId,
+          authorization: Type.String(),
         }),
         response: {
           204: EmptyResponse,
