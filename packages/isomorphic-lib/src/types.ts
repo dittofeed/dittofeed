@@ -991,3 +991,26 @@ export const DeleteSubscriptionGroupRequest = Type.Object({
 export type DeleteSubscriptionGroupRequest = Static<
   typeof DeleteSubscriptionGroupRequest
 >;
+
+export const BaseAppData = {
+  context: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  timestamp: Type.Optional(Type.String()),
+};
+
+export const BaseIdentifyData = {
+  ...BaseAppData,
+  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const IdentifyData = Type.Union([
+  Type.Object({
+    ...BaseIdentifyData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseIdentifyData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type IdentifyData = Static<typeof IdentifyData>;
