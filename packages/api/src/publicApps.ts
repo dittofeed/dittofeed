@@ -8,12 +8,29 @@ import { FastifyInstance } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { WorkspaceId } from "isomorphic-lib/src/types";
 
+const BaseIdentifyProperties = {
+  context: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  timestamp: Type.Optional(Type.String()),
+  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function publicAppsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
-    "/identity",
+    "/identify",
     {
-      schema: {},
+      schema: {
+        body: Type.Union([
+          Type.Object({
+            ...BaseIdentifyProperties,
+            userId: Type.String(),
+          }),
+          Type.Object({
+            ...BaseIdentifyProperties,
+            anonymousId: Type.String(),
+          }),
+        ]),
+      },
     },
     async (request, reply) => {}
   );
