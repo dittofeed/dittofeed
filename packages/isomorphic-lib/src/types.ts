@@ -994,6 +994,7 @@ export type DeleteSubscriptionGroupRequest = Static<
 
 export const BaseAppData = {
   context: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  messageId: Type.String(),
   timestamp: Type.Optional(Type.String()),
 };
 

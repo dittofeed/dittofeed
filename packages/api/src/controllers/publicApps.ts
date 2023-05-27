@@ -1,12 +1,13 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
-import backendConfig from "backend-lib/src/config";
-import { generateDigest } from "backend-lib/src/crypto";
-import prisma from "backend-lib/src/prisma";
-import { insertUserEvents } from "backend-lib/src/userEvents";
+import { submitIdentify } from "backend-lib/src/apps";
 import { FastifyInstance } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
-import { IdentifyData, WorkspaceId } from "isomorphic-lib/src/types";
+import {
+  EmptyResponse,
+  IdentifyData,
+  WorkspaceId,
+} from "isomorphic-lib/src/types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function publicAppsController(fastify: FastifyInstance) {
@@ -15,9 +16,21 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     {
       schema: {
         body: IdentifyData,
+        headers: Type.Object({
+          [WORKSPACE_ID_HEADER]: WorkspaceId,
+        }),
+        response: {
+          204: EmptyResponse,
+        },
       },
     },
-    async (request, reply) => {}
+    async (request, reply) => {
+      await submitIdentify({
+        workspaceId: request.headers[WORKSPACE_ID_HEADER],
+        data: request.body,
+      });
+      return reply.status(204).send();
+    }
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
