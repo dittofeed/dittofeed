@@ -993,6 +993,7 @@ export type DeleteSubscriptionGroupRequest = Static<
 >;
 
 export const BaseAppData = {
+  // FIXME context needs to be excluded for batch calls
   context: Type.Optional(Type.Record(Type.String(), Type.Any())),
   messageId: Type.String(),
   timestamp: Type.Optional(Type.String()),
@@ -1072,3 +1073,77 @@ export const BatchTrackData = Type.Union([
 ]);
 
 export type BatchTrackData = Static<typeof BatchTrackData>;
+
+export const BasePageData = {
+  ...BaseAppData,
+  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const BaseBatchPageData = {
+  ...BaseAppData,
+  type: Type.Literal("page"),
+  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const PageData = Type.Union([
+  Type.Object({
+    ...BasePageData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BasePageData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type PageData = Static<typeof PageData>;
+
+export const BatchPageData = Type.Union([
+  Type.Object({
+    ...BaseBatchPageData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchPageData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type BatchPageData = Static<typeof BatchPageData>;
+
+export const BaseScreenData = {
+  ...BaseAppData,
+  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const BaseBatchScreenData = {
+  ...BaseAppData,
+  type: Type.Literal("screen"),
+  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const ScreenData = Type.Union([
+  Type.Object({
+    ...BaseScreenData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseScreenData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type ScreenData = Static<typeof ScreenData>;
+
+export const BatchScreenData = Type.Union([
+  Type.Object({
+    ...BaseBatchScreenData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchScreenData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type BatchScreenData = Static<typeof BatchScreenData>;
