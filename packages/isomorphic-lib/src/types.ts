@@ -992,15 +992,20 @@ export type DeleteSubscriptionGroupRequest = Static<
   typeof DeleteSubscriptionGroupRequest
 >;
 
+export const AppDataContext = Type.Optional(
+  Type.Record(Type.String(), Type.Any())
+);
+
+export type AppDataContext = Static<typeof AppDataContext>;
+
 export const BaseAppData = {
-  // FIXME context needs to be excluded for batch calls
-  context: Type.Optional(Type.Record(Type.String(), Type.Any())),
   messageId: Type.String(),
   timestamp: Type.Optional(Type.String()),
 };
 
 export const BaseIdentifyData = {
   ...BaseAppData,
+  context: AppDataContext,
   traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
@@ -1038,6 +1043,7 @@ export type BatchIdentifyData = Static<typeof BatchIdentifyData>;
 
 export const BaseTrackData = {
   ...BaseAppData,
+  context: AppDataContext,
   traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
@@ -1076,6 +1082,7 @@ export type BatchTrackData = Static<typeof BatchTrackData>;
 
 export const BasePageData = {
   ...BaseAppData,
+  context: AppDataContext,
   traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
@@ -1113,6 +1120,7 @@ export type BatchPageData = Static<typeof BatchPageData>;
 
 export const BaseScreenData = {
   ...BaseAppData,
+  context: AppDataContext,
   traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
@@ -1147,3 +1155,15 @@ export const BatchScreenData = Type.Union([
 ]);
 
 export type BatchScreenData = Static<typeof BatchScreenData>;
+
+export const BatchAppData = Type.Object({
+  batch: Type.Array(
+    Type.Union([
+      BatchIdentifyData,
+      BatchTrackData,
+      BatchPageData,
+      BatchScreenData,
+    ])
+  ),
+  context: AppDataContext,
+});

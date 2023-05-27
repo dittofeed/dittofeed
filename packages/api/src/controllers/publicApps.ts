@@ -1,11 +1,15 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { submitIdentify } from "backend-lib/src/apps";
+import logger from "backend-lib/src/logger";
 import { FastifyInstance } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import {
+  BatchAppData,
   EmptyResponse,
   IdentifyData,
+  PageData,
+  TrackData,
   WorkspaceId,
 } from "isomorphic-lib/src/types";
 
@@ -37,7 +41,16 @@ export default async function publicAppsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/track",
     {
-      schema: {},
+      schema: {
+        body: TrackData,
+        headers: Type.Object({
+          [WORKSPACE_ID_HEADER]: WorkspaceId,
+          authorization: Type.String(),
+        }),
+        response: {
+          204: EmptyResponse,
+        },
+      },
     },
     async (request, reply) => {}
   );
@@ -45,7 +58,16 @@ export default async function publicAppsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/page",
     {
-      schema: {},
+      schema: {
+        body: PageData,
+        headers: Type.Object({
+          [WORKSPACE_ID_HEADER]: WorkspaceId,
+          authorization: Type.String(),
+        }),
+        response: {
+          204: EmptyResponse,
+        },
+      },
     },
     async (request, reply) => {}
   );
@@ -55,7 +77,13 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     {
       schema: {},
     },
-    async (request, reply) => {}
+    async (request, reply) => {
+      logger().warn("Client is calling unimplemented endpoint /group");
+
+      return reply.status(400).send({
+        message: "Not yet implemented.",
+      });
+    }
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -63,13 +91,21 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     {
       schema: {},
     },
-    async (request, reply) => {}
+    async (request, reply) => {
+      logger().warn("Client is calling unimplemented endpoint /alias");
+
+      return reply.status(400).send({
+        message: "Not yet implemented.",
+      });
+    }
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/batch",
     {
-      schema: {},
+      schema: {
+        body: BatchAppData,
+      },
     },
     async (request, reply) => {}
   );
