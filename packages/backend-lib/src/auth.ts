@@ -1,6 +1,8 @@
 import { createDecoder } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { validate } from "uuid";
 
+import { toBase64 } from "./encode";
 import prisma from "./prisma";
 import { DecodedJwt } from "./types";
 
@@ -44,6 +46,10 @@ export async function validateWriteKey({
 
   // Split the writeKey into secretKeyId and secretKeyValue
   const [secretKeyId, secretKeyValue] = decodedWriteKey.split(":");
+
+  if (!secretKeyId || !validate(secretKeyId)) {
+    return false;
+  }
 
   const writeKeySecret = await prisma().secret.findUnique({
     where: {
@@ -98,5 +104,5 @@ export async function createWriteKey({
     return secret.id;
   });
 
-  return Buffer.from(`${secretId}:${writeKeyValue}`).toString("base64");
+  return toBase64(`${secretId}:${writeKeyValue}`);
 }

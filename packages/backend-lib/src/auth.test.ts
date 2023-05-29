@@ -1,34 +1,80 @@
+import { Workspace } from "@prisma/client";
+import { randomUUID } from "crypto";
+
+import { createWriteKey, validateWriteKey } from "./auth";
+import { toBase64 } from "./encode";
 import prisma from "./prisma";
 
 describe("validateWriteKey", () => {
-  interface TableTest {
-    description: string;
-    writeKey: string;
-    expected: boolean;
-    existingWriteKey?: [string, string];
-  }
-  const tableTests: TableTest[] = [];
+  let workspace: Workspace;
+  let valid: boolean;
 
-  test.each(tableTests)(
-    "$description",
-    async ({ writeKey, expected, existingWriteKey }) => {
-      if (existingWriteKey) {
-      }
-    }
-  );
-
-  it("should return true if the write key is valid", async () => {
-    expect(true).toBe(true);
+  describe("when write key is valid", () => {
+    beforeEach(async () => {
+      workspace = await prisma().workspace.create({
+        data: {
+          name: randomUUID(),
+        },
+      });
+      const writeKey = await createWriteKey({
+        workspaceId: workspace.id,
+        writeKeyName: "test",
+        writeKeyValue: "test",
+      });
+      valid = await validateWriteKey({ writeKey: `Basic ${writeKey}` });
+    });
+    it("should return true", async () => {
+      expect(valid).toBe(true);
+    });
   });
-  it("should return false if the write key is missing", async () => {
-    expect(true).toBe(true);
+  describe("when write key is missing", () => {
+    beforeEach(async () => {
+      valid = await validateWriteKey({
+        writeKey: `Basic ${toBase64("missing:")}`,
+      });
+    });
+    it("should return false", async () => {
+      expect(valid).toBe(false);
+    });
+  });
+  describe("when write key is malformed", () => {
+    beforeEach(async () => {
+      valid = await validateWriteKey({
+        writeKey: "Basic foobar",
+      });
+    });
+    it("should return false", async () => {
+      expect(valid).toBe(false);
+    });
   });
 
-  it("should return false if the write key is malformed", async () => {
-    expect(true).toBe(true);
-  });
+  describe("when write key has the wrong value", () => {
+    beforeEach(async () => {
+      workspace = await prisma().workspace.create({
+        data: {
+          name: randomUUID(),
+        },
+      });
+      await createWriteKey({
+        workspaceId: workspace.id,
+        writeKeyName: "test",
+        writeKeyValue: "test",
+      });
+      const secret = await prisma().secret.findUnique({
+        where: {
+          workspaceId_name: {
+            workspaceId: workspace.id,
+            name: "test",
+          },
+        },
+      });
 
-  it("should return false if the write key has the wrong value", async () => {
-    expect(true).toBe(true);
+      valid = await validateWriteKey({
+        writeKey: `Basic ${toBase64(`${secret?.id}:wrong`)}`,
+      });
+    });
+    it("should return false", async () => {
+      expect(valid).toBe(false);
+    });
   });
 });
