@@ -1,16 +1,23 @@
 /* eslint-disable arrow-body-style */
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
+import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import prisma from "backend-lib/src/prisma";
 import { EmailProvider } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import {
   DataSourceConfigurationResource,
   DataSourceVariantType,
+  DeleteWriteKeyResource,
   EmailProviderResource,
   EmailProviderType,
+  EmptyResponse,
+  ListWriteKeyRequest,
+  ListWriteKeyResource,
   UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
+  UpsertWriteKeyResource,
+  WriteKeyResource,
 } from "isomorphic-lib/src/types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -166,6 +173,70 @@ export default async function settingsController(fastify: FastifyInstance) {
         workspaceId: emailProvider.workspaceId,
       };
       return reply.status(200).send(resource);
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/write-keys",
+    {
+      schema: {
+        description: "Create a write key.",
+        body: UpsertWriteKeyResource,
+        response: {
+          200: WriteKeyResource,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, writeKeyName, writeKeyValue } = request.body;
+
+      await createWriteKey({
+        workspaceId,
+        writeKeyName,
+        writeKeyValue,
+      });
+      return reply.status(204).send();
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/write-keys",
+    {
+      schema: {
+        description: "Get write keys.",
+        body: ListWriteKeyRequest,
+        response: {
+          200: ListWriteKeyResource,
+        },
+      },
+    },
+    async (request, reply) => {
+      const resource = await getWriteKeys({
+        workspaceId: request.body.workspaceId,
+      });
+      return reply.status(200).send(resource);
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
+    "/write-keys",
+    {
+      schema: {
+        description: "Delete a write key.",
+        body: DeleteWriteKeyResource,
+        response: {
+          204: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      await prisma().writeKey.delete({
+        where: {
+          id: request.body.id,
+        },
+      });
+
+      return reply.status(204);
     }
   );
 }

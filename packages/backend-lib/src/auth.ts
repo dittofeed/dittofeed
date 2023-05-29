@@ -4,7 +4,7 @@ import { validate } from "uuid";
 
 import { toBase64 } from "./encode";
 import prisma from "./prisma";
-import { DecodedJwt } from "./types";
+import { DecodedJwt, WriteKeyResource } from "./types";
 
 const decoder = createDecoder();
 
@@ -105,4 +105,29 @@ export async function createWriteKey({
   });
 
   return toBase64(`${secretId}:${writeKeyValue}`);
+}
+
+export async function getWriteKeys({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<WriteKeyResource[]> {
+  const writeKeys = await prisma().writeKey.findMany({
+    where: {
+      workspaceId,
+    },
+    select: {
+      secret: {
+        select: {
+          name: true,
+          value: true,
+        },
+      },
+    },
+  });
+  return writeKeys.map((writeKey) => ({
+    writeKeyName: writeKey.secret.name,
+    writeKeyValue: writeKey.secret.value,
+    workspaceId,
+  }));
 }

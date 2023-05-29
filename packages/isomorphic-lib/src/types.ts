@@ -1169,3 +1169,32 @@ export const BatchAppData = Type.Object({
 });
 
 export type BatchAppData = Static<typeof BatchAppData>;
+
+export const WriteKeyResource = Type.Object({
+  writeKeyName: Type.String(),
+  writeKeyValue: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type WriteKeyResource = Static<typeof WriteKeyResource>;
+
+export const UpsertWriteKeyResource = WriteKeyResource;
+
+export type UpsertWriteKeyResource = Static<typeof UpsertWriteKeyResource>;
+
+export const ListWriteKeyRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type ListWriteKeyRequest = Static<typeof ListWriteKeyRequest>;
+
+export const ListWriteKeyResource = Type.Array(WriteKeyResource);
+
+export type ListWriteKeyResource = Static<typeof ListWriteKeyResource>;
+
+export const DeleteWriteKeyResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type DeleteWriteKeyResource = Static<typeof DeleteWriteKeyResource>;
