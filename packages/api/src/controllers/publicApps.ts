@@ -1,6 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { submitBatch, submitIdentify } from "backend-lib/src/apps";
+import { validateWriteKey } from "backend-lib/src/auth";
 import logger from "backend-lib/src/logger";
 import { FastifyInstance } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
@@ -30,6 +31,14 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const validWriteKey = await validateWriteKey({
+        writeKey: request.headers.authorization,
+      });
+
+      if (!validWriteKey) {
+        return reply.status(401).send();
+      }
+
       await submitIdentify({
         workspaceId: request.headers[WORKSPACE_ID_HEADER],
         data: request.body,

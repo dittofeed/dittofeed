@@ -308,4 +308,6 @@ model WriteKey {
   secretId    String    @db.Uuid
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, secretId])
 }
