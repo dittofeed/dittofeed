@@ -163,7 +163,7 @@ async function bootstrapPostgres({
       create: {
         workspaceId,
         name: SUBSCRIPTION_SECRET_NAME,
-        value: generateSecureKey(),
+        value: generateSecureKey(8),
       },
       update: {},
     }),

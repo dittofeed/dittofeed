@@ -204,7 +204,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Get write keys.",
-        body: ListWriteKeyRequest,
+        querystring: ListWriteKeyRequest,
         response: {
           200: ListWriteKeyResource,
         },
@@ -212,7 +212,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const resource = await getWriteKeys({
-        workspaceId: request.body.workspaceId,
+        workspaceId: request.query.workspaceId,
       });
       return reply.status(200).send(resource);
     }
