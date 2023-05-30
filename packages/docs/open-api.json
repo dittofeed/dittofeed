@@ -3901,6 +3901,155 @@
         }
       }
     },
+    "/api/settings/write-keys": {
+      "put": {
+        "description": "Create a write key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "writeKeyName": {
+                    "type": "string"
+                  },
+                  "writeKeyValue": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "writeKeyName",
+                  "writeKeyValue",
+                  "workspaceId"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "writeKeyName": {
+                      "type": "string"
+                    },
+                    "writeKeyValue": {
+                      "type": "string"
+                    },
+                    "secretId": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "writeKeyName",
+                    "writeKeyValue",
+                    "secretId",
+                    "workspaceId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "description": "Get write keys.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "writeKeyName": {
+                        "type": "string"
+                      },
+                      "writeKeyValue": {
+                        "type": "string"
+                      },
+                      "secretId": {
+                        "type": "string"
+                      },
+                      "workspaceId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "writeKeyName",
+                      "writeKeyValue",
+                      "secretId",
+                      "workspaceId"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete a write key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "writeKeyName": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "writeKeyName",
+                  "workspaceId"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/content/templates/render": {
       "post": {
         "description": "Render message template.",
@@ -4605,7 +4754,7 @@
     },
     "/api/subscription-groups/": {
       "put": {
-        "description": "Create or update a journey.",
+        "description": "Create or update a subscription group.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4720,6 +4869,58 @@
             }
           }
         }
+      },
+      "delete": {
+        "description": "Delete a subscription group and its corresponding segment.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/subscription-groups/upload-csv": {
@@ -4790,10 +4991,16 @@
                       },
                       "identifier": {
                         "description": "Identifier value for channel.",
+                        "examples": [
+                          "user@email.com"
+                        ],
                         "type": "string"
                       },
                       "identifierKey": {
                         "description": "Identifier key for channel.",
+                        "examples": [
+                          "email"
+                        ],
                         "type": "string"
                       }
                     },
@@ -4826,7 +5033,15 @@
         },
         "responses": {
           "204": {
-            "description": "Default Response"
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "description": "Default Response",
@@ -4842,6 +5057,739 @@
                   "required": [
                     "message"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/apps/identify": {
+      "post": {
+        "description": "The Identify call lets you tie a user to their actions and record traits about them. It includes a unique User ID and any optional traits you know about the user, like their email, name, and more.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string"
+                      },
+                      "context": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "traits": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "userId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "messageId",
+                      "userId"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string"
+                      },
+                      "context": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "traits": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "anonymousId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "messageId",
+                      "anonymousId"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-workspace-id",
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "authorization",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/apps/track": {
+      "post": {
+        "description": "The Track call is how you record any actions your users perform, along with any properties that describe the action.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string"
+                      },
+                      "context": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "properties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "userId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "messageId",
+                      "userId"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string"
+                      },
+                      "context": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "properties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "anonymousId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "messageId",
+                      "anonymousId"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-workspace-id",
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "authorization",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/apps/page": {
+      "post": {
+        "description": "The page call lets you record whenever a user sees a page of your website, along with any optional properties about the page.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string"
+                      },
+                      "context": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "properties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "userId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "messageId",
+                      "userId"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string"
+                      },
+                      "context": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "properties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "anonymousId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "messageId",
+                      "anonymousId"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-workspace-id",
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "authorization",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/apps/screen": {
+      "post": {
+        "description": "The screen call lets you record whenever a user sees a screen, the mobile equivalent of page, in your mobile app, along with any properties about the screen",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string"
+                      },
+                      "context": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "properties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "userId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "messageId",
+                      "userId"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string"
+                      },
+                      "context": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "properties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "anonymousId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "messageId",
+                      "anonymousId"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-workspace-id",
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "authorization",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/apps/group": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/public/apps/alias": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/public/apps/batch": {
+      "post": {
+        "description": "The batch method lets you send a series of identify, group, track, page and screen requests in a single batch, saving on outbound requests.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "batch": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "messageId": {
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "identify"
+                                  ]
+                                },
+                                "traits": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "userId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "messageId",
+                                "type",
+                                "userId"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "messageId": {
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "identify"
+                                  ]
+                                },
+                                "traits": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "anonymousId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "messageId",
+                                "type",
+                                "anonymousId"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "messageId": {
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "track"
+                                  ]
+                                },
+                                "event": {
+                                  "type": "string"
+                                },
+                                "properties": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "userId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "messageId",
+                                "type",
+                                "event",
+                                "userId"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "messageId": {
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "track"
+                                  ]
+                                },
+                                "event": {
+                                  "type": "string"
+                                },
+                                "properties": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "anonymousId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "messageId",
+                                "type",
+                                "event",
+                                "anonymousId"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "messageId": {
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "page"
+                                  ]
+                                },
+                                "properties": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "userId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "messageId",
+                                "type",
+                                "userId"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "messageId": {
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "page"
+                                  ]
+                                },
+                                "properties": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "anonymousId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "messageId",
+                                "type",
+                                "anonymousId"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "messageId": {
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "screen"
+                                  ]
+                                },
+                                "properties": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "userId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "messageId",
+                                "type",
+                                "userId"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "messageId": {
+                                  "type": "string"
+                                },
+                                "timestamp": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "screen"
+                                  ]
+                                },
+                                "properties": {
+                                  "type": "object",
+                                  "additionalProperties": {}
+                                },
+                                "anonymousId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "messageId",
+                                "type",
+                                "anonymousId"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "context": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "batch"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "df-workspace-id",
+            "required": true,
+            "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "authorization",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
                 }
               }
             }
