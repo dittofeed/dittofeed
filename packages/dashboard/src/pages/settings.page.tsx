@@ -22,8 +22,9 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { getWriteKeys } from "backend-lib/src/auth";
+import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import backendConfig from "backend-lib/src/config";
+import { generateSecureKey } from "backend-lib/src/crypto";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
@@ -127,6 +128,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     if (writeKey) {
       serverInitialState.writeKeys = [writeKey];
+    } else {
+      serverInitialState.writeKeys = [
+        await createWriteKey({
+          workspaceId,
+          writeKeyName: "default",
+          writeKeyValue: generateSecureKey(8),
+        }),
+      ];
     }
 
     const subscriptionGroupResources = subscriptionGroups.map(
