@@ -127,11 +127,20 @@
     },
     {
       "group": "API Reference",
-      "pages": ["api-reference/endpoints/webhooks/segment", "api-reference/endpoints/apps/identify"]
+      "pages": [
+        "api-reference/endpoints/webhooks/segment",
+        "api-reference/endpoints/apps/identify",
+        "api-reference/endpoints/apps/track",
+        "api-reference/endpoints/apps/page",
+        "api-reference/endpoints/apps/screen"
+      ]
     },
     {
       "group": "Contributing",
-      "pages": ["contributing/running-locally", "contributing/updating-api-docs"]
+      "pages": [
+        "contributing/running-locally",
+        "contributing/updating-api-docs"
+      ]
     }
   ],
   "footerSocials": {
