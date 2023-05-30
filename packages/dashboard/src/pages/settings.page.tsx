@@ -1,4 +1,9 @@
-import { ArrowBackIos, East, MailOutline } from "@mui/icons-material";
+import {
+  ArrowBackIos,
+  ContentCopyOutlined,
+  East,
+  MailOutline,
+} from "@mui/icons-material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
@@ -21,6 +26,7 @@ import { getWriteKeys } from "backend-lib/src/auth";
 import backendConfig from "backend-lib/src/config";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
+import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -37,6 +43,7 @@ import {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
+import { enqueueSnackbar } from "notistack";
 import { useMemo, useState } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
@@ -48,6 +55,7 @@ import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
+import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
@@ -403,11 +411,33 @@ function SendGridConfig() {
 }
 
 function WriteKeySettings() {
-  const [open, setOpen] = useState<boolean>(true);
+  const writeKey = useAppStore((store) => store.writeKeys)[0];
+  const keyHeader = useMemo(
+    () => (writeKey ? writeKeyToHeader(writeKey) : null),
+    [writeKey]
+  );
 
-  const handleOpen = () => {
-    setOpen((o) => !o);
+  if (!keyHeader) {
+    return null;
+  }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      enqueueSnackbar("Copied write to clipboard", {
+        variant: "success",
+        autoHideDuration: 1000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    } catch (err) {
+      enqueueSnackbar("Failed to write to clipboard", {
+        variant: "error",
+        autoHideDuration: 1000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    }
   };
+
   return (
     <Stack sx={{ width: "100%", p: 1 }} spacing={2}>
       <Typography variant="h2" sx={{ color: "black" }} id="write-key-title">
@@ -415,6 +445,10 @@ function WriteKeySettings() {
       </Typography>
       <Box>
         <InfoBox sx={{ display: "inline" }}>fooo bar</InfoBox>
+        <Typography variant="body1">{keyHeader}</Typography>
+        <IconButton color="primary" onClick={() => copyToClipboard(keyHeader)}>
+          <ContentCopyOutlined />
+        </IconButton>
       </Box>
     </Stack>
   );

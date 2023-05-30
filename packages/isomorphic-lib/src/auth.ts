@@ -1,6 +1,7 @@
 import { err, ok, Result } from "neverthrow";
 
-import { Role, RoleEnum } from "./types";
+import { toBase64 } from "./encode";
+import { Role, RoleEnum, WriteKeyResource } from "./types";
 
 export const authCodes: Record<Role, number> = {
   [RoleEnum.Admin]: 10,
@@ -25,4 +26,12 @@ export function isAuthorized({
     );
   }
   return ok(null);
+}
+
+export function writeKeyToHeader({
+  secretId,
+  writeKeyValue,
+}: WriteKeyResource): string {
+  const encoded = toBase64(`${secretId}:${writeKeyValue}`);
+  return `Basic ${encoded}`;
 }

@@ -2,7 +2,6 @@ import { createDecoder } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { validate } from "uuid";
 
-import { toBase64 } from "./encode";
 import prisma from "./prisma";
 import { DecodedJwt, WriteKeyResource } from "./types";
 
@@ -137,12 +136,4 @@ export async function getWriteKeys({
     secretId: writeKey.secret.id,
     workspaceId,
   }));
-}
-
-export function writeKeyToHeader({
-  secretId,
-  writeKeyValue,
-}: WriteKeyResource): string {
-  const encoded = toBase64(`${secretId}:${writeKeyValue}`);
-  return `Basic ${encoded}`;
 }

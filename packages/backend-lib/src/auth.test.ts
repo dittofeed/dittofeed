@@ -1,8 +1,9 @@
 import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { writeKeyToHeader } from "isomorphic-lib/src/auth";
+import { toBase64 } from "isomorphic-lib/src/encode";
 
-import { createWriteKey, validateWriteKey, writeKeyToHeader } from "./auth";
-import { toBase64 } from "./encode";
+import { createWriteKey, validateWriteKey } from "./auth";
 import prisma from "./prisma";
 
 describe("validateWriteKey", () => {
