@@ -41,6 +41,7 @@ import { useMemo, useState } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
 import { SubscriptionManagement } from "../components/subscriptionManagement";
@@ -401,6 +402,24 @@ function SendGridConfig() {
   );
 }
 
+function WriteKeySettings() {
+  const [open, setOpen] = useState<boolean>(true);
+
+  const handleOpen = () => {
+    setOpen((o) => !o);
+  };
+  return (
+    <Stack sx={{ width: "100%", p: 1 }} spacing={2}>
+      <Typography variant="h2" sx={{ color: "black" }} id="write-key-title">
+        Write Key
+      </Typography>
+      <Box>
+        <InfoBox sx={{ display: "inline" }}>fooo bar</InfoBox>
+      </Box>
+    </Stack>
+  );
+}
+
 function SubscriptionManagementSettings() {
   const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
   const [open, setOpen] = useState<boolean>(true);
@@ -414,7 +433,7 @@ function SubscriptionManagementSettings() {
       ? workspaceResult.value
       : null;
 
-  const handleSendgridOpen = () => {
+  const handleOpen = () => {
     setOpen((o) => !o);
   };
   const subscriptions =
@@ -435,14 +454,14 @@ function SubscriptionManagementSettings() {
   return (
     <>
       <Box sx={{ width: "100%" }}>
-        <Button variant="text" onClick={handleSendgridOpen}>
+        <Button variant="text" onClick={handleOpen}>
           <Typography variant="h4" sx={{ color: "black" }}>
             Subscription Management
           </Typography>
         </Button>
         <ExpandMore
           expand={open}
-          onClick={handleSendgridOpen}
+          onClick={handleOpen}
           aria-expanded={open}
           aria-label="show more"
         >
@@ -580,6 +599,7 @@ const Settings: NextPage<
           <SendGridConfig />
         </Collapse>
         <SubscriptionManagementSettings />
+        <WriteKeySettings />
       </Stack>
     </SettingsLayout>
   );

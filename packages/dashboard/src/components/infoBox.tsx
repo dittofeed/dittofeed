@@ -1,6 +1,12 @@
-import { Typography, useTheme } from "@mui/material";
+import { SxProps, Theme, Typography, useTheme } from "@mui/material";
 
-export default function InfoBox({ children }: { children?: React.ReactNode }) {
+export default function InfoBox({
+  children,
+  sx,
+}: {
+  children?: React.ReactNode;
+  sx?: SxProps<Theme>;
+}) {
   const theme = useTheme();
   return (
     <Typography
@@ -8,6 +14,7 @@ export default function InfoBox({ children }: { children?: React.ReactNode }) {
         backgroundColor: theme.palette.grey[200],
         p: 2,
         borderRadius: 1,
+        ...sx,
       }}
       variant="subtitle2"
     >
