@@ -5066,6 +5066,7 @@
     },
     "/api/public/apps/identify": {
       "post": {
+        "description": "The Identify call lets you tie a user to their actions and record traits about them. It includes a unique User ID and any optional traits you know about the user, like their email, name, and more.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5164,6 +5165,7 @@
     },
     "/api/public/apps/track": {
       "post": {
+        "description": "The Track call is how you record any actions your users perform, along with any properties that describe the action.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5262,6 +5264,7 @@
     },
     "/api/public/apps/page": {
       "post": {
+        "description": "The page call lets you record whenever a user sees a page of your website, along with any optional properties about the page.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5360,6 +5363,7 @@
     },
     "/api/public/apps/screen": {
       "post": {
+        "description": "The screen call lets you record whenever a user sees a screen, the mobile equivalent of page, in your mobile app, along with any properties about the screen",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5476,6 +5480,7 @@
     },
     "/api/public/apps/batch": {
       "post": {
+        "description": "The batch method lets you send a series of identify, group, track, page and screen requests in a single batch, saving on outbound requests.",
         "requestBody": {
           "content": {
             "application/json": {

@@ -27,6 +27,8 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/identify",
     {
       schema: {
+        description:
+          "The Identify call lets you tie a user to their actions and record traits about them. It includes a unique User ID and any optional traits you know about the user, like their email, name, and more.",
         body: IdentifyData,
         headers: Type.Object({
           [WORKSPACE_ID_HEADER]: WorkspaceId,
@@ -58,6 +60,8 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/track",
     {
       schema: {
+        description:
+          "The Track call is how you record any actions your users perform, along with any properties that describe the action.",
         body: TrackData,
         headers: Type.Object({
           [WORKSPACE_ID_HEADER]: WorkspaceId,
@@ -89,6 +93,8 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/page",
     {
       schema: {
+        description:
+          "The page call lets you record whenever a user sees a page of your website, along with any optional properties about the page.",
         body: PageData,
         headers: Type.Object({
           [WORKSPACE_ID_HEADER]: WorkspaceId,
@@ -120,6 +126,8 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/screen",
     {
       schema: {
+        description:
+          "The screen call lets you record whenever a user sees a screen, the mobile equivalent of page, in your mobile app, along with any properties about the screen",
         body: ScreenData,
         headers: Type.Object({
           [WORKSPACE_ID_HEADER]: WorkspaceId,
@@ -179,6 +187,8 @@ export default async function publicAppsController(fastify: FastifyInstance) {
     "/batch",
     {
       schema: {
+        description:
+          "The batch method lets you send a series of identify, group, track, page and screen requests in a single batch, saving on outbound requests.",
         body: BatchAppData,
         headers: Type.Object({
           [WORKSPACE_ID_HEADER]: WorkspaceId,

@@ -127,7 +127,7 @@
     },
     {
       "group": "API Reference",
-      "pages": ["api-reference/endpoints/webhooks/segment"]
+      "pages": ["api-reference/endpoints/webhooks/segment", "api-reference/endpoints/apps/identify"]
     },
     {
       "group": "Contributing",
