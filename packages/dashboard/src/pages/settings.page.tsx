@@ -412,6 +412,7 @@ function SendGridConfig() {
 
 function WriteKeySettings() {
   const writeKey = useAppStore((store) => store.writeKeys)[0];
+  const theme = useTheme();
   const keyHeader = useMemo(
     () => (writeKey ? writeKeyToHeader(writeKey) : null),
     [writeKey]
@@ -424,13 +425,13 @@ function WriteKeySettings() {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      enqueueSnackbar("Copied write to clipboard", {
+      enqueueSnackbar("Copied write key to clipboard", {
         variant: "success",
         autoHideDuration: 1000,
         anchorOrigin: noticeAnchorOrigin,
       });
     } catch (err) {
-      enqueueSnackbar("Failed to write to clipboard", {
+      enqueueSnackbar("Failed to write key to clipboard", {
         variant: "error",
         autoHideDuration: 1000,
         anchorOrigin: noticeAnchorOrigin,
@@ -443,13 +444,41 @@ function WriteKeySettings() {
       <Typography variant="h2" sx={{ color: "black" }} id="write-key-title">
         Write Key
       </Typography>
-      <Box>
-        <InfoBox sx={{ display: "inline" }}>fooo bar</InfoBox>
-        <Typography variant="body1">{keyHeader}</Typography>
-        <IconButton color="primary" onClick={() => copyToClipboard(keyHeader)}>
-          <ContentCopyOutlined />
-        </IconButton>
-      </Box>
+      <Stack spacing={2}>
+        <InfoBox
+          sx={{
+            display: "inline",
+            maxWidth: theme.spacing(80),
+          }}
+        >
+          Include this write key as an HTTP &quot;
+          <Typography sx={{ fontFamily: "monospace" }} display="inline">
+            Authorization: Basic ...
+          </Typography>
+          &quot; header in your requests. This write key can be included in your
+          client, and does not need to be kept secret.
+        </InfoBox>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              maxWidth: theme.spacing(80),
+              overflow: "hidden",
+              fontFamily: "monospace",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {keyHeader}
+          </Typography>
+          <IconButton
+            color="primary"
+            onClick={() => copyToClipboard(keyHeader)}
+          >
+            <ContentCopyOutlined />
+          </IconButton>
+        </Stack>
+      </Stack>
     </Stack>
   );
 }

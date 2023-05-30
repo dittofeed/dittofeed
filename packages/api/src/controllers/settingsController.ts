@@ -3,7 +3,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import prisma from "backend-lib/src/prisma";
-import { EmailProvider } from "backend-lib/src/types";
+import { EmailProvider, Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import {
   DataSourceConfigurationResource,
@@ -230,13 +230,26 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      await prisma().writeKey.delete({
-        where: {
-          id: request.body.id,
-        },
-      });
+      try {
+        await prisma().secret.delete({
+          where: {
+            workspaceId_name: {
+              workspaceId: request.body.workspaceId,
+              name: request.body.writeKeyName,
+            },
+          },
+        });
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError) {
+          if (e.code === "P2025") {
+            return reply.status(204).send();
+          }
+        } else {
+          throw e;
+        }
+      }
 
-      return reply.status(204);
+      return reply.status(204).send();
     }
   );
 }

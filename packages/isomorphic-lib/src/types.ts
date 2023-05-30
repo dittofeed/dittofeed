@@ -1179,8 +1179,11 @@ export const WriteKeyResource = Type.Object({
 
 export type WriteKeyResource = Static<typeof WriteKeyResource>;
 
-export const UpsertWriteKeyResource = WriteKeyResource;
-
+export const UpsertWriteKeyResource = Type.Object({
+  writeKeyName: Type.String(),
+  writeKeyValue: Type.String(),
+  workspaceId: Type.String(),
+});
 export type UpsertWriteKeyResource = Static<typeof UpsertWriteKeyResource>;
 
 export const ListWriteKeyRequest = Type.Object({
@@ -1194,7 +1197,7 @@ export const ListWriteKeyResource = Type.Array(WriteKeyResource);
 export type ListWriteKeyResource = Static<typeof ListWriteKeyResource>;
 
 export const DeleteWriteKeyResource = Type.Object({
-  id: Type.String(),
+  writeKeyName: Type.String(),
   workspaceId: Type.String(),
 });
 
