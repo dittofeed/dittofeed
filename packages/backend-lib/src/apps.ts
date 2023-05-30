@@ -1,4 +1,10 @@
-import { BatchAppData, IdentifyData } from "./types";
+import {
+  BatchAppData,
+  IdentifyData,
+  PageData,
+  ScreenData,
+  TrackData,
+} from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
 export async function submitIdentify({
@@ -11,6 +17,66 @@ export async function submitIdentify({
   const userEvent: InsertUserEvent = {
     messageRaw: JSON.stringify({
       type: "identify",
+      ...data,
+    }),
+    messageId: data.messageId,
+  };
+  await insertUserEvents({
+    workspaceId,
+    userEvents: [userEvent],
+  });
+}
+
+export async function submitTrack({
+  workspaceId,
+  data,
+}: {
+  workspaceId: string;
+  data: TrackData;
+}) {
+  const userEvent: InsertUserEvent = {
+    messageRaw: JSON.stringify({
+      type: "track",
+      ...data,
+    }),
+    messageId: data.messageId,
+  };
+  await insertUserEvents({
+    workspaceId,
+    userEvents: [userEvent],
+  });
+}
+
+export async function submitPage({
+  workspaceId,
+  data,
+}: {
+  workspaceId: string;
+  data: PageData;
+}) {
+  const userEvent: InsertUserEvent = {
+    messageRaw: JSON.stringify({
+      type: "page",
+      ...data,
+    }),
+    messageId: data.messageId,
+  };
+  await insertUserEvents({
+    workspaceId,
+    userEvents: [userEvent],
+  });
+}
+
+export async function submitScreen({
+  workspaceId,
+  data,
+}: {
+  workspaceId: string;
+  data: ScreenData;
+}) {
+  const userEvent: InsertUserEvent = {
+    messageRaw: JSON.stringify({
+      type: "screen",
       ...data,
     }),
     messageId: data.messageId,

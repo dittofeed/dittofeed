@@ -205,7 +205,7 @@ const menuItems: MenuItemGroup[] = [
         id: "write-keys",
         title: "Write Key",
         type: "item",
-        url: "/settings#write-keys-title",
+        url: "/settings#write-key-title",
         icon: Key,
         description:
           "Write key used to authenticate end user requests to the Dittofeed API.",

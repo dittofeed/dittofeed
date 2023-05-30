@@ -1,6 +1,12 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
-import { submitBatch, submitIdentify } from "backend-lib/src/apps";
+import {
+  submitBatch,
+  submitIdentify,
+  submitPage,
+  submitScreen,
+  submitTrack,
+} from "backend-lib/src/apps";
 import { validateWriteKey } from "backend-lib/src/auth";
 import logger from "backend-lib/src/logger";
 import { FastifyInstance } from "fastify";
@@ -10,6 +16,7 @@ import {
   EmptyResponse,
   IdentifyData,
   PageData,
+  ScreenData,
   TrackData,
   WorkspaceId,
 } from "isomorphic-lib/src/types";
@@ -69,6 +76,12 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       if (!validWriteKey) {
         return reply.status(401).send();
       }
+
+      await submitTrack({
+        workspaceId: request.headers[WORKSPACE_ID_HEADER],
+        data: request.body,
+      });
+      return reply.status(204).send();
     }
   );
 
@@ -94,6 +107,43 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       if (!validWriteKey) {
         return reply.status(401).send();
       }
+
+      await submitPage({
+        workspaceId: request.headers[WORKSPACE_ID_HEADER],
+        data: request.body,
+      });
+      return reply.status(204).send();
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/screen",
+    {
+      schema: {
+        body: ScreenData,
+        headers: Type.Object({
+          [WORKSPACE_ID_HEADER]: WorkspaceId,
+          authorization: Type.String(),
+        }),
+        response: {
+          204: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const validWriteKey = await validateWriteKey({
+        writeKey: request.headers.authorization,
+      });
+
+      if (!validWriteKey) {
+        return reply.status(401).send();
+      }
+
+      await submitScreen({
+        workspaceId: request.headers[WORKSPACE_ID_HEADER],
+        data: request.body,
+      });
+      return reply.status(204).send();
     }
   );
 
