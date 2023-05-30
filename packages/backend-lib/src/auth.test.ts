@@ -1,7 +1,7 @@
 import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 
-import { createWriteKey, validateWriteKey } from "./auth";
+import { createWriteKey, validateWriteKey, writeKeyToHeader } from "./auth";
 import { toBase64 } from "./encode";
 import prisma from "./prisma";
 
@@ -21,7 +21,8 @@ describe("validateWriteKey", () => {
         writeKeyName: "test",
         writeKeyValue: "test",
       });
-      valid = await validateWriteKey({ writeKey: `Basic ${writeKey}` });
+      const header = writeKeyToHeader(writeKey);
+      valid = await validateWriteKey({ writeKey: header });
     });
     it("should return true", async () => {
       expect(valid).toBe(true);

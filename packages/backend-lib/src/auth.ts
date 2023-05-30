@@ -69,8 +69,8 @@ export async function createWriteKey({
   workspaceId: string;
   writeKeyValue: string;
   writeKeyName: string;
-}): Promise<string> {
-  const secretId = await prisma().$transaction(async (tx) => {
+}): Promise<WriteKeyResource> {
+  const resource = await prisma().$transaction(async (tx) => {
     // Try to find the secret, create if it doesn't exist
     const secret = await tx.secret.upsert({
       where: {
@@ -101,10 +101,15 @@ export async function createWriteKey({
         secretId: secret.id,
       },
     });
-    return secret.id;
+    return {
+      workspaceId,
+      writeKeyName,
+      writeKeyValue,
+      secretId: secret.id,
+    };
   });
 
-  return toBase64(`${secretId}:${writeKeyValue}`);
+  return resource;
 }
 
 export async function getWriteKeys({
@@ -121,6 +126,7 @@ export async function getWriteKeys({
         select: {
           name: true,
           value: true,
+          id: true,
         },
       },
     },
@@ -128,6 +134,15 @@ export async function getWriteKeys({
   return writeKeys.map((writeKey) => ({
     writeKeyName: writeKey.secret.name,
     writeKeyValue: writeKey.secret.value,
+    secretId: writeKey.secret.id,
     workspaceId,
   }));
+}
+
+export function writeKeyToHeader({
+  secretId,
+  writeKeyValue,
+}: WriteKeyResource): string {
+  const encoded = toBase64(`${secretId}:${writeKeyValue}`);
+  return `Basic ${encoded}`;
 }

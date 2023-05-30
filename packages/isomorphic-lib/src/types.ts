@@ -1173,6 +1173,7 @@ export type BatchAppData = Static<typeof BatchAppData>;
 export const WriteKeyResource = Type.Object({
   writeKeyName: Type.String(),
   writeKeyValue: Type.String(),
+  secretId: Type.String(),
   workspaceId: Type.String(),
 });
 

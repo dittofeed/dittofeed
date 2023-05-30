@@ -17,6 +17,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { getWriteKeys } from "backend-lib/src/auth";
 import backendConfig from "backend-lib/src/config";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
@@ -63,6 +64,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       defaultEmailProviderRecord,
       workspace,
       subscriptionGroups,
+      writeKey,
     ] = await Promise.all([
       (
         await prisma().emailProvider.findMany({
@@ -90,6 +92,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId,
         },
       }),
+      getWriteKeys({ workspaceId }).then((keys) => keys[0]),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -111,6 +114,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           name: workspace.name,
         },
       };
+    }
+
+    if (writeKey) {
+      serverInitialState.writeKeys = [writeKey];
     }
 
     const subscriptionGroupResources = subscriptionGroups.map(

@@ -19,6 +19,7 @@ import {
   UserPropertyResource,
   WorkspaceMemberResource,
   WorkspaceResource,
+  WriteKeyResource,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSidePropsContext,
@@ -63,6 +64,7 @@ export type AppState = {
   messages: RequestStatus<MessageTemplateResource[], Error>;
   journeys: RequestStatus<JourneyResource[], Error>;
   traits: RequestStatus<string[], Error>;
+  writeKeys: WriteKeyResource[];
   defaultEmailProvider: RequestStatus<
     DefaultEmailProviderResource | null,
     Error
