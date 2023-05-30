@@ -2,6 +2,7 @@ import {
   ArrowBackIos,
   ContentCopyOutlined,
   East,
+  Key,
   MailOutline,
 } from "@mui/icons-material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -199,6 +200,15 @@ const menuItems: MenuItemGroup[] = [
         icon: MailOutline,
         description:
           "Configure email settings, including the email provider credentials.",
+      },
+      {
+        id: "write-keys",
+        title: "Write Key",
+        type: "item",
+        url: "/settings#write-keys-title",
+        icon: Key,
+        description:
+          "Write key used to authenticate end user requests to the Dittofeed API.",
       },
     ],
   },

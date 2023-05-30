@@ -61,7 +61,15 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {}
+    async (request, reply) => {
+      const validWriteKey = await validateWriteKey({
+        writeKey: request.headers.authorization,
+      });
+
+      if (!validWriteKey) {
+        return reply.status(401).send();
+      }
+    }
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -78,7 +86,15 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {}
+    async (request, reply) => {
+      const validWriteKey = await validateWriteKey({
+        writeKey: request.headers.authorization,
+      });
+
+      if (!validWriteKey) {
+        return reply.status(401).send();
+      }
+    }
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -118,13 +134,24 @@ export default async function publicAppsController(fastify: FastifyInstance) {
           [WORKSPACE_ID_HEADER]: WorkspaceId,
           authorization: Type.String(),
         }),
+        response: {
+          204: EmptyResponse,
+        },
       },
     },
     async (request, reply) => {
+      const validWriteKey = await validateWriteKey({
+        writeKey: request.headers.authorization,
+      });
+
+      if (!validWriteKey) {
+        return reply.status(401).send();
+      }
       await submitBatch({
         workspaceId: request.headers[WORKSPACE_ID_HEADER],
         data: request.body,
       });
+      return reply.status(204).send();
     }
   );
 }
