@@ -991,3 +991,214 @@ export const DeleteSubscriptionGroupRequest = Type.Object({
 export type DeleteSubscriptionGroupRequest = Static<
   typeof DeleteSubscriptionGroupRequest
 >;
+
+export const AppDataContext = Type.Optional(
+  Type.Record(Type.String(), Type.Any())
+);
+
+export type AppDataContext = Static<typeof AppDataContext>;
+
+export const BaseAppData = {
+  messageId: Type.String(),
+  timestamp: Type.Optional(Type.String()),
+};
+
+export const BaseIdentifyData = {
+  ...BaseAppData,
+  context: AppDataContext,
+  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const BaseBatchIdentifyData = {
+  ...BaseAppData,
+  type: Type.Literal("identify"),
+  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const IdentifyData = Type.Union([
+  Type.Object({
+    ...BaseIdentifyData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseIdentifyData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type IdentifyData = Static<typeof IdentifyData>;
+
+export const BatchIdentifyData = Type.Union([
+  Type.Object({
+    ...BaseBatchIdentifyData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchIdentifyData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type BatchIdentifyData = Static<typeof BatchIdentifyData>;
+
+export const BaseTrackData = {
+  ...BaseAppData,
+  context: AppDataContext,
+  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const BaseBatchTrackData = {
+  ...BaseAppData,
+  type: Type.Literal("track"),
+  event: Type.String(),
+  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const TrackData = Type.Union([
+  Type.Object({
+    ...BaseTrackData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseTrackData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type TrackData = Static<typeof TrackData>;
+
+export const BatchTrackData = Type.Union([
+  Type.Object({
+    ...BaseBatchTrackData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchTrackData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type BatchTrackData = Static<typeof BatchTrackData>;
+
+export const BasePageData = {
+  ...BaseAppData,
+  context: AppDataContext,
+  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const BaseBatchPageData = {
+  ...BaseAppData,
+  type: Type.Literal("page"),
+  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const PageData = Type.Union([
+  Type.Object({
+    ...BasePageData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BasePageData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type PageData = Static<typeof PageData>;
+
+export const BatchPageData = Type.Union([
+  Type.Object({
+    ...BaseBatchPageData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchPageData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type BatchPageData = Static<typeof BatchPageData>;
+
+export const BaseScreenData = {
+  ...BaseAppData,
+  context: AppDataContext,
+  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const BaseBatchScreenData = {
+  ...BaseAppData,
+  type: Type.Literal("screen"),
+  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+};
+
+export const ScreenData = Type.Union([
+  Type.Object({
+    ...BaseScreenData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseScreenData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type ScreenData = Static<typeof ScreenData>;
+
+export const BatchScreenData = Type.Union([
+  Type.Object({
+    ...BaseBatchScreenData,
+    userId: Type.String(),
+  }),
+  Type.Object({
+    ...BaseBatchScreenData,
+    anonymousId: Type.String(),
+  }),
+]);
+
+export type BatchScreenData = Static<typeof BatchScreenData>;
+
+export const BatchAppData = Type.Object({
+  batch: Type.Array(
+    Type.Union([
+      BatchIdentifyData,
+      BatchTrackData,
+      BatchPageData,
+      BatchScreenData,
+    ])
+  ),
+  context: AppDataContext,
+});
+
+export type BatchAppData = Static<typeof BatchAppData>;
+
+export const WriteKeyResource = Type.Object({
+  writeKeyName: Type.String(),
+  writeKeyValue: Type.String(),
+  secretId: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type WriteKeyResource = Static<typeof WriteKeyResource>;
+
+export const UpsertWriteKeyResource = Type.Object({
+  writeKeyName: Type.String(),
+  writeKeyValue: Type.String(),
+  workspaceId: Type.String(),
+});
+export type UpsertWriteKeyResource = Static<typeof UpsertWriteKeyResource>;
+
+export const ListWriteKeyRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type ListWriteKeyRequest = Static<typeof ListWriteKeyRequest>;
+
+export const ListWriteKeyResource = Type.Array(WriteKeyResource);
+
+export type ListWriteKeyResource = Static<typeof ListWriteKeyResource>;
+
+export const DeleteWriteKeyResource = Type.Object({
+  writeKeyName: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type DeleteWriteKeyResource = Static<typeof DeleteWriteKeyResource>;

@@ -198,7 +198,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         userProperties: {
           type: CompletionStatus.NotStarted,
         },
-
+        writeKeys: [],
         enableSourceControl: preloadedState.enableSourceControl ?? false,
 
         // email message state

@@ -1,4 +1,10 @@
-import { ArrowBackIos, East, MailOutline } from "@mui/icons-material";
+import {
+  ArrowBackIos,
+  ContentCopyOutlined,
+  East,
+  Key,
+  MailOutline,
+} from "@mui/icons-material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
@@ -17,9 +23,12 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import backendConfig from "backend-lib/src/config";
+import { generateSecureKey } from "backend-lib/src/crypto";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
+import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -36,16 +45,19 @@ import {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
+import { enqueueSnackbar } from "notistack";
 import { useMemo, useState } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
 import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
+import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
@@ -63,6 +75,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       defaultEmailProviderRecord,
       workspace,
       subscriptionGroups,
+      writeKey,
     ] = await Promise.all([
       (
         await prisma().emailProvider.findMany({
@@ -90,6 +103,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId,
         },
       }),
+      getWriteKeys({ workspaceId }).then((keys) => keys[0]),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -111,6 +125,18 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           name: workspace.name,
         },
       };
+    }
+
+    if (writeKey) {
+      serverInitialState.writeKeys = [writeKey];
+    } else {
+      serverInitialState.writeKeys = [
+        await createWriteKey({
+          workspaceId,
+          writeKeyName: "default",
+          writeKeyValue: generateSecureKey(8),
+        }),
+      ];
     }
 
     const subscriptionGroupResources = subscriptionGroups.map(
@@ -174,6 +200,15 @@ const menuItems: MenuItemGroup[] = [
         icon: MailOutline,
         description:
           "Configure email settings, including the email provider credentials.",
+      },
+      {
+        id: "write-keys",
+        title: "Write Key",
+        type: "item",
+        url: "/settings#write-key-title",
+        icon: Key,
+        description:
+          "Write key used to authenticate end user requests to the Dittofeed API.",
       },
     ],
   },
@@ -394,6 +429,79 @@ function SendGridConfig() {
   );
 }
 
+function WriteKeySettings() {
+  const writeKey = useAppStore((store) => store.writeKeys)[0];
+  const theme = useTheme();
+  const keyHeader = useMemo(
+    () => (writeKey ? writeKeyToHeader(writeKey) : null),
+    [writeKey]
+  );
+
+  if (!keyHeader) {
+    return null;
+  }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      enqueueSnackbar("Copied write key to clipboard", {
+        variant: "success",
+        autoHideDuration: 1000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    } catch (err) {
+      enqueueSnackbar("Failed to write key to clipboard", {
+        variant: "error",
+        autoHideDuration: 1000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    }
+  };
+
+  return (
+    <Stack sx={{ width: "100%", p: 1 }} spacing={2}>
+      <Typography variant="h2" sx={{ color: "black" }} id="write-key-title">
+        Write Key
+      </Typography>
+      <Stack spacing={2}>
+        <InfoBox
+          sx={{
+            display: "inline",
+            maxWidth: theme.spacing(80),
+          }}
+        >
+          Include this write key as an HTTP &quot;
+          <Typography sx={{ fontFamily: "monospace" }} display="inline">
+            Authorization: Basic ...
+          </Typography>
+          &quot; header in your requests. This write key can be included in your
+          client, and does not need to be kept secret.
+        </InfoBox>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              maxWidth: theme.spacing(80),
+              overflow: "hidden",
+              fontFamily: "monospace",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {keyHeader}
+          </Typography>
+          <IconButton
+            color="primary"
+            onClick={() => copyToClipboard(keyHeader)}
+          >
+            <ContentCopyOutlined />
+          </IconButton>
+        </Stack>
+      </Stack>
+    </Stack>
+  );
+}
+
 function SubscriptionManagementSettings() {
   const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
   const [open, setOpen] = useState<boolean>(true);
@@ -407,7 +515,7 @@ function SubscriptionManagementSettings() {
       ? workspaceResult.value
       : null;
 
-  const handleSendgridOpen = () => {
+  const handleOpen = () => {
     setOpen((o) => !o);
   };
   const subscriptions =
@@ -428,14 +536,14 @@ function SubscriptionManagementSettings() {
   return (
     <>
       <Box sx={{ width: "100%" }}>
-        <Button variant="text" onClick={handleSendgridOpen}>
+        <Button variant="text" onClick={handleOpen}>
           <Typography variant="h4" sx={{ color: "black" }}>
             Subscription Management
           </Typography>
         </Button>
         <ExpandMore
           expand={open}
-          onClick={handleSendgridOpen}
+          onClick={handleOpen}
           aria-expanded={open}
           aria-label="show more"
         >
@@ -573,6 +681,7 @@ const Settings: NextPage<
           <SendGridConfig />
         </Collapse>
         <SubscriptionManagementSettings />
+        <WriteKeySettings />
       </Stack>
     </SettingsLayout>
   );

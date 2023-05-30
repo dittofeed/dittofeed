@@ -30,6 +30,7 @@ model Workspace {
   WorkspaceMemberRole    WorkspaceMemberRole[]
   Channel                Channel[]
   Secret                 Secret[]
+  WriteKey               WriteKey[]
 }
 
 enum DBResourceType {
@@ -287,13 +288,26 @@ model Channel {
 }
 
 model Secret {
+  id          String     @id() @default(uuid()) @db.Uuid
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String     @db.Uuid
+  name        String
+  value       String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  WriteKey    WriteKey[]
+
+  @@unique([workspaceId, name])
+}
+
+model WriteKey {
   id          String    @id() @default(uuid()) @db.Uuid
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String    @db.Uuid
-  name        String
-  value       String
+  secret      Secret    @relation(fields: [secretId], references: [id], onDelete: Cascade)
+  secretId    String    @db.Uuid
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@unique([workspaceId, name])
+  @@unique([workspaceId, secretId])
 }

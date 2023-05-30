@@ -6,6 +6,7 @@ import {
 } from "isomorphic-lib/src/constants";
 
 import { segmentIdentifyEvent } from "../test/factories/segment";
+import { createWriteKey } from "./auth";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
 import { generateSecureKey } from "./crypto";
@@ -162,9 +163,14 @@ async function bootstrapPostgres({
       create: {
         workspaceId,
         name: SUBSCRIPTION_SECRET_NAME,
-        value: generateSecureKey(),
+        value: generateSecureKey(8),
       },
       update: {},
+    }),
+    createWriteKey({
+      workspaceId,
+      writeKeyName: "default",
+      writeKeyValue: generateSecureKey(8),
     }),
   ]);
 
