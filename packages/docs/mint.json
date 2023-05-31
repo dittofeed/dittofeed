@@ -64,10 +64,7 @@
         "integrations/sources",
         {
           "group": "Data Source Types",
-          "pages": [
-            "integrations/sources/segment",
-            "integrations/sources/api"
-          ]
+          "pages": ["integrations/sources/segment", "integrations/sources/api"]
         },
         "integrations/destinations",
         {
@@ -135,7 +132,8 @@
         "api-reference/endpoints/apps/identify",
         "api-reference/endpoints/apps/track",
         "api-reference/endpoints/apps/page",
-        "api-reference/endpoints/apps/screen"
+        "api-reference/endpoints/apps/screen",
+        "api-reference/endpoints/subscription-management/user-subscriptions"
       ]
     },
     {
