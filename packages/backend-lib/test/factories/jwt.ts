@@ -3,7 +3,7 @@ import { createSigner } from "fast-jwt";
 import { DecodedJwt } from "../../src/types";
 
 export function encodeMockJwt(jwtVals: Partial<DecodedJwt>) {
-  const signer = createSigner();
+  const signer = createSigner({ algorithm: "none" });
   const payload = {
     iss: "https://yourdomain.eu.auth0.com/",
     sub: "auth0|5a0eb...",
