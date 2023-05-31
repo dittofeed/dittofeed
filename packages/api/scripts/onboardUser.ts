@@ -10,12 +10,6 @@ async function onboardUser() {
     .options({
       email: { type: "string", demandOption: true },
       workspace: { type: "string", demandOption: true },
-      "authorize-domain": {
-        type: "boolean",
-        default: false,
-        describe:
-          "Authorize domain e.g. for the email foo@bar.com, would authorize bar.com such that all users with a verified email on that domain can join the workspace.",
-      },
     })
     .strict()
     .parse();
