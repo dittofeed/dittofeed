@@ -37,7 +37,11 @@ async function bootsrapStart() {
     workspaceName = argv.workspaceName ?? "Default";
   }
 
-  return bootstrap({ workspaceId, workspaceName, workspaceDomain });
+  return bootstrap({
+    workspaceId,
+    workspaceName,
+    workspaceDomain: workspaceDomain ?? undefined,
+  });
 }
 
 bootsrapStart().catch((e) => {
