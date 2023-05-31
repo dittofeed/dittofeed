@@ -29,9 +29,11 @@ import {
 async function bootstrapPostgres({
   workspaceId,
   workspaceName,
+  workspaceDomain,
 }: {
   workspaceId: string;
   workspaceName: string;
+  workspaceDomain: string | null;
 }) {
   const { defaultUserEventsTableVersion } = config();
 
@@ -42,10 +44,13 @@ async function bootstrapPostgres({
     where: {
       id: workspaceId,
     },
-    update: {},
+    update: {
+      domain: workspaceDomain ?? undefined,
+    },
     create: {
       id: workspaceId,
       name: workspaceName,
+      domain: workspaceDomain ?? undefined,
     },
   });
 
@@ -282,13 +287,15 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
 export default async function bootstrap({
   workspaceId,
   workspaceName,
+  workspaceDomain = null,
 }: {
   workspaceId: string;
   workspaceName: string;
+  workspaceDomain: string | null;
 }) {
   const initialBootstrap = [
-    bootstrapPostgres({ workspaceId, workspaceName }).catch((err) =>
-      logger().error({ err }, "failed to bootstrap postgres")
+    bootstrapPostgres({ workspaceId, workspaceName, workspaceDomain }).catch(
+      (err) => logger().error({ err }, "failed to bootstrap postgres")
     ),
     bootstrapClickhouse().catch((err) =>
       logger().error({ err }, "failed to bootstrap clickhouse")

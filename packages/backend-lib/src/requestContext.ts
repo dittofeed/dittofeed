@@ -3,7 +3,7 @@ import { err, ok, Result } from "neverthrow";
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
 import prisma from "./prisma";
-import { DFRequestContext } from "./types";
+import { DFRequestContext, Workspace, WorkspaceMemberRole } from "./types";
 
 export enum RequestContextErrorType {
   Unauthorized = "Unauthorized",
@@ -37,46 +37,55 @@ export type RequestContextError =
   | ApplicationError
   | EmailNotVerifiedError;
 
-export async function getRequestContext(
-  authorizationToken: string | null
-): Promise<Result<DFRequestContext, RequestContextError>> {
-  const { authMode } = config();
-  if (authMode === "anonymous") {
-    const workspaceId = config().defaultWorkspaceId;
-
-    const workspace = await prisma().workspace.findUnique({
-      where: {
-        id: workspaceId,
-      },
-    });
-    if (!workspace) {
-      return err({
-        type: RequestContextErrorType.NotOnboarded,
-        message: `Workspace ${workspaceId} not found`,
-      });
-    }
-    return ok({
-      workspace: {
-        id: workspace.id,
-        name: workspace.name,
-      },
-      member: {
-        id: "anonymous",
-        email: "anonymous@email.com",
-        emailVerified: true,
-      },
-      memberRoles: [
-        {
-          workspaceId: workspace.id,
-          workspaceMemberId: "anonymous",
-          role: "Admin",
-        },
-      ],
-    });
+async function defaultRoleForDomain({
+  email,
+  memberId,
+}: {
+  email: string;
+  memberId: string;
+}): Promise<(WorkspaceMemberRole & { workspace: Workspace }) | null> {
+  const domain = email.split("@")[1];
+  if (!domain) {
+    return null;
   }
 
-  const { authProvider } = config();
+  const workspace = await prisma().workspace.findFirst({
+    where: {
+      domain,
+    },
+  });
 
+  if (!workspace) {
+    return null;
+  }
+  const role = await prisma().workspaceMemberRole.upsert({
+    where: {
+      workspaceId_workspaceMemberId: {
+        workspaceId: workspace.id,
+        workspaceMemberId: memberId,
+      },
+    },
+    update: {
+      workspaceId: workspace.id,
+      workspaceMemberId: memberId,
+      role: "Admin",
+    },
+    create: {
+      workspaceId: workspace.id,
+      workspaceMemberId: memberId,
+      role: "Admin",
+    },
+  });
+  return { ...role, workspace };
+}
+
+export async function getMultiTenantRequestContext({
+  authorizationToken,
+  authProvider,
+}: {
+  authorizationToken: string | null;
+  authProvider?: string;
+}): Promise<Result<DFRequestContext, RequestContextError>> {
   if (!authProvider) {
     return err({
       type: RequestContextErrorType.ApplicationError,
@@ -181,7 +190,9 @@ export async function getRequestContext(
   }
 
   // TODO allow users to switch between workspaces
-  const role = member.WorkspaceMemberRole[0];
+  const role =
+    member.WorkspaceMemberRole[0] ??
+    (await defaultRoleForDomain({ email, memberId: member.id }));
 
   if (!role) {
     return err({
@@ -217,5 +228,49 @@ export async function getRequestContext(
         workspaceMemberId: member.id,
       },
     ],
+  });
+}
+
+export async function getRequestContext(
+  authorizationToken: string | null
+): Promise<Result<DFRequestContext, RequestContextError>> {
+  const { authMode } = config();
+  if (authMode === "anonymous") {
+    const workspaceId = config().defaultWorkspaceId;
+
+    const workspace = await prisma().workspace.findUnique({
+      where: {
+        id: workspaceId,
+      },
+    });
+    if (!workspace) {
+      return err({
+        type: RequestContextErrorType.NotOnboarded,
+        message: `Workspace ${workspaceId} not found`,
+      });
+    }
+    return ok({
+      workspace: {
+        id: workspace.id,
+        name: workspace.name,
+      },
+      member: {
+        id: "anonymous",
+        email: "anonymous@email.com",
+        emailVerified: true,
+      },
+      memberRoles: [
+        {
+          workspaceId: workspace.id,
+          workspaceMemberId: "anonymous",
+          role: "Admin",
+        },
+      ],
+    });
+  }
+
+  return getMultiTenantRequestContext({
+    authorizationToken,
+    authProvider: config().authProvider,
   });
 }
