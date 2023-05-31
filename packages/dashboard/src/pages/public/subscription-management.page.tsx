@@ -20,8 +20,8 @@ import React from "react";
 import {
   SubscriptionManagement,
   SubscriptionManagementProps,
-} from "../components/subscriptionManagement";
-import prisma from "../lib/prisma";
+} from "../../components/subscriptionManagement";
+import prisma from "../../lib/prisma";
 
 type SSP = Omit<SubscriptionManagementProps, "onSubscriptionUpdate"> & {
   apiBase: string;

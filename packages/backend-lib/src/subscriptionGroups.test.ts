@@ -82,7 +82,9 @@ describe("generateSubscriptionChangeUrl", () => {
     logger().debug({
       fullUrl,
     });
-    expect(parsed.pathname).toEqual("/dashboard/subscription-management");
+    expect(parsed.pathname).toEqual(
+      "/dashboard/public/subscription-management"
+    );
     expect(parsed.searchParams.get("w")).toEqual(config().defaultWorkspaceId);
     expect(parsed.searchParams.get("i")).toEqual(email);
     expect(parsed.searchParams.get("ik")).toEqual("email");
