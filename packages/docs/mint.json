@@ -64,7 +64,10 @@
         "integrations/sources",
         {
           "group": "Data Source Types",
-          "pages": ["integrations/sources/segment"]
+          "pages": [
+            "integrations/sources/segment",
+            "integrations/sources/api"
+          ]
         },
         "integrations/destinations",
         {
