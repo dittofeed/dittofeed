@@ -13,10 +13,12 @@ describe("getMultiTenantRequestContext", () => {
   describe("when auth role is missing", () => {
     let workspace: Workspace;
     let header: string;
+    let emailDomain: string;
 
     beforeEach(async () => {
+      emailDomain = `${randomUUID()}.com`;
       header = `Bearer ${encodeMockJwt({
-        email: "example@email.com",
+        email: `${randomUUID()}@${emailDomain}`,
         email_verified: true,
       })}`;
     });
@@ -26,7 +28,6 @@ describe("getMultiTenantRequestContext", () => {
         workspace = await prisma().workspace.create({
           data: {
             name: randomUUID(),
-            domain: "example.com",
           },
         });
       });
@@ -47,7 +48,7 @@ describe("getMultiTenantRequestContext", () => {
         workspace = await prisma().workspace.create({
           data: {
             name: randomUUID(),
-            domain: "example.com",
+            domain: emailDomain,
           },
         });
       });

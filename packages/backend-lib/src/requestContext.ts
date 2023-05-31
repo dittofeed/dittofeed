@@ -3,7 +3,7 @@ import { err, ok, Result } from "neverthrow";
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
 import prisma from "./prisma";
-import { DFRequestContext } from "./types";
+import { DFRequestContext, Workspace, WorkspaceMemberRole } from "./types";
 
 export enum RequestContextErrorType {
   Unauthorized = "Unauthorized",
@@ -36,6 +36,48 @@ export type RequestContextError =
   | NotOnboardedError
   | ApplicationError
   | EmailNotVerifiedError;
+
+async function defaultRoleForDomain({
+  email,
+  memberId,
+}: {
+  email: string;
+  memberId: string;
+}): Promise<(WorkspaceMemberRole & { workspace: Workspace }) | null> {
+  const domain = email.split("@")[1];
+  if (!domain) {
+    return null;
+  }
+
+  const workspace = await prisma().workspace.findFirst({
+    where: {
+      domain,
+    },
+  });
+
+  if (!workspace) {
+    return null;
+  }
+  const role = await prisma().workspaceMemberRole.upsert({
+    where: {
+      workspaceId_workspaceMemberId: {
+        workspaceId: workspace.id,
+        workspaceMemberId: memberId,
+      },
+    },
+    update: {
+      workspaceId: workspace.id,
+      workspaceMemberId: memberId,
+      role: "Admin",
+    },
+    create: {
+      workspaceId: workspace.id,
+      workspaceMemberId: memberId,
+      role: "Admin",
+    },
+  });
+  return { ...role, workspace };
+}
 
 export async function getMultiTenantRequestContext({
   authorizationToken,
@@ -148,9 +190,10 @@ export async function getMultiTenantRequestContext({
   }
 
   // TODO allow users to switch between workspaces
-  const role = member.WorkspaceMemberRole[0];
+  const role =
+    member.WorkspaceMemberRole[0] ??
+    (await defaultRoleForDomain({ email, memberId: member.id }));
 
-  // FIXME allow role to be created on the fly if in domain
   if (!role) {
     return err({
       type: RequestContextErrorType.NotOnboarded,
