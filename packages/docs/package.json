@@ -3,11 +3,12 @@
   "version": "0.0.3",
   "private": true,
   "scripts": {
+    "install": "mintlify install",
     "dev": "mintlify dev"
   },
   "dependencies": {},
   "devDependencies": {
-    "mintlify": "^2.0.16"
+    "mintlify": "^3.0.37"
   },
   "license": "LicenseRef-LICENSE"
 }
