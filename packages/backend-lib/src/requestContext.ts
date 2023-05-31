@@ -37,46 +37,13 @@ export type RequestContextError =
   | ApplicationError
   | EmailNotVerifiedError;
 
-export async function getRequestContext(
-  authorizationToken: string | null
-): Promise<Result<DFRequestContext, RequestContextError>> {
-  const { authMode } = config();
-  if (authMode === "anonymous") {
-    const workspaceId = config().defaultWorkspaceId;
-
-    const workspace = await prisma().workspace.findUnique({
-      where: {
-        id: workspaceId,
-      },
-    });
-    if (!workspace) {
-      return err({
-        type: RequestContextErrorType.NotOnboarded,
-        message: `Workspace ${workspaceId} not found`,
-      });
-    }
-    return ok({
-      workspace: {
-        id: workspace.id,
-        name: workspace.name,
-      },
-      member: {
-        id: "anonymous",
-        email: "anonymous@email.com",
-        emailVerified: true,
-      },
-      memberRoles: [
-        {
-          workspaceId: workspace.id,
-          workspaceMemberId: "anonymous",
-          role: "Admin",
-        },
-      ],
-    });
-  }
-
-  const { authProvider } = config();
-
+export async function getMultiTenantRequestContext({
+  authorizationToken,
+  authProvider,
+}: {
+  authorizationToken: string | null;
+  authProvider?: string;
+}): Promise<Result<DFRequestContext, RequestContextError>> {
   if (!authProvider) {
     return err({
       type: RequestContextErrorType.ApplicationError,
@@ -183,6 +150,7 @@ export async function getRequestContext(
   // TODO allow users to switch between workspaces
   const role = member.WorkspaceMemberRole[0];
 
+  // FIXME allow role to be created on the fly if in domain
   if (!role) {
     return err({
       type: RequestContextErrorType.NotOnboarded,
@@ -217,5 +185,49 @@ export async function getRequestContext(
         workspaceMemberId: member.id,
       },
     ],
+  });
+}
+
+export async function getRequestContext(
+  authorizationToken: string | null
+): Promise<Result<DFRequestContext, RequestContextError>> {
+  const { authMode } = config();
+  if (authMode === "anonymous") {
+    const workspaceId = config().defaultWorkspaceId;
+
+    const workspace = await prisma().workspace.findUnique({
+      where: {
+        id: workspaceId,
+      },
+    });
+    if (!workspace) {
+      return err({
+        type: RequestContextErrorType.NotOnboarded,
+        message: `Workspace ${workspaceId} not found`,
+      });
+    }
+    return ok({
+      workspace: {
+        id: workspace.id,
+        name: workspace.name,
+      },
+      member: {
+        id: "anonymous",
+        email: "anonymous@email.com",
+        emailVerified: true,
+      },
+      memberRoles: [
+        {
+          workspaceId: workspace.id,
+          workspaceMemberId: "anonymous",
+          role: "Admin",
+        },
+      ],
+    });
+  }
+
+  return getMultiTenantRequestContext({
+    authorizationToken,
+    authProvider: config().authProvider,
   });
 }
