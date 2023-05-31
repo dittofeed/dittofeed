@@ -33,7 +33,7 @@ async function bootstrapPostgres({
 }: {
   workspaceId: string;
   workspaceName: string;
-  workspaceDomain: string | null;
+  workspaceDomain?: string;
 }) {
   const { defaultUserEventsTableVersion } = config();
 
@@ -45,12 +45,12 @@ async function bootstrapPostgres({
       id: workspaceId,
     },
     update: {
-      domain: workspaceDomain ?? undefined,
+      domain: workspaceDomain,
     },
     create: {
       id: workspaceId,
       name: workspaceName,
-      domain: workspaceDomain ?? undefined,
+      domain: workspaceDomain,
     },
   });
 
@@ -287,11 +287,11 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
 export default async function bootstrap({
   workspaceId,
   workspaceName,
-  workspaceDomain = null,
+  workspaceDomain,
 }: {
   workspaceId: string;
   workspaceName: string;
-  workspaceDomain: string | null;
+  workspaceDomain?: string;
 }) {
   const initialBootstrap = [
     bootstrapPostgres({ workspaceId, workspaceName, workspaceDomain }).catch(
