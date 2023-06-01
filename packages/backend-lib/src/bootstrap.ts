@@ -174,7 +174,7 @@ async function bootstrapPostgres({
     }),
     createWriteKey({
       workspaceId,
-      writeKeyName: "default",
+      writeKeyName: "default-write-key",
       writeKeyValue: generateSecureKey(8),
     }),
   ]);
