@@ -42,8 +42,8 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@temporalio/testing": "^1.6.0",
-    "@temporalio/worker": "^1.6.0",
+    "@temporalio/testing": "^1.7.4",
+    "@temporalio/worker": "^1.7.4",
     "@types/node": "^18.8.5",
     "@types/uuid": "^9.0.0",
     "@types/yargs": "^17.0.24",
