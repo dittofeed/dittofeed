@@ -68,12 +68,12 @@ interface ExpandMoreProps extends IconButtonProps {
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
-    const workspaceId = backendConfig().defaultWorkspaceId;
+    const { workspace } = dfContext;
+    const workspaceId = workspace.id;
 
     const [
       emailProviders,
       defaultEmailProviderRecord,
-      workspace,
       subscriptionGroups,
       writeKey,
     ] = await Promise.all([
@@ -94,9 +94,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
       prisma().defaultEmailProvider.findFirst({
         where: { workspaceId },
-      }),
-      prisma().workspace.findFirst({
-        where: { id: workspaceId },
       }),
       prisma().subscriptionGroup.findMany({
         where: {

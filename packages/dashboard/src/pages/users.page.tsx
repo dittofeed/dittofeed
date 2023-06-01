@@ -2,7 +2,7 @@ import { Typography, useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { Type } from "@sinclair/typebox";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { GetUsersRequest } from "isomorphic-lib/src/types";
+import { CompletionStatus, GetUsersRequest } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import MainLayout from "../components/mainLayout";
 import UsersTable, { OnPaginationChangeProps } from "../components/usersTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
+import { useAppStore } from "../lib/appStore";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
 
@@ -31,6 +32,10 @@ export default function SegmentUsers() {
     () => schemaValidate(router.query, QueryParams).unwrapOr({}),
     [router.query]
   );
+  const workspace = useAppStore((state) => state.workspace);
+  if (workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
 
   const onUsersTablePaginate = ({
     direction,
@@ -59,6 +64,7 @@ export default function SegmentUsers() {
         <Typography variant="h4">Users</Typography>
         <UsersTable
           {...queryParams}
+          workspaceId={workspace.value.id}
           onPaginationChange={onUsersTablePaginate}
         />
       </Stack>

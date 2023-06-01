@@ -33,7 +33,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     // Dynamically import to avoid transitively importing backend config at build time.
     const { toSegmentResource } = await import("backend-lib/src/segments");
 
-    const workspaceId = backendConfig().defaultWorkspaceId;
+    const workspaceId = dfContext.workspace.id;
     const segmentResources: SegmentResource[] = (
       await prisma().segment.findMany({
         where: {

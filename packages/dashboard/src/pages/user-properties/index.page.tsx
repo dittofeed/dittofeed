@@ -32,7 +32,8 @@ import { AppState, PropsWithInitialState } from "../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
-    const workspaceId = backendConfig().defaultWorkspaceId;
+    const workspaceId = dfContext.workspace.id;
+
     const userPropertyResources: UserPropertyResource[] = (
       await prisma().userProperty.findMany({
         where: { workspaceId },
