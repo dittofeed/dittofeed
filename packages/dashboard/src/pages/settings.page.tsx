@@ -24,7 +24,6 @@ import {
   useTheme,
 } from "@mui/material";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
-import backendConfig from "backend-lib/src/config";
 import { generateSecureKey } from "backend-lib/src/crypto";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
@@ -113,16 +112,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         value: defaultEmailProviderRecord,
       },
     };
-    if (workspace) {
-      // TODO PLI-212
-      serverInitialState.workspace = {
-        type: CompletionStatus.Successful,
-        value: {
-          id: workspaceId,
-          name: workspace.name,
-        },
-      };
-    }
 
     if (writeKey) {
       serverInitialState.writeKeys = [writeKey];
@@ -130,7 +119,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       serverInitialState.writeKeys = [
         await createWriteKey({
           workspaceId,
-          writeKeyName: "default",
+          writeKeyName: "default-write-key",
           writeKeyValue: generateSecureKey(8),
         }),
       ];

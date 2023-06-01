@@ -2,6 +2,7 @@ import { createDecoder } from "fast-jwt";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { validate } from "uuid";
 
+import logger from "./logger";
 import prisma from "./prisma";
 import { DecodedJwt, WriteKeyResource } from "./types";
 
@@ -69,6 +70,13 @@ export async function createWriteKey({
   writeKeyValue: string;
   writeKeyName: string;
 }): Promise<WriteKeyResource> {
+  logger().info(
+    {
+      writeKeyName,
+      workspaceId,
+    },
+    "creating write key"
+  );
   const resource = await prisma().$transaction(async (tx) => {
     // Try to find the secret, create if it doesn't exist
     const secret = await tx.secret.upsert({
