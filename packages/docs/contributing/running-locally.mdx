@@ -42,3 +42,27 @@ yarn workspace api dev
 docker compose --profile apps-worker up -d
 yarn workspace worker dev
 ```
+
+## Running Locally With OpenTelemetry
+
+In order to run Dittofeed locally with OpenTelemetry (OTEL), start the API or dashboard with the following environment variables.
+
+<CodeGroup>
+```bash dashboard
+START_OTEL=true yarn workspace dashboard dev
+```
+
+```bash API
+START_OTEL=true yarn workspace api dev
+```
+
+```bash worker
+START_OTEL=true yarn workspace worker dev
+```
+</CodeGroup>
+
+Then run the docker compose dependencies with the otel profile.
+
+```bash
+docker compose --profile otel up -d
+```
