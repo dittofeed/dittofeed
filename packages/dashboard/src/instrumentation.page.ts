@@ -3,7 +3,7 @@ export async function register() {
     const { initOpenTelemetry } = await import("backend-lib/src/openTelemetry");
 
     // TODO add request context to span
-    await initOpenTelemetry({
+    const { start } = await initOpenTelemetry({
       serviceName: "dittofeed-dashboard",
       configOverrides: {
         "@opentelemetry/instrumentation-http": {
@@ -14,5 +14,6 @@ export async function register() {
         },
       },
     });
+    await start();
   }
 }
