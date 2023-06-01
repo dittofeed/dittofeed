@@ -18,7 +18,7 @@ const telemetryConfig: Parameters<
       const workspaceId = getWorkspaceIdFromReq(request);
 
       span.updateName("api-custom-request-hook");
-      span.setAttribute("workflowId", workspaceId);
+      span.setAttribute("workspaceId", workspaceId);
     },
   },
 };
