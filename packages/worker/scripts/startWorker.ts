@@ -1,7 +1,7 @@
-// import {
-//   makeWorkflowExporter,
-//   OpenTelemetryActivityInboundInterceptor,
-// } from "@temporalio/interceptors-opentelemetry/lib/worker";
+import {
+  makeWorkflowExporter,
+  OpenTelemetryActivityInboundInterceptor,
+} from "@temporalio/interceptors-opentelemetry/lib/worker";
 import {
   appendDefaultInterceptors,
   defaultSinks,
@@ -52,7 +52,7 @@ async function run() {
     taskQueue: "default",
     sinks: {
       ...defaultSinks(workerLogger),
-      // exporter: makeWorkflowExporter(otel.traceExporter, otel.resource),
+      exporter: makeWorkflowExporter(otel.traceExporter, otel.resource),
     },
     interceptors: appendDefaultInterceptors(
       {
@@ -61,7 +61,7 @@ async function run() {
             new CustomActivityInboundInterceptor(ctx, {
               workflowClient,
             }),
-          // (ctx) => new OpenTelemetryActivityInboundInterceptor(ctx),
+          (ctx) => new OpenTelemetryActivityInboundInterceptor(ctx),
         ],
       },
       workerLogger
