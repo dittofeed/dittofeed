@@ -219,17 +219,17 @@ async function bootstrapClickhouse() {
   });
 }
 
-async function bootstrapWorker() {
+async function bootstrapWorker({ workspaceId }: { workspaceId: string }) {
   const temporalClient = await connectWorkflowClient();
 
   try {
     await temporalClient.start(computePropertiesWorkflow, {
       taskQueue: "default",
-      workflowId: generateComputePropertiesId(config().defaultWorkspaceId),
+      workflowId: generateComputePropertiesId(workspaceId),
       args: [
         {
           tableVersion: config().defaultUserEventsTableVersion,
-          workspaceId: config().defaultWorkspaceId,
+          workspaceId,
           shouldContinueAsNew: true,
         },
       ],
@@ -315,6 +315,6 @@ export default async function bootstrap({
   }
 
   if (config().bootstrapWorker) {
-    await bootstrapWorker();
+    await bootstrapWorker({ workspaceId });
   }
 }
