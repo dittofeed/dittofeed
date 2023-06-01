@@ -144,6 +144,7 @@ export type Props = Omit<GetUsersRequest, "limit"> & {
   onPaginationChange: (args: OnPaginationChangeProps) => void;
 };
 export default function UsersTable({
+  workspaceId,
   segmentId,
   direction,
   cursor,
@@ -199,6 +200,7 @@ export default function UsersTable({
       segmentId,
       cursor,
       direction,
+      workspaceId,
     };
 
     const handler = apiRequestHandlerFactory({

@@ -8,6 +8,8 @@ import { FastifyInstance } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { WorkspaceId } from "isomorphic-lib/src/types";
 
+import { getWorkspaceIdFromReq } from "../workspace";
+
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -30,9 +32,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { defaultWorkspaceId } = backendConfig();
-      const workspaceId =
-        request.headers[WORKSPACE_ID_HEADER] ?? defaultWorkspaceId;
+      const workspaceId = getWorkspaceIdFromReq(request);
       const config = await prisma().segmentIOConfiguration.findUnique({
         where: { workspaceId },
       });

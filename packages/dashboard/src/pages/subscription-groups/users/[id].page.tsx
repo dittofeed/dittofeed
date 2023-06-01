@@ -24,6 +24,7 @@ export default function SubscriptionGroupUsers() {
   const id = typeof router.query.id === "string" ? router.query.id : undefined;
 
   const segmentsResult = useAppStore((store) => store.segments);
+  const workspace = useAppStore((store) => store.workspace);
   const editedSubscriptionGroup = useAppStore(
     (store) => store.editedSubscriptionGroup
   );
@@ -43,6 +44,9 @@ export default function SubscriptionGroupUsers() {
 
   if (!id) {
     return new Error("Missing id");
+  }
+  if (workspace.type !== CompletionStatus.Successful) {
+    return null;
   }
 
   const onUsersTablePaginate = usersTablePaginationHandler(router);
@@ -65,6 +69,7 @@ export default function SubscriptionGroupUsers() {
               Users in &quot;{editedSubscriptionGroup.name}&quot;
             </Typography>
             <UsersTable
+              workspaceId={workspace.value.id}
               segmentId={segment.id}
               {...queryParams}
               onPaginationChange={onUsersTablePaginate}

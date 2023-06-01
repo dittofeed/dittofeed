@@ -1,6 +1,7 @@
 import { Typography, useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
@@ -18,12 +19,17 @@ export default function SegmentUsers() {
   const editedSegment = useAppStore((state) => state.editedSegment);
   const theme = useTheme();
   const router = useRouter();
+  const workspace = useAppStore((state) => state.workspace);
   const queryParams = useMemo(
     () => schemaValidate(router.query, UsersTableParams).unwrapOr({}),
     [router.query]
   );
 
   if (!editedSegment) {
+    return null;
+  }
+
+  if (workspace.type !== CompletionStatus.Successful) {
     return null;
   }
   const { name } = editedSegment;
@@ -41,6 +47,7 @@ export default function SegmentUsers() {
       >
         <Typography variant="h4">Users in &quot;{name}&quot;</Typography>
         <UsersTable
+          workspaceId={workspace.value.id}
           segmentId={editedSegment.id}
           {...queryParams}
           onPaginationChange={onUsersTablePaginate}

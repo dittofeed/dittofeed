@@ -790,6 +790,7 @@ export const GetUsersRequest = Type.Object({
   segmentId: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
+  workspaceId: Type.String(),
 });
 
 export type GetUsersRequest = Static<typeof GetUsersRequest>;
