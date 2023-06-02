@@ -3,7 +3,7 @@ FROM node:18.4.0 AS deps
 
 WORKDIR /app
 
-COPY package.json yarn.lock .yarnrc.yml ./
+COPY *.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
 COPY ./packages/dashboard/*.json ./packages/dashboard/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
@@ -25,11 +25,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN yarn workspace backend-lib prisma generate && \
     yarn workspace dashboard build
-
-# RUN yarn workspace isomorphic-lib build && \
-#     yarn workspace backend-lib prisma generate && \
-#     yarn workspace backend-lib build && \
-#     yarn workspace dashboard build
 
 # Production image, copy all the files and run next
 FROM node:18.4.0 AS runner
