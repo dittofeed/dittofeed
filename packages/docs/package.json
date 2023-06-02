@@ -6,7 +6,6 @@
     "install": "mintlify install",
     "dev": "mintlify dev"
   },
-  "dependencies": {},
   "devDependencies": {
     "mintlify": "^3.0.37"
   },

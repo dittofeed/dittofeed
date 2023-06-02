@@ -3,12 +3,13 @@ FROM node:18.4.0 AS deps
 
 WORKDIR /app
 
-COPY *.json yarn.lock ./
+COPY *.json yarn.lock .yarnrc.yml ./
+COPY .yarn .yarn
 COPY ./packages/dashboard/*.json ./packages/dashboard/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 
-RUN yarn install --frozen-lockfile
+RUN yarn workspaces focus dashboard
 
 # Rebuild the source code only when needed
 FROM node:18.4.0 AS builder
@@ -22,9 +23,7 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN yarn workspace isomorphic-lib build && \
-    yarn workspace backend-lib prisma generate && \
-    yarn workspace backend-lib build && \
+RUN yarn workspace backend-lib prisma generate && \
     yarn workspace dashboard build
 
 # Production image, copy all the files and run next

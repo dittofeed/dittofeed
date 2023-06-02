@@ -3,23 +3,21 @@ FROM node:18.4.0 AS builder
 
 WORKDIR /service
 
-COPY *.json yarn.lock ./
+COPY *.json yarn.lock .yarnrc.yml ./
+COPY .yarn .yarn
 COPY ./packages/api/*.json ./packages/api/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 
-# TODO use frozen lockfile
-RUN yarn install --pure-lockfile --production && \
+RUN yarn workspaces focus api --production && \
     cp -R node_modules production_node_modules
-RUN yarn install --pure_lockfile
+RUN yarn workspaces focus api
 
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/api/ ./packages/api
 
-# Running isomorphic-lib build first so that prisma generate has access to code.
-RUN yarn workspace isomorphic-lib build && \
-    yarn workspace backend-lib prisma generate && \
+RUN yarn workspace backend-lib prisma generate && \
     yarn workspace api build
 
 # Production image
