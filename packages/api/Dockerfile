@@ -9,7 +9,6 @@ COPY ./packages/api/*.json ./packages/api/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 
-# TODO use frozen lockfile
 RUN yarn workspaces focus api --production && \
     cp -R node_modules production_node_modules
 RUN yarn workspaces focus api
@@ -18,7 +17,6 @@ COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
 COPY ./packages/api/ ./packages/api
 
-# Running isomorphic-lib build first so that prisma generate has access to code.
 RUN yarn workspace backend-lib prisma generate && \
     yarn workspace api build
 
