@@ -12,3 +12,15 @@ Thumbs.db
 
 # Ignore typescript build
 dist
+
+# Yarn
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Dockerfiles
+packages/*/Dockerfile
