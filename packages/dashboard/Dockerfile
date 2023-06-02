@@ -8,7 +8,7 @@ COPY ./packages/dashboard/*.json ./packages/dashboard/
 COPY ./packages/backend-lib/*.json ./packages/backend-lib/
 COPY ./packages/isomorphic-lib/*.json ./packages/isomorphic-lib/
 
-RUN yarn install --frozen-lockfile
+RUN yarn workspaces focus dashboard --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM node:18.4.0 AS builder

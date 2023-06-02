@@ -1,0 +1,14 @@
+# Ignore node modules
+node_modules
+npm-debug.log
+
+# Ignore git and other VCS files
+.git
+.gitignore
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore typescript build
+dist
