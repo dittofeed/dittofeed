@@ -59,6 +59,8 @@ const BaseRawConfigProps = {
   authProvider: Type.Optional(Type.String()),
   oauthStartUrl: Type.Optional(Type.String()),
   signoutUrl: Type.Optional(Type.String()),
+  trackDashboard: Type.Optional(BoolStr),
+  dashboardWriteKey: Type.Optional(Type.String()),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
