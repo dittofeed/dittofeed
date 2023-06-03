@@ -5,7 +5,7 @@ import debugController from "../controllers/debugController";
 import eventsController from "../controllers/eventsController";
 import indexController from "../controllers/indexController";
 import journeysController from "../controllers/journeysController";
-import publicAppsController from "../controllers/publicApps";
+import publicAppsController from "../controllers/publicAppsController";
 import segmentsController from "../controllers/segmentsController";
 import settingsController from "../controllers/settingsController";
 import subscriptionGroupsController from "../controllers/subscriptionGroupsController";
