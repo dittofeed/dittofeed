@@ -18,7 +18,13 @@ export function addInitialStateToProps<
   serverInitialState: Partial<AppState>;
   dfContext: DFRequestContext;
 }): T & PropsWithInitialState {
-  const { sourceControlProvider, enableSourceControl } = backendConfig();
+  const {
+    sourceControlProvider,
+    enableSourceControl,
+    signoutUrl,
+    trackDashboard,
+    dashboardWriteKey,
+  } = backendConfig();
 
   const stateWithEnvVars: Partial<AppState> = clone({
     apiBase: process.env.DASHBOARD_API_BASE ?? "http://localhost:3001",
@@ -30,7 +36,9 @@ export function addInitialStateToProps<
       value: dfContext.workspace,
     },
     member: dfContext.member,
-    signoutUrl: backendConfig().signoutUrl,
+    signoutUrl,
+    trackDashboard,
+    dashboardWriteKey,
   });
   return {
     ...props,

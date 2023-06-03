@@ -168,10 +168,10 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
     immer<AppContents>((set, ...remaining) => {
       const appContents: AppContents = {
         apiBase: "",
+        trackDashboard: false,
         workspace: {
           type: CompletionStatus.NotStarted,
         },
-        signoutUrl: null,
         member: null,
         dataSourceConfigurations: {
           type: CompletionStatus.NotStarted,
