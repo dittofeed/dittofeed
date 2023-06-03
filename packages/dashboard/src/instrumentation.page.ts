@@ -7,7 +7,7 @@ export async function register() {
       serviceName: "dittofeed-dashboard",
       configOverrides: {
         "@opentelemetry/instrumentation-http": {
-          ignoreIncomingPaths: ["/dashboard/api"],
+          ignoreIncomingPaths: ["/api"],
         },
         "@opentelemetry/instrumentation-fs": {
           enabled: false,
