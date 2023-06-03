@@ -1,6 +1,7 @@
 import backendConfig from "backend-lib/src/config";
 import { CompletionStatus, DFRequestContext } from "isomorphic-lib/src/types";
 
+import AppsApi from "./appsApi";
 import { AppState, PropsWithInitialState } from "./types";
 
 function clone<T>(obj: T): T {
@@ -26,6 +27,7 @@ export function addInitialStateToProps<
     dashboardWriteKey,
   } = backendConfig();
 
+  const apiBase = process.env.DASHBOARD_API_BASE ?? "http://localhost:3001";
   const stateWithEnvVars: Partial<AppState> = clone({
     apiBase: process.env.DASHBOARD_API_BASE ?? "http://localhost:3001",
     sourceControlProvider,
@@ -40,6 +42,17 @@ export function addInitialStateToProps<
     trackDashboard,
     dashboardWriteKey,
   });
+
+  const appsApi = new AppsApi({
+    workspace: {
+      type: CompletionStatus.Successful,
+      value: dfContext.workspace,
+    },
+    trackDashboard,
+    dashboardWriteKey,
+    apiBase,
+  });
+
   return {
     ...props,
     // the "stringify and then parse again" piece is required as next.js

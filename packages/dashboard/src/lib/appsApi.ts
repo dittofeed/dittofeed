@@ -15,7 +15,7 @@ interface AppsConfigInternal {
   dashboardWriteKey: string;
 }
 
-export default class AppsAPI {
+export default class AppsApi {
   private config: AppsConfigInternal | null = null;
 
   constructor({
