@@ -2,9 +2,9 @@ import axios from "axios";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import {
   BatchAppData,
+  BatchIdentifyData,
   BatchItem,
   CompletionStatus,
-  IdentifyData,
   KnownIdentifyData,
   KnownPageData,
   KnownScreenData,
@@ -26,9 +26,6 @@ interface AppsConfigInternal {
   dashboardWriteKey: string;
 }
 
-// FIXME make operations asynchronous, and queue them up, then provide a flush operation
-// want to make this a singleton, but need to figure out how to get singletons on a request by request basis
-// maybe can just make the the actual queue async, but the config surrounding it and the client can take it as an argument
 export default class AppsApi {
   static globalQueue: BatchQueue<BatchItem> | null = null;
 
@@ -66,40 +63,39 @@ export default class AppsApi {
             batch,
           };
 
-          await axios({
-            method: "post",
-            url: `${config.apiBase}/api/public/apps/identify`,
-            data,
-            headers: {
-              [WORKSPACE_ID_HEADER]: config.workspaceId,
-              authorization: config.dashboardWriteKey,
-            },
-          });
+          console.log("submitting batch", data);
+          if (process.env.NEXT_RUNTIME === "nodejs") {
+            console.log("submitting batch to backend");
+            const { submitBatch } = await import("backend-lib/src/apps");
+            await submitBatch({ workspaceId: workspace.value.id, data });
+          } else {
+            console.log("submitting batch to api");
+            await axios({
+              method: "post",
+              url: `${config.apiBase}/api/public/apps/batch`,
+              data,
+              headers: {
+                [WORKSPACE_ID_HEADER]: config.workspaceId,
+                authorization: config.dashboardWriteKey,
+              },
+            });
+          }
         },
       });
 
+    console.log("instanceQueue", this.instanceQueue);
     if (!AppsApi.globalQueue) {
       AppsApi.globalQueue = this.instanceQueue;
     }
   }
 
   async identify(params: Omit<KnownIdentifyData, "messageId">): Promise<void> {
-    if (!this.config) {
-      return;
-    }
-    const data: IdentifyData = {
+    const data: BatchIdentifyData = {
       messageId: uuidv4(),
+      type: "identify",
       ...params,
     };
-    await axios({
-      method: "post",
-      url: `${this.config.apiBase}/api/public/apps/identify`,
-      data,
-      headers: {
-        [WORKSPACE_ID_HEADER]: this.config.workspaceId,
-        authorization: this.config.dashboardWriteKey,
-      },
-    });
+    this.instanceQueue?.submit(data);
   }
 
   async track(params: Omit<KnownTrackData, "messageId">): Promise<void> {
