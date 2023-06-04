@@ -1180,15 +1180,17 @@ export const BatchScreenData = Type.Union([
 
 export type BatchScreenData = Static<typeof BatchScreenData>;
 
+const BatchItem = Type.Union([
+  BatchIdentifyData,
+  BatchTrackData,
+  BatchPageData,
+  BatchScreenData,
+]);
+
+export type BatchItem = Static<typeof BatchItem>;
+
 export const BatchAppData = Type.Object({
-  batch: Type.Array(
-    Type.Union([
-      BatchIdentifyData,
-      BatchTrackData,
-      BatchPageData,
-      BatchScreenData,
-    ])
-  ),
+  batch: Type.Array(BatchItem),
   context: AppDataContext,
 });
 
