@@ -4,6 +4,9 @@ import {
   BatchAppData,
   BatchIdentifyData,
   BatchItem,
+  BatchPageData,
+  BatchScreenData,
+  BatchTrackData,
   CompletionStatus,
   KnownIdentifyData,
   KnownPageData,
@@ -12,7 +15,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { v4 as uuidv4 } from "uuid";
 
-import { BatchQueue } from "./batchQueue";
+import { BatchFunction, BatchQueue } from "./batchQueue";
 import { AppState } from "./types";
 
 export type AppsConfig = Pick<
@@ -20,18 +23,10 @@ export type AppsConfig = Pick<
   "trackDashboard" | "dashboardWriteKey" | "apiBase" | "workspace"
 > & { queue?: BatchQueue<BatchItem> };
 
-interface AppsConfigInternal {
-  apiBase: string;
-  workspaceId: string;
-  dashboardWriteKey: string;
-}
-
 export default class AppsApi {
   static globalQueue: BatchQueue<BatchItem> | null = null;
 
   instanceQueue: BatchQueue<BatchItem> | null = null;
-
-  config: AppsConfigInternal | null = null;
 
   constructor({
     trackDashboard,
@@ -54,22 +49,21 @@ export default class AppsApi {
       dashboardWriteKey,
     };
 
-    this.instanceQueue =
-      queue ??
-      AppsApi.globalQueue ??
-      new BatchQueue<BatchItem>({
-        executeBatch: async (batch) => {
+    if (queue) {
+      this.instanceQueue = queue;
+    } else if (AppsApi.globalQueue) {
+      this.instanceQueue = AppsApi.globalQueue;
+    } else {
+      const executeBatch: BatchFunction<BatchItem> =
+        async function executeBatch(batch) {
           const data: BatchAppData = {
             batch,
           };
 
-          console.log("submitting batch", data);
           if (process.env.NEXT_RUNTIME === "nodejs") {
-            console.log("submitting batch to backend");
             const { submitBatch } = await import("backend-lib/src/apps");
             await submitBatch({ workspaceId: workspace.value.id, data });
           } else {
-            console.log("submitting batch to api");
             await axios({
               method: "post",
               url: `${config.apiBase}/api/public/apps/batch`,
@@ -80,10 +74,10 @@ export default class AppsApi {
               },
             });
           }
-        },
-      });
+        };
+      this.instanceQueue = new BatchQueue<BatchItem>({ executeBatch });
+    }
 
-    console.log("instanceQueue", this.instanceQueue);
     if (!AppsApi.globalQueue) {
       AppsApi.globalQueue = this.instanceQueue;
     }
@@ -99,59 +93,29 @@ export default class AppsApi {
   }
 
   async track(params: Omit<KnownTrackData, "messageId">): Promise<void> {
-    if (!this.config) {
-      return;
-    }
-    const data: KnownTrackData = {
+    const data: BatchTrackData = {
       messageId: uuidv4(),
+      type: "track",
       ...params,
     };
-    await axios({
-      method: "post",
-      url: `${this.config.apiBase}/api/public/apps/track`,
-      data,
-      headers: {
-        [WORKSPACE_ID_HEADER]: this.config.workspaceId,
-        authorization: this.config.dashboardWriteKey,
-      },
-    });
+    this.instanceQueue?.submit(data);
   }
 
   async page(params: Omit<KnownPageData, "messageId">): Promise<void> {
-    if (!this.config) {
-      return;
-    }
-    const data: KnownPageData = {
+    const data: BatchPageData = {
       messageId: uuidv4(),
+      type: "page",
       ...params,
     };
-    await axios({
-      method: "post",
-      url: `${this.config.apiBase}/api/public/apps/page`,
-      data,
-      headers: {
-        [WORKSPACE_ID_HEADER]: this.config.workspaceId,
-        authorization: this.config.dashboardWriteKey,
-      },
-    });
+    this.instanceQueue?.submit(data);
   }
 
   async screen(params: Omit<KnownScreenData, "messageId">): Promise<void> {
-    if (!this.config) {
-      return;
-    }
-    const data: KnownScreenData = {
+    const data: BatchScreenData = {
       messageId: uuidv4(),
+      type: "screen",
       ...params,
     };
-    await axios({
-      method: "post",
-      url: `${this.config.apiBase}/api/public/apps/screen`,
-      data,
-      headers: {
-        [WORKSPACE_ID_HEADER]: this.config.workspaceId,
-        authorization: this.config.dashboardWriteKey,
-      },
-    });
+    this.instanceQueue?.submit(data);
   }
 }

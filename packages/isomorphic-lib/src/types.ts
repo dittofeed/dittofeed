@@ -1053,6 +1053,7 @@ export type BatchIdentifyData = Static<typeof BatchIdentifyData>;
 export const BaseTrackData = {
   ...BaseAppData,
   context: AppDataContext,
+  event: Type.String(),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
@@ -1097,12 +1098,14 @@ export type BatchTrackData = Static<typeof BatchTrackData>;
 export const BasePageData = {
   ...BaseAppData,
   context: AppDataContext,
+  name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const BaseBatchPageData = {
   ...BaseAppData,
   type: Type.Literal("page"),
+  name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
@@ -1140,12 +1143,14 @@ export type BatchPageData = Static<typeof BatchPageData>;
 export const BaseScreenData = {
   ...BaseAppData,
   context: AppDataContext,
+  name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const BaseBatchScreenData = {
   ...BaseAppData,
   type: Type.Literal("screen"),
+  name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
