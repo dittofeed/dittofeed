@@ -1063,16 +1063,21 @@ export const BaseBatchTrackData = {
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
-export const TrackData = Type.Union([
-  Type.Object({
-    ...BaseTrackData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseTrackData,
-    anonymousId: Type.String(),
-  }),
-]);
+export const KnownTrackData = Type.Object({
+  ...BaseTrackData,
+  userId: Type.String(),
+});
+
+export type KnownTrackData = Static<typeof KnownTrackData>;
+
+export const AnonymousTrackData = Type.Object({
+  ...BaseTrackData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousTrackData = Static<typeof AnonymousTrackData>;
+
+export const TrackData = Type.Union([KnownTrackData, AnonymousTrackData]);
 
 export type TrackData = Static<typeof TrackData>;
 
@@ -1101,16 +1106,21 @@ export const BaseBatchPageData = {
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
-export const PageData = Type.Union([
-  Type.Object({
-    ...BasePageData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BasePageData,
-    anonymousId: Type.String(),
-  }),
-]);
+export const KnownPageData = Type.Object({
+  ...BasePageData,
+  userId: Type.String(),
+});
+
+export type KnownPageData = Static<typeof KnownPageData>;
+
+export const AnonymousPageData = Type.Object({
+  ...BasePageData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousPageData = Static<typeof AnonymousPageData>;
+
+export const PageData = Type.Union([KnownPageData, AnonymousPageData]);
 
 export type PageData = Static<typeof PageData>;
 
@@ -1139,16 +1149,21 @@ export const BaseBatchScreenData = {
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
-export const ScreenData = Type.Union([
-  Type.Object({
-    ...BaseScreenData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseScreenData,
-    anonymousId: Type.String(),
-  }),
-]);
+export const KnownScreenData = Type.Object({
+  ...BaseScreenData,
+  userId: Type.String(),
+});
+
+export type KnownScreenData = Static<typeof KnownScreenData>;
+
+export const AnonymousScreenData = Type.Object({
+  ...BaseScreenData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousScreenData = Static<typeof AnonymousScreenData>;
+
+export const ScreenData = Type.Union([KnownScreenData, AnonymousScreenData]);
 
 export type ScreenData = Static<typeof ScreenData>;
 
