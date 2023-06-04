@@ -1,3 +1,5 @@
+import * as R from "remeda";
+
 import {
   BatchAppData,
   IdentifyData,
@@ -14,10 +16,14 @@ export async function submitIdentify({
   workspaceId: string;
   data: IdentifyData;
 }) {
+  const rest = R.omit(data, ["timestamp"]);
+  const timestamp = data.timestamp ?? new Date().toISOString();
+
   const userEvent: InsertUserEvent = {
     messageRaw: JSON.stringify({
       type: "identify",
-      ...data,
+      timestamp,
+      ...rest,
     }),
     messageId: data.messageId,
   };
@@ -34,10 +40,14 @@ export async function submitTrack({
   workspaceId: string;
   data: TrackData;
 }) {
+  const rest = R.omit(data, ["timestamp"]);
+  const timestamp = data.timestamp ?? new Date().toISOString();
+
   const userEvent: InsertUserEvent = {
     messageRaw: JSON.stringify({
       type: "track",
-      ...data,
+      timestamp,
+      ...rest,
     }),
     messageId: data.messageId,
   };
@@ -54,10 +64,14 @@ export async function submitPage({
   workspaceId: string;
   data: PageData;
 }) {
+  const rest = R.omit(data, ["timestamp"]);
+  const timestamp = data.timestamp ?? new Date().toISOString();
+
   const userEvent: InsertUserEvent = {
     messageRaw: JSON.stringify({
       type: "page",
-      ...data,
+      timestamp,
+      ...rest,
     }),
     messageId: data.messageId,
   };
@@ -74,10 +88,14 @@ export async function submitScreen({
   workspaceId: string;
   data: ScreenData;
 }) {
+  const rest = R.omit(data, ["timestamp"]);
+  const timestamp = data.timestamp ?? new Date().toISOString();
+
   const userEvent: InsertUserEvent = {
     messageRaw: JSON.stringify({
       type: "screen",
-      ...data,
+      timestamp,
+      ...rest,
     }),
     messageId: data.messageId,
   };
@@ -96,13 +114,18 @@ export async function submitBatch({
 }) {
   const { context, batch } = data;
 
-  const userEvents: InsertUserEvent[] = batch.map((message) => ({
-    messageId: message.messageId,
-    messageRaw: JSON.stringify({
-      ...message,
-      context,
-    }),
-  }));
+  const userEvents: InsertUserEvent[] = batch.map((message) => {
+    const rest = R.omit(message, ["timestamp"]);
+    const timestamp = message.timestamp ?? new Date().toISOString();
+    return {
+      messageId: message.messageId,
+      messageRaw: JSON.stringify({
+        timestamp,
+        context,
+        ...rest,
+      }),
+    };
+  });
 
   await insertUserEvents({
     workspaceId,

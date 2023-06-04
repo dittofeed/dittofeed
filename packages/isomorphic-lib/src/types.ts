@@ -1016,15 +1016,23 @@ export const BaseBatchIdentifyData = {
   traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
+const KnownIdentifyData = Type.Object({
+  ...BaseIdentifyData,
+  userId: Type.String(),
+});
+
+export type KnownIdentifyData = Static<typeof KnownIdentifyData>;
+
+const AnonymousIdentifyData = Type.Object({
+  ...BaseIdentifyData,
+  userId: Type.String(),
+});
+
+export type AnonymousIdentifyData = Static<typeof AnonymousIdentifyData>;
+
 export const IdentifyData = Type.Union([
-  Type.Object({
-    ...BaseIdentifyData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseIdentifyData,
-    anonymousId: Type.String(),
-  }),
+  KnownIdentifyData,
+  AnonymousIdentifyData,
 ]);
 
 export type IdentifyData = Static<typeof IdentifyData>;
@@ -1045,6 +1053,7 @@ export type BatchIdentifyData = Static<typeof BatchIdentifyData>;
 export const BaseTrackData = {
   ...BaseAppData,
   context: AppDataContext,
+  event: Type.String(),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
@@ -1055,16 +1064,21 @@ export const BaseBatchTrackData = {
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
-export const TrackData = Type.Union([
-  Type.Object({
-    ...BaseTrackData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseTrackData,
-    anonymousId: Type.String(),
-  }),
-]);
+export const KnownTrackData = Type.Object({
+  ...BaseTrackData,
+  userId: Type.String(),
+});
+
+export type KnownTrackData = Static<typeof KnownTrackData>;
+
+export const AnonymousTrackData = Type.Object({
+  ...BaseTrackData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousTrackData = Static<typeof AnonymousTrackData>;
+
+export const TrackData = Type.Union([KnownTrackData, AnonymousTrackData]);
 
 export type TrackData = Static<typeof TrackData>;
 
@@ -1084,25 +1098,32 @@ export type BatchTrackData = Static<typeof BatchTrackData>;
 export const BasePageData = {
   ...BaseAppData,
   context: AppDataContext,
+  name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const BaseBatchPageData = {
   ...BaseAppData,
   type: Type.Literal("page"),
+  name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
-export const PageData = Type.Union([
-  Type.Object({
-    ...BasePageData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BasePageData,
-    anonymousId: Type.String(),
-  }),
-]);
+export const KnownPageData = Type.Object({
+  ...BasePageData,
+  userId: Type.String(),
+});
+
+export type KnownPageData = Static<typeof KnownPageData>;
+
+export const AnonymousPageData = Type.Object({
+  ...BasePageData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousPageData = Static<typeof AnonymousPageData>;
+
+export const PageData = Type.Union([KnownPageData, AnonymousPageData]);
 
 export type PageData = Static<typeof PageData>;
 
@@ -1122,25 +1143,32 @@ export type BatchPageData = Static<typeof BatchPageData>;
 export const BaseScreenData = {
   ...BaseAppData,
   context: AppDataContext,
+  name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const BaseBatchScreenData = {
   ...BaseAppData,
   type: Type.Literal("screen"),
+  name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
-export const ScreenData = Type.Union([
-  Type.Object({
-    ...BaseScreenData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseScreenData,
-    anonymousId: Type.String(),
-  }),
-]);
+export const KnownScreenData = Type.Object({
+  ...BaseScreenData,
+  userId: Type.String(),
+});
+
+export type KnownScreenData = Static<typeof KnownScreenData>;
+
+export const AnonymousScreenData = Type.Object({
+  ...BaseScreenData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousScreenData = Static<typeof AnonymousScreenData>;
+
+export const ScreenData = Type.Union([KnownScreenData, AnonymousScreenData]);
 
 export type ScreenData = Static<typeof ScreenData>;
 
@@ -1157,15 +1185,17 @@ export const BatchScreenData = Type.Union([
 
 export type BatchScreenData = Static<typeof BatchScreenData>;
 
+const BatchItem = Type.Union([
+  BatchIdentifyData,
+  BatchTrackData,
+  BatchPageData,
+  BatchScreenData,
+]);
+
+export type BatchItem = Static<typeof BatchItem>;
+
 export const BatchAppData = Type.Object({
-  batch: Type.Array(
-    Type.Union([
-      BatchIdentifyData,
-      BatchTrackData,
-      BatchPageData,
-      BatchScreenData,
-    ])
-  ),
+  batch: Type.Array(BatchItem),
   context: AppDataContext,
 });
 

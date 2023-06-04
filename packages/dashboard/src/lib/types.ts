@@ -1,3 +1,4 @@
+import { Config } from "backend-lib/src/config";
 import { Draft } from "immer";
 import {
   BroadcastResource,
@@ -55,7 +56,6 @@ export type AppState = {
   apiBase: string;
   workspace: RequestStatus<WorkspaceResource, Error>;
   member: WorkspaceMemberResource | null;
-  signoutUrl: string | null;
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
   broadcasts: RequestStatus<BroadcastResource[], Error>;
@@ -74,9 +74,16 @@ export type AppState = {
     DataSourceConfigurationResource[],
     Error
   >;
-  enableSourceControl: boolean;
   sourceControlProvider?: SourceControlProviderEnum;
-} & PageStoreContents;
+} & PageStoreContents &
+  Pick<
+    Config,
+    | "trackDashboard"
+    | "dashboardWriteKey"
+    | "enableSourceControl"
+    | "sourceControlProvider"
+  > &
+  Partial<Pick<Config, "signoutUrl">>;
 
 export interface AppActions {
   toggleDrawer: () => void;

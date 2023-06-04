@@ -59,6 +59,8 @@ const BaseRawConfigProps = {
   authProvider: Type.Optional(Type.String()),
   oauthStartUrl: Type.Optional(Type.String()),
   signoutUrl: Type.Optional(Type.String()),
+  trackDashboard: Type.Optional(BoolStr),
+  dashboardWriteKey: Type.Optional(Type.String()),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -113,6 +115,7 @@ export type Config = Overwrite<
     googleOps: boolean;
     enableSourceControl: boolean;
     authMode: AuthMode;
+    trackDashboard: boolean;
   }
 > & {
   defaultWorkspaceId: string;
@@ -264,6 +267,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     logLevel,
     enableSourceControl: rawConfig.enableSourceControl === "true",
     authMode: rawConfig.authMode ?? "anonymous",
+    trackDashboard: rawConfig.trackDashboard === "true",
   };
   return parsedConfig;
 }
