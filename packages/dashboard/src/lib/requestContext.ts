@@ -1,4 +1,3 @@
-import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import {
   getRequestContext,
@@ -9,10 +8,8 @@ import {
   UNAUTHORIZED_PAGE,
   WAITING_ROOM_PAGE,
 } from "isomorphic-lib/src/constants";
-import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 
-import AppsApi from "./appsApi";
 import { GetDFServerSideProps, PropsWithInitialState } from "./types";
 
 export const requestContext: <T>(

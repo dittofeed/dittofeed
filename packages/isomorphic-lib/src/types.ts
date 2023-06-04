@@ -1016,15 +1016,23 @@ export const BaseBatchIdentifyData = {
   traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
+const KnownIdentifyData = Type.Object({
+  ...BaseIdentifyData,
+  userId: Type.String(),
+});
+
+export type KnownIdentifyData = Static<typeof KnownIdentifyData>;
+
+const AnonymousIdentifyData = Type.Object({
+  ...BaseIdentifyData,
+  userId: Type.String(),
+});
+
+export type AnonymousIdentifyData = Static<typeof AnonymousIdentifyData>;
+
 export const IdentifyData = Type.Union([
-  Type.Object({
-    ...BaseIdentifyData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseIdentifyData,
-    anonymousId: Type.String(),
-  }),
+  KnownIdentifyData,
+  AnonymousIdentifyData,
 ]);
 
 export type IdentifyData = Static<typeof IdentifyData>;

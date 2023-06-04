@@ -1,6 +1,11 @@
 import axios from "axios";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
-import { CompletionStatus, IdentifyData } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  IdentifyData,
+  KnownIdentifyData,
+} from "isomorphic-lib/src/types";
+import { v4 as uuidv4 } from "uuid";
 
 import { AppState } from "./types";
 
@@ -39,10 +44,14 @@ export default class AppsApi {
     };
   }
 
-  async identify(data: IdentifyData): Promise<void> {
+  async identify(params: Omit<KnownIdentifyData, "messageId">): Promise<void> {
     if (!this.config) {
       return;
     }
+    const data: IdentifyData = {
+      messageId: uuidv4(),
+      ...params,
+    };
     await axios({
       method: "post",
       url: `${this.config.apiBase}/api/public/apps/identify`,
