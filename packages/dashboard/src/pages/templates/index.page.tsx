@@ -21,8 +21,9 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../components/mainLayout";
@@ -32,7 +33,6 @@ import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
-import Link from "next/link";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
@@ -146,6 +146,8 @@ function TemplateListContents() {
   const messagesResult = useAppStore((store) => store.messages);
   const [newOpen, setNewOpen] = useState(false);
   const [newSelectValue, setNewSelectValue] = useState("");
+  const [newItemId, setNewItemId] = useState(() => uuid());
+
   // const handleNewItemClick = (value: number) => {
   //   setValue(value);
   //   handleClose();
@@ -190,8 +192,7 @@ function TemplateListContents() {
         </Typography>
         <IconButton
           onClick={(event: React.MouseEvent<HTMLElement>) => {
-            // setNewOpen(true);
-            // path.push(`/templates/emails/${uuid()}`);
+            setNewItemId(uuid());
             setNewAnchorEl(event.currentTarget);
           }}
         >
@@ -202,10 +203,13 @@ function TemplateListContents() {
           onClose={() => setNewAnchorEl(null)}
           anchorEl={newAnchorEl}
         >
-          <MenuItem value="email" LinkComponent={Link}>
+          <MenuItem LinkComponent={Link} href={`/templates/email/${newItemId}`}>
             Email
           </MenuItem>
-          <MenuItem LinkComponent={Link} href="/">
+          <MenuItem
+            LinkComponent={Link}
+            href={`/templates/mobile-push/${newItemId}`}
+          >
             Mobile Push
           </MenuItem>
         </Menu>
