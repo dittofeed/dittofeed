@@ -5,10 +5,12 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  Menu,
+  MenuItem,
+  Select,
   Stack,
   Typography,
 } from "@mui/material";
-import backendConfig from "backend-lib/src/config";
 import {
   CompletionStatus,
   DeleteMessageTemplateRequest,
@@ -20,6 +22,7 @@ import {
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../components/mainLayout";
@@ -138,7 +141,11 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
 
 function TemplateListContents() {
   const path = useRouter();
+  const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const messagesResult = useAppStore((store) => store.messages);
+  const [newOpen, setNewOpen] = useState(false);
+  const [newSelectValue, setNewSelectValue] = useState("");
+
   const messages =
     messagesResult.type === CompletionStatus.Successful
       ? messagesResult.value
@@ -177,12 +184,23 @@ function TemplateListContents() {
           Message Library
         </Typography>
         <IconButton
-          onClick={() => {
-            path.push(`/templates/emails/${uuid()}`);
+          onClick={(event: React.MouseEvent<HTMLElement>) => {
+            // setNewOpen(true);
+            // path.push(`/templates/emails/${uuid()}`);
+            setNewAnchorEl(event.currentTarget);
           }}
         >
           <AddCircleOutline />
         </IconButton>
+        <Menu
+          open={Boolean(newAnchorEl)}
+          onClose={() => setNewAnchorEl(null)}
+          anchorEl={newAnchorEl}
+        >
+          <MenuItem value={10}>Ten</MenuItem>
+          <MenuItem value={20}>Twenty</MenuItem>
+          <MenuItem value={30}>Thirty</MenuItem>
+        </Menu>
       </Stack>
       {innerContents}
     </Stack>
