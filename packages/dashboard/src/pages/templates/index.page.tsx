@@ -203,11 +203,11 @@ function TemplateListContents() {
           onClose={() => setNewAnchorEl(null)}
           anchorEl={newAnchorEl}
         >
-          <MenuItem LinkComponent={Link} href={`/templates/email/${newItemId}`}>
+          <MenuItem component={Link} href={`/templates/email/${newItemId}`}>
             Email
           </MenuItem>
           <MenuItem
-            LinkComponent={Link}
+            component={Link}
             href={`/templates/mobile-push/${newItemId}`}
           >
             Mobile Push
