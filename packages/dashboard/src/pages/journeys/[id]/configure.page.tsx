@@ -6,12 +6,15 @@ import {
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
+import { useMemo } from "react";
 
 import EditableName from "../../../components/editableName";
 import InfoTooltip from "../../../components/infoTooltip";
 import JourneyLayout from "../../../components/journeys/layout";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
+import AppsApi from "../../../lib/appsApi";
 import { useAppStore } from "../../../lib/appStore";
+import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
 import {
   JourneyGetServerSideProps,
   journeyGetServerSideProps,
@@ -71,13 +74,26 @@ function JourneyConfigure() {
   const journeyName = useAppStore((store) => store.journeyName);
   const setJourneyName = useAppStore((store) => store.setJourneyName);
   const journeys = useAppStore((store) => store.journeys);
+  const dashboardWriteKey = useAppStore((store) => store.dashboardWriteKey);
+  const trackDashboard = useAppStore((store) => store.trackDashboard);
+  const workspace = useAppStore((store) => store.workspace);
+  const member = useAppStore((store) => store.member);
+  const appsApi = useMemo(
+    () =>
+      new AppsApi({
+        trackDashboard,
+        apiBase,
+        dashboardWriteKey,
+        workspace,
+      }),
+    [apiBase, dashboardWriteKey, trackDashboard, workspace]
+  );
 
   const journey =
     journeys.type === CompletionStatus.Successful
       ? journeys.value.find((j) => j.id === id) ?? null
       : null;
 
-  const workspace = useAppStore((store) => store.workspace);
   const theme = useTheme();
   const statusValue: StatusCopy = !journey
     ? {
@@ -102,7 +118,19 @@ function JourneyConfigure() {
     request: journeyUpdateRequest,
     setRequest: setJourneyUpdateRequest,
     responseSchema: JourneyResource,
-    setResponse: upsertJourney,
+    setResponse: (response) => {
+      upsertJourney(response);
+      if (member) {
+        appsApi.track({
+          event: JOURNEY_STATUS_CHANGE_EVENT,
+          userId: member.id,
+          properties: {
+            journeyId: id,
+            status: response.status,
+          },
+        });
+      }
+    },
     onSuccessNotice: `Updated status for journey ${journeyName} to ${statusValue.nextStatus}.`,
     onFailureNoticeHandler: () =>
       `API Error: Failed to update status for journey ${journeyName} to ${statusValue.nextStatus}.`,
