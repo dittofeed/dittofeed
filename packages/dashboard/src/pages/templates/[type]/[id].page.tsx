@@ -25,7 +25,7 @@ export const getServerSideProps: GetServerSideProps<
   let serverInitialState: PreloadedState;
   let messageResourceType: TemplateResourceType;
   switch (ctx.params?.type) {
-    case "emails": {
+    case "email": {
       messageResourceType = TemplateResourceType.Email;
       const { id } = ctx.params;
 
