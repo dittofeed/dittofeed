@@ -32,6 +32,7 @@ import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
+import Link from "next/link";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
@@ -145,6 +146,10 @@ function TemplateListContents() {
   const messagesResult = useAppStore((store) => store.messages);
   const [newOpen, setNewOpen] = useState(false);
   const [newSelectValue, setNewSelectValue] = useState("");
+  // const handleNewItemClick = (value: number) => {
+  //   setValue(value);
+  //   handleClose();
+  // };
 
   const messages =
     messagesResult.type === CompletionStatus.Successful
@@ -197,9 +202,12 @@ function TemplateListContents() {
           onClose={() => setNewAnchorEl(null)}
           anchorEl={newAnchorEl}
         >
-          <MenuItem value={10}>Ten</MenuItem>
-          <MenuItem value={20}>Twenty</MenuItem>
-          <MenuItem value={30}>Thirty</MenuItem>
+          <MenuItem value="email" LinkComponent={Link}>
+            Email
+          </MenuItem>
+          <MenuItem LinkComponent={Link} href="/">
+            Mobile Push
+          </MenuItem>
         </Menu>
       </Stack>
       {innerContents}
