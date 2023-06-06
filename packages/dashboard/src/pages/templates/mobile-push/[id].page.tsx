@@ -1,4 +1,6 @@
 import { Stack } from "@mui/material";
+import { getMobilePushTemplates } from "backend-lib/src/mobilePushTemplates";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import React from "react";
@@ -20,6 +22,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
     const workspaceId = dfContext.workspace.id;
     const serverInitialState: PreloadedState = {};
+    const mobilePushTemplates = await getMobilePushTemplates({
+      workspaceId,
+    });
+
+    serverInitialState.messages = {
+      type: CompletionStatus.Successful,
+      value: mobilePushTemplates,
+    };
 
     return {
       props: addInitialStateToProps({

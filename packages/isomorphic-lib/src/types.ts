@@ -545,6 +545,7 @@ export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
 export enum TemplateResourceType {
   Email = "Email",
+  MobilePush = "MobilePush",
 }
 
 export const EmailTemplateResource = Type.Object({
@@ -559,7 +560,23 @@ export const EmailTemplateResource = Type.Object({
 
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
-export const MessageTemplateResource = Type.Union([EmailTemplateResource]);
+export const MobilePushTemplateResource = Type.Object({
+  type: Type.Literal(TemplateResourceType.MobilePush),
+  workspaceId: Type.String(),
+  id: Type.String(),
+  title: Type.Optional(Type.String()),
+  message: Type.String(),
+  imageUrl: Type.Optional(Type.String()),
+});
+
+export type MobilePushTemplateResource = Static<
+  typeof MobilePushTemplateResource
+>;
+
+export const MessageTemplateResource = Type.Union([
+  EmailTemplateResource,
+  MobilePushTemplateResource,
+]);
 
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
 
