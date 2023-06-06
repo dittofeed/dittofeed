@@ -52,12 +52,13 @@ export function addInitialStateToProps<
     dashboardWriteKey,
     apiBase,
   });
-  void appsApi.identify({
+  appsApi.identify({
     userId: dfContext.member.id,
     traits: {
       email: dfContext.member.email,
       firstName: dfContext.member.name,
       nickname: dfContext.member.nickname,
+      createdAt: dfContext.member.createdAt,
     },
   });
 

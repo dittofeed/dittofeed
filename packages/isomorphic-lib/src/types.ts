@@ -862,6 +862,7 @@ export const WorkspaceMemberResource = Type.Object({
   picture: Type.Optional(Type.String()),
   name: Type.Optional(Type.String()),
   nickname: Type.Optional(Type.String()),
+  createdAt: Type.String(),
 });
 
 export type WorkspaceMemberResource = Static<typeof WorkspaceMemberResource>;

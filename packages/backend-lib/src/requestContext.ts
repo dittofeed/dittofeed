@@ -216,6 +216,7 @@ export async function getMultiTenantRequestContext({
       name: member.name ?? undefined,
       nickname: member.nickname ?? undefined,
       picture: member.image ?? undefined,
+      createdAt: member.createdAt.toISOString(),
     },
     workspace: {
       id: role.workspace.id,
@@ -258,6 +259,7 @@ export async function getRequestContext(
         id: "anonymous",
         email: "anonymous@email.com",
         emailVerified: true,
+        createdAt: new Date().toISOString(),
       },
       memberRoles: [
         {
