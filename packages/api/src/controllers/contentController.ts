@@ -113,6 +113,9 @@ export default async function contentController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       let emailTemplate: EmailTemplate;
+      if (request.body.type !== TemplateResourceType.Email) {
+        throw new Error("Unsupported template type");
+      }
       const { id, workspaceId, from, subject, body, name } = request.body;
       const canCreate = workspaceId && from && subject && body && name;
 
