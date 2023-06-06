@@ -10,6 +10,7 @@ export async function getMobilePushTemplates({
   return [
     {
       type: TemplateResourceType.MobilePush,
+      name: "Hello",
       id: randomUUID(),
       workspaceId,
       message: "Hello, {{user.firstName}}!",

@@ -562,6 +562,7 @@ export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
 export const MobilePushTemplateResource = Type.Object({
   type: Type.Literal(TemplateResourceType.MobilePush),
+  name: Type.String(),
   workspaceId: Type.String(),
   id: Type.String(),
   title: Type.Optional(Type.String()),
@@ -582,7 +583,7 @@ export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
 
 export const UpsertMessageTemplateResource = Type.Intersect([
   Type.Omit(Type.Partial(MessageTemplateResource), ["id"]),
-  Type.Pick(MessageTemplateResource, ["id"]),
+  Type.Pick(MessageTemplateResource, ["id", "type"]),
 ]);
 
 export type UpsertMessageTemplateResource = Static<

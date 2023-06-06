@@ -7,10 +7,10 @@ import {
   ListItemText,
   Menu,
   MenuItem,
-  Select,
   Stack,
   Typography,
 } from "@mui/material";
+import { isEmailTemplate } from "isomorphic-lib/src/templates";
 import {
   CompletionStatus,
   DeleteMessageTemplateRequest,
@@ -23,7 +23,7 @@ import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../components/mainLayout";
@@ -129,7 +129,11 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
           let messageType: string;
           switch (template.type) {
             case TemplateResourceType.Email:
-              messageType = "emails";
+              messageType = "email";
+              break;
+            case TemplateResourceType.MobilePush:
+              messageType = "mobile-push";
+              break;
           }
           path.push(`/templates/${messageType}/${template.id}`);
         }}
@@ -141,17 +145,9 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
 }
 
 function TemplateListContents() {
-  const path = useRouter();
   const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const messagesResult = useAppStore((store) => store.messages);
-  const [newOpen, setNewOpen] = useState(false);
-  const [newSelectValue, setNewSelectValue] = useState("");
   const [newItemId, setNewItemId] = useState(() => uuid());
-
-  // const handleNewItemClick = (value: number) => {
-  //   setValue(value);
-  //   handleClose();
-  // };
 
   const messages =
     messagesResult.type === CompletionStatus.Successful
