@@ -69,6 +69,28 @@ const expectedRenderedMarkdownEmail = `
 </html>
 `;
 
+const mjmlTemplate = `
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text align='center'>Dittofeed Example by {{user.name}}</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+`;
+
+const expectedRenderedMjmlTemplate = `
+<tbody>
+  <tr>
+    <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;">
+      <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1;text-align:center;color:#000000;">Dittofeed Example by Max</div>
+    </td>
+  </tr>
+</tbody>
+`;
+
 describe("renderWithUserProperties", () => {
   it("can render markdown that passes email validation", async () => {
     const rendered = renderLiquid({
@@ -103,6 +125,20 @@ describe("renderWithUserProperties", () => {
       },
     });
     expect(rendered.trim()).toEqual(expectedRenderedMarkdownEmail.trim());
+  });
+
+  it("can render mjml email layout", async () => {
+    const rendered = renderLiquid({
+      template: mjmlTemplate,
+      workspaceId: randomUUID(),
+      identifierKey: "email",
+      userProperties: {
+        name: "Max",
+      },
+    });
+    expect(rendered.trim()).toEqual(
+      expect.stringContaining(expectedRenderedMjmlTemplate.trim())
+    );
   });
 
   describe("with all of the necessary values to render un unsubscribe link", () => {
