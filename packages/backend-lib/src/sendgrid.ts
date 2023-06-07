@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { ok, Result } from "neverthrow";
 
-import { SendgridEvent } from "./types";
+import { submitBatch } from "./apps";
+import { BatchAppData, BatchItem, SendgridEvent } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
 export function sendgridEventToDF({
@@ -10,7 +11,7 @@ export function sendgridEventToDF({
 }: {
   workspaceId: string;
   sendgridEvent: SendgridEvent;
-}): Result<InsertUserEvent, Error> {
+}): Result<BatchItem, Error> {
   const { email, event, timestamp, sg_message_id } = sendgridEvent;
 
   const insertUserEvent: InsertUserEvent = {
@@ -27,7 +28,18 @@ export function sendgridEventToDF({
 
 export async function submitSendgridEvents({
   workspaceId,
+  events,
 }: {
   workspaceId: string;
-  sendgridEvents: SendgridEvent[];
-}) {}
+  events: SendgridEvent[];
+}) {
+  const data: BatchAppData = {
+    batch: events.flatMap((e) =>
+      sendgridEventToDF({ workspaceId, sendgridEvent: e }).unwrapOr([])
+    ),
+  };
+  await submitBatch({
+    workspaceId,
+    data,
+  });
+}
