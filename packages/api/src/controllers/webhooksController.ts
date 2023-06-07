@@ -1,6 +1,9 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
-import { generateDigest } from "backend-lib/src/crypto";
+import {
+  generateDigest,
+  verifyTimestampedSignature,
+} from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { insertUserEvents } from "backend-lib/src/userEvents";
@@ -17,9 +20,20 @@ export default async function webhookController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Used to consume sendgrid webhook payloads.",
+        headers: Type.Object({
+          "X-Twilio-Email-Event-Webhook-Signature": Type.String(),
+          "X-Twilio-Email-Event-Webhook-Timestamp": Type.String(),
+        }),
+        body: Type.Array(Type.Object({})),
       },
     },
     async (request, reply) => {
+      // const verified = verifyTimestampedSignature({
+      //   signature: request.headers["X-Twilio-Email-Event-Webhook-Signature"],
+      //   timestamp: request.headers["X-Twilio-Email-Event-Webhook-Timestamp"],
+      //   payload: request.rawBody as string,
+      //   secret: process.env.SENDGRID_WEBHOOK_SECRET,
+      // });
       // headers: {
       //   "host": "ce99-23-227-237-252.ngrok.io",
       //   "user-agent": "SendGrid Event API",

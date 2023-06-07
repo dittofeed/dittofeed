@@ -15,6 +15,26 @@ export function generateDigest({
     .digest("hex");
 }
 
+export function verifyTimestampedSignature({
+  publicKey,
+  payload,
+  signature,
+  timestamp,
+}: {
+  publicKey: string;
+  payload: string | Buffer;
+  signature: string;
+  timestamp: string;
+}): boolean {
+  const verifier = crypto.createVerify("sha256");
+  const timestampedPayload =
+    timestamp + (Buffer.isBuffer(payload) ? payload.toString("utf8") : payload);
+
+  verifier.update(timestampedPayload, "utf8");
+
+  return verifier.verify(publicKey, signature, "base64");
+}
+
 export function generateSecureHash({
   key,
   value,
