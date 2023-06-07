@@ -6,6 +6,7 @@ import {
 } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
+import { SendgridEvent } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import {
@@ -27,14 +28,7 @@ export default async function webhookController(fastify: FastifyInstance) {
           "x-twilio-email-event-webhook-signature": Type.String(),
           "x-twilio-email-event-webhook-timestamp": Type.String(),
         }),
-        body: Type.Array(
-          Type.Object({
-            custom_args: Type.Optional(
-              Type.Record(Type.String(), Type.String())
-            ),
-          }),
-          { additionalProperties: true }
-        ),
+        body: Type.Array(SendgridEvent),
       },
     },
     async (request, reply) => {
