@@ -88,6 +88,12 @@ export enum InternalEventType {
   MessageSkipped = "DFMessageSkipped",
   SegmentBroadcast = "DFSegmentBroadcast",
   SubscriptionChange = "DFSubscriptionChange",
+  EmailDropped = "DFEmailDropped",
+  EmailDelivered = "DFEmailDelivered",
+  EmailOpened = "DFEmailOpened",
+  EmailClicked = "DFEmailClicked",
+  EmailBounced = "DFEmailBounced",
+  EmailMarkedSpam = "DFEmailMarkedSpam",
 }
 
 export const KafkaSaslMechanism = Type.Union([
