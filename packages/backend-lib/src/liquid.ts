@@ -1,6 +1,7 @@
 /* eslint-disable no-underscore-dangle */
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { Liquid } from "liquidjs";
+import mjml2html from "mjml";
 import MarkdownIt from "markdown-it";
 
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
@@ -120,7 +121,9 @@ export function renderLiquid({
   subscriptionGroupId?: string;
   workspaceId: string;
 }): string {
-  return liquidEngine.parseAndRenderSync(template, {
+  const htmlOutput = mjml2html(template).html;
+
+  return liquidEngine.parseAndRenderSync(htmlOutput, {
     user: userProperties,
     workspace_id: workspaceId,
     subscription_group_id: subscriptionGroupId,
