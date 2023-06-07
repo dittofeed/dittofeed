@@ -35,6 +35,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       const workspaceId = request.body[0]?.custom_args?.workspaceId;
 
       if (!workspaceId) {
+        logger().error("Missing workspaceId on sendgrid events.");
         return reply.status(400).send({
           error: "Missing workspaceId custom arg.",
         });
@@ -50,6 +51,12 @@ export default async function webhookController(fastify: FastifyInstance) {
       });
 
       if (!secret) {
+        logger().error(
+          {
+            workspaceId,
+          },
+          "Missing sendgrid webhook secret."
+        );
         return reply.status(400).send({
           error: "Missing secret.",
         });
@@ -58,7 +65,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       const publicKey = `-----BEGIN PUBLIC KEY-----\n${secret.value}\n-----END PUBLIC KEY-----`;
 
       if (!request.rawBody || typeof request.rawBody !== "string") {
-        logger().error("Missing rawBody.");
+        logger().error({ workspaceId }, "Missing rawBody on sendgrid webhook.");
         return reply.status(500).send();
       }
 
@@ -70,7 +77,12 @@ export default async function webhookController(fastify: FastifyInstance) {
       });
 
       if (!verified) {
-        logger().error("Invalid signature.");
+        logger().error(
+          {
+            workspaceId,
+          },
+          "Invalid signature for sendgrid webhook."
+        );
         return reply.status(401).send({
           message: "Invalid signature.",
         });
