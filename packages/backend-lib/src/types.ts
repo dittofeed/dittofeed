@@ -88,6 +88,12 @@ export enum InternalEventType {
   MessageSkipped = "DFMessageSkipped",
   SegmentBroadcast = "DFSegmentBroadcast",
   SubscriptionChange = "DFSubscriptionChange",
+  EmailDropped = "DFEmailDropped",
+  EmailDelivered = "DFEmailDelivered",
+  EmailOpened = "DFEmailOpened",
+  EmailClicked = "DFEmailClicked",
+  EmailBounced = "DFEmailBounced",
+  EmailMarkedSpam = "DFEmailMarkedSpam",
 }
 
 export const KafkaSaslMechanism = Type.Union([
@@ -140,3 +146,36 @@ export const DecodedJwt = Type.Object({
 });
 
 export type DecodedJwt = Static<typeof DecodedJwt>;
+
+enum SendgridEventType {
+  Processed = "processed",
+  Dropped = "dropped",
+  Deferred = "deferred",
+  Delivered = "delivered",
+  Bounce = "bounce",
+  Open = "open",
+  Click = "click",
+  SpamReport = "spamreport",
+  Unsubscribe = "unsubscribe",
+  GroupUnsubscribe = "group_unsubscribe",
+  GroupResubscribe = "group_resubscribe",
+}
+
+export const SendgridEvent = Type.Object({
+  email: Type.String(),
+  timestamp: Type.Integer(),
+  event: Type.Enum(SendgridEventType),
+  sg_event_id: Type.String(),
+  sg_message_id: Type.String(),
+  ip: Type.Optional(Type.String()),
+  custom_args: Type.Optional(Type.Record(Type.String(), Type.String())),
+  reason: Type.Optional(Type.String()),
+  pool: Type.Optional(
+    Type.Object({
+      id: Type.Number(),
+      name: Type.String(),
+    })
+  ),
+});
+
+export type SendgridEvent = Static<typeof SendgridEvent>;
