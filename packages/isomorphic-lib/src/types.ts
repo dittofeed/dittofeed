@@ -1234,3 +1234,18 @@ export const DeleteWriteKeyResource = Type.Object({
 });
 
 export type DeleteWriteKeyResource = Static<typeof DeleteWriteKeyResource>;
+
+export const UpsertSecretRequest = Type.Object({
+  name: Type.String(),
+  value: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type UpsertSecretRequest = Static<typeof UpsertSecretRequest>;
+
+export const DeleteSecretRequest = Type.Object({
+  name: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type DeleteSecretRequest = Static<typeof DeleteSecretRequest>;

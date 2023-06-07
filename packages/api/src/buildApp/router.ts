@@ -6,6 +6,7 @@ import eventsController from "../controllers/eventsController";
 import indexController from "../controllers/indexController";
 import journeysController from "../controllers/journeysController";
 import publicAppsController from "../controllers/publicAppsController";
+import secretsController from "../controllers/secretsController";
 import segmentsController from "../controllers/segmentsController";
 import settingsController from "../controllers/settingsController";
 import subscriptionGroupsController from "../controllers/subscriptionGroupsController";
@@ -24,16 +25,17 @@ export default async function router(fastify: FastifyInstance) {
       await fastify.register(requestContext);
 
       await Promise.all([
-        f.register(journeysController, { prefix: "/journeys" }),
-        f.register(segmentsController, { prefix: "/segments" }),
-        f.register(settingsController, { prefix: "/settings" }),
         f.register(contentController, { prefix: "/content" }),
         f.register(eventsController, { prefix: "/events" }),
-        f.register(usersController, { prefix: "/users" }),
-        f.register(userPropertiesController, { prefix: "/user-properties" }),
+        f.register(journeysController, { prefix: "/journeys" }),
+        f.register(secretsController, { prefix: "/secrets" }),
+        f.register(segmentsController, { prefix: "/segments" }),
+        f.register(settingsController, { prefix: "/settings" }),
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
         }),
+        f.register(userPropertiesController, { prefix: "/user-properties" }),
+        f.register(usersController, { prefix: "/users" }),
       ]);
     },
     { prefix: "/api" }
