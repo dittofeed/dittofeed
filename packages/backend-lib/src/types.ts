@@ -179,25 +179,5 @@ export const SendgridEvent = Type.Intersect([
   }),
   Type.Record(Type.String(), Type.String()),
 ]);
-// body: [
-//   {
-//     "email": "max@dittofeed.com",
-//     "event": "delivered",
-//     "ip": "149.72.154.232",
-//     "journeyId": "7992332a-3488-42df-a7e8-2461eadbe41f",
-//     "messageId": "4240a362-b20e-4fd3-84d0-ddf80f4d6489",
-//     "nodeId": "5e590915-3df6-4f09-8e65-9e005263da65",
-//     "response": "250 2.0.0 OK  1686246821 f38-20020a05622a1a2600b003f740365ab1si965549qtb.261 - gsmtp",
-//     "runId": "7671592d-e453-4d01-bd6c-4db75c5256de",
-//     "sg_event_id": "ZGVsaXZlcmVkLTAtMjk3NjQzNzctQTZGaWx3YUFSX1dtX1ZUQ0VGcWxfdy0w",
-//     "sg_message_id": "A6FilwaAR_Wm_VTCEFql_w.filterdrecv-66949dbc98-fvstg-1-648215A4-1D.0",
-//     "smtp-id": "<A6FilwaAR_Wm_VTCEFql_w@geopod-ismtpd-2>",
-//     "templateId": "7c854d3b-14c0-454b-883c-5a00dbade6fd",
-//     "timestamp": 1686246821,
-//     "tls": 1,
-//     "userId": "0ca50ddc-e32e-4c32-b6e4-f03a03daf656",
-//     "workspaceId": "024f3d0a-8eee-11ed-a1eb-0242ac120002"
-//   }
-// ]
 
 export type SendgridEvent = Static<typeof SendgridEvent>;
