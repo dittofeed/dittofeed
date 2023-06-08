@@ -297,6 +297,15 @@ async function sendEmailWithPayload({
           from,
           subject,
           html: body,
+          customArgs: {
+            journeyId,
+            runId,
+            messageId,
+            userId,
+            workspaceId,
+            templateId,
+            nodeId,
+          },
         },
         apiKey: defaultEmailProvider.emailProvider.apiKey,
       });

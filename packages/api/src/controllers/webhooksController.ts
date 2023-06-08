@@ -4,6 +4,7 @@ import {
   generateDigest,
   verifyTimestampedSignature,
 } from "backend-lib/src/crypto";
+import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { SendgridEvent } from "backend-lib/src/types";
@@ -32,7 +33,9 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const workspaceId = request.body[0]?.custom_args?.workspaceId;
+      logger().debug({ body: request.body }, "Received sendgrid events.");
+      // TODO allow for multiple workspaces on a single sendgrid account
+      const workspaceId = request.body[0]?.workspaceId;
 
       if (!workspaceId) {
         logger().error("Missing workspaceId on sendgrid events.");
@@ -88,6 +91,10 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
+      await submitSendgridEvents({
+        workspaceId,
+        events: request.body,
+      });
       return reply.status(200).send();
     }
   );
