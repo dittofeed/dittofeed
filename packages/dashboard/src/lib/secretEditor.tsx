@@ -89,6 +89,7 @@ export default function SecretEditor({ secretName }: { secretName: string }) {
         type={showPassword ? "text" : "password"}
         placeholder={showPassword ? undefined : "**********"}
         onChange={(e) => setSecretValue(e.target.value)}
+        sx={{ flex: 1 }}
         value={secretValue}
         InputProps={{
           endAdornment: (

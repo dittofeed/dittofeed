@@ -11,6 +11,7 @@ import {
   Button,
   Checkbox,
   Collapse,
+  Divider,
   FormControlLabel,
   FormGroup,
   IconButton,
@@ -417,23 +418,38 @@ function SendGridConfig() {
     sendgridProviderRequest.type === CompletionStatus.InProgress;
 
   return (
-    <Stack sx={{ padding: 1, width: theme.spacing(65) }} spacing={1}>
-      <TextField
-        label="API Key"
-        variant="outlined"
-        onChange={(e) => {
-          updateSendgridProviderApiKey(e.target.value);
-        }}
-        value={apiKey}
-      />
-      <Button
-        onClick={handleSubmit}
-        variant="contained"
-        disabled={requestInProgress}
-      >
-        Save
-      </Button>
-      <SecretEditor secretName={SENDGRID_WEBHOOK_SECRET_NAME} />
+    <Stack
+      sx={{ padding: 1, width: theme.spacing(65) }}
+      spacing={2}
+      divider={<Divider />}
+    >
+      <Stack spacing={1}>
+        <InfoBox>
+          API key, used internally by Dittofeed to send emails via sendgrid.
+        </InfoBox>
+        <TextField
+          label="API Key"
+          variant="outlined"
+          onChange={(e) => {
+            updateSendgridProviderApiKey(e.target.value);
+          }}
+          value={apiKey}
+        />
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={requestInProgress}
+        >
+          Save
+        </Button>
+      </Stack>
+      <Stack spacing={1}>
+        <InfoBox>
+          Sendgrid webhook verification key, used to authenticate sendgrid
+          webhook requests.
+        </InfoBox>
+        <SecretEditor secretName={SENDGRID_WEBHOOK_SECRET_NAME} />
+      </Stack>
     </Stack>
   );
 }
