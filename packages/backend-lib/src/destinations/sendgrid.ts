@@ -5,6 +5,7 @@ import * as R from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps";
+import logger from "../logger";
 import {
   BatchAppData,
   BatchItem,
@@ -45,11 +46,8 @@ export function sendgridEventToDF({
   sendgridEvent: SendgridEvent;
 }): Result<BatchItem, Error> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { email, event, timestamp, sg_message_id, custom_args } = sendgridEvent;
+  const { email, event, timestamp, sg_message_id } = sendgridEvent;
 
-  if (!custom_args) {
-    return err(new Error("Missing custom_args."));
-  }
   const userOrAnonymousId = sendgridEvent.userId ?? sendgridEvent.anonymousId;
   if (!userOrAnonymousId) {
     return err(new Error("Missing userId or anonymousId."));
@@ -130,7 +128,15 @@ export async function submitSendgridEvents({
 }) {
   const data: BatchAppData = {
     batch: events.flatMap((e) =>
-      sendgridEventToDF({ workspaceId, sendgridEvent: e }).unwrapOr([])
+      sendgridEventToDF({ workspaceId, sendgridEvent: e })
+        .mapErr((error) => {
+          logger().error(
+            { err: error },
+            "Failed to convert sendgrid event to DF."
+          );
+          return error;
+        })
+        .unwrapOr([])
     ),
   };
   await submitBatch({
