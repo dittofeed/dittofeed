@@ -11,6 +11,7 @@ import {
   Button,
   Checkbox,
   Collapse,
+  Divider,
   FormControlLabel,
   FormGroup,
   IconButton,
@@ -28,6 +29,7 @@ import { generateSecureKey } from "backend-lib/src/crypto";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
+import { SENDGRID_WEBHOOK_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -59,6 +61,7 @@ import { useAppStore } from "../lib/appStore";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
+import SecretEditor from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
 
 interface ExpandMoreProps extends IconButtonProps {
@@ -209,6 +212,8 @@ function SettingsLayout(
 interface SettingsState {
   sendgridProviderRequest: EphemeralRequestStatus<Error>;
   sendgridProviderApiKey: string;
+  sendgridWebhookVerificationKeyRequest: EphemeralRequestStatus<Error>;
+  sendgridWebhookVerificationKey: string;
   segmentIoRequest: EphemeralRequestStatus<Error>;
   segmentIoSharedSecret: string;
 }
@@ -220,6 +225,10 @@ interface SettingsActions {
   ) => void;
   updateSegmentIoSharedSecret: (key: string) => void;
   updateSegmentIoRequest: (request: EphemeralRequestStatus<Error>) => void;
+  updateSendgridWebhookVerificationKey: (key: string) => void;
+  updateSendgridWebhookVerificationRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
 }
 
 export const useSettingsStore = create(
@@ -233,6 +242,10 @@ export const useSettingsStore = create(
     },
     sendgridProviderApiKey: "",
     sendgridFromEmail: "",
+    sendgridWebhookVerificationKey: "",
+    sendgridWebhookVerificationKeyRequest: {
+      type: CompletionStatus.NotStarted,
+    },
     updateSendgridProviderApiKey: (key) => {
       set((state) => {
         state.sendgridProviderApiKey = key;
@@ -241,6 +254,16 @@ export const useSettingsStore = create(
     updateSendgridProviderRequest: (request) => {
       set((state) => {
         state.sendgridProviderRequest = request;
+      });
+    },
+    updateSendgridWebhookVerificationKey: (key) => {
+      set((state) => {
+        state.sendgridWebhookVerificationKey = key;
+      });
+    },
+    updateSendgridWebhookVerificationRequest: (request) => {
+      set((state) => {
+        state.sendgridWebhookVerificationKeyRequest = request;
       });
     },
     updateSegmentIoSharedSecret: (key) => {
@@ -395,22 +418,38 @@ function SendGridConfig() {
     sendgridProviderRequest.type === CompletionStatus.InProgress;
 
   return (
-    <Stack sx={{ padding: 1, width: theme.spacing(65) }} spacing={1}>
-      <TextField
-        label="API Key"
-        variant="outlined"
-        onChange={(e) => {
-          updateSendgridProviderApiKey(e.target.value);
-        }}
-        value={apiKey}
-      />
-      <Button
-        onClick={handleSubmit}
-        variant="contained"
-        disabled={requestInProgress}
-      >
-        Save
-      </Button>
+    <Stack
+      sx={{ padding: 1, width: theme.spacing(65) }}
+      spacing={2}
+      divider={<Divider />}
+    >
+      <Stack spacing={1}>
+        <InfoBox>
+          API key, used internally by Dittofeed to send emails via sendgrid.
+        </InfoBox>
+        <TextField
+          label="API Key"
+          variant="outlined"
+          onChange={(e) => {
+            updateSendgridProviderApiKey(e.target.value);
+          }}
+          value={apiKey}
+        />
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={requestInProgress}
+        >
+          Save
+        </Button>
+      </Stack>
+      <Stack spacing={1}>
+        <InfoBox>
+          Sendgrid webhook verification key, used to authenticate sendgrid
+          webhook requests.
+        </InfoBox>
+        <SecretEditor secretName={SENDGRID_WEBHOOK_SECRET_NAME} />
+      </Stack>
     </Stack>
   );
 }

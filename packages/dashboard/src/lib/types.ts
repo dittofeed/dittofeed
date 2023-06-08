@@ -11,6 +11,7 @@ import {
   MessageTemplateResource,
   PersistedEmailProvider,
   RequestStatus,
+  SecretResource,
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
@@ -65,6 +66,7 @@ export type AppState = {
   journeys: RequestStatus<JourneyResource[], Error>;
   traits: RequestStatus<string[], Error>;
   writeKeys: WriteKeyResource[];
+  secrets: SecretResource[];
   defaultEmailProvider: RequestStatus<
     DefaultEmailProviderResource | null,
     Error
@@ -98,6 +100,8 @@ export interface AppActions {
   deleteSegment: (segmentId: string) => void;
   upsertJourney: (journey: JourneyResource) => void;
   deleteJourney: (segmentId: string) => void;
+  upsertSecrets: (secrets: SecretResource[]) => void;
+  deleteSecret: (secretName: string) => void;
   upsertSubscriptionGroup: (
     subscriptionGroup: SubscriptionGroupResource
   ) => void;
