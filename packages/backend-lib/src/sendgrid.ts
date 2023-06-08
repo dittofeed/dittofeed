@@ -33,7 +33,15 @@ export function sendgridEventToDF({
   let eventName: InternalEventType;
   const properties: Record<string, string> = R.merge(
     { email },
-    R.pick(custom_args, ["journeyId", "nodeId", "templateId", "runId"])
+    R.pick(custom_args, [
+      "journeyId",
+      "runId",
+      "messageId",
+      "userId",
+      "workspaceId",
+      "templateId",
+      "nodeId",
+    ])
   );
 
   switch (event) {
