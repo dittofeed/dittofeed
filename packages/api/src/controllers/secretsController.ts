@@ -1,5 +1,6 @@
 import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma from "backend-lib/src/prisma";
+import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import {
   DeleteSecretRequest,
@@ -23,20 +24,24 @@ export default async function secretsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { workspaceId, name } = request.query;
+      const { workspaceId, names } = request.query;
 
-      const secrets = (
-        await prisma().secret.findMany({
-          where: {
-            workspaceId,
-            name,
-          },
+      const where: Prisma.SecretFindManyArgs["where"] = {
+        workspaceId,
+      };
+      if (names?.length) {
+        where.name = {
+          in: names,
+        };
+      }
+
+      const secrets = (await prisma().secret.findMany({ where })).map(
+        (secret) => ({
+          workspaceId: secret.workspaceId,
+          name: secret.name,
+          value: secret.value,
         })
-      ).map((secret) => ({
-        workspaceId: secret.workspaceId,
-        name: secret.name,
-        value: secret.value,
-      }));
+      );
       return reply.status(200).send(secrets);
     }
   );

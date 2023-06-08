@@ -1249,3 +1249,18 @@ export const DeleteSecretRequest = Type.Object({
 });
 
 export type DeleteSecretRequest = Static<typeof DeleteSecretRequest>;
+
+export const ListSecretsRequest = Type.Object({
+  workspaceId: Type.String(),
+  names: Type.Array(Type.String()),
+});
+
+export type ListSecretsRequest = Static<typeof ListSecretsRequest>;
+
+export const SecretResource = Type.Object({
+  name: Type.String(),
+  value: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type SecretResource = Static<typeof SecretResource>;
