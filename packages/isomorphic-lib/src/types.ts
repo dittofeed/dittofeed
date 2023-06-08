@@ -1252,7 +1252,7 @@ export type DeleteSecretRequest = Static<typeof DeleteSecretRequest>;
 
 export const ListSecretsRequest = Type.Object({
   workspaceId: Type.String(),
-  names: Type.Array(Type.String()),
+  names: Type.Optional(Type.Array(Type.String())),
 });
 
 export type ListSecretsRequest = Static<typeof ListSecretsRequest>;

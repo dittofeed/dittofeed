@@ -28,6 +28,7 @@ import { generateSecureKey } from "backend-lib/src/crypto";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
+import { SENDGRID_WEBHOOK_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -59,6 +60,7 @@ import { useAppStore } from "../lib/appStore";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
+import SecretEditor from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
 
 interface ExpandMoreProps extends IconButtonProps {
@@ -431,6 +433,7 @@ function SendGridConfig() {
       >
         Save
       </Button>
+      <SecretEditor secretName={SENDGRID_WEBHOOK_SECRET_NAME} />
     </Stack>
   );
 }
