@@ -161,22 +161,24 @@ enum SendgridEventType {
   GroupResubscribe = "group_resubscribe",
 }
 
-export const SendgridEvent = Type.Object({
-  email: Type.String(),
-  timestamp: Type.Integer(),
-  event: Type.Enum(SendgridEventType),
-  sg_event_id: Type.String(),
-  sg_message_id: Type.String(),
-  ip: Type.Optional(Type.String()),
-  custom_args: Type.Optional(Type.Record(Type.String(), Type.String())),
-  reason: Type.Optional(Type.String()),
-  pool: Type.Optional(
-    Type.Object({
-      id: Type.Number(),
-      name: Type.String(),
-    })
-  ),
-});
+export const SendgridEvent = Type.Intersect([
+  Type.Object({
+    email: Type.String(),
+    timestamp: Type.Integer(),
+    event: Type.Enum(SendgridEventType),
+    sg_event_id: Type.String(),
+    sg_message_id: Type.String(),
+    ip: Type.Optional(Type.String()),
+    reason: Type.Optional(Type.String()),
+    pool: Type.Optional(
+      Type.Object({
+        id: Type.Number(),
+        name: Type.String(),
+      })
+    ),
+  }),
+  Type.Record(Type.String(), Type.String()),
+]);
 // body: [
 //   {
 //     "email": "max@dittofeed.com",

@@ -50,7 +50,7 @@ export function sendgridEventToDF({
   if (!custom_args) {
     return err(new Error("Missing custom_args."));
   }
-  const userOrAnonymousId = custom_args.userId ?? custom_args.anonymousId;
+  const userOrAnonymousId = sendgridEvent.userId ?? sendgridEvent.anonymousId;
   if (!userOrAnonymousId) {
     return err(new Error("Missing userId or anonymousId."));
   }
@@ -59,7 +59,7 @@ export function sendgridEventToDF({
   let eventName: InternalEventType;
   const properties: Record<string, string> = R.merge(
     { email },
-    R.pick(custom_args, [
+    R.pick(sendgridEvent, [
       "journeyId",
       "runId",
       "messageId",
@@ -95,21 +95,21 @@ export function sendgridEventToDF({
 
   const itemTimestamp = new Date(timestamp * 1000).toISOString();
   let item: BatchTrackData;
-  if (custom_args.userId) {
+  if (sendgridEvent.userId) {
     item = {
       type: "track",
       event: eventName,
-      userId: custom_args.userId,
-      anonymousId: custom_args.anonymousId,
+      userId: sendgridEvent.userId,
+      anonymousId: sendgridEvent.anonymousId,
       properties,
       messageId,
       timestamp: itemTimestamp,
     };
-  } else if (custom_args.anonymousId) {
+  } else if (sendgridEvent.anonymousId) {
     item = {
       type: "track",
       event: eventName,
-      anonymousId: custom_args.anonymousId,
+      anonymousId: sendgridEvent.anonymousId,
       properties,
       messageId,
       timestamp: itemTimestamp,
