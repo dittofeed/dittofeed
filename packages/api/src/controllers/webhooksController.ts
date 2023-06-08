@@ -33,6 +33,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      logger().debug({ body: request.body }, "Received sendgrid events.");
       const workspaceId = request.body[0]?.custom_args?.workspaceId;
 
       if (!workspaceId) {

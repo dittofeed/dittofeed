@@ -6290,6 +6290,7 @@ __metadata:
     typescript: ^4.8.4
     utility-types: ^3.10.0
     uuid: ^9.0.0
+    yargs: ^17.7.2
   languageName: unknown
   linkType: soft
 
