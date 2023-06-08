@@ -1,5 +1,6 @@
 import {
   CompletionStatus,
+  SecretResource,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
@@ -199,6 +200,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
         writeKeys: [],
+        secrets: [],
         enableSourceControl: preloadedState.enableSourceControl ?? false,
 
         // email message state
@@ -444,6 +446,33 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               state.subscriptionGroups.value.filter((m) => m.id !== id);
             return state;
           }),
+        upsertSecrets(secrets) {
+          set((state) => {
+            const secretsToCreate = secrets.reduce<Map<string, SecretResource>>(
+              (map, secret) => {
+                map.set(secret.name, secret);
+                return map;
+              },
+              new Map()
+            );
+            for (const secret of state.secrets) {
+              const newVal = secretsToCreate.get(secret.name);
+              if (newVal) {
+                secret.value = newVal.value;
+                secretsToCreate.delete(secret.name);
+              }
+            }
+
+            state.secrets = state.secrets.concat(
+              Array.from(secretsToCreate.values())
+            );
+          });
+        },
+        deleteSecret(secretName) {
+          set((state) => {
+            state.secrets = state.secrets.filter((s) => s.name !== secretName);
+          });
+        },
 
         // user property update view
         editedUserProperty: null,

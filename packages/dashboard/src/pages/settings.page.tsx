@@ -209,6 +209,8 @@ function SettingsLayout(
 interface SettingsState {
   sendgridProviderRequest: EphemeralRequestStatus<Error>;
   sendgridProviderApiKey: string;
+  sendgridWebhookVerificationKeyRequest: EphemeralRequestStatus<Error>;
+  sendgridWebhookVerificationKey: string;
   segmentIoRequest: EphemeralRequestStatus<Error>;
   segmentIoSharedSecret: string;
 }
@@ -220,6 +222,10 @@ interface SettingsActions {
   ) => void;
   updateSegmentIoSharedSecret: (key: string) => void;
   updateSegmentIoRequest: (request: EphemeralRequestStatus<Error>) => void;
+  updateSendgridWebhookVerificationKey: (key: string) => void;
+  updateSendgridWebhookVerificationRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
 }
 
 export const useSettingsStore = create(
@@ -233,6 +239,10 @@ export const useSettingsStore = create(
     },
     sendgridProviderApiKey: "",
     sendgridFromEmail: "",
+    sendgridWebhookVerificationKey: "",
+    sendgridWebhookVerificationKeyRequest: {
+      type: CompletionStatus.NotStarted,
+    },
     updateSendgridProviderApiKey: (key) => {
       set((state) => {
         state.sendgridProviderApiKey = key;
@@ -241,6 +251,16 @@ export const useSettingsStore = create(
     updateSendgridProviderRequest: (request) => {
       set((state) => {
         state.sendgridProviderRequest = request;
+      });
+    },
+    updateSendgridWebhookVerificationKey: (key) => {
+      set((state) => {
+        state.sendgridWebhookVerificationKey = key;
+      });
+    },
+    updateSendgridWebhookVerificationRequest: (request) => {
+      set((state) => {
+        state.sendgridWebhookVerificationKeyRequest = request;
       });
     },
     updateSegmentIoSharedSecret: (key) => {
