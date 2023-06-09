@@ -232,9 +232,17 @@ export default function EmailEditor() {
         channel: "email",
         userProperties: debouncedUserProperties,
         contents: {
-          from: debouncedEmailFrom,
-          subject: debouncedEmailSubject,
-          body: debouncedEmailBody,
+          from: {
+            value: debouncedEmailFrom,
+            mjml: false,
+          },
+          subject: {
+            value: debouncedEmailSubject,
+            mjml: false,
+          },
+          body: {
+            value: debouncedEmailBody,
+          },
         },
       };
 

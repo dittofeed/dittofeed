@@ -961,7 +961,13 @@ export const RenderMessageTemplateRequest = Type.Object({
   workspaceId: Type.String(),
   channel: Type.String(),
   subscriptionGroupId: Type.Optional(Type.String()),
-  contents: Type.Record(Type.String(), Type.String()),
+  contents: Type.Record(
+    Type.String(),
+    Type.Object({
+      value: Type.String(),
+      mjml: Type.Optional(Type.Boolean()),
+    })
+  ),
   userProperties: Type.Record(Type.String(), Type.String()),
 });
 
