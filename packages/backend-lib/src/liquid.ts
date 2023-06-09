@@ -139,7 +139,6 @@ export function renderLiquid({
   try {
     return mjml2html(liquidRendered).html;
   } catch (e: any) {
-    console.log(e, "check some errors out");
     if (e.message.indexOf(MJML_NOT_PRESENT_ERROR) !== -1) {
       return liquidRendered;
     } else {
