@@ -121,9 +121,23 @@ export function renderLiquid({
   subscriptionGroupId?: string;
   workspaceId: string;
 }): string {
-  const htmlOutput = mjml2html(template).html;
+  function renderMJML(template: string): string {
+    const htmlOutput = mjml2html(template).html;
+    return htmlOutput;
+  }
 
-  return liquidEngine.parseAndRenderSync(htmlOutput, {
+  let html: string;
+  try {
+    html = renderMJML(template);
+  } catch (e: any) {
+    if (e.message.indexOf("no mjml tag")) {
+      html = template;
+    } else {
+      throw e;
+    }
+  }
+
+  return liquidEngine.parseAndRenderSync(html, {
     user: userProperties,
     workspace_id: workspaceId,
     subscription_group_id: subscriptionGroupId,
