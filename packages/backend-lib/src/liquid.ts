@@ -106,6 +106,9 @@ liquidEngine.registerTag("unsubscribe_link", {
   },
 });
 
+const MJML_NOT_PRESENT_ERROR =
+  "Check that your structure is correct and enclosed in <mjml> tags";
+
 export function renderLiquid({
   template,
   userProperties,
@@ -113,35 +116,34 @@ export function renderLiquid({
   subscriptionGroupId,
   identifierKey,
   secrets = {},
+  mjml = true,
 }: {
   template: string;
+  mjml?: boolean;
   identifierKey: string;
   userProperties: UserProperties;
   secrets?: Secrets;
   subscriptionGroupId?: string;
   workspaceId: string;
 }): string {
-  function renderMJML(template: string): string {
-    const htmlOutput = mjml2html(template).html;
-    return htmlOutput;
-  }
-
-  let html: string;
-  try {
-    html = renderMJML(template);
-  } catch (e: any) {
-    if (e.message.indexOf("no mjml tag")) {
-      html = template;
-    } else {
-      throw e;
-    }
-  }
-
-  return liquidEngine.parseAndRenderSync(html, {
+  const liquidRendered = liquidEngine.parseAndRenderSync(template, {
     user: userProperties,
     workspace_id: workspaceId,
     subscription_group_id: subscriptionGroupId,
     secrets,
     identifier_key: identifierKey,
   });
+  if (!mjml) {
+    return liquidRendered;
+  }
+  try {
+    return mjml2html(liquidRendered).html;
+  } catch (e: any) {
+    console.log(e, "check some errors out");
+    if (e.message.indexOf(MJML_NOT_PRESENT_ERROR) !== -1) {
+      return liquidRendered;
+    } else {
+      throw e;
+    }
+  }
 }

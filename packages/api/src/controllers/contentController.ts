@@ -73,7 +73,8 @@ export default async function contentController(fastify: FastifyInstance) {
           try {
             const rendered = renderLiquid({
               workspaceId,
-              template: content,
+              template: content.value,
+              mjml: content.mjml,
               subscriptionGroupId,
               userProperties,
               identifierKey: channel.identifier,
