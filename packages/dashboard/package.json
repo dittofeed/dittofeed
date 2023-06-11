@@ -65,5 +65,9 @@
     "eslint-config-next": "13.0.0",
     "typescript": "4.8.4",
     "utility-types": "^3.10.0"
+  },
+  "optionalDependencies": {
+    "@next/swc-linux-arm64-gnu": "^13.4.5",
+    "@next/swc-linux-arm64-musl": "^13.4.5"
   }
 }
