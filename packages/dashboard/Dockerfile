@@ -17,8 +17,7 @@ FROM node:18.4.0 AS dev
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    postgresql-client
+RUN yarn
 
 # Production image, copy all the files and run next
 FROM node:18.4.0 AS runner
