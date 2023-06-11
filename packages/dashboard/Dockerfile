@@ -22,6 +22,11 @@ RUN apt-get update && apt-get install -y \
 
 RUN yarn
 
+RUN yarn workspace isomorphic-lib build && \
+    yarn workspace backend-lib prisma generate && \
+    yarn workspace backend-lib build && \
+    yarn workspace dashboard build
+
 # Production image, copy all the files and run next
 FROM node:18.4.0 AS runner
 
