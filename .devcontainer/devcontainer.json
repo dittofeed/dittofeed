@@ -1,31 +1,20 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-docker-compose
 {
-  "name": "dittofeed-dashboard",
-
-  // Update the 'dockerComposeFile' list if you have more compose files or use different names.
-  // The .devcontainer/docker-compose.yml file contains any overrides you need/want to make.
-  "dockerComposeFile": [
-    "../../docker-compose.yaml",
-    "./docker-compose.devcontainer.yaml"
-  ],
-
-  // The 'service' property is the name of the service for the container that VS Code should
-  // use. Update this value and .devcontainer/docker-compose.yml to the real service name.
-  "service": "dashboard",
-
-  // The optional 'workspaceFolder' property is the path VS Code should open by default when
-  // connected. This is typically a file mount in .devcontainer/docker-compose.yml
-  // "workspaceFolder": "/app",
-  "workspaceFolder": "/app",
+  "name": "dittofeed-dev",
+  "image": "mcr.microsoft.com/vscode/devcontainers/base:debian-11",
 
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
-    "ghcr.io/devcontainers-contrib/features/postgres-asdf:1": {}
+    "ghcr.io/devcontainers-contrib/features/postgres-asdf:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18.4.0"
+    }
   },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [3000]
+  "forwardPorts": [3000, 3001]
 
   // Uncomment the next line if you want start specific services in your Docker Compose config.
   // "runServices": [],
