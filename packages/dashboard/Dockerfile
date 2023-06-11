@@ -13,12 +13,6 @@ RUN yarn workspace isomorphic-lib build && \
     yarn workspace backend-lib build && \
     yarn workspace dashboard build
 
-FROM node:18.4.0 AS dev
-
-WORKDIR /app
-
-RUN yarn
-
 # Production image, copy all the files and run next
 FROM node:18.4.0 AS runner
 
