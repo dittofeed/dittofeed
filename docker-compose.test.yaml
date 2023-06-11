@@ -1,4 +1,0 @@
-version: '3.9'
-services:
-  dashboard:
-    image: node:18.4.0
