@@ -2086,9 +2086,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@next/swc-linux-arm64-gnu@npm:^13.4.5":
+  version: 13.4.5
+  resolution: "@next/swc-linux-arm64-gnu@npm:13.4.5"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
 "@next/swc-linux-arm64-musl@npm:13.4.4":
   version: 13.4.4
   resolution: "@next/swc-linux-arm64-musl@npm:13.4.4"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@next/swc-linux-arm64-musl@npm:^13.4.5":
+  version: 13.4.5
+  resolution: "@next/swc-linux-arm64-musl@npm:13.4.5"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
@@ -7442,6 +7456,8 @@ __metadata:
     "@mui/lab": ^5.0.0-alpha.125
     "@mui/material": ^5.11.4
     "@mui/x-data-grid": ^6.0.0
+    "@next/swc-linux-arm64-gnu": ^13.4.5
+    "@next/swc-linux-arm64-musl": ^13.4.5
     "@prisma/client": ^4.9.0
     "@sinclair/typebox": ^0.27.8
     "@types/escape-html": ^1.0.2
@@ -7482,6 +7498,11 @@ __metadata:
     utility-types: ^3.10.0
     uuid: ^9.0.0
     zustand: ^4.1.4
+  dependenciesMeta:
+    "@next/swc-linux-arm64-gnu":
+      optional: true
+    "@next/swc-linux-arm64-musl":
+      optional: true
   languageName: unknown
   linkType: soft
 
