@@ -7,7 +7,7 @@
     "dev": "mintlify dev"
   },
   "devDependencies": {
-    "mintlify": "^3.0.37"
+    "mintlify": "^3.0.48"
   },
   "license": "LicenseRef-LICENSE"
 }
