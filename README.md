@@ -26,7 +26,7 @@
 <br />
 
 <a href="https://dittofeed.com/">
-  <img src="https://raw.githubusercontent.com/dittofeed/dittofeed/main/packages/docs/images/github-readme-banner.png" alt="Dittofeed Admin Panel Banner" />
+  <img src="packages/docs/images/github-readme-banner.png" alt="Dittofeed Admin Panel Banner" />
 </a>
 
 <br />
