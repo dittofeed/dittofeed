@@ -7647,6 +7647,7 @@ __metadata:
     eslint-plugin-react-hooks: ^4.6.0
     eslint-plugin-simple-import-sort: ^9.0.0
     jest: ^29.4.0
+    mintlify: ^3.0.54
     prettier: ^2.8.3
     ts-jest: ^29.0.5
     ts-node: ^10.9.1
