@@ -35,7 +35,8 @@ export default async function webhookController(fastify: FastifyInstance) {
     async (request, reply) => {
       logger().debug({ body: request.body }, "Received sendgrid events.");
       // TODO allow for multiple workspaces on a single sendgrid account
-      const workspaceId = request.body[0]?.workspaceId;
+      const firstEvent = request.body[0];
+      const workspaceId = firstEvent?.workspaceId;
 
       if (!workspaceId) {
         logger().error("Missing workspaceId on sendgrid events.");
