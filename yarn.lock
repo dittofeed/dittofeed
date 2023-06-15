@@ -1623,18 +1623,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mintlify/cli@npm:3.0.47":
-  version: 3.0.47
-  resolution: "@mintlify/cli@npm:3.0.47"
+"@mintlify/cli@npm:3.0.53":
+  version: 3.0.53
+  resolution: "@mintlify/cli@npm:3.0.53"
   dependencies:
-    "@mintlify/previewing": 3.1.42
+    "@mintlify/previewing": 3.1.48
     detect-port: ^1.5.1
     inquirer: ^9.2.7
     shelljs: ^0.8.5
     yargs: ^17.6.0
   bin:
     mintlify: bin/index.js
-  checksum: 661247920e86e9162b6dd01175478df18085555d61eb53fcb47a4d49a4161bfc3dce9658502a3d62e931eb59dc6c39cda8662f5d6c030191b9551dca29af256f
+  checksum: 0aa959f5743cf8b9f54a24edcdd5bdd8d05185cc009f3cc3daa7e6b6cc1141fe13864c09cb0f16897211c9a6d18f0982564c2c871132f241a652adb74abbfd74
   languageName: node
   linkType: hard
 
@@ -1647,13 +1647,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mintlify/previewing@npm:3.1.42":
-  version: 3.1.42
-  resolution: "@mintlify/previewing@npm:3.1.42"
+"@mintlify/previewing@npm:3.1.48":
+  version: 3.1.48
+  resolution: "@mintlify/previewing@npm:3.1.48"
   dependencies:
     "@apidevtools/swagger-parser": ^10.1.0
     "@mintlify/prebuild": 1.0.4
-    "@mintlify/validation": 0.1.34
+    "@mintlify/validation": 0.1.37
     "@octokit/rest": ^19.0.5
     axios: ^1.2.2
     chalk: ^5.1.0
@@ -1672,18 +1672,18 @@ __metadata:
     shelljs: ^0.8.5
     unist-util-visit: ^4.1.1
     yargs: ^17.6.0
-  checksum: 9072bd18a11c30f0d8e4c8d6f22865184a5e52c59fda89a49db74373f27b9004f183b4269fdb24912774b0560de58d3f1caa7c4c440adac0249001498dc82695
+  checksum: 76932cb52fd6c958dacaaaff2dff9b81faa535d259946845e0b9f13cce3ff7c1dfd8f6a739f240081e0f662e1280790b568c6c942c5ce920ecfcde1ff949d1a3
   languageName: node
   linkType: hard
 
-"@mintlify/validation@npm:0.1.34":
-  version: 0.1.34
-  resolution: "@mintlify/validation@npm:0.1.34"
+"@mintlify/validation@npm:0.1.37":
+  version: 0.1.37
+  resolution: "@mintlify/validation@npm:0.1.37"
   dependencies:
     mathjs: ^11.8.0
     zod: ^3.20.6
     zod-to-json-schema: ^3.20.3
-  checksum: 56b87ac2df0f30103405b6cf2ab7741dae9445faa3d5a31be842fe690a47e7ff4f4d63c6733d395051f5272102f71051f9d46c9c9a14d3c7a005384f337e13ac
+  checksum: 5eb3cb2e0a36097cf8ddfe6fa42c1fc3a4b4527369115422c28a5d709cac59bc96dafe581ef5194e09bd8ef5f405b62b8a0f86c0bfea9b09558890ff8654fdc7
   languageName: node
   linkType: hard
 
@@ -7658,7 +7658,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "docs@workspace:packages/docs"
   dependencies:
-    mintlify: ^3.0.48
+    mintlify: ^3.0.54
   languageName: unknown
   linkType: soft
 
@@ -12266,14 +12266,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mintlify@npm:^3.0.48":
-  version: 3.0.48
-  resolution: "mintlify@npm:3.0.48"
+"mintlify@npm:^3.0.54":
+  version: 3.0.54
+  resolution: "mintlify@npm:3.0.54"
   dependencies:
-    "@mintlify/cli": 3.0.47
+    "@mintlify/cli": 3.0.53
   bin:
     mintlify: index.js
-  checksum: ca6d09ba0e62fe31023528d1187ef8941846b2065314c12cc45de991813d77a2ae366b10049e1e15445f1f59d1b9f358583d6d05949c2f6fa7926fd87815f684
+  checksum: 6409ef13e0005dd201b9f9083845c2d2f78d13e6f586472078f3b41b2b9ce6c170bab7f26e03b0e88cd2cf3aeef5caae7de9fb3827a7fbfdd3085fac0ba58912
   languageName: node
   linkType: hard
 
