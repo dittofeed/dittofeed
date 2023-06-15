@@ -1,0 +1,35 @@
+---
+title: "MJML Responsive Email"
+---
+
+[MJML](https://mjml.io/) is a popular markup language for designing responsive email templates. Dittofeed's email editor supports MJML markup, which reduces the amount of HTML required to design mobile-friendly emails.
+
+## Using MJML In Dittofeed's Template Editor
+
+A MJML document starts with a `<mjml>` tag. It can contain only `<mj-head>` and `<mj-body>` tags, which serve the same purpose of `<head>` and `<body>` tags in HTML documents.
+
+<CodeGroup>
+```mjml example.mjml
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-image width="100px" src="https://mjml.io/assets/img/logo-small.png"></mj-image>
+        <mj-divider border-color="#F45E43"></mj-divider>
+        <mj-text font-size="20px" color="#F45E43" font-family="helvetica">Hello {{user.firstName}}</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+```
+</CodeGroup>
+
+In this example, we have a basic MJML template rendering the MJML logo in the `<mj-image>` tag, and a `<mj-divider>` separating the image from the text. The `<mj-text>` tag is rendering a Liquid object property called `user.firstName`. The result looks like this:
+
+<Frame>
+  <img src="/images/mjml-example-template.png" />
+</Frame>
+
+To create the same responsive template in HTML, our code would be approximately 10 times as many lines. Read more about how to simplify email templating with MJML by checking out their docs:
+
+<Info>MJML's [documentation](https://documentation.mjml.io/).</Info>
