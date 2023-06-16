@@ -342,6 +342,7 @@ export type RateLimitNode = Static<typeof RateLimitNode>;
 
 export enum MessageNodeVariantType {
   Email = "Email",
+  MobilePush = "MobilePush",
 }
 
 export const EmailPayload = Type.Object({
@@ -360,7 +361,17 @@ export const EmailMessageVariant = Type.Object({
 
 export type EmailMessageVariant = Static<typeof EmailMessageVariant>;
 
-export const MessageVariant = Type.Union([EmailMessageVariant]);
+export const MobilePushMessageVariant = Type.Object({
+  type: Type.Literal(MessageNodeVariantType.MobilePush),
+  templateId: Type.String(),
+});
+
+export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
+
+export const MessageVariant = Type.Union([
+  EmailMessageVariant,
+  MobilePushMessageVariant,
+]);
 
 export type MessageVariants = Static<typeof MessageVariant>;
 
