@@ -98,6 +98,14 @@ async function bootstrapPostgres({
         },
       },
       {
+        name: "deviceToken",
+        workspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "deviceToken",
+        },
+      },
+      {
         name: "firstName",
         workspaceId,
         definition: {
@@ -143,6 +151,20 @@ async function bootstrapPostgres({
         workspaceId,
         name: "email",
         identifier: "email",
+      },
+      update: {},
+    }),
+    prisma().channel.upsert({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: "mobilePush",
+        },
+      },
+      create: {
+        workspaceId,
+        name: "mobilePush",
+        identifier: "deviceToken",
       },
       update: {},
     }),
