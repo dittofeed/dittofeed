@@ -166,7 +166,7 @@ export async function userJourneyWorkflow({
         break;
       }
       case "MessageNode": {
-        let shouldContinue = false;
+        let shouldContinue: boolean;
         switch (currentNode.variant.type) {
           case MessageNodeVariantType.Email: {
             shouldContinue = await sendEmail({
