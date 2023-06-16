@@ -1,6 +1,7 @@
 import { SegmentAssignment } from "@prisma/client";
 import escapeHTML from "escape-html";
 
+import { submitTrack } from "../../apps";
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
 import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
@@ -10,6 +11,7 @@ import {
   InternalEventType,
   JourneyNode,
   JourneyNodeType,
+  KnownTrackData,
   MessageNodeVariantType,
   SubscriptionGroupType,
 } from "../../types";
@@ -27,6 +29,54 @@ interface SendEmailParams {
   journeyId: string;
   messageId: string;
   subscriptionGroupId?: string;
+}
+
+// FIXME dedupe
+interface SendMobilePushParams {
+  userId: string;
+  workspaceId: string;
+  runId: string;
+  nodeId: string;
+  templateId: string;
+  journeyId: string;
+  messageId: string;
+  subscriptionGroupId?: string;
+}
+
+async function sendMobilePushWithPayload({
+  journeyId,
+  templateId,
+  workspaceId,
+  userId,
+  runId,
+  nodeId,
+  messageId,
+  subscriptionGroupId,
+}: SendMobilePushParams): Promise<[boolean, KnownTrackData]> {
+  return [
+    true,
+    {
+      event: InternalEventType.MessageSent,
+      userId,
+      messageId,
+      properties: {
+        journeyId,
+        templateId,
+        workspaceId,
+        runId,
+        nodeId,
+        subscriptionGroupId,
+      },
+    },
+  ];
+}
+
+export async function sendMobilePush(
+  params: SendMobilePushParams
+): Promise<boolean> {
+  const [sent, payload] = await sendMobilePushWithPayload(params);
+  await submitTrack({ workspaceId: params.workspaceId, data: payload });
+  return sent;
 }
 
 // TODO write test

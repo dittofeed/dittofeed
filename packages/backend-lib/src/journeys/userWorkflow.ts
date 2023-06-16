@@ -23,10 +23,15 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 export const segmentUpdateSignal =
   wf.defineSignal<[SegmentUpdate]>("segmentUpdate");
 
-const { sendEmail, getSegmentAssignment, onNodeProcessed, isRunnable } =
-  proxyActivities<typeof activities>({
-    startToCloseTimeout: "2 minutes",
-  });
+const {
+  sendEmail,
+  getSegmentAssignment,
+  onNodeProcessed,
+  isRunnable,
+  sendMobilePush,
+} = proxyActivities<typeof activities>({
+  startToCloseTimeout: "2 minutes",
+});
 
 type SegmentAssignment = Pick<
   SegmentUpdate,
@@ -170,6 +175,19 @@ export async function userJourneyWorkflow({
         switch (currentNode.variant.type) {
           case MessageNodeVariantType.Email: {
             shouldContinue = await sendEmail({
+              userId,
+              workspaceId,
+              journeyId,
+              subscriptionGroupId: currentNode.subscriptionGroupId,
+              runId,
+              nodeId: currentNode.id,
+              templateId: currentNode.variant.templateId,
+              messageId: uuid4(),
+            });
+            break;
+          }
+          case MessageNodeVariantType.MobilePush: {
+            shouldContinue = await sendMobilePush({
               userId,
               workspaceId,
               journeyId,
