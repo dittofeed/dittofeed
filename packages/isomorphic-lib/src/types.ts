@@ -1030,7 +1030,7 @@ export const BaseIdentifyData = {
 
 export const BaseBatchIdentifyData = {
   ...BaseAppData,
-  type: Type.Literal("identify"),
+  type: Type.Literal(EventType.Identify),
   traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
@@ -1077,7 +1077,7 @@ export const BaseTrackData = {
 
 export const BaseBatchTrackData = {
   ...BaseAppData,
-  type: Type.Literal("track"),
+  type: Type.Literal(EventType.Track),
   event: Type.String(),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
@@ -1122,7 +1122,7 @@ export const BasePageData = {
 
 export const BaseBatchPageData = {
   ...BaseAppData,
-  type: Type.Literal("page"),
+  type: Type.Literal(EventType.Page),
   name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
@@ -1167,7 +1167,7 @@ export const BaseScreenData = {
 
 export const BaseBatchScreenData = {
   ...BaseAppData,
-  type: Type.Literal("screen"),
+  type: Type.Literal(EventType.Screen),
   name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
