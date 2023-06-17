@@ -596,7 +596,7 @@ export enum CompletionStatus {
   NotStarted = "NotStarted",
   InProgress = "InProgress",
   Successful = "Successful",
-  Failed = "failed",
+  Failed = "Failed",
 }
 
 export interface NotStartedRequest {
