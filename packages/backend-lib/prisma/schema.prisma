@@ -154,11 +154,13 @@ model MessageTemplate {
   id          String    @id() @default(uuid()) @db.Uuid
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId String    @db.Uuid
+  name       String
   type        String
   definition  Json
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  @@unique([workspaceId, name])
   @@index([workspaceId, type])
 }
 
