@@ -37,6 +37,7 @@
     "dotenv": "^16.0.3",
     "escape-html": "^1.0.3",
     "fast-jwt": "^2.2.2",
+    "firebase-admin": "^11.9.0",
     "isomorphic-lib": "0.0.3",
     "jsonpath": "^1.1.1",
     "kafkajs": "^2.2.2",
