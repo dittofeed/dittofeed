@@ -8,7 +8,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import backendConfig from "backend-lib/src/config";
 import {
   CompletionStatus,
   DeleteMessageTemplateRequest,

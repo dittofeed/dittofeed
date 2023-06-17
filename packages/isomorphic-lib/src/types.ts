@@ -559,12 +559,8 @@ export enum TemplateResourceType {
   MobilePush = "MobilePush",
 }
 
-// TODO consolidate with MessageTemplate
 export const EmailTemplateResource = Type.Object({
   type: Type.Literal(TemplateResourceType.Email),
-  workspaceId: Type.String(),
-  id: Type.String(),
-  name: Type.String(),
   from: Type.String(),
   subject: Type.String(),
   body: Type.String(),
@@ -584,24 +580,19 @@ export type MobilePushTemplateResource = Static<
 
 export const MessageTemplateResourceDefinition = Type.Union([
   MobilePushTemplateResource,
+  EmailTemplateResource,
 ]);
 
 export type MessageTemplateResourceDefinition = Static<
   typeof MessageTemplateResourceDefinition
 >;
 
-export const GenericMessageTemplateResource = Type.Object({
+export const MessageTemplateResource = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),
   name: Type.String(),
   definition: MessageTemplateResourceDefinition,
 });
-
-export type GenericMessageTemplateResource = Static<
-  typeof GenericMessageTemplateResource
->;
-
-export const MessageTemplateResource = Type.Union([EmailTemplateResource]);
 
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
 
