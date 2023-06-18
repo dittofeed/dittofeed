@@ -392,12 +392,14 @@ export default function EmailEditor() {
 
   const updateData: UpsertMessageTemplateResource = {
     id: messageId,
-    type: TemplateResourceType.Email,
     workspaceId: workspace.id,
     name: title,
-    from: emailFrom,
-    body: emailBody,
-    subject: emailSubject,
+    definition: {
+      type: TemplateResourceType.Email,
+      from: emailFrom,
+      body: emailBody,
+      subject: emailSubject,
+    },
   };
 
   const handleSave = apiRequestHandlerFactory({

@@ -8,10 +8,10 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import {
   CompletionStatus,
   DeleteMessageTemplateRequest,
-  EmailTemplateResource,
   EmptyResponse,
   MessageTemplateResource,
   TemplateResourceType,
@@ -25,7 +25,6 @@ import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
 
@@ -33,23 +32,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const workspaceId = dfContext.workspace.id;
 
-    const emails: EmailTemplateResource[] = (
-      await prisma().emailTemplate.findMany({
-        where: { workspaceId },
-      })
-    ).map((e) => ({
-      type: TemplateResourceType.Email,
-      name: e.name,
-      id: e.id,
-      workspaceId: e.workspaceId,
-      from: e.from,
-      subject: e.subject,
-      body: e.body,
-    }));
-
+    const templates = await findMessageTemplates({
+      workspaceId,
+    });
     const messages: AppState["messages"] = {
       type: CompletionStatus.Successful,
-      value: emails,
+      value: templates,
     };
 
     return {
@@ -87,7 +75,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
 
   const deleteData: DeleteMessageTemplateRequest = {
     id: template.id,
-    type: template.type,
+    type: template.definition.type,
   };
   const handleDelete = apiRequestHandlerFactory({
     request: messageTemplateDeleteRequest,
@@ -122,7 +110,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
         }}
         onClick={() => {
           let messageType: string;
-          switch (template.type) {
+          switch (template.definition.type) {
             case TemplateResourceType.Email:
               messageType = "emails";
           }
