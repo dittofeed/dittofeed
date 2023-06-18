@@ -1,6 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { renderLiquid } from "backend-lib/src/liquid";
-import logger from "backend-lib/src/logger";
 import { upsertMessageTemplate } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
 import { Prisma } from "backend-lib/src/types";

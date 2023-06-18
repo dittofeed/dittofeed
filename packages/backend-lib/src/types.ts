@@ -147,7 +147,7 @@ export const DecodedJwt = Type.Object({
 
 export type DecodedJwt = Static<typeof DecodedJwt>;
 
-enum SendgridEventType {
+export enum SendgridEventType {
   Processed = "processed",
   Dropped = "dropped",
   Deferred = "deferred",

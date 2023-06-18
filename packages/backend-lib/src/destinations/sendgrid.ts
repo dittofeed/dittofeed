@@ -10,8 +10,10 @@ import {
   BatchAppData,
   BatchItem,
   BatchTrackData,
+  EventType,
   InternalEventType,
   SendgridEvent,
+  SendgridEventType,
 } from "../types";
 
 function guardResponseError(e: unknown): sendgridMail.ResponseError {
@@ -95,7 +97,7 @@ export function sendgridEventToDF({
   let item: BatchTrackData;
   if (sendgridEvent.userId) {
     item = {
-      type: "track",
+      type: EventType.Track,
       event: eventName,
       userId: sendgridEvent.userId,
       anonymousId: sendgridEvent.anonymousId,
@@ -105,7 +107,7 @@ export function sendgridEventToDF({
     };
   } else if (sendgridEvent.anonymousId) {
     item = {
-      type: "track",
+      type: EventType.Track,
       event: eventName,
       anonymousId: sendgridEvent.anonymousId,
       properties,
