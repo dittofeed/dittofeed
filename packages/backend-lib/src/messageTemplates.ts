@@ -1,26 +1,17 @@
 import { ValueError } from "@sinclair/typebox/errors";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import {
-  schemaValidate,
-  schemaValidateWithErr,
-} from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
 import prisma from "./prisma";
 import {
+  EmailTemplate,
   MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
   TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "./types";
-
-// export async function upsertMessageTemplate({
-//   workspaceId,
-// }: {
-//   workspaceId: string;
-//   data: UpsertMessageTemplateResource;
-// }): Promise<MessageTemplateResource> {}
 
 export function enrichMessageTemplate({
   id,
@@ -42,6 +33,111 @@ export function enrichMessageTemplate({
     workspaceId,
     definition: enrichedDefintion.value,
   });
+}
+
+export function enrichEmailTemplate({
+  id,
+  workspaceId,
+  name,
+  body,
+  subject,
+  from,
+}: EmailTemplate): MessageTemplateResource {
+  return {
+    id,
+    name,
+    workspaceId,
+    definition: {
+      type: TemplateResourceType.Email,
+      subject,
+      from,
+      body,
+    },
+  };
+}
+
+export async function upsertMessageTemplate({
+  workspaceId,
+  data,
+}: {
+  workspaceId: string;
+  data: UpsertMessageTemplateResource;
+}): Promise<MessageTemplateResource> {
+  if (data.definition.type === TemplateResourceType.Email) {
+    let emailTemplate: EmailTemplate;
+    if (data.workspaceId && data.name) {
+      emailTemplate = await prisma().emailTemplate.upsert({
+        where: {
+          id: data.id,
+        },
+        create: {
+          workspaceId,
+          name: data.name,
+          id: data.id,
+          from: data.definition.from,
+          subject: data.definition.subject,
+          body: data.definition.body,
+        },
+        update: {
+          workspaceId,
+          name: data.name,
+          id: data.id,
+          from: data.definition.from,
+          subject: data.definition.subject,
+          body: data.definition.body,
+        },
+      });
+    } else {
+      emailTemplate = await prisma().emailTemplate.update({
+        where: {
+          id: data.id,
+        },
+        data: {
+          workspaceId,
+          name: data.name,
+          id: data.id,
+          from: data.definition.from,
+          subject: data.definition.subject,
+          body: data.definition.body,
+        },
+      });
+    }
+
+    return enrichEmailTemplate(emailTemplate);
+  }
+  let messageTemplate: MessageTemplate;
+  if (data.name && data.workspaceId) {
+    messageTemplate = await prisma().messageTemplate.upsert({
+      where: {
+        id: data.id,
+      },
+      create: {
+        workspaceId,
+        name: data.name,
+        id: data.id,
+        definition: data.definition,
+      },
+      update: {
+        workspaceId,
+        name: data.name,
+        id: data.id,
+        definition: data.definition,
+      },
+    });
+  } else {
+    messageTemplate = await prisma().messageTemplate.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        workspaceId,
+        name: data.name,
+        id: data.id,
+        definition: data.definition,
+      },
+    });
+  }
+  return unwrap(enrichMessageTemplate(messageTemplate));
 }
 
 export async function findMessageTemplates({
@@ -66,17 +162,7 @@ export async function findMessageTemplates({
     messageTemplates.map((mt) => unwrap(enrichMessageTemplate(mt)));
 
   const emailMessageTemplates: MessageTemplateResource[] = emailTemplates.map(
-    ({ id, name, body, subject, from }) => ({
-      id,
-      name,
-      workspaceId,
-      definition: {
-        type: TemplateResourceType.Email,
-        subject,
-        from,
-        body,
-      },
-    })
+    (et) => enrichEmailTemplate(et)
   );
   return genericMessageTemplates.concat(emailMessageTemplates);
 }

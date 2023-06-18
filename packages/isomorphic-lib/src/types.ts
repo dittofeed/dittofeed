@@ -587,19 +587,25 @@ export type MessageTemplateResourceDefinition = Static<
   typeof MessageTemplateResourceDefinition
 >;
 
-export const MessageTemplateResource = Type.Object({
+const MessageTemplateResourceProperties = {
   workspaceId: Type.String(),
   id: Type.String(),
   name: Type.String(),
   definition: MessageTemplateResourceDefinition,
-});
+} as const;
+
+export const MessageTemplateResource = Type.Object(
+  MessageTemplateResourceProperties
+);
 
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
 
-export const UpsertMessageTemplateResource = Type.Intersect([
-  Type.Omit(Type.Partial(MessageTemplateResource), ["id"]),
-  Type.Pick(MessageTemplateResource, ["id"]),
-]);
+export const UpsertMessageTemplateResource = Type.Object({
+  workspaceId: Type.Optional(Type.String()),
+  id: Type.String(),
+  name: Type.Optional(Type.String()),
+  definition: MessageTemplateResourceDefinition,
+});
 
 export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource

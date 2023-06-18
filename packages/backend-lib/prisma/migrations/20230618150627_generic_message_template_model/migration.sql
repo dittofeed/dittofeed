@@ -3,16 +3,12 @@ CREATE TABLE "MessageTemplate" (
     "id" UUID NOT NULL,
     "workspaceId" UUID NOT NULL,
     "name" TEXT NOT NULL,
-    "type" TEXT NOT NULL,
     "definition" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "MessageTemplate_pkey" PRIMARY KEY ("id")
 );
-
--- CreateIndex
-CREATE INDEX "MessageTemplate_workspaceId_type_idx" ON "MessageTemplate"("workspaceId", "type");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "MessageTemplate_workspaceId_name_key" ON "MessageTemplate"("workspaceId", "name");

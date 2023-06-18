@@ -136,7 +136,6 @@ model UserPropertyAssignment {
   @@index([userId])
 }
 
-
 // TODO consolidate with generic MessageTemplate
 model EmailTemplate {
   id          String    @id() @default(uuid()) @db.Uuid
@@ -154,14 +153,12 @@ model MessageTemplate {
   id          String    @id() @default(uuid()) @db.Uuid
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId String    @db.Uuid
-  name       String
-  type        String
+  name        String
   definition  Json
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@unique([workspaceId, name])
-  @@index([workspaceId, type])
 }
 
 model DefaultEmailProvider {
