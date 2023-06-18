@@ -5,6 +5,8 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  Menu,
+  MenuItem,
   Stack,
   Typography,
 } from "@mui/material";
@@ -18,7 +20,9 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../components/mainLayout";
@@ -112,7 +116,11 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
           let messageType: string;
           switch (template.definition.type) {
             case TemplateResourceType.Email:
-              messageType = "emails";
+              messageType = "email";
+              break;
+            case TemplateResourceType.MobilePush:
+              messageType = "mobile-push";
+              break;
           }
           path.push(`/templates/${messageType}/${template.id}`);
         }}
@@ -124,8 +132,10 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
 }
 
 function TemplateListContents() {
-  const path = useRouter();
+  const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const messagesResult = useAppStore((store) => store.messages);
+  const [newItemId, setNewItemId] = useState(() => uuid());
+
   const messages =
     messagesResult.type === CompletionStatus.Successful
       ? messagesResult.value
@@ -164,12 +174,28 @@ function TemplateListContents() {
           Message Library
         </Typography>
         <IconButton
-          onClick={() => {
-            path.push(`/templates/emails/${uuid()}`);
+          onClick={(event: React.MouseEvent<HTMLElement>) => {
+            setNewItemId(uuid());
+            setNewAnchorEl(event.currentTarget);
           }}
         >
           <AddCircleOutline />
         </IconButton>
+        <Menu
+          open={Boolean(newAnchorEl)}
+          onClose={() => setNewAnchorEl(null)}
+          anchorEl={newAnchorEl}
+        >
+          <MenuItem component={Link} href={`/templates/email/${newItemId}`}>
+            Email
+          </MenuItem>
+          <MenuItem
+            component={Link}
+            href={`/templates/mobile-push/${newItemId}`}
+          >
+            Mobile Push
+          </MenuItem>
+        </Menu>
       </Stack>
       {innerContents}
     </Stack>

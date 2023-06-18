@@ -570,8 +570,12 @@ export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
 export const MobilePushTemplateResource = Type.Object({
   type: Type.Literal(TemplateResourceType.MobilePush),
-  title: Type.String(),
-  body: Type.String(),
+  name: Type.String(),
+  workspaceId: Type.String(),
+  id: Type.String(),
+  title: Type.Optional(Type.String()),
+  message: Type.String(),
+  imageUrl: Type.Optional(Type.String()),
 });
 
 export type MobilePushTemplateResource = Static<
