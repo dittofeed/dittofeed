@@ -1,4 +1,3 @@
-import { ValueError } from "@sinclair/typebox/errors";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
@@ -56,13 +55,9 @@ export function enrichEmailTemplate({
   };
 }
 
-export async function upsertMessageTemplate({
-  workspaceId,
-  data,
-}: {
-  workspaceId: string;
-  data: UpsertMessageTemplateResource;
-}): Promise<MessageTemplateResource> {
+export async function upsertMessageTemplate(
+  data: UpsertMessageTemplateResource
+): Promise<MessageTemplateResource> {
   if (data.definition.type === TemplateResourceType.Email) {
     let emailTemplate: EmailTemplate;
     if (data.workspaceId && data.name) {
@@ -71,7 +66,7 @@ export async function upsertMessageTemplate({
           id: data.id,
         },
         create: {
-          workspaceId,
+          workspaceId: data.workspaceId,
           name: data.name,
           id: data.id,
           from: data.definition.from,
@@ -79,7 +74,7 @@ export async function upsertMessageTemplate({
           body: data.definition.body,
         },
         update: {
-          workspaceId,
+          workspaceId: data.workspaceId,
           name: data.name,
           id: data.id,
           from: data.definition.from,
@@ -93,7 +88,7 @@ export async function upsertMessageTemplate({
           id: data.id,
         },
         data: {
-          workspaceId,
+          workspaceId: data.workspaceId,
           name: data.name,
           id: data.id,
           from: data.definition.from,
@@ -112,13 +107,13 @@ export async function upsertMessageTemplate({
         id: data.id,
       },
       create: {
-        workspaceId,
+        workspaceId: data.workspaceId,
         name: data.name,
         id: data.id,
         definition: data.definition,
       },
       update: {
-        workspaceId,
+        workspaceId: data.workspaceId,
         name: data.name,
         id: data.id,
         definition: data.definition,
@@ -130,7 +125,7 @@ export async function upsertMessageTemplate({
         id: data.id,
       },
       data: {
-        workspaceId,
+        workspaceId: data.workspaceId,
         name: data.name,
         id: data.id,
         definition: data.definition,

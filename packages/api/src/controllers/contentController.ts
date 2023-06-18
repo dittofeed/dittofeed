@@ -1,13 +1,13 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { renderLiquid } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
+import { upsertMessageTemplate } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
-import { EmailTemplate, Prisma } from "backend-lib/src/types";
+import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
   DeleteMessageTemplateRequest,
-  EmailTemplateResource,
   EmptyResponse,
   JsonResultType,
   MessageTemplateResource,
@@ -113,55 +113,7 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      let emailTemplate: EmailTemplate;
-      const { id, workspaceId, from, subject, body, name } = request.body;
-      const canCreate = workspaceId && from && subject && body && name;
-
-      if (canCreate && id) {
-        emailTemplate = await prisma().emailTemplate.upsert({
-          where: {
-            id,
-          },
-          create: {
-            id,
-            workspaceId,
-            from,
-            name,
-            subject,
-            body,
-          },
-          update: {
-            workspaceId,
-            name,
-            from,
-            subject,
-            body,
-          },
-        });
-      } else {
-        emailTemplate = await prisma().emailTemplate.update({
-          where: {
-            id,
-          },
-          data: {
-            workspaceId,
-            name,
-            from,
-            subject,
-            body,
-          },
-        });
-      }
-
-      const resource: EmailTemplateResource = {
-        type: TemplateResourceType.Email,
-        id: emailTemplate.id,
-        from: emailTemplate.from,
-        name: emailTemplate.name,
-        subject: emailTemplate.subject,
-        body: emailTemplate.body,
-        workspaceId: emailTemplate.workspaceId,
-      };
+      const resource = await upsertMessageTemplate(request.body);
       return reply.status(200).send(resource);
     }
   );
@@ -192,14 +144,12 @@ export default async function contentController(fastify: FastifyInstance) {
             break;
           }
           default: {
-            logger().error(
-              {
-                type,
+            await prisma().messageTemplate.delete({
+              where: {
+                id,
               },
-              "Unhandled message template type."
-            );
-            const response = await reply.status(500).send();
-            return response;
+            });
+            break;
           }
         }
       } catch (e) {
