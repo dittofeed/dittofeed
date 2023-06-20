@@ -13,7 +13,6 @@ import {
   EventType,
   InternalEventType,
   SendgridEvent,
-  SendgridEventType,
 } from "../types";
 
 function guardResponseError(e: unknown): sendgridMail.ResponseError {

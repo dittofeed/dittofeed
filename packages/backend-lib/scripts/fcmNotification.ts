@@ -1,5 +1,4 @@
 // yarn workspace backend-lib ts-node scripts/fcmNotification.ts --to=name@dittofeed.com --from=support@dittofeed.com
-import { randomUUID } from "crypto";
 import { credential } from "firebase-admin";
 import { initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
@@ -8,11 +7,8 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import config from "../src/config";
 import { FcmKey } from "../src/destinations/fcm";
-import { sendMail } from "../src/destinations/sendgrid";
 import logger from "../src/logger";
-import prisma from "../src/prisma";
 
 async function fcmNotification() {
   const argv = await yargs(hideBin(process.argv))
@@ -41,7 +37,6 @@ async function fcmNotification() {
       privateKey: private_key,
       clientEmail: client_email,
     }),
-    // databaseURL: "https://production-dittofeed.firebaseio.com",
   });
   const messaging = getMessaging(app);
   await messaging.send({
@@ -50,6 +45,11 @@ async function fcmNotification() {
       title: argv.title,
       body: argv.body,
       imageUrl: argv.imageUrl,
+    },
+    android: {
+      notification: {
+        channelId: "default",
+      },
     },
   });
 }
