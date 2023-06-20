@@ -9,7 +9,7 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 
 import { submitTrack } from "../../apps";
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
-import { renderLiquid } from "../../liquid";
+import { liquidEngine, renderLiquid } from "../../liquid";
 import logger from "../../logger";
 import { findMessageTemplate } from "../../messageTemplates";
 import prisma from "../../prisma";
@@ -316,7 +316,26 @@ async function sendMobilePushWithPayload({
   });
   const messaging = getMessaging(app);
 
-  // FIXME handle subscription groups
+  const render = (template?: string) =>
+    template &&
+    renderLiquid({
+      userProperties: userPropertyAssignments,
+      template,
+      workspaceId,
+      identifierKey: "deviceToken",
+    });
+  const title = render(messageTemplate.definition.title);
+  const body = render(messageTemplate.definition.body);
+
+  const fcmMessageId = await messaging.send({
+    token: userPropertyAssignments.deviceToken,
+    notification: {
+      title,
+      body,
+      imageUrl: messageTemplate.definition.imageUrl,
+    },
+  });
+
   // FIXME consolidate with other send method
   return [
     true,
@@ -331,6 +350,7 @@ async function sendMobilePushWithPayload({
         runId,
         nodeId,
         subscriptionGroupId,
+        fcmMessageId,
       },
     },
   ];
