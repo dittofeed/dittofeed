@@ -8,7 +8,11 @@ import { FCM_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { submitTrack } from "../../apps";
-import { FcmKey } from "../../destinations/fcm";
+import {
+  FcmKey,
+  extractServiceAccount,
+  sendNotification,
+} from "../../destinations/fcm";
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
 import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
@@ -282,33 +286,6 @@ async function sendMobilePushWithPayload({
     ];
   }
 
-  const fcmKeyValue = schemaValidate(JSON.parse(fcmKey.value), FcmKey);
-  if (fcmKeyValue.isErr()) {
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          message: `Messaging channel secret malformed: ${fcmKeyValue.error}`,
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          nodeId,
-          userId,
-          workspaceId,
-        },
-      },
-    ];
-  }
-  const app = initializeApp({
-    credential: credential.cert(fcmKeyValue.value),
-    // databaseURL: "https://production-dittofeed.firebaseio.com",
-  });
-  const messaging = getMessaging(app);
-
   const render = (template?: string) =>
     template &&
     renderLiquid({
@@ -320,16 +297,38 @@ async function sendMobilePushWithPayload({
   const title = render(messageTemplate.definition.title);
   const body = render(messageTemplate.definition.body);
 
-  const fcmMessageId = await messaging.send({
+  const sendNotificationResult = await sendNotification({
+    key: fcmKey.value,
     token: userPropertyAssignments.deviceToken,
     notification: {
       title,
       body,
       imageUrl: messageTemplate.definition.imageUrl,
     },
+    android: messageTemplate.definition.android,
   });
 
-  // FIXME consolidate with other send method
+  if (sendNotificationResult.isErr()) {
+    return [
+      false,
+      {
+        event: InternalEventType.BadWorkspaceConfiguration,
+        messageId,
+        userId,
+        properties: {
+          journeyId,
+          message: `Messaging channel secret malformed: ${sendNotificationResult.error.message}`,
+          templateId,
+          runId,
+          messageType: MessageNodeVariantType.Email,
+          nodeId,
+          userId,
+          workspaceId,
+        },
+      },
+    ];
+  }
+
   return [
     true,
     {
@@ -343,7 +342,7 @@ async function sendMobilePushWithPayload({
         runId,
         nodeId,
         subscriptionGroupId,
-        fcmMessageId,
+        fcmMessageId: sendNotificationResult.value,
       },
     },
   ];
