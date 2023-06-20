@@ -8,8 +8,9 @@ import { FCM_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import { submitTrack } from "../../apps";
+import { FcmKey } from "../../destinations/fcm";
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
-import { liquidEngine, renderLiquid } from "../../liquid";
+import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
 import { findMessageTemplate } from "../../messageTemplates";
 import prisma from "../../prisma";
@@ -27,14 +28,6 @@ import { InternalEvent, trackInternalEvents } from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
 
 export { findAllUserPropertyAssignments } from "../../userProperties";
-
-const FcmKey = Type.Object({
-  projectId: Type.String(),
-  clientEmail: Type.String(),
-  privateKey: Type.String(),
-});
-
-type FcmKey = Static<typeof FcmKey>;
 
 interface SendEmailParams {
   userId: string;

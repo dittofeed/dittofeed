@@ -573,6 +573,13 @@ export const MobilePushTemplateResource = Type.Object({
   title: Type.Optional(Type.String()),
   body: Type.Optional(Type.String()),
   imageUrl: Type.Optional(Type.String()),
+  android: Type.Optional(
+    Type.Object({
+      notification: Type.Object({
+        channelId: Type.Optional(Type.String()),
+      }),
+    })
+  ),
 });
 
 export type MobilePushTemplateResource = Static<
