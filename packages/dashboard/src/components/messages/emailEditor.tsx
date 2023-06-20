@@ -234,13 +234,12 @@ export default function EmailEditor() {
         contents: {
           from: {
             value: debouncedEmailFrom,
-            mjml: false,
           },
           subject: {
             value: debouncedEmailSubject,
-            mjml: false,
           },
           body: {
+            mjml: true,
             value: debouncedEmailBody,
           },
         },

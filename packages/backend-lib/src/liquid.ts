@@ -1,8 +1,8 @@
 /* eslint-disable no-underscore-dangle */
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { Liquid } from "liquidjs";
-import mjml2html from "mjml";
 import MarkdownIt from "markdown-it";
+import mjml2html from "mjml";
 
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
@@ -116,7 +116,7 @@ export function renderLiquid({
   subscriptionGroupId,
   identifierKey,
   secrets = {},
-  mjml = true,
+  mjml = false,
 }: {
   template: string;
   mjml?: boolean;
@@ -138,11 +138,11 @@ export function renderLiquid({
   }
   try {
     return mjml2html(liquidRendered).html;
-  } catch (e: any) {
-    if (e.message.indexOf(MJML_NOT_PRESENT_ERROR) !== -1) {
+  } catch (e) {
+    const error = e as Error;
+    if (error.message.includes(MJML_NOT_PRESENT_ERROR)) {
       return liquidRendered;
-    } else {
-      throw e;
     }
+    throw e;
   }
 }
