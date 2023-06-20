@@ -34,6 +34,23 @@ export function enrichMessageTemplate({
   });
 }
 
+export async function findMessageTemplate({
+  id,
+}: {
+  id: string;
+}): Promise<Result<MessageTemplateResource | null, Error>> {
+  const template = await prisma().messageTemplate.findUnique({
+    where: {
+      id,
+    },
+  });
+  if (!template) {
+    return ok(null);
+  }
+
+  return enrichMessageTemplate(template);
+}
+
 export function enrichEmailTemplate({
   id,
   workspaceId,
