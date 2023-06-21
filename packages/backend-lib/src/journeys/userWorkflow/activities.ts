@@ -1,4 +1,9 @@
-import { Channel, JourneyStatus, SegmentAssignment } from "@prisma/client";
+import {
+  Channel,
+  EmailProvider,
+  JourneyStatus,
+  SegmentAssignment,
+} from "@prisma/client";
 import escapeHTML from "escape-html";
 import { FCM_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
@@ -18,27 +23,14 @@ import {
   JourneyNode,
   JourneyNodeType,
   KnownTrackData,
-  MessageNodeVariantType,
   MessageTemplateResource,
   SubscriptionGroupType,
   TemplateResourceType,
   TrackData,
 } from "../../types";
-import { InternalEvent, trackInternalEvents } from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
 
 export { findAllUserPropertyAssignments } from "../../userProperties";
-
-interface SendEmailParams {
-  userId: string;
-  workspaceId: string;
-  runId: string;
-  nodeId: string;
-  templateId: string;
-  journeyId: string;
-  messageId: string;
-  subscriptionGroupId?: string;
-}
 
 type SendWithTrackingValue = [boolean, KnownTrackData | null];
 
@@ -173,13 +165,13 @@ async function sendWithTracking<C>(
   const messageTemplate = messageTemplateResult.value;
   if (!messageTemplate) {
     return buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
-      message: "Message template not found",
+      message: "message template not found",
     });
   }
 
   if (!journey) {
     return buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
-      message: "Journey not found",
+      message: "journey not found",
     });
   }
 
@@ -189,7 +181,7 @@ async function sendWithTracking<C>(
         false,
         InternalEventType.BadWorkspaceConfiguration,
         {
-          message: "Subscription group not found",
+          message: "subscription group not found",
         }
       );
     }
@@ -347,365 +339,137 @@ export async function sendMobilePush(params: BaseSendParams): Promise<boolean> {
   return sent;
 }
 
-// TODO write test
-async function sendEmailWithPayload({
-  journeyId,
-  templateId,
-  workspaceId,
-  userId,
-  runId,
-  nodeId,
-  messageId,
-  subscriptionGroupId,
-}: SendEmailParams): Promise<[boolean, InternalEvent]> {
-  const [
-    journey,
-    subscriptionGroup,
-    defaultEmailProvider,
-    emailTemplate,
-    userProperties,
-  ] = await Promise.all([
-    prisma().journey.findUnique({
-      where: {
-        id: journeyId,
-      },
-    }),
-    subscriptionGroupId
-      ? prisma().subscriptionGroup.findUnique({
-          where: {
-            id: subscriptionGroupId,
-          },
-          include: {
-            Segment: {
-              include: {
-                SegmentAssignment: {
-                  where: {
-                    userId,
-                  },
-                },
-              },
-            },
-          },
-        })
-      : null,
-    prisma().defaultEmailProvider.findUnique({
-      where: {
-        workspaceId,
-      },
-      include: { emailProvider: true },
-    }),
-    prisma().emailTemplate.findUnique({
-      where: {
-        id: templateId,
-      },
-    }),
-    findAllUserPropertyAssignments({
-      userId,
-      workspaceId,
-    }),
-  ]);
-  if (!journey) {
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          message: "Journey not found",
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          nodeId,
-          userId,
-          workspaceId,
-        },
-      },
-    ];
-  }
-  if (subscriptionGroupId) {
-    if (!subscriptionGroup) {
-      return [
-        false,
-        {
-          event: InternalEventType.BadWorkspaceConfiguration,
-          messageId,
-          userId,
-          properties: {
-            journeyId,
-            message: "Subscription group not found",
-            subscriptionGroupId,
-            templateId,
-            runId,
-            messageType: MessageNodeVariantType.Email,
-            nodeId,
-            userId,
-            workspaceId,
-          },
-        },
-      ];
-    }
-    const segmentAssignment =
-      subscriptionGroup.Segment[0]?.SegmentAssignment[0];
-
-    if (
-      segmentAssignment?.inSegment === false ||
-      (segmentAssignment === undefined &&
-        subscriptionGroup.type === SubscriptionGroupType.OptIn)
-    ) {
-      // TODO this should skip message, but not cause user to drop out of journey. return value should not be simple boolean
-      return [
-        false,
-        {
-          event: InternalEventType.MessageSkipped,
-          messageId,
-          userId,
-          properties: {
-            journeyStatus: journey.status,
-            subscriptionGroupId,
-            SubscriptionGroupType: subscriptionGroup.type,
-            inSubscriptionGroupSegment: String(!!segmentAssignment?.inSegment),
-            message: "User is not in subscription group",
-            journeyId,
-            templateId,
-            runId,
-            messageType: MessageNodeVariantType.Email,
-            nodeId,
-            userId,
-            workspaceId,
-          },
-        },
-      ];
-    }
-  }
-  if (journey.status !== "Running") {
-    return [
-      false,
-      {
-        event: InternalEventType.MessageSkipped,
-        messageId,
-        userId,
-        properties: {
-          journeyStatus: journey.status,
-          message: "Journey is not running",
-          journeyId,
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          nodeId,
-          userId,
-          workspaceId,
-        },
-      },
-    ];
-  }
-
-  if (!emailTemplate) {
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          message: "Template not found",
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          nodeId,
-          userId,
-          workspaceId,
-        },
-      },
-    ];
-  }
-  if (!userProperties.email) {
-    return [
-      false,
-      {
-        event: InternalEventType.MessageSkipped,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          templateId,
-          message: "User missing the email property",
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          nodeId,
-          userId,
-          workspaceId,
-        },
-      },
-    ];
-  }
-
-  const render = (template: string) =>
-    renderLiquid({
-      userProperties,
-      template,
-      workspaceId,
-      identifierKey: "email",
-    });
-
-  let from: string;
-  let subject: string;
-  let body: string;
-  try {
-    from = escapeHTML(render(emailTemplate.from));
-    subject = escapeHTML(render(emailTemplate.subject));
-    body = render(emailTemplate.body);
-  } catch (e) {
-    const error = e as Error;
-
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          cause: error.message,
-          message: "Failed to render template",
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          nodeId,
-          userId,
-          workspaceId,
-        },
-      },
-    ];
-  }
-  const to = userProperties.email;
-
-  if (!defaultEmailProvider) {
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          message: "Missing default email provider",
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          nodeId,
-          userId,
-          to,
-          from,
-          subject,
-          body,
-          workspaceId,
-          templateId,
-        },
-      },
-    ];
-  }
-
-  switch (defaultEmailProvider.emailProvider.type) {
-    case EmailProviderType.Sendgrid: {
-      const result = await sendEmailSendgrid({
-        mailData: {
-          to,
-          from,
-          subject,
-          html: body,
-          customArgs: {
-            journeyId,
-            runId,
-            messageId,
-            userId,
-            workspaceId,
-            templateId,
-            nodeId,
-          },
-        },
-        apiKey: defaultEmailProvider.emailProvider.apiKey,
-      });
-      if (result.isErr()) {
-        logger().debug({ err: result.error });
-        return [
-          false,
-          {
-            event: InternalEventType.MessageFailure,
-            userId,
-            messageId,
-            properties: {
-              journeyId,
-              runId,
-              error: result.error.message,
-              message: "Failed to send message to sendgrid.",
-              messageType: MessageNodeVariantType.Email,
-              emailProvider: defaultEmailProvider.emailProvider.type,
-              nodeId,
-              userId,
-              to,
-              from,
-              subject,
-              body,
-              workspaceId,
-              templateId,
-            },
-          },
-        ];
-      }
-
-      return [
-        true,
-        {
-          event: InternalEventType.MessageSent,
-          userId,
-          messageId,
-          properties: {
-            messageType: MessageNodeVariantType.Email,
-            emailProvider: defaultEmailProvider.emailProvider.type,
-            nodeId,
-            userId,
-            to,
-            from,
-            subject,
-            body,
-            templateId,
-            runId,
-            workspaceId,
-            journeyId,
-          },
-        },
-      ];
-    }
-  }
-
-  return [
-    false,
-    {
-      event: InternalEventType.BadWorkspaceConfiguration,
-      messageId,
-      userId,
-      properties: {
-        provider: defaultEmailProvider.emailProvider.type,
-        message: "Unknown email provider type",
-        runId,
-        workspaceId,
-        journeyId,
-      },
-    },
-  ];
+interface EmailChannelConfig {
+  emailProvider: EmailProvider;
 }
 
-export async function sendEmail(params: SendEmailParams): Promise<boolean> {
-  const { workspaceId } = params;
-  const [sentMessage, internalUserEvent] = await sendEmailWithPayload(params);
+// TODO write test
+async function sendEmailWithPayload(
+  params: BaseSendParams
+): Promise<SendWithTrackingValue> {
+  const buildSendValue = buildSendValueFactory(params);
 
-  await trackInternalEvents({
-    workspaceId,
-    events: [internalUserEvent],
+  return sendWithTracking<EmailChannelConfig>({
+    ...params,
+    async getChannelConfig({ workspaceId }) {
+      const defaultEmailProvider =
+        await prisma().defaultEmailProvider.findUnique({
+          where: {
+            workspaceId,
+          },
+          include: { emailProvider: true },
+        });
+
+      if (!defaultEmailProvider?.emailProvider) {
+        return err(
+          buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
+            message: "Default email provider not found",
+          })
+        );
+      }
+      return ok({ emailProvider: defaultEmailProvider.emailProvider });
+    },
+    async channelSend({
+      workspaceId,
+      channel,
+      messageTemplate,
+      userPropertyAssignments,
+      channelConfig,
+      identifier,
+      journeyId,
+      runId,
+      messageId,
+      userId,
+      templateId,
+      nodeId,
+    }) {
+      const render = (template: string) =>
+        template &&
+        renderLiquid({
+          userProperties: userPropertyAssignments,
+          template,
+          workspaceId,
+          identifierKey: channel.identifier,
+        });
+
+      if (messageTemplate.definition.type !== TemplateResourceType.Email) {
+        return buildSendValue(
+          false,
+          InternalEventType.BadWorkspaceConfiguration,
+          {
+            message: "Message template is not a mobile push template",
+          }
+        );
+      }
+      let from: string;
+      let subject: string;
+      let body: string;
+      try {
+        from = escapeHTML(render(messageTemplate.definition.from));
+        subject = escapeHTML(render(messageTemplate.definition.subject));
+        body = render(messageTemplate.definition.body);
+      } catch (e) {
+        const error = e as Error;
+        return buildSendValue(
+          false,
+          InternalEventType.BadWorkspaceConfiguration,
+          {
+            message: `render failure: ${error.message}`,
+          }
+        );
+      }
+
+      switch (channelConfig.emailProvider.type) {
+        case EmailProviderType.Sendgrid: {
+          // TODO distinguish between retryable and non-retryable errors
+          const result = await sendEmailSendgrid({
+            mailData: {
+              to: identifier,
+              from,
+              subject,
+              html: body,
+              customArgs: {
+                journeyId,
+                runId,
+                messageId,
+                userId,
+                workspaceId,
+                templateId,
+                nodeId,
+              },
+            },
+            apiKey: channelConfig.emailProvider.apiKey,
+          });
+
+          if (result.isErr()) {
+            logger().error({ err: result.error });
+            return buildSendValue(false, InternalEventType.MessageFailure, {
+              message: `Failed to send message to sendgrid: ${result.error.message}`,
+            });
+          }
+
+          return buildSendValue(true, InternalEventType.MessageSent);
+        }
+        default: {
+          return buildSendValue(
+            false,
+            InternalEventType.BadWorkspaceConfiguration,
+            {
+              message: `Unknown email provider type: ${channelConfig.emailProvider.type}`,
+            }
+          );
+        }
+      }
+    },
   });
-  return sentMessage;
+}
+
+export async function sendEmail(params: BaseSendParams): Promise<boolean> {
+  const [sent, trackData] = await sendEmailWithPayload(params);
+  if (trackData) {
+    await submitTrack({ workspaceId: params.workspaceId, data: trackData });
+  }
+  return sent;
 }
 
 export async function isRunnable({
