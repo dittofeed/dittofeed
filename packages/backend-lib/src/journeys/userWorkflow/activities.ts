@@ -306,8 +306,21 @@ async function sendMobilePushWithPayload(
           }
         );
       }
-      const title = render(messageTemplate.definition.title);
-      const body = render(messageTemplate.definition.body);
+      let title: string | undefined;
+      let body: string | undefined;
+      try {
+        title = render(messageTemplate.definition.title);
+        body = render(messageTemplate.definition.body);
+      } catch (e) {
+        const error = e as Error;
+        return buildSendValue(
+          false,
+          InternalEventType.BadWorkspaceConfiguration,
+          {
+            message: `render failure: ${error.message}`,
+          }
+        );
+      }
 
       const fcmMessageId = await sendNotification({
         key: channelConfig.fcmKey,
@@ -545,7 +558,7 @@ async function sendEmailWithPayload({
     subject = escapeHTML(render(emailTemplate.subject));
     body = render(emailTemplate.body);
   } catch (e) {
-    const err = e as Error;
+    const error = e as Error;
 
     return [
       false,
@@ -555,7 +568,7 @@ async function sendEmailWithPayload({
         userId,
         properties: {
           journeyId,
-          cause: err.message,
+          cause: error.message,
           message: "Failed to render template",
           templateId,
           runId,
