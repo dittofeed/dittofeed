@@ -1,23 +1,17 @@
-import { SegmentAssignment } from "@prisma/client";
-import { Static, Type } from "@sinclair/typebox";
+import { Channel, SegmentAssignment } from "@prisma/client";
 import escapeHTML from "escape-html";
-import { credential } from "firebase-admin";
-import { initializeApp } from "firebase-admin/app";
-import { getMessaging } from "firebase-admin/messaging";
 import { FCM_SECRET_NAME } from "isomorphic-lib/src/constants";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { Result } from "neverthrow";
+import * as R from "remeda";
 
 import { submitTrack } from "../../apps";
-import {
-  FcmKey,
-  extractServiceAccount,
-  sendNotification,
-} from "../../destinations/fcm";
+import { sendNotification } from "../../destinations/fcm";
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
 import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
 import { findMessageTemplate } from "../../messageTemplates";
 import prisma from "../../prisma";
+import { getSubscriptionGroupWithAssignment } from "../../subscriptionGroups";
 import {
   EmailProviderType,
   InternalEventType,
@@ -27,6 +21,7 @@ import {
   MessageNodeVariantType,
   SubscriptionGroupType,
   TemplateResourceType,
+  TrackData,
 } from "../../types";
 import { InternalEvent, trackInternalEvents } from "../../userEvents";
 import { findAllUserPropertyAssignments } from "../../userProperties";
@@ -44,8 +39,9 @@ interface SendEmailParams {
   subscriptionGroupId?: string;
 }
 
-// FIXME dedupe
-interface SendMobilePushParams {
+type SendWithTrackingValue = [boolean, KnownTrackData | null];
+
+interface BaseSendParams {
   userId: string;
   workspaceId: string;
   runId: string;
@@ -54,6 +50,179 @@ interface SendMobilePushParams {
   journeyId: string;
   messageId: string;
   subscriptionGroupId?: string;
+  channelName: string;
+}
+interface SendParams<C> extends BaseSendParams {
+  getChannelConfig: ({
+    workspaceId,
+  }: {
+    workspaceId: string;
+  }) => Promise<Result<C, SendWithTrackingValue>>;
+  channelSend: (
+    params: BaseSendParams & { channelConfig: C; channel: Channel }
+  ) => Promise<SendWithTrackingValue>;
+}
+
+async function sendWithTracking<C>(
+  params: SendParams<C>
+): Promise<SendWithTrackingValue> {
+  const {
+    journeyId,
+    templateId,
+    workspaceId,
+    userId,
+    runId,
+    nodeId,
+    messageId,
+    subscriptionGroupId,
+    getChannelConfig,
+    channelSend,
+    channelName,
+  } = params;
+  const [
+    messageTemplateResult,
+    userPropertyAssignments,
+    journey,
+    subscriptionGroup,
+    channelConfig,
+    channel,
+  ] = await Promise.all([
+    findMessageTemplate({ id: templateId }),
+    findAllUserPropertyAssignments({ userId, workspaceId }),
+    prisma().journey.findUnique({ where: { id: journeyId } }),
+    subscriptionGroupId
+      ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
+      : null,
+    getChannelConfig({ workspaceId }),
+    prisma().channel.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: channelName,
+        },
+      },
+    }),
+  ]);
+  const baseParams = {
+    journeyId,
+    templateId,
+    workspaceId,
+    userId,
+    runId,
+    nodeId,
+    messageId,
+    subscriptionGroupId,
+    channelName,
+  };
+  const loggingParams = {
+    ...baseParams,
+    journeyStatus: journey?.status,
+  };
+  const trackingProperties = {
+    ...R.omit(loggingParams, ["userId", "workspaceId"]),
+  };
+
+  function buildValue(
+    success: boolean,
+    event: InternalEventType,
+    properties?: TrackData["properties"]
+  ): SendWithTrackingValue {
+    return [
+      success,
+      {
+        event,
+        messageId,
+        userId,
+        properties: {
+          ...trackingProperties,
+          ...properties,
+        },
+      },
+    ];
+  }
+
+  if (messageTemplateResult.isErr()) {
+    logger().error(
+      {
+        ...loggingParams,
+        error: messageTemplateResult.error,
+      },
+      "malformed message template"
+    );
+    return [false, null];
+  }
+
+  const messageTemplate = messageTemplateResult.value;
+  if (!messageTemplate) {
+    return buildValue(false, InternalEventType.BadWorkspaceConfiguration, {
+      message: "Message template not found",
+    });
+  }
+
+  if (!journey) {
+    return buildValue(false, InternalEventType.BadWorkspaceConfiguration, {
+      message: "Journey not found",
+    });
+  }
+
+  if (subscriptionGroupId) {
+    if (!subscriptionGroup) {
+      return buildValue(false, InternalEventType.BadWorkspaceConfiguration, {
+        message: "Subscription group not found",
+      });
+    }
+
+    const segmentAssignment =
+      subscriptionGroup.Segment[0]?.SegmentAssignment[0];
+
+    if (
+      segmentAssignment?.inSegment === false ||
+      (segmentAssignment === undefined &&
+        subscriptionGroup.type === SubscriptionGroupType.OptIn)
+    ) {
+      // TODO this should skip message, but not cause user to drop out of journey. return value should not be simple boolean
+      return buildValue(false, InternalEventType.MessageSkipped, {
+        SubscriptionGroupType: subscriptionGroup.type,
+        inSubscriptionGroupSegment: String(!!segmentAssignment?.inSegment),
+        message: "User is not in subscription group",
+      });
+    }
+  }
+
+  if (journey.status !== "Running") {
+    return buildValue(false, InternalEventType.MessageSkipped);
+  }
+
+  if (!channel) {
+    logger().error(
+      {
+        channel: channelName,
+        workspaceId,
+      },
+      "channel not found"
+    );
+    return [false, null];
+  }
+
+  const identifier = userPropertyAssignments[channel.identifier];
+
+  if (!identifier) {
+    return buildValue(false, InternalEventType.BadWorkspaceConfiguration, {
+      identifier,
+      identifierKey: channel.identifier,
+      message: "Identifier not found.",
+    });
+  }
+
+  if (channelConfig.isErr()) {
+    return channelConfig.error;
+  }
+
+  return channelSend({
+    channelConfig: channelConfig.value,
+    channel,
+    ...baseParams,
+  });
 }
 
 async function sendMobilePushWithPayload({
@@ -65,7 +234,7 @@ async function sendMobilePushWithPayload({
   nodeId,
   messageId,
   subscriptionGroupId,
-}: SendMobilePushParams): Promise<[boolean, KnownTrackData | null]> {
+}: BaseSendParams): Promise<[boolean, KnownTrackData | null]> {
   const [
     messageTemplateResult,
     userPropertyAssignments,
@@ -74,33 +243,10 @@ async function sendMobilePushWithPayload({
     fcmKey,
   ] = await Promise.all([
     findMessageTemplate({ id: templateId }),
-    findAllUserPropertyAssignments({
-      userId,
-      workspaceId,
-    }),
-    prisma().journey.findUnique({
-      where: {
-        id: journeyId,
-      },
-    }),
-
+    findAllUserPropertyAssignments({ userId, workspaceId }),
+    prisma().journey.findUnique({ where: { id: journeyId } }),
     subscriptionGroupId
-      ? prisma().subscriptionGroup.findUnique({
-          where: {
-            id: subscriptionGroupId,
-          },
-          include: {
-            Segment: {
-              include: {
-                SegmentAssignment: {
-                  where: {
-                    userId,
-                  },
-                },
-              },
-            },
-          },
-        })
+      ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
       : null,
     prisma().secret.findUnique({
       where: {
@@ -348,9 +494,7 @@ async function sendMobilePushWithPayload({
   ];
 }
 
-export async function sendMobilePush(
-  params: SendMobilePushParams
-): Promise<boolean> {
+export async function sendMobilePush(params: BaseSendParams): Promise<boolean> {
   const [sent, trackData] = await sendMobilePushWithPayload(params);
   if (trackData) {
     await submitTrack({ workspaceId: params.workspaceId, data: trackData });

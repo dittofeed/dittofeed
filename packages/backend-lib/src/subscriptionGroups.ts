@@ -1,4 +1,9 @@
-import { Prisma, Segment, SubscriptionGroup } from "@prisma/client";
+import {
+  Prisma,
+  Segment,
+  SegmentAssignment,
+  SubscriptionGroup,
+} from "@prisma/client";
 import {
   SUBSCRIPTION_MANAGEMENT_PAGE,
   SUBSCRIPTION_SECRET_NAME,
@@ -25,6 +30,39 @@ import {
   UserSubscriptionsUpdate,
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
+
+export async function getSubscriptionGroupWithAssignment({
+  subscriptionGroupId,
+  userId,
+}: {
+  subscriptionGroupId: string;
+  userId: string;
+}): Promise<
+  | (SubscriptionGroup & {
+      Segment: (Segment & {
+        SegmentAssignment: SegmentAssignment[];
+      })[];
+    })
+  | null
+> {
+  const sg = await prisma().subscriptionGroup.findUnique({
+    where: {
+      id: subscriptionGroupId,
+    },
+    include: {
+      Segment: {
+        include: {
+          SegmentAssignment: {
+            where: {
+              userId,
+            },
+          },
+        },
+      },
+    },
+  });
+  return sg;
+}
 
 export async function upsertSubscriptionGroup({
   id,
