@@ -1,7 +1,7 @@
-import { Channel, SegmentAssignment } from "@prisma/client";
+import { Channel, JourneyStatus, SegmentAssignment } from "@prisma/client";
 import escapeHTML from "escape-html";
 import { FCM_SECRET_NAME } from "isomorphic-lib/src/constants";
-import { Result } from "neverthrow";
+import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
 
 import { submitTrack } from "../../apps";
@@ -19,6 +19,7 @@ import {
   JourneyNodeType,
   KnownTrackData,
   MessageNodeVariantType,
+  MessageTemplateResource,
   SubscriptionGroupType,
   TemplateResourceType,
   TrackData,
@@ -59,8 +60,45 @@ interface SendParams<C> extends BaseSendParams {
     workspaceId: string;
   }) => Promise<Result<C, SendWithTrackingValue>>;
   channelSend: (
-    params: BaseSendParams & { channelConfig: C; channel: Channel }
+    params: BaseSendParams & {
+      channel: Channel;
+      channelConfig: C;
+      identifier: string;
+      messageTemplate: MessageTemplateResource;
+      userPropertyAssignments: Awaited<
+        ReturnType<typeof findAllUserPropertyAssignments>
+      >;
+    }
   ) => Promise<SendWithTrackingValue>;
+}
+
+type TrackingProperties = BaseSendParams & {
+  journeyStatus?: JourneyStatus;
+};
+
+function buildSendValueFactory(trackingProperties: TrackingProperties) {
+  const innerTrackingProperties = {
+    ...R.omit(trackingProperties, ["userId", "workspaceId", "messageId"]),
+  };
+
+  return function buildSendValue(
+    success: boolean,
+    event: InternalEventType,
+    properties?: TrackData["properties"]
+  ): SendWithTrackingValue {
+    return [
+      success,
+      {
+        event,
+        messageId: trackingProperties.messageId,
+        userId: trackingProperties.userId,
+        properties: {
+          ...innerTrackingProperties,
+          ...properties,
+        },
+      },
+    ];
+  };
 }
 
 async function sendWithTracking<C>(
@@ -114,37 +152,17 @@ async function sendWithTracking<C>(
     subscriptionGroupId,
     channelName,
   };
-  const loggingParams = {
+  const trackingProperties = {
     ...baseParams,
     journeyStatus: journey?.status,
   };
-  const trackingProperties = {
-    ...R.omit(loggingParams, ["userId", "workspaceId"]),
-  };
 
-  function buildValue(
-    success: boolean,
-    event: InternalEventType,
-    properties?: TrackData["properties"]
-  ): SendWithTrackingValue {
-    return [
-      success,
-      {
-        event,
-        messageId,
-        userId,
-        properties: {
-          ...trackingProperties,
-          ...properties,
-        },
-      },
-    ];
-  }
+  const buildSendValue = buildSendValueFactory(trackingProperties);
 
   if (messageTemplateResult.isErr()) {
     logger().error(
       {
-        ...loggingParams,
+        ...trackingProperties,
         error: messageTemplateResult.error,
       },
       "malformed message template"
@@ -154,22 +172,26 @@ async function sendWithTracking<C>(
 
   const messageTemplate = messageTemplateResult.value;
   if (!messageTemplate) {
-    return buildValue(false, InternalEventType.BadWorkspaceConfiguration, {
+    return buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
       message: "Message template not found",
     });
   }
 
   if (!journey) {
-    return buildValue(false, InternalEventType.BadWorkspaceConfiguration, {
+    return buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
       message: "Journey not found",
     });
   }
 
   if (subscriptionGroupId) {
     if (!subscriptionGroup) {
-      return buildValue(false, InternalEventType.BadWorkspaceConfiguration, {
-        message: "Subscription group not found",
-      });
+      return buildSendValue(
+        false,
+        InternalEventType.BadWorkspaceConfiguration,
+        {
+          message: "Subscription group not found",
+        }
+      );
     }
 
     const segmentAssignment =
@@ -181,7 +203,7 @@ async function sendWithTracking<C>(
         subscriptionGroup.type === SubscriptionGroupType.OptIn)
     ) {
       // TODO this should skip message, but not cause user to drop out of journey. return value should not be simple boolean
-      return buildValue(false, InternalEventType.MessageSkipped, {
+      return buildSendValue(false, InternalEventType.MessageSkipped, {
         SubscriptionGroupType: subscriptionGroup.type,
         inSubscriptionGroupSegment: String(!!segmentAssignment?.inSegment),
         message: "User is not in subscription group",
@@ -190,7 +212,7 @@ async function sendWithTracking<C>(
   }
 
   if (journey.status !== "Running") {
-    return buildValue(false, InternalEventType.MessageSkipped);
+    return buildSendValue(false, InternalEventType.MessageSkipped);
   }
 
   if (!channel) {
@@ -207,7 +229,7 @@ async function sendWithTracking<C>(
   const identifier = userPropertyAssignments[channel.identifier];
 
   if (!identifier) {
-    return buildValue(false, InternalEventType.BadWorkspaceConfiguration, {
+    return buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
       identifier,
       identifierKey: channel.identifier,
       message: "Identifier not found.",
@@ -221,277 +243,87 @@ async function sendWithTracking<C>(
   return channelSend({
     channelConfig: channelConfig.value,
     channel,
+    messageTemplate,
+    identifier,
+    userPropertyAssignments,
     ...baseParams,
   });
 }
 
-async function sendMobilePushWithPayload({
-  journeyId,
-  templateId,
-  workspaceId,
-  userId,
-  runId,
-  nodeId,
-  messageId,
-  subscriptionGroupId,
-}: BaseSendParams): Promise<[boolean, KnownTrackData | null]> {
-  const [
-    messageTemplateResult,
-    userPropertyAssignments,
-    journey,
-    subscriptionGroup,
-    fcmKey,
-  ] = await Promise.all([
-    findMessageTemplate({ id: templateId }),
-    findAllUserPropertyAssignments({ userId, workspaceId }),
-    prisma().journey.findUnique({ where: { id: journeyId } }),
-    subscriptionGroupId
-      ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
-      : null,
-    prisma().secret.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: FCM_SECRET_NAME,
-        },
-      },
-    }),
-  ]);
-  if (messageTemplateResult.isErr()) {
-    logger().error(
-      {
-        templateId,
-        error: messageTemplateResult.error,
-      },
-      "malformed message template"
-    );
-    return [false, null];
-  }
-  const messageTemplate = messageTemplateResult.value;
-  if (!messageTemplate) {
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          message: "Message template not found",
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.MobilePush,
-          nodeId,
-        },
-      },
-    ];
-  }
-  if (messageTemplate.definition.type !== TemplateResourceType.MobilePush) {
-    logger().error(
-      {
-        templateId,
-      },
-      "tried to send non-mobile push template as mobile push"
-    );
-    return [false, null];
-  }
+interface MobilePushChannelConfig {
+  fcmKey: string;
+}
 
-  if (!journey) {
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          message: "Journey not found",
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.MobilePush,
-          nodeId,
-        },
-      },
-    ];
-  }
+async function sendMobilePushWithPayload(
+  params: BaseSendParams
+): Promise<SendWithTrackingValue> {
+  const buildSendValue = buildSendValueFactory(params);
 
-  if (subscriptionGroupId) {
-    if (!subscriptionGroup) {
-      return [
-        false,
-        {
-          event: InternalEventType.BadWorkspaceConfiguration,
-          messageId,
-          userId,
-          properties: {
-            journeyId,
-            message: "Subscription group not found",
-            subscriptionGroupId,
-            templateId,
-            runId,
-            messageType: MessageNodeVariantType.MobilePush,
-            nodeId,
+  return sendWithTracking<MobilePushChannelConfig>({
+    ...params,
+    async getChannelConfig({ workspaceId }) {
+      const fcmKey = await prisma().secret.findUnique({
+        where: {
+          workspaceId_name: {
             workspaceId,
+            name: FCM_SECRET_NAME,
           },
         },
-      ];
-    }
-    const segmentAssignment =
-      subscriptionGroup.Segment[0]?.SegmentAssignment[0];
+      });
 
-    if (
-      segmentAssignment?.inSegment === false ||
-      (segmentAssignment === undefined &&
-        subscriptionGroup.type === SubscriptionGroupType.OptIn)
-    ) {
-      // TODO this should skip message, but not cause user to drop out of journey. return value should not be simple boolean
-      return [
-        false,
-        {
-          event: InternalEventType.MessageSkipped,
-          messageId,
-          userId,
-          properties: {
-            journeyStatus: journey.status,
-            subscriptionGroupId,
-            SubscriptionGroupType: subscriptionGroup.type,
-            inSubscriptionGroupSegment: String(!!segmentAssignment?.inSegment),
-            message: "User is not in subscription group",
-            journeyId,
-            templateId,
-            runId,
-            messageType: MessageNodeVariantType.MobilePush,
-            nodeId,
-          },
-        },
-      ];
-    }
-  }
-
-  if (journey.status !== "Running") {
-    return [
-      false,
-      {
-        event: InternalEventType.MessageSkipped,
-        messageId,
-        userId,
-        properties: {
-          journeyStatus: journey.status,
-          message: "Journey is not running",
-          journeyId,
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.MobilePush,
-          nodeId,
-          userId,
-          workspaceId,
-        },
-      },
-    ];
-  }
-
-  if (!userPropertyAssignments.deviceToken) {
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          message: "Device token not found",
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.MobilePush,
-          nodeId,
-          userId,
-          workspaceId,
-        },
-      },
-    ];
-  }
-
-  if (!fcmKey) {
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          message: "Messaging channel secret not found",
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          nodeId,
-          userId,
-          workspaceId,
-        },
-      },
-    ];
-  }
-
-  const render = (template?: string) =>
-    template &&
-    renderLiquid({
-      userProperties: userPropertyAssignments,
-      template,
+      if (!fcmKey) {
+        return err(
+          buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
+            message: "FCM key not found",
+          })
+        );
+      }
+      return ok({ fcmKey: fcmKey.value });
+    },
+    async channelSend({
       workspaceId,
-      identifierKey: "deviceToken",
-    });
-  const title = render(messageTemplate.definition.title);
-  const body = render(messageTemplate.definition.body);
-
-  const sendNotificationResult = await sendNotification({
-    key: fcmKey.value,
-    token: userPropertyAssignments.deviceToken,
-    notification: {
-      title,
-      body,
-      imageUrl: messageTemplate.definition.imageUrl,
-    },
-    android: messageTemplate.definition.android,
-  });
-
-  if (sendNotificationResult.isErr()) {
-    return [
-      false,
-      {
-        event: InternalEventType.BadWorkspaceConfiguration,
-        messageId,
-        userId,
-        properties: {
-          journeyId,
-          message: `Messaging channel secret malformed: ${sendNotificationResult.error.message}`,
-          templateId,
-          runId,
-          messageType: MessageNodeVariantType.Email,
-          nodeId,
-          userId,
+      channel,
+      messageTemplate,
+      userPropertyAssignments,
+      channelConfig,
+      identifier,
+    }) {
+      const render = (template?: string) =>
+        template &&
+        renderLiquid({
+          userProperties: userPropertyAssignments,
+          template,
           workspaceId,
-        },
-      },
-    ];
-  }
+          identifierKey: channel.identifier,
+        });
 
-  return [
-    true,
-    {
-      event: InternalEventType.MessageSent,
-      userId,
-      messageId,
-      properties: {
-        journeyId,
-        templateId,
-        workspaceId,
-        runId,
-        nodeId,
-        subscriptionGroupId,
-        fcmMessageId: sendNotificationResult.value,
-      },
+      if (messageTemplate.definition.type !== TemplateResourceType.MobilePush) {
+        return buildSendValue(
+          false,
+          InternalEventType.BadWorkspaceConfiguration,
+          {
+            message: "Message template is not a mobile push template",
+          }
+        );
+      }
+      const title = render(messageTemplate.definition.title);
+      const body = render(messageTemplate.definition.body);
+
+      const fcmMessageId = await sendNotification({
+        key: channelConfig.fcmKey,
+        token: identifier,
+        notification: {
+          title,
+          body,
+          imageUrl: messageTemplate.definition.imageUrl,
+        },
+        android: messageTemplate.definition.android,
+      });
+      return buildSendValue(true, InternalEventType.MessageSent, {
+        fcmMessageId,
+      });
     },
-  ];
+  });
 }
 
 export async function sendMobilePush(params: BaseSendParams): Promise<boolean> {
