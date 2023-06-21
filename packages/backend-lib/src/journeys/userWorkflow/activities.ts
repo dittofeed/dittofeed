@@ -23,6 +23,7 @@ import {
   JourneyNode,
   JourneyNodeType,
   KnownTrackData,
+  MessageNodeVariantType,
   MessageTemplateResource,
   SubscriptionGroupType,
   TemplateResourceType,
@@ -331,8 +332,13 @@ async function sendMobilePushWithPayload(
   });
 }
 
-export async function sendMobilePush(params: BaseSendParams): Promise<boolean> {
-  const [sent, trackData] = await sendMobilePushWithPayload(params);
+export async function sendMobilePush(
+  params: Omit<BaseSendParams, "channelName">
+): Promise<boolean> {
+  const [sent, trackData] = await sendMobilePushWithPayload({
+    ...params,
+    channelName: MessageNodeVariantType.MobilePush,
+  });
   if (trackData) {
     await submitTrack({ workspaceId: params.workspaceId, data: trackData });
   }
@@ -464,8 +470,13 @@ async function sendEmailWithPayload(
   });
 }
 
-export async function sendEmail(params: BaseSendParams): Promise<boolean> {
-  const [sent, trackData] = await sendEmailWithPayload(params);
+export async function sendEmail(
+  params: Omit<BaseSendParams, "channelName">
+): Promise<boolean> {
+  const [sent, trackData] = await sendEmailWithPayload({
+    ...params,
+    channelName: MessageNodeVariantType.Email,
+  });
   if (trackData) {
     await submitTrack({ workspaceId: params.workspaceId, data: trackData });
   }

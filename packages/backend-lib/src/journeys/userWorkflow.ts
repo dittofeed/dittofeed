@@ -172,6 +172,7 @@ export async function userJourneyWorkflow({
       }
       case "MessageNode": {
         let shouldContinue: boolean;
+        const messageId = uuid4();
         switch (currentNode.variant.type) {
           case MessageNodeVariantType.Email: {
             shouldContinue = await sendEmail({
@@ -182,7 +183,7 @@ export async function userJourneyWorkflow({
               runId,
               nodeId: currentNode.id,
               templateId: currentNode.variant.templateId,
-              messageId: uuid4(),
+              messageId,
             });
             break;
           }
@@ -195,7 +196,7 @@ export async function userJourneyWorkflow({
               runId,
               nodeId: currentNode.id,
               templateId: currentNode.variant.templateId,
-              messageId: uuid4(),
+              messageId,
             });
             break;
           }

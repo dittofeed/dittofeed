@@ -126,6 +126,10 @@ export function renderLiquid({
   subscriptionGroupId?: string;
   workspaceId: string;
 }): string {
+  if (!template.length) {
+    return "";
+  }
+
   const liquidRendered = liquidEngine.parseAndRenderSync(template, {
     user: userProperties,
     workspace_id: workspaceId,
