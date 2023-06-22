@@ -73,18 +73,22 @@ export const defaultInitialUserProperties = {
   anonymousId: "0b0d3a71-0a86-4e60-892a-d27f0b290c81",
 };
 
-export const defaultEmailMessageState: Omit<
+export function defaultEmailMessageState(
+  id: string
+): Omit<
   EmailMessageEditorState,
   "emailMessageUserPropertiesJSON" | "emailMessageUserProperties"
-> = {
-  emailMessageBody: defaultEmailBody,
-  emailMessageTitle: "New Email Message",
-  emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
-  emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
-  emailMessageUpdateRequest: {
-    type: CompletionStatus.NotStarted,
-  },
-};
+> {
+  return {
+    emailMessageBody: defaultEmailBody,
+    emailMessageTitle: `New Email Message - ${id}`,
+    emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
+    emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
+    emailMessageUpdateRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+  };
+}
 
 const BodyBox = styled(Box, {
   shouldForwardProp: (prop) => prop !== "direction",

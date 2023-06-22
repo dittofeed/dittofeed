@@ -118,7 +118,10 @@ async function sendWithTracking<C>(
     channelConfig,
     channel,
   ] = await Promise.all([
-    findMessageTemplate({ id: templateId }),
+    findMessageTemplate({
+      id: templateId,
+      isEmail: channelName === "email",
+    }),
     findAllUserPropertyAssignments({ userId, workspaceId }),
     prisma().journey.findUnique({ where: { id: journeyId } }),
     subscriptionGroupId
@@ -337,7 +340,7 @@ export async function sendMobilePush(
 ): Promise<boolean> {
   const [sent, trackData] = await sendMobilePushWithPayload({
     ...params,
-    channelName: MessageNodeVariantType.MobilePush,
+    channelName: "mobile",
   });
   if (trackData) {
     await submitTrack({ workspaceId: params.workspaceId, data: trackData });
@@ -475,7 +478,7 @@ export async function sendEmail(
 ): Promise<boolean> {
   const [sent, trackData] = await sendEmailWithPayload({
     ...params,
-    channelName: MessageNodeVariantType.Email,
+    channelName: "email",
   });
   if (trackData) {
     await submitTrack({ workspaceId: params.workspaceId, data: trackData });

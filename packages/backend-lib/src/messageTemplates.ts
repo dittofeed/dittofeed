@@ -34,23 +34,6 @@ export function enrichMessageTemplate({
   });
 }
 
-export async function findMessageTemplate({
-  id,
-}: {
-  id: string;
-}): Promise<Result<MessageTemplateResource | null, Error>> {
-  const template = await prisma().messageTemplate.findUnique({
-    where: {
-      id,
-    },
-  });
-  if (!template) {
-    return ok(null);
-  }
-
-  return enrichMessageTemplate(template);
-}
-
 export function enrichEmailTemplate({
   id,
   workspaceId,
@@ -70,6 +53,37 @@ export function enrichEmailTemplate({
       body,
     },
   };
+}
+
+export async function findMessageTemplate({
+  id,
+  isEmail,
+}: {
+  id: string;
+  isEmail: boolean;
+}): Promise<Result<MessageTemplateResource | null, Error>> {
+  // TODO delete post consolidation
+  if (isEmail) {
+    const emailTemplate = await prisma().emailTemplate.findUnique({
+      where: {
+        id,
+      },
+    });
+    if (!emailTemplate) {
+      return ok(null);
+    }
+    return ok(enrichEmailTemplate(emailTemplate));
+  }
+  const template = await prisma().messageTemplate.findUnique({
+    where: {
+      id,
+    },
+  });
+  if (!template) {
+    return ok(null);
+  }
+
+  return enrichMessageTemplate(template);
 }
 
 export async function upsertMessageTemplate(
