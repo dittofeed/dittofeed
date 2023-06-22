@@ -4,6 +4,7 @@ import { Liquid } from "liquidjs";
 import MarkdownIt from "markdown-it";
 import mjml2html from "mjml";
 
+import logger from "./logger";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
 
@@ -75,6 +76,7 @@ type UserProperties = Record<string, string>;
 liquidEngine.registerTag("unsubscribe_link", {
   parse() {},
   render(scope) {
+    logger().debug("Rendering unsubscribe link");
     const allScope = scope.getAll() as Record<string, unknown>;
     const secrets = allScope.secrets as Secrets | undefined;
     const workspaceId = allScope.workspace_id as string;

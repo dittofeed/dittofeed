@@ -5,7 +5,10 @@ import {
 } from "@prisma/client";
 import escapeHTML from "escape-html";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
-import { FCM_SECRET_NAME } from "isomorphic-lib/src/constants";
+import {
+  FCM_SECRET_NAME,
+  SUBSCRIPTION_SECRET_NAME,
+} from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
 
@@ -56,6 +59,7 @@ interface SendParams<C> extends BaseSendParams {
       channelConfig: C;
       identifier: string;
       messageTemplate: MessageTemplateResource;
+      subscriptionSecret: string;
       userPropertyAssignments: Awaited<
         ReturnType<typeof findAllUserPropertyAssignments>
       >;
@@ -114,6 +118,7 @@ async function sendWithTracking<C>(
     journey,
     subscriptionGroup,
     channelConfig,
+    subscriptionSecret,
   ] = await Promise.all([
     findMessageTemplate({
       id: templateId,
@@ -125,6 +130,14 @@ async function sendWithTracking<C>(
       ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
       : null,
     getChannelConfig({ workspaceId }),
+    prisma().secret.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: SUBSCRIPTION_SECRET_NAME,
+        },
+      },
+    }),
   ]);
   const baseParams = {
     journeyId,
@@ -215,11 +228,17 @@ async function sendWithTracking<C>(
     return channelConfig.error;
   }
 
+  if (!subscriptionSecret) {
+    logger().error("subscription secret not found");
+    return [false, null];
+  }
+
   return channelSend({
     channelConfig: channelConfig.value,
     messageTemplate,
     identifier,
     userPropertyAssignments,
+    subscriptionSecret: subscriptionSecret.value,
     ...baseParams,
   });
 }
@@ -261,6 +280,7 @@ async function sendMobilePushWithPayload(
       userPropertyAssignments,
       channelConfig,
       identifier,
+      subscriptionSecret,
     }) {
       const render = (template?: string) =>
         template &&
@@ -269,6 +289,9 @@ async function sendMobilePushWithPayload(
           template,
           workspaceId,
           identifierKey: CHANNEL_IDENTIFIERS[channel],
+          secrets: {
+            [SUBSCRIPTION_SECRET_NAME]: subscriptionSecret,
+          },
         });
 
       if (messageTemplate.definition.type !== ChannelType.MobilePush) {
@@ -369,6 +392,7 @@ async function sendEmailWithPayload(
       userId,
       templateId,
       nodeId,
+      subscriptionSecret,
     }) {
       const render = (template: string) =>
         template &&
@@ -377,6 +401,9 @@ async function sendEmailWithPayload(
           template,
           workspaceId,
           identifierKey: CHANNEL_IDENTIFIERS[channel],
+          secrets: {
+            [SUBSCRIPTION_SECRET_NAME]: subscriptionSecret,
+          },
         });
 
       if (messageTemplate.definition.type !== ChannelType.Email) {
