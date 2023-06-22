@@ -12,11 +12,11 @@ import {
 } from "@mui/material";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import {
+  ChannelType,
   CompletionStatus,
   DeleteMessageTemplateRequest,
   EmptyResponse,
   MessageTemplateResource,
-  TemplateResourceType,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -115,10 +115,10 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
         onClick={() => {
           let messageType: string;
           switch (template.definition.type) {
-            case TemplateResourceType.Email:
+            case ChannelType.Email:
               messageType = "email";
               break;
-            case TemplateResourceType.MobilePush:
+            case ChannelType.MobilePush:
               messageType = "mobile-push";
               break;
           }

@@ -1,5 +1,5 @@
 import { findMessageTemplates } from "./messageTemplates";
-import { MessageTemplateResource, TemplateResourceType } from "./types";
+import { ChannelType, MessageTemplateResource } from "./types";
 
 export async function getMobilePushTemplates({
   workspaceId,
@@ -10,6 +10,6 @@ export async function getMobilePushTemplates({
     workspaceId,
   });
   return templates.filter(
-    (template) => template.definition.type === TemplateResourceType.MobilePush
+    (template) => template.definition.type === ChannelType.MobilePush
   );
 }

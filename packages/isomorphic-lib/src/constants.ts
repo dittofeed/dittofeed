@@ -1,4 +1,4 @@
-import { ChannelType, TemplateResourceType } from "./types";
+import { ChannelType } from "./types";
 
 export const WORKSPACE_ID_HEADER = "df-workspace-id" as const;
 export const SUBSRIPTION_GROUP_ID_HEADER = "df-subscription-group-id" as const;

@@ -6,6 +6,7 @@ import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
+  ChannelType,
   DeleteMessageTemplateRequest,
   EmptyResponse,
   JsonResultType,
@@ -13,7 +14,6 @@ import {
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
   RenderMessageTemplateResponseContent,
-  TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import * as R from "remeda";
@@ -134,7 +134,7 @@ export default async function contentController(fastify: FastifyInstance) {
 
       try {
         switch (type) {
-          case TemplateResourceType.Email: {
+          case ChannelType.Email: {
             await prisma().emailTemplate.delete({
               where: {
                 id,

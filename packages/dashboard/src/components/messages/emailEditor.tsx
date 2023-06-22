@@ -26,12 +26,12 @@ import escapeHtml from "escape-html";
 import hash from "fnv1a";
 import { produce } from "immer";
 import {
+  ChannelType,
   CompletionStatus,
   JsonResultType,
   MessageTemplateResource,
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
-  TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
@@ -398,7 +398,7 @@ export default function EmailEditor() {
     workspaceId: workspace.id,
     name: title,
     definition: {
-      type: TemplateResourceType.Email,
+      type: ChannelType.Email,
       from: emailFrom,
       body: emailBody,
       subject: emailSubject,

@@ -10,10 +10,10 @@ import {
 import * as wf from "@temporalio/workflow";
 
 import {
+  ChannelType,
   DelayVariantType,
   JourneyDefinition,
   JourneyNode,
-  ChannelType,
   SegmentUpdate,
 } from "../types";
 import type * as activities from "./userWorkflow/activities";
