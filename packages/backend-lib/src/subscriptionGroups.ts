@@ -9,9 +9,12 @@ import {
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
+import path from "path";
 import * as R from "remeda";
+import { URL } from "url";
 import { v4 as uuid } from "uuid";
 
+import config from "./config";
 import { generateSecureHash } from "./crypto";
 import logger from "./logger";
 import prisma from "./prisma";
@@ -208,12 +211,22 @@ export function generateSubscriptionChangeUrl({
     i: identifier,
     ik: identifierKey,
     h: hash,
-    s: changedSubscription,
-    sub: subscriptionChange === SubscriptionChange.Subscribe ? "1" : "0",
   };
-  const queryString = new URLSearchParams(params).toString();
-  const url = `/dashboard${SUBSCRIPTION_MANAGEMENT_PAGE}?${queryString}`;
-  return url;
+  if (changedSubscription) {
+    params.s = changedSubscription;
+    params.sub =
+      subscriptionChange === SubscriptionChange.Subscribe ? "1" : "0";
+  }
+  const url = new URL(config().dashboardUrl);
+  url.pathname = path.join("/dashboard", SUBSCRIPTION_MANAGEMENT_PAGE);
+  url.search = new URLSearchParams(params).toString();
+  logger().debug(
+    {
+      url: url.toString(),
+    },
+    "generated subscription change url"
+  );
+  return url.toString();
 }
 
 export function buildSubscriptionChangeEventInner({

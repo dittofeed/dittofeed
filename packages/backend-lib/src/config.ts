@@ -61,6 +61,7 @@ const BaseRawConfigProps = {
   signoutUrl: Type.Optional(Type.String()),
   trackDashboard: Type.Optional(BoolStr),
   dashboardWriteKey: Type.Optional(Type.String()),
+  dashboardUrl: Type.Optional(Type.String()),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -116,6 +117,7 @@ export type Config = Overwrite<
     enableSourceControl: boolean;
     authMode: AuthMode;
     trackDashboard: boolean;
+    dashboardUrl: string;
   }
 > & {
   defaultWorkspaceId: string;
@@ -267,6 +269,11 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     logLevel,
     enableSourceControl: rawConfig.enableSourceControl === "true",
     authMode: rawConfig.authMode ?? "anonymous",
+    dashboardUrl:
+      rawConfig.dashboardUrl ??
+      (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
+        ? "http://localhost:3000"
+        : "https://dittofeed.com"),
     trackDashboard: rawConfig.trackDashboard === "true",
   };
   return parsedConfig;
