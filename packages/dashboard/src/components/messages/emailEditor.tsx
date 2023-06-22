@@ -233,7 +233,7 @@ export default function EmailEditor() {
 
       const data: RenderMessageTemplateRequest = {
         workspaceId: workspace.id,
-        channel: "email",
+        channel: ChannelType.Email,
         userProperties: debouncedUserProperties,
         contents: {
           from: {

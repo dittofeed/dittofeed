@@ -140,34 +140,6 @@ async function bootstrapPostgres({
     ];
 
   await Promise.all([
-    prisma().channel.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: "email",
-        },
-      },
-      create: {
-        workspaceId,
-        name: "email",
-        identifier: "email",
-      },
-      update: {},
-    }),
-    prisma().channel.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: "mobilePush",
-        },
-      },
-      create: {
-        workspaceId,
-        name: "mobilePush",
-        identifier: "deviceToken",
-      },
-      update: {},
-    }),
     ...userProperties.map((up) =>
       prisma().userProperty.upsert({
         where: {

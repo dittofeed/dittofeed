@@ -16,6 +16,7 @@ import { generateSecureHash } from "./crypto";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
+  ChannelType,
   InternalEventType,
   JSONValue,
   SegmentDefinition,
@@ -64,25 +65,13 @@ export async function getSubscriptionGroupWithAssignment({
   return sg;
 }
 
+// TODO enable a channel type to specified
 export async function upsertSubscriptionGroup({
   id,
   name,
   type,
   workspaceId,
 }: UpsertSubscriptionGroupResource): Promise<Result<SubscriptionGroup, Error>> {
-  const emailChannel = await prisma().channel.findUnique({
-    where: {
-      workspaceId_name: {
-        workspaceId,
-        name: "email",
-      },
-    },
-  });
-
-  if (!emailChannel) {
-    return err(new Error("Email channel not found"));
-  }
-
   const sg = await prisma().$transaction(async (tx) => {
     const where: Prisma.SubscriptionGroupUpsertArgs["where"] = id
       ? {
@@ -100,8 +89,8 @@ export async function upsertSubscriptionGroup({
       create: {
         name,
         type,
+        channel: ChannelType.Email,
         workspaceId,
-        channelId: emailChannel.id,
         id,
       },
       update: {

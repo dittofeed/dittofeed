@@ -1,10 +1,10 @@
 import {
-  Channel,
   EmailProvider,
   JourneyStatus,
   SegmentAssignment,
 } from "@prisma/client";
 import escapeHTML from "escape-html";
+import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { FCM_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
@@ -43,7 +43,7 @@ interface BaseSendParams {
   journeyId: string;
   messageId: string;
   subscriptionGroupId?: string;
-  channelName: string;
+  channel: ChannelType;
 }
 interface SendParams<C> extends BaseSendParams {
   getChannelConfig: ({
@@ -53,7 +53,6 @@ interface SendParams<C> extends BaseSendParams {
   }) => Promise<Result<C, SendWithTrackingValue>>;
   channelSend: (
     params: BaseSendParams & {
-      channel: Channel;
       channelConfig: C;
       identifier: string;
       messageTemplate: MessageTemplateResource;
@@ -107,7 +106,7 @@ async function sendWithTracking<C>(
     subscriptionGroupId,
     getChannelConfig,
     channelSend,
-    channelName,
+    channel,
   } = params;
   const [
     messageTemplateResult,
@@ -115,11 +114,10 @@ async function sendWithTracking<C>(
     journey,
     subscriptionGroup,
     channelConfig,
-    channel,
   ] = await Promise.all([
     findMessageTemplate({
       id: templateId,
-      isEmail: channelName === "email",
+      channel,
     }),
     findAllUserPropertyAssignments({ userId, workspaceId }),
     prisma().journey.findUnique({ where: { id: journeyId } }),
@@ -127,14 +125,6 @@ async function sendWithTracking<C>(
       ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
       : null,
     getChannelConfig({ workspaceId }),
-    prisma().channel.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: channelName,
-        },
-      },
-    }),
   ]);
   const baseParams = {
     journeyId,
@@ -145,7 +135,7 @@ async function sendWithTracking<C>(
     nodeId,
     messageId,
     subscriptionGroupId,
-    channelName,
+    channel,
   };
   const trackingProperties = {
     ...baseParams,
@@ -210,23 +200,13 @@ async function sendWithTracking<C>(
     return buildSendValue(false, InternalEventType.MessageSkipped);
   }
 
-  if (!channel) {
-    logger().error(
-      {
-        channel: channelName,
-        workspaceId,
-      },
-      "channel not found"
-    );
-    return [false, null];
-  }
-
-  const identifier = userPropertyAssignments[channel.identifier];
+  const identifierKey = CHANNEL_IDENTIFIERS[channel];
+  const identifier = userPropertyAssignments[identifierKey];
 
   if (!identifier) {
     return buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
       identifier,
-      identifierKey: channel.identifier,
+      identifierKey,
       message: "Identifier not found.",
     });
   }
@@ -237,7 +217,6 @@ async function sendWithTracking<C>(
 
   return channelSend({
     channelConfig: channelConfig.value,
-    channel,
     messageTemplate,
     identifier,
     userPropertyAssignments,
@@ -289,7 +268,7 @@ async function sendMobilePushWithPayload(
           userProperties: userPropertyAssignments,
           template,
           workspaceId,
-          identifierKey: channel.identifier,
+          identifierKey: CHANNEL_IDENTIFIERS[channel],
         });
 
       if (messageTemplate.definition.type !== ChannelType.MobilePush) {
@@ -335,11 +314,11 @@ async function sendMobilePushWithPayload(
 }
 
 export async function sendMobilePush(
-  params: Omit<BaseSendParams, "channelName">
+  params: Omit<BaseSendParams, "channel">
 ): Promise<boolean> {
   const [sent, trackData] = await sendMobilePushWithPayload({
     ...params,
-    channelName: "mobile",
+    channel: ChannelType.MobilePush,
   });
   if (trackData) {
     await submitTrack({ workspaceId: params.workspaceId, data: trackData });
@@ -397,7 +376,7 @@ async function sendEmailWithPayload(
           userProperties: userPropertyAssignments,
           template,
           workspaceId,
-          identifierKey: channel.identifier,
+          identifierKey: CHANNEL_IDENTIFIERS[channel],
         });
 
       if (messageTemplate.definition.type !== ChannelType.Email) {
@@ -473,11 +452,11 @@ async function sendEmailWithPayload(
 }
 
 export async function sendEmail(
-  params: Omit<BaseSendParams, "channelName">
+  params: Omit<BaseSendParams, "channel">
 ): Promise<boolean> {
   const [sent, trackData] = await sendEmailWithPayload({
     ...params,
-    channelName: "email",
+    channel: ChannelType.Email,
   });
   if (trackData) {
     await submitTrack({ workspaceId: params.workspaceId, data: trackData });

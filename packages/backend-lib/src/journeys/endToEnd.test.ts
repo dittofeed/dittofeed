@@ -16,11 +16,11 @@ import {
 } from "../segments/computePropertiesWorkflow";
 import { upsertSubscriptionGroup } from "../subscriptionGroups";
 import {
+  ChannelType,
   DelayVariantType,
   EnrichedJourney,
   JourneyDefinition,
   JourneyNodeType,
-  ChannelType,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
@@ -270,14 +270,6 @@ describe("end to end journeys", () => {
         });
 
         const nodeId1 = randomUUID();
-
-        await prisma().channel.create({
-          data: {
-            workspaceId: workspace.id,
-            name: "email",
-            identifier: "email",
-          },
-        });
 
         const subscriptionGroup = unwrap(
           await upsertSubscriptionGroup({

@@ -4,6 +4,7 @@ import { upsertMessageTemplate } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
 import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
+import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
   ChannelType,
@@ -36,38 +37,28 @@ export default async function contentController(fastify: FastifyInstance) {
         contents,
         workspaceId,
         subscriptionGroupId,
-        channel: channelName,
+        channel,
         userProperties,
       } = request.body;
 
-      const [channel, secrets] = await Promise.all([
-        prisma().channel.findUnique({
-          where: {
-            workspaceId_name: {
-              name: channelName,
-              workspaceId,
-            },
+      const secrets = await prisma().secret.findMany({
+        where: {
+          workspaceId,
+          name: {
+            in: [SUBSCRIPTION_SECRET_NAME],
           },
-        }),
-        prisma().secret.findMany({
-          where: {
-            workspaceId,
-            name: {
-              in: [SUBSCRIPTION_SECRET_NAME],
-            },
-          },
-        }),
-      ]);
+        },
+      });
 
       const templateSecrets = R.mapToObj(secrets, (secret) => [
         secret.name,
         secret.value,
       ]);
 
-      let responseContents: RenderMessageTemplateResponse["contents"] = {};
+      const identifierKey = CHANNEL_IDENTIFIERS[channel];
 
-      if (channel) {
-        responseContents = R.mapValues(contents, (content) => {
+      const responseContents: RenderMessageTemplateResponse["contents"] =
+        R.mapValues(contents, (content) => {
           let value: RenderMessageTemplateResponseContent;
           try {
             const rendered = renderLiquid({
@@ -76,7 +67,7 @@ export default async function contentController(fastify: FastifyInstance) {
               mjml: content.mjml,
               subscriptionGroupId,
               userProperties,
-              identifierKey: channel.identifier,
+              identifierKey,
               secrets: templateSecrets,
             });
             value = {
@@ -92,7 +83,6 @@ export default async function contentController(fastify: FastifyInstance) {
           }
           return value;
         });
-      }
 
       return reply.status(200).send({
         contents: responseContents,

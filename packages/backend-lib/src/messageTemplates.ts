@@ -57,13 +57,13 @@ export function enrichEmailTemplate({
 
 export async function findMessageTemplate({
   id,
-  isEmail,
+  channel,
 }: {
   id: string;
-  isEmail: boolean;
+  channel: ChannelType;
 }): Promise<Result<MessageTemplateResource | null, Error>> {
   // TODO delete post consolidation
-  if (isEmail) {
+  if (channel === ChannelType.Email) {
     const emailTemplate = await prisma().emailTemplate.findUnique({
       where: {
         id,
