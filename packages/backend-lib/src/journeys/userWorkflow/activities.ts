@@ -289,6 +289,7 @@ async function sendMobilePushWithPayload(
           template,
           workspaceId,
           identifierKey: CHANNEL_IDENTIFIERS[channel],
+          subscriptionGroupId: params.subscriptionGroupId,
           secrets: {
             [SUBSCRIPTION_SECRET_NAME]: subscriptionSecret,
           },
@@ -401,6 +402,7 @@ async function sendEmailWithPayload(
           template,
           workspaceId,
           identifierKey: CHANNEL_IDENTIFIERS[channel],
+          subscriptionGroupId: params.subscriptionGroupId,
           secrets: {
             [SUBSCRIPTION_SECRET_NAME]: subscriptionSecret,
           },

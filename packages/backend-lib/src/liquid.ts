@@ -111,9 +111,6 @@ liquidEngine.registerTag("unsubscribe_link", {
         },
         "Unsubscribe link not rendering"
       );
-      // hasSubscriptionSecret: false
-      // identifier: "max+1B58FDF6-9E64-431B-AF26-ADD7E22EA1B6@dittofeed.com"
-      // userId: "B2B8F17B-3B72-4D12-971C-542C82639455"
     }
 
     // Note that clicktracking=off is added to the unsubscribe link to prevent sendgrid from including link tracking
@@ -152,7 +149,6 @@ export function renderLiquid({
     secrets,
     identifier_key: identifierKey,
   });
-  logger().debug({ liquidRendered }, "Liquid rendered");
   if (!mjml) {
     return liquidRendered;
   }
