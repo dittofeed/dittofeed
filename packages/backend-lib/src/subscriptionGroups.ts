@@ -220,13 +220,14 @@ export function generateSubscriptionChangeUrl({
   const url = new URL(config().dashboardUrl);
   url.pathname = path.join("/dashboard", SUBSCRIPTION_MANAGEMENT_PAGE);
   url.search = new URLSearchParams(params).toString();
+  const urlString = url.toString();
   logger().debug(
     {
-      url: url.toString(),
+      urlString,
     },
     "generated subscription change url"
   );
-  return url.toString();
+  return urlString;
 }
 
 export function buildSubscriptionChangeEventInner({
