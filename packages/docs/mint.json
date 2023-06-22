@@ -107,7 +107,13 @@
             "resources/segment-nodes/broadcast"
           ]
         },
-        "resources/message-templates",
+        {
+          "group": "Templates",
+          "pages": [
+            "resources/templates/email-templates",
+            "resources/templates/mjml"
+          ]
+        },
         "resources/workspaces",
         "resources/subscription-groups",
         "resources/user-properties",
