@@ -18,7 +18,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
-  MessageNodeVariantType,
+  ChannelType,
   SegmentNodeType,
   SegmentOperatorType,
   UserPropertyDefinitionType,
@@ -161,7 +161,7 @@ describe("end to end segment webhooks", () => {
           id: nodeId1,
           child: "ExitNode",
           variant: {
-            type: MessageNodeVariantType.Email,
+            type: ChannelType.Email,
             templateId: emailTemplate.id,
           },
         },
@@ -273,7 +273,7 @@ describe("end to end segment webhooks", () => {
             userId: expect.any(String),
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             properties: expect.objectContaining({
-              messageType: MessageNodeVariantType.Email,
+              messageType: ChannelType.Email,
               to: "peter@example.com",
               from: "hello@email.com",
               subject: "hi there",

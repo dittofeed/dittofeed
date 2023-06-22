@@ -4,11 +4,11 @@ import { err, ok, Result } from "neverthrow";
 
 import prisma from "./prisma";
 import {
+  ChannelType,
   EmailTemplate,
   MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
-  TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "./types";
 
@@ -47,7 +47,7 @@ export function enrichEmailTemplate({
     name,
     workspaceId,
     definition: {
-      type: TemplateResourceType.Email,
+      type: ChannelType.Email,
       subject,
       from,
       body,
@@ -89,7 +89,7 @@ export async function findMessageTemplate({
 export async function upsertMessageTemplate(
   data: UpsertMessageTemplateResource
 ): Promise<MessageTemplateResource> {
-  if (data.definition.type === TemplateResourceType.Email) {
+  if (data.definition.type === ChannelType.Email) {
     let emailTemplate: EmailTemplate;
     if (data.workspaceId && data.name) {
       emailTemplate = await prisma().emailTemplate.upsert({

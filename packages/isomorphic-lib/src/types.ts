@@ -340,7 +340,7 @@ export const RateLimitNode = Type.Object(
 
 export type RateLimitNode = Static<typeof RateLimitNode>;
 
-export enum MessageNodeVariantType {
+export enum ChannelType {
   Email = "Email",
   MobilePush = "MobilePush",
 }
@@ -355,14 +355,14 @@ export const EmailPayload = Type.Object({
 export type EmailPayload = Static<typeof EmailPayload>;
 
 export const EmailMessageVariant = Type.Object({
-  type: Type.Literal(MessageNodeVariantType.Email),
+  type: Type.Literal(ChannelType.Email),
   templateId: Type.String(),
 });
 
 export type EmailMessageVariant = Static<typeof EmailMessageVariant>;
 
 export const MobilePushMessageVariant = Type.Object({
-  type: Type.Literal(MessageNodeVariantType.MobilePush),
+  type: Type.Literal(ChannelType.MobilePush),
   templateId: Type.String(),
 });
 
@@ -554,13 +554,8 @@ export const GetEventsResponse = Type.Object({
 
 export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
-export enum TemplateResourceType {
-  Email = "Email",
-  MobilePush = "MobilePush",
-}
-
 export const EmailTemplateResource = Type.Object({
-  type: Type.Literal(TemplateResourceType.Email),
+  type: Type.Literal(ChannelType.Email),
   from: Type.String(),
   subject: Type.String(),
   body: Type.String(),
@@ -569,7 +564,7 @@ export const EmailTemplateResource = Type.Object({
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
 export const MobilePushTemplateResource = Type.Object({
-  type: Type.Literal(TemplateResourceType.MobilePush),
+  type: Type.Literal(ChannelType.MobilePush),
   title: Type.Optional(Type.String()),
   body: Type.Optional(Type.String()),
   imageUrl: Type.Optional(Type.String()),
@@ -621,7 +616,7 @@ export type UpsertMessageTemplateResource = Static<
 
 export const DeleteMessageTemplateRequest = Type.Object({
   id: Type.String(),
-  type: Type.Enum(TemplateResourceType),
+  type: Type.Enum(ChannelType),
 });
 
 export type DeleteMessageTemplateRequest = Static<

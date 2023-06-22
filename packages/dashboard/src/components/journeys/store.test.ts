@@ -3,7 +3,7 @@ import {
   DelayVariantType,
   JourneyNodeType,
   JourneyResource,
-  MessageNodeVariantType,
+  ChannelType,
   SegmentSplitVariantType,
 } from "isomorphic-lib/src/types";
 import { v4 as uuid } from "uuid";
@@ -39,7 +39,7 @@ describe("journeyToState", () => {
             type: JourneyNodeType.MessageNode,
             child: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
             variant: {
-              type: MessageNodeVariantType.Email,
+              type: ChannelType.Email,
               templateId: uuid(),
             },
           },
@@ -67,7 +67,7 @@ describe("journeyToState", () => {
             type: JourneyNodeType.MessageNode,
             child: JourneyNodeType.ExitNode,
             variant: {
-              type: MessageNodeVariantType.Email,
+              type: ChannelType.Email,
               templateId: uuid(),
             },
           },
@@ -470,7 +470,7 @@ describe("journeyDefinitionFromState", () => {
           child: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
           name: "Message 1",
           variant: {
-            type: MessageNodeVariantType.Email,
+            type: ChannelType.Email,
             templateId: expect.any(String),
           },
         },
@@ -499,7 +499,7 @@ describe("journeyDefinitionFromState", () => {
           name: "Message 2",
           child: JourneyNodeType.ExitNode,
           variant: {
-            type: MessageNodeVariantType.Email,
+            type: ChannelType.Email,
             templateId: expect.any(String),
           },
         },

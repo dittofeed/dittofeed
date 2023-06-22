@@ -13,7 +13,7 @@ import {
   DelayVariantType,
   JourneyDefinition,
   JourneyNode,
-  MessageNodeVariantType,
+  ChannelType,
   SegmentUpdate,
 } from "../types";
 import type * as activities from "./userWorkflow/activities";
@@ -174,7 +174,7 @@ export async function userJourneyWorkflow({
         let shouldContinue: boolean;
         const messageId = uuid4();
         switch (currentNode.variant.type) {
-          case MessageNodeVariantType.Email: {
+          case ChannelType.Email: {
             shouldContinue = await sendEmail({
               userId,
               workspaceId,
@@ -187,7 +187,7 @@ export async function userJourneyWorkflow({
             });
             break;
           }
-          case MessageNodeVariantType.MobilePush: {
+          case ChannelType.MobilePush: {
             shouldContinue = await sendMobilePush({
               userId,
               workspaceId,

@@ -9,7 +9,7 @@ import {
   JourneyNodeType,
   JourneyResource,
   MessageNode,
-  MessageNodeVariantType,
+  ChannelType,
   SegmentSplitNode,
   SegmentSplitVariantType,
 } from "isomorphic-lib/src/types";
@@ -252,7 +252,7 @@ export function journeyDefinitionFromState({
           name: props.name,
           subscriptionGroupId: props.subscriptionGroupId,
           variant: {
-            type: MessageNodeVariantType.Email,
+            type: ChannelType.Email,
             templateId: props.templateId,
           },
         };

@@ -20,7 +20,7 @@ import {
   EnrichedJourney,
   JourneyDefinition,
   JourneyNodeType,
-  MessageNodeVariantType,
+  ChannelType,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
@@ -163,7 +163,7 @@ describe("end to end journeys", () => {
               id: nodeId3,
               child: JourneyNodeType.ExitNode,
               variant: {
-                type: MessageNodeVariantType.Email,
+                type: ChannelType.Email,
                 templateId: randomUUID(),
               },
             },
@@ -304,7 +304,7 @@ describe("end to end journeys", () => {
               child: "ExitNode",
               subscriptionGroupId: subscriptionGroup.id,
               variant: {
-                type: MessageNodeVariantType.Email,
+                type: ChannelType.Email,
                 templateId: randomUUID(),
               },
             },

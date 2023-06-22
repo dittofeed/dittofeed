@@ -19,7 +19,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
-  MessageNodeVariantType,
+  ChannelType,
   SegmentDefinition,
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,
@@ -84,7 +84,7 @@ describe("compute properties activities", () => {
           id: nodeId1,
           child: JourneyNodeType.ExitNode,
           variant: {
-            type: MessageNodeVariantType.Email,
+            type: ChannelType.Email,
             templateId: randomUUID(),
           },
         },

@@ -18,15 +18,14 @@ import { findMessageTemplate } from "../../messageTemplates";
 import prisma from "../../prisma";
 import { getSubscriptionGroupWithAssignment } from "../../subscriptionGroups";
 import {
+  ChannelType,
   EmailProviderType,
   InternalEventType,
   JourneyNode,
   JourneyNodeType,
   KnownTrackData,
-  MessageNodeVariantType,
   MessageTemplateResource,
   SubscriptionGroupType,
-  TemplateResourceType,
   TrackData,
 } from "../../types";
 import { findAllUserPropertyAssignments } from "../../userProperties";
@@ -293,7 +292,7 @@ async function sendMobilePushWithPayload(
           identifierKey: channel.identifier,
         });
 
-      if (messageTemplate.definition.type !== TemplateResourceType.MobilePush) {
+      if (messageTemplate.definition.type !== ChannelType.MobilePush) {
         return buildSendValue(
           false,
           InternalEventType.BadWorkspaceConfiguration,
@@ -401,7 +400,7 @@ async function sendEmailWithPayload(
           identifierKey: channel.identifier,
         });
 
-      if (messageTemplate.definition.type !== TemplateResourceType.Email) {
+      if (messageTemplate.definition.type !== ChannelType.Email) {
         return buildSendValue(
           false,
           InternalEventType.BadWorkspaceConfiguration,
