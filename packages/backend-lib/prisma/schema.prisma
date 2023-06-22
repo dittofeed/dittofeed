@@ -224,11 +224,17 @@ enum DBSubscriptionGroupType {
   OptOut
 }
 
+enum DBChannelType {
+  Email
+  MobilePush
+}
+
 model SubscriptionGroup {
   id          String                  @id() @default(uuid()) @db.Uuid
   workspace   Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String                  @db.Uuid
   name        String
+  channel     DBChannelType
   type        DBSubscriptionGroupType
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
