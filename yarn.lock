@@ -5864,7 +5864,7 @@ __metadata:
     remeda: ^1.12.0
     ts-node: ^10.9.1
     tsc-watch: ^6.0.0
-    typescript: ^4.8.4
+    typescript: ^5.1.3
     utility-types: ^3.10.0
     uuid: ^9.0.0
     yargs: ^17.7.2
@@ -6253,7 +6253,7 @@ __metadata:
     prisma: ^4.8.1
     remeda: ^1.12.0
     ts-node: ^10.9.1
-    typescript: ^4.8.4
+    typescript: ^5.1.3
     utility-types: ^3.10.0
     uuid: ^9.0.0
     yargs: ^17.7.2
@@ -10237,7 +10237,7 @@ __metadata:
     "@sinclair/typebox": ^0.27.8
     jest: ^29.3.1
     neverthrow: ^6.0.0
-    typescript: ^4.8.4
+    typescript: ^5.1.3
   languageName: unknown
   linkType: soft
 
@@ -15604,13 +15604,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^4.8.4, typescript@npm:^4.9.4":
+"typescript@npm:^4.9.4":
   version: 4.9.4
   resolution: "typescript@npm:4.9.4"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: e782fb9e0031cb258a80000f6c13530288c6d63f1177ed43f770533fdc15740d271554cdae86701c1dd2c83b082cea808b07e97fd68b38a172a83dbf9e0d0ef9
+  languageName: node
+  linkType: hard
+
+"typescript@npm:^5.1.3":
+  version: 5.1.3
+  resolution: "typescript@npm:5.1.3"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: d9d51862d98efa46534f2800a1071a613751b1585dc78884807d0c179bcd93d6e9d4012a508e276742f5f33c480adefc52ffcafaf9e0e00ab641a14cde9a31c7
   languageName: node
   linkType: hard
 
@@ -15624,13 +15634,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^4.8.4#~builtin<compat/typescript>, typescript@patch:typescript@^4.9.4#~builtin<compat/typescript>":
+"typescript@patch:typescript@^4.9.4#~builtin<compat/typescript>":
   version: 4.9.4
   resolution: "typescript@patch:typescript@npm%3A4.9.4#~builtin<compat/typescript>::version=4.9.4&hash=289587"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 2160f7ad975c59b2f5816817d3916be1d156c5688a7517602b3b640c5015e740f4ba933996ac85371d68f7bbdd41602150fb8b68334122ac637fdb5418085e7a
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^5.1.3#~builtin<compat/typescript>":
+  version: 5.1.3
+  resolution: "typescript@patch:typescript@npm%3A5.1.3#~builtin<compat/typescript>::version=5.1.3&hash=5da071"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 6f0a9dca6bf4ce9dcaf4e282aade55ef4c56ecb5fb98d0a4a5c0113398815aea66d871b5611e83353e5953a19ed9ef103cf5a76ac0f276d550d1e7cd5344f61e
   languageName: node
   linkType: hard
 
@@ -16169,7 +16189,7 @@ __metadata:
     backend-lib: 0.0.3
     ts-node: ^10.9.1
     tsc-watch: ^6.0.0
-    typescript: ^4.8.4
+    typescript: ^5.1.3
     utility-types: ^3.10.0
   languageName: unknown
   linkType: soft
