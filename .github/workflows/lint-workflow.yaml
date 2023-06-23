@@ -22,6 +22,6 @@ jobs:
         node-version: '18'
         cache: 'yarn'
 
-    - run: yarn
+    - run: yarn workspaces focus ${{ inputs.package-name }}
     - name: Run lint
       run: yarn workspace ${{ inputs.package-name }} lint
