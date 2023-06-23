@@ -1,8 +1,8 @@
 /* eslint-disable no-underscore-dangle */
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { Liquid } from "liquidjs";
-import mjml2html from "mjml";
 import MarkdownIt from "markdown-it";
+import mjml2html from "mjml";
 
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
@@ -141,8 +141,7 @@ export function renderLiquid({
   } catch (e: any) {
     if (e.message.indexOf(MJML_NOT_PRESENT_ERROR) !== -1) {
       return liquidRendered;
-    } else {
-      throw e;
     }
+    throw e;
   }
 }
