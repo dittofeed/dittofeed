@@ -1,0 +1,21 @@
+name: backend-lib CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/backend-lib/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/backend-lib/**'
+  workflow_dispatch:
+
+jobs:
+  shared:
+    uses: ./.github/workflows/shared-workflow.yaml
+    with:
+      package-name: 'backend-lib'
+      is_backend: 'true'
