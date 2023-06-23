@@ -1,9 +1,9 @@
 import {
+  ChannelType,
   CompletionStatus,
   DelayVariantType,
   JourneyNodeType,
   JourneyResource,
-  ChannelType,
   SegmentSplitVariantType,
 } from "isomorphic-lib/src/types";
 import { v4 as uuid } from "uuid";
