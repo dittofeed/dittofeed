@@ -1,0 +1,37 @@
+name: Shared CI Workflow
+
+on:
+  workflow_call:
+    inputs:
+      package-name:
+        required: true
+        type: string
+      is_backend:
+        required: false
+        default: 'false'
+        type: string
+
+jobs:
+  lint:
+    name: Run lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn workspaces focus ${{ inputs.package-name }}
+
+    - name: Prisma generate
+      if: ${{ inputs.is_backend == 'true' }}
+      run: yarn workspace backend-lib prisma generate
+
+    - name: Run lint
+      run: yarn workspace ${{ inputs.package-name }} lint
