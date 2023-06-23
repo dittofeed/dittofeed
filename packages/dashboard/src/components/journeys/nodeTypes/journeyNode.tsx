@@ -1,7 +1,7 @@
 import {
-  type FontSizeOutlined,
   ClockCircleOutlined,
   DeliveredProcedureOutlined,
+  type FontSizeOutlined,
   ForkOutlined,
   MailOutlined,
   ThunderboltOutlined,
