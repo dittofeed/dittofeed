@@ -62,6 +62,8 @@
     "@types/minimist": "^1.2.2",
     "@types/node": "^18.11.18",
     "@types/uuid": "^9.0.1",
+    "@typescript-eslint/eslint-plugin": "^5.60.0",
+    "@typescript-eslint/parser": "^5.60.0",
     "deepmerge": "^4.2.2",
     "eslint": "^8.43.0",
     "eslint-config-airbnb": "^19.0.4",
