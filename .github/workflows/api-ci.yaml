@@ -15,6 +15,6 @@ on:
 
 jobs:
   lint-dashboard:
-    uses: ./.github/workflows/lint-workflow.yml@main
+    uses: ./.github/workflows/lint-workflow.yml
     with:
       package-name: 'api'
