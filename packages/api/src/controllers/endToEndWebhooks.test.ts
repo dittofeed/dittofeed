@@ -15,10 +15,10 @@ import { sleep } from "backend-lib/test/testHelpers";
 import { randomUUID } from "crypto";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import {
+  ChannelType,
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
-  ChannelType,
   SegmentNodeType,
   SegmentOperatorType,
   UserPropertyDefinitionType,

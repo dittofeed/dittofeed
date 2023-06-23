@@ -13,13 +13,13 @@ import { enrichJourney } from "../../../journeys";
 import prisma, { Prisma } from "../../../prisma";
 import { buildSubscriptionChangeEventInner } from "../../../subscriptionGroups";
 import {
+  ChannelType,
   EnrichedJourney,
   EnrichedUserProperty,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
-  ChannelType,
   SegmentDefinition,
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,

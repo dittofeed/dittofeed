@@ -1,4 +1,5 @@
 import {
+  ChannelType,
   CompletionStatus,
   DelayNode,
   DelayVariantType,
@@ -9,7 +10,6 @@ import {
   JourneyNodeType,
   JourneyResource,
   MessageNode,
-  ChannelType,
   SegmentSplitNode,
   SegmentSplitVariantType,
 } from "isomorphic-lib/src/types";
