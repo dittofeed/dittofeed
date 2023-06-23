@@ -1,0 +1,20 @@
+name: API CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/api/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/api/**'
+  workflow_dispatch:
+
+jobs:
+  lint-dashboard:
+    uses: ./.github/workflows/lint-workflow.yml@main
+    with:
+      package-name: 'api'
