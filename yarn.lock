@@ -6283,6 +6283,8 @@ __metadata:
     "@types/mjml": ^4.7.1
     "@types/node": ^18.11.18
     "@types/uuid": ^9.0.1
+    "@typescript-eslint/eslint-plugin": ^5.60.0
+    "@typescript-eslint/parser": ^5.60.0
     change-case: ^4.1.2
     cross-spawn: ^7.0.3
     deepmerge: ^4.2.2
@@ -10420,6 +10422,8 @@ __metadata:
   resolution: "isomorphic-lib@workspace:packages/isomorphic-lib"
   dependencies:
     "@sinclair/typebox": ^0.27.8
+    "@typescript-eslint/eslint-plugin": ^5.60.0
+    "@typescript-eslint/parser": ^5.60.0
     eslint: ^8.43.0
     eslint-config-airbnb: ^19.0.4
     eslint-config-airbnb-typescript: ^17.0.0
@@ -16473,6 +16477,8 @@ __metadata:
     "@temporalio/interceptors-opentelemetry": ^1.7.4
     "@temporalio/worker": ^1.7.4
     "@types/node": ^18.8.5
+    "@typescript-eslint/eslint-plugin": ^5.60.0
+    "@typescript-eslint/parser": ^5.60.0
     backend-lib: 0.0.3
     eslint: ^8.43.0
     eslint-config-airbnb: ^19.0.4
