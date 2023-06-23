@@ -14,7 +14,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint-dashboard:
-    uses: ./.github/workflows/lint-workflow.yaml
+  shared:
+    uses: ./.github/workflows/shared-workflow.yaml
     with:
       package-name: 'dashboard'
+      is_backend: 'true'
