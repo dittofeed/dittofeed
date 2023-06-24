@@ -1,4 +1,4 @@
-import { JourneyNodeType } from "isomorphic-lib/src/types";
+import { ChannelType, JourneyNodeType } from "isomorphic-lib/src/types";
 import { Node } from "reactflow";
 import { v4 as uuid } from "uuid";
 
@@ -28,6 +28,7 @@ export default function defaultNodeTypeProps(
         ).length + 1;
       return {
         type,
+        channel: ChannelType.Email,
         name: `Message ${numMessages}`,
       };
     }

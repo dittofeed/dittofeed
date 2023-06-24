@@ -14,6 +14,7 @@ import * as R from "remeda";
 import { URL } from "url";
 import { v4 as uuid } from "uuid";
 
+import { DB_TO_CHANNEL } from "./channels";
 import config from "./config";
 import { generateSecureHash } from "./crypto";
 import logger from "./logger";
@@ -150,6 +151,7 @@ export function subscriptionGroupToResource(
     id: subscriptionGroup.id,
     workspaceId: subscriptionGroup.workspaceId,
     name: subscriptionGroup.name,
+    channel: DB_TO_CHANNEL[subscriptionGroup.channel],
     type,
   };
 }
