@@ -58,6 +58,7 @@ export const SubscriptionGroupResource = Type.Object({
   name: Type.String(),
   channel: Type.Enum(ChannelType),
   type: Type.Enum(SubscriptionGroupType),
+  createdAt: Type.Optional(Type.Number()),
 });
 
 export type SubscriptionGroupResource = Static<

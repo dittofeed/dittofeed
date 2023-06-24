@@ -3,6 +3,8 @@ import {
   Autocomplete,
   Box,
   Button,
+  FormControl,
+  InputLabel,
   MenuItem,
   Select,
   Stack,
@@ -242,10 +244,20 @@ function MessageNodeFields({
         value={nodeProps.name}
         onChange={onNameChangeHandler}
       />
-      <Select onChange={onChannelChangeHandler} value={nodeProps.channel}>
-        <MenuItem value={ChannelType.Email}>Email</MenuItem>
-        <MenuItem value={ChannelType.MobilePush}>Mobile Push</MenuItem>
-      </Select>
+      <FormControl>
+        <InputLabel id="message-channel-select-label">
+          Message Channel
+        </InputLabel>
+        <Select
+          labelId="message-channel-select-label"
+          label="Message Channel"
+          onChange={onChannelChangeHandler}
+          value={nodeProps.channel}
+        >
+          <MenuItem value={ChannelType.Email}>Email</MenuItem>
+          <MenuItem value={ChannelType.MobilePush}>Mobile Push</MenuItem>
+        </Select>
+      </FormControl>
       <Autocomplete
         value={template}
         options={templates}
