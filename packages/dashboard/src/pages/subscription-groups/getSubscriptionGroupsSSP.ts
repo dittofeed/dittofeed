@@ -1,6 +1,7 @@
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import {
+  ChannelType,
   CompletionStatus,
   SubscriptionGroupType,
 } from "isomorphic-lib/src/types";
@@ -60,6 +61,7 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
         id,
         name: `Subscription Group - ${id}`,
         type: SubscriptionGroupType.OptOut,
+        channel: ChannelType.Email,
       };
     }
 

@@ -70,6 +70,7 @@ export default function SubscriptionGroupConfig() {
       name,
       id,
       type: editedSubscriptionGroup.type,
+      channel: editedSubscriptionGroup.channel,
     };
 
     return apiRequestHandlerFactory({
