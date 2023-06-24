@@ -186,9 +186,9 @@ async function bootstrapPostgres({
     }),
     upsertSubscriptionGroup({
       workspaceId,
-      name: `${workspaceName} - Email`,
+      name: `${workspaceName} - Mobile Push`,
       type: SubscriptionGroupType.OptOut,
-      channel: ChannelType.Email,
+      channel: ChannelType.MobilePush,
     }),
   ]);
 }

@@ -75,6 +75,7 @@ export async function upsertSubscriptionGroup({
   name,
   type,
   workspaceId,
+  channel,
 }: UpsertSubscriptionGroupResource): Promise<Result<SubscriptionGroup, Error>> {
   const sg = await prisma().$transaction(async (tx) => {
     const where: Prisma.SubscriptionGroupUpsertArgs["where"] = id
@@ -93,7 +94,7 @@ export async function upsertSubscriptionGroup({
       create: {
         name,
         type,
-        channel: ChannelType.Email,
+        channel,
         workspaceId,
         id,
       },
