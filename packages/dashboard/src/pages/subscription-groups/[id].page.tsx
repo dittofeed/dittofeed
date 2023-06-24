@@ -134,6 +134,7 @@ export default function SubscriptionGroupConfig() {
   }
 
   const optIn = editedSubscriptionGroup.type === SubscriptionGroupType.OptIn;
+  const hasBeenCreated = editedSubscriptionGroup.createdAt !== undefined;
   return (
     <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Configure} id={id}>
       <Stack
@@ -155,16 +156,6 @@ export default function SubscriptionGroupConfig() {
               updateEditedSubscriptionGroup({ name: e.target.value })
             }
           />
-          <LoadingButton
-            onClick={handleSubmit}
-            loading={
-              subscriptionGroupUpdateRequest.type ===
-              CompletionStatus.InProgress
-            }
-            variant="contained"
-          >
-            Save
-          </LoadingButton>
         </Stack>
 
         <FormGroup>
@@ -194,20 +185,32 @@ export default function SubscriptionGroupConfig() {
             }
           />
         </FormGroup>
-        <FormControl sx={{ width: theme.spacing(16) }}>
-          <InputLabel id="message-channel-select-label">
-            Message Channel
-          </InputLabel>
-          <Select
-            labelId="message-channel-select-label"
-            label="Message Channel"
-            onChange={onChannelChangeHandler}
-            value={editedSubscriptionGroup.channel}
+        <InfoTooltip
+          title={
+            "The messaging channel which users can subscribe and unsubscribe to." +
+            (hasBeenCreated
+              ? " Cannot modify the channel of an existing subscription group."
+              : "")
+          }
+        >
+          <FormControl
+            sx={{ width: theme.spacing(16) }}
+            disabled={hasBeenCreated}
           >
-            <MenuItem value={ChannelType.Email}>Email</MenuItem>
-            <MenuItem value={ChannelType.MobilePush}>Mobile Push</MenuItem>
-          </Select>
-        </FormControl>
+            <InputLabel id="message-channel-select-label">
+              Message Channel
+            </InputLabel>
+            <Select
+              labelId="message-channel-select-label"
+              label="Message Channel"
+              onChange={onChannelChangeHandler}
+              value={editedSubscriptionGroup.channel}
+            >
+              <MenuItem value={ChannelType.Email}>Email</MenuItem>
+              <MenuItem value={ChannelType.MobilePush}>Mobile Push</MenuItem>
+            </Select>
+          </FormControl>
+        </InfoTooltip>
         <InfoBox>
           Subscription groups define a group of users who are eligible to
           receive a set of messages. They are useful for:
@@ -221,6 +224,15 @@ export default function SubscriptionGroupConfig() {
             </BulletListItem>
           </BulletList>
         </InfoBox>
+        <LoadingButton
+          onClick={handleSubmit}
+          loading={
+            subscriptionGroupUpdateRequest.type === CompletionStatus.InProgress
+          }
+          variant="contained"
+        >
+          Save
+        </LoadingButton>
       </Stack>
     </SubscriptionGroupLayout>
   );

@@ -20,7 +20,6 @@ import { generateSecureHash } from "./crypto";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
-  ChannelType,
   InternalEventType,
   JSONValue,
   SegmentDefinition,
@@ -154,6 +153,7 @@ export function subscriptionGroupToResource(
     name: subscriptionGroup.name,
     channel: DB_TO_CHANNEL[subscriptionGroup.channel],
     type,
+    createdAt: subscriptionGroup.createdAt.getTime(),
   };
 }
 
