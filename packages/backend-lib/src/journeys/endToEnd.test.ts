@@ -277,6 +277,7 @@ describe("end to end journeys", () => {
             workspaceId: workspace.id,
             name: "default",
             type: SubscriptionGroupType.OptIn,
+            channel: ChannelType.Email,
           })
         );
 

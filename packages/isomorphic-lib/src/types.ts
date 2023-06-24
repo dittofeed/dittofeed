@@ -47,10 +47,16 @@ export enum SubscriptionGroupType {
   OptOut = "OptOut",
 }
 
+export enum ChannelType {
+  Email = "Email",
+  MobilePush = "MobilePush",
+}
+
 export const SubscriptionGroupResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
+  channel: Type.Enum(ChannelType),
   type: Type.Enum(SubscriptionGroupType),
 });
 
@@ -339,11 +345,6 @@ export const RateLimitNode = Type.Object(
 );
 
 export type RateLimitNode = Static<typeof RateLimitNode>;
-
-export enum ChannelType {
-  Email = "Email",
-  MobilePush = "MobilePush",
-}
 
 export const EmailPayload = Type.Object({
   from: Type.String(),

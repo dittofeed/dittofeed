@@ -284,6 +284,7 @@ describe("journeyDefinitionFromState", () => {
             nodeTypeProps: {
               type: JourneyNodeType.MessageNode,
               name: "Message 1",
+              channel: ChannelType.Email,
               templateId: uuid(),
             },
           },
@@ -335,6 +336,7 @@ describe("journeyDefinitionFromState", () => {
             type: "JourneyNode",
             nodeTypeProps: {
               type: JourneyNodeType.MessageNode,
+              channel: ChannelType.Email,
               name: "Message 2",
               templateId: uuid(),
             },

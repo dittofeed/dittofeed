@@ -2,6 +2,7 @@ import { Config } from "backend-lib/src/config";
 import { Draft } from "immer";
 import {
   BroadcastResource,
+  ChannelType,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
   DFRequestContext,
@@ -267,6 +268,7 @@ export interface MessageNodeProps {
   type: JourneyNodeType.MessageNode;
   name: string;
   templateId?: string;
+  channel: ChannelType;
   subscriptionGroupId?: string;
 }
 export interface DelayNodeProps {

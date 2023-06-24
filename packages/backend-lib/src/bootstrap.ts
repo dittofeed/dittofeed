@@ -20,7 +20,11 @@ import {
 } from "./segments/computePropertiesWorkflow";
 import { upsertSubscriptionGroup } from "./subscriptionGroups";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
-import { SubscriptionGroupType, UserPropertyDefinitionType } from "./types";
+import {
+  ChannelType,
+  SubscriptionGroupType,
+  UserPropertyDefinitionType,
+} from "./types";
 import {
   createUserEventsTables,
   insertUserEvents,
@@ -173,11 +177,20 @@ async function bootstrapPostgres({
     }),
   ]);
 
-  await upsertSubscriptionGroup({
-    workspaceId,
-    name: `${workspaceName} - Email`,
-    type: SubscriptionGroupType.OptOut,
-  });
+  await Promise.all([
+    upsertSubscriptionGroup({
+      workspaceId,
+      name: `${workspaceName} - Email`,
+      type: SubscriptionGroupType.OptOut,
+      channel: ChannelType.Email,
+    }),
+    upsertSubscriptionGroup({
+      workspaceId,
+      name: `${workspaceName} - Email`,
+      type: SubscriptionGroupType.OptOut,
+      channel: ChannelType.Email,
+    }),
+  ]);
 }
 
 async function bootstrapKafka() {
