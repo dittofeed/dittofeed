@@ -72,7 +72,6 @@ export default function SubscriptionGroupConfig() {
     }
   };
 
-  // FIXME if already created disable channel updates
   const handleSubmit = useMemo(() => {
     if (
       workspace.type !== CompletionStatus.Successful ||
