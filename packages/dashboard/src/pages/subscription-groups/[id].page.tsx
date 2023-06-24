@@ -11,6 +11,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { SelectInputProps } from "@mui/material/Select/SelectInput";
 import {
   ChannelType,
   CompletionStatus,
@@ -33,7 +34,6 @@ import getSubscriptionGroupsSSP from "./getSubscriptionGroupsSSP";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,
 } from "./subscriptionGroupLayout";
-import { SelectInputProps } from "@mui/material/Select/SelectInput";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   getSubscriptionGroupsSSP;
@@ -185,12 +185,11 @@ export default function SubscriptionGroupConfig() {
           />
         </FormGroup>
         <InfoTooltip
-          title={
-            "The messaging channel which users can subscribe and unsubscribe to." +
-            (hasBeenCreated
+          title={`The messaging channel which users can subscribe and unsubscribe to.${
+            hasBeenCreated
               ? " Cannot modify the channel of an existing subscription group."
-              : "")
-          }
+              : ""
+          }`}
         >
           <FormControl
             sx={{ width: theme.spacing(16) }}
