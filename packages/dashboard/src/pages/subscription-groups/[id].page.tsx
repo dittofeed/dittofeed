@@ -1,13 +1,18 @@
 import LoadingButton from "@mui/lab/LoadingButton";
 import {
+  FormControl,
   FormControlLabel,
   FormGroup,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   Switch,
   Typography,
   useTheme,
 } from "@mui/material";
 import {
+  ChannelType,
   CompletionStatus,
   SubscriptionGroupResource,
   SubscriptionGroupType,
@@ -28,6 +33,7 @@ import getSubscriptionGroupsSSP from "./getSubscriptionGroupsSSP";
 import SubscriptionGroupLayout, {
   SubscriptionGroupTabLabel,
 } from "./subscriptionGroupLayout";
+import { SelectInputProps } from "@mui/material/Select/SelectInput";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   getSubscriptionGroupsSSP;
@@ -55,6 +61,18 @@ export default function SubscriptionGroupConfig() {
 
   const workspace = useAppStore((store) => store.workspace);
 
+  const onChannelChangeHandler: SelectInputProps<ChannelType>["onChange"] = (
+    e
+  ) => {
+    if (editedSubscriptionGroup) {
+      updateEditedSubscriptionGroup({
+        id: editedSubscriptionGroup.id,
+        channel: e.target.value as ChannelType,
+      });
+    }
+  };
+
+  // FIXME if already created disable channel updates
   const handleSubmit = useMemo(() => {
     if (
       workspace.type !== CompletionStatus.Successful ||
@@ -176,6 +194,20 @@ export default function SubscriptionGroupConfig() {
             }
           />
         </FormGroup>
+        <FormControl sx={{ width: theme.spacing(16) }}>
+          <InputLabel id="message-channel-select-label">
+            Message Channel
+          </InputLabel>
+          <Select
+            labelId="message-channel-select-label"
+            label="Message Channel"
+            onChange={onChannelChangeHandler}
+            value={editedSubscriptionGroup.channel}
+          >
+            <MenuItem value={ChannelType.Email}>Email</MenuItem>
+            <MenuItem value={ChannelType.MobilePush}>Mobile Push</MenuItem>
+          </Select>
+        </FormControl>
         <InfoBox>
           Subscription groups define a group of users who are eligible to
           receive a set of messages. They are useful for:
