@@ -6119,7 +6119,7 @@ __metadata:
     remeda: ^1.12.0
     ts-node: ^10.9.1
     tsc-watch: ^6.0.0
-    typescript: ^5.1.3
+    typescript: ^5.2.0-dev.20230606
     utility-types: ^3.10.0
     uuid: ^9.0.0
     yargs: ^17.7.2
@@ -6538,7 +6538,7 @@ __metadata:
     prisma: ^4.8.1
     remeda: ^1.12.0
     ts-node: ^10.9.1
-    typescript: ^5.1.3
+    typescript: ^5.2.0-dev.20230606
     utility-types: ^3.10.0
     uuid: ^9.0.0
     yargs: ^17.7.2
@@ -7716,7 +7716,7 @@ __metadata:
     slate: ^0.87.0
     slate-history: ^0.86.0
     slate-react: ^0.88.0
-    typescript: 4.8.4
+    typescript: ^5.2.0-dev.20230606
     unidiff: ^1.0.2
     use-debounce: ^9.0.2
     utility-types: ^3.10.0
@@ -8034,7 +8034,7 @@ __metadata:
     prettier: ^2.8.3
     ts-jest: ^29.0.5
     ts-node: ^10.9.1
-    typescript: ^4.9.4
+    typescript: ^5.2.0-dev.20230606
   languageName: unknown
   linkType: soft
 
@@ -16615,26 +16615,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:4.8.4":
-  version: 4.8.4
-  resolution: "typescript@npm:4.8.4"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 3e4f061658e0c8f36c820802fa809e0fd812b85687a9a2f5430bc3d0368e37d1c9605c3ce9b39df9a05af2ece67b1d844f9f6ea8ff42819f13bcb80f85629af0
-  languageName: node
-  linkType: hard
-
-"typescript@npm:^4.9.4":
-  version: 4.9.4
-  resolution: "typescript@npm:4.9.4"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: e782fb9e0031cb258a80000f6c13530288c6d63f1177ed43f770533fdc15740d271554cdae86701c1dd2c83b082cea808b07e97fd68b38a172a83dbf9e0d0ef9
-  languageName: node
-  linkType: hard
-
 "typescript@npm:^5.1.3":
   version: 5.1.3
   resolution: "typescript@npm:5.1.3"
@@ -16645,23 +16625,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@4.8.4#~builtin<compat/typescript>":
-  version: 4.8.4
-  resolution: "typescript@patch:typescript@npm%3A4.8.4#~builtin<compat/typescript>::version=4.8.4&hash=1a91c8"
+"typescript@npm:^5.2.0-dev.20230606":
+  version: 5.2.0-dev.20230623
+  resolution: "typescript@npm:5.2.0-dev.20230623"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: c981e82b77a5acdcc4e69af9c56cdecf5b934a87a08e7b52120596701e389a878b8e3f860e73ffb287bf649cc47a8c741262ce058148f71de4cdd88bb9c75153
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@^4.9.4#~builtin<compat/typescript>":
-  version: 4.9.4
-  resolution: "typescript@patch:typescript@npm%3A4.9.4#~builtin<compat/typescript>::version=4.9.4&hash=289587"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 2160f7ad975c59b2f5816817d3916be1d156c5688a7517602b3b640c5015e740f4ba933996ac85371d68f7bbdd41602150fb8b68334122ac637fdb5418085e7a
+  checksum: fe3863cc7b53c81c2ca38cee64ed331f8f3b4f9007f8f11d0b3137b2c9f2aa9940b468279ad7b301a5a44530c15e8b6e72851d5c821d343a4c78cf8a890bfba0
   languageName: node
   linkType: hard
 
@@ -16672,6 +16642,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 6f0a9dca6bf4ce9dcaf4e282aade55ef4c56ecb5fb98d0a4a5c0113398815aea66d871b5611e83353e5953a19ed9ef103cf5a76ac0f276d550d1e7cd5344f61e
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^5.2.0-dev.20230606#~builtin<compat/typescript>":
+  version: 5.2.0-dev.20230623
+  resolution: "typescript@patch:typescript@npm%3A5.2.0-dev.20230623#~builtin<compat/typescript>::version=5.2.0-dev.20230623&hash=5da071"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: af8d42ab310490473d037fe031c23e98641e42286b6e22aef8778269fdd63c07e896b38d69893edfe01988ced6b83fdf318ed654e711144839ec28b3608ad0a8
   languageName: node
   linkType: hard
 
