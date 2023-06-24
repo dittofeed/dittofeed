@@ -26,12 +26,12 @@ import escapeHtml from "escape-html";
 import hash from "fnv1a";
 import { produce } from "immer";
 import {
+  ChannelType,
   CompletionStatus,
   JsonResultType,
   MessageTemplateResource,
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
-  TemplateResourceType,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
@@ -73,18 +73,22 @@ export const defaultInitialUserProperties = {
   anonymousId: "0b0d3a71-0a86-4e60-892a-d27f0b290c81",
 };
 
-export const defaultEmailMessageState: Omit<
+export function defaultEmailMessageState(
+  id: string
+): Omit<
   EmailMessageEditorState,
   "emailMessageUserPropertiesJSON" | "emailMessageUserProperties"
-> = {
-  emailMessageBody: defaultEmailBody,
-  emailMessageTitle: "New Email Message",
-  emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
-  emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
-  emailMessageUpdateRequest: {
-    type: CompletionStatus.NotStarted,
-  },
-};
+> {
+  return {
+    emailMessageBody: defaultEmailBody,
+    emailMessageTitle: `New Email Message - ${id}`,
+    emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
+    emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
+    emailMessageUpdateRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+  };
+}
 
 const BodyBox = styled(Box, {
   shouldForwardProp: (prop) => prop !== "direction",
@@ -229,18 +233,17 @@ export default function EmailEditor() {
 
       const data: RenderMessageTemplateRequest = {
         workspaceId: workspace.id,
-        channel: "email",
+        channel: ChannelType.Email,
         userProperties: debouncedUserProperties,
         contents: {
           from: {
             value: debouncedEmailFrom,
-            mjml: false,
           },
           subject: {
             value: debouncedEmailSubject,
-            mjml: false,
           },
           body: {
+            mjml: true,
             value: debouncedEmailBody,
           },
         },
@@ -392,12 +395,14 @@ export default function EmailEditor() {
 
   const updateData: UpsertMessageTemplateResource = {
     id: messageId,
-    type: TemplateResourceType.Email,
     workspaceId: workspace.id,
     name: title,
-    from: emailFrom,
-    body: emailBody,
-    subject: emailSubject,
+    definition: {
+      type: ChannelType.Email,
+      from: emailFrom,
+      body: emailBody,
+      subject: emailSubject,
+    },
   };
 
   const handleSave = apiRequestHandlerFactory({

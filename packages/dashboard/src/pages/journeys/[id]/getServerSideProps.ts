@@ -1,9 +1,6 @@
+import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import {
-  CompletionStatus,
-  MessageTemplateResource,
-  TemplateResourceType,
-} from "isomorphic-lib/src/types";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
@@ -39,7 +36,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [journey, segments, emailTemplates, subscriptionGroups] =
+    const [journey, segments, templateResources, subscriptionGroups] =
       await Promise.all([
         await prisma().journey.findUnique({
           where: { id },
@@ -52,32 +49,11 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
             },
           },
         }),
-        prisma().emailTemplate.findMany({
-          where: { workspaceId },
-        }),
+        findMessageTemplates({ workspaceId }),
         prisma().subscriptionGroup.findMany({
           where: { workspaceId },
         }),
       ]);
-
-    const templateResources: MessageTemplateResource[] = emailTemplates.map(
-      ({
-        workspaceId: templateWorkspaceId,
-        id: templateId,
-        name,
-        from,
-        subject,
-        body,
-      }) => ({
-        type: TemplateResourceType.Email,
-        workspaceId: templateWorkspaceId,
-        id: templateId,
-        name,
-        from,
-        subject,
-        body,
-      })
-    );
 
     const serverInitialState: PreloadedState = {
       messages: {

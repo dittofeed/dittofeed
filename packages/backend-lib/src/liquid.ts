@@ -4,6 +4,7 @@ import { Liquid } from "liquidjs";
 import MarkdownIt from "markdown-it";
 import mjml2html from "mjml";
 
+import logger from "./logger";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
 
@@ -75,6 +76,7 @@ type UserProperties = Record<string, string>;
 liquidEngine.registerTag("unsubscribe_link", {
   parse() {},
   render(scope) {
+    logger().debug("Rendering unsubscribe link");
     const allScope = scope.getAll() as Record<string, unknown>;
     const secrets = allScope.secrets as Secrets | undefined;
     const workspaceId = allScope.workspace_id as string;
@@ -100,9 +102,19 @@ liquidEngine.registerTag("unsubscribe_link", {
         subscriptionChange: SubscriptionChange.Unsubscribe,
       });
       href = `href="${url}"`;
+    } else {
+      logger().debug(
+        {
+          hasSubscriptionSecret: !!subscriptionSecret,
+          identifier,
+          userId,
+        },
+        "Unsubscribe link not rendering"
+      );
     }
 
-    return `<a class="df-unsubscribe" ${href}>Unsubscribe</a>`;
+    // Note that clicktracking=off is added to the unsubscribe link to prevent sendgrid from including link tracking
+    return `<a class="df-unsubscribe" clicktracking=off ${href}>Unsubscribe</a>`;
   },
 });
 
@@ -116,7 +128,7 @@ export function renderLiquid({
   subscriptionGroupId,
   identifierKey,
   secrets = {},
-  mjml = true,
+  mjml = false,
 }: {
   template: string;
   mjml?: boolean;
@@ -126,6 +138,10 @@ export function renderLiquid({
   subscriptionGroupId?: string;
   workspaceId: string;
 }): string {
+  if (!template.length) {
+    return "";
+  }
+
   const liquidRendered = liquidEngine.parseAndRenderSync(template, {
     user: userProperties,
     workspace_id: workspaceId,
@@ -138,8 +154,9 @@ export function renderLiquid({
   }
   try {
     return mjml2html(liquidRendered).html;
-  } catch (e: any) {
-    if (e.message.indexOf(MJML_NOT_PRESENT_ERROR) !== -1) {
+  } catch (e) {
+    const error = e as Error;
+    if (error.message.includes(MJML_NOT_PRESENT_ERROR)) {
       return liquidRendered;
     }
     throw e;

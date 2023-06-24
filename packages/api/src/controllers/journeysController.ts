@@ -1,4 +1,5 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
   DeleteJourneyRequest,
@@ -73,7 +74,12 @@ export default async function journeysController(fastify: FastifyInstance) {
         JourneyDefinition
       );
       if (journeyDefinitionResult.isErr()) {
-        // TODO add logging
+        logger().error(
+          {
+            errors: journeyDefinitionResult.error,
+          },
+          "Failed to validate journey definition"
+        );
         return reply.status(500).send();
       }
       const resource: JourneyResource = {

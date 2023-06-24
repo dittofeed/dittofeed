@@ -4,5 +4,6 @@ const protectedUserProperties = new Set<string>([
   "email",
   "anonymousId",
   "language",
+  "deviceToken",
 ]);
 export default protectedUserProperties;

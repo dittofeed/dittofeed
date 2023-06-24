@@ -15,10 +15,10 @@ import { sleep } from "backend-lib/test/testHelpers";
 import { randomUUID } from "crypto";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import {
+  ChannelType,
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
-  MessageNodeVariantType,
   SegmentNodeType,
   SegmentOperatorType,
   UserPropertyDefinitionType,
@@ -161,7 +161,7 @@ describe("end to end segment webhooks", () => {
           id: nodeId1,
           child: "ExitNode",
           variant: {
-            type: MessageNodeVariantType.Email,
+            type: ChannelType.Email,
             templateId: emailTemplate.id,
           },
         },
@@ -273,7 +273,7 @@ describe("end to end segment webhooks", () => {
             userId: expect.any(String),
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             properties: expect.objectContaining({
-              messageType: MessageNodeVariantType.Email,
+              messageType: ChannelType.Email,
               to: "peter@example.com",
               from: "hello@email.com",
               subject: "hi there",

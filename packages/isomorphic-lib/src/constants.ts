@@ -9,3 +9,4 @@ export const DEBUG_USER_ID1 = "1b9858de-907d-493f-a067-b3c8effecb0b" as const;
 
 export const SUBSCRIPTION_SECRET_NAME = "subscription-key" as const;
 export const SENDGRID_WEBHOOK_SECRET_NAME = "sendgrid-webhook" as const;
+export const FCM_SECRET_NAME = "fcm-key" as const;

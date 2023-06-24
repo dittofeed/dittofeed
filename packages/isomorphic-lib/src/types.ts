@@ -340,8 +340,9 @@ export const RateLimitNode = Type.Object(
 
 export type RateLimitNode = Static<typeof RateLimitNode>;
 
-export enum MessageNodeVariantType {
+export enum ChannelType {
   Email = "Email",
+  MobilePush = "MobilePush",
 }
 
 export const EmailPayload = Type.Object({
@@ -354,13 +355,23 @@ export const EmailPayload = Type.Object({
 export type EmailPayload = Static<typeof EmailPayload>;
 
 export const EmailMessageVariant = Type.Object({
-  type: Type.Literal(MessageNodeVariantType.Email),
+  type: Type.Literal(ChannelType.Email),
   templateId: Type.String(),
 });
 
 export type EmailMessageVariant = Static<typeof EmailMessageVariant>;
 
-export const MessageVariant = Type.Union([EmailMessageVariant]);
+export const MobilePushMessageVariant = Type.Object({
+  type: Type.Literal(ChannelType.MobilePush),
+  templateId: Type.String(),
+});
+
+export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
+
+export const MessageVariant = Type.Union([
+  EmailMessageVariant,
+  MobilePushMessageVariant,
+]);
 
 export type MessageVariants = Static<typeof MessageVariant>;
 
@@ -543,15 +554,8 @@ export const GetEventsResponse = Type.Object({
 
 export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
-export enum TemplateResourceType {
-  Email = "Email",
-}
-
 export const EmailTemplateResource = Type.Object({
-  type: Type.Literal(TemplateResourceType.Email),
-  workspaceId: Type.String(),
-  id: Type.String(),
-  name: Type.String(),
+  type: Type.Literal(ChannelType.Email),
   from: Type.String(),
   subject: Type.String(),
   body: Type.String(),
@@ -559,14 +563,52 @@ export const EmailTemplateResource = Type.Object({
 
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
-export const MessageTemplateResource = Type.Union([EmailTemplateResource]);
+export const MobilePushTemplateResource = Type.Object({
+  type: Type.Literal(ChannelType.MobilePush),
+  title: Type.Optional(Type.String()),
+  body: Type.Optional(Type.String()),
+  imageUrl: Type.Optional(Type.String()),
+  android: Type.Optional(
+    Type.Object({
+      notification: Type.Object({
+        channelId: Type.Optional(Type.String()),
+      }),
+    })
+  ),
+});
+
+export type MobilePushTemplateResource = Static<
+  typeof MobilePushTemplateResource
+>;
+
+export const MessageTemplateResourceDefinition = Type.Union([
+  MobilePushTemplateResource,
+  EmailTemplateResource,
+]);
+
+export type MessageTemplateResourceDefinition = Static<
+  typeof MessageTemplateResourceDefinition
+>;
+
+const MessageTemplateResourceProperties = {
+  workspaceId: Type.String(),
+  id: Type.String(),
+  name: Type.String(),
+  definition: MessageTemplateResourceDefinition,
+} as const;
+
+export const MessageTemplateResource = Type.Object(
+  MessageTemplateResourceProperties
+);
 
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
 
-export const UpsertMessageTemplateResource = Type.Intersect([
-  Type.Omit(Type.Partial(MessageTemplateResource), ["id"]),
-  Type.Pick(MessageTemplateResource, ["id"]),
-]);
+export const UpsertMessageTemplateResource = Type.Object({
+  workspaceId: Type.Optional(Type.String()),
+  id: Type.String(),
+  name: Type.Optional(Type.String()),
+  definition: MessageTemplateResourceDefinition,
+});
 
 export type UpsertMessageTemplateResource = Static<
   typeof UpsertMessageTemplateResource
@@ -574,7 +616,7 @@ export type UpsertMessageTemplateResource = Static<
 
 export const DeleteMessageTemplateRequest = Type.Object({
   id: Type.String(),
-  type: Type.Enum(TemplateResourceType),
+  type: Type.Enum(ChannelType),
 });
 
 export type DeleteMessageTemplateRequest = Static<
@@ -585,7 +627,7 @@ export enum CompletionStatus {
   NotStarted = "NotStarted",
   InProgress = "InProgress",
   Successful = "Successful",
-  Failed = "failed",
+  Failed = "Failed",
 }
 
 export interface NotStartedRequest {
@@ -959,7 +1001,7 @@ export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
 
 export const RenderMessageTemplateRequest = Type.Object({
   workspaceId: Type.String(),
-  channel: Type.String(),
+  channel: Type.Enum(ChannelType),
   subscriptionGroupId: Type.Optional(Type.String()),
   contents: Type.Record(
     Type.String(),
@@ -1019,7 +1061,7 @@ export const BaseIdentifyData = {
 
 export const BaseBatchIdentifyData = {
   ...BaseAppData,
-  type: Type.Literal("identify"),
+  type: Type.Literal(EventType.Identify),
   traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
@@ -1066,7 +1108,7 @@ export const BaseTrackData = {
 
 export const BaseBatchTrackData = {
   ...BaseAppData,
-  type: Type.Literal("track"),
+  type: Type.Literal(EventType.Track),
   event: Type.String(),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
@@ -1111,7 +1153,7 @@ export const BasePageData = {
 
 export const BaseBatchPageData = {
   ...BaseAppData,
-  type: Type.Literal("page"),
+  type: Type.Literal(EventType.Page),
   name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
@@ -1156,7 +1198,7 @@ export const BaseScreenData = {
 
 export const BaseBatchScreenData = {
   ...BaseAppData,
-  type: Type.Literal("screen"),
+  type: Type.Literal(EventType.Screen),
   name: Type.Optional(Type.String()),
   properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };

@@ -10,10 +10,10 @@ import {
 import * as wf from "@temporalio/workflow";
 
 import {
+  ChannelType,
   DelayVariantType,
   JourneyDefinition,
   JourneyNode,
-  MessageNodeVariantType,
   SegmentUpdate,
 } from "../types";
 import type * as activities from "./userWorkflow/activities";
@@ -23,10 +23,15 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 export const segmentUpdateSignal =
   wf.defineSignal<[SegmentUpdate]>("segmentUpdate");
 
-const { sendEmail, getSegmentAssignment, onNodeProcessed, isRunnable } =
-  proxyActivities<typeof activities>({
-    startToCloseTimeout: "2 minutes",
-  });
+const {
+  sendEmail,
+  getSegmentAssignment,
+  onNodeProcessed,
+  isRunnable,
+  sendMobilePush,
+} = proxyActivities<typeof activities>({
+  startToCloseTimeout: "2 minutes",
+});
 
 type SegmentAssignment = Pick<
   SegmentUpdate,
@@ -166,9 +171,10 @@ export async function userJourneyWorkflow({
         break;
       }
       case "MessageNode": {
-        let shouldContinue = false;
+        let shouldContinue: boolean;
+        const messageId = uuid4();
         switch (currentNode.variant.type) {
-          case MessageNodeVariantType.Email: {
+          case ChannelType.Email: {
             shouldContinue = await sendEmail({
               userId,
               workspaceId,
@@ -177,7 +183,20 @@ export async function userJourneyWorkflow({
               runId,
               nodeId: currentNode.id,
               templateId: currentNode.variant.templateId,
-              messageId: uuid4(),
+              messageId,
+            });
+            break;
+          }
+          case ChannelType.MobilePush: {
+            shouldContinue = await sendMobilePush({
+              userId,
+              workspaceId,
+              journeyId,
+              subscriptionGroupId: currentNode.subscriptionGroupId,
+              runId,
+              nodeId: currentNode.id,
+              templateId: currentNode.variant.templateId,
+              messageId,
             });
             break;
           }

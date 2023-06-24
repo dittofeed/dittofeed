@@ -13,13 +13,13 @@ import { enrichJourney } from "../../../journeys";
 import prisma, { Prisma } from "../../../prisma";
 import { buildSubscriptionChangeEventInner } from "../../../subscriptionGroups";
 import {
+  ChannelType,
   EnrichedJourney,
   EnrichedUserProperty,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
-  MessageNodeVariantType,
   SegmentDefinition,
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,
@@ -84,7 +84,7 @@ describe("compute properties activities", () => {
           id: nodeId1,
           child: JourneyNodeType.ExitNode,
           variant: {
-            type: MessageNodeVariantType.Email,
+            type: ChannelType.Email,
             templateId: randomUUID(),
           },
         },
