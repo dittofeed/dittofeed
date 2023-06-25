@@ -5896,8 +5896,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "admin-cli@workspace:packages/admin-cli"
   dependencies:
+    "@types/yargs": ^17.0.24
     backend-lib: 0.0.3
     ts-node: ^10.9.1
+    yargs: ^17.7.2
   languageName: unknown
   linkType: soft
 
