@@ -25,14 +25,12 @@ export async function cli() {
           "workspace-name": {
             type: "string",
             alias: "n",
-            demandOption: true,
             default: "Default",
             describe: "The workspace name to bootstrap.",
           },
           "workspace-domain": {
             type: "string",
             alias: "d",
-            demandOption: true,
             describe:
               "The email domain to authorize. All users with the provided email domain will be able to access the workspace. Example: -d=example.com",
           },
