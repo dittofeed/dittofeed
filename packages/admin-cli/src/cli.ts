@@ -1,24 +1,46 @@
-import yargs from "yargs";
+import bootstrap from "backend-lib/src/bootstrap";
+import backendConfig from "backend-lib/src/config";
+import { hideBin } from "yargs/helpers";
+import yargs from "yargs/yargs";
 
 export async function cli() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-  yargs
+  yargs(hideBin(process.argv))
     .scriptName("admin")
     .usage("$0 <cmd> [args]")
     .command(
-      "hello [name]",
-      "welcome ter yargs!",
-      (yargsInner) => {
-        yargsInner.positional("name", {
-          type: "string",
-          default: "Cambi",
-          describe: "the name to say hello to",
-        });
-      },
-      (argv) => {
-        console.log("hello", argv.name, "welcome to yargs!");
-      }
+      "bootstrap",
+      "Initialize the dittofeed application and creates a workspace.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            default: backendConfig().defaultWorkspaceId,
+            describe: "The workspace id to bootstrap.",
+          },
+          "workspace-name": {
+            type: "string",
+            alias: "n",
+            demandOption: true,
+            default: "Default",
+            describe: "The workspace name to bootstrap.",
+          },
+          "workspace-domain": {
+            type: "string",
+            alias: "d",
+            demandOption: true,
+            describe:
+              "The email domain to authorize. All users with the provided email domain will be able to access the workspace. Example: -d=example.com",
+          },
+        }),
+      ({ workspaceId, workspaceName, workspaceDomain }) =>
+        bootstrap({
+          workspaceId,
+          workspaceName,
+          workspaceDomain,
+        })
     )
     .demandCommand(1, "# Please provide a valid command")
-    .help().argv;
+    .help()
+    .parseSync();
 }
