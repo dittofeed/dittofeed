@@ -1,0 +1,13 @@
+{
+  "name": "admin-cli",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "cli": "ts-node ./scripts/cli.ts"
+  },
+  "dependencies": {
+    "backend-lib": "0.0.3",
+    "ts-node": "^10.9.1"
+  },
+  "license": "LicenseRef-LICENSE"
+}

@@ -8,6 +8,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "scripts": {
+    "admin": "yarn workspace admin-cli cli \"$@\""
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.2.6",

@@ -5892,6 +5892,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"admin-cli@workspace:packages/admin-cli":
+  version: 0.0.0-use.local
+  resolution: "admin-cli@workspace:packages/admin-cli"
+  dependencies:
+    backend-lib: 0.0.3
+    ts-node: ^10.9.1
+  languageName: unknown
+  linkType: soft
+
 "agent-base@npm:6, agent-base@npm:^6.0.2":
   version: 6.0.2
   resolution: "agent-base@npm:6.0.2"
