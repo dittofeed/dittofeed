@@ -1,10 +1,14 @@
 import bootstrap from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
+import { prismaMigrate } from "backend-lib/src/prisma/migrate";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
 export async function cli() {
-  yargs(hideBin(process.argv))
+  // Ensure config is initialized
+  backendConfig();
+
+  await yargs(hideBin(process.argv))
     .scriptName("admin")
     .usage("$0 <cmd> [args]")
     .command(
@@ -40,7 +44,8 @@ export async function cli() {
           workspaceDomain,
         })
     )
+    .command("migrate", "Run's 'prisma migrate deploy'.", prismaMigrate)
     .demandCommand(1, "# Please provide a valid command")
     .help()
-    .parseSync();
+    .parse();
 }
