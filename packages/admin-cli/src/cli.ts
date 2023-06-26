@@ -42,7 +42,7 @@ export async function cli() {
           workspaceDomain,
         })
     )
-    .command("migrate", "Run's 'prisma migrate deploy'.", prismaMigrate)
+    .command("migrate", "Runs 'prisma migrate deploy'.", prismaMigrate)
     .demandCommand(1, "# Please provide a valid command")
     .help()
     .parse();
