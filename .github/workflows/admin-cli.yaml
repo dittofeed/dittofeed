@@ -1,0 +1,21 @@
+name: admin-cli CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/admin-cli/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/admin-cli/**'
+  workflow_dispatch:
+
+jobs:
+  shared:
+    uses: ./.github/workflows/shared-workflow.yaml
+    with:
+      package-name: 'admin-cli'
+      is_backend: 'true'
