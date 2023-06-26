@@ -139,6 +139,7 @@ export function segmentNodeIsBroadcast(node: SegmentNode): boolean {
   return (
     node.type === SegmentNodeType.Broadcast ||
     (node.type === SegmentNodeType.Performed &&
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       node.event === InternalEventType.SegmentBroadcast)
   );
 }

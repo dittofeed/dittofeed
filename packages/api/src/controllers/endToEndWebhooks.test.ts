@@ -252,6 +252,7 @@ describe("end to end segment webhooks", () => {
         }
 
         const messageEvent = messageEvents.find(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
           (m) => m.event === InternalEventType.MessageSent
         );
         if (!messageEvent) {

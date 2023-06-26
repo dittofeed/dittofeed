@@ -1,5 +1,4 @@
 import {
-  ChannelType,
   CompletionStatus,
   DelayNode,
   DelayVariantType,
