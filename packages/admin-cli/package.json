@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "cli": "ts-node ./scripts/cli.ts"
+    "cli": "ts-node ./scripts/cli.ts",
+    "lint": "eslint src/ scripts/"
   },
   "dependencies": {
     "backend-lib": "0.0.3",
