@@ -11,24 +11,6 @@ x-backend-app-env: &backend-app-env
   TEMPORAL_ADDRESS: "temporal:7233"
   LOG_CONFIG: true
 services:
-  admin-cli:
-    build:
-      context: .
-      dockerfile: ./packages/admin-cli/Dockerfile
-    entrypoint: []
-    command: tail -f /dev/null
-    tty: true
-    volumes:
-      - ./mnt:/dittofeed-mnt
-      - ./packages:/services/packages
-    depends_on:
-      - postgres
-      - temporal
-      - clickhouse-server
-    environment:
-      <<: *backend-app-env
-    networks:
-      - dittofeed-network-dev
   dashboard:
     build:
       context: .
@@ -198,7 +180,6 @@ services:
       - grafana-storage:/var/lib/grafana
     networks:
       - dittofeed-network-dev
-
   prometheus:
     image: prom/prometheus
     profiles: ["otel"]
@@ -207,6 +188,24 @@ services:
     volumes:
       - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
       - prometheus-storage:/prometheus
+    networks:
+      - dittofeed-network-dev
+  admin-cli:
+    build:
+      context: .
+      dockerfile: ./packages/admin-cli/Dockerfile
+    entrypoint: []
+    command: tail -f /dev/null
+    tty: true
+    volumes:
+      - ./mnt:/dittofeed-mnt
+      - ./packages:/services/packages
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
     networks:
       - dittofeed-network-dev
 volumes:
