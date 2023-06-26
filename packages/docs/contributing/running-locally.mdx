@@ -8,7 +8,7 @@ To run Dittofeed locally, start docker compose, and then run the development boo
 docker compose --profile apps up -d
 # The bootstrap script will run migrations and seed data stores with default
 # resources.
-./scripts/bootstrap-dev.sh
+yarn admin bootstrap
 ```
 
 ## Developing a Dittofeed Service

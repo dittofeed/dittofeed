@@ -190,24 +190,6 @@ services:
       - prometheus-storage:/prometheus
     networks:
       - dittofeed-network-dev
-  admin-cli:
-    build:
-      context: .
-      dockerfile: ./packages/admin-cli/Dockerfile
-    entrypoint: []
-    command: tail -f /dev/null
-    tty: true
-    volumes:
-      - ./mnt:/dittofeed-mnt
-      - ./packages:/services/packages
-    depends_on:
-      - postgres
-      - temporal
-      - clickhouse-server
-    environment:
-      <<: *backend-app-env
-    networks:
-      - dittofeed-network-dev
 volumes:
   postgres:
   kafka:
