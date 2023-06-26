@@ -4,6 +4,7 @@ import { prismaMigrate } from "backend-lib/src/prisma/migrate";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
+import { SDK_LANGUAGES, sdkBaseCodegen } from "./sdkBase";
 import { spawnWithEnv } from "./spawn";
 
 export async function cli() {
@@ -61,6 +62,21 @@ export async function cli() {
             cmd._.slice(1).map(String)
           )
         )
+    )
+    .command(
+      "sdk-base-codegen",
+      "Generates an openapi client for a particular language's base sdk.",
+      (cmd) =>
+        cmd.options({
+          lang: {
+            type: "string",
+            alias: "l",
+            choices: Object.keys(SDK_LANGUAGES),
+            default: backendConfig().defaultWorkspaceId,
+            describe: "The workspace id to bootstrap.",
+          },
+        }),
+      ({ lang }) => sdkBaseCodegen({ lang })
     )
     .demandCommand(1, "# Please provide a valid command")
     .help()
