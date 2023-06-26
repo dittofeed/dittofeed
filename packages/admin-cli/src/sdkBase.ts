@@ -1,7 +1,10 @@
 import axios from "axios";
+import logger from "backend-lib/src/logger";
 import fs from "fs/promises";
 import path from "path";
 import * as R from "remeda";
+
+import { spawnWithEnv } from "./spawn";
 
 const APPS_API_PREFIX = "/api/public/apps/";
 
@@ -12,7 +15,7 @@ interface SdkLanguage {
 
 export const SDK_LANGUAGES = {
   js: {
-    package: "sdk-base-js",
+    package: "sdk-js-base",
     openApiGeneratorLang: "typescript-axios",
   },
 } as const;
@@ -26,6 +29,7 @@ export async function sdkBaseCodegen({ lang }: { lang: string }) {
     default:
       throw new Error(`Invalid language: ${lang}`);
   }
+  logger().info(`Generating api client for ${sdkLang.package}`);
   const schema = (await axios.get("http://localhost:3001/documentation/json"))
     .data;
 
@@ -37,7 +41,8 @@ export async function sdkBaseCodegen({ lang }: { lang: string }) {
     ...R.omit(schema, ["paths"]),
   };
 
-  const schemePath = path.join(
+  const baseDir = path.join(__dirname, "..", "..", "..");
+  const schemaPath = path.join(
     __dirname,
     "..",
     "..",
@@ -45,5 +50,24 @@ export async function sdkBaseCodegen({ lang }: { lang: string }) {
     ".tmp",
     "open-api-apps.json"
   );
-  await fs.writeFile(schemePath, JSON.stringify(restrictedSchema, null, 2));
+
+  await fs.writeFile(schemaPath, JSON.stringify(restrictedSchema, null, 2));
+
+  const outputDir = path.join(
+    baseDir,
+    "packages",
+    sdkLang.package,
+    "src",
+    "client"
+  );
+  await spawnWithEnv([
+    "swagger-codegen",
+    "generate",
+    "-i",
+    schemaPath,
+    "-l",
+    sdkLang.openApiGeneratorLang,
+    "-o",
+    outputDir,
+  ]);
 }
