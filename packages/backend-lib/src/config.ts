@@ -155,7 +155,7 @@ function parseDatabaseUrl(rawConfig: RawConfig) {
     return url.toString();
   }
 
-  if (rawConfig.nodeEnv === "production") {
+  if (rawConfig.nodeEnv === NodeEnvEnum.Production) {
     throw new Error(
       "In production must either specify databaseUrl or all of databaseUser, databasePassword, databaseHost, databasePort"
     );
@@ -196,12 +196,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   const databaseUrl = parseDatabaseUrl(rawConfig);
   const clickhouseDatabase =
     rawConfig.clickhouseDatabase ??
-    (rawConfig.nodeEnv === "test" ? "dittofeed_test" : "dittofeed");
+    (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
 
   const nodeEnv = rawConfig.nodeEnv ?? NodeEnvEnum.Development;
   const writeMode: WriteMode =
     rawConfig.writeMode ??
-    (rawConfig.nodeEnv === "test" ? "ch-sync" : "ch-async");
+    (rawConfig.nodeEnv === NodeEnvEnum.Test ? "ch-sync" : "ch-async");
 
   let logLevel: LogLevel;
   if (rawConfig.logLevel) {
