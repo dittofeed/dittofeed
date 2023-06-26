@@ -5900,6 +5900,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": ^5.60.0
     "@typescript-eslint/parser": ^5.60.0
     backend-lib: 0.0.3
+    cross-spawn: ^7.0.3
     eslint: ^8.43.0
     eslint-config-airbnb-base: ^15.0.0
     eslint-config-airbnb-typescript: ^17.0.0

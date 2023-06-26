@@ -4,8 +4,10 @@ import { prismaMigrate } from "backend-lib/src/prisma/migrate";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
+import { spawnWithEnv } from "./spawn";
+
 export async function cli() {
-  // Ensure config is initialized
+  // Ensure config is initialized, and that environment variables are set.
   backendConfig();
 
   await yargs(hideBin(process.argv))
@@ -43,6 +45,23 @@ export async function cli() {
         })
     )
     .command("migrate", "Runs 'prisma migrate deploy'.", prismaMigrate)
+    .command(
+      "spawn",
+      "Spawns a shell command, with dittofeed's config exported as environment variables.",
+      () => {},
+      (cmd) => spawnWithEnv(cmd._.slice(1).map(String))
+    )
+    .command(
+      "prisma",
+      "Spawns prisma with dittofeed's config exported as environment variables.",
+      () => {},
+      (cmd) =>
+        spawnWithEnv(
+          ["yarn", "workspace", "backend-lib", "prisma"].concat(
+            cmd._.slice(1).map(String)
+          )
+        )
+    )
     .demandCommand(1, "# Please provide a valid command")
     .help()
     .parse();
