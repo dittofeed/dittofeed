@@ -143,3 +143,7 @@ mnt/*
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+
+.tmp/*
+!.tmp/.gitkeep
