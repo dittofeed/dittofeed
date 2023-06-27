@@ -65,7 +65,7 @@ export async function cli() {
     )
     .command(
       "sdk-base-codegen",
-      "Generates an openapi client for a particular language's base sdk.",
+      "Generates an openapi client for a particular language's base sdk. Note that this requires swagger-codegen 3 to be installed https://github.com/swagger-api/swagger-codegen#prerequisites",
       (cmd) =>
         cmd.options({
           lang: {
