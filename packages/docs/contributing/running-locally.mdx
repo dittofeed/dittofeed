@@ -5,13 +5,35 @@ title: Running Dittofeed Locally
 To run Dittofeed locally, start docker compose, and then run the development bootstrap script.
 
 ```bash
-docker compose --profile apps up -d
+docker compose up -d
 # The bootstrap script will run migrations and seed data stores with default
 # resources.
 yarn admin bootstrap
 ```
 
-`yarn admin <cmd> [args]` invoke's the `admin-cli` package's CLI, located [here](https://github.com/dittofeed/dittofeed/tree/main/packages/admin-cli). The `admin-cli` package can be used for local development as well as operational tasks in production.
+Then run the service components in separate terminal windows.
+
+```bash
+yarn workspace dashboard dev
+yarn workspace api dev
+# Optionally
+yarn workspace worker dev
+```
+
+## Admin CLI
+
+`yarn admin <cmd> [args]` invoke's the `admin-cli` package's CLI, located [here](https://github.com/dittofeed/dittofeed/tree/main/packages/admin-cli). The `admin-cli` provides useful commands for local development as well as operational tasks in production.
+
+## Running with Github Codespaces
+
+Running Dittofeed with Github Codespaces is an easy way to set up a development environment, as they can help rule out idiosyncratic issues with your local environment.
+
+To open a codespace, open vscode, and navigate to the Remote Explorer tab. Then click on the "Open Codespace" button.
+
+From here, select the dittofeed repository, and create a codespace. We recommend using the second tier codespace or higher, to ensure you have enough resources to run the application (4 cores, 8 GB RAM, 32 GB storage).
+
+![Open Codespace](/images/open-codespace.png)
+
 
 ## Developing a Dittofeed Service
 

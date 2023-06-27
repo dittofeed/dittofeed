@@ -14,7 +14,7 @@
   },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  "forwardPorts": [3000, 3001]
+  "forwardPorts": [3000, 3001],
 
   // Uncomment the next line if you want start specific services in your Docker Compose config.
   // "runServices": [],
@@ -23,7 +23,16 @@
   // "shutdownAction": "none",
 
   // Uncomment the next line to run commands after the container is created.
-  // "postCreateCommand": "cat /etc/os-release",
+  "postCreateCommand": "./.devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Prisma.prisma",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
 
   // Configure tool-specific properties.
   // "customizations": {},
