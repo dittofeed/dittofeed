@@ -21,7 +21,7 @@ import {
   SegmentResource,
   SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
 
 import { useAppStore } from "../../lib/appStore";

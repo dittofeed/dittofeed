@@ -1,5 +1,6 @@
 import { clickhouseClient } from "../clickhouse";
 import config from "../config";
+import { NodeEnvEnum } from "../config/loader";
 import logger from "../logger";
 import prisma from "../prisma";
 import { ComputedPropertyAssignment, JSONValue } from "../types";
@@ -131,7 +132,8 @@ export async function createUserEventsTables({
   ];
 
   const kafkaBrokers =
-    config().nodeEnv === "test" || config().nodeEnv === "development"
+    config().nodeEnv === NodeEnvEnum.Test ||
+    config().nodeEnv === NodeEnvEnum.Development
       ? "kafka:29092"
       : config().kafkaBrokers.join(",");
 

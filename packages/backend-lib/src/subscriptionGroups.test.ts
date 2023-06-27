@@ -5,7 +5,6 @@ import {
 } from "isomorphic-lib/src/constants";
 
 import config from "./config";
-import logger from "./logger";
 import prisma from "./prisma";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
