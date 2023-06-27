@@ -8,8 +8,10 @@ To run Dittofeed locally, start docker compose, and then run the development boo
 docker compose --profile apps up -d
 # The bootstrap script will run migrations and seed data stores with default
 # resources.
-./scripts/bootstrap-dev.sh
+yarn admin bootstrap
 ```
+
+`yarn admin <cmd> [args]` invoke's the `admin-cli` package's CLI, located [here](https://github.com/dittofeed/dittofeed/tree/main/packages/admin-cli). The `admin-cli` package can be used for local development as well as operational tasks in production.
 
 ## Developing a Dittofeed Service
 

@@ -14,6 +14,9 @@
     },
     {
       "path": "./packages/worker"
+    },
+    {
+      "path": "./packages/admin-cli"
     }
   ]
 }

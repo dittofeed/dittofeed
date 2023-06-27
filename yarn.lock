@@ -5892,6 +5892,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"admin-cli@workspace:packages/admin-cli":
+  version: 0.0.0-use.local
+  resolution: "admin-cli@workspace:packages/admin-cli"
+  dependencies:
+    "@types/yargs": ^17.0.24
+    "@typescript-eslint/eslint-plugin": ^5.60.0
+    "@typescript-eslint/parser": ^5.60.0
+    backend-lib: 0.0.3
+    cross-spawn: ^7.0.3
+    eslint: ^8.43.0
+    eslint-config-airbnb-base: ^15.0.0
+    eslint-config-airbnb-typescript: ^17.0.0
+    eslint-config-prettier: ^8.8.0
+    eslint-plugin-filenames: ^1.3.2
+    eslint-plugin-import: ^2.27.5
+    eslint-plugin-simple-import-sort: ^10.0.0
+    prettier: ^2.8.3
+    ts-node: ^10.9.1
+    yargs: ^17.7.2
+  languageName: unknown
+  linkType: soft
+
 "agent-base@npm:6, agent-base@npm:^6.0.2":
   version: 6.0.2
   resolution: "agent-base@npm:6.0.2"
@@ -17223,7 +17245,7 @@ __metadata:
     "@typescript-eslint/parser": ^5.60.0
     backend-lib: 0.0.3
     eslint: ^8.43.0
-    eslint-config-airbnb: ^19.0.4
+    eslint-config-airbnb-base: ^15.0.0
     eslint-config-airbnb-typescript: ^17.0.0
     eslint-config-prettier: ^8.8.0
     eslint-plugin-filenames: ^1.3.2

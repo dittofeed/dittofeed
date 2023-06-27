@@ -180,7 +180,6 @@ services:
       - grafana-storage:/var/lib/grafana
     networks:
       - dittofeed-network-dev
-
   prometheus:
     image: prom/prometheus
     profiles: ["otel"]
