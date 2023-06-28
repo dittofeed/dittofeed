@@ -151,6 +151,7 @@ describe("userEvents", () => {
       });
       expect(events).toHaveLength(4);
       const eventProperties = events.flatMap((e) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         if (e.event !== InternalEventType.SegmentBroadcast) {
           return [];
         }

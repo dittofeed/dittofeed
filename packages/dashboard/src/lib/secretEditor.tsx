@@ -48,7 +48,7 @@ export default function SecretEditor({ secretName }: { secretName: string }) {
   );
   const handleClickShowPassword = () => setShowPassword(!showPassword);
   const handleMouseDownPassword = () => setShowPassword(!showPassword);
-  const [secretValue, setSecretValue] = useState(secret?.value || "");
+  const [secretValue, setSecretValue] = useState(secret?.value ?? "");
 
   if (workspace.type !== CompletionStatus.Successful) {
     return null;

@@ -1,4 +1,3 @@
-import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 
 import { encodeMockJwt } from "../test/factories/jwt";
@@ -11,7 +10,6 @@ import { RoleEnum } from "./types";
 
 describe("getMultiTenantRequestContext", () => {
   describe("when auth role is missing", () => {
-    let workspace: Workspace;
     let header: string;
     let emailDomain: string;
 
@@ -25,7 +23,7 @@ describe("getMultiTenantRequestContext", () => {
 
     describe("without a domain", () => {
       beforeEach(async () => {
-        workspace = await prisma().workspace.create({
+        await prisma().workspace.create({
           data: {
             name: randomUUID(),
           },
@@ -45,7 +43,7 @@ describe("getMultiTenantRequestContext", () => {
 
     describe("when workspace has a domain", () => {
       beforeEach(async () => {
-        workspace = await prisma().workspace.create({
+        await prisma().workspace.create({
           data: {
             name: randomUUID(),
             domain: emailDomain,

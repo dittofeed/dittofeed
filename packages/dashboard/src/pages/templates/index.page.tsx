@@ -10,14 +10,13 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { isEmailTemplate } from "isomorphic-lib/src/templates";
+import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import {
+  ChannelType,
   CompletionStatus,
   DeleteMessageTemplateRequest,
-  EmailTemplateResource,
   EmptyResponse,
   MessageTemplateResource,
-  TemplateResourceType,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -30,7 +29,6 @@ import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
 
@@ -38,23 +36,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const workspaceId = dfContext.workspace.id;
 
-    const emails: EmailTemplateResource[] = (
-      await prisma().emailTemplate.findMany({
-        where: { workspaceId },
-      })
-    ).map((e) => ({
-      type: TemplateResourceType.Email,
-      name: e.name,
-      id: e.id,
-      workspaceId: e.workspaceId,
-      from: e.from,
-      subject: e.subject,
-      body: e.body,
-    }));
-
+    const templates = await findMessageTemplates({
+      workspaceId,
+    });
     const messages: AppState["messages"] = {
       type: CompletionStatus.Successful,
-      value: emails,
+      value: templates,
     };
 
     return {
@@ -92,7 +79,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
 
   const deleteData: DeleteMessageTemplateRequest = {
     id: template.id,
-    type: template.type,
+    type: template.definition.type,
   };
   const handleDelete = apiRequestHandlerFactory({
     request: messageTemplateDeleteRequest,
@@ -127,11 +114,11 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
         }}
         onClick={() => {
           let messageType: string;
-          switch (template.type) {
-            case TemplateResourceType.Email:
+          switch (template.definition.type) {
+            case ChannelType.Email:
               messageType = "email";
               break;
-            case TemplateResourceType.MobilePush:
+            case ChannelType.MobilePush:
               messageType = "mobile-push";
               break;
           }

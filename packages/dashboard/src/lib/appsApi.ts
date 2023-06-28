@@ -8,6 +8,7 @@ import {
   BatchScreenData,
   BatchTrackData,
   CompletionStatus,
+  EventType,
   KnownIdentifyData,
   KnownPageData,
   KnownScreenData,
@@ -86,7 +87,7 @@ export default class AppsApi {
   async identify(params: Omit<KnownIdentifyData, "messageId">): Promise<void> {
     const data: BatchIdentifyData = {
       messageId: uuidv4(),
-      type: "identify",
+      type: EventType.Identify,
       ...params,
     };
     this.instanceQueue?.submit(data);
@@ -95,7 +96,7 @@ export default class AppsApi {
   async track(params: Omit<KnownTrackData, "messageId">): Promise<void> {
     const data: BatchTrackData = {
       messageId: uuidv4(),
-      type: "track",
+      type: EventType.Track,
       ...params,
     };
     this.instanceQueue?.submit(data);
@@ -104,7 +105,7 @@ export default class AppsApi {
   async page(params: Omit<KnownPageData, "messageId">): Promise<void> {
     const data: BatchPageData = {
       messageId: uuidv4(),
-      type: "page",
+      type: EventType.Page,
       ...params,
     };
     this.instanceQueue?.submit(data);
@@ -113,7 +114,7 @@ export default class AppsApi {
   async screen(params: Omit<KnownScreenData, "messageId">): Promise<void> {
     const data: BatchScreenData = {
       messageId: uuidv4(),
-      type: "screen",
+      type: EventType.Screen,
       ...params,
     };
     this.instanceQueue?.submit(data);

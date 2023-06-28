@@ -1,7 +1,7 @@
 import {
-  type FontSizeOutlined,
   ClockCircleOutlined,
   DeliveredProcedureOutlined,
+  type FontSizeOutlined,
   ForkOutlined,
   MailOutlined,
   ThunderboltOutlined,
@@ -30,6 +30,12 @@ interface JourneyNodeConfig {
   disableBottomHandle?: boolean;
 }
 
+/**
+ * Validates that journey node can be saved.
+ * @param props
+ * @param state
+ * @returns
+ */
 export function isNodeComplete(
   props: NodeTypeProps,
   state: Pick<AppState, "segments" | "messages">

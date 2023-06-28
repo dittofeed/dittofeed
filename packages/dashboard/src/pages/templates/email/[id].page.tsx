@@ -4,7 +4,7 @@ import { LoremIpsum } from "lorem-ipsum";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import React from "react";
-import { validate } from "uuid";
+import { v4 as uuid, validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
 import EmailEditor, {
@@ -22,7 +22,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const id = ctx.params?.id;
 
     if (typeof id !== "string" || !validate(id)) {
-      serverInitialState = defaultEmailMessageState;
+      serverInitialState = defaultEmailMessageState(uuid());
+
       return {
         notFound: true,
       };
@@ -65,7 +66,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     );
 
     serverInitialState = {
-      ...defaultEmailMessageState,
+      ...defaultEmailMessageState(id),
       emailMessageUserProperties,
       emailMessageUserPropertiesJSON,
     };

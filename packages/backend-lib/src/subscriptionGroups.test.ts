@@ -5,7 +5,6 @@ import {
 } from "isomorphic-lib/src/constants";
 
 import config from "./config";
-import logger from "./logger";
 import prisma from "./prisma";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
@@ -77,13 +76,9 @@ describe("generateSubscriptionChangeUrl", () => {
       changedSubscription: subscriptionGroup.id,
       subscriptionChange: SubscriptionChange.Unsubscribe,
     });
-    const fullUrl = `http://localhost:3000${url}`;
-    const parsed = new URL(fullUrl);
-    logger().debug({
-      fullUrl,
-    });
-    expect(parsed.pathname).toEqual(
-      "/dashboard/public/subscription-management"
+    const parsed = new URL(url);
+    expect(url).toContain(
+      "http://localhost:3000/dashboard/public/subscription-management"
     );
     expect(parsed.searchParams.get("w")).toEqual(config().defaultWorkspaceId);
     expect(parsed.searchParams.get("i")).toEqual(email);

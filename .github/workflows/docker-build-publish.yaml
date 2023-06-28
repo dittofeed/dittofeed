@@ -9,7 +9,7 @@ jobs:
     name: Push Docker image to Docker Hub
     strategy:
       matrix:
-        package: [worker, api, dashboard]
+        package: [worker, api, dashboard, admin-cli]
 
     runs-on: ubuntu-latest
     steps:

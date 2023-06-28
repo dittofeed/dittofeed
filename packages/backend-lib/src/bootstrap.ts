@@ -20,7 +20,11 @@ import {
 } from "./segments/computePropertiesWorkflow";
 import { upsertSubscriptionGroup } from "./subscriptionGroups";
 import connectWorkflowClient from "./temporal/connectWorkflowClient";
-import { SubscriptionGroupType, UserPropertyDefinitionType } from "./types";
+import {
+  ChannelType,
+  SubscriptionGroupType,
+  UserPropertyDefinitionType,
+} from "./types";
 import {
   createUserEventsTables,
   insertUserEvents,
@@ -98,6 +102,14 @@ async function bootstrapPostgres({
         },
       },
       {
+        name: "deviceToken",
+        workspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "deviceToken",
+        },
+      },
+      {
         name: "firstName",
         workspaceId,
         definition: {
@@ -132,20 +144,6 @@ async function bootstrapPostgres({
     ];
 
   await Promise.all([
-    prisma().channel.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: "email",
-        },
-      },
-      create: {
-        workspaceId,
-        name: "email",
-        identifier: "email",
-      },
-      update: {},
-    }),
     ...userProperties.map((up) =>
       prisma().userProperty.upsert({
         where: {
@@ -179,11 +177,20 @@ async function bootstrapPostgres({
     }),
   ]);
 
-  await upsertSubscriptionGroup({
-    workspaceId,
-    name: `${workspaceName} - Email`,
-    type: SubscriptionGroupType.OptOut,
-  });
+  await Promise.all([
+    upsertSubscriptionGroup({
+      workspaceId,
+      name: `${workspaceName} - Email`,
+      type: SubscriptionGroupType.OptOut,
+      channel: ChannelType.Email,
+    }),
+    upsertSubscriptionGroup({
+      workspaceId,
+      name: `${workspaceName} - Mobile Push`,
+      type: SubscriptionGroupType.OptOut,
+      channel: ChannelType.MobilePush,
+    }),
+  ]);
 }
 
 async function bootstrapKafka() {

@@ -27,3 +27,34 @@ Finally, add that same API key to Dittofeed on the settings page `/dashboard/set
 ![Dittofeed SendGrid API Key](/images/dittofeed-sendgrid-api-key.png)
 
 That's it. At this point you should be able send emails with Dittofeed and SendGrid.
+
+## Tracking
+
+In order to receive sendgrid tracking data, you have to create a webhook in SendGrid.
+
+Go to the Webhook settings page. [https://app.sendgrid.com/settings/mail_settings/webhook_settings](https://app.sendgrid.com/settings/mail_settings/webhook_settings)
+
+![SendGrid Webhook Settings](/images/sendgrid-webhook.png)
+
+Create a new webhook with the following actions to be posted.
+
+- Opened
+- Clicked
+- Spam Reports
+- Dropped
+- Bounced
+- Delivered
+
+With the Post URL `https://dittofeed.com/api/public/webhooks/sendgrid` or your own custom domain if you're self-hosting.
+
+Enable the "Signature Verification" feature. Save the webhook.
+
+![Sendgrid New Webhook](/images/sendgrid-new-webhook.png)
+
+Now, re-open the webhook's settings. You should see your "Verification Key".
+
+![Sendgrid Webhook Verification Key](/images/sendgrid-webhook-verification-key.png)
+
+Copy that key and paste it into Dittofeed's settings page `/dashboard/settings#email-title` and click save.
+
+![Sendgrid Verification Key Settings](/images/sendgrid-webhook-verification-key-settings.png)

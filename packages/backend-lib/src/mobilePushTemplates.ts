@@ -1,20 +1,15 @@
-import { randomUUID } from "crypto";
-
-import { MobilePushTemplateResource, TemplateResourceType } from "./types";
+import { findMessageTemplates } from "./messageTemplates";
+import { ChannelType, MessageTemplateResource } from "./types";
 
 export async function getMobilePushTemplates({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<MobilePushTemplateResource[]> {
-  return [
-    {
-      type: TemplateResourceType.MobilePush,
-      name: "Hello",
-      id: randomUUID(),
-      workspaceId,
-      message: "Hello, {{user.firstName}}!",
-      title: "Hello",
-    },
-  ];
+}): Promise<MessageTemplateResource[]> {
+  const templates = await findMessageTemplates({
+    workspaceId,
+  });
+  return templates.filter(
+    (template) => template.definition.type === ChannelType.MobilePush
+  );
 }

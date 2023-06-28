@@ -29,9 +29,9 @@ model Workspace {
   Broadcast              Broadcast[]
   SubscriptionGroup      SubscriptionGroup[]
   WorkspaceMemberRole    WorkspaceMemberRole[]
-  Channel                Channel[]
   Secret                 Secret[]
   WriteKey               WriteKey[]
+  MessageTemplate        MessageTemplate[]
 }
 
 enum DBResourceType {
@@ -135,6 +135,7 @@ model UserPropertyAssignment {
   @@index([userId])
 }
 
+// TODO consolidate with generic MessageTemplate
 model EmailTemplate {
   id          String    @id() @default(uuid()) @db.Uuid
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
@@ -145,6 +146,18 @@ model EmailTemplate {
   body        String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model MessageTemplate {
+  id          String    @id() @default(uuid()) @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String    @db.Uuid
+  name        String
+  definition  Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, name])
 }
 
 model DefaultEmailProvider {
@@ -211,14 +224,18 @@ enum DBSubscriptionGroupType {
   OptOut
 }
 
+enum DBChannelType {
+  Email
+  MobilePush
+}
+
 model SubscriptionGroup {
   id          String                  @id() @default(uuid()) @db.Uuid
   workspace   Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String                  @db.Uuid
   name        String
+  channel     DBChannelType
   type        DBSubscriptionGroupType
-  channelId   String                  @db.Uuid
-  channel     Channel                 @relation(fields: [channelId], references: [id])
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
   Segment     Segment[]
@@ -273,19 +290,6 @@ model WorkspaceMemberRole {
   updatedAt         DateTime        @updatedAt
 
   @@unique([workspaceId, workspaceMemberId])
-}
-
-model Channel {
-  id                String              @id() @default(uuid()) @db.Uuid
-  workspace         Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId       String              @db.Uuid
-  name              String
-  identifier        String
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  SubscriptionGroup SubscriptionGroup[]
-
-  @@unique([workspaceId, name])
 }
 
 model Secret {

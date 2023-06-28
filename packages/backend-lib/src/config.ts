@@ -61,6 +61,7 @@ const BaseRawConfigProps = {
   signoutUrl: Type.Optional(Type.String()),
   trackDashboard: Type.Optional(BoolStr),
   dashboardWriteKey: Type.Optional(Type.String()),
+  dashboardUrl: Type.Optional(Type.String()),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -116,6 +117,7 @@ export type Config = Overwrite<
     enableSourceControl: boolean;
     authMode: AuthMode;
     trackDashboard: boolean;
+    dashboardUrl: string;
   }
 > & {
   defaultWorkspaceId: string;
@@ -153,7 +155,7 @@ function parseDatabaseUrl(rawConfig: RawConfig) {
     return url.toString();
   }
 
-  if (rawConfig.nodeEnv === "production") {
+  if (rawConfig.nodeEnv === NodeEnvEnum.Production) {
     throw new Error(
       "In production must either specify databaseUrl or all of databaseUser, databasePassword, databaseHost, databasePort"
     );
@@ -194,12 +196,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   const databaseUrl = parseDatabaseUrl(rawConfig);
   const clickhouseDatabase =
     rawConfig.clickhouseDatabase ??
-    (rawConfig.nodeEnv === "test" ? "dittofeed_test" : "dittofeed");
+    (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
 
   const nodeEnv = rawConfig.nodeEnv ?? NodeEnvEnum.Development;
   const writeMode: WriteMode =
     rawConfig.writeMode ??
-    (rawConfig.nodeEnv === "test" ? "ch-sync" : "ch-async");
+    (rawConfig.nodeEnv === NodeEnvEnum.Test ? "ch-sync" : "ch-async");
 
   let logLevel: LogLevel;
   if (rawConfig.logLevel) {
@@ -267,6 +269,11 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     logLevel,
     enableSourceControl: rawConfig.enableSourceControl === "true",
     authMode: rawConfig.authMode ?? "anonymous",
+    dashboardUrl:
+      rawConfig.dashboardUrl ??
+      (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
+        ? "http://localhost:3000"
+        : "https://dittofeed.com"),
     trackDashboard: rawConfig.trackDashboard === "true",
   };
   return parsedConfig;

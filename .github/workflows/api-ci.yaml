@@ -1,0 +1,21 @@
+name: API CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/api/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/api/**'
+  workflow_dispatch:
+
+jobs:
+  shared:
+    uses: ./.github/workflows/shared-workflow.yaml
+    with:
+      package-name: 'api'
+      is_backend: 'true'

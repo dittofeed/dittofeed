@@ -62,3 +62,7 @@ If you're interested in trying us out, please get in touch!
 
 * [Slack](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1rwjkx7w1-Jj8MeB1wN~hiM7uuErLj1A)
 * Email: [support@dittofeed.com](mailto:support@dittofeed.com)
+
+## Contributing
+
+For instructions on how contributing, and running Dittofeed locally, see Dittofeed's [Contributing docs](https://docs.dittofeed.com/contributing/).

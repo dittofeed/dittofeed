@@ -92,6 +92,21 @@ services:
       - clickhouse_log:/var/log/clickhouse-server
     networks:
       - dittofeed-network
+  admin-cli:
+    build:
+      context: .
+      dockerfile: ./packages/admin-cli/Dockerfile
+    entrypoint: []
+    command: tail -f /dev/null
+    tty: true
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
+    networks:
+      - dittofeed-network
 volumes:
   postgres:
   clickhouse_lib:

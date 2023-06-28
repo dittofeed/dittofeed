@@ -3,12 +3,18 @@ import {
   Autocomplete,
   Box,
   Button,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
+import { SelectInputProps } from "@mui/material/Select/SelectInput";
 import {
+  ChannelType,
   CompletionStatus,
   JourneyNodeType,
   MessageTemplateResource,
@@ -203,18 +209,33 @@ function MessageNodeFields({
 
   const templates =
     templatesResult.type === CompletionStatus.Successful
-      ? templatesResult.value
+      ? templatesResult.value.filter(
+          (t) => t.definition.type === nodeProps.channel
+        )
       : [];
 
   const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;
 
   const subscriptionGroups =
     subscriptionGroupsResult.type === CompletionStatus.Successful
-      ? subscriptionGroupsResult.value
+      ? subscriptionGroupsResult.value.filter(
+          (sg) => sg.channel === nodeProps.channel
+        )
       : [];
   const subscriptionGroup =
     subscriptionGroups.find((s) => s.id === nodeProps.subscriptionGroupId) ??
     null;
+
+  const onChannelChangeHandler: SelectInputProps<ChannelType>["onChange"] = (
+    e
+  ) => {
+    updateJourneyNodeData(nodeId, (node) => {
+      const props = node.data.nodeTypeProps;
+      if (props.type === JourneyNodeType.MessageNode) {
+        props.channel = e.target.value as ChannelType;
+      }
+    });
+  };
 
   return (
     <>
@@ -223,6 +244,20 @@ function MessageNodeFields({
         value={nodeProps.name}
         onChange={onNameChangeHandler}
       />
+      <FormControl>
+        <InputLabel id="message-channel-select-label">
+          Message Channel
+        </InputLabel>
+        <Select
+          labelId="message-channel-select-label"
+          label="Message Channel"
+          onChange={onChannelChangeHandler}
+          value={nodeProps.channel}
+        >
+          <MenuItem value={ChannelType.Email}>Email</MenuItem>
+          <MenuItem value={ChannelType.MobilePush}>Mobile Push</MenuItem>
+        </Select>
+      </FormControl>
       <Autocomplete
         value={template}
         options={templates}

@@ -15,8 +15,17 @@ async function bootsrapStart() {
   if (backendConfig().authMode === "multi-tenant") {
     const argv = await yargs(hideBin(process.argv))
       .options({
-        workspaceId: { type: "string", demandOption: true },
-        workspaceName: { type: "string", demandOption: true },
+        workspaceId: {
+          type: "string",
+          demandOption: true,
+          default: backendConfig().defaultWorkspaceId,
+          describe: "The workspace id to bootstrap.",
+        },
+        workspaceName: {
+          type: "string",
+          demandOption: true,
+          default: "Default",
+        },
         workspaceDomain: { type: "string" },
       })
       .strict()
