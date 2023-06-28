@@ -83,7 +83,9 @@ export async function findMessageTemplate({
     return ok(null);
   }
 
-  return enrichMessageTemplate(template);
+  return enrichMessageTemplate(template).map((t) =>
+    t.definition.type === channel ? t : null
+  );
 }
 
 export async function upsertMessageTemplate(
