@@ -1,19 +1,25 @@
-import { Stack, useTheme, Typography, Box, TextField } from "@mui/material";
-import { useRouter } from "next/router";
-import Image from 'next/image';
-import EditableName from "../editableName";
-import InfoTooltip from "../infoTooltip";
-import ReactCodeMirror from "@uiw/react-codemirror";
-import { useAppStore } from "../../lib/appStore";
-import { useState } from "react";
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
+import { Box, Stack, TextField, Typography, useTheme } from "@mui/material";
+import ReactCodeMirror from "@uiw/react-codemirror";
+import Image from 'next/image';
+import { useRouter } from "next/router";
+import { useState } from "react";
+
 import MobilePreviewImage from "../../../public/mobile-mock.svg";
+import { useAppStore } from "../../lib/appStore";
+import EditableName from "../editableName";
+import InfoTooltip from "../infoTooltip";
 
 const USER_PROPERTIES_TOOLTIP =
   "Edit an example user's properties to see the edits reflected in the rendered template. Properties are computed from user Identify traits and Track events.";
 
+enum NotifyKey {
+  RenderBodyError = "RenderBodyError",
+  RenderTitleError = "RenderTitleError",
+  RenderImageError = "RenderImageError"
+}
 
 export default function MobilePushEditor() {
   const theme = useTheme();
@@ -27,12 +33,21 @@ export default function MobilePushEditor() {
   );
 
   const title = useAppStore((state) => state.mobilePushMessageTitle);
-  const message = useAppStore((state) => state.mobilePushMessageMessage);
+  const body = useAppStore((state) => state.mobilePushMessageBody);
   const imageUrl = useAppStore((state) => state.mobilePushMesssageImageUrl);
 
   const setTitle = useAppStore((state) => state.setMobilePushMessageTitle);
-  const setMessage = useAppStore((state) => state.setMobilePushMessageMessage);
+  const setBody = useAppStore((state) => state.setMobilePushMessageBody);
   const setImageUrl = useAppStore((state) => state.setMobilePushMessageImageUrl);
+
+  const isValidUrl = (value: string) => {
+    try {
+      return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(value);
+    }
+    catch (e) {
+      return false;
+    }
+  }
 
   const jsonCodeMirrorHandleChange = (val: string) => {
     setUserPropertiesJSON(val);
@@ -77,12 +92,14 @@ export default function MobilePushEditor() {
             borderTopRightRadius: 0,
           },
         }}
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        multiline
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
       />
       <TextField
         label="Image URL"
         variant="filled"
+        type="url"
         InputProps={{
           sx: {
             borderTopRightRadius: 0,
@@ -96,50 +113,47 @@ export default function MobilePushEditor() {
 
   const preview = (
     <Stack sx={{
-      position: 'relative'
+      position: 'relative',
+      height: '660px',
+      width: '450px',
+      margin: '0px auto',
+      backgroundImage: `url(${MobilePreviewImage.src})`
     }}>
-      <Image style={{ position: 'absolute', marginLeft: 'auto', marginRight: 'auto', left: 0, right: 0 }} src={MobilePreviewImage} alt='mobile preview' />
       <Box sx={{
-        position: 'absolute',
-        marginLeft: 'auto', marginRight: 'auto', left: 0, right: 0,
-        width: '90%',
-        top: 300,
+        top: '150px',
+        position: 'relative',
+        width: '404px',
+        margin: 'auto'
       }}>
         <Box sx={{
-          width: '100%',
-          padding: '20px 10px',
-          backgroundColor: '#fff', borderRadius: '16px',
-          marginX: 'auto', left: 0, right: 0,
-          position: 'relative'
+          backgroundColor: '#fff',
+          borderRadius: '28px',
+          padding: '20px 16px'
         }}>
-
-          <Box>
-            <Typography
-              variant="h5"
-            >
-              {title}
-            </Typography>
-            <Typography
-              variant="body1"
-            >
-              {message}
-            </Typography>
-            {imageUrl && <Box sx={{
-              position: 'relative',
-              maxHeight: '160px', height: '160px',
-              marginTop: '16px',
+        <Typography
+          variant="h5"
+        >
+          {title}
+        </Typography>
+        <Typography
+          variant="body1"
+        >
+          {body}
+        </Typography>
+        {isValidUrl(imageUrl) && <Box sx={{
+          position: 'relative',
+          maxHeight: '160px', height: '160px',
+          marginTop: '16px',
+          borderRadius: '16px'
+        }}>
+          <Image
+            src={imageUrl} alt='push icon' fill style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
               borderRadius: '16px'
-            }}>
-              <Image
-                src={imageUrl} alt='push icon' fill style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  borderRadius: '16px'
-                }} />
-            </Box>}
-          </Box>
-
+            }} />
+        </Box>}
         </Box>
       </Box>
     </Stack>

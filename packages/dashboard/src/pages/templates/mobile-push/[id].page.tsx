@@ -7,10 +7,10 @@ import React from "react";
 import { validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import MobilePushEditor, { defaultInitialUserProperties } from "../../../components/messages/mobilePushEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
-import MobilePushEditor, { defaultInitialUserProperties } from "../../../components/messages/mobilePushEditor";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {

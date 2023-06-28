@@ -215,7 +215,7 @@ export interface EmailMessageEditorContents extends EmailMessageEditorState {
 
 export interface MobilePushMessageEditorState {
   mobilePushMessageTitle: string;
-  mobilePushMessageMessage: string;
+  mobilePushMessageBody: string;
   mobilePushMesssageImageUrl: string;
   mobilePushMessageUserProperties: Record<string, string>;
   mobilePushMessageUserPropertiesJSON: string;
@@ -223,7 +223,7 @@ export interface MobilePushMessageEditorState {
 
 export interface MobilePushMessageEditorContents extends MobilePushMessageEditorState {
   setMobilePushMessageTitle: (title: string) => void;
-  setMobilePushMessageMessage: (message: string) => void;
+  setMobilePushMessageBody: (body: string) => void;
   setMobilePushMessageImageUrl: (imageUrl: string) => void;
   setMobilePushMessagePropsJSON: (jsonString: string) => void;
 }

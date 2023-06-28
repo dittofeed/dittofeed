@@ -211,7 +211,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         emailMessageUserProperties: {},
         emailMessageUserPropertiesJSON: "",
         mobilePushMessageTitle: "",
-        mobilePushMessageMessage: "",
+        mobilePushMessageBody: "",
         mobilePushMesssageImageUrl: "",
         mobilePushMessageUserProperties: {},
         mobilePushMessageUserPropertiesJSON: "",
@@ -627,8 +627,8 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setMobilePushMessageTitle: (title) => set((state) => {
           state.mobilePushMessageTitle = title;
         }),
-        setMobilePushMessageMessage: (message) => set((state) => {
-          state.mobilePushMessageMessage = message;
+        setMobilePushMessageBody: (body) => set((state) => {
+          state.mobilePushMessageBody = body;
         }),
         setMobilePushMessagePropsJSON: (jsonString) =>
           set((state) => {
