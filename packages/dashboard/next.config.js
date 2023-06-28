@@ -9,6 +9,9 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['isomorphic-lib', 'backend-lib'],
   swcMinify: true,
+  images: {
+    domains: ['*', 'img.onesignal.com']
+  },
   async redirects() {
     return [
       {

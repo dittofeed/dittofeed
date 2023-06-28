@@ -10,6 +10,7 @@ import MainLayout from "../../../components/mainLayout";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
+import MobilePushEditor, { defaultInitialUserProperties } from "../../../components/messages/mobilePushEditor";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -21,10 +22,24 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       };
     }
     const workspaceId = dfContext.workspace.id;
-    const serverInitialState: PreloadedState = {};
+    let serverInitialState: PreloadedState = {};
     const mobilePushTemplates = await getMobilePushTemplates({
       workspaceId,
     });
+
+    const mobilePushMessageUserProperties = {
+      ...defaultInitialUserProperties,
+    };
+    const mobilePushMessageUserPropertiesJSON = JSON.stringify(
+      mobilePushMessageUserProperties,
+      null,
+      2
+    );
+
+    serverInitialState = {
+      mobilePushMessageUserProperties,
+      mobilePushMessageUserPropertiesJSON,
+    };    
 
     serverInitialState.messages = {
       type: CompletionStatus.Successful,
@@ -39,10 +54,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     };
   });
-
-function MobilePushEditor() {
-  return <Stack>mobile push editor</Stack>;
-}
 
 export default function MessageEditor() {
   return (

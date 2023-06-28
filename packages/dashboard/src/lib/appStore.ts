@@ -210,6 +210,11 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         emailMessageFrom: "",
         emailMessageUserProperties: {},
         emailMessageUserPropertiesJSON: "",
+        mobilePushMessageTitle: "",
+        mobilePushMessageMessage: "",
+        mobilePushMesssageImageUrl: "",
+        mobilePushMessageUserProperties: {},
+        mobilePushMessageUserPropertiesJSON: "",
         emailMessageUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
@@ -615,6 +620,19 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setEmailMessageUpdateRequest: (request) =>
           set((state) => {
             state.emailMessageUpdateRequest = request;
+          }),
+        setMobilePushMessageImageUrl: (imageUrl) => set((state) => {
+          state.mobilePushMesssageImageUrl = imageUrl;
+        }),
+        setMobilePushMessageTitle: (title) => set((state) => {
+          state.mobilePushMessageTitle = title;
+        }),
+        setMobilePushMessageMessage: (message) => set((state) => {
+          state.mobilePushMessageMessage = message;
+        }),
+        setMobilePushMessagePropsJSON: (jsonString) =>
+          set((state) => {
+            state.mobilePushMessageUserPropertiesJSON = jsonString;
           }),
         addEditableSegmentChild: (parentId) =>
           set((state) => {
