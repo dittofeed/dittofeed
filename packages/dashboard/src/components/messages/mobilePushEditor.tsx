@@ -1,14 +1,22 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Box, Stack, TextField, Typography, useTheme } from "@mui/material";
+import { Box, Button,Stack, TextField, Typography, useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import {
+  ChannelType,
+  CompletionStatus,
+  MessageTemplateResource,
+  UpsertMessageTemplateResource,
+} from "isomorphic-lib/src/types";
 import Image from 'next/image';
 import { useRouter } from "next/router";
 import { useState } from "react";
 
 import MobilePreviewImage from "../../../public/mobile-mock.svg";
+import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
+import { MobilePushMessageEditorState } from "../../lib/types";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 
@@ -31,6 +39,18 @@ export default function MobilePushEditor() {
   const setUserPropertiesJSON = useAppStore(
     (state) => state.setMobilePushMessagePropsJSON
   );
+  const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
+  const setMobilePushMessageUpdateRequest = useAppStore(
+    (state) => state.setMobilePushMessageUpdateRequest
+  );
+
+  const mobilePushMessageUpdateRequest = useAppStore(
+    (state) => state.mobilePushMessageUpdateRequest
+  );
+
+  const upsertMessage = useAppStore((state) => state.upsertMessage);
+  const apiBase = useAppStore((state) => state.apiBase);
+  const workspaceRequest = useAppStore((store) => store.workspace);
 
   const title = useAppStore((state) => state.mobilePushMessageTitle);
   const body = useAppStore((state) => state.mobilePushMessageBody);
@@ -40,6 +60,13 @@ export default function MobilePushEditor() {
   const setBody = useAppStore((state) => state.setMobilePushMessageBody);
   const setImageUrl = useAppStore((state) => state.setMobilePushMessageImageUrl);
 
+  const messageId =
+    typeof router.query.id === "string" ? router.query.id : null;
+  const workspace =
+    workspaceRequest.type === CompletionStatus.Successful
+      ? workspaceRequest.value
+      : null;
+
   const isValidUrl = (value: string) => {
     try {
       return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(value);
@@ -48,6 +75,22 @@ export default function MobilePushEditor() {
       return false;
     }
   }
+
+  if (!workspace || !messageId) {
+    return null;
+  }  
+
+  const updateData: UpsertMessageTemplateResource = {
+    id: messageId,
+    workspaceId: workspace.id,
+    name: templateTitle,
+    definition: {
+      type: ChannelType.MobilePush,
+      title,
+      body,
+      imageUrl
+    },
+  };
 
   const jsonCodeMirrorHandleChange = (val: string) => {
     setUserPropertiesJSON(val);
@@ -130,34 +173,52 @@ export default function MobilePushEditor() {
           borderRadius: '28px',
           padding: '20px 16px'
         }}>
-        <Typography
-          variant="h5"
-        >
-          {title}
-        </Typography>
-        <Typography
-          variant="body1"
-        >
-          {body}
-        </Typography>
-        {isValidUrl(imageUrl) && <Box sx={{
-          position: 'relative',
-          maxHeight: '160px', height: '160px',
-          marginTop: '16px',
-          borderRadius: '16px'
-        }}>
-          <Image
-            src={imageUrl} alt='push icon' fill style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              borderRadius: '16px'
-            }} />
-        </Box>}
+          <Typography
+            variant="h5"
+          >
+            {title}
+          </Typography>
+          <Typography
+            variant="body1"
+          >
+            {body}
+          </Typography>
+          {isValidUrl(imageUrl) && <Box sx={{
+            position: 'relative',
+            maxHeight: '160px', height: '160px',
+            marginTop: '16px',
+            borderRadius: '16px'
+          }}>
+            <Image
+              src={imageUrl} alt='push icon' fill style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: '16px'
+              }} />
+          </Box>}
         </Box>
       </Box>
     </Stack>
   );
+
+  const handleSave = apiRequestHandlerFactory({
+    request: mobilePushMessageUpdateRequest,
+    setRequest: setMobilePushMessageUpdateRequest,
+    responseSchema: MessageTemplateResource,
+    setResponse: upsertMessage,
+    onSuccessNotice: `Saved template ${title}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to save template ${title}.`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/content/templates`,
+        data: updateData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+  });
 
   return <Stack
     direction="row"
@@ -204,6 +265,13 @@ export default function MobilePushEditor() {
           lintGutter(),
         ]}
       />
+      <Button
+        variant="contained"
+        onClick={handleSave}
+        disabled={errors.size > 0}
+      >
+        Save
+      </Button>
     </Stack>
     <Stack direction="row" sx={{ flex: 1 }}>
       <Box
@@ -233,3 +301,19 @@ export const defaultInitialUserProperties = {
   language: "en-US",
   anonymousId: "0b0d3a71-0a86-4e60-892a-d27f0b290c81",
 };
+
+export function defaultMobilePushMessageState(
+  id: string
+): Omit<
+  MobilePushMessageEditorState,
+  "mobilePushMessageUserPropertiesJSON" | "mobilePushMessageUserProperties"
+> {
+  return {
+    mobilePushMessageTitle: 'Hello User',
+    mobilePushMessageBody: 'This is default body, alright',
+    mobilePushMesssageImageUrl: '',
+    mobilePushMessageUpdateRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+  };
+}

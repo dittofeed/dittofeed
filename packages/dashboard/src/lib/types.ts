@@ -220,6 +220,7 @@ export interface MobilePushMessageEditorState {
   mobilePushMesssageImageUrl: string;
   mobilePushMessageUserProperties: Record<string, string>;
   mobilePushMessageUserPropertiesJSON: string;
+  mobilePushMessageUpdateRequest: EphemeralRequestStatus<Error>;
 }
 
 export interface MobilePushMessageEditorContents extends MobilePushMessageEditorState {
@@ -227,6 +228,9 @@ export interface MobilePushMessageEditorContents extends MobilePushMessageEditor
   setMobilePushMessageBody: (body: string) => void;
   setMobilePushMessageImageUrl: (imageUrl: string) => void;
   setMobilePushMessagePropsJSON: (jsonString: string) => void;
+  setMobilePushMessageUpdateRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
 }
 
 export interface JourneyState {

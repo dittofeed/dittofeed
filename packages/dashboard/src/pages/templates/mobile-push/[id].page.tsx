@@ -3,25 +3,28 @@ import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import React from "react";
-import { validate } from "uuid";
+import { v4 as uuid, validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
-import MobilePushEditor, { defaultInitialUserProperties } from "../../../components/messages/mobilePushEditor";
+import MobilePushEditor, { defaultInitialUserProperties, defaultMobilePushMessageState } from "../../../components/messages/mobilePushEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
+    let serverInitialState: PreloadedState;
     const id = ctx.params?.id;
 
     if (typeof id !== "string" || !validate(id)) {
+      serverInitialState = defaultMobilePushMessageState(uuid());
+
       return {
         notFound: true,
       };
     }
+
     const workspaceId = dfContext.workspace.id;
-    let serverInitialState: PreloadedState = {};
     const mobilePushTemplates = (await findMessageTemplates({
       workspaceId,
     })).filter((t) => t.definition.type === ChannelType.MobilePush);
@@ -36,9 +39,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     );
 
     serverInitialState = {
+      ...defaultMobilePushMessageState(id),
       mobilePushMessageUserProperties,
       mobilePushMessageUserPropertiesJSON,
-    };    
+    };
 
     serverInitialState.messages = {
       type: CompletionStatus.Successful,
@@ -69,3 +73,4 @@ export default function MessageEditor() {
     </>
   );
 }
+

@@ -218,6 +218,9 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         emailMessageUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
+        mobilePushMessageUpdateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
 
         messageTemplateDeleteRequest: {
           type: CompletionStatus.NotStarted,
@@ -633,6 +636,10 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setMobilePushMessagePropsJSON: (jsonString) =>
           set((state) => {
             state.mobilePushMessageUserPropertiesJSON = jsonString;
+          }),
+        setMobilePushMessageUpdateRequest: (request) =>
+          set((state) => {
+            state.mobilePushMessageUpdateRequest = request;
           }),
         addEditableSegmentChild: (parentId) =>
           set((state) => {
