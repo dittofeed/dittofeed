@@ -164,7 +164,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
 }
 
 function TemplateListContents() {
-  const { enableMobilePush } = useAppStore((store) => store.enableMobilePush);
+  const enableMobilePush = useAppStore((store) => store.enableMobilePush);
   const [tab, setTab] = useState<number>(0);
   const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const messagesResult = useAppStore((store) => store.messages);
