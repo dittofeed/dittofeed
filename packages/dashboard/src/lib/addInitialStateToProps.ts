@@ -25,6 +25,7 @@ export function addInitialStateToProps<
     signoutUrl,
     trackDashboard,
     dashboardWriteKey,
+    enableMobilePush,
   } = backendConfig();
 
   const apiBase = process.env.DASHBOARD_API_BASE ?? "http://localhost:3001";
@@ -41,6 +42,7 @@ export function addInitialStateToProps<
     signoutUrl,
     trackDashboard,
     dashboardWriteKey,
+    enableMobilePush,
   });
 
   const appsApi = new AppsApi({

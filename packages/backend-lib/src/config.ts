@@ -62,6 +62,7 @@ const BaseRawConfigProps = {
   trackDashboard: Type.Optional(BoolStr),
   dashboardWriteKey: Type.Optional(Type.String()),
   dashboardUrl: Type.Optional(Type.String()),
+  enableMobilePush: Type.Optional(BoolStr),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -118,6 +119,7 @@ export type Config = Overwrite<
     authMode: AuthMode;
     trackDashboard: boolean;
     dashboardUrl: string;
+    enableMobilePush: boolean;
   }
 > & {
   defaultWorkspaceId: string;
@@ -275,6 +277,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
         ? "http://localhost:3000"
         : "https://dittofeed.com"),
     trackDashboard: rawConfig.trackDashboard === "true",
+    enableMobilePush: rawConfig.enableMobilePush === "true",
   };
   return parsedConfig;
 }

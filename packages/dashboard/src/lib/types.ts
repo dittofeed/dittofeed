@@ -85,6 +85,7 @@ export type AppState = {
     | "dashboardWriteKey"
     | "enableSourceControl"
     | "sourceControlProvider"
+    | "enableMobilePush"
   > &
   Partial<Pick<Config, "signoutUrl">>;
 
@@ -223,7 +224,8 @@ export interface MobilePushMessageEditorState {
   mobilePushMessageUpdateRequest: EphemeralRequestStatus<Error>;
 }
 
-export interface MobilePushMessageEditorContents extends MobilePushMessageEditorState {
+export interface MobilePushMessageEditorContents
+  extends MobilePushMessageEditorState {
   setMobilePushMessageTitle: (title: string) => void;
   setMobilePushMessageBody: (body: string) => void;
   setMobilePushMessageImageUrl: (imageUrl: string) => void;
@@ -263,7 +265,7 @@ export interface JourneyContent extends JourneyState {
   setJourneyName: (name: string) => void;
 }
 
-export type PageStoreContents = EmailMessageEditorContents & 
+export type PageStoreContents = EmailMessageEditorContents &
   MobilePushMessageEditorContents &
   SegmentEditorContents &
   SegmentIndexContent &
