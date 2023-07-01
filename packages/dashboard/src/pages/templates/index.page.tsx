@@ -1,5 +1,6 @@
 import { AddCircleOutline, Delete } from "@mui/icons-material";
 import {
+  Box,
   IconButton,
   List,
   ListItem,
@@ -8,7 +9,9 @@ import {
   Menu,
   MenuItem,
   Stack,
-  Typography,
+  Tab,
+  Tabs,
+  Typography
 } from "@mui/material";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import {
@@ -31,6 +34,32 @@ import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          <Typography component="span">{children}</Typography>
+        </Box>
+      )}
+    </div>
+  );
+}
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
@@ -132,6 +161,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
 }
 
 function TemplateListContents() {
+  const [value, setValue] = useState<number>(0);
   const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const messagesResult = useAppStore((store) => store.messages);
   const [newItemId, setNewItemId] = useState(() => uuid());
@@ -141,23 +171,8 @@ function TemplateListContents() {
       ? messagesResult.value
       : [];
 
-  let innerContents;
-  if (messages.length) {
-    innerContents = (
-      <List
-        sx={{
-          width: "100%",
-          bgcolor: "background.paper",
-          borderRadius: 1,
-        }}
-      >
-        {messages.map((template) => (
-          <TemplateListItem template={template} key={template.id} />
-        ))}
-      </List>
-    );
-  } else {
-    innerContents = null;
+  const handleChange = (_: React.SyntheticEvent, newValue: number) => {
+    setValue(newValue);
   }
 
   return (
@@ -197,7 +212,58 @@ function TemplateListContents() {
           </MenuItem>
         </Menu>
       </Stack>
-      {innerContents}
+
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
+          <Tab label="Email" />
+          <Tab label="Mobile Push" />
+        </Tabs>
+      </Box>
+      <TabPanel value={value} index={0}>
+        <List
+          sx={{
+            width: "100%",
+            bgcolor: "background.paper",
+            borderRadius: 1,
+          }}
+        >
+          {messages.filter(message => message.definition.type === ChannelType.Email).map((template) => (
+            <TemplateListItem template={template} key={template.id} />
+          ))}
+
+          {messages.filter(message => message.definition.type === ChannelType.Email).length === 0 && <Typography
+            component="span"
+            textAlign="center"
+            sx={{
+              padding: "20px 16px"
+            }}
+          >
+            You don&apos;t have any email templates created
+          </Typography>}
+        </List>
+      </TabPanel>
+      <TabPanel value={value} index={1}>
+        <List
+          sx={{
+            width: "100%",
+            bgcolor: "background.paper",
+            borderRadius: 1,
+          }}
+        >
+          {messages.filter(message => message.definition.type === ChannelType.MobilePush).map((template) => (
+            <TemplateListItem template={template} key={template.id} />
+          ))}
+          {messages.filter(message => message.definition.type === ChannelType.MobilePush).length === 0 && <Typography
+            component="span"
+            textAlign="center"
+            sx={{
+              padding: "20px 16px"
+            }}
+          >
+            You don&apos;t have any mobile push templates created
+          </Typography>}
+        </List>
+      </TabPanel>
     </Stack>
   );
 }

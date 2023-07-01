@@ -214,6 +214,25 @@ export interface EmailMessageEditorContents extends EmailMessageEditorState {
   ) => void;
 }
 
+export interface MobilePushMessageEditorState {
+  mobilePushMessageTitle: string;
+  mobilePushMessageBody: string;
+  mobilePushMesssageImageUrl: string;
+  mobilePushMessageUserProperties: Record<string, string>;
+  mobilePushMessageUserPropertiesJSON: string;
+  mobilePushMessageUpdateRequest: EphemeralRequestStatus<Error>;
+}
+
+export interface MobilePushMessageEditorContents extends MobilePushMessageEditorState {
+  setMobilePushMessageTitle: (title: string) => void;
+  setMobilePushMessageBody: (body: string) => void;
+  setMobilePushMessageImageUrl: (imageUrl: string) => void;
+  setMobilePushMessagePropsJSON: (jsonString: string) => void;
+  setMobilePushMessageUpdateRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
+}
+
 export interface JourneyState {
   journeyName: string;
   journeyDraggedComponentType: JourneyNodeType | null;
@@ -244,7 +263,8 @@ export interface JourneyContent extends JourneyState {
   setJourneyName: (name: string) => void;
 }
 
-export type PageStoreContents = EmailMessageEditorContents &
+export type PageStoreContents = EmailMessageEditorContents & 
+  MobilePushMessageEditorContents &
   SegmentEditorContents &
   SegmentIndexContent &
   UserPropertyIndexContent &

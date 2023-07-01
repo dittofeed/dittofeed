@@ -1,35 +1,58 @@
-import { Stack } from "@mui/material";
-import { getMobilePushTemplates } from "backend-lib/src/mobilePushTemplates";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { findMessageTemplate } from "backend-lib/src/messageTemplates";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { ChannelType } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import React from "react";
-import { validate } from "uuid";
+import { v4 as uuid, validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import MobilePushEditor, { defaultInitialUserProperties, defaultMobilePushMessageState } from "../../../components/messages/mobilePushEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
+    let serverInitialState: PreloadedState;
     const id = ctx.params?.id;
 
     if (typeof id !== "string" || !validate(id)) {
+      serverInitialState = defaultMobilePushMessageState(uuid());
+
       return {
         notFound: true,
       };
     }
-    const workspaceId = dfContext.workspace.id;
-    const serverInitialState: PreloadedState = {};
-    const mobilePushTemplates = await getMobilePushTemplates({
-      workspaceId,
-    });
 
-    serverInitialState.messages = {
-      type: CompletionStatus.Successful,
-      value: mobilePushTemplates,
+    const mobilePushMessage = unwrap(await findMessageTemplate({
+      id,
+      channel: ChannelType.MobilePush,
+    }));
+
+    const mobilePushMessageUserProperties = {
+      ...defaultInitialUserProperties,
     };
+    const mobilePushMessageUserPropertiesJSON = JSON.stringify(
+      mobilePushMessageUserProperties,
+      null,
+      2
+    );
+
+    serverInitialState = {
+      ...defaultMobilePushMessageState(id),
+      mobilePushMessageUserProperties,
+      mobilePushMessageUserPropertiesJSON,
+    };
+
+    if (mobilePushMessage && mobilePushMessage.definition.type === ChannelType.MobilePush) {
+      const { title, body, imageUrl } = mobilePushMessage.definition;
+      Object.assign(serverInitialState, {
+        mobilePushMessageTitle: title,
+        mobilePushMessageBody: body,
+        mobilePushMesssageImageUrl: imageUrl,
+      });
+    }
 
     return {
       props: addInitialStateToProps({
@@ -39,10 +62,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     };
   });
-
-function MobilePushEditor() {
-  return <Stack>mobile push editor</Stack>;
-}
 
 export default function MessageEditor() {
   return (
@@ -59,3 +78,4 @@ export default function MessageEditor() {
     </>
   );
 }
+
