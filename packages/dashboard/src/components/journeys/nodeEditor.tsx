@@ -23,6 +23,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
+import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../../lib/appStore";
 import {
@@ -164,12 +165,20 @@ function MessageNodeFields({
   nodeId: string;
   nodeProps: MessageNodeProps;
 }) {
-  const updateJourneyNodeData = useAppStore(
-    (state) => state.updateJourneyNodeData
-  );
-  const templatesResult = useAppStore((state) => state.messages);
-  const subscriptionGroupsResult = useAppStore(
-    (state) => state.subscriptionGroups
+  const {
+    enableMobilePush,
+    updateJourneyNodeData,
+    messages,
+    subscriptionGroups,
+  } = useAppStore(
+    (store) => ({
+      enableMobilePush: store.enableMobilePush,
+      updateJourneyNodeData: store.updateJourneyNodeData,
+      templates: store.messages,
+      messages: store.messages,
+      subscriptionGroups: store.subscriptionGroups,
+    }),
+    shallow
   );
 
   const onNameChangeHandler: React.ChangeEventHandler<
@@ -208,23 +217,22 @@ function MessageNodeFields({
   };
 
   const templates =
-    templatesResult.type === CompletionStatus.Successful
-      ? templatesResult.value.filter(
-          (t) => t.definition.type === nodeProps.channel
-        )
+    messages.type === CompletionStatus.Successful
+      ? messages.value.filter((t) => t.definition.type === nodeProps.channel)
       : [];
 
   const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;
 
-  const subscriptionGroups =
-    subscriptionGroupsResult.type === CompletionStatus.Successful
-      ? subscriptionGroupsResult.value.filter(
+  const subscriptionGroupItems =
+    subscriptionGroups.type === CompletionStatus.Successful
+      ? subscriptionGroups.value.filter(
           (sg) => sg.channel === nodeProps.channel
         )
       : [];
   const subscriptionGroup =
-    subscriptionGroups.find((s) => s.id === nodeProps.subscriptionGroupId) ??
-    null;
+    subscriptionGroupItems.find(
+      (s) => s.id === nodeProps.subscriptionGroupId
+    ) ?? null;
 
   const onChannelChangeHandler: SelectInputProps<ChannelType>["onChange"] = (
     e
@@ -255,7 +263,9 @@ function MessageNodeFields({
           value={nodeProps.channel}
         >
           <MenuItem value={ChannelType.Email}>Email</MenuItem>
-          <MenuItem value={ChannelType.MobilePush}>Mobile Push</MenuItem>
+          <MenuItem disabled={!enableMobilePush} value={ChannelType.MobilePush}>
+            Mobile Push
+          </MenuItem>
         </Select>
       </FormControl>
       <Autocomplete
@@ -269,7 +279,7 @@ function MessageNodeFields({
       />
       <Autocomplete
         value={subscriptionGroup}
-        options={subscriptionGroups}
+        options={subscriptionGroupItems}
         getOptionLabel={getSubscriptionGroupLabel}
         onChange={onSubscriptionGroupChangeHandler}
         renderInput={(params) => (

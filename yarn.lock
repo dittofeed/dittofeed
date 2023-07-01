@@ -8062,6 +8062,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"docs@workspace:packages/docs":
+  version: 0.0.0-use.local
+  resolution: "docs@workspace:packages/docs"
+  dependencies:
+    mintlify: ^3.0.54
+  languageName: unknown
+  linkType: soft
+
 "doctrine@npm:^2.1.0":
   version: 2.1.0
   resolution: "doctrine@npm:2.1.0"

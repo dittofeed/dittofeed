@@ -605,6 +605,12 @@ export const MessageTemplateResource = Type.Object(
 
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
 
+export type NarrowedMessageTemplateResource<
+  T extends MessageTemplateResourceDefinition
+> = Omit<MessageTemplateResource, "definition"> & {
+  definition: T;
+};
+
 export const UpsertMessageTemplateResource = Type.Object({
   workspaceId: Type.Optional(Type.String()),
   id: Type.String(),

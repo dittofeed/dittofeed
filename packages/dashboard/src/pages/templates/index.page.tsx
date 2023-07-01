@@ -11,21 +11,24 @@ import {
   Stack,
   Tab,
   Tabs,
-  Typography
+  Typography,
 } from "@mui/material";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import {
   ChannelType,
   CompletionStatus,
   DeleteMessageTemplateRequest,
+  EmailTemplateResource,
   EmptyResponse,
   MessageTemplateResource,
+  MobilePushTemplateResource,
+  NarrowedMessageTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../components/mainLayout";
@@ -161,19 +164,44 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
 }
 
 function TemplateListContents() {
-  const [value, setValue] = useState<number>(0);
+  const { enableMobilePush } = useAppStore((store) => store.enableMobilePush);
+  const [tab, setTab] = useState<number>(0);
   const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const messagesResult = useAppStore((store) => store.messages);
   const [newItemId, setNewItemId] = useState(() => uuid());
 
-  const messages =
-    messagesResult.type === CompletionStatus.Successful
-      ? messagesResult.value
-      : [];
-
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue);
-  }
+    setTab(newValue);
+  };
+  const { emailTemplates, mobilePushTemplates } = useMemo(() => {
+    const messages =
+      messagesResult.type === CompletionStatus.Successful
+        ? messagesResult.value
+        : [];
+    return messages.reduce<{
+      emailTemplates: NarrowedMessageTemplateResource<EmailTemplateResource>[];
+      mobilePushTemplates: NarrowedMessageTemplateResource<MobilePushTemplateResource>[];
+    }>(
+      (acc, template) => {
+        switch (template.definition.type) {
+          case ChannelType.Email:
+            acc.emailTemplates.push({
+              ...template,
+              definition: template.definition,
+            });
+            break;
+          case ChannelType.MobilePush:
+            acc.mobilePushTemplates.push({
+              ...template,
+              definition: template.definition,
+            });
+            break;
+        }
+        return acc;
+      },
+      { emailTemplates: [], mobilePushTemplates: [] }
+    );
+  }, [messagesResult]);
 
   return (
     <Stack
@@ -206,6 +234,7 @@ function TemplateListContents() {
           </MenuItem>
           <MenuItem
             component={Link}
+            disabled={!enableMobilePush}
             href={`/templates/mobile-push/${newItemId}`}
           >
             Mobile Push
@@ -213,13 +242,17 @@ function TemplateListContents() {
         </Menu>
       </Stack>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
+      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <Tabs
+          value={tab}
+          onChange={handleChange}
+          aria-label="basic tabs example"
+        >
           <Tab label="Email" />
-          <Tab label="Mobile Push" />
+          <Tab disabled={!enableMobilePush} label="Mobile Push" />
         </Tabs>
       </Box>
-      <TabPanel value={value} index={0}>
+      <TabPanel value={tab} index={0}>
         <List
           sx={{
             width: "100%",
@@ -227,22 +260,24 @@ function TemplateListContents() {
             borderRadius: 1,
           }}
         >
-          {messages.filter(message => message.definition.type === ChannelType.Email).map((template) => (
+          {emailTemplates.map((template) => (
             <TemplateListItem template={template} key={template.id} />
           ))}
 
-          {messages.filter(message => message.definition.type === ChannelType.Email).length === 0 && <Typography
-            component="span"
-            textAlign="center"
-            sx={{
-              padding: "20px 16px"
-            }}
-          >
-            You don&apos;t have any email templates created
-          </Typography>}
+          {emailTemplates.length === 0 && (
+            <Typography
+              component="span"
+              textAlign="center"
+              sx={{
+                padding: "20px 16px",
+              }}
+            >
+              You haven&apos;t created any email templates.
+            </Typography>
+          )}
         </List>
       </TabPanel>
-      <TabPanel value={value} index={1}>
+      <TabPanel value={tab} index={1}>
         <List
           sx={{
             width: "100%",
@@ -250,18 +285,20 @@ function TemplateListContents() {
             borderRadius: 1,
           }}
         >
-          {messages.filter(message => message.definition.type === ChannelType.MobilePush).map((template) => (
+          {mobilePushTemplates.map((template) => (
             <TemplateListItem template={template} key={template.id} />
           ))}
-          {messages.filter(message => message.definition.type === ChannelType.MobilePush).length === 0 && <Typography
-            component="span"
-            textAlign="center"
-            sx={{
-              padding: "20px 16px"
-            }}
-          >
-            You don&apos;t have any mobile push templates created
-          </Typography>}
+          {mobilePushTemplates.length === 0 && (
+            <Typography
+              component="span"
+              textAlign="center"
+              sx={{
+                padding: "20px 16px",
+              }}
+            >
+              You haven&apos;t created any mobile push templates.
+            </Typography>
+          )}
         </List>
       </TabPanel>
     </Stack>

@@ -22,6 +22,7 @@ import {
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React, { useMemo } from "react";
+import { shallow } from "zustand/shallow";
 
 import { BulletList, BulletListItem } from "../../components/bulletList";
 import EditableName from "../../components/editableName";
@@ -41,21 +42,26 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 export default function SubscriptionGroupConfig() {
   const theme = useTheme();
   const path = useRouter();
-  const subscriptionGroupUpdateRequest = useAppStore(
-    (store) => store.subscriptionGroupUpdateRequest
-  );
-  const updateEditedSubscriptionGroup = useAppStore(
-    (store) => store.updateEditedSubscriptionGroup
-  );
-  const editedSubscriptionGroup = useAppStore(
-    (store) => store.editedSubscriptionGroup
-  );
-  const setSubscriptionGroupUpdateRequest = useAppStore(
-    (store) => store.setSubscriptionGroupUpdateRequest
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const upsertSubscriptionGroup = useAppStore(
-    (store) => store.upsertSubscriptionGroup
+  const {
+    subscriptionGroupUpdateRequest,
+    updateEditedSubscriptionGroup,
+    editedSubscriptionGroup,
+    setSubscriptionGroupUpdateRequest,
+    apiBase,
+    upsertSubscriptionGroup,
+    enableMobilePush,
+  } = useAppStore(
+    (store) => ({
+      enableMobilePush: store.enableMobilePush,
+      upsertSubscriptionGroup: store.upsertSubscriptionGroup,
+      apiBase: store.apiBase,
+      subscriptionGroupUpdateRequest: store.subscriptionGroupUpdateRequest,
+      updateEditedSubscriptionGroup: store.updateEditedSubscriptionGroup,
+      editedSubscriptionGroup: store.editedSubscriptionGroup,
+      setSubscriptionGroupUpdateRequest:
+        store.setSubscriptionGroupUpdateRequest,
+    }),
+    shallow
   );
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
@@ -205,7 +211,12 @@ export default function SubscriptionGroupConfig() {
               value={editedSubscriptionGroup.channel}
             >
               <MenuItem value={ChannelType.Email}>Email</MenuItem>
-              <MenuItem value={ChannelType.MobilePush}>Mobile Push</MenuItem>
+              <MenuItem
+                disabled={!enableMobilePush}
+                value={ChannelType.MobilePush}
+              >
+                Mobile Push
+              </MenuItem>
             </Select>
           </FormControl>
         </InfoTooltip>
