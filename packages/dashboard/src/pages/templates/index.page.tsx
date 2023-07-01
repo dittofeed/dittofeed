@@ -238,7 +238,7 @@ function TemplateListContents() {
               padding: "20px 16px"
             }}
           >
-            You don't have any email templates created
+            You don&apos;t have any email templates created
           </Typography>}
         </List>
       </TabPanel>
@@ -260,7 +260,7 @@ function TemplateListContents() {
               padding: "20px 16px"
             }}
           >
-            You don't have any mobile push templates created
+            You don&apos;t have any mobile push templates created
           </Typography>}
         </List>
       </TabPanel>

@@ -39,7 +39,7 @@ export default function MobilePushEditor() {
   const setUserPropertiesJSON = useAppStore(
     (state) => state.setMobilePushMessagePropsJSON
   );
-  const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
+  const [errors] = useState<Map<NotifyKey, string>>(new Map());
   const setMobilePushMessageUpdateRequest = useAppStore(
     (state) => state.setMobilePushMessageUpdateRequest
   );
@@ -309,8 +309,8 @@ export function defaultMobilePushMessageState(
   "mobilePushMessageUserPropertiesJSON" | "mobilePushMessageUserProperties"
 > {
   return {
-    mobilePushMessageTitle: 'Hello User',
-    mobilePushMessageBody: 'This is default body, alright',
+    mobilePushMessageTitle: `Hello world - ${id}`,
+    mobilePushMessageBody: 'This is the default body',
     mobilePushMesssageImageUrl: '',
     mobilePushMessageUpdateRequest: {
       type: CompletionStatus.NotStarted,

@@ -10,7 +10,7 @@ const nextConfig = {
   transpilePackages: ['isomorphic-lib', 'backend-lib'],
   swcMinify: true,
   images: {
-    domains: ['*', 'img.onesignal.com']
+    domains: ['*']
   },
   async redirects() {
     return [

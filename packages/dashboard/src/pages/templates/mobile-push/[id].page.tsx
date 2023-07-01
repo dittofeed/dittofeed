@@ -1,5 +1,6 @@
-import { findMessageTemplates } from "backend-lib/src/messageTemplates";
-import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
+import { findMessageTemplate } from "backend-lib/src/messageTemplates";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { ChannelType } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import React from "react";
@@ -24,10 +25,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       };
     }
 
-    const workspaceId = dfContext.workspace.id;
-    const mobilePushTemplates = (await findMessageTemplates({
-      workspaceId,
-    })).filter((t) => t.definition.type === ChannelType.MobilePush);
+    const mobilePushMessage = unwrap(await findMessageTemplate({
+      id,
+      channel: ChannelType.MobilePush,
+    }));
 
     const mobilePushMessageUserProperties = {
       ...defaultInitialUserProperties,
@@ -44,10 +45,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       mobilePushMessageUserPropertiesJSON,
     };
 
-    serverInitialState.messages = {
-      type: CompletionStatus.Successful,
-      value: mobilePushTemplates,
-    };
+    if (mobilePushMessage && mobilePushMessage.definition.type === ChannelType.MobilePush) {
+      const { title, body, imageUrl } = mobilePushMessage.definition;
+      Object.assign(serverInitialState, {
+        mobilePushMessageTitle: title,
+        mobilePushMessageBody: body,
+        mobilePushMesssageImageUrl: imageUrl,
+      });
+    }
 
     return {
       props: addInitialStateToProps({
