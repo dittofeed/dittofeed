@@ -164,13 +164,14 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
 }
 
 function TemplateListContents() {
-  const [value, setValue] = useState<number>(0);
+  const { enableMobilePush } = useAppStore((store) => store.enableMobilePush);
+  const [tab, setTab] = useState<number>(0);
   const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const messagesResult = useAppStore((store) => store.messages);
   const [newItemId, setNewItemId] = useState(() => uuid());
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue);
+    setTab(newValue);
   };
   const { emailTemplates, mobilePushTemplates } = useMemo(() => {
     const messages =
@@ -233,6 +234,7 @@ function TemplateListContents() {
           </MenuItem>
           <MenuItem
             component={Link}
+            disabled={!enableMobilePush}
             href={`/templates/mobile-push/${newItemId}`}
           >
             Mobile Push
@@ -242,15 +244,15 @@ function TemplateListContents() {
 
       <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tabs
-          value={value}
+          value={tab}
           onChange={handleChange}
           aria-label="basic tabs example"
         >
           <Tab label="Email" />
-          <Tab label="Mobile Push" />
+          <Tab disabled={!enableMobilePush} label="Mobile Push" />
         </Tabs>
       </Box>
-      <TabPanel value={value} index={0}>
+      <TabPanel value={tab} index={0}>
         <List
           sx={{
             width: "100%",
@@ -275,7 +277,7 @@ function TemplateListContents() {
           )}
         </List>
       </TabPanel>
-      <TabPanel value={value} index={1}>
+      <TabPanel value={tab} index={1}>
         <List
           sx={{
             width: "100%",
