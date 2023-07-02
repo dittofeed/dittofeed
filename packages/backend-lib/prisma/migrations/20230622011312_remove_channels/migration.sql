@@ -17,7 +17,16 @@ ALTER TABLE "SubscriptionGroup" DROP CONSTRAINT "SubscriptionGroup_channelId_fke
 
 -- AlterTable
 ALTER TABLE "SubscriptionGroup" DROP COLUMN "channelId",
-ADD COLUMN     "channel" "DBChannelType" NOT NULL;
+ADD COLUMN     "channel" "DBChannelType";
+
+-- Set the value of all 'channel' rows to 'Email'
+UPDATE "SubscriptionGroup"
+SET "channel" = 'Email';
+
+-- Now that all rows have a value, we can make 'channel' non-nullable
+ALTER TABLE "SubscriptionGroup"
+ALTER COLUMN "channel" SET NOT NULL;
+
 
 -- DropTable
 DROP TABLE "Channel";
