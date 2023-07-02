@@ -50,16 +50,16 @@ export async function cli() {
       "spawn",
       "Spawns a shell command, with dittofeed's config exported as environment variables.",
       () => {},
-      (cmd) => spawnWithEnv(cmd._.slice(1).map(String))
+      () => spawnWithEnv(process.argv.slice(3))
     )
     .command(
       "prisma",
       "Spawns prisma with dittofeed's config exported as environment variables.",
       () => {},
-      (cmd) =>
+      () =>
         spawnWithEnv(
           ["yarn", "workspace", "backend-lib", "prisma"].concat(
-            cmd._.slice(1).map(String)
+            process.argv.slice(3)
           )
         )
     )
