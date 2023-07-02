@@ -29,7 +29,7 @@ services:
       <<: *backend-app-env
     networks:
       - dittofeed-network-dev
-  api: 
+  api:
     build:
       context: .
       dockerfile: ./packages/api/Dockerfile
@@ -47,13 +47,29 @@ services:
       BOOTSTRAP_EVENTS: true
     networks:
       - dittofeed-network-dev
-  worker: 
+  worker:
     build:
       context: .
       dockerfile: ./packages/worker/Dockerfile
     profiles: ["apps", "apps-dashboard", "apps-api"]
     volumes:
       - ./mnt:/dittofeed-mnt
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
+    networks:
+      - dittofeed-network-dev
+  admin-cli:
+    build:
+      context: .
+      dockerfile: ./packages/admin-cli/Dockerfile
+    entrypoint: []
+    profiles: ["apps"]
+    command: tail -f /dev/null
+    tty: true
     depends_on:
       - postgres
       - temporal
