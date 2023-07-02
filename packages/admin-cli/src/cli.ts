@@ -78,6 +78,12 @@ export async function cli() {
         }),
       ({ lang }) => sdkBaseCodegen({ lang })
     )
+    .command(
+      "psql",
+      "Spawns psql with dittofeed's config used to authenticate.",
+      () => {},
+      () => spawnWithEnv(["psql", backendConfig().databaseUrl])
+    )
     .demandCommand(1, "# Please provide a valid command")
     .help()
     .parse();
