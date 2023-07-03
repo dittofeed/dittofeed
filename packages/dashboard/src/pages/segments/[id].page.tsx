@@ -231,14 +231,33 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     });
   };
 
+  const handleEventTimesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateSegmentNodeData(node.id, (n) => {
+      const times = parseInt(e.target.value, 10);
+      if (n.type === SegmentNodeType.Performed && !Number.isNaN(times)) {
+        n.times = times;
+      }
+    });
+  };
+
   return (
-    <Box sx={{ width: selectorWidth }}>
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Box sx={{ width: selectorWidth }}>
+        <TextField
+          label="Event Name"
+          value={node.event}
+          onChange={handleEventNameChange}
+        />
+      </Box>
       <TextField
-        label="Event Name"
-        value={node.event}
-        onChange={handleEventNameChange}
+        label="Times Performed"
+        InputProps={{
+          type: "number",
+        }}
+        value={String(node.times ?? 1)}
+        onChange={handleEventTimesChange}
       />
-    </Box>
+    </Stack>
   );
 }
 
