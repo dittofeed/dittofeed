@@ -455,6 +455,7 @@ function SegmentNodeComponent({
     throw new Error(`Unimplemented node type ${node.type}`);
   }
   if (!nodeById) {
+    console.error("Missing nodeById");
     return null;
   }
 
@@ -580,12 +581,14 @@ function SegmentNodeComponent({
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   } else if (node.type === SegmentNodeType.Performed) {
-    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-      {labelEl}
-      {conditionSelect}
-      <PerformedSelect node={node} />
-      {deleteButton}
-    </Stack>;
+    el = (
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {labelEl}
+        {conditionSelect}
+        <PerformedSelect node={node} />
+        {deleteButton}
+      </Stack>
+    );
   }
 
   return <>{el}</>;

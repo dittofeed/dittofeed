@@ -156,7 +156,14 @@ function mapSegmentNodeToNewType(
       };
     }
     case SegmentNodeType.Performed: {
-      throw new Error(`Unimplemented segment node type ${type}.`);
+      return {
+        primary: {
+          type: SegmentNodeType.Performed,
+          id: node.id,
+          event: "",
+        },
+        secondary: [],
+      };
     }
     case SegmentNodeType.LastPerformed: {
       throw new Error(`Unimplemented segment node type ${type}.`);
