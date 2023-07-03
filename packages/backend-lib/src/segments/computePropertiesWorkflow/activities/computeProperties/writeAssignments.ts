@@ -278,11 +278,22 @@ function buildSegmentQueryExpression({
         }
       }
 
+      const times = node.times === undefined ? 1 : node.times;
+      if (times === 1) {
+        return `
+          arrayFirstIndex(
+            m -> and(${conditions.join(",")}),
+            timed_messages
+          ) > 0
+        `;
+      }
+
+      const timesValue = jsonValueToCh(queryBuilder, times);
       return `
-        arrayFirstIndex(
+        arrayCount(
           m -> and(${conditions.join(",")}),
           timed_messages
-        ) > 0
+        ) == ${timesValue}
       `;
     }
     case SegmentNodeType.Trait: {

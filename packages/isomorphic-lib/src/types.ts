@@ -147,6 +147,7 @@ export const PerformedSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Performed),
   id: Type.String(),
   event: Type.String(),
+  times: Type.Optional(Type.Number()),
   properties: Type.Optional(
     Type.Array(
       Type.Object({

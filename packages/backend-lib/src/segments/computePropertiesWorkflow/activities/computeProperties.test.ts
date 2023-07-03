@@ -261,6 +261,70 @@ describe("compute properties activities", () => {
       },
       {
         description:
+          "When a user did submit a track event with a 0 times perform segment it does not signal",
+        segments: [
+          {
+            name: "did not perform",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Performed,
+                event: "EventName",
+                times: 0,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: "EventName",
+              }),
+          },
+        ],
+        expectedSegments: {
+          "did not perform": false,
+        },
+        expectedSignals: [],
+      },
+      {
+        description:
+          "When a user did not submit a track event with a 0 times perform segment it signals appropriately",
+        segments: [
+          {
+            name: "did not perform",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Performed,
+                event: "EventName",
+                times: 0,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: segmentIdentifyEvent,
+          },
+        ],
+        expectedSegments: {
+          "did not perform": true,
+        },
+        expectedSignals: [
+          {
+            segmentName: "did not perform",
+          },
+        ],
+      },
+      {
+        description:
           "When a user submits a subscribe track event and then an unsubscribe track event, the user is not in the segment",
         segments: [
           {
@@ -536,6 +600,16 @@ describe("compute properties activities", () => {
               }),
             ]);
 
+          if (expectedSegments) {
+            const segmentsRecord = createdSegmentAssignments.reduce<
+              Record<string, boolean>
+            >((memo, sa) => {
+              memo[sa.segment.name] = sa.inSegment;
+              return memo;
+            }, {});
+            expect(segmentsRecord).toEqual(expectedSegments);
+          }
+
           for (const { segmentName } of expectedSignals ?? []) {
             const segmentId = createdSegments.find(
               (s) => s.name === segmentName
@@ -554,16 +628,6 @@ describe("compute properties activities", () => {
                 ],
               })
             );
-          }
-
-          if (expectedSegments) {
-            const segmentsRecord = createdSegmentAssignments.reduce<
-              Record<string, boolean>
-            >((memo, sa) => {
-              memo[sa.segment.name] = sa.inSegment;
-              return memo;
-            }, {});
-            expect(segmentsRecord).toEqual(expectedSegments);
           }
         }
       );
