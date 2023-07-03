@@ -76,18 +76,14 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
               Thank you for signing up for Dittofeed!
             </Typography>
             {!emailVerified ? (
-              <Typography sx={{ fontSize: "1.5rem" }}>
+              <Typography sx={{ fontSize: "1rem" }}>
                 Please check your email to verify your email address.
               </Typography>
             ) : null}
-            <Typography sx={{ fontSize: "1.5rem" }}>
-              Get in touch and we will finish setting up your workspace.
+            <Typography sx={{ fontSize: "1rem" }}>
+              Get in touch and we will finish setting up your workspace. When we
+              are done click the <b>Refresh</b> button.
             </Typography>
-            <Stack direction="row" spacing={1}>
-              <Typography sx={{ fontSize: "1.5rem" }}>
-                When we are done click the Refresh button.
-              </Typography>
-            </Stack>
             <Box>
               <Button
                 href={refreshUrl}
@@ -98,11 +94,11 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
                 Refresh
               </Button>
             </Box>
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} sx={{ fontSize: "1rem" }}>
               <Typography variant="subtitle1">Send us an email:</Typography>
               <SupportEmailLink />
             </Stack>
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} sx={{ fontSize: "1rem" }}>
               <Typography variant="subtitle1">Reach out on slack:</Typography>
               <SlackLink>Dittofeed Slack community</SlackLink>
             </Stack>
