@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import {
   CompletionStatus,
+  PerformedSegmentNode,
   SegmentEqualsOperator,
   SegmentHasBeenOperator,
   SegmentHasBeenOperatorComparator,
@@ -70,8 +71,15 @@ const subscriptionGroupGroupedOption = {
   label: "Subscription Group",
 };
 
+const performedOption = {
+  id: SegmentNodeType.Performed,
+  group: "User Data",
+  label: "User Performed",
+};
+
 const segmentOptions: GroupedOption[] = [
   traitGroupedOption,
+  performedOption,
   broadcastGroupedOption,
   subscriptionGroupGroupedOption,
   andGroupedOption,
@@ -79,13 +87,11 @@ const segmentOptions: GroupedOption[] = [
 ];
 
 const keyedSegmentOptions: Record<
-  Exclude<
-    SegmentNodeType,
-    SegmentNodeType.Performed | SegmentNodeType.LastPerformed
-  >,
+  Exclude<SegmentNodeType, SegmentNodeType.LastPerformed>,
   GroupedOption
 > = {
   [SegmentNodeType.Trait]: traitGroupedOption,
+  [SegmentNodeType.Performed]: performedOption,
   [SegmentNodeType.And]: andGroupedOption,
   [SegmentNodeType.Or]: orGroupedOption,
   [SegmentNodeType.Broadcast]: broadcastGroupedOption,
@@ -208,6 +214,31 @@ function DurationValueSelect({
         <DurationDescription durationSeconds={value} />
       </Box>
     </Stack>
+  );
+}
+
+// TODO allow for segmenting on Track properties
+function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
+  const updateSegmentNodeData = useAppStore(
+    (state) => state.updateEditableSegmentNodeData
+  );
+
+  const handleEventNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateSegmentNodeData(node.id, (n) => {
+      if (n.type === SegmentNodeType.Performed) {
+        n.event = e.target.value;
+      }
+    });
+  };
+
+  return (
+    <Box sx={{ width: selectorWidth }}>
+      <TextField
+        label="Event Name"
+        value={node.event}
+        onChange={handleEventNameChange}
+      />
+    </Box>
   );
 }
 
@@ -420,10 +451,7 @@ function SegmentNodeComponent({
       ),
     [editedSegment]
   );
-  if (
-    node.type === SegmentNodeType.Performed ||
-    node.type === SegmentNodeType.LastPerformed
-  ) {
+  if (node.type === SegmentNodeType.LastPerformed) {
     throw new Error(`Unimplemented node type ${node.type}`);
   }
   if (!nodeById) {
@@ -550,6 +578,14 @@ function SegmentNodeComponent({
         {deleteButton}
       </Stack>
     );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  } else if (node.type === SegmentNodeType.Performed) {
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      {labelEl}
+      {conditionSelect}
+      <PerformedSelect node={node} />
+      {deleteButton}
+    </Stack>;
   }
 
   return <>{el}</>;
