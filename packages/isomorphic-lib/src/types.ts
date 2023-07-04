@@ -145,6 +145,7 @@ export enum SegmentNodeType {
   LastPerformed = "LastPerformed",
   Broadcast = "Broadcast",
   SubscriptionGroup = "SubscriptionGroup",
+  Email = "Email",
 }
 
 export const SubscriptionGroupSegmentNode = Type.Object({
@@ -176,9 +177,10 @@ export const PerformedSegmentNode = Type.Object({
 export type PerformedSegmentNode = Static<typeof PerformedSegmentNode>;
 
 export const EmailSegmentNode = Type.Object({
-  type: Type.Literal(SegmentNodeType.Performed),
+  type: Type.Literal(SegmentNodeType.Email),
   id: Type.String(),
   event: Type.Union([
+    Type.Literal(InternalEventType.MessageSent),
     Type.Literal(InternalEventType.EmailDropped),
     Type.Literal(InternalEventType.EmailDelivered),
     Type.Literal(InternalEventType.EmailOpened),
@@ -187,6 +189,7 @@ export const EmailSegmentNode = Type.Object({
     Type.Literal(InternalEventType.EmailMarkedSpam),
   ]),
   times: Type.Optional(Type.Number()),
+  templateId: Type.String(),
 });
 
 export type EmailSegmentNode = Static<typeof EmailSegmentNode>;
