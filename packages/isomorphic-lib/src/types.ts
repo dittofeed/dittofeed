@@ -42,6 +42,21 @@ export enum EventType {
   Alias = "alias",
 }
 
+export enum InternalEventType {
+  MessageSent = "DFInternalMessageSent",
+  BadWorkspaceConfiguration = "DFBadWorkspaceConfiguration",
+  MessageFailure = "DFMessageFailure",
+  MessageSkipped = "DFMessageSkipped",
+  SegmentBroadcast = "DFSegmentBroadcast",
+  SubscriptionChange = "DFSubscriptionChange",
+  EmailDropped = "DFEmailDropped",
+  EmailDelivered = "DFEmailDelivered",
+  EmailOpened = "DFEmailOpened",
+  EmailClicked = "DFEmailClicked",
+  EmailBounced = "DFEmailBounced",
+  EmailMarkedSpam = "DFEmailMarkedSpam",
+}
+
 export enum SubscriptionGroupType {
   OptIn = "OptIn",
   OptOut = "OptOut",
@@ -160,6 +175,22 @@ export const PerformedSegmentNode = Type.Object({
 
 export type PerformedSegmentNode = Static<typeof PerformedSegmentNode>;
 
+export const EmailSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.Performed),
+  id: Type.String(),
+  event: Type.Union([
+    Type.Literal(InternalEventType.EmailDropped),
+    Type.Literal(InternalEventType.EmailDelivered),
+    Type.Literal(InternalEventType.EmailOpened),
+    Type.Literal(InternalEventType.EmailClicked),
+    Type.Literal(InternalEventType.EmailBounced),
+    Type.Literal(InternalEventType.EmailMarkedSpam),
+  ]),
+  times: Type.Optional(Type.Number()),
+});
+
+export type EmailSegmentNode = Static<typeof EmailSegmentNode>;
+
 export const LastPerformedSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.LastPerformed),
   id: Type.String(),
@@ -228,6 +259,7 @@ export const SegmentNode = Type.Union([
   OrSegmentNode,
   PerformedSegmentNode,
   LastPerformedSegmentNode,
+  EmailSegmentNode,
   BroadcastSegmentNode,
   SubscriptionGroupSegmentNode,
 ]);

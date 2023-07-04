@@ -81,21 +81,6 @@ export type SegmentIOEvent = Static<typeof SegmentIOEvent>;
 
 export * from "@prisma/client";
 
-export enum InternalEventType {
-  MessageSent = "DFInternalMessageSent",
-  BadWorkspaceConfiguration = "DFBadWorkspaceConfiguration",
-  MessageFailure = "DFMessageFailure",
-  MessageSkipped = "DFMessageSkipped",
-  SegmentBroadcast = "DFSegmentBroadcast",
-  SubscriptionChange = "DFSubscriptionChange",
-  EmailDropped = "DFEmailDropped",
-  EmailDelivered = "DFEmailDelivered",
-  EmailOpened = "DFEmailOpened",
-  EmailClicked = "DFEmailClicked",
-  EmailBounced = "DFEmailBounced",
-  EmailMarkedSpam = "DFEmailMarkedSpam",
-}
-
 export const KafkaSaslMechanism = Type.Union([
   Type.Literal("plain"),
   Type.Literal("scram-sha-256"),
