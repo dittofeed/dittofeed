@@ -2,12 +2,12 @@ import bootstrap from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
 import { onboardUser } from "backend-lib/src/onboarding";
 import { prismaMigrate } from "backend-lib/src/prisma/migrate";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
 import { SDK_LANGUAGES, sdkBaseCodegen } from "./sdkBase";
 import { spawnWithEnv } from "./spawn";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.
@@ -89,24 +89,22 @@ export async function cli() {
     .command(
       "onboard-user",
       "Onboards a user to a workspace.",
-      // (cmd) =>
-      //   cmd.options({
-      //     lang: {
-      //       type: "string",
-      //       alias: "l",
-      //       choices: Object.keys(SDK_LANGUAGES),
-      //       default: backendConfig().defaultWorkspaceId,
-      //       describe: "The workspace id to bootstrap.",
-      //     },
-      //   }),
-      //   ({ lang }) => sdkBaseCodegen({ lang })
       (cmd) =>
         cmd.options({
-          email: { type: "string", demandOption: true, default: "" },
-          "workspace-name": { type: "string", demandOption: true, default: "" },
+          email: { type: "string", demandOption: true },
+          "workspace-name": { type: "string", demandOption: true },
         }),
-      ({ workspaceName, email }: { workspaceName: string; email: string }) =>
-        onboardUser({ workspaceName, email }).then((result) => unwrap(result))
+      // eslint-disable-next-line prefer-arrow-callback
+      async function handler({
+        workspaceName,
+        email,
+      }: {
+        workspaceName: string;
+        email: string;
+      }) {
+        const onboardUserResult = await onboardUser({ workspaceName, email });
+        unwrap(onboardUserResult);
+      }
     )
     .demandCommand(1, "# Please provide a valid command")
     .help()
