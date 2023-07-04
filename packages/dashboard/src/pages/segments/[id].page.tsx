@@ -77,6 +77,12 @@ const performedOption = {
   label: "User Performed",
 };
 
+const emailOption = {
+  id: SegmentNodeType.Email,
+  group: "Messages",
+  label: "Email",
+};
+
 const segmentOptions: GroupedOption[] = [
   traitGroupedOption,
   performedOption,
@@ -96,6 +102,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.Or]: orGroupedOption,
   [SegmentNodeType.Broadcast]: broadcastGroupedOption,
   [SegmentNodeType.SubscriptionGroup]: subscriptionGroupGroupedOption,
+  [SegmentNodeType.Email]: emailOption,
 };
 
 interface Option {
@@ -534,7 +541,7 @@ function SegmentNodeComponent({
     </Box>
   );
 
-  let el: React.ReactNode;
+  let el: React.ReactElement;
   if (node.type === SegmentNodeType.And || node.type === SegmentNodeType.Or) {
     const rows = node.children.flatMap((childId, i) => {
       const child = nodeById[childId];
@@ -598,7 +605,6 @@ function SegmentNodeComponent({
         {deleteButton}
       </Stack>
     );
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   } else if (node.type === SegmentNodeType.Performed) {
     el = (
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
