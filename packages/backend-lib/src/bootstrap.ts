@@ -7,11 +7,13 @@ import {
 
 import { segmentIdentifyEvent } from "../test/factories/segment";
 import { createWriteKey } from "./auth";
+import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
 import config from "./config";
 import { generateSecureKey } from "./crypto";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
+import { upsertMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
 import {
@@ -175,6 +177,9 @@ async function bootstrapPostgres({
       writeKeyName: "default-write-key",
       writeKeyValue: generateSecureKey(8),
     }),
+    ...getDefaultMessageTemplates({
+      workspaceId,
+    }).map(upsertMessageTemplate),
   ]);
 
   await Promise.all([
