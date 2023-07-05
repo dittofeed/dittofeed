@@ -139,7 +139,6 @@ export async function userJourneyWorkflow({
       case "SegmentSplitNode": {
         const cn = currentNode;
 
-        // TODO read from map if available
         const segmentAssignment = await getSegmentAssignment({
           workspaceId,
           userId,
