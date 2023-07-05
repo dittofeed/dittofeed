@@ -312,7 +312,7 @@ export interface WaitForNodeProps {
   timeoutLabelNodeId: string;
   segmentChildren: {
     labelNodeId: string;
-    segmentId: string;
+    segmentId?: string;
   }[];
 }
 

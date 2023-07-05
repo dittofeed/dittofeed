@@ -61,6 +61,10 @@ export function isNodeComplete(
       return Boolean(props.seconds);
     case JourneyNodeType.SegmentSplitNode:
       return Boolean(props.segmentId);
+    case JourneyNodeType.WaitForNode: {
+      const segmentChild = props.segmentChildren[0];
+      return segmentChild !== undefined && Boolean(segmentChild.segmentId);
+    }
   }
 }
 
