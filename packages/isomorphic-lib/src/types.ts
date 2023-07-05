@@ -176,18 +176,26 @@ export const PerformedSegmentNode = Type.Object({
 
 export type PerformedSegmentNode = Static<typeof PerformedSegmentNode>;
 
+export const EmailEventList: string[] = [
+  InternalEventType.MessageSent,
+  InternalEventType.EmailDropped,
+  InternalEventType.EmailDelivered,
+  InternalEventType.EmailOpened,
+  InternalEventType.EmailClicked,
+  InternalEventType.EmailBounced,
+  InternalEventType.EmailMarkedSpam,
+];
+
+export const EmailEvent = Type.Union(
+  EmailEventList.map((s) => Type.Literal(s))
+);
+
+export type EmailEvent = Static<typeof EmailEvent>;
+
 export const EmailSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Email),
   id: Type.String(),
-  event: Type.Union([
-    Type.Literal(InternalEventType.MessageSent),
-    Type.Literal(InternalEventType.EmailDropped),
-    Type.Literal(InternalEventType.EmailDelivered),
-    Type.Literal(InternalEventType.EmailOpened),
-    Type.Literal(InternalEventType.EmailClicked),
-    Type.Literal(InternalEventType.EmailBounced),
-    Type.Literal(InternalEventType.EmailMarkedSpam),
-  ]),
+  event: EmailEvent,
   times: Type.Optional(Type.Number()),
   templateId: Type.String(),
 });

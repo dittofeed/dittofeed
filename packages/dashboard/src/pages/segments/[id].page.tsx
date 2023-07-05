@@ -5,13 +5,20 @@ import {
   Box,
   Button,
   IconButton,
+  MenuItem,
+  Select,
+  SelectProps,
   Stack,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
+import { isEmailEvent } from "isomorphic-lib/src/email";
 import {
   CompletionStatus,
+  EmailEvent,
+  EmailSegmentNode,
+  InternalEventType,
   PerformedSegmentNode,
   SegmentEqualsOperator,
   SegmentHasBeenOperator,
@@ -264,6 +271,77 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         value={String(node.times ?? 1)}
         onChange={handleEventTimesChange}
       />
+    </Stack>
+  );
+}
+
+const EMAIL_EVENT_UI_LIST: [InternalEventType, { label: string }][] = [
+  [
+    InternalEventType.MessageSent,
+    {
+      label: "Email Sent",
+    },
+  ],
+  [
+    InternalEventType.EmailOpened,
+    {
+      label: "Email Opened",
+    },
+  ],
+  [
+    InternalEventType.EmailClicked,
+    {
+      label: "Email Clicked",
+    },
+  ],
+  [
+    InternalEventType.EmailBounced,
+    {
+      label: "Email Bounced",
+    },
+  ],
+  [
+    InternalEventType.EmailDelivered,
+    {
+      label: "Email Delivered",
+    },
+  ],
+  [
+    InternalEventType.EmailMarkedSpam,
+    {
+      label: "Email Marked as Spam",
+    },
+  ],
+];
+
+function EmailSelect({ node }: { node: EmailSegmentNode }) {
+  const updateSegmentNodeData = useAppStore(
+    (state) => state.updateEditableSegmentNodeData
+  );
+  const onEmailEventChangeHandler: SelectProps["onChange"] = (e) => {
+    updateSegmentNodeData(node.id, (n) => {
+      const event = e.target.value;
+      if (n.type === SegmentNodeType.Email && isEmailEvent(event)) {
+        n.event = event;
+      }
+    });
+  };
+
+  return (
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Box sx={{ width: selectorWidth }}>
+        <Select
+          label="Email Event"
+          onChange={onEmailEventChangeHandler}
+          value={node.event}
+        >
+          {EMAIL_EVENT_UI_LIST.map(([event, { label }]) => (
+            <MenuItem key={event} value={event}>
+              {label}
+            </MenuItem>
+          ))}
+        </Select>
+      </Box>
     </Stack>
   );
 }
@@ -611,6 +689,16 @@ function SegmentNodeComponent({
         {labelEl}
         {conditionSelect}
         <PerformedSelect node={node} />
+        {deleteButton}
+      </Stack>
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  } else if (node.type === SegmentNodeType.Email) {
+    el = (
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {labelEl}
+        {conditionSelect}
+        <EmailSelect node={node} />
         {deleteButton}
       </Stack>
     );
