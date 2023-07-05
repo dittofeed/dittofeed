@@ -4,7 +4,9 @@ import {
   Autocomplete,
   Box,
   Button,
+  FormControl,
   IconButton,
+  InputLabel,
   MenuItem,
   Select,
   SelectProps,
@@ -16,7 +18,6 @@ import {
 import { isEmailEvent } from "isomorphic-lib/src/email";
 import {
   CompletionStatus,
-  EmailEvent,
   EmailSegmentNode,
   InternalEventType,
   PerformedSegmentNode,
@@ -97,6 +98,7 @@ const segmentOptions: GroupedOption[] = [
   subscriptionGroupGroupedOption,
   andGroupedOption,
   orGroupedOption,
+  emailOption,
 ];
 
 const keyedSegmentOptions: Record<
@@ -330,17 +332,22 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
       <Box sx={{ width: selectorWidth }}>
-        <Select
-          label="Email Event"
-          onChange={onEmailEventChangeHandler}
-          value={node.event}
-        >
-          {EMAIL_EVENT_UI_LIST.map(([event, { label }]) => (
-            <MenuItem key={event} value={event}>
-              {label}
-            </MenuItem>
-          ))}
-        </Select>
+        {/* // FIXME add template */}
+        <FormControl>
+          <InputLabel id="email-event-label">Email Event</InputLabel>
+          <Select
+            label="Email Event"
+            labelId="email-event-label"
+            onChange={onEmailEventChangeHandler}
+            value={node.event}
+          >
+            {EMAIL_EVENT_UI_LIST.map(([event, { label }]) => (
+              <MenuItem key={event} value={event}>
+                {label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Box>
     </Stack>
   );
