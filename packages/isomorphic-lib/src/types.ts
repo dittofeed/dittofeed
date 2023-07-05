@@ -309,7 +309,7 @@ export const EntryNode = Type.Object(
 export type EntryNode = Static<typeof EntryNode>;
 
 export const WaitForSegmentChild = Type.Object({
-  child: Type.String(),
+  id: Type.String(),
   segmentId: Type.String(),
 });
 
@@ -319,6 +319,7 @@ export const WaitForNode = Type.Object(
   {
     ...BaseNode,
     type: Type.Literal(JourneyNodeType.WaitForNode),
+    timeoutSeconds: Type.Number(),
     timeoutChild: Type.String(),
     segmentChildren: Type.Array(WaitForSegmentChild),
   },
