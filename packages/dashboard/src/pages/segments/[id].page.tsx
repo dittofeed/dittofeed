@@ -343,7 +343,7 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
             id: m.id,
           }))
         : [];
-    const msg = msgOpt.find((m) => m.id === node.templateId);
+    const msg = msgOpt.find((m) => m.id === node.templateId) ?? null;
 
     return {
       messageOptions: msgOpt,
