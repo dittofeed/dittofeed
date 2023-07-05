@@ -311,7 +311,6 @@ export type EntryNode = Static<typeof EntryNode>;
 export const WaitForNode = Type.Object(
   {
     type: Type.Literal(JourneyNodeType.WaitForNode),
-    segment: Type.String(),
     timeoutChild: Type.String(),
     segmentChildren: Type.Array(
       Type.Object({
