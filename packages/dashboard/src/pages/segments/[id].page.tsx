@@ -34,6 +34,7 @@ import {
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
+import { shallow } from "zustand/shallow";
 
 import DurationDescription from "../../components/durationDescription";
 import EditableName from "../../components/editableName";
@@ -317,11 +318,16 @@ const EMAIL_EVENT_UI_LIST: [InternalEventType, { label: string }][] = [
 ];
 
 function EmailSelect({ node }: { node: EmailSegmentNode }) {
-  const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData
+  const { updateEditableSegmentNodeData, messages } = useAppStore(
+    (store) => ({
+      updateEditableSegmentNodeData: store.updateEditableSegmentNodeData,
+      messages: store.messages,
+    }),
+    shallow
   );
+
   const onEmailEventChangeHandler: SelectProps["onChange"] = (e) => {
-    updateSegmentNodeData(node.id, (n) => {
+    updateEditableSegmentNodeData(node.id, (n) => {
       const event = e.target.value;
       if (n.type === SegmentNodeType.Email && isEmailEvent(event)) {
         n.event = event;
@@ -329,25 +335,54 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
     });
   };
 
+  const { messageOptions, message } = useMemo(() => {
+    const msgOpt =
+      messages.type === CompletionStatus.Successful
+        ? messages.value.map((m) => ({
+            label: m.name,
+            id: m.id,
+          }))
+        : [];
+    const msg = msgOpt.find((m) => m.id === node.templateId);
+
+    return {
+      messageOptions: msgOpt,
+      message: msg,
+    };
+  }, [messages, node.templateId]);
+
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <FormControl>
+        <InputLabel id="email-event-label">Email Event</InputLabel>
+        <Select
+          label="Email Event"
+          labelId="email-event-label"
+          onChange={onEmailEventChangeHandler}
+          value={node.event}
+        >
+          {EMAIL_EVENT_UI_LIST.map(([event, { label }]) => (
+            <MenuItem key={event} value={event}>
+              {label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
       <Box sx={{ width: selectorWidth }}>
-        {/* // FIXME add template */}
-        <FormControl>
-          <InputLabel id="email-event-label">Email Event</InputLabel>
-          <Select
-            label="Email Event"
-            labelId="email-event-label"
-            onChange={onEmailEventChangeHandler}
-            value={node.event}
-          >
-            {EMAIL_EVENT_UI_LIST.map(([event, { label }]) => (
-              <MenuItem key={event} value={event}>
-                {label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Autocomplete
+          value={message}
+          onChange={(_event, newValue) => {
+            updateEditableSegmentNodeData(node.id, (segmentNode) => {
+              if (newValue && segmentNode.type === SegmentNodeType.Email) {
+                segmentNode.templateId = newValue.id;
+              }
+            });
+          }}
+          options={messageOptions}
+          renderInput={(params) => (
+            <TextField {...params} label="Email Template" variant="outlined" />
+          )}
+        />
       </Box>
     </Stack>
   );
