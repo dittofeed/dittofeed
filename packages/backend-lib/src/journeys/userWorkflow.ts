@@ -136,6 +136,16 @@ export async function userJourneyWorkflow({
         currentNode = nextNode;
         break;
       }
+      case "WaitForNode": {
+        const { segmentChildren } = currentNode;
+        await wf.condition(() =>
+          segmentChildren.some(
+            (s) =>
+              segmentAssignments.get(s.segmentId)?.currentlyInSegment === true
+          )
+        );
+        break;
+      }
       case "SegmentSplitNode": {
         const cn = currentNode;
 
