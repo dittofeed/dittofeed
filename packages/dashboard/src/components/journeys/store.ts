@@ -285,6 +285,7 @@ interface EdgeIntent {
 
 export function journeyToState(
   journey: JourneyResource
+  // FIXME include segments for wait for labels
 ): JourneyStateForResource {
   let journeyNodes: Node<NodeData>[] = [];
   const journeyEdges: Edge<EdgeData>[] = [];
@@ -381,6 +382,75 @@ export function journeyToState(
       multiMapSet(
         { parentId: falseId, type: "workflow" },
         node.variant.falseChild,
+        edgeMultiMap
+      );
+      continue;
+    }
+    if (node.type === JourneyNodeType.WaitForNode) {
+      // TODO support more than one segment child node
+      const segmentChild = node.segmentChildren[0];
+      if (!segmentChild) {
+        throw new Error("Malformed journey, WaitForNode has no children.");
+      }
+      const segmentChildLabelNodeId = uuid();
+      const timeoutLabelNodeId = uuid();
+
+      journeyNodes.push({
+        id: node.id,
+        position: placeholderNodePosition,
+        type: "journey",
+        data: {
+          type: "JourneyNode",
+          nodeTypeProps: {
+            type: JourneyNodeType.WaitForNode,
+            timeoutLabelNodeId,
+            segmentChildren: [
+              {
+                labelNodeId: segmentChildLabelNodeId,
+                segmentId: segmentChild.segmentId,
+              },
+            ],
+          },
+        },
+      });
+
+      journeyNodes.push({
+        id: segmentChildLabelNodeId,
+        position: placeholderNodePosition,
+        type: "label",
+        data: {
+          type: "LabelNode",
+          title: `segment ${segmentChild.segmentId}`,
+        },
+      });
+      journeyNodes.push({
+        id: timeoutLabelNodeId,
+        position: placeholderNodePosition,
+        type: "label",
+        data: {
+          type: "LabelNode",
+          title: "timeout",
+        },
+      });
+
+      multiMapSet(
+        { parentId: node.id, type: "placeholder" },
+        segmentChildLabelNodeId,
+        edgeMultiMap
+      );
+      multiMapSet(
+        { parentId: segmentChildLabelNodeId, type: "workflow" },
+        segmentChild.id,
+        edgeMultiMap
+      );
+      multiMapSet(
+        { parentId: node.id, type: "placeholder" },
+        timeoutLabelNodeId,
+        edgeMultiMap
+      );
+      multiMapSet(
+        { parentId: timeoutLabelNodeId, type: "workflow" },
+        node.timeoutChild,
         edgeMultiMap
       );
       continue;
