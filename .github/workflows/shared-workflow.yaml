@@ -35,3 +35,6 @@ jobs:
 
     - name: Run lint
       run: yarn workspace ${{ inputs.package-name }} lint
+
+    - name: Run Typecheck
+      run: yarn workspace ${{ inputs.package-name }} check
