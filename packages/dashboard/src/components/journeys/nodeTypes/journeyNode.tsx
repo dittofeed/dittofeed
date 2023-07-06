@@ -178,7 +178,7 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
       const body = (
         <SegmentDescriptionBody
           segmentId={segmentChild.segmentId}
-          prefix="Waits for user to be in"
+          prefix="Waits for user to enter"
         />
       );
       return {

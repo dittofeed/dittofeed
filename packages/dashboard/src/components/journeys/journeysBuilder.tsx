@@ -26,6 +26,7 @@ import {
   JourneyNodeProps,
   NodeData,
 } from "../../lib/types";
+import { durationDescription } from "../durationDescription";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
@@ -188,27 +189,16 @@ function createConnections({
         throw new Error("Malformed journey, WaitForNode has no children.");
       }
 
-      // [React Flow]: Couldn't create edge for source handle id: undefined; edge id: ef96afee-915e-45bc-99b3-4e64093d632e->a3e3209e-42e6-4e67-a77b-b588d6da34b6. Help: https://reactflow.dev/error#800
-      // newJourneyNodeId->segmentChildLabelNodeId
-      // warning also gets renderec for segment split, but still rendered
       const segmentChildLabelNodeId = segmentChild.labelNodeId;
       const { timeoutLabelNodeId } = nodeTypeProps;
       const emptyId = uuid();
-      console.log("ids", {
-        segmentChildLabelNodeId,
-        timeoutLabelNodeId,
-        newJourneyNodeId: newJourneyNode.id,
-        emptyId,
-        target,
-        source,
-      });
 
       newNodes = newNodes.concat([
         {
           id: segmentChildLabelNodeId,
           data: {
             type: "LabelNode",
-            title: "true",
+            title: "In segment",
           },
           position: { x: 0, y: 0 },
           type: "label",
@@ -217,7 +207,9 @@ function createConnections({
           id: timeoutLabelNodeId,
           data: {
             type: "LabelNode",
-            title: "false",
+            title: `Timed out after ${durationDescription(
+              nodeTypeProps.timeoutSeconds
+            )}`,
           },
           position: { x: 0, y: 0 },
           type: "label",
@@ -240,7 +232,6 @@ function createConnections({
           sourceHandle: "bottom",
           type: "workflow",
         },
-        // FIXME is this the issue?
         {
           id: `${newJourneyNode.id}->${segmentChildLabelNodeId}`,
           source: newJourneyNode.id,
@@ -312,17 +303,6 @@ function createConnections({
     }
   }
 
-  for (const edge of newEdges) {
-    if (edge.source === undefined) {
-      debugger;
-    }
-    if (edge.target === undefined) {
-      debugger;
-    }
-  }
-
-  console.log("newEdges", newEdges);
-  console.log("newNodes", newNodes);
   addNodes({ nodes: newNodes, edges: newEdges, source, target });
 }
 
