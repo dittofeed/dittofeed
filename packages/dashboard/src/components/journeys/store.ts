@@ -30,6 +30,7 @@ import {
   JourneyState,
   NodeData,
 } from "../../lib/types";
+import { durationDescription } from "../durationDescription";
 import {
   buildNodesIndex,
   defaultEdges,
@@ -45,6 +46,12 @@ type JourneyStateForResource = Pick<
   JourneyState,
   "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
 >;
+
+export const WAIT_FOR_SATISFY_LABEL = "In segment";
+
+export function waitForTimeoutLabel(timeoutSeconds?: number): string {
+  return `Timed out after ${durationDescription(timeoutSeconds)}`;
+}
 
 function multiMapSet<P, C, M extends Map<C, P[]>>(
   parent: P,
@@ -285,7 +292,6 @@ interface EdgeIntent {
 
 export function journeyToState(
   journey: JourneyResource
-  // FIXME include segments for wait for labels
 ): JourneyStateForResource {
   let journeyNodes: Node<NodeData>[] = [];
   const journeyEdges: Edge<EdgeData>[] = [];
@@ -420,7 +426,7 @@ export function journeyToState(
         type: "label",
         data: {
           type: "LabelNode",
-          title: `segment ${segmentChild.segmentId}`,
+          title: WAIT_FOR_SATISFY_LABEL,
         },
       });
       journeyNodes.push({
@@ -429,7 +435,7 @@ export function journeyToState(
         type: "label",
         data: {
           type: "LabelNode",
-          title: "timeout",
+          title: waitForTimeoutLabel(node.timeoutSeconds),
         },
       });
 
@@ -717,10 +723,6 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         state.journeyEdges
       );
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
-      console.log(state.journeyNodes);
-      console.log(state.journeyEdges);
-      console.log(state.journeyNodesIndex);
-      // FIXME bug here?
     }),
   setDraggedComponentType: (t) =>
     set((state) => {

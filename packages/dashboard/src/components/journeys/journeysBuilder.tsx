@@ -26,12 +26,12 @@ import {
   JourneyNodeProps,
   NodeData,
 } from "../../lib/types";
-import { durationDescription } from "../durationDescription";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
 import defaultNodeTypeProps from "./nodeTypes/defaultNodeTypeProps";
 import Sidebar from "./sidebar";
+import { WAIT_FOR_SATISFY_LABEL, waitForTimeoutLabel } from "./store";
 
 const proOptions: ProOptions = { account: "paid-pro", hideAttribution: true };
 
@@ -198,7 +198,7 @@ function createConnections({
           id: segmentChildLabelNodeId,
           data: {
             type: "LabelNode",
-            title: "In segment",
+            title: WAIT_FOR_SATISFY_LABEL,
           },
           position: { x: 0, y: 0 },
           type: "label",
@@ -207,9 +207,7 @@ function createConnections({
           id: timeoutLabelNodeId,
           data: {
             type: "LabelNode",
-            title: `Timed out after ${durationDescription(
-              nodeTypeProps.timeoutSeconds
-            )}`,
+            title: waitForTimeoutLabel(nodeTypeProps.timeoutSeconds),
           },
           position: { x: 0, y: 0 },
           type: "label",
