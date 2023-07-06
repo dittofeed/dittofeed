@@ -5,6 +5,7 @@
   "scripts": {
     "build": "NODE_ENV=production tsc --build",
     "dev": "NODE_ENV=development ts-node scripts/startWorker.ts",
+    "check": "tsc --build",
     "lint": "eslint .",
     "start": "nodemon scripts/startWorker.ts"
   },

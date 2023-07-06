@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "NODE_ENV=production tsc --build",
+    "check": "tsc --build",
     "lint": "eslint src/"
   },
   "exports": {

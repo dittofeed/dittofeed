@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "cli": "ts-node ./scripts/cli.ts",
+    "check": "tsc --build",
     "lint": "eslint src/ scripts/"
   },
   "dependencies": {
