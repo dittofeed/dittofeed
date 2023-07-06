@@ -36,26 +36,10 @@ import {
 } from "../../lib/types";
 import DurationDescription from "../durationDescription";
 import findJourneyNode from "./findJourneyNode";
+import journeyNodeLabel from "./journeyNodeLabel";
 
 const width = 420;
 const transitionDuration = ".15s";
-
-function nodeTypeLabel(t: JourneyNodeType): string {
-  switch (t) {
-    case JourneyNodeType.EntryNode:
-      return "Entry";
-    case JourneyNodeType.SegmentSplitNode:
-      return "Segment Split";
-    case JourneyNodeType.MessageNode:
-      return "Message";
-    case JourneyNodeType.ExitNode:
-      return "Exit";
-    case JourneyNodeType.DelayNode:
-      return "Delay";
-    default:
-      throw new Error(`Unimplemented journey node type ${t}`);
-  }
-}
 
 function getSegmentLabel(tr: SegmentResource) {
   return tr.name;
@@ -521,7 +505,7 @@ function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
           padding: 2,
         }}
       >
-        Edit {nodeTypeLabel(node.data.nodeTypeProps.type)}
+        Edit {journeyNodeLabel(node.data.nodeTypeProps.type)}
       </Typography>
       <NodeFields node={node} />
     </Stack>

@@ -47,6 +47,7 @@ export default function defaultNodeTypeProps(
       return {
         type,
         timeoutLabelNodeId: uuid(),
+        // 1 week
         timeoutSeconds: 604800,
         segmentChildren: [
           {
