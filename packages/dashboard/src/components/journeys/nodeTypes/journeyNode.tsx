@@ -286,6 +286,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
         <Handle
           type="target"
           position={Position.Top}
+          id="top"
           className={styles.handle}
         />
       )}
@@ -295,6 +296,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
       {!config.disableBottomHandle && (
         <Handle
           type="source"
+          id="bottom"
           position={Position.Bottom}
           className={styles.handle}
         />

@@ -717,6 +717,10 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         state.journeyEdges
       );
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+      console.log(state.journeyNodes);
+      console.log(state.journeyEdges);
+      console.log(state.journeyNodesIndex);
+      // FIXME bug here?
     }),
   setDraggedComponentType: (t) =>
     set((state) => {
