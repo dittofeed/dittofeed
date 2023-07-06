@@ -79,6 +79,10 @@ export async function userJourneyWorkflow({
 
   let currentNode: JourneyNode = definition.entryNode;
 
+  function segmentAssignedTrue(segmentId: string): boolean {
+    return segmentAssignments.get(segmentId)?.currentlyInSegment === true;
+  }
+
   // loop with finite length as a safety stopgap
   nodeLoop: for (let i = 0; i < nodes.size + 1; i++) {
     logger.info("user journey node", {
@@ -87,9 +91,7 @@ export async function userJourneyWorkflow({
     switch (currentNode.type) {
       case "EntryNode": {
         const cn = currentNode;
-        await wf.condition(
-          () => segmentAssignments.get(cn.segment)?.currentlyInSegment === true
-        );
+        await wf.condition(() => segmentAssignedTrue(cn.segment));
 
         await onNodeProcessed({
           userId,
@@ -136,10 +138,48 @@ export async function userJourneyWorkflow({
         currentNode = nextNode;
         break;
       }
+      case "WaitForNode": {
+        const { segmentChildren, timeoutSeconds } = currentNode;
+        const satisfiedSegmentWithinTimeout = await wf.condition(
+          () => segmentChildren.some((s) => segmentAssignedTrue(s.segmentId)),
+          timeoutSeconds * 1000
+        );
+        if (satisfiedSegmentWithinTimeout) {
+          const child = segmentChildren.find((s) =>
+            segmentAssignedTrue(s.segmentId)
+          );
+          if (!child) {
+            logger.error("missing wait for segment child", {
+              segmentChildren,
+            });
+            currentNode = definition.exitNode;
+            break;
+          }
+          const nextNode = nodes.get(child.id);
+          if (!nextNode) {
+            logger.error("missing wait for segment child node", {
+              child,
+            });
+            currentNode = definition.exitNode;
+            break;
+          }
+          currentNode = nextNode;
+        } else {
+          const nextNode = nodes.get(currentNode.timeoutChild);
+          if (!nextNode) {
+            logger.error("missing wait for timeout child node", {
+              currentNode,
+            });
+            currentNode = definition.exitNode;
+            break;
+          }
+          currentNode = nextNode;
+        }
+        break;
+      }
       case "SegmentSplitNode": {
         const cn = currentNode;
 
-        // TODO read from map if available
         const segmentAssignment = await getSegmentAssignment({
           workspaceId,
           userId,

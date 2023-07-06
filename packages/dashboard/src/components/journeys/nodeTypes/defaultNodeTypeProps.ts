@@ -43,7 +43,21 @@ export default function defaultNodeTypeProps(
         trueLabelNodeId: uuid(),
         falseLabelNodeId: uuid(),
       };
-    default:
-      throw new Error(`Unimplemented journey node type ${type}`);
+    case JourneyNodeType.WaitForNode:
+      return {
+        type,
+        timeoutLabelNodeId: uuid(),
+        // 1 week
+        timeoutSeconds: 604800,
+        segmentChildren: [
+          {
+            labelNodeId: uuid(),
+          },
+        ],
+      };
+    case JourneyNodeType.RateLimitNode:
+      throw new Error("Rate limit nodes are not supported yet");
+    case JourneyNodeType.ExperimentSplitNode:
+      throw new Error("Experiment split nodes are not supported yet");
   }
 }

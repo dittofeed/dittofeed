@@ -35,10 +35,16 @@ export default function SaveButton({ journeyId }: { journeyId: string }) {
         journeyNodesIndex,
       },
     });
-    if (
-      workspace.type !== CompletionStatus.Successful ||
-      journeyDefinition.isErr()
-    ) {
+    if (workspace.type !== CompletionStatus.Successful) {
+      console.error("workspace not available");
+      return;
+    }
+
+    if (journeyDefinition.isErr()) {
+      console.error(
+        "failed to build journey definition",
+        journeyDefinition.error
+      );
       return;
     }
 

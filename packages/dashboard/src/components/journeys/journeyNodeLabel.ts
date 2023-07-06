@@ -16,5 +16,7 @@ export default function journeyNodeLabel(t: JourneyNodeType): string {
       return "Segment Split";
     case JourneyNodeType.MessageNode:
       return "Message";
+    case JourneyNodeType.WaitForNode:
+      return "Wait For";
   }
 }

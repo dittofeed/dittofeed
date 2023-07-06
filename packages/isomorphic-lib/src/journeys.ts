@@ -1,29 +1,36 @@
 import { JourneyBodyNode, JourneyDefinition, JourneyNodeType } from "./types";
 
-function nodeToSegment(node: JourneyBodyNode): string | null {
+function nodeToSegments(node: JourneyBodyNode): string[] {
   switch (node.type) {
     case JourneyNodeType.SegmentSplitNode: {
-      return node.variant.segment;
+      return [node.variant.segment];
     }
     case JourneyNodeType.ExperimentSplitNode:
-      return null;
+      return [];
     case JourneyNodeType.RateLimitNode:
-      return null;
+      return [];
     case JourneyNodeType.MessageNode:
-      return null;
+      return [];
     case JourneyNodeType.DelayNode:
-      return null;
+      return [];
+    case JourneyNodeType.WaitForNode:
+      return node.segmentChildren.map((c) => c.segmentId);
   }
 }
 
+/**
+ * Returns the set of segments that this journey depends on.
+ * @param definition
+ * @returns
+ */
 export function getSubscribedSegments(
   definition: JourneyDefinition
 ): Set<string> {
   const subscribedSegments = new Set<string>();
   subscribedSegments.add(definition.entryNode.segment);
   for (const node of definition.nodes) {
-    const segment = nodeToSegment(node);
-    if (segment) {
+    const segments = nodeToSegments(node);
+    for (const segment of segments) {
       subscribedSegments.add(segment);
     }
   }

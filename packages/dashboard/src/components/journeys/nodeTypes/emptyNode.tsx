@@ -7,7 +7,12 @@ export function EmptyNode() {
   const theme = useTheme();
   return (
     <>
-      <Handle type="target" position={Position.Top} className={styles.handle} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className={styles.handle}
+        id="top"
+      />
       <Box
         style={{
           width: 8,
@@ -18,6 +23,7 @@ export function EmptyNode() {
       />
       <Handle
         type="source"
+        id="bottom"
         position={Position.Bottom}
         className={styles.handle}
       />

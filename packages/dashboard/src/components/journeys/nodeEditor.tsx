@@ -32,29 +32,14 @@ import {
   JourneyNodeProps,
   MessageNodeProps,
   SegmentSplitNodeProps,
+  WaitForNodeProps,
 } from "../../lib/types";
 import DurationDescription from "../durationDescription";
 import findJourneyNode from "./findJourneyNode";
+import journeyNodeLabel from "./journeyNodeLabel";
 
 const width = 420;
 const transitionDuration = ".15s";
-
-function nodeTypeLabel(t: JourneyNodeType): string {
-  switch (t) {
-    case JourneyNodeType.EntryNode:
-      return "Entry";
-    case JourneyNodeType.SegmentSplitNode:
-      return "Segment Split";
-    case JourneyNodeType.MessageNode:
-      return "Message";
-    case JourneyNodeType.ExitNode:
-      return "Exit";
-    case JourneyNodeType.DelayNode:
-      return "Delay";
-    default:
-      throw new Error(`Unimplemented journey node type ${t}`);
-  }
-}
 
 function getSegmentLabel(tr: SegmentResource) {
   return tr.name;
@@ -332,6 +317,81 @@ function DelayNodeFields({
   );
 }
 
+function WaitForNodeFields({
+  nodeId,
+  nodeProps,
+}: {
+  nodeId: string;
+  nodeProps: WaitForNodeProps;
+}) {
+  const { updateJourneyNodeData, segments } = useAppStore(
+    (store) => ({
+      updateJourneyNodeData: store.updateJourneyNodeData,
+      segments: store.segments,
+    }),
+    shallow
+  );
+
+  if (segments.type !== CompletionStatus.Successful) {
+    return null;
+  }
+
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateJourneyNodeData(nodeId, (node) => {
+      const props = node.data.nodeTypeProps;
+      if (props.type === JourneyNodeType.DelayNode) {
+        props.seconds = parseInt(e.target.value, 10);
+      }
+    });
+  };
+
+  const onSegmentChangeHandler = (
+    _event: unknown,
+    segment: SegmentResource | null
+  ) => {
+    updateJourneyNodeData(nodeId, (node) => {
+      const props = node.data.nodeTypeProps;
+      if (
+        props.type === JourneyNodeType.WaitForNode &&
+        props.segmentChildren[0]
+      ) {
+        props.segmentChildren[0].segmentId = segment?.id;
+      }
+    });
+  };
+
+  const segment =
+    segments.value.find(
+      (t) => t.id === nodeProps.segmentChildren[0]?.segmentId
+    ) ?? null;
+
+  return (
+    <>
+      <Autocomplete
+        value={segment}
+        options={segments.value}
+        getOptionLabel={getSegmentLabel}
+        onChange={onSegmentChangeHandler}
+        renderInput={(params) => (
+          <TextField {...params} label="segment" variant="outlined" />
+        )}
+      />
+      <TextField
+        label="Timeout (Seconds)"
+        InputProps={{
+          type: "number",
+        }}
+        value={String(nodeProps.timeoutSeconds)}
+        onChange={handleDurationChange}
+      />
+      <Box>
+        Will timeout after
+        <DurationDescription durationSeconds={nodeProps.timeoutSeconds} />
+      </Box>
+    </>
+  );
+}
+
 function NodeLayout({
   deleteButton,
   children,
@@ -422,6 +482,12 @@ function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
           <DelayNodeFields nodeId={node.id} nodeProps={nodeProps} />
         </NodeLayout>
       );
+    case JourneyNodeType.WaitForNode:
+      return (
+        <NodeLayout deleteButton nodeId={node.id}>
+          <WaitForNodeFields nodeId={node.id} nodeProps={nodeProps} />
+        </NodeLayout>
+      );
   }
 }
 
@@ -439,7 +505,7 @@ function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
           padding: 2,
         }}
       >
-        Edit {nodeTypeLabel(node.data.nodeTypeProps.type)}
+        Edit {journeyNodeLabel(node.data.nodeTypeProps.type)}
       </Typography>
       <NodeFields node={node} />
     </Stack>

@@ -306,12 +306,23 @@ export interface SegmentSplitNodeProps {
   falseLabelNodeId: string;
 }
 
+export interface WaitForNodeProps {
+  type: JourneyNodeType.WaitForNode;
+  timeoutSeconds?: number;
+  timeoutLabelNodeId: string;
+  segmentChildren: {
+    labelNodeId: string;
+    segmentId?: string;
+  }[];
+}
+
 export type NodeTypeProps =
   | EntryNodeProps
   | ExitNodeProps
   | MessageNodeProps
   | DelayNodeProps
-  | SegmentSplitNodeProps;
+  | SegmentSplitNodeProps
+  | WaitForNodeProps;
 
 export interface JourneyNodeProps {
   type: "JourneyNode";

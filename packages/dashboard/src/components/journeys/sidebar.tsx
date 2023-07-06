@@ -1,15 +1,10 @@
-import {
-  ClockCircleOutlined,
-  FontSizeOutlined,
-  ForkOutlined,
-  MailOutlined,
-} from "@ant-design/icons";
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { JourneyNodeType } from "isomorphic-lib/src/types";
 import React from "react";
 
 import { useAppStore } from "../../lib/appStore";
 import journeyNodeLabel from "./journeyNodeLabel";
+import { JourneyNodeIcon, journeyNodeIcon } from "./nodeTypes/journeyNode";
 
 function Sidebar() {
   const theme = useTheme();
@@ -26,11 +21,12 @@ function Sidebar() {
     setDraggedComponentType(null);
   };
 
-  const nodeTypes: [JourneyNodeType, typeof FontSizeOutlined][] = [
-    [JourneyNodeType.DelayNode, ClockCircleOutlined],
-    [JourneyNodeType.SegmentSplitNode, ForkOutlined],
-    [JourneyNodeType.MessageNode, MailOutlined],
-  ];
+  const nodeTypes: [JourneyNodeType, JourneyNodeIcon][] = [
+    JourneyNodeType.DelayNode,
+    JourneyNodeType.SegmentSplitNode,
+    JourneyNodeType.MessageNode,
+    JourneyNodeType.WaitForNode,
+  ].map((t) => [t, journeyNodeIcon(t)]);
 
   const nodeTypesEls = nodeTypes.map(([t, Icon]) => (
     <Stack

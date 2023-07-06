@@ -286,6 +286,7 @@ export enum JourneyNodeType {
   ExperimentSplitNode = "ExperimentSplitNode",
   ExitNode = "ExitNode",
   EntryNode = "EntryNode",
+  WaitForNode = "WaitForNode",
 }
 
 const BaseNode = {
@@ -306,6 +307,30 @@ export const EntryNode = Type.Object(
 );
 
 export type EntryNode = Static<typeof EntryNode>;
+
+export const WaitForSegmentChild = Type.Object({
+  id: Type.String(),
+  segmentId: Type.String(),
+});
+
+export type WaitForSegmentChild = Static<typeof WaitForSegmentChild>;
+
+export const WaitForNode = Type.Object(
+  {
+    ...BaseNode,
+    type: Type.Literal(JourneyNodeType.WaitForNode),
+    timeoutSeconds: Type.Number(),
+    timeoutChild: Type.String(),
+    segmentChildren: Type.Array(WaitForSegmentChild),
+  },
+  {
+    title: "Wait For Node",
+    description:
+      "A node which waits for a user to enter a segment before progressing.",
+  }
+);
+
+export type WaitForNode = Static<typeof WaitForNode>;
 
 export enum DelayVariantType {
   Second = "Second",
@@ -459,6 +484,7 @@ export const JourneyBodyNode = Type.Union([
   SegmentSplitNode,
   MessageNode,
   ExperimentSplitNode,
+  WaitForNode,
 ]);
 
 export type JourneyBodyNode = Static<typeof JourneyBodyNode>;

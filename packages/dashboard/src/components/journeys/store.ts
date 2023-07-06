@@ -11,6 +11,7 @@ import {
   MessageNode,
   SegmentSplitNode,
   SegmentSplitVariantType,
+  WaitForNode,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 import {
@@ -30,6 +31,7 @@ import {
   JourneyState,
   NodeData,
 } from "../../lib/types";
+import { durationDescription } from "../durationDescription";
 import {
   buildNodesIndex,
   defaultEdges,
@@ -46,6 +48,12 @@ type JourneyStateForResource = Pick<
   "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
 >;
 
+export const WAIT_FOR_SATISFY_LABEL = "In segment";
+
+export function waitForTimeoutLabel(timeoutSeconds?: number): string {
+  return `Timed out after ${durationDescription(timeoutSeconds)}`;
+}
+
 function multiMapSet<P, C, M extends Map<C, P[]>>(
   parent: P,
   childId: C,
@@ -59,6 +67,7 @@ function multiMapSet<P, C, M extends Map<C, P[]>>(
   existing.push(parent);
 }
 
+// FIXME can't save when waitfor nodes have children
 export function journeyDefinitionFromState({
   state,
 }: {
@@ -199,6 +208,55 @@ export function journeyDefinitionFromState({
       continue;
     }
 
+    if (props.type === JourneyNodeType.WaitForNode) {
+      const segmentChild = props.segmentChildren[0];
+      if (!segmentChild) {
+        return err({
+          message: "Wait for node is missing a segment child",
+          nodeId: current.id,
+        });
+      }
+      const segmentNode = traverseUntilJourneyNode(segmentChild.labelNodeId);
+      const timeoutNode = traverseUntilJourneyNode(props.timeoutLabelNodeId);
+
+      if (!segmentNode || !timeoutNode) {
+        throw new Error("Can't find timeout and segment nodes");
+      }
+
+      if (!segmentChild.segmentId) {
+        return err({
+          message: "Wait for node segment child is missing an assigned segment",
+          nodeId: current.id,
+        });
+      }
+
+      if (!props.timeoutSeconds) {
+        return err({
+          message: "Wait for node is missing a timeout",
+          nodeId: current.id,
+        });
+      }
+
+      const newNodeResource: WaitForNode = {
+        id: current.id,
+        type: JourneyNodeType.WaitForNode,
+        timeoutChild: timeoutNode.id,
+        timeoutSeconds: props.timeoutSeconds,
+        segmentChildren: [
+          {
+            id: segmentNode.id,
+            segmentId: segmentChild.segmentId,
+          },
+        ],
+      };
+
+      nodeResources.push(newNodeResource);
+
+      stack.push(segmentNode);
+      stack.push(timeoutNode);
+      continue;
+    }
+
     if (props.type === JourneyNodeType.ExitNode) {
       exitNodeResource = {
         type: JourneyNodeType.ExitNode,
@@ -258,8 +316,9 @@ export function journeyDefinitionFromState({
         newNodeResource = messageNode;
         break;
       }
-      default:
-        throw new Error(`Unhandled node type ${props.type}.`);
+      case JourneyNodeType.EntryNode: {
+        throw new Error("Entry node should already be handled");
+      }
     }
 
     nodeResources.push(newNodeResource);
@@ -381,6 +440,76 @@ export function journeyToState(
       multiMapSet(
         { parentId: falseId, type: "workflow" },
         node.variant.falseChild,
+        edgeMultiMap
+      );
+      continue;
+    }
+    if (node.type === JourneyNodeType.WaitForNode) {
+      // TODO support more than one segment child node
+      const segmentChild = node.segmentChildren[0];
+      if (!segmentChild) {
+        throw new Error("Malformed journey, WaitForNode has no children.");
+      }
+      const segmentChildLabelNodeId = uuid();
+      const timeoutLabelNodeId = uuid();
+
+      journeyNodes.push({
+        id: node.id,
+        position: placeholderNodePosition,
+        type: "journey",
+        data: {
+          type: "JourneyNode",
+          nodeTypeProps: {
+            type: JourneyNodeType.WaitForNode,
+            timeoutLabelNodeId,
+            timeoutSeconds: node.timeoutSeconds,
+            segmentChildren: [
+              {
+                labelNodeId: segmentChildLabelNodeId,
+                segmentId: segmentChild.segmentId,
+              },
+            ],
+          },
+        },
+      });
+
+      journeyNodes.push({
+        id: segmentChildLabelNodeId,
+        position: placeholderNodePosition,
+        type: "label",
+        data: {
+          type: "LabelNode",
+          title: WAIT_FOR_SATISFY_LABEL,
+        },
+      });
+      journeyNodes.push({
+        id: timeoutLabelNodeId,
+        position: placeholderNodePosition,
+        type: "label",
+        data: {
+          type: "LabelNode",
+          title: waitForTimeoutLabel(node.timeoutSeconds),
+        },
+      });
+
+      multiMapSet(
+        { parentId: node.id, type: "placeholder" },
+        segmentChildLabelNodeId,
+        edgeMultiMap
+      );
+      multiMapSet(
+        { parentId: segmentChildLabelNodeId, type: "workflow" },
+        segmentChild.id,
+        edgeMultiMap
+      );
+      multiMapSet(
+        { parentId: node.id, type: "placeholder" },
+        timeoutLabelNodeId,
+        edgeMultiMap
+      );
+      multiMapSet(
+        { parentId: timeoutLabelNodeId, type: "workflow" },
+        node.timeoutChild,
         edgeMultiMap
       );
       continue;
