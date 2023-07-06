@@ -32,6 +32,7 @@ import {
   JourneyNodeProps,
   MessageNodeProps,
   SegmentSplitNodeProps,
+  WaitForNodeProps,
 } from "../../lib/types";
 import DurationDescription from "../durationDescription";
 import findJourneyNode from "./findJourneyNode";
@@ -332,6 +333,45 @@ function DelayNodeFields({
   );
 }
 
+function WaitForNodeFields({
+  nodeId,
+  nodeProps,
+}: {
+  nodeId: string;
+  nodeProps: WaitForNodeProps;
+}) {
+  const updateJourneyNodeData = useAppStore(
+    (state) => state.updateJourneyNodeData
+  );
+
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateJourneyNodeData(nodeId, (node) => {
+      const props = node.data.nodeTypeProps;
+      if (props.type === JourneyNodeType.DelayNode) {
+        props.seconds = parseInt(e.target.value, 10);
+      }
+    });
+  };
+
+  return (
+    <>
+      <TextField
+        label="Timeout (Seconds)"
+        InputProps={{
+          type: "number",
+        }}
+        value={String(nodeProps.timeoutSeconds)}
+        onChange={handleDurationChange}
+      />
+
+      <Box>
+        Will timeout after
+        <DurationDescription durationSeconds={nodeProps.timeoutSeconds} />
+      </Box>
+    </>
+  );
+}
+
 function NodeLayout({
   deleteButton,
   children,
@@ -420,6 +460,12 @@ function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
       return (
         <NodeLayout deleteButton nodeId={node.id}>
           <DelayNodeFields nodeId={node.id} nodeProps={nodeProps} />
+        </NodeLayout>
+      );
+    case JourneyNodeType.WaitForNode:
+      return (
+        <NodeLayout deleteButton nodeId={node.id}>
+          <WaitForNodeFields nodeId={node.id} nodeProps={nodeProps} />
         </NodeLayout>
       );
   }
