@@ -249,6 +249,7 @@ export function journeyDefinitionFromState({
           },
         ],
       };
+
       nodeResources.push(newNodeResource);
 
       stack.push(segmentNode);
@@ -461,6 +462,7 @@ export function journeyToState(
           nodeTypeProps: {
             type: JourneyNodeType.WaitForNode,
             timeoutLabelNodeId,
+            timeoutSeconds: node.timeoutSeconds,
             segmentChildren: [
               {
                 labelNodeId: segmentChildLabelNodeId,
