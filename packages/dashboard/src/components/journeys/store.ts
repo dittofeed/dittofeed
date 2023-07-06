@@ -11,6 +11,7 @@ import {
   MessageNode,
   SegmentSplitNode,
   SegmentSplitVariantType,
+  WaitForNode,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 import {
@@ -66,6 +67,7 @@ function multiMapSet<P, C, M extends Map<C, P[]>>(
   existing.push(parent);
 }
 
+// FIXME can't save when waitfor nodes have children
 export function journeyDefinitionFromState({
   state,
 }: {
@@ -206,7 +208,53 @@ export function journeyDefinitionFromState({
       continue;
     }
 
-    // FIXME
+    if (props.type === JourneyNodeType.WaitForNode) {
+      const segmentChild = props.segmentChildren[0];
+      if (!segmentChild) {
+        return err({
+          message: "Wait for node is missing a segment child",
+          nodeId: current.id,
+        });
+      }
+      const segmentNode = traverseUntilJourneyNode(segmentChild.labelNodeId);
+      const timeoutNode = traverseUntilJourneyNode(props.timeoutLabelNodeId);
+
+      if (!segmentNode || !timeoutNode) {
+        throw new Error("Can't find timeout and segment nodes");
+      }
+
+      if (!segmentChild.segmentId) {
+        return err({
+          message: "Wait for node segment child is missing an assigned segment",
+          nodeId: current.id,
+        });
+      }
+
+      if (!props.timeoutSeconds) {
+        return err({
+          message: "Wait for node is missing a timeout",
+          nodeId: current.id,
+        });
+      }
+
+      const newNodeResource: WaitForNode = {
+        id: current.id,
+        type: JourneyNodeType.WaitForNode,
+        timeoutChild: timeoutNode.id,
+        timeoutSeconds: props.timeoutSeconds,
+        segmentChildren: [
+          {
+            id: segmentNode.id,
+            segmentId: segmentChild.segmentId,
+          },
+        ],
+      };
+      nodeResources.push(newNodeResource);
+
+      stack.push(segmentNode);
+      stack.push(timeoutNode);
+      continue;
+    }
 
     if (props.type === JourneyNodeType.ExitNode) {
       exitNodeResource = {
@@ -266,6 +314,9 @@ export function journeyDefinitionFromState({
         };
         newNodeResource = messageNode;
         break;
+      }
+      case JourneyNodeType.EntryNode: {
+        throw new Error("Entry node should already be handled");
       }
     }
 

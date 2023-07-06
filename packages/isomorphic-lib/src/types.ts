@@ -330,6 +330,8 @@ export const WaitForNode = Type.Object(
   }
 );
 
+export type WaitForNode = Static<typeof WaitForNode>;
+
 export enum DelayVariantType {
   Second = "Second",
 }
