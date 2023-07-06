@@ -16,6 +16,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { isEmailEvent } from "isomorphic-lib/src/email";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   EmailSegmentNode,
@@ -662,6 +663,7 @@ function SegmentNodeComponent({
   );
 
   let el: React.ReactElement;
+
   if (node.type === SegmentNodeType.And || node.type === SegmentNodeType.Or) {
     const rows = node.children.flatMap((childId, i) => {
       const child = nodeById[childId];
@@ -744,6 +746,8 @@ function SegmentNodeComponent({
         {deleteButton}
       </Stack>
     );
+  } else {
+    assertUnreachable(node);
   }
 
   return <>{el}</>;
