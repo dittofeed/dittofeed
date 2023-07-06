@@ -72,7 +72,13 @@ export function isNodeComplete(
   }
 }
 
-function SegmentDescriptionBody({ segmentId }: { segmentId?: string }) {
+function SegmentDescriptionBody({
+  segmentId,
+  prefix = "User in",
+}: {
+  segmentId?: string;
+  prefix?: string;
+}) {
   const segments = useAppStore((state) => state.segments);
   const theme = useTheme();
 
@@ -85,7 +91,7 @@ function SegmentDescriptionBody({ segmentId }: { segmentId?: string }) {
   }
   return (
     <Stack direction="row" spacing={1} alignItems="center">
-      <Box>User in</Box>
+      <Box>{prefix}</Box>
       <Typography
         sx={{
           padding: 1,
@@ -165,12 +171,21 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
         body: null,
       };
     case JourneyNodeType.WaitForNode: {
+      const segmentChild = props.segmentChildren[0];
+      if (!segmentChild) {
+        throw new Error("Segment child is undefined");
+      }
+      const body = (
+        <SegmentDescriptionBody
+          segmentId={segmentChild.segmentId}
+          prefix="Waits for user to be in"
+        />
+      );
       return {
         sidebarColor: "#F7741E",
-        disableBottomHandle: true,
         icon: journeyNodeIcon(JourneyNodeType.WaitForNode),
         title: journeyNodeLabel(JourneyNodeType.WaitForNode),
-        body: null,
+        body,
       };
     }
   }

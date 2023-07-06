@@ -237,6 +237,7 @@ function createConnections({
           id: `${source}->${newJourneyNode.id}`,
           source,
           target: newJourneyNode.id,
+          sourceHandle: "bottom",
           type: "workflow",
         },
         // FIXME is this the issue?
@@ -244,18 +245,21 @@ function createConnections({
           id: `${newJourneyNode.id}->${segmentChildLabelNodeId}`,
           source: newJourneyNode.id,
           target: segmentChildLabelNodeId,
+          sourceHandle: "bottom",
           type: "placeholder",
         },
         {
           id: `${newJourneyNode.id}->${timeoutLabelNodeId}`,
           source: newJourneyNode.id,
           target: timeoutLabelNodeId,
+          sourceHandle: "bottom",
           type: "placeholder",
         },
         {
           id: `${segmentChildLabelNodeId}->${emptyId}`,
           source: segmentChildLabelNodeId,
           target: emptyId,
+          sourceHandle: "bottom",
           data: {
             type: "WorkflowEdge",
             disableMarker: true,
@@ -266,6 +270,7 @@ function createConnections({
           id: `${timeoutLabelNodeId}->${emptyId}`,
           source: timeoutLabelNodeId,
           target: emptyId,
+          sourceHandle: "bottom",
           data: {
             type: "WorkflowEdge",
             disableMarker: true,
@@ -276,6 +281,7 @@ function createConnections({
           id: `${emptyId}->${target}`,
           source: emptyId,
           target,
+          sourceHandle: "bottom",
           type: "workflow",
         },
       ];
