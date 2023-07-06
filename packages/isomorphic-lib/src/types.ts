@@ -42,6 +42,21 @@ export enum EventType {
   Alias = "alias",
 }
 
+export enum InternalEventType {
+  MessageSent = "DFInternalMessageSent",
+  BadWorkspaceConfiguration = "DFBadWorkspaceConfiguration",
+  MessageFailure = "DFMessageFailure",
+  MessageSkipped = "DFMessageSkipped",
+  SegmentBroadcast = "DFSegmentBroadcast",
+  SubscriptionChange = "DFSubscriptionChange",
+  EmailDropped = "DFEmailDropped",
+  EmailDelivered = "DFEmailDelivered",
+  EmailOpened = "DFEmailOpened",
+  EmailClicked = "DFEmailClicked",
+  EmailBounced = "DFEmailBounced",
+  EmailMarkedSpam = "DFEmailMarkedSpam",
+}
+
 export enum SubscriptionGroupType {
   OptIn = "OptIn",
   OptOut = "OptOut",
@@ -130,6 +145,7 @@ export enum SegmentNodeType {
   LastPerformed = "LastPerformed",
   Broadcast = "Broadcast",
   SubscriptionGroup = "SubscriptionGroup",
+  Email = "Email",
 }
 
 export const SubscriptionGroupSegmentNode = Type.Object({
@@ -159,6 +175,32 @@ export const PerformedSegmentNode = Type.Object({
 });
 
 export type PerformedSegmentNode = Static<typeof PerformedSegmentNode>;
+
+export const EmailEventList: string[] = [
+  InternalEventType.MessageSent,
+  InternalEventType.EmailDropped,
+  InternalEventType.EmailDelivered,
+  InternalEventType.EmailOpened,
+  InternalEventType.EmailClicked,
+  InternalEventType.EmailBounced,
+  InternalEventType.EmailMarkedSpam,
+];
+
+export const EmailEvent = Type.Union(
+  EmailEventList.map((s) => Type.Literal(s))
+);
+
+export type EmailEvent = Static<typeof EmailEvent>;
+
+export const EmailSegmentNode = Type.Object({
+  type: Type.Literal(SegmentNodeType.Email),
+  id: Type.String(),
+  event: EmailEvent,
+  times: Type.Optional(Type.Number()),
+  templateId: Type.String(),
+});
+
+export type EmailSegmentNode = Static<typeof EmailSegmentNode>;
 
 export const LastPerformedSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.LastPerformed),
@@ -228,6 +270,7 @@ export const SegmentNode = Type.Union([
   OrSegmentNode,
   PerformedSegmentNode,
   LastPerformedSegmentNode,
+  EmailSegmentNode,
   BroadcastSegmentNode,
   SubscriptionGroupSegmentNode,
 ]);

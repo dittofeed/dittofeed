@@ -1,5 +1,6 @@
 import {
   CompletionStatus,
+  InternalEventType,
   SecretResource,
   SegmentDefinition,
   SegmentNode,
@@ -161,6 +162,17 @@ function mapSegmentNodeToNewType(
           type: SegmentNodeType.Performed,
           id: node.id,
           event: "",
+        },
+        secondary: [],
+      };
+    }
+    case SegmentNodeType.Email: {
+      return {
+        primary: {
+          type: SegmentNodeType.Email,
+          id: node.id,
+          templateId: "",
+          event: InternalEventType.MessageSent,
         },
         secondary: [],
       };

@@ -148,6 +148,29 @@ function buildSegmentQueryExpression({
         segmentId,
       });
     }
+    case SegmentNodeType.Email: {
+      const performedNode: PerformedSegmentNode = {
+        id: node.id,
+        type: SegmentNodeType.Performed,
+        event: node.event,
+        properties: [
+          {
+            path: "templateId",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: segmentId,
+            },
+          },
+        ],
+      };
+      return buildSegmentQueryExpression({
+        currentTime,
+        queryBuilder,
+        node: performedNode,
+        nodes,
+        segmentId,
+      });
+    }
     case SegmentNodeType.LastPerformed: {
       const event = queryBuilder.addQueryValue(node.event, "String");
       const whereConditions = ["m.4 == 'track'", `m.5 == ${event}`];

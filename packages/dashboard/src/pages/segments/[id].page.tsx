@@ -4,14 +4,22 @@ import {
   Autocomplete,
   Box,
   Button,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  SelectProps,
   Stack,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
+import { isEmailEvent } from "isomorphic-lib/src/email";
 import {
   CompletionStatus,
+  EmailSegmentNode,
+  InternalEventType,
   PerformedSegmentNode,
   SegmentEqualsOperator,
   SegmentHasBeenOperator,
@@ -26,6 +34,7 @@ import {
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
+import { shallow } from "zustand/shallow";
 
 import DurationDescription from "../../components/durationDescription";
 import EditableName from "../../components/editableName";
@@ -77,6 +86,12 @@ const performedOption = {
   label: "User Performed",
 };
 
+const emailOption = {
+  id: SegmentNodeType.Email,
+  group: "Messages",
+  label: "Email",
+};
+
 const segmentOptions: GroupedOption[] = [
   traitGroupedOption,
   performedOption,
@@ -84,6 +99,7 @@ const segmentOptions: GroupedOption[] = [
   subscriptionGroupGroupedOption,
   andGroupedOption,
   orGroupedOption,
+  emailOption,
 ];
 
 const keyedSegmentOptions: Record<
@@ -96,6 +112,7 @@ const keyedSegmentOptions: Record<
   [SegmentNodeType.Or]: orGroupedOption,
   [SegmentNodeType.Broadcast]: broadcastGroupedOption,
   [SegmentNodeType.SubscriptionGroup]: subscriptionGroupGroupedOption,
+  [SegmentNodeType.Email]: emailOption,
 };
 
 interface Option {
@@ -257,6 +274,116 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         value={String(node.times ?? 1)}
         onChange={handleEventTimesChange}
       />
+    </Stack>
+  );
+}
+
+const EMAIL_EVENT_UI_LIST: [InternalEventType, { label: string }][] = [
+  [
+    InternalEventType.MessageSent,
+    {
+      label: "Email Sent",
+    },
+  ],
+  [
+    InternalEventType.EmailOpened,
+    {
+      label: "Email Opened",
+    },
+  ],
+  [
+    InternalEventType.EmailClicked,
+    {
+      label: "Email Clicked",
+    },
+  ],
+  [
+    InternalEventType.EmailBounced,
+    {
+      label: "Email Bounced",
+    },
+  ],
+  [
+    InternalEventType.EmailDelivered,
+    {
+      label: "Email Delivered",
+    },
+  ],
+  [
+    InternalEventType.EmailMarkedSpam,
+    {
+      label: "Email Marked as Spam",
+    },
+  ],
+];
+
+function EmailSelect({ node }: { node: EmailSegmentNode }) {
+  const { updateEditableSegmentNodeData, messages } = useAppStore(
+    (store) => ({
+      updateEditableSegmentNodeData: store.updateEditableSegmentNodeData,
+      messages: store.messages,
+    }),
+    shallow
+  );
+
+  const onEmailEventChangeHandler: SelectProps["onChange"] = (e) => {
+    updateEditableSegmentNodeData(node.id, (n) => {
+      const event = e.target.value;
+      if (n.type === SegmentNodeType.Email && isEmailEvent(event)) {
+        n.event = event;
+      }
+    });
+  };
+
+  const { messageOptions, message } = useMemo(() => {
+    const msgOpt =
+      messages.type === CompletionStatus.Successful
+        ? messages.value.map((m) => ({
+            label: m.name,
+            id: m.id,
+          }))
+        : [];
+    const msg = msgOpt.find((m) => m.id === node.templateId) ?? null;
+
+    return {
+      messageOptions: msgOpt,
+      message: msg,
+    };
+  }, [messages, node.templateId]);
+
+  return (
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <FormControl>
+        <InputLabel id="email-event-label">Email Event</InputLabel>
+        <Select
+          label="Email Event"
+          labelId="email-event-label"
+          onChange={onEmailEventChangeHandler}
+          value={node.event}
+        >
+          {EMAIL_EVENT_UI_LIST.map(([event, { label }]) => (
+            <MenuItem key={event} value={event}>
+              {label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <Box sx={{ width: selectorWidth }}>
+        <Autocomplete
+          value={message}
+          onChange={(_event, newValue) => {
+            updateEditableSegmentNodeData(node.id, (segmentNode) => {
+              if (newValue && segmentNode.type === SegmentNodeType.Email) {
+                segmentNode.templateId = newValue.id;
+              }
+            });
+          }}
+          options={messageOptions}
+          renderInput={(params) => (
+            <TextField {...params} label="Email Template" variant="outlined" />
+          )}
+        />
+      </Box>
     </Stack>
   );
 }
@@ -534,7 +661,7 @@ function SegmentNodeComponent({
     </Box>
   );
 
-  let el: React.ReactNode;
+  let el: React.ReactElement;
   if (node.type === SegmentNodeType.And || node.type === SegmentNodeType.Or) {
     const rows = node.children.flatMap((childId, i) => {
       const child = nodeById[childId];
@@ -598,13 +725,22 @@ function SegmentNodeComponent({
         {deleteButton}
       </Stack>
     );
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   } else if (node.type === SegmentNodeType.Performed) {
     el = (
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
         {labelEl}
         {conditionSelect}
         <PerformedSelect node={node} />
+        {deleteButton}
+      </Stack>
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  } else if (node.type === SegmentNodeType.Email) {
+    el = (
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {labelEl}
+        {conditionSelect}
+        <EmailSelect node={node} />
         {deleteButton}
       </Stack>
     );
