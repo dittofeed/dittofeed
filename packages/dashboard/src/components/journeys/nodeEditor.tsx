@@ -340,9 +340,17 @@ function WaitForNodeFields({
   nodeId: string;
   nodeProps: WaitForNodeProps;
 }) {
-  const updateJourneyNodeData = useAppStore(
-    (state) => state.updateJourneyNodeData
+  const { updateJourneyNodeData, segments } = useAppStore(
+    (store) => ({
+      updateJourneyNodeData: store.updateJourneyNodeData,
+      segments: store.segments,
+    }),
+    shallow
   );
+
+  if (segments.type !== CompletionStatus.Successful) {
+    return null;
+  }
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateJourneyNodeData(nodeId, (node) => {
@@ -353,8 +361,37 @@ function WaitForNodeFields({
     });
   };
 
+  const onSegmentChangeHandler = (
+    _event: unknown,
+    segment: SegmentResource | null
+  ) => {
+    updateJourneyNodeData(nodeId, (node) => {
+      const props = node.data.nodeTypeProps;
+      if (
+        props.type === JourneyNodeType.WaitForNode &&
+        props.segmentChildren[0]
+      ) {
+        props.segmentChildren[0].segmentId = segment?.id;
+      }
+    });
+  };
+
+  const segment =
+    segments.value.find(
+      (t) => t.id === nodeProps.segmentChildren[0]?.segmentId
+    ) ?? null;
+
   return (
     <>
+      <Autocomplete
+        value={segment}
+        options={segments.value}
+        getOptionLabel={getSegmentLabel}
+        onChange={onSegmentChangeHandler}
+        renderInput={(params) => (
+          <TextField {...params} label="segment" variant="outlined" />
+        )}
+      />
       <TextField
         label="Timeout (Seconds)"
         InputProps={{
@@ -363,7 +400,6 @@ function WaitForNodeFields({
         value={String(nodeProps.timeoutSeconds)}
         onChange={handleDurationChange}
       />
-
       <Box>
         Will timeout after
         <DurationDescription durationSeconds={nodeProps.timeoutSeconds} />

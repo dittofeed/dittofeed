@@ -6,6 +6,7 @@ import {
   MailOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
+import BackHandOutlined from "@mui/icons-material/BackHandOutlined";
 import {
   Box,
   ClickAwayListener,
@@ -19,11 +20,14 @@ import { Handle, NodeProps, Position } from "reactflow";
 import { useAppStore } from "../../../lib/appStore";
 import { AppState, JourneyNodeProps, NodeTypeProps } from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
+import journeyNodeLabel from "../journeyNodeLabel";
 import styles from "./nodeTypes.module.css";
+
+export type JourneyNodeIcon = typeof FontSizeOutlined | typeof BackHandOutlined;
 
 interface JourneyNodeConfig {
   sidebarColor: string;
-  icon: typeof FontSizeOutlined;
+  icon: JourneyNodeIcon;
   title: string;
   body?: React.ReactElement | null;
   disableTopHandle?: boolean;
@@ -95,6 +99,27 @@ function SegmentDescriptionBody({ segmentId }: { segmentId?: string }) {
   );
 }
 
+export function journeyNodeIcon(type: JourneyNodeType): JourneyNodeIcon {
+  switch (type) {
+    case JourneyNodeType.EntryNode:
+      return ThunderboltOutlined;
+    case JourneyNodeType.DelayNode:
+      return ClockCircleOutlined;
+    case JourneyNodeType.SegmentSplitNode:
+      return ForkOutlined;
+    case JourneyNodeType.MessageNode:
+      return MailOutlined;
+    case JourneyNodeType.ExitNode:
+      return DeliveredProcedureOutlined;
+    case JourneyNodeType.WaitForNode:
+      return BackHandOutlined;
+    case JourneyNodeType.ExperimentSplitNode:
+      throw new Error("Not implemented");
+    case JourneyNodeType.RateLimitNode:
+      throw new Error("Not implemented");
+  }
+}
+
 function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
   const t = props.type;
   switch (t) {
@@ -102,8 +127,8 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
       const body = <SegmentDescriptionBody segmentId={props.segmentId} />;
       return {
         sidebarColor: "transparent",
-        icon: ThunderboltOutlined,
-        title: "Entry",
+        icon: journeyNodeIcon(JourneyNodeType.EntryNode),
+        title: journeyNodeLabel(JourneyNodeType.EntryNode),
         disableTopHandle: true,
         body,
       };
@@ -111,15 +136,15 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
     case JourneyNodeType.DelayNode:
       return {
         sidebarColor: "#F77520",
-        icon: ClockCircleOutlined,
-        title: "Delay",
+        icon: journeyNodeIcon(JourneyNodeType.DelayNode),
+        title: journeyNodeLabel(JourneyNodeType.DelayNode),
         body: <DurationDescription durationSeconds={props.seconds} />,
       };
     case JourneyNodeType.SegmentSplitNode: {
       const body = <SegmentDescriptionBody segmentId={props.segmentId} />;
       return {
         sidebarColor: "#12F7BE",
-        icon: ForkOutlined,
+        icon: journeyNodeIcon(JourneyNodeType.SegmentSplitNode),
         title: props.name,
         body,
       };
@@ -127,7 +152,7 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
     case JourneyNodeType.MessageNode:
       return {
         sidebarColor: "#03D9F5",
-        icon: MailOutlined,
+        icon: journeyNodeIcon(JourneyNodeType.MessageNode),
         title: props.name,
         body: null,
       };
@@ -135,12 +160,19 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
       return {
         sidebarColor: "transparent",
         disableBottomHandle: true,
-        icon: DeliveredProcedureOutlined,
-        title: "Exit",
+        icon: journeyNodeIcon(JourneyNodeType.ExitNode),
+        title: journeyNodeLabel(JourneyNodeType.ExitNode),
         body: null,
       };
-    default:
-      throw new Error(`Unimplemented journey node type ${t}`);
+    case JourneyNodeType.WaitForNode: {
+      return {
+        sidebarColor: "#F7741E",
+        disableBottomHandle: true,
+        icon: journeyNodeIcon(JourneyNodeType.WaitForNode),
+        title: journeyNodeLabel(JourneyNodeType.WaitForNode),
+        body: null,
+      };
+    }
   }
 }
 
