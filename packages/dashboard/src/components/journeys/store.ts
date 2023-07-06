@@ -199,6 +199,8 @@ export function journeyDefinitionFromState({
       continue;
     }
 
+    // FIXME
+
     if (props.type === JourneyNodeType.ExitNode) {
       exitNodeResource = {
         type: JourneyNodeType.ExitNode,
@@ -258,8 +260,6 @@ export function journeyDefinitionFromState({
         newNodeResource = messageNode;
         break;
       }
-      default:
-        throw new Error(`Unhandled node type ${props.type}.`);
     }
 
     nodeResources.push(newNodeResource);
