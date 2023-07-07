@@ -316,7 +316,7 @@ function buildSegmentQueryExpression({
         arrayCount(
           m -> and(${conditions.join(",")}),
           timed_messages
-        ) == ${timesValue}
+        ) = ${timesValue}
       `;
     }
     case SegmentNodeType.Trait: {
