@@ -35,7 +35,7 @@ import {
   SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { ComponentProps, useMemo } from "react";
+import React, { useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
 import DurationDescription from "../../components/durationDescription";
