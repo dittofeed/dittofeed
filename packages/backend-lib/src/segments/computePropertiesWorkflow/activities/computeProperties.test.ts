@@ -20,6 +20,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JSONValue,
+  RelationalOperators,
   SegmentDefinition,
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,
@@ -290,6 +291,76 @@ describe("compute properties activities", () => {
           "did not perform": false,
         },
         expectedSignals: [],
+      },
+      {
+        description:
+          "When a user did submit a track event with a >= 1 times perform segment it does signal",
+        segments: [
+          {
+            name: "did perform",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Performed,
+                event: "EventName",
+                times: 1,
+                timesOperator: RelationalOperators.GreaterThanOrEqual,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: "EventName",
+              }),
+          },
+        ],
+        expectedSegments: {
+          "did perform": true,
+        },
+        expectedSignals: [
+          {
+            segmentName: "did perform",
+          },
+        ],
+      },
+      {
+        description:
+          "When a user did not submit a track event with a < 1 times perform segment it signals appropriately",
+        segments: [
+          {
+            name: "did not perform",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Performed,
+                event: "EventName",
+                times: 1,
+                timesOperator: RelationalOperators.LessThan,
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: segmentIdentifyEvent,
+          },
+        ],
+        expectedSegments: {
+          "did not perform": true,
+        },
+        expectedSignals: [
+          {
+            segmentName: "did not perform",
+          },
+        ],
       },
       {
         description:
