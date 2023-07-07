@@ -22,6 +22,7 @@ import {
   EmailSegmentNode,
   InternalEventType,
   PerformedSegmentNode,
+  RelationalOperators,
   SegmentEqualsOperator,
   SegmentHasBeenOperator,
   SegmentHasBeenOperatorComparator,
@@ -34,7 +35,7 @@ import {
   SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { useMemo } from "react";
+import React, { ComponentProps, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
 import DurationDescription from "../../components/durationDescription";
@@ -249,6 +250,14 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     });
   };
 
+  const handleTimesOperatorChange: SelectProps["onChange"] = (e) => {
+    updateSegmentNodeData(node.id, (n) => {
+      if (n.type === SegmentNodeType.Performed) {
+        n.timesOperator = e.target.value as RelationalOperators;
+      }
+    });
+  };
+
   const handleEventTimesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateSegmentNodeData(node.id, (n) => {
       const times = parseInt(e.target.value, 10);
@@ -257,6 +266,12 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
       }
     });
   };
+
+  const operators: [RelationalOperators, string][] = [
+    [RelationalOperators.GreaterThanOrEqual, "At least (>=)"],
+    [RelationalOperators.LessThan, "Less than (<)"],
+    [RelationalOperators.Equals, "Exactly (=)"],
+  ];
 
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -267,6 +282,16 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           onChange={handleEventNameChange}
         />
       </Box>
+      <Select
+        onChange={handleTimesOperatorChange}
+        value={node.timesOperator ?? RelationalOperators.Equals}
+      >
+        {operators.map(([operator, label]) => (
+          <MenuItem key={operator} value={operator}>
+            {label}
+          </MenuItem>
+        ))}
+      </Select>
       <TextField
         label="Times Performed"
         InputProps={{
@@ -352,13 +377,14 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
     };
   }, [messages, node.templateId]);
 
+  const eventLabelId = `email-event-label-${node.id}`;
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
       <FormControl>
-        <InputLabel id="email-event-label">Email Event</InputLabel>
+        <InputLabel id={eventLabelId}>Email Event</InputLabel>
         <Select
           label="Email Event"
-          labelId="email-event-label"
+          labelId={eventLabelId}
           onChange={onEmailEventChangeHandler}
           value={node.event}
         >
