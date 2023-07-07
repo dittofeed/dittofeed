@@ -7704,6 +7704,7 @@ __metadata:
     "@mui/x-data-grid": ^6.0.0
     "@next/swc-linux-arm64-gnu": ^13.4.5
     "@next/swc-linux-arm64-musl": ^13.4.5
+    "@prisma/client": ^4.16.2
     "@sinclair/typebox": ^0.27.8
     "@types/escape-html": ^1.0.2
     "@types/humanize-duration": ^3.27.1
