@@ -12,6 +12,7 @@ import {
   InternalEventType,
   LastPerformedSegmentNode,
   PerformedSegmentNode,
+  RelationalOperators,
   SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
@@ -130,6 +131,8 @@ function buildSegmentQueryExpression({
         id: node.id,
         type: SegmentNodeType.Performed,
         event: InternalEventType.SegmentBroadcast,
+        times: 1,
+        timesOperator: RelationalOperators.GreaterThanOrEqual,
         properties: [
           {
             path: "segmentId",
@@ -153,6 +156,8 @@ function buildSegmentQueryExpression({
         id: node.id,
         type: SegmentNodeType.Performed,
         event: node.event,
+        times: 1,
+        timesOperator: RelationalOperators.GreaterThanOrEqual,
         properties: [
           {
             path: "templateId",
@@ -302,21 +307,13 @@ function buildSegmentQueryExpression({
       }
 
       const times = node.times === undefined ? 1 : node.times;
-      if (times === 1) {
-        return `
-          arrayFirstIndex(
-            m -> and(${conditions.join(",")}),
-            timed_messages
-          ) > 0
-        `;
-      }
+      const operator: string = node.timesOperator ?? RelationalOperators.Equals;
 
-      const timesValue = jsonValueToCh(queryBuilder, times);
       return `
         arrayCount(
           m -> and(${conditions.join(",")}),
           timed_messages
-        ) == ${timesValue}
+        ) ${operator} ${queryBuilder.addQueryValue(times, "Int32")}
       `;
     }
     case SegmentNodeType.Trait: {

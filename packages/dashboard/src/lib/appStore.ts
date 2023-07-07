@@ -1,6 +1,7 @@
 import {
   CompletionStatus,
   InternalEventType,
+  RelationalOperators,
   SecretResource,
   SegmentDefinition,
   SegmentNode,
@@ -162,6 +163,8 @@ function mapSegmentNodeToNewType(
           type: SegmentNodeType.Performed,
           id: node.id,
           event: "",
+          times: 1,
+          timesOperator: RelationalOperators.Equals,
         },
         secondary: [],
       };
