@@ -36,6 +36,9 @@ export default async function router(fastify: FastifyInstance) {
         }),
         f.register(userPropertiesController, { prefix: "/user-properties" }),
         f.register(usersController, { prefix: "/users" }),
+        // mount redundant webhooks controller at root level for backwards
+        // compatibility. this is the one exception to this route namespace being auth'd.
+        f.register(webhooksController, { prefix: "/webhooks" }),
       ]);
     },
     { prefix: "/api" }

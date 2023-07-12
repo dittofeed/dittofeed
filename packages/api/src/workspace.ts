@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import config from "backend-lib/src/config";
+import logger from "backend-lib/src/logger";
 import { FastifyRequest } from "fastify";
 import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -13,6 +14,7 @@ export function getWorkspaceIdFromReq(req: FastifyRequest): string {
     null
   )?.workspaceId;
   if (bodyParam) {
+    logger().debug({ workspaceId: bodyParam }, "Found workspaceId in body.");
     return bodyParam;
   }
 
@@ -20,17 +22,21 @@ export function getWorkspaceIdFromReq(req: FastifyRequest): string {
     null
   )?.workspaceId;
   if (queryParam) {
+    logger().debug({ workspaceId: queryParam }, "Found workspaceId in query.");
     return queryParam;
   }
 
   const header = req.headers[WORKSPACE_ID_HEADER];
 
   if (header instanceof Array && header[0]) {
+    logger().debug({ workspaceId: header[0] }, "Found workspaceId in header.");
     return header[0];
   }
   if (header && typeof header === "string") {
+    logger().debug({ workspaceId: header }, "Found workspaceId in header.");
     return header;
   }
 
+  logger().debug("No workspaceId found in request.");
   return config().defaultWorkspaceId;
 }
