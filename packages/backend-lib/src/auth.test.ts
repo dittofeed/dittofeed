@@ -8,7 +8,7 @@ import prisma from "./prisma";
 
 describe("validateWriteKey", () => {
   let workspace: Workspace;
-  let valid: boolean;
+  let valid: string | null;
 
   describe("when write key is valid", () => {
     beforeEach(async () => {
@@ -26,7 +26,7 @@ describe("validateWriteKey", () => {
       valid = await validateWriteKey({ writeKey: header });
     });
     it("should return true", async () => {
-      expect(valid).toBe(true);
+      expect(valid).not.toBe(null);
     });
   });
   describe("when write key is missing", () => {
@@ -36,7 +36,7 @@ describe("validateWriteKey", () => {
       });
     });
     it("should return false", async () => {
-      expect(valid).toBe(false);
+      expect(valid).toBe(null);
     });
   });
   describe("when write key is malformed", () => {
@@ -46,7 +46,7 @@ describe("validateWriteKey", () => {
       });
     });
     it("should return false", async () => {
-      expect(valid).toBe(false);
+      expect(valid).toBe(null);
     });
   });
 
@@ -76,7 +76,7 @@ describe("validateWriteKey", () => {
       });
     });
     it("should return false", async () => {
-      expect(valid).toBe(false);
+      expect(valid).toBe(null);
     });
   });
 });
