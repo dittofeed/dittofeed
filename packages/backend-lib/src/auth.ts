@@ -26,17 +26,17 @@ export function decodeJwtHeader(header: string): DecodedJwt | null {
  *
  * @param writeKey Authorization header of the form "basic <encodedWriteKey>".
  * The write key is encoded in base64, taking the form base64(secretKeyId:secretKeyValue).
- * @returns a boolean indicating whether the write key is valid.
+ * @returns if the writeKey is valid, returns the workspace id, otherwise returns null
  */
 export async function validateWriteKey({
   writeKey,
 }: {
   writeKey: string;
-}): Promise<boolean> {
+}): Promise<string | null> {
   // Extract the encodedWriteKey from the header
   const encodedWriteKey = writeKey.split(" ")[1];
   if (!encodedWriteKey) {
-    return false;
+    return null;
   }
 
   // Decode the writeKey
@@ -48,7 +48,7 @@ export async function validateWriteKey({
   const [secretKeyId, secretKeyValue] = decodedWriteKey.split(":");
 
   if (!secretKeyId || !validate(secretKeyId)) {
-    return false;
+    return null;
   }
 
   const writeKeySecret = await prisma().secret.findUnique({
@@ -57,8 +57,14 @@ export async function validateWriteKey({
     },
   });
 
+  if (!writeKeySecret) {
+    return null;
+  }
+
   // Compare the secretKeyValue with the value from the database
-  return writeKeySecret?.value === secretKeyValue;
+  return writeKeySecret.value === secretKeyValue
+    ? writeKeySecret.workspaceId
+    : null;
 }
 
 export async function createWriteKey({
