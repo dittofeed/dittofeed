@@ -1,5 +1,4 @@
 import axios from "axios";
-import { WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import {
   BatchAppData,
   BatchIdentifyData,
@@ -70,7 +69,6 @@ export default class AppsApi {
               url: `${config.apiBase}/api/public/apps/batch`,
               data,
               headers: {
-                [WORKSPACE_ID_HEADER]: config.workspaceId,
                 authorization: config.dashboardWriteKey,
               },
             });
