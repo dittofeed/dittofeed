@@ -11,6 +11,7 @@ import { validateWriteKey } from "backend-lib/src/auth";
 import logger from "backend-lib/src/logger";
 import { FastifyInstance } from "fastify";
 import {
+  BaseMessageResponse,
   BatchAppData,
   EmptyResponse,
   IdentifyData,
@@ -33,6 +34,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         }),
         response: {
           204: EmptyResponse,
+          401: BaseMessageResponse,
         },
       },
     },
@@ -42,7 +44,9 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       });
 
       if (!workspaceIdFromWriteKey) {
-        return reply.status(401).send();
+        return reply.status(401).send({
+          message: "Invalid write key.",
+        });
       }
 
       await submitIdentify({
@@ -65,6 +69,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         }),
         response: {
           204: EmptyResponse,
+          401: BaseMessageResponse,
         },
       },
     },
@@ -74,7 +79,9 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       });
 
       if (!workspaceIdFromWriteKey) {
-        return reply.status(401).send();
+        return reply.status(401).send({
+          message: "Invalid write key.",
+        });
       }
 
       await submitTrack({
@@ -97,6 +104,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         }),
         response: {
           204: EmptyResponse,
+          401: BaseMessageResponse,
         },
       },
     },
@@ -106,7 +114,9 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       });
 
       if (!workspaceIdFromWriteKey) {
-        return reply.status(401).send();
+        return reply.status(401).send({
+          message: "Invalid write key.",
+        });
       }
 
       await submitPage({
@@ -129,6 +139,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         }),
         response: {
           204: EmptyResponse,
+          401: BaseMessageResponse,
         },
       },
     },
@@ -138,7 +149,9 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       });
 
       if (!workspaceIdFromWriteKey) {
-        return reply.status(401).send();
+        return reply.status(401).send({
+          message: "Invalid write key.",
+        });
       }
 
       await submitScreen({
@@ -189,6 +202,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         }),
         response: {
           204: EmptyResponse,
+          401: BaseMessageResponse,
         },
       },
     },
@@ -198,7 +212,9 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       });
 
       if (!workspaceIdFromWriteKey) {
-        return reply.status(401).send();
+        return reply.status(401).send({
+          message: "Invalid write key.",
+        });
       }
       await submitBatch({
         workspaceId: workspaceIdFromWriteKey,

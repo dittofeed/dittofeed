@@ -938,9 +938,11 @@ export const GetUsersResponse = Type.Object({
 
 export type GetUsersResponse = Static<typeof GetUsersResponse>;
 
-export const BadRequestResponse = Type.Object({
+export const BaseMessageResponse = Type.Object({
   message: Type.String(),
 });
+
+export const BadRequestResponse = BaseMessageResponse;
 
 export enum SourceControlProviderEnum {
   GitHub = "github",
