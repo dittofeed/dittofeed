@@ -78,6 +78,13 @@
             "integrations/channels/email",
             "integrations/channels/sendgrid"
           ]
+        },
+        "integrations/sdks",
+        {
+          "group": "Available SDK's",
+          "pages": [
+            "integrations/sdks/react-native"
+          ]
         }
       ]
     },
