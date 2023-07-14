@@ -66,11 +66,6 @@
           "group": "Data Source Types",
           "pages": ["integrations/sources/segment", "integrations/sources/api"]
         },
-        "integrations/destinations",
-        {
-          "group": "Destination Types",
-          "pages": ["integrations/destinations/segment"]
-        },
         "integrations/channels",
         {
           "group": "Message Channel Types",
