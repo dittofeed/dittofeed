@@ -140,6 +140,7 @@
         "api-reference/endpoints/apps/track",
         "api-reference/endpoints/apps/page",
         "api-reference/endpoints/apps/screen",
+        "api-reference/endpoints/apps/batch",
         "api-reference/endpoints/subscription-management/user-subscriptions"
       ]
     },
