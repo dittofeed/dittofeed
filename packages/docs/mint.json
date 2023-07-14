@@ -66,11 +66,6 @@
           "group": "Data Source Types",
           "pages": ["integrations/sources/segment", "integrations/sources/api"]
         },
-        "integrations/destinations",
-        {
-          "group": "Destination Types",
-          "pages": ["integrations/destinations/segment"]
-        },
         "integrations/channels",
         {
           "group": "Message Channel Types",
@@ -145,6 +140,7 @@
         "api-reference/endpoints/apps/track",
         "api-reference/endpoints/apps/page",
         "api-reference/endpoints/apps/screen",
+        "api-reference/endpoints/apps/batch",
         "api-reference/endpoints/subscription-management/user-subscriptions"
       ]
     },
