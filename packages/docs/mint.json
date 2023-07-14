@@ -127,7 +127,6 @@
         "guide/creating-journeys",
         "guide/git-workflows",
         "guide/testing",
-        "guide/monitoring-alerting",
         "guide/license"
       ]
     },
