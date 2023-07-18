@@ -126,13 +126,13 @@ export default async function subscriptionGroupsController(
                   `Parsed ${uploadedRows.length} rows for workspace: ${workspaceId}`
                 );
                 if (parsingErrors.length) {
-                  reject(err(parsingErrors));
+                  resolve(err(parsingErrors));
                 } else {
                   resolve(ok(uploadedRows));
                 }
               })
               .on("error", (error) => {
-                reject(err(error));
+                resolve(err(error));
               });
           }
         );

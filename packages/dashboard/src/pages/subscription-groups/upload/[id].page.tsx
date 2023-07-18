@@ -1,10 +1,13 @@
-import { Button, Stack, Typography } from "@mui/material";
+import { Alert, AlertTitle, Button, Stack, Typography } from "@mui/material";
 import axios, { AxiosError } from "axios";
 import {
   SUBSRIPTION_GROUP_ID_HEADER,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  CsvUploadValidationError,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { enqueueSnackbar } from "notistack";
@@ -26,6 +29,8 @@ const oneMb = 1048576;
 export default function SubscriptionGroupConfig() {
   const path = useRouter();
   const [file, setFile] = useState<File | null>(null);
+  const [mainError, setMainError] = useState<string | null>(null);
+  const [rowErrors, setRowErrors] = useState<string[]>([]);
 
   const workspace = useAppStore((store) => store.workspace);
   const apiBase = useAppStore((store) => store.apiBase);
@@ -34,6 +39,9 @@ export default function SubscriptionGroupConfig() {
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files ? e.target.files[0] : null;
+    setMainError(null);
+    setRowErrors([]);
+
     if (uploadedFile && uploadedFile.size <= oneMb) {
       setFile(uploadedFile);
     } else {
@@ -58,6 +66,9 @@ export default function SubscriptionGroupConfig() {
             },
           });
 
+          setMainError(null);
+          setRowErrors([]);
+
           enqueueSnackbar("Submitted users to subscription group", {
             variant: "success",
             autoHideDuration: 3000,
@@ -65,16 +76,20 @@ export default function SubscriptionGroupConfig() {
           });
         } catch (error) {
           if (axios.isAxiosError(error)) {
-            const axiosError = error as AxiosError<ErrorResponse>;
-            // Handle AxiosError
-
-            // If the response has a data field with a message property, log it
-            if (axiosError.response?.data?.message) {
+            const axiosError = error as AxiosError<CsvUploadValidationError>;
+            if (
+              axiosError.response?.data &&
+              axiosError.response.status === 400
+            ) {
+              setRowErrors(
+                (axiosError.response.data.rowErrors ?? [])
+                  .slice(0, 3)
+                  .map((e) => `row ${e.row}: ${e.error}`)
+              );
+              setMainError(axiosError.response.data.message);
               console.error(
                 `Dittofeed Error: ${axiosError.response.status} ${axiosError.response.data.message}`
               );
-            } else if (axiosError.response?.status) {
-              console.error(`Dittofeed Error: ${axiosError.response.status}`);
             } else {
               console.error(`Dittofeed Error: ${axiosError.message}`);
             }
@@ -129,6 +144,14 @@ export default function SubscriptionGroupConfig() {
         {file ? (
           <Typography sx={{ fontFamily: "monospace" }}>{file.name}</Typography>
         ) : null}
+        <Stack spacing={1}>
+          {mainError ? <Alert severity="error">{mainError}</Alert> : null}
+          {rowErrors.map((e) => (
+            <Alert severity="error" key={e}>
+              {e}
+            </Alert>
+          ))}
+        </Stack>
       </Stack>
     </SubscriptionGroupLayout>
   );
