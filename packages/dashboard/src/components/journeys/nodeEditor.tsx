@@ -34,7 +34,6 @@ import {
   SegmentSplitNodeProps,
   WaitForNodeProps,
 } from "../../lib/types";
-import DurationDescription from "../durationDescription";
 import DurationSelect from "../durationSelect";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
@@ -301,20 +300,12 @@ function DelayNodeFields({
   };
 
   return (
-    <>
-      <TextField
-        label="Duration (Seconds)"
-        InputProps={{
-          type: "number",
-        }}
-        value={String(nodeProps.seconds)}
-        onChange={handleDurationChange}
-      />
-
-      <Box>
-        Will wait <DurationDescription durationSeconds={nodeProps.seconds} />
-      </Box>
-    </>
+    <DurationSelect
+      value={nodeProps.seconds}
+      onChange={handleDurationChange}
+      description="Will wait"
+      inputLabel="Duration (Seconds)"
+    />
   );
 }
 
