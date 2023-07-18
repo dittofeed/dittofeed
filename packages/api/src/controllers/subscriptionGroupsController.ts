@@ -1,7 +1,6 @@
 import fastifyMultipart from "@fastify/multipart";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
-import { ValueError } from "@sinclair/typebox/errors";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
@@ -10,12 +9,14 @@ import {
   upsertSubscriptionGroup,
 } from "backend-lib/src/subscriptionGroups";
 import {
+  CsvUploadValidationError,
   DeleteSubscriptionGroupRequest,
   EmptyResponse,
   SubscriptionChange,
   SubscriptionGroupResource,
   UpsertSubscriptionGroupResource,
   UserUploadRow,
+  UserUploadRowErrors,
   WorkspaceId,
 } from "backend-lib/src/types";
 import {
@@ -30,14 +31,15 @@ import {
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { err, ok, Result } from "neverthrow";
 import { omit } from "remeda";
 import { Readable } from "stream";
 import { v4 as uuid } from "uuid";
 
-interface RowErrors {
-  row: number;
-  errors: ValueError[];
-}
+type CsvParseResult = Result<
+  UserUploadRow[],
+  Error | UserUploadRowErrors[] | string
+>;
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function subscriptionGroupsController(
@@ -51,9 +53,7 @@ export default async function subscriptionGroupsController(
         body: UpsertSubscriptionGroupResource,
         response: {
           200: SubscriptionGroupResource,
-          400: Type.Object({
-            message: Type.String(),
-          }),
+          400: CsvUploadValidationError,
         },
       },
     },
@@ -94,67 +94,88 @@ export default async function subscriptionGroupsController(
         const subscriptionGroupId =
           request.headers[SUBSRIPTION_GROUP_ID_HEADER];
 
-        let rows: UserUploadRow[];
         // Parse the CSV stream into a JavaScript object with an array of rows
-        try {
-          rows = await new Promise<UserUploadRow[]>((resolve, reject) => {
-            const parsingErrors: RowErrors[] = [];
+        const rows: CsvParseResult = await new Promise<CsvParseResult>(
+          (resolve) => {
+            const parsingErrors: UserUploadRowErrors[] = [];
             const uploadedRows: UserUploadRow[] = [];
 
             let i = 0;
             csvStream
               .pipe(csvParser())
+              .on("headers", (headers: string[]) => {
+                if (!headers.includes("id") && !headers.includes("email")) {
+                  resolve(err('csv must have "id" or "email" headers'));
+                  csvStream.destroy(); // This will stop the parsing process
+                }
+              })
+
               .on("data", (row) => {
                 const parsed = schemaValidate(row, UserUploadRow);
-                if (parsed.isOk()) {
-                  uploadedRows.push(parsed.value);
-                } else {
-                  const errors = {
-                    row: i,
-                    errors: parsed.error,
-                  };
-                  logger().debug(
-                    {
-                      errors,
-                      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                      row,
-                    },
-                    "failed to validate csv row"
-                  );
-                  parsingErrors.push(errors);
-                }
+                const rowNumber = i;
                 i += 1;
+
+                if (parsed.isErr()) {
+                  const errors = {
+                    row: rowNumber,
+                    error: 'row must have a non-empty "email" or "id" field',
+                  };
+                  parsingErrors.push(errors);
+                  return;
+                }
+
+                const { value } = parsed;
+                if (value.email.length === 0 && value.id.length === 0) {
+                  const errors = {
+                    row: rowNumber,
+                    error: 'row must have a non-empty "email" or "id" field',
+                  };
+                  parsingErrors.push(errors);
+                  return;
+                }
+
+                uploadedRows.push(parsed.value);
               })
               .on("end", () => {
                 logger().debug(
                   `Parsed ${uploadedRows.length} rows for workspace: ${workspaceId}`
                 );
                 if (parsingErrors.length) {
-                  reject(parsingErrors);
+                  resolve(err(parsingErrors));
                 } else {
-                  resolve(uploadedRows);
+                  resolve(ok(uploadedRows));
                 }
               })
               .on("error", (error) => {
-                reject(error);
+                resolve(err(error));
               });
-          });
-        } catch (e) {
-          const errorResponse: {
-            message: string;
-            errors?: RowErrors[];
-          } = {
-            message: "misformatted file",
-          };
-          if (e instanceof Array) {
-            errorResponse.errors = e as RowErrors[];
           }
+        );
+        if (rows.isErr()) {
+          if (rows.error instanceof Error) {
+            const errorResponse: CsvUploadValidationError = {
+              message: `misformatted file: ${rows.error.message}`,
+            };
+            return reply.status(400).send(errorResponse);
+          }
+
+          if (rows.error instanceof Array) {
+            const errorResponse: CsvUploadValidationError = {
+              message: "csv rows contained errors",
+              rowErrors: rows.error,
+            };
+            return reply.status(400).send(errorResponse);
+          }
+
+          const errorResponse: CsvUploadValidationError = {
+            message: rows.error,
+          };
           return reply.status(400).send(errorResponse);
         }
 
         const emailsWithoutIds: Set<string> = new Set<string>();
 
-        for (const row of rows) {
+        for (const row of rows.value) {
           if (row.email && !row.id) {
             emailsWithoutIds.add(row.email);
           }
@@ -170,7 +191,7 @@ export default async function subscriptionGroupsController(
         const currentTime = new Date();
         const timestamp = currentTime.toISOString();
 
-        for (const row of rows) {
+        for (const row of rows.value) {
           const userIds = missingUserIdsByEmail[row.email];
           const userId =
             (row.id as string | undefined) ??
