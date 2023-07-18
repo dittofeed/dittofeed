@@ -90,13 +90,19 @@ export default function SubscriptionGroupConfig() {
               console.error(
                 `Dittofeed Error: ${axiosError.response.status} ${axiosError.response.data.message}`
               );
-            } else {
-              console.error(`Dittofeed Error: ${axiosError.message}`);
+              return;
             }
-          } else {
-            // Unknown error
-            console.error(error);
           }
+          enqueueSnackbar(
+            "API Error: failed upload users to subscription group.",
+            {
+              variant: "error",
+              autoHideDuration: 3000,
+              anchorOrigin: noticeAnchorOrigin,
+            }
+          );
+          // Unknown error
+          console.error(error);
         }
       }
     })();
