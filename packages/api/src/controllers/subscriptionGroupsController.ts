@@ -36,7 +36,10 @@ import { omit } from "remeda";
 import { Readable } from "stream";
 import { v4 as uuid } from "uuid";
 
-type CsvParseResult = Result<UserUploadRow[], Error | UserUploadRowErrors[]>;
+type CsvParseResult = Result<
+  UserUploadRow[],
+  Error | UserUploadRowErrors[] | string
+>;
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function subscriptionGroupsController(
@@ -93,13 +96,20 @@ export default async function subscriptionGroupsController(
 
         // Parse the CSV stream into a JavaScript object with an array of rows
         const rows: CsvParseResult = await new Promise<CsvParseResult>(
-          (resolve, reject) => {
+          (resolve) => {
             const parsingErrors: UserUploadRowErrors[] = [];
             const uploadedRows: UserUploadRow[] = [];
 
             let i = 0;
             csvStream
               .pipe(csvParser())
+              .on("headers", (headers: string[]) => {
+                if (!headers.includes("id") && !headers.includes("email")) {
+                  resolve(err('csv must have "id" or "email" headers'));
+                  csvStream.destroy(); // This will stop the parsing process
+                }
+              })
+
               .on("data", (row) => {
                 const parsed = schemaValidate(row, UserUploadRow);
                 if (parsed.isOk()) {
@@ -143,9 +153,17 @@ export default async function subscriptionGroupsController(
             };
             return reply.status(400).send(errorResponse);
           }
+
+          if (rows.error instanceof Array) {
+            const errorResponse: CsvUploadValidationError = {
+              message: "csv rows contained errors",
+              rowErrors: rows.error,
+            };
+            return reply.status(400).send(errorResponse);
+          }
+
           const errorResponse: CsvUploadValidationError = {
-            message: "csv rows contained errors",
-            rowErrors: rows.error,
+            message: rows.error,
           };
           return reply.status(400).send(errorResponse);
         }
