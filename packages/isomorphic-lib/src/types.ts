@@ -1412,7 +1412,7 @@ export const ValueError = Type.Object({
 
 export const UserUploadRowErrors = Type.Object({
   row: Type.Number(),
-  errors: Type.Array(ValueError),
+  error: Type.String(),
 });
 
 export type UserUploadRowErrors = Static<typeof UserUploadRowErrors>;
