@@ -11,7 +11,7 @@ export default function DurationSelect({
 }: {
   value: number | undefined;
   inputLabel: string;
-  description: string;
+  description?: string;
   onChange: ComponentProps<typeof TextField>["onChange"];
 }) {
   return (
@@ -25,7 +25,7 @@ export default function DurationSelect({
         onChange={onChange}
       />
       <Stack direction="row">
-        <Box>{description}</Box>
+        {description ? <Box>{description}</Box> : null}
         <DurationDescription durationSeconds={value} />
       </Stack>
     </>
