@@ -112,24 +112,29 @@ export default async function subscriptionGroupsController(
 
               .on("data", (row) => {
                 const parsed = schemaValidate(row, UserUploadRow);
-                if (parsed.isOk()) {
-                  uploadedRows.push(parsed.value);
-                } else {
+                const rowNumber = i;
+                i += 1;
+
+                if (parsed.isErr()) {
                   const errors = {
-                    row: i,
+                    row: rowNumber,
                     error: 'row must have a non-empty "email" or "id" field',
                   };
-                  logger().debug(
-                    {
-                      errors,
-                      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                      row,
-                    },
-                    "failed to validate csv row"
-                  );
                   parsingErrors.push(errors);
+                  return;
                 }
-                i += 1;
+
+                const { value } = parsed;
+                if (value.email.length === 0 && value.id.length === 0) {
+                  const errors = {
+                    row: rowNumber,
+                    error: 'row must have a non-empty "email" or "id" field',
+                  };
+                  parsingErrors.push(errors);
+                  return;
+                }
+
+                uploadedRows.push(parsed.value);
               })
               .on("end", () => {
                 logger().debug(
