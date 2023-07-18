@@ -34,7 +34,7 @@ import {
   SegmentSplitNodeProps,
   WaitForNodeProps,
 } from "../../lib/types";
-import DurationDescription from "../durationDescription";
+import DurationSelect from "../durationSelect";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
 
@@ -300,20 +300,12 @@ function DelayNodeFields({
   };
 
   return (
-    <>
-      <TextField
-        label="Duration (Seconds)"
-        InputProps={{
-          type: "number",
-        }}
-        value={String(nodeProps.seconds)}
-        onChange={handleDurationChange}
-      />
-
-      <Box>
-        Will wait <DurationDescription durationSeconds={nodeProps.seconds} />
-      </Box>
-    </>
+    <DurationSelect
+      value={nodeProps.seconds}
+      onChange={handleDurationChange}
+      description="Will wait"
+      inputLabel="Duration (Seconds)"
+    />
   );
 }
 
@@ -339,8 +331,8 @@ function WaitForNodeFields({
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.DelayNode) {
-        props.seconds = parseInt(e.target.value, 10);
+      if (props.type === JourneyNodeType.WaitForNode) {
+        props.timeoutSeconds = parseInt(e.target.value, 10);
       }
     });
   };
@@ -376,18 +368,12 @@ function WaitForNodeFields({
           <TextField {...params} label="segment" variant="outlined" />
         )}
       />
-      <TextField
-        label="Timeout (Seconds)"
-        InputProps={{
-          type: "number",
-        }}
-        value={String(nodeProps.timeoutSeconds)}
+      <DurationSelect
+        inputLabel="Timeout (Seconds)"
+        description="Will timeout after"
+        value={nodeProps.timeoutSeconds}
         onChange={handleDurationChange}
       />
-      <Box>
-        Will timeout after
-        <DurationDescription durationSeconds={nodeProps.timeoutSeconds} />
-      </Box>
     </>
   );
 }

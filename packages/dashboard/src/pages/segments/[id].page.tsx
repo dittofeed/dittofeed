@@ -38,7 +38,7 @@ import {
 import React, { useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
-import DurationDescription from "../../components/durationDescription";
+import DurationSelect from "../../components/durationSelect";
 import EditableName from "../../components/editableName";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
@@ -218,21 +218,11 @@ function DurationValueSelect({
   };
 
   return (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-      <Box sx={{ width: selectorWidth }}>
-        <TextField
-          label="Value (Seconds)"
-          InputProps={{
-            type: "number",
-          }}
-          value={String(value)}
-          onChange={handleChange}
-        />
-      </Box>
-      <Box>
-        <DurationDescription durationSeconds={value} />
-      </Box>
-    </Stack>
+    <DurationSelect
+      value={value}
+      onChange={handleChange}
+      inputLabel="Value (Seconds)"
+    />
   );
 }
 
