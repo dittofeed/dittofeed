@@ -33,7 +33,6 @@ import {
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { omit } from "remeda";
-import * as R from "remeda";
 import { Readable } from "stream";
 import { v4 as uuid } from "uuid";
 
@@ -108,9 +107,7 @@ export default async function subscriptionGroupsController(
                 } else {
                   const errors = {
                     row: i,
-                    errors: parsed.error.map((e) =>
-                      R.pick(e, ["message", "path", "value"])
-                    ),
+                    error: 'row must have a non-empty "email" or "id" field',
                   };
                   logger().debug(
                     {
