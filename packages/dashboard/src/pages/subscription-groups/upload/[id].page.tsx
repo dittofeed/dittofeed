@@ -47,21 +47,23 @@ export default function SubscriptionGroupConfig() {
         const formData = new FormData();
         formData.append("csv", file);
         formData.append("workspaceId", workspace.value.id);
-        await axios({
-          url: `${apiBase}/api/subscription-groups/upload-csv`,
-          method: "POST",
-          data: formData,
-          headers: {
-            [WORKSPACE_ID_HEADER]: workspace.value.id,
-            [SUBSRIPTION_GROUP_ID_HEADER]: id,
-          },
-        });
+        try {
+          await axios({
+            url: `${apiBase}/api/subscription-groups/upload-csv`,
+            method: "POST",
+            data: formData,
+            headers: {
+              [WORKSPACE_ID_HEADER]: workspace.value.id,
+              [SUBSRIPTION_GROUP_ID_HEADER]: id,
+            },
+          });
 
-        enqueueSnackbar("Submitted users to subscription group", {
-          variant: "success",
-          autoHideDuration: 3000,
-          anchorOrigin: noticeAnchorOrigin,
-        });
+          enqueueSnackbar("Submitted users to subscription group", {
+            variant: "success",
+            autoHideDuration: 3000,
+            anchorOrigin: noticeAnchorOrigin,
+          });
+        } catch (e) {}
       }
     })();
   };
