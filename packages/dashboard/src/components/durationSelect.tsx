@@ -1,4 +1,4 @@
-import { Box, TextField } from "@mui/material";
+import { Box, Stack, TextField } from "@mui/material";
 import { ComponentProps } from "react";
 
 import DurationDescription from "./durationDescription";
@@ -24,10 +24,10 @@ export default function DurationSelect({
         value={String(value)}
         onChange={onChange}
       />
-      <Box>
-        {description}
+      <Stack direction="row">
+        <Box>{description}</Box>
         <DurationDescription durationSeconds={value} />
-      </Box>
+      </Stack>
     </>
   );
 }

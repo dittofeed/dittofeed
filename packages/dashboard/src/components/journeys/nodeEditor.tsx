@@ -35,9 +35,9 @@ import {
   WaitForNodeProps,
 } from "../../lib/types";
 import DurationDescription from "../durationDescription";
+import DurationSelect from "../durationSelect";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
-import DurationSelect from "../durationSelect";
 
 const width = 420;
 const transitionDuration = ".15s";
@@ -340,8 +340,8 @@ function WaitForNodeFields({
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.DelayNode) {
-        props.seconds = parseInt(e.target.value, 10);
+      if (props.type === JourneyNodeType.WaitForNode) {
+        props.timeoutSeconds = parseInt(e.target.value, 10);
       }
     });
   };
