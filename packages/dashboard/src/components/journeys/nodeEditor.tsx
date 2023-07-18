@@ -37,6 +37,7 @@ import {
 import DurationDescription from "../durationDescription";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
+import DurationSelect from "../durationSelect";
 
 const width = 420;
 const transitionDuration = ".15s";
@@ -376,18 +377,12 @@ function WaitForNodeFields({
           <TextField {...params} label="segment" variant="outlined" />
         )}
       />
-      <TextField
-        label="Timeout (Seconds)"
-        InputProps={{
-          type: "number",
-        }}
-        value={String(nodeProps.timeoutSeconds)}
+      <DurationSelect
+        inputLabel="Timeout (Seconds)"
+        description="Will timeout after"
+        value={nodeProps.timeoutSeconds}
         onChange={handleDurationChange}
       />
-      <Box>
-        Will timeout after
-        <DurationDescription durationSeconds={nodeProps.timeoutSeconds} />
-      </Box>
     </>
   );
 }
