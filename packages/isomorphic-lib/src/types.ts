@@ -957,6 +957,15 @@ export const WorkspaceId = Type.String({
 
 export type WorkspaceId = Static<typeof WorkspaceId>;
 
+export const UserUploadEmailRow = Type.Intersect([
+  Type.Record(Type.String(), Type.String()),
+  Type.Object({
+    email: Type.String({ format: "email" }),
+  }),
+]);
+
+export type UserUploadEmailRow = Static<typeof UserUploadEmailRow>;
+
 export const UserUploadRow = Type.Union([
   Type.Intersect([
     Type.Record(Type.String(), Type.String()),
@@ -964,12 +973,7 @@ export const UserUploadRow = Type.Union([
       id: Type.String(),
     }),
   ]),
-  Type.Intersect([
-    Type.Record(Type.String(), Type.String()),
-    Type.Object({
-      email: Type.String({ format: "email" }),
-    }),
-  ]),
+  UserUploadEmailRow,
 ]);
 
 export type UserUploadRow = Static<typeof UserUploadRow>;
@@ -1399,3 +1403,23 @@ export const SecretResource = Type.Object({
 });
 
 export type SecretResource = Static<typeof SecretResource>;
+
+export const ValueError = Type.Object({
+  path: Type.String(),
+  value: Type.Unknown(),
+  message: Type.String(),
+});
+
+export const UserUploadRowErrors = Type.Object({
+  row: Type.Number(),
+  errors: Type.Array(ValueError),
+});
+
+export type UserUploadRowErrors = Static<typeof UserUploadRowErrors>;
+
+export const CsvUploadValidationError = Type.Object({
+  message: Type.String(),
+  rowErrors: Type.Optional(Type.Array(UserUploadRowErrors)),
+});
+
+export type CsvUploadValidationError = Static<typeof CsvUploadValidationError>;

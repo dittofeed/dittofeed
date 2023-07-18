@@ -1,5 +1,5 @@
 import { Button, Stack, Typography } from "@mui/material";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import {
   SUBSRIPTION_GROUP_ID_HEADER,
   WORKSPACE_ID_HEADER,
@@ -63,7 +63,26 @@ export default function SubscriptionGroupConfig() {
             autoHideDuration: 3000,
             anchorOrigin: noticeAnchorOrigin,
           });
-        } catch (e) {}
+        } catch (error) {
+          if (axios.isAxiosError(error)) {
+            const axiosError = error as AxiosError<ErrorResponse>;
+            // Handle AxiosError
+
+            // If the response has a data field with a message property, log it
+            if (axiosError.response?.data?.message) {
+              console.error(
+                `Dittofeed Error: ${axiosError.response.status} ${axiosError.response.data.message}`
+              );
+            } else if (axiosError.response?.status) {
+              console.error(`Dittofeed Error: ${axiosError.response.status}`);
+            } else {
+              console.error(`Dittofeed Error: ${axiosError.message}`);
+            }
+          } else {
+            // Unknown error
+            console.error(error);
+          }
+        }
       }
     })();
   };
