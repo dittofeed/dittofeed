@@ -144,6 +144,7 @@ model EmailTemplate {
   from        String
   subject     String
   body        String
+  replyTo     String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

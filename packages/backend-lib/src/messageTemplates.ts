@@ -41,6 +41,7 @@ export function enrichEmailTemplate({
   body,
   subject,
   from,
+  replyTo,
 }: EmailTemplate): MessageTemplateResource {
   return {
     id,
@@ -51,6 +52,7 @@ export function enrichEmailTemplate({
       subject,
       from,
       body,
+      replyTo: replyTo ?? undefined,
     },
   };
 }
@@ -105,6 +107,7 @@ export async function upsertMessageTemplate(
           from: data.definition.from,
           subject: data.definition.subject,
           body: data.definition.body,
+          replyTo: data.definition.replyTo,
         },
         update: {
           workspaceId: data.workspaceId,
@@ -113,6 +116,7 @@ export async function upsertMessageTemplate(
           from: data.definition.from,
           subject: data.definition.subject,
           body: data.definition.body,
+          replyTo: data.definition.replyTo,
         },
       });
     } else {

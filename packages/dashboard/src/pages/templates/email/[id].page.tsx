@@ -79,13 +79,16 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
 
     if (emailMessage) {
-      const { from, subject, body, name } = emailMessage;
+      const { from, subject, body, name, replyTo } = emailMessage;
       Object.assign(serverInitialState, {
         emailMessageTitle: name,
         emailMessageFrom: from,
         emailMessageSubject: subject,
         emailMessageBody: body,
       });
+      if (replyTo) {
+        serverInitialState.emailMessageReplyTo = replyTo;
+      }
     }
 
     return {

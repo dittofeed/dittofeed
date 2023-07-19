@@ -51,6 +51,7 @@ import { useMemo, useState } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+import { Collapaseable } from "../components/collapsable";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
@@ -529,7 +530,6 @@ function WriteKeySettings() {
 
 function SubscriptionManagementSettings() {
   const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
-  const [open, setOpen] = useState<boolean>(true);
   const [fromSubscriptionChange, setFromSubscriptionChange] =
     useState<boolean>(true);
   const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
@@ -540,9 +540,6 @@ function SubscriptionManagementSettings() {
       ? workspaceResult.value
       : null;
 
-  const handleOpen = () => {
-    setOpen((o) => !o);
-  };
   const subscriptions =
     subscriptionGroups.type === CompletionStatus.Successful
       ? subscriptionGroups.value.map((sg, i) => ({
@@ -558,82 +555,70 @@ function SubscriptionManagementSettings() {
   const changedSubscription = fromSubscriptionChange
     ? subscriptions[0]?.id
     : undefined;
+
   return (
-    <>
-      <Box sx={{ width: "100%" }}>
-        <Button variant="text" onClick={handleOpen}>
-          <Typography variant="h4" sx={{ color: "black" }}>
-            Subscription Management
-          </Typography>
-        </Button>
-        <ExpandMore
-          expand={open}
-          onClick={handleOpen}
-          aria-expanded={open}
-          aria-label="show more"
-        >
-          <ExpandMoreIcon />
-        </ExpandMore>
-      </Box>
-      <Collapse in={open} unmountOnExit sx={{ p: 1 }}>
-        <Stack spacing={1}>
+    <Collapaseable
+      header={
+        <Typography variant="h2" sx={{ color: "black" }}>
+          Subscription Management
+        </Typography>
+      }
+    >
+      <Stack spacing={1}>
+        <Box>
           <Box>
-            <Box>
-              Preview of the subscription management page, that will be shown to
-              users.
-            </Box>
-            <FormGroup>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={fromSubscriptionChange}
-                    onChange={(e) =>
-                      setFromSubscriptionChange(e.target.checked)
-                    }
-                  />
-                }
-                label="User clicked subscription change link."
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={fromSubscribe}
-                    onChange={(e) => setFromSubscribe(e.target.checked)}
-                  />
-                }
-                label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
-              />
-            </FormGroup>
+            Preview of the subscription management page, that will be shown to
+            users.
           </Box>
-          <Paper
-            elevation={1}
-            sx={{
-              p: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <SubscriptionManagement
-              key={`${fromSubscribe}-${fromSubscriptionChange}`}
-              subscriptions={subscriptions}
-              workspaceName={workspace.name}
-              onSubscriptionUpdate={async () => {}}
-              subscriptionChange={
-                fromSubscribe
-                  ? SubscriptionChange.Subscribe
-                  : SubscriptionChange.Unsubscribe
+          <FormGroup>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={fromSubscriptionChange}
+                  onChange={(e) => setFromSubscriptionChange(e.target.checked)}
+                />
               }
-              changedSubscription={changedSubscription}
-              workspaceId={workspace.id}
-              hash="example-hash"
-              identifier="example@email.com"
-              identifierKey="email"
+              label="User clicked subscription change link."
             />
-          </Paper>
-        </Stack>
-      </Collapse>
-    </>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={fromSubscribe}
+                  onChange={(e) => setFromSubscribe(e.target.checked)}
+                />
+              }
+              label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
+            />
+          </FormGroup>
+        </Box>
+        <Paper
+          elevation={1}
+          sx={{
+            p: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <SubscriptionManagement
+            key={`${fromSubscribe}-${fromSubscriptionChange}`}
+            subscriptions={subscriptions}
+            workspaceName={workspace.name}
+            onSubscriptionUpdate={async () => {}}
+            subscriptionChange={
+              fromSubscribe
+                ? SubscriptionChange.Subscribe
+                : SubscriptionChange.Unsubscribe
+            }
+            changedSubscription={changedSubscription}
+            workspaceId={workspace.id}
+            hash="example-hash"
+            identifier="example@email.com"
+            identifierKey="email"
+          />
+        </Paper>
+      </Stack>
+    </Collapaseable>
   );
 }
 

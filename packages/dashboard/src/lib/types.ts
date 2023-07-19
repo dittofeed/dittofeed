@@ -198,6 +198,7 @@ export interface EmailMessageEditorState {
   emailMessageFrom: string;
   emailMessageTitle: string;
   emailMessageBody: string;
+  emailMessageReplyTo: string;
   emailMessageUserProperties: Record<string, string>;
   emailMessageUserPropertiesJSON: string;
   emailMessageUpdateRequest: EphemeralRequestStatus<Error>;
@@ -207,9 +208,10 @@ export interface EmailMessageEditorContents extends EmailMessageEditorState {
   setEmailMessageSubject: (subject: string) => void;
   setEmailMessageBody: (body: string) => void;
   setEmailMessageFrom: (to: string) => void;
+  setEmailMessageReplyTo: (replyTo: string) => void;
   replaceEmailMessageProps: (properties: Record<string, string>) => void;
   setEmailMessagePropsJSON: (jsonString: string) => void;
-  setEmailMessageProps: (title: string) => void;
+  setEmailMessageTitle: (title: string) => void;
   setEmailMessageUpdateRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
