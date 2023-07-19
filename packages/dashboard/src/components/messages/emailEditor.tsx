@@ -510,6 +510,7 @@ export default function EmailEditor() {
           sx={disabledStyles}
           InputProps={{
             sx: {
+              fontSize: ".75rem",
               borderTopRightRadius: 0,
             },
           }}
@@ -523,6 +524,7 @@ export default function EmailEditor() {
           required
           InputProps={{
             sx: {
+              fontSize: ".75rem",
               borderTopRightRadius: 0,
             },
           }}
@@ -537,6 +539,7 @@ export default function EmailEditor() {
           }}
           InputProps={{
             sx: {
+              fontSize: ".75rem",
               borderTopRightRadius: 0,
             },
           }}
@@ -550,6 +553,7 @@ export default function EmailEditor() {
           }}
           InputProps={{
             sx: {
+              fontSize: ".75rem",
               borderTopRightRadius: 0,
             },
           }}
@@ -604,6 +608,7 @@ export default function EmailEditor() {
           disabled
           InputProps={{
             sx: {
+              fontSize: ".75rem",
               borderTopLeftRadius: 0,
             },
           }}
@@ -617,6 +622,7 @@ export default function EmailEditor() {
           disabled
           InputProps={{
             sx: {
+              fontSize: ".75rem",
               borderTopLeftRadius: 0,
             },
           }}
@@ -630,6 +636,7 @@ export default function EmailEditor() {
           disabled
           InputProps={{
             sx: {
+              fontSize: ".75rem",
               borderTopLeftRadius: 0,
             },
           }}
@@ -642,6 +649,7 @@ export default function EmailEditor() {
           disabled
           InputProps={{
             sx: {
+              fontSize: ".75rem",
               borderTopLeftRadius: 0,
             },
           }}
