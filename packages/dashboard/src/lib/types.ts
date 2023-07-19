@@ -194,6 +194,7 @@ export interface SegmentEditorContents extends SegmentEditorState {
 }
 
 export interface EmailMessageEditorState {
+  // FIXME
   emailMessageSubject: string;
   emailMessageFrom: string;
   emailMessageTitle: string;

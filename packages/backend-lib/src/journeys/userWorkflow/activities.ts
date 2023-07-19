@@ -424,6 +424,7 @@ async function sendEmailWithPayload(
         from = escapeHTML(render(messageTemplate.definition.from));
         subject = escapeHTML(render(messageTemplate.definition.subject));
         body = render(messageTemplate.definition.body);
+        // FIXME
       } catch (e) {
         const error = e as Error;
         return buildSendValue(

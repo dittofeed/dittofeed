@@ -79,6 +79,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
 
     if (emailMessage) {
+      // FIXME
       const { from, subject, body, name } = emailMessage;
       Object.assign(serverInitialState, {
         emailMessageTitle: name,

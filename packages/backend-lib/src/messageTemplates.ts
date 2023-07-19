@@ -34,6 +34,7 @@ export function enrichMessageTemplate({
   });
 }
 
+// FIXME
 export function enrichEmailTemplate({
   id,
   workspaceId,
@@ -103,6 +104,7 @@ export async function upsertMessageTemplate(
           name: data.name,
           id: data.id,
           from: data.definition.from,
+          // FIXME
           subject: data.definition.subject,
           body: data.definition.body,
         },
@@ -111,6 +113,7 @@ export async function upsertMessageTemplate(
           name: data.name,
           id: data.id,
           from: data.definition.from,
+          // FIXME
           subject: data.definition.subject,
           body: data.definition.body,
         },
@@ -125,6 +128,7 @@ export async function upsertMessageTemplate(
           name: data.name,
           id: data.id,
           from: data.definition.from,
+          // FIXME
           subject: data.definition.subject,
           body: data.definition.body,
         },

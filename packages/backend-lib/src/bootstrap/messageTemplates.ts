@@ -63,6 +63,7 @@ export function getDefaultMessageTemplates({
       definition: {
         type: ChannelType.Email,
         from: "hello@mycompany.com",
+        // FIXME
         subject: 'Hi {{ user.firstName | default: "there"}}!',
         body: welcomeBody,
       },

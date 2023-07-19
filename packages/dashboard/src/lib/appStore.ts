@@ -227,6 +227,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         enableMobilePush: preloadedState.enableMobilePush ?? false,
 
         // email message state
+        // FIXME
         emailMessageBody: "",
         emailMessageTitle: "",
         emailMessageSubject: "",

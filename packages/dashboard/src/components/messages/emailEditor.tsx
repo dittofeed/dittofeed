@@ -80,6 +80,7 @@ export function defaultEmailMessageState(
   "emailMessageUserPropertiesJSON" | "emailMessageUserProperties"
 > {
   return {
+    // FIXME
     emailMessageBody: defaultEmailBody,
     emailMessageTitle: `New Email Message - ${id}`,
     emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
@@ -117,6 +118,7 @@ enum NotifyKey {
   RenderFromError = "RenderFromError",
   RenderSubjectError = "RenderSubjectError",
   UserPropertyWarning = "UserPropertyWarning",
+  // FIXME
 }
 
 function errorHash(key: NotifyKey, message: string) {
@@ -130,6 +132,7 @@ export default function EmailEditor() {
   const router = useRouter();
   const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
   const [previewBodyHtml, setRenderedBody] = useState<string>("");
+  // FIXME
   const [previewSubject, setRenderedSubject] = useState<string>("");
   const [previewEmailFrom, setRenderedFrom] = useState<string>("");
 
@@ -146,11 +149,13 @@ export default function EmailEditor() {
   );
   const title = useAppStore((state) => state.emailMessageTitle);
   const setTitle = useAppStore((state) => state.setEmailMessageProps);
+  // FIXME
   const emailSubject = useAppStore((state) => state.emailMessageSubject);
   const workspaceRequest = useAppStore((store) => store.workspace);
   const mockUserProperties = useAppStore(
     (state) => state.emailMessageUserProperties
   );
+  // FIXME
   const setSubject = useAppStore((state) => state.setEmailMessageSubject);
   const setEmailBody = useAppStore((state) => state.setEmailMessageBody);
   const setEmailFrom = useAppStore((state) => state.setEmailMessageFrom);
@@ -204,6 +209,7 @@ export default function EmailEditor() {
   };
 
   const [debouncedEmailBody] = useDebounce(emailBody, 300);
+  // FIXME
   const [debouncedEmailSubject] = useDebounce(emailSubject, 300);
   const [debouncedUserProperties] = useDebounce(mockUserProperties, 300);
   const [debouncedEmailFrom] = useDebounce(emailFrom, 300);
@@ -239,6 +245,7 @@ export default function EmailEditor() {
           from: {
             value: debouncedEmailFrom,
           },
+          // FIXME
           subject: {
             value: debouncedEmailSubject,
           },
@@ -271,6 +278,7 @@ export default function EmailEditor() {
               errorKey = NotifyKey.RenderBodyError;
               break;
             case "subject":
+              // FIXME
               setter = (c: string) => setRenderedSubject(escapeHtml(c));
               errorKey = NotifyKey.RenderSubjectError;
               break;
@@ -302,6 +310,7 @@ export default function EmailEditor() {
                   message = `Body Error: ${content.err}`;
                   break;
                 case NotifyKey.RenderSubjectError:
+                  // FIXME
                   message = `Subject Error: ${content.err}`;
                   break;
                 case NotifyKey.RenderFromError:
@@ -342,6 +351,7 @@ export default function EmailEditor() {
     apiBase,
     debouncedEmailBody,
     debouncedEmailFrom,
+    // FIXME
     debouncedEmailSubject,
     debouncedUserProperties,
     errors,
@@ -401,6 +411,7 @@ export default function EmailEditor() {
       type: ChannelType.Email,
       from: emailFrom,
       body: emailBody,
+      // FIXME
       subject: emailSubject,
     },
   };
@@ -486,6 +497,7 @@ export default function EmailEditor() {
           }}
           value={emailFrom}
         />
+        {/* FIXME */}
         <TextField
           label="Subject"
           required
@@ -568,6 +580,7 @@ export default function EmailEditor() {
           sx={disabledStyles}
           value={previewEmailFrom}
         />
+        {/* FIXME */}
         <TextField
           required
           label="Subject"
