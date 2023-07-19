@@ -28,6 +28,7 @@ import { produce } from "immer";
 import {
   ChannelType,
   CompletionStatus,
+  EmailTemplateResource,
   JsonResultType,
   MessageTemplateResource,
   RenderMessageTemplateRequest,
@@ -429,18 +430,22 @@ export default function EmailEditor() {
     return null;
   }
 
+  const upsertEmailDefinition: EmailTemplateResource = {
+    type: ChannelType.Email,
+    from: emailFrom,
+    body: emailBody,
+    subject: emailSubject,
+  };
   const updateData: UpsertMessageTemplateResource = {
     id: messageId,
     workspaceId: workspace.id,
     name: emailMessageTitle,
-    definition: {
-      type: ChannelType.Email,
-      from: emailFrom,
-      body: emailBody,
-      // FIXME
-      subject: emailSubject,
-    },
+    definition: upsertEmailDefinition,
   };
+
+  if (emailMessageReplyTo.length) {
+    upsertEmailDefinition.replyTo = emailMessageReplyTo;
+  }
 
   const handleSave = apiRequestHandlerFactory({
     request: emailMessageUpdateRequest,
@@ -523,7 +528,6 @@ export default function EmailEditor() {
           }}
           value={emailFrom}
         />
-        {/* FIXME */}
         <TextField
           label="Subject"
           required
@@ -537,6 +541,19 @@ export default function EmailEditor() {
             },
           }}
           value={emailSubject}
+        />
+        <TextField
+          label="Reply-To"
+          variant="filled"
+          onChange={(e) => {
+            setEmailMessageReplyTo(e.target.value);
+          }}
+          InputProps={{
+            sx: {
+              borderTopRightRadius: 0,
+            },
+          }}
+          value={emailMessageReplyTo}
         />
       </Stack>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -618,6 +635,18 @@ export default function EmailEditor() {
           }}
           sx={disabledStyles}
           value={previewSubject}
+        />
+        <TextField
+          label="Reply-To"
+          variant="filled"
+          disabled
+          InputProps={{
+            sx: {
+              borderTopLeftRadius: 0,
+            },
+          }}
+          sx={disabledStyles}
+          value={previewEmailReplyTo}
         />
       </Stack>
 
