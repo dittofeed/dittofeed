@@ -620,9 +620,13 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             journeys.value.push(journey);
             return state;
           }),
-        setEmailMessageProps: (title) =>
+        setEmailMessageTitle: (title) =>
           set((state) => {
             state.emailMessageTitle = title;
+          }),
+        setEmailMessageReplyTo: (replyTo) =>
+          set((state) => {
+            state.emailMessageReplyTo = replyTo;
           }),
         replaceEmailMessageProps: (p) =>
           set((state) => {

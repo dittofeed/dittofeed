@@ -38,6 +38,7 @@ import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import React, { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
+import { shallow } from "zustand/shallow";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
@@ -84,6 +85,7 @@ export function defaultEmailMessageState(
     emailMessageTitle: `New Email Message - ${id}`,
     emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
     emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
+    emailMessageReplyTo: "",
     emailMessageUpdateRequest: {
       type: CompletionStatus.NotStarted,
     },
@@ -116,8 +118,8 @@ enum NotifyKey {
   RenderBodyError = "RenderBodyError",
   RenderFromError = "RenderFromError",
   RenderSubjectError = "RenderSubjectError",
+  RenderReplyToError = "RenderReplyToError",
   UserPropertyWarning = "UserPropertyWarning",
-  // FIXME
 }
 
 function errorHash(key: NotifyKey, message: string) {
@@ -131,12 +133,58 @@ export default function EmailEditor() {
   const router = useRouter();
   const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
   const [previewBodyHtml, setRenderedBody] = useState<string>("");
-  // FIXME
   const [previewSubject, setRenderedSubject] = useState<string>("");
   const [previewEmailFrom, setRenderedFrom] = useState<string>("");
+  const [previewEmailReplyTo, setRenderedReplyTo] = useState<string>("");
 
   const [fullscreen, setFullscreen] = useState<Fullscreen>(null);
-  const userProperties = useAppStore((state) => state.userProperties);
+  const {
+    apiBase,
+    emailMessageBody: emailBody,
+    emailMessageFrom: emailFrom,
+    emailMessageSubject: emailSubject,
+    emailMessageTitle,
+    emailMessageUpdateRequest,
+    emailMessageUserProperties: mockUserProperties,
+    emailMessageUserPropertiesJSON: userPropertiesJSON,
+    emailMessageReplyTo,
+    replaceEmailMessageProps: replaceUserProperties,
+    setEmailMessageBody: setEmailBody,
+    setEmailMessageFrom: setEmailFrom,
+    setEmailMessageTitle,
+    setEmailMessagePropsJSON: setUserPropertiesJSON,
+    setEmailMessageSubject: setSubject,
+    setEmailMessageUpdateRequest,
+    upsertMessage,
+    userProperties,
+    setEmailMessageReplyTo,
+    workspace: workspaceRequest,
+  } = useAppStore(
+    (state) => ({
+      apiBase: state.apiBase,
+      emailMessageBody: state.emailMessageBody,
+      emailMessageFrom: state.emailMessageFrom,
+      emailMessageSubject: state.emailMessageSubject,
+      emailMessageTitle: state.emailMessageTitle,
+      emailMessageUpdateRequest: state.emailMessageUpdateRequest,
+      emailMessageUserProperties: state.emailMessageUserProperties,
+      emailMessageUserPropertiesJSON: state.emailMessageUserPropertiesJSON,
+      emailMessageReplyTo: state.emailMessageReplyTo,
+      replaceEmailMessageProps: state.replaceEmailMessageProps,
+      setEmailMessageBody: state.setEmailMessageBody,
+      setEmailMessageFrom: state.setEmailMessageFrom,
+      setEmailMessageTitle: state.setEmailMessageTitle,
+      setEmailMessageReplyTo: state.setEmailMessageReplyTo,
+      setEmailMessagePropsJSON: state.setEmailMessagePropsJSON,
+      setEmailMessageSubject: state.setEmailMessageSubject,
+      setEmailMessageUpdateRequest: state.setEmailMessageUpdateRequest,
+      upsertMessage: state.upsertMessage,
+      userProperties: state.userProperties,
+      workspace: state.workspace,
+    }),
+    shallow
+  );
+
   const userPropertySet: Set<string> = useMemo(
     () =>
       new Set(
@@ -146,40 +194,10 @@ export default function EmailEditor() {
       ),
     [userProperties]
   );
-  const title = useAppStore((state) => state.emailMessageTitle);
-  const setTitle = useAppStore((state) => state.setEmailMessageProps);
-  // FIXME
-  const emailSubject = useAppStore((state) => state.emailMessageSubject);
-  const workspaceRequest = useAppStore((store) => store.workspace);
-  const mockUserProperties = useAppStore(
-    (state) => state.emailMessageUserProperties
-  );
-  // FIXME
-  const setSubject = useAppStore((state) => state.setEmailMessageSubject);
-  const setEmailBody = useAppStore((state) => state.setEmailMessageBody);
-  const setEmailFrom = useAppStore((state) => state.setEmailMessageFrom);
-  const setEmailMessageUpdateRequest = useAppStore(
-    (state) => state.setEmailMessageUpdateRequest
-  );
-  const upsertMessage = useAppStore((state) => state.upsertMessage);
-  const emailMessageUpdateRequest = useAppStore(
-    (state) => state.emailMessageUpdateRequest
-  );
-  const emailFrom = useAppStore((state) => state.emailMessageFrom);
-  const emailBody = useAppStore((state) => state.emailMessageBody);
-  const apiBase = useAppStore((state) => state.apiBase);
-  const userPropertiesJSON = useAppStore(
-    (state) => state.emailMessageUserPropertiesJSON
-  );
-  const setUserPropertiesJSON = useAppStore(
-    (state) => state.setEmailMessagePropsJSON
-  );
-  const replaceUserProperties = useAppStore(
-    (state) => state.replaceEmailMessageProps
-  );
 
   const messageId =
     typeof router.query.id === "string" ? router.query.id : null;
+
   const workspace =
     workspaceRequest.type === CompletionStatus.Successful
       ? workspaceRequest.value
@@ -208,10 +226,10 @@ export default function EmailEditor() {
   };
 
   const [debouncedEmailBody] = useDebounce(emailBody, 300);
-  // FIXME
   const [debouncedEmailSubject] = useDebounce(emailSubject, 300);
   const [debouncedUserProperties] = useDebounce(mockUserProperties, 300);
   const [debouncedEmailFrom] = useDebounce(emailFrom, 300);
+  const [debouncedReplyTo] = useDebounce(emailMessageReplyTo, 300);
 
   useEffect(() => {
     const exitingFunction = () => {
@@ -244,7 +262,6 @@ export default function EmailEditor() {
           from: {
             value: debouncedEmailFrom,
           },
-          // FIXME
           subject: {
             value: debouncedEmailSubject,
           },
@@ -254,6 +271,11 @@ export default function EmailEditor() {
           },
         },
       };
+      if (debouncedReplyTo.length) {
+        data.contents.replyTo = {
+          value: debouncedReplyTo,
+        };
+      }
 
       try {
         const response = await axios({
@@ -277,13 +299,16 @@ export default function EmailEditor() {
               errorKey = NotifyKey.RenderBodyError;
               break;
             case "subject":
-              // FIXME
               setter = (c: string) => setRenderedSubject(escapeHtml(c));
               errorKey = NotifyKey.RenderSubjectError;
               break;
             case "from":
               setter = (c: string) => setRenderedFrom(escapeHtml(c));
               errorKey = NotifyKey.RenderFromError;
+              break;
+            case "replyTo":
+              setter = (c: string) => setRenderedReplyTo(escapeHtml(c));
+              errorKey = NotifyKey.RenderReplyToError;
               break;
           }
 
@@ -309,11 +334,13 @@ export default function EmailEditor() {
                   message = `Body Error: ${content.err}`;
                   break;
                 case NotifyKey.RenderSubjectError:
-                  // FIXME
                   message = `Subject Error: ${content.err}`;
                   break;
                 case NotifyKey.RenderFromError:
                   message = `From Error: ${content.err}`;
+                  break;
+                case NotifyKey.RenderReplyToError:
+                  message = `Reply-To Error: ${content.err}`;
                   break;
               }
 
@@ -350,7 +377,7 @@ export default function EmailEditor() {
     apiBase,
     debouncedEmailBody,
     debouncedEmailFrom,
-    // FIXME
+    debouncedReplyTo,
     debouncedEmailSubject,
     debouncedUserProperties,
     errors,
@@ -405,7 +432,7 @@ export default function EmailEditor() {
   const updateData: UpsertMessageTemplateResource = {
     id: messageId,
     workspaceId: workspace.id,
-    name: title,
+    name: emailMessageTitle,
     definition: {
       type: ChannelType.Email,
       from: emailFrom,
@@ -420,9 +447,9 @@ export default function EmailEditor() {
     setRequest: setEmailMessageUpdateRequest,
     responseSchema: MessageTemplateResource,
     setResponse: upsertMessage,
-    onSuccessNotice: `Saved template ${title}.`,
+    onSuccessNotice: `Saved template ${emailMessageTitle}.`,
     onFailureNoticeHandler: () =>
-      `API Error: Failed to save template ${title}.`,
+      `API Error: Failed to save template ${emailMessageTitle}.`,
     requestConfig: {
       method: "PUT",
       url: `${apiBase}/api/content/templates`,
@@ -579,7 +606,6 @@ export default function EmailEditor() {
           sx={disabledStyles}
           value={previewEmailFrom}
         />
-        {/* FIXME */}
         <TextField
           required
           label="Subject"
@@ -646,10 +672,10 @@ export default function EmailEditor() {
           }}
         >
           <EditableName
-            name={title}
+            name={emailMessageTitle}
             variant="h4"
             onChange={(e) => {
-              setTitle(e.target.value);
+              setEmailMessageTitle(e.target.value);
             }}
           />
           <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
