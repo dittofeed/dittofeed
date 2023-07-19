@@ -131,6 +131,7 @@ export async function upsertMessageTemplate(
           from: data.definition.from,
           subject: data.definition.subject,
           body: data.definition.body,
+          replyTo: data.definition.replyTo,
         },
       });
     }
