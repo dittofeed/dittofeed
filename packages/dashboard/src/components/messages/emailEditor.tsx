@@ -80,7 +80,6 @@ export function defaultEmailMessageState(
   "emailMessageUserPropertiesJSON" | "emailMessageUserProperties"
 > {
   return {
-    // FIXME
     emailMessageBody: defaultEmailBody,
     emailMessageTitle: `New Email Message - ${id}`,
     emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',

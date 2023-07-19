@@ -420,11 +420,14 @@ async function sendEmailWithPayload(
       let from: string;
       let subject: string;
       let body: string;
+      let replyTo: string | undefined;
       try {
         from = escapeHTML(render(messageTemplate.definition.from));
         subject = escapeHTML(render(messageTemplate.definition.subject));
         body = render(messageTemplate.definition.body);
-        // FIXME
+        if (messageTemplate.definition.replyTo) {
+          replyTo = render(messageTemplate.definition.replyTo);
+        }
       } catch (e) {
         const error = e as Error;
         return buildSendValue(
@@ -438,6 +441,10 @@ async function sendEmailWithPayload(
 
       switch (channelConfig.emailProvider.type) {
         case EmailProviderType.Sendgrid: {
+          const headers: Record<string, string> = {};
+          if (replyTo) {
+            headers["Reply-To"] = replyTo;
+          }
           // TODO distinguish between retryable and non-retryable errors
           const result = await sendEmailSendgrid({
             mailData: {
@@ -454,6 +461,7 @@ async function sendEmailWithPayload(
                 templateId,
                 nodeId,
               },
+              headers,
             },
             apiKey: channelConfig.emailProvider.apiKey,
           });

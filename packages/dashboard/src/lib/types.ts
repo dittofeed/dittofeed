@@ -194,11 +194,11 @@ export interface SegmentEditorContents extends SegmentEditorState {
 }
 
 export interface EmailMessageEditorState {
-  // FIXME
   emailMessageSubject: string;
   emailMessageFrom: string;
   emailMessageTitle: string;
   emailMessageBody: string;
+  emailMessageReplyTo: string;
   emailMessageUserProperties: Record<string, string>;
   emailMessageUserPropertiesJSON: string;
   emailMessageUpdateRequest: EphemeralRequestStatus<Error>;

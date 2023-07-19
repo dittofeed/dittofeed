@@ -423,16 +423,6 @@ export const RateLimitNode = Type.Object(
 
 export type RateLimitNode = Static<typeof RateLimitNode>;
 
-export const EmailPayload = Type.Object({
-  from: Type.String(),
-  to: Type.String(),
-  // FIXME
-  subject: Type.String(),
-  body: Type.String(),
-});
-
-export type EmailPayload = Static<typeof EmailPayload>;
-
 export const EmailMessageVariant = Type.Object({
   type: Type.Literal(ChannelType.Email),
   templateId: Type.String(),
@@ -637,9 +627,9 @@ export type GetEventsResponse = Static<typeof GetEventsResponse>;
 export const EmailTemplateResource = Type.Object({
   type: Type.Literal(ChannelType.Email),
   from: Type.String(),
-  // FIXME
   subject: Type.String(),
   body: Type.String(),
+  replyTo: Type.Optional(Type.String()),
 });
 
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
