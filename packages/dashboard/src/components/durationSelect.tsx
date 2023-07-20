@@ -24,9 +24,11 @@ export default function DurationSelect({
         value={String(value)}
         onChange={onChange}
       />
-      <Stack direction="row">
+      <Stack direction="row" spacing={1}>
         {description ? <Box>{description}</Box> : null}
-        <DurationDescription durationSeconds={value} />
+        <Box>
+          <DurationDescription durationSeconds={value} />
+        </Box>
       </Stack>
     </>
   );
