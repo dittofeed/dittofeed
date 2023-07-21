@@ -376,7 +376,6 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           }),
 
         // broadcast update view
-
         broadcasts: {
           type: CompletionStatus.NotStarted,
         },

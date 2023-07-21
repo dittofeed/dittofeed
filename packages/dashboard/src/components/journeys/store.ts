@@ -40,6 +40,7 @@ import {
 } from "./defaults";
 import findJourneyNode from "./findJourneyNode";
 import findNode from "./findNode";
+import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
 import { defaultSegmentSplitName } from "./nodeTypes/defaultNodeTypeProps";
 
@@ -67,7 +68,6 @@ function multiMapSet<P, C, M extends Map<C, P[]>>(
   existing.push(parent);
 }
 
-// FIXME can't save when waitfor nodes have children
 export function journeyDefinitionFromState({
   state,
 }: {
@@ -803,5 +803,16 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
   setJourneyName: (name) =>
     set((state) => {
       state.journeyName = name;
+    }),
+  updateLabelNode: (nodeId, title) =>
+    set((state) => {
+      const node = findNode(
+        nodeId,
+        state.journeyNodes,
+        state.journeyNodesIndex
+      );
+      if (node && isLabelNode(node)) {
+        node.data.title = title;
+      }
     }),
 });
