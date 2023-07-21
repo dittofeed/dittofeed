@@ -375,6 +375,7 @@ function JourneysBuilderInner() {
         defaultViewport={{ x: 500, y: 0, zoom: 1 }}
         minZoom={0.2}
         panOnScroll
+        deleteKeyCode={null}
         zoomOnPinch
         nodesDraggable={false}
         nodesConnectable={false}
