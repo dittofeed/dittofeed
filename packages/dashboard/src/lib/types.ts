@@ -265,6 +265,7 @@ export interface JourneyContent extends JourneyState {
   ) => void;
   setJourneyUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   setJourneyName: (name: string) => void;
+  updateLabelNode: (nodeId: string, title: string) => void;
 }
 
 export type PageStoreContents = EmailMessageEditorContents &

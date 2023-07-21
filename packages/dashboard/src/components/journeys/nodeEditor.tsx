@@ -37,6 +37,7 @@ import {
 import DurationSelect from "../durationSelect";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
+import { waitForTimeoutLabel } from "./store";
 
 const width = 420;
 const transitionDuration = ".15s";
@@ -316,10 +317,11 @@ function WaitForNodeFields({
   nodeId: string;
   nodeProps: WaitForNodeProps;
 }) {
-  const { updateJourneyNodeData, segments } = useAppStore(
+  const { updateJourneyNodeData, segments, updateLabelNode } = useAppStore(
     (store) => ({
       updateJourneyNodeData: store.updateJourneyNodeData,
       segments: store.segments,
+      updateLabelNode: store.updateLabelNode,
     }),
     shallow
   );
@@ -329,12 +331,18 @@ function WaitForNodeFields({
   }
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const timeoutSeconds = parseInt(e.target.value, 10);
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.WaitForNode) {
-        props.timeoutSeconds = parseInt(e.target.value, 10);
+        props.timeoutSeconds = timeoutSeconds;
       }
     });
+
+    updateLabelNode(
+      nodeProps.timeoutLabelNodeId,
+      waitForTimeoutLabel(timeoutSeconds)
+    );
   };
 
   const onSegmentChangeHandler = (
