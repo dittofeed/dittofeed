@@ -164,7 +164,7 @@ function mapSegmentNodeToNewType(
           id: node.id,
           event: "",
           times: 1,
-          timesOperator: RelationalOperators.Equals,
+          timesOperator: RelationalOperators.GreaterThanOrEqual,
         },
         secondary: [],
       };
