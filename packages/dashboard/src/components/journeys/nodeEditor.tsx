@@ -37,7 +37,6 @@ import {
 import DurationSelect from "../durationSelect";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
-import { durationDescription } from "../durationDescription";
 import { waitForTimeoutLabel } from "./store";
 
 const width = 420;
