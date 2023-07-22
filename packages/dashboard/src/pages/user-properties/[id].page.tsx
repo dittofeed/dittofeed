@@ -4,6 +4,7 @@ import {
   Button,
   Stack,
   TextField,
+  Typography,
   useTheme,
 } from "@mui/material";
 import { findAllUserTraits } from "backend-lib/src/userEvents";
@@ -38,16 +39,20 @@ import {
   PropsWithInitialState,
 } from "../../lib/types";
 
+const selectorWidth = "192px";
+
 const idOption = {
   id: UserPropertyDefinitionType.Id,
   group: "Identifiers",
   label: "User Id",
+  disabled: true,
 };
 
 const anonymousIdOption = {
   id: UserPropertyDefinitionType.Id,
   group: "Identifiers",
   label: "User Anonymous Id",
+  disabled: true,
 };
 
 const traitOption = {
@@ -64,40 +69,24 @@ const performedOption = {
 
 type UserPropertyGroupedOption = GroupedOption<UserPropertyDefinitionType>;
 
-function getUserPropertyOptions(
-  isProtected: boolean
-): UserPropertyGroupedOption[] {
-  const io: UserPropertyGroupedOption = {
-    ...idOption,
-    disabled: isProtected,
-  };
-  const ao: UserPropertyGroupedOption = {
-    ...anonymousIdOption,
-    disabled: isProtected,
-  };
-  const userPropertyOptions: UserPropertyGroupedOption[] = [
-    performedOption,
-    traitOption,
-    io,
-    ao,
-  ];
-  return userPropertyOptions;
-}
+const userPropertyOptions: UserPropertyGroupedOption[] = [
+  performedOption,
+  traitOption,
+  idOption,
+  anonymousIdOption,
+];
 
 function getUserPropertyOption(
-  type: UserPropertyDefinitionType,
-  isProtected: boolean
+  type: UserPropertyDefinitionType
 ): UserPropertyGroupedOption {
   switch (type) {
     case UserPropertyDefinitionType.Id:
       return {
         ...idOption,
-        disabled: isProtected,
       };
     case UserPropertyDefinitionType.AnonymousId:
       return {
         ...anonymousIdOption,
-        disabled: isProtected,
       };
     case UserPropertyDefinitionType.Trait:
       return traitOption;
@@ -200,11 +189,13 @@ function TraitUserPropertyDefinitionEditor({
         handleTraitChange(newValue);
       }}
       disableClearable
+      sx={{ width: selectorWidth }}
       options={traitOptions}
       renderInput={(params) => (
         <TextField
           {...params}
-          label="Trait"
+          label="Trait Path"
+          disabled={params.disabled}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
             const newValue = event.target.value;
             handleTraitChange(newValue);
@@ -251,11 +242,13 @@ function PerformedUserPropertyDefinitionEditor({
     <Stack spacing={1} direction="row">
       <TextField
         label="Event Name"
+        sx={{ width: selectorWidth }}
         value={definition.event}
         onChange={handleEventNameChange}
       />
       <TextField
-        label="Value"
+        label="Property Path"
+        sx={{ width: selectorWidth }}
         value={definition.path}
         onChange={handlePathChange}
       />
@@ -296,7 +289,7 @@ function UserPropertyDefinitionEditor({
   isProtected: boolean;
   definition: UserPropertyDefinition;
 }) {
-  const condition = getUserPropertyOption(definition.type, isProtected);
+  const condition = getUserPropertyOption(definition.type);
   const updateUserPropertyDefinition = useAppStore(
     (state) => state.updateUserPropertyDefinition
   );
@@ -304,13 +297,15 @@ function UserPropertyDefinitionEditor({
   const selectUserPropertyType = (
     <Autocomplete
       value={condition}
+      sx={{ width: selectorWidth }}
       disabled={isProtected}
+      getOptionDisabled={(option) => option.disabled === true}
       groupBy={(option) => option.group}
       onChange={(_event: unknown, newValue: UserPropertyGroupedOption) => {
         updateUserPropertyDefinition(defaultUserProperty(newValue.id));
       }}
       disableClearable
-      options={getUserPropertyOptions(isProtected)}
+      options={userPropertyOptions}
       renderInput={(params) => (
         <TextField label="User Property Type" {...params} variant="outlined" />
       )}
@@ -320,10 +315,12 @@ function UserPropertyDefinitionEditor({
   let up: React.ReactElement;
   switch (definition.type) {
     case UserPropertyDefinitionType.Id:
-      up = <>Hard coded user property for user id.</>;
+      up = <Typography>Hard coded user property for user id.</Typography>;
       break;
     case UserPropertyDefinitionType.AnonymousId:
-      up = <>Hard coded user property for anonymous users.</>;
+      up = (
+        <Typography>Hard coded user property for anonymous users.</Typography>
+      );
       break;
     case UserPropertyDefinitionType.Trait:
       up = <TraitUserPropertyDefinitionEditor definition={definition} />;
@@ -333,7 +330,7 @@ function UserPropertyDefinitionEditor({
       break;
   }
   return (
-    <Stack spacing={1} direction="row">
+    <Stack spacing={1} direction="row" sx={{ alignItems: "center" }}>
       {selectUserPropertyType}
       {up}
     </Stack>
