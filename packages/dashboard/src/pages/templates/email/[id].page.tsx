@@ -15,6 +15,7 @@ import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
+import { useRouter } from "next/router";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -101,6 +102,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 export default function MessageEditor() {
+  const router = useRouter();
+
+  const messageId =
+    typeof router.query.id === "string" ? router.query.id : null;
+
   return (
     <>
       <Head>
@@ -109,7 +115,7 @@ export default function MessageEditor() {
       </Head>
       <main>
         <MainLayout>
-          <EmailEditor />
+          <EmailEditor key={messageId} />
         </MainLayout>
       </main>
     </>
