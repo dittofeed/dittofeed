@@ -12,6 +12,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
+  PerformedUserPropertyDefinition,
   TraitUserPropertyDefinition,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
@@ -19,8 +20,10 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
-import React from "react";
+import React, { ComponentProps } from "react";
+import { pick } from "remeda/dist/commonjs/pick";
 import { validate } from "uuid";
+import { shallow } from "zustand/shallow";
 
 import EditableName from "../../components/editableName";
 import MainLayout from "../../components/mainLayout";
@@ -29,7 +32,79 @@ import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
-import { PreloadedState, PropsWithInitialState } from "../../lib/types";
+import {
+  GroupedOption,
+  PreloadedState,
+  PropsWithInitialState,
+} from "../../lib/types";
+
+const idOption = {
+  id: UserPropertyDefinitionType.Id,
+  group: "Identifiers",
+  label: "User Id",
+};
+
+const anonymousIdOption = {
+  id: UserPropertyDefinitionType.Id,
+  group: "Identifiers",
+  label: "User Anonymous Id",
+};
+
+const traitOption = {
+  id: UserPropertyDefinitionType.Trait,
+  group: "Identify Events",
+  label: "Trait",
+};
+
+const performedOption = {
+  id: UserPropertyDefinitionType.Performed,
+  group: "Track Events",
+  label: "Performed",
+};
+
+type UserPropertyGroupedOption = GroupedOption<UserPropertyDefinitionType>;
+
+function getUserPropertyOptions(
+  isProtected: boolean
+): UserPropertyGroupedOption[] {
+  const io: UserPropertyGroupedOption = {
+    ...idOption,
+    disabled: isProtected,
+  };
+  const ao: UserPropertyGroupedOption = {
+    ...anonymousIdOption,
+    disabled: isProtected,
+  };
+  const userPropertyOptions: UserPropertyGroupedOption[] = [
+    performedOption,
+    traitOption,
+    io,
+    ao,
+  ];
+  return userPropertyOptions;
+}
+
+function getUserPropertyOption(
+  type: UserPropertyDefinitionType,
+  isProtected: boolean
+): UserPropertyGroupedOption {
+  switch (type) {
+    case UserPropertyDefinitionType.Id:
+      return {
+        ...idOption,
+        disabled: isProtected,
+      };
+    case UserPropertyDefinitionType.AnonymousId:
+      return {
+        ...anonymousIdOption,
+        disabled: isProtected,
+      };
+    case UserPropertyDefinitionType.Trait:
+      return traitOption;
+    case UserPropertyDefinitionType.Performed:
+      return performedOption;
+  }
+}
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -144,12 +219,105 @@ function TraitUserPropertyDefinitionEditor({
   );
 }
 
-function UserPropertyDefinitionEditor({
+function PerformedUserPropertyDefinitionEditor({
   definition,
 }: {
+  definition: PerformedUserPropertyDefinition;
+}) {
+  const { updateUserPropertyDefinition } = useAppStore(
+    (store) => pick(store, ["updateUserPropertyDefinition"]),
+    shallow
+  );
+
+  const handlePathChange: ComponentProps<typeof TextField>["onChange"] = (
+    e
+  ) => {
+    updateUserPropertyDefinition({
+      ...definition,
+      path: e.target.value,
+    });
+  };
+
+  const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
+    e
+  ) => {
+    updateUserPropertyDefinition({
+      ...definition,
+      event: e.target.value,
+    });
+  };
+
+  return (
+    <Stack spacing={1} direction="row">
+      <TextField
+        label="Event Name"
+        value={definition.event}
+        onChange={handleEventNameChange}
+      />
+      <TextField
+        label="Value"
+        value={definition.path}
+        onChange={handlePathChange}
+      />
+    </Stack>
+  );
+}
+
+function defaultUserProperty(
+  type: UserPropertyDefinitionType
+): UserPropertyDefinition {
+  switch (type) {
+    case UserPropertyDefinitionType.Id:
+      return {
+        type: UserPropertyDefinitionType.Id,
+      };
+    case UserPropertyDefinitionType.AnonymousId:
+      return {
+        type: UserPropertyDefinitionType.AnonymousId,
+      };
+    case UserPropertyDefinitionType.Trait:
+      return {
+        type: UserPropertyDefinitionType.Trait,
+        path: "",
+      };
+    case UserPropertyDefinitionType.Performed:
+      return {
+        type: UserPropertyDefinitionType.Performed,
+        event: "",
+        path: "",
+      };
+  }
+}
+
+function UserPropertyDefinitionEditor({
+  definition,
+  isProtected,
+}: {
+  isProtected: boolean;
   definition: UserPropertyDefinition;
 }) {
-  let up;
+  const condition = getUserPropertyOption(definition.type, isProtected);
+  const updateUserPropertyDefinition = useAppStore(
+    (state) => state.updateUserPropertyDefinition
+  );
+
+  const selectUserPropertyType = (
+    <Autocomplete
+      value={condition}
+      disabled={isProtected}
+      groupBy={(option) => option.group}
+      onChange={(_event: unknown, newValue: UserPropertyGroupedOption) => {
+        updateUserPropertyDefinition(defaultUserProperty(newValue.id));
+      }}
+      disableClearable
+      options={getUserPropertyOptions(isProtected)}
+      renderInput={(params) => (
+        <TextField label="User Property Type" {...params} variant="outlined" />
+      )}
+    />
+  );
+
+  let up: React.ReactElement;
   switch (definition.type) {
     case UserPropertyDefinitionType.Id:
       up = <>Hard coded user property for user id.</>;
@@ -160,14 +328,24 @@ function UserPropertyDefinitionEditor({
     case UserPropertyDefinitionType.Trait:
       up = <TraitUserPropertyDefinitionEditor definition={definition} />;
       break;
+    case UserPropertyDefinitionType.Performed:
+      up = <PerformedUserPropertyDefinitionEditor definition={definition} />;
+      break;
   }
-  return <>{up}</>;
+  return (
+    <Stack spacing={1} direction="row">
+      {selectUserPropertyType}
+      {up}
+    </Stack>
+  );
 }
 
 export default function NewUserProperty() {
+  // FIXME refactor shallow
   const editedUserProperty = useAppStore((state) => state.editedUserProperty);
   const setName = useAppStore((state) => state.setEditableUserPropertyName);
   const apiBase = useAppStore((state) => state.apiBase);
+  // FIXME
   const segmentUpdateRequest = useAppStore(
     (state) => state.segmentUpdateRequest
   );
@@ -226,11 +404,7 @@ export default function NewUserProperty() {
                 name={name}
                 onChange={(event) => setName(event.target.value)}
               />
-              <Button
-                variant="contained"
-                onClick={handleSave}
-                disabled={isProtected}
-              >
+              <Button variant="contained" onClick={handleSave}>
                 Save
               </Button>
             </Stack>
@@ -243,6 +417,7 @@ export default function NewUserProperty() {
               }}
             >
               <UserPropertyDefinitionEditor
+                isProtected={isProtected}
                 definition={editedUserProperty.definition}
               />
             </Box>

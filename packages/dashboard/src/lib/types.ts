@@ -353,3 +353,10 @@ export interface PlaceholderEdgeProps {
 }
 
 export type EdgeData = WorkflowEdgeProps | PlaceholderEdgeProps;
+
+export interface GroupedOption<T> {
+  id: T;
+  group: string;
+  label: string;
+  disabled?: boolean;
+}
