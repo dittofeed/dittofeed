@@ -523,7 +523,6 @@ function buildUserPropertyQueryFragment({
         return null;
       }
 
-      // TODO use query builder for this
       innerQuery = `
           JSON_VALUE(
             arrayFirst(
@@ -546,7 +545,7 @@ function buildUserPropertyQueryFragment({
     case UserPropertyDefinitionType.Performed: {
       const { path } = userProperty.definition;
       const jsonValuePath = queryBuilder.addQueryValue(
-        `$.traits.${path}`,
+        `$.properties.${path}`,
         "String"
       );
       const pathArgs = pathToArgs(path, queryBuilder);
@@ -554,7 +553,6 @@ function buildUserPropertyQueryFragment({
         return null;
       }
 
-      // TODO use query builder for this
       innerQuery = `
           JSON_VALUE(
             arrayFirst(

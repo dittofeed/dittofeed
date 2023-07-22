@@ -323,6 +323,7 @@ export type AnonymousIdUserPropertyDefinition = Static<
 
 export const PerformedUserPropertyDefinition = Type.Object({
   type: Type.Literal(UserPropertyDefinitionType.Performed),
+  event: Type.String(),
   path: Type.String(),
 });
 
