@@ -295,6 +295,7 @@ export enum UserPropertyDefinitionType {
   Trait = "Trait",
   Id = "Id",
   AnonymousId = "AnonymousId",
+  Performed = "Performed",
 }
 
 export const TraitUserPropertyDefinition = Type.Object({
@@ -320,10 +321,21 @@ export type AnonymousIdUserPropertyDefinition = Static<
   typeof AnonymousIdUserPropertyDefinition
 >;
 
+export const PerformedUserPropertyDefinition = Type.Object({
+  type: Type.Literal(UserPropertyDefinitionType.Performed),
+  event: Type.String(),
+  path: Type.String(),
+});
+
+export type PerformedUserPropertyDefinition = Static<
+  typeof PerformedUserPropertyDefinition
+>;
+
 export const UserPropertyDefinition = Type.Union([
   TraitUserPropertyDefinition,
   IdUserPropertyDefinition,
   AnonymousIdUserPropertyDefinition,
+  PerformedUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;

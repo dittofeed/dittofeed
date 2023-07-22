@@ -938,6 +938,74 @@ describe("compute properties activities", () => {
           });
         });
 
+        describe("when a perform user property is also specified", () => {
+          let userProperty: EnrichedUserProperty;
+          let userPropertyDefinition: UserPropertyDefinition;
+
+          beforeEach(async () => {
+            userPropertyDefinition = {
+              type: UserPropertyDefinitionType.Performed,
+              event: "purchase",
+              path: "item.name",
+            };
+
+            userProperty = unwrap(
+              enrichedUserProperty(
+                await prisma().userProperty.create({
+                  data: {
+                    workspaceId: workspace.id,
+                    definition: userPropertyDefinition,
+                    name: "lastPurchase",
+                  },
+                })
+              )
+            );
+            const trackEvent = segmentTrackEvent({
+              userId,
+              anonymousId,
+              timestamp: "2022-01-01 00:15:05",
+              event: "purchase",
+              properties: {
+                item: {
+                  name: "hat",
+                },
+              },
+            });
+
+            console.log("trackEvent", trackEvent);
+            await insertUserEvents({
+              tableVersion,
+              workspaceId: workspace.id,
+              events: [
+                {
+                  processingTime: "2022-01-01 00:15:30",
+                  messageId: randomUUID(),
+                  messageRaw: trackEvent,
+                },
+              ],
+            });
+          });
+
+          it("also creates that user property", async () => {
+            const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
+
+            await computePropertiesPeriod({
+              currentTime,
+              workspaceId: workspace.id,
+              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
+              tableVersion,
+              subscribedJourneys: [journey],
+              userProperties: [userProperty],
+            });
+
+            const assignments = await findAllUserPropertyAssignments({
+              userId,
+              workspaceId: workspace.id,
+            });
+            expect(assignments.lastPurchase).toBe("hat");
+          });
+        });
+
         // Deprecated since supporting group queries
         describe.skip("when an unrelated identify event is submitted, which is missing a traits, or created at field", () => {
           beforeEach(async () => {

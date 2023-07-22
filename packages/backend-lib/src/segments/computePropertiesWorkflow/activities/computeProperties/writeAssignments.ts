@@ -34,11 +34,14 @@ interface UserComputedProperty {
 
 type ComputedProperty = SegmentComputedProperty | UserComputedProperty;
 
-function pathToArgs(path: string): string | null {
+function pathToArgs(
+  path: string,
+  queryBuilder: ClickHouseQueryBuilder
+): string | null {
   try {
     return jp
       .parse(path)
-      .map((c) => `'${c.expression.value}'`)
+      .map((c) => queryBuilder.addQueryValue(c.expression.value, "String"))
       .join(", ");
   } catch (e) {
     logger().error({ err: e });
@@ -317,7 +320,11 @@ function buildSegmentQueryExpression({
       `;
     }
     case SegmentNodeType.Trait: {
-      const pathArgs = pathToArgs(node.path);
+      const pathArgs = pathToArgs(node.path, queryBuilder);
+      const jsonValuePath = queryBuilder.addQueryValue(
+        `$.traits.${node.path}`,
+        "String"
+      );
       if (!pathArgs) {
         return null;
       }
@@ -342,12 +349,12 @@ function buildSegmentQueryExpression({
           return `
             JSON_VALUE(
               (
-                arrayFilter(
+                arrayFirst(
                   m -> JSONHas(m.1, 'traits', ${pathArgs}),
                   timed_messages
                 )
-              )[1].1,
-              '$.traits.${node.path}'
+              ).1,
+              ${jsonValuePath}
             ) == ${queryVal}
           `;
         }
@@ -385,7 +392,7 @@ function buildSegmentQueryExpression({
                     timed_messages
                   ) as ${varName}
                 ).1,
-                '$.traits.${node.path}'
+                ${jsonValuePath}
               ) == ${queryVal},
               ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
             )`;
@@ -403,11 +410,11 @@ function buildSegmentQueryExpression({
               (
                 parseDateTime64BestEffortOrNull(
                   JSON_VALUE(
-                    arrayFilter(
+                    arrayFirst(
                       m -> JSONHas(m.1, 'traits', ${pathArgs}),
                       timed_messages
-                    )[1].1,
-                    '$.traits.${node.path}'
+                    ).1,
+                    ${jsonValuePath}
                   )
                 ) as trait_time${traitIdentifier}
               ) > toDateTime64(${lowerTraitBound}, 3),
@@ -498,6 +505,7 @@ function buildSegmentQueryFragment({
 
 function buildUserPropertyQueryFragment({
   userProperty,
+  queryBuilder,
 }: {
   userProperty: EnrichedUserProperty;
   queryBuilder: ClickHouseQueryBuilder;
@@ -506,24 +514,22 @@ function buildUserPropertyQueryFragment({
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       const { path } = userProperty.definition;
-      const pathArgs = pathToArgs(path);
+      const jsonValuePath = queryBuilder.addQueryValue(
+        `$.traits.${path}`,
+        "String"
+      );
+      const pathArgs = pathToArgs(path, queryBuilder);
       if (!pathArgs) {
         return null;
       }
 
-      // TODO use query builder for this
       innerQuery = `
           JSON_VALUE(
-            (
-              arraySort(
-                m -> -toInt64(m.2),
-                arrayFilter(
-                  m -> JSONHas(m.1, 'traits', ${pathArgs}),
-                  timed_messages
-                )
-              )
-            )[1].1,
-            '$.traits.${path}'
+            arrayFirst(
+              m -> JSONHas(m.1, 'traits', ${pathArgs}),
+              timed_messages
+            ).1,
+            ${jsonValuePath}
           )
       `;
       break;
@@ -534,6 +540,34 @@ function buildUserPropertyQueryFragment({
     }
     case UserPropertyDefinitionType.AnonymousId: {
       innerQuery = "any(anonymous_id)";
+      break;
+    }
+    case UserPropertyDefinitionType.Performed: {
+      const { path } = userProperty.definition;
+      const jsonValuePath = queryBuilder.addQueryValue(
+        `$.properties.${path}`,
+        "String"
+      );
+      const pathArgs = pathToArgs(path, queryBuilder);
+      if (!pathArgs) {
+        return null;
+      }
+
+      innerQuery = `
+          JSON_VALUE(
+            arrayFirst(
+              m -> and(
+                JSONHas(m.1, 'properties', ${pathArgs}),
+                JSON_VALUE(m.1, '$.event') = ${queryBuilder.addQueryValue(
+                  userProperty.definition.event,
+                  "String"
+                )}
+              ),
+              timed_messages
+            ).1,
+            ${jsonValuePath}
+          )
+      `;
       break;
     }
   }
