@@ -3,6 +3,7 @@ import { CompletionStatus } from "isomorphic-lib/src/types";
 import { LoremIpsum } from "lorem-ipsum";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import React from "react";
 import { v4 as uuid, validate } from "uuid";
 
@@ -101,6 +102,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 export default function MessageEditor() {
+  const router = useRouter();
+
+  const messageId =
+    typeof router.query.id === "string" ? router.query.id : null;
+
   return (
     <>
       <Head>
@@ -109,7 +115,7 @@ export default function MessageEditor() {
       </Head>
       <main>
         <MainLayout>
-          <EmailEditor />
+          <EmailEditor key={messageId} />
         </MainLayout>
       </main>
     </>

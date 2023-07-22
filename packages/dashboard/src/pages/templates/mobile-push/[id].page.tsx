@@ -3,11 +3,15 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { ChannelType } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import React from "react";
 import { v4 as uuid, validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
-import MobilePushEditor, { defaultInitialUserProperties, defaultMobilePushMessageState } from "../../../components/messages/mobilePushEditor";
+import MobilePushEditor, {
+  defaultInitialUserProperties,
+  defaultMobilePushMessageState,
+} from "../../../components/messages/mobilePushEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
@@ -25,10 +29,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       };
     }
 
-    const mobilePushMessage = unwrap(await findMessageTemplate({
-      id,
-      channel: ChannelType.MobilePush,
-    }));
+    const mobilePushMessage = unwrap(
+      await findMessageTemplate({
+        id,
+        channel: ChannelType.MobilePush,
+      })
+    );
 
     const mobilePushMessageUserProperties = {
       ...defaultInitialUserProperties,
@@ -45,7 +51,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       mobilePushMessageUserPropertiesJSON,
     };
 
-    if (mobilePushMessage && mobilePushMessage.definition.type === ChannelType.MobilePush) {
+    if (
+      mobilePushMessage &&
+      mobilePushMessage.definition.type === ChannelType.MobilePush
+    ) {
       const { title, body, imageUrl } = mobilePushMessage.definition;
       Object.assign(serverInitialState, {
         mobilePushMessageTitle: title,
@@ -64,6 +73,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 export default function MessageEditor() {
+  const router = useRouter();
+  const messageId =
+    typeof router.query.id === "string" ? router.query.id : null;
   return (
     <>
       <Head>
@@ -72,10 +84,9 @@ export default function MessageEditor() {
       </Head>
       <main>
         <MainLayout>
-          <MobilePushEditor />
+          <MobilePushEditor key={messageId} />
         </MainLayout>
       </main>
     </>
   );
 }
-
