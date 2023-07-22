@@ -946,8 +946,7 @@ describe("compute properties activities", () => {
             userPropertyDefinition = {
               type: UserPropertyDefinitionType.Performed,
               event: "purchase",
-              // path: "item.name",
-              path: "item",
+              path: "item.name",
             };
 
             userProperty = unwrap(
@@ -967,10 +966,9 @@ describe("compute properties activities", () => {
               timestamp: "2022-01-01 00:15:05",
               event: "purchase",
               properties: {
-                item: "hat",
-                // item: {
-                //   name: "hat",
-                // },
+                item: {
+                  name: "hat",
+                },
               },
             });
 

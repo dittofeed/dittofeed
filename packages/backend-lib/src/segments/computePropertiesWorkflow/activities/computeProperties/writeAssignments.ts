@@ -556,7 +556,13 @@ function buildUserPropertyQueryFragment({
       innerQuery = `
           JSON_VALUE(
             arrayFirst(
-              m -> JSONHas(m.1, 'properties', ${pathArgs}),
+              m -> and(
+                JSONHas(m.1, 'properties', ${pathArgs}),
+                JSON_VALUE(m.1, '$.event') = ${queryBuilder.addQueryValue(
+                  userProperty.definition.event,
+                  "String"
+                )}
+              ),
               timed_messages
             ).1,
             ${jsonValuePath}
