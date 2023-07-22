@@ -510,6 +510,10 @@ function buildUserPropertyQueryFragment({
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       const { path } = userProperty.definition;
+      const jsonValuePath = queryBuilder.addQueryValue(
+        `$.traits.${path}`,
+        "String"
+      );
       const pathArgs = pathToArgs(path, queryBuilder);
       if (!pathArgs) {
         return null;
@@ -522,7 +526,7 @@ function buildUserPropertyQueryFragment({
               m -> JSONHas(m.1, 'traits', ${pathArgs}),
               timed_messages
             ).1,
-            '$.traits.${path}'
+            ${jsonValuePath}
           )
       `;
       break;
