@@ -518,15 +518,10 @@ function buildUserPropertyQueryFragment({
       // TODO use query builder for this
       innerQuery = `
           JSON_VALUE(
-            (
-              arraySort(
-                m -> -toInt64(m.2),
-                arrayFilter(
-                  m -> JSONHas(m.1, 'traits', ${pathArgs}),
-                  timed_messages
-                )
-              )
-            )[1].1,
+            arrayFirst(
+              m -> JSONHas(m.1, 'traits', ${pathArgs}),
+              timed_messages
+            ).1,
             '$.traits.${path}'
           )
       `;
@@ -540,8 +535,24 @@ function buildUserPropertyQueryFragment({
       innerQuery = "any(anonymous_id)";
       break;
     }
-    case UserPropertyDefinitionType.Tracked: {
-      throw new Error("Unimplemented user property type.");
+    case UserPropertyDefinitionType.Performed: {
+      const { path } = userProperty.definition;
+      const pathArgs = pathToArgs(path, queryBuilder);
+      if (!pathArgs) {
+        return null;
+      }
+
+      // TODO use query builder for this
+      innerQuery = `
+          JSON_VALUE(
+            arrayFirst(
+              m -> JSONHas(m.1, 'traits', ${pathArgs}),
+              timed_messages
+            ).1,
+            '$.traits.${path}'
+          )
+      `;
+      break;
     }
   }
 
