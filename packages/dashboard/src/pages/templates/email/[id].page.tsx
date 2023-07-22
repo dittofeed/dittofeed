@@ -3,6 +3,7 @@ import { CompletionStatus } from "isomorphic-lib/src/types";
 import { LoremIpsum } from "lorem-ipsum";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import React from "react";
 import { v4 as uuid, validate } from "uuid";
 
@@ -15,7 +16,6 @@ import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
-import { useRouter } from "next/router";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
