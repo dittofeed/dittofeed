@@ -322,7 +322,7 @@ function buildSegmentQueryExpression({
       `;
     }
     case SegmentNodeType.Trait: {
-      const pathArgs = pathToArgs(node.path);
+      const pathArgs = pathToArgs(node.path, queryBuilder);
       if (!pathArgs) {
         return null;
       }
@@ -541,6 +541,9 @@ function buildUserPropertyQueryFragment({
     case UserPropertyDefinitionType.AnonymousId: {
       innerQuery = "any(anonymous_id)";
       break;
+    }
+    case UserPropertyDefinitionType.Tracked: {
+      throw new Error("Unimplemented user property type.");
     }
   }
 
