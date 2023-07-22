@@ -321,6 +321,10 @@ function buildSegmentQueryExpression({
     }
     case SegmentNodeType.Trait: {
       const pathArgs = pathToArgs(node.path, queryBuilder);
+      const jsonValuePath = queryBuilder.addQueryValue(
+        `$.traits.${node.path}`,
+        "String"
+      );
       if (!pathArgs) {
         return null;
       }
@@ -345,12 +349,12 @@ function buildSegmentQueryExpression({
           return `
             JSON_VALUE(
               (
-                arrayFilter(
+                arrayFirst(
                   m -> JSONHas(m.1, 'traits', ${pathArgs}),
                   timed_messages
                 )
-              )[1].1,
-              '$.traits.${node.path}'
+              ).1,
+              ${jsonValuePath}
             ) == ${queryVal}
           `;
         }
@@ -388,7 +392,7 @@ function buildSegmentQueryExpression({
                     timed_messages
                   ) as ${varName}
                 ).1,
-                '$.traits.${node.path}'
+                ${jsonValuePath}
               ) == ${queryVal},
               ${varName}.2 < toDateTime64(${upperTraitBound}, 3)
             )`;
@@ -406,11 +410,11 @@ function buildSegmentQueryExpression({
               (
                 parseDateTime64BestEffortOrNull(
                   JSON_VALUE(
-                    arrayFilter(
+                    arrayFirst(
                       m -> JSONHas(m.1, 'traits', ${pathArgs}),
                       timed_messages
-                    )[1].1,
-                    '$.traits.${node.path}'
+                    ).1,
+                    ${jsonValuePath}
                   )
                 ) as trait_time${traitIdentifier}
               ) > toDateTime64(${lowerTraitBound}, 3),
