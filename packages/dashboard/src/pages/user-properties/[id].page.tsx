@@ -338,18 +338,27 @@ function UserPropertyDefinitionEditor({
 }
 
 export default function NewUserProperty() {
+  const {
+    editedUserProperty,
+    setEditableSegmentName,
+    apiBase,
+    segmentUpdateRequest,
+    setUserPropertyUpdateRequest,
+    upsertUserProperty,
+  } = useAppStore(
+    (store) =>
+      pick(store, [
+        "editedUserProperty",
+        "setEditableSegmentName",
+        "apiBase",
+        "segmentUpdateRequest",
+        "setUserPropertyUpdateRequest",
+        "upsertUserProperty",
+      ]),
+    shallow
+  );
   // FIXME refactor shallow
-  const editedUserProperty = useAppStore((state) => state.editedUserProperty);
-  const setName = useAppStore((state) => state.setEditableUserPropertyName);
-  const apiBase = useAppStore((state) => state.apiBase);
   // FIXME
-  const segmentUpdateRequest = useAppStore(
-    (state) => state.segmentUpdateRequest
-  );
-  const setUserPropertyUpdateRequest = useAppStore(
-    (state) => state.setUserPropertyUpdateRequest
-  );
-  const upsertUserProperty = useAppStore((state) => state.upsertUserProperty);
   const theme = useTheme();
 
   if (!editedUserProperty) {
@@ -399,7 +408,7 @@ export default function NewUserProperty() {
             >
               <EditableName
                 name={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => setEditableSegmentName(event.target.value)}
               />
               <Button variant="contained" onClick={handleSave}>
                 Save
