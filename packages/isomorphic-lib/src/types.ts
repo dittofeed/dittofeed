@@ -295,6 +295,7 @@ export enum UserPropertyDefinitionType {
   Trait = "Trait",
   Id = "Id",
   AnonymousId = "AnonymousId",
+  Tracked = "Tracked",
 }
 
 export const TraitUserPropertyDefinition = Type.Object({
@@ -320,10 +321,16 @@ export type AnonymousIdUserPropertyDefinition = Static<
   typeof AnonymousIdUserPropertyDefinition
 >;
 
+export const TrackedUserPropertyDefinition = Type.Object({
+  type: Type.Literal(UserPropertyDefinitionType.Tracked),
+  path: Type.String(),
+});
+
 export const UserPropertyDefinition = Type.Union([
   TraitUserPropertyDefinition,
   IdUserPropertyDefinition,
   AnonymousIdUserPropertyDefinition,
+  TrackedUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;

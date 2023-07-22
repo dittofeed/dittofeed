@@ -34,11 +34,16 @@ interface UserComputedProperty {
 
 type ComputedProperty = SegmentComputedProperty | UserComputedProperty;
 
-function pathToArgs(path: string): string | null {
+function pathToArgs(
+  path: string,
+  queryBuilder: ClickHouseQueryBuilder
+): string | null {
   try {
     return jp
       .parse(path)
-      .map((c) => `'${c.expression.value}'`)
+      .map(
+        (c) => `'${queryBuilder.addQueryValue(c.expression.value, "String")}'`
+      )
       .join(", ");
   } catch (e) {
     logger().error({ err: e });
@@ -498,6 +503,7 @@ function buildSegmentQueryFragment({
 
 function buildUserPropertyQueryFragment({
   userProperty,
+  queryBuilder,
 }: {
   userProperty: EnrichedUserProperty;
   queryBuilder: ClickHouseQueryBuilder;
@@ -506,7 +512,7 @@ function buildUserPropertyQueryFragment({
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       const { path } = userProperty.definition;
-      const pathArgs = pathToArgs(path);
+      const pathArgs = pathToArgs(path, queryBuilder);
       if (!pathArgs) {
         return null;
       }
