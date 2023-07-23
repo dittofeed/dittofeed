@@ -1,5 +1,4 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import logger from "backend-lib/src/logger";
 import {
   GetEventsRequest,
   GetEventsResponse,
