@@ -441,6 +441,9 @@ function buildSegmentQueryExpression({
           })
         )
         .filter((query) => query !== null);
+      if (childFragments.length === 0) {
+        return null;
+      }
       if (childFragments[0] && childFragments.length === 1) {
         return childFragments[0];
       }
@@ -462,6 +465,9 @@ function buildSegmentQueryExpression({
           })
         )
         .filter((query) => query !== null);
+      if (childFragments.length === 0) {
+        return null;
+      }
       if (childFragments[0] && childFragments.length === 1) {
         return childFragments[0];
       }
