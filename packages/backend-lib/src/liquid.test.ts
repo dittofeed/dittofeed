@@ -139,7 +139,7 @@ describe("renderWithUserProperties", () => {
     `;
 
     const expectedRenderedUnsubscribeEmail = `
-      <a class="df-unsubscribe" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&s=92edd119-3566-4c42-a91a-ff80498a1f57&sub=0">unsubscribe</a>
+      <a class="df-unsubscribe" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&s=92edd119-3566-4c42-a91a-ff80498a1f57&sub=0" target="_blank">unsubscribe</a>
     `;
 
     it("can render an unsubscribe link", async () => {
@@ -166,7 +166,7 @@ describe("renderWithUserProperties", () => {
     `;
 
     const expectedRenderedUnsubscribeEmail = `
-      <a class="df-unsubscribe" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&s=92edd119-3566-4c42-a91a-ff80498a1f57&sub=0">here</a>
+      <a class="df-unsubscribe" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&s=92edd119-3566-4c42-a91a-ff80498a1f57&sub=0" target="_blank">here</a>
     `;
 
     it("can render an unsubscribe link", async () => {
