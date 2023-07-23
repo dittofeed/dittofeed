@@ -2,6 +2,7 @@ import * as R from "remeda";
 
 import {
   BatchAppData,
+  EventType,
   IdentifyData,
   PageData,
   ScreenData,
@@ -16,12 +17,14 @@ export async function submitIdentify({
   workspaceId: string;
   data: IdentifyData;
 }) {
-  const rest = R.omit(data, ["timestamp"]);
+  const rest = R.omit(data, ["timestamp", "traits"]);
+  const traits = data.traits ?? {};
   const timestamp = data.timestamp ?? new Date().toISOString();
 
   const userEvent: InsertUserEvent = {
     messageRaw: JSON.stringify({
       type: "identify",
+      traits,
       timestamp,
       ...rest,
     }),
@@ -40,12 +43,14 @@ export async function submitTrack({
   workspaceId: string;
   data: TrackData;
 }) {
-  const rest = R.omit(data, ["timestamp"]);
+  const rest = R.omit(data, ["timestamp", "properties"]);
+  const properties = data.properties ?? {};
   const timestamp = data.timestamp ?? new Date().toISOString();
 
   const userEvent: InsertUserEvent = {
     messageRaw: JSON.stringify({
       type: "track",
+      properties,
       timestamp,
       ...rest,
     }),
@@ -64,12 +69,14 @@ export async function submitPage({
   workspaceId: string;
   data: PageData;
 }) {
-  const rest = R.omit(data, ["timestamp"]);
+  const rest = R.omit(data, ["timestamp", "properties"]);
+  const properties = data.properties ?? {};
   const timestamp = data.timestamp ?? new Date().toISOString();
 
   const userEvent: InsertUserEvent = {
     messageRaw: JSON.stringify({
       type: "page",
+      properties,
       timestamp,
       ...rest,
     }),
@@ -88,12 +95,14 @@ export async function submitScreen({
   workspaceId: string;
   data: ScreenData;
 }) {
-  const rest = R.omit(data, ["timestamp"]);
+  const rest = R.omit(data, ["timestamp", "properties"]);
+  const properties = data.properties ?? {};
   const timestamp = data.timestamp ?? new Date().toISOString();
 
   const userEvent: InsertUserEvent = {
     messageRaw: JSON.stringify({
       type: "screen",
+      properties,
       timestamp,
       ...rest,
     }),
@@ -115,15 +124,31 @@ export async function submitBatch({
   const { context, batch } = data;
 
   const userEvents: InsertUserEvent[] = batch.map((message) => {
-    const rest = R.omit(message, ["timestamp"]);
-    const timestamp = message.timestamp ?? new Date().toISOString();
+    let rest: Record<string, unknown>;
+    let timestamp: string;
+    const messageRaw: Record<string, unknown> = { context };
+
+    if (message.type === EventType.Identify) {
+      rest = R.omit(message, ["timestamp", "traits"]);
+      timestamp = message.timestamp ?? new Date().toISOString();
+      messageRaw.traits = message.traits ?? {};
+    } else {
+      rest = R.omit(message, ["timestamp", "properties"]);
+      timestamp = message.timestamp ?? new Date().toISOString();
+      messageRaw.properties = message.properties ?? {};
+    }
+
+    Object.assign(
+      messageRaw,
+      {
+        timestamp,
+      },
+      rest
+    );
+
     return {
       messageId: message.messageId,
-      messageRaw: JSON.stringify({
-        timestamp,
-        context,
-        ...rest,
-      }),
+      messageRaw: JSON.stringify(messageRaw),
     };
   });
 
