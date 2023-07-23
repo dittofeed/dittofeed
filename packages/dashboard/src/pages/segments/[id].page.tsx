@@ -42,14 +42,11 @@ import DurationSelect from "../../components/durationSelect";
 import EditableName from "../../components/editableName";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
+import { GroupedOption } from "../../lib/types";
 import getSegmentServerSideProps from "./[id]/getSegmentServerSideProps";
 import SegmentLayout from "./[id]/segmentLayout";
 
-interface GroupedOption {
-  id: SegmentNodeType;
-  group: string;
-  label: string;
-}
+type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
 const selectorWidth = "192px";
 
@@ -94,7 +91,7 @@ const emailOption = {
   label: "Email",
 };
 
-const segmentOptions: GroupedOption[] = [
+const segmentOptions: SegmentGroupedOption[] = [
   traitGroupedOption,
   performedOption,
   broadcastGroupedOption,
@@ -106,7 +103,7 @@ const segmentOptions: GroupedOption[] = [
 
 const keyedSegmentOptions: Record<
   Exclude<SegmentNodeType, SegmentNodeType.LastPerformed>,
-  GroupedOption
+  SegmentGroupedOption
 > = {
   [SegmentNodeType.Trait]: traitGroupedOption,
   [SegmentNodeType.Performed]: performedOption,
@@ -623,12 +620,13 @@ function SegmentNodeComponent({
   }
 
   const condition = keyedSegmentOptions[node.type];
+
   const conditionSelect = (
     <Box sx={{ width: selectorWidth }}>
       <Autocomplete
         value={condition}
         groupBy={(option) => option.group}
-        onChange={(_event: unknown, newValue: GroupedOption) => {
+        onChange={(_event: unknown, newValue: SegmentGroupedOption) => {
           updateNodeType(node.id, newValue.id);
         }}
         disableClearable
