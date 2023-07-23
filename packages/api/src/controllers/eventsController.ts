@@ -53,12 +53,8 @@ export default async function eventsController(fastify: FastifyInstance) {
           } else if (properties.length) {
             colsolidatedTraits = properties;
           } else {
-            logger().error(`message missing both traits and properties`, {
-              messageId: message_id,
-            });
-            return [];
+            colsolidatedTraits = "{}";
           }
-
           return {
             messageId: message_id,
             processingTime: processing_time,
