@@ -117,7 +117,7 @@ liquidEngine.registerTag("unsubscribe_link", {
     }
 
     // Note that clicktracking=off is added to the unsubscribe link to prevent sendgrid from including link tracking
-    return `<a class="df-unsubscribe" clicktracking=off ${href}>${linkText}</a>`;
+    return `<a class="df-unsubscribe" clicktracking=off ${href} target="_blank">${linkText}</a>`;
   },
 });
 
