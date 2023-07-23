@@ -74,9 +74,12 @@ type Secrets = Record<string, string>;
 type UserProperties = Record<string, string>;
 
 liquidEngine.registerTag("unsubscribe_link", {
-  parse() {},
+  parse(tagToken) {
+    this.contents = tagToken.args;
+  },
   render(scope) {
-    logger().debug("Rendering unsubscribe link");
+    const linkText = this.contents || "unsubscribe";
+
     const allScope = scope.getAll() as Record<string, unknown>;
     const secrets = allScope.secrets as Secrets | undefined;
     const workspaceId = allScope.workspace_id as string;
@@ -114,7 +117,7 @@ liquidEngine.registerTag("unsubscribe_link", {
     }
 
     // Note that clicktracking=off is added to the unsubscribe link to prevent sendgrid from including link tracking
-    return `<a class="df-unsubscribe" clicktracking=off ${href}>unsubscribe</a>`;
+    return `<a class="df-unsubscribe" clicktracking=off ${href}>${linkText}</a>`;
   },
 });
 
