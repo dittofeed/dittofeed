@@ -1,6 +1,6 @@
 import * as dag from "d3-dag";
 import { useEffect } from "react";
-import { Edge, Node, ReactFlowState,useReactFlow, useStore } from "reactflow";
+import { Edge, Node, ReactFlowState, useReactFlow, useStore } from "reactflow";
 
 import { NodeData } from "../../lib/types";
 
@@ -10,7 +10,7 @@ const dagLayout = dag
   .sugiyama()
   .layering(dag.layeringLongestPath())
   .nodeSize(() => [400, nodeHeight])
-  .decross(dag.decrossOpt())
+  .decross(dag.decrossOpt().large("large"))
   .coord(dag.coordCenter());
 
 // the layouting function
@@ -36,7 +36,12 @@ export function layoutNodes(nodes: Node<NodeData>[], edges: Edge[]): Node[] {
     });
 
   const d3Dag = dagCreation(nodes);
-  dagLayout(d3Dag);
+  // TODO move into background with webworker
+  try {
+    dagLayout(d3Dag);
+  } catch (e) {
+    console.error("failed to layout journey", e);
+  }
 
   const positionedNodes: Node[] = [];
   for (const d of Array.from(d3Dag)) {
