@@ -176,6 +176,37 @@ describe("compute properties activities", () => {
     const tableTests: TableTest[] = [
       {
         description:
+          "When a user did submit an identify event but the segment is malformed with an empty path",
+        segments: [
+          {
+            name: "malformed",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "",
+                },
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: segmentIdentifyEvent,
+          },
+        ],
+        expectedSegments: {
+          malformed: false,
+        },
+        expectedSignals: [],
+      },
+      {
+        description:
           "When a user submits a track event with a perform segment it signals appropriately",
         segments: [
           {
