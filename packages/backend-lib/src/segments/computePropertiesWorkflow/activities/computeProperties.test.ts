@@ -174,37 +174,37 @@ describe("compute properties activities", () => {
     const subscriptionGroupId1 = randomUUID();
 
     const tableTests: TableTest[] = [
-      // {
-      //   description:
-      //     "When a user did submit an identify event but the segment is malformed with an empty path",
-      //   segments: [
-      //     {
-      //       name: "malformed",
-      //       definition: {
-      //         entryNode: {
-      //           id: "1",
-      //           type: SegmentNodeType.Trait,
-      //           path: "",
-      //           operator: {
-      //             type: SegmentOperatorType.Equals,
-      //             value: "",
-      //           },
-      //         },
-      //         nodes: [],
-      //       },
-      //     },
-      //   ],
-      //   events: [
-      //     {
-      //       eventTimeOffset: -1000,
-      //       overrides: segmentIdentifyEvent,
-      //     },
-      //   ],
-      //   expectedSegments: {
-      //     malformed: false,
-      //   },
-      //   expectedSignals: [],
-      // },
+      {
+        description:
+          "When a user did submit an identify event but the segment is malformed with an empty path",
+        segments: [
+          {
+            name: "malformed",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "",
+                },
+              },
+              nodes: [],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: segmentIdentifyEvent,
+          },
+        ],
+        expectedSegments: {
+          malformed: false,
+        },
+        expectedSignals: [],
+      },
       {
         description:
           "When a user did submit an identify event but the segment is malformed with an empty path inside of a group",
@@ -1006,6 +1006,49 @@ describe("compute properties activities", () => {
           });
         });
 
+        describe("when a malformed user property is specified", () => {
+          let userProperty: EnrichedUserProperty;
+          let userPropertyDefinition: UserPropertyDefinition;
+
+          beforeEach(async () => {
+            userPropertyDefinition = {
+              type: UserPropertyDefinitionType.Trait,
+              path: "",
+            };
+
+            userProperty = unwrap(
+              enrichedUserProperty(
+                await prisma().userProperty.create({
+                  data: {
+                    workspaceId: workspace.id,
+                    definition: userPropertyDefinition,
+                    name: "malformed",
+                  },
+                })
+              )
+            );
+          });
+
+          it("also creates that user property and defaults to an empty string", async () => {
+            const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
+
+            await computePropertiesPeriod({
+              currentTime,
+              workspaceId: workspace.id,
+              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
+              tableVersion,
+              subscribedJourneys: [journey],
+              userProperties: [userProperty],
+            });
+
+            const assignments = await findAllUserPropertyAssignments({
+              userId,
+              workspaceId: workspace.id,
+            });
+            expect(assignments.malformed).toBe("");
+          });
+        });
+
         describe("when a perform user property is also specified", () => {
           let userProperty: EnrichedUserProperty;
           let userPropertyDefinition: UserPropertyDefinition;
@@ -1040,7 +1083,6 @@ describe("compute properties activities", () => {
               },
             });
 
-            console.log("trackEvent", trackEvent);
             await insertUserEvents({
               tableVersion,
               workspaceId: workspace.id,

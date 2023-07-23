@@ -486,7 +486,7 @@ function buildSegmentQueryFragment({
   currentTime: number;
   segment: EnrichedSegment;
   queryBuilder: ClickHouseQueryBuilder;
-}): string | null {
+}): string {
   const query = buildSegmentQueryExpression({
     queryBuilder,
     currentTime,
@@ -496,7 +496,13 @@ function buildSegmentQueryFragment({
   });
 
   if (query === null) {
-    return null;
+    return `
+      (
+        false,
+        Null,
+        '${segment.id}'
+      )
+    `;
   }
 
   // TODO use query builder for this
@@ -509,14 +515,13 @@ function buildSegmentQueryFragment({
   `;
 }
 
-function buildUserPropertyQueryFragment({
+function buildUserPropertyQueryExpression({
   userProperty,
   queryBuilder,
 }: {
   userProperty: EnrichedUserProperty;
   queryBuilder: ClickHouseQueryBuilder;
 }): string | null {
-  let innerQuery: string;
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       const { path } = userProperty.definition;
@@ -529,24 +534,22 @@ function buildUserPropertyQueryFragment({
         return null;
       }
 
-      innerQuery = `
-          JSON_VALUE(
-            arrayFirst(
-              m -> JSONHas(m.1, 'traits', ${pathArgs}),
-              timed_messages
-            ).1,
-            ${jsonValuePath}
-          )
+      return `
+        JSON_VALUE(
+          arrayFirst(
+            m -> JSONHas(m.1, 'traits', ${pathArgs}),
+            timed_messages
+          ).1,
+          ${jsonValuePath}
+        )
       `;
       break;
     }
     case UserPropertyDefinitionType.Id: {
-      innerQuery = "user_id";
-      break;
+      return "user_id";
     }
     case UserPropertyDefinitionType.AnonymousId: {
-      innerQuery = "any(anonymous_id)";
-      break;
+      return "any(anonymous_id)";
     }
     case UserPropertyDefinitionType.Performed: {
       const { path } = userProperty.definition;
@@ -559,7 +562,7 @@ function buildUserPropertyQueryFragment({
         return null;
       }
 
-      innerQuery = `
+      return `
           JSON_VALUE(
             arrayFirst(
               m -> and(
@@ -574,8 +577,30 @@ function buildUserPropertyQueryFragment({
             ${jsonValuePath}
           )
       `;
-      break;
     }
+  }
+}
+
+function buildUserPropertyQueryFragment({
+  userProperty,
+  queryBuilder,
+}: {
+  userProperty: EnrichedUserProperty;
+  queryBuilder: ClickHouseQueryBuilder;
+}): string {
+  const innerQuery = buildUserPropertyQueryExpression({
+    userProperty,
+    queryBuilder,
+  });
+
+  if (innerQuery === null) {
+    return `
+      (
+        Null,
+        '""',
+        '${userProperty.id}'
+      )
+    `;
   }
 
   // TODO use query builder for this
@@ -608,9 +633,7 @@ function computedToQueryFragments({
           queryBuilder,
         });
 
-        if (fragment !== null) {
-          modelFragments.push(fragment);
-        }
+        modelFragments.push(fragment);
         break;
       }
       case "Segment": {
@@ -620,9 +643,7 @@ function computedToQueryFragments({
           currentTime,
         });
 
-        if (fragment !== null) {
-          modelFragments.push(fragment);
-        }
+        modelFragments.push(fragment);
         break;
       }
     }
