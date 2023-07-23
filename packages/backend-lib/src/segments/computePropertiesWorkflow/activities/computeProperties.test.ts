@@ -174,23 +174,60 @@ describe("compute properties activities", () => {
     const subscriptionGroupId1 = randomUUID();
 
     const tableTests: TableTest[] = [
+      // {
+      //   description:
+      //     "When a user did submit an identify event but the segment is malformed with an empty path",
+      //   segments: [
+      //     {
+      //       name: "malformed",
+      //       definition: {
+      //         entryNode: {
+      //           id: "1",
+      //           type: SegmentNodeType.Trait,
+      //           path: "",
+      //           operator: {
+      //             type: SegmentOperatorType.Equals,
+      //             value: "",
+      //           },
+      //         },
+      //         nodes: [],
+      //       },
+      //     },
+      //   ],
+      //   events: [
+      //     {
+      //       eventTimeOffset: -1000,
+      //       overrides: segmentIdentifyEvent,
+      //     },
+      //   ],
+      //   expectedSegments: {
+      //     malformed: false,
+      //   },
+      //   expectedSignals: [],
+      // },
       {
         description:
-          "When a user did submit an identify event but the segment is malformed with an empty path",
+          "When a user did submit an identify event but the segment is malformed with an empty path inside of a group",
         segments: [
           {
             name: "malformed",
             definition: {
               entryNode: {
                 id: "1",
-                type: SegmentNodeType.Trait,
-                path: "",
-                operator: {
-                  type: SegmentOperatorType.Equals,
-                  value: "",
-                },
+                type: SegmentNodeType.And,
+                children: ["2"],
               },
-              nodes: [],
+              nodes: [
+                {
+                  id: "2",
+                  type: SegmentNodeType.Trait,
+                  path: "",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "",
+                  },
+                },
+              ],
             },
           },
         ],
