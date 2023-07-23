@@ -44,7 +44,7 @@ function pathToArgs(
       .map((c) => queryBuilder.addQueryValue(c.expression.value, "String"))
       .join(", ");
   } catch (e) {
-    logger().error({ err: e });
+    logger().info({ err: e });
     return null;
   }
 }
