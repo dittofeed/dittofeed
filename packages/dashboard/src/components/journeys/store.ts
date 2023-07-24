@@ -555,8 +555,30 @@ export function journeyNodeToState(
       const segmentChildLabelNodeId = uuid();
       const timeoutLabelNodeId = uuid();
 
+      pushDualEdge({
+        emptyId: timeoutLabelNodeId,
+        leftId: segmentChildLabelNodeId,
+        rightId: timeoutLabelNodeId,
+        leftLabel: WAIT_FOR_SATISFY_LABEL,
+        rightLabel: waitForTimeoutLabel(node.timeoutSeconds),
+      });
+      nodeTypeProps = {
+        type: JourneyNodeType.WaitForNode,
+        timeoutLabelNodeId,
+        timeoutSeconds: node.timeoutSeconds,
+        segmentChildren: [
+          {
+            labelNodeId: segmentChildLabelNodeId,
+            segmentId: segmentChild.segmentId,
+          },
+        ],
+      };
       break;
     }
+    case JourneyNodeType.ExperimentSplitNode:
+      throw new Error("Unimplemented node type");
+    case JourneyNodeType.RateLimitNode:
+      throw new Error("Unimplemented node type");
   }
 
   const journeyNode: Node<JourneyNodeProps> = {
