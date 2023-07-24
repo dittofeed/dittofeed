@@ -349,6 +349,132 @@ interface StateFromJourneyNode {
   edges: Edge<EdgeData>[];
 }
 
+interface DualNodeParams {
+  leftId: string;
+  rightId: string;
+  emptyId: string;
+}
+
+function dualNodeNonJourneyNodes({
+  leftId,
+  rightId,
+  leftLabel,
+  rightLabel,
+  emptyId,
+}: DualNodeParams & {
+  leftLabel: string;
+  rightLabel: string;
+}): Node<NonJourneyNodeData>[] {
+  return [
+    {
+      id: leftId,
+      position: placeholderNodePosition,
+      type: "label",
+      data: {
+        type: "LabelNode",
+        title: leftLabel,
+      },
+    },
+    {
+      id: rightId,
+      position: placeholderNodePosition,
+      type: "label",
+      data: {
+        type: "LabelNode",
+        title: rightLabel,
+      },
+    },
+    {
+      id: emptyId,
+      position: placeholderNodePosition,
+      type: "empty",
+      data: {
+        type: "EmptyNode",
+      },
+    },
+  ];
+}
+
+function dualNodeEdges({
+  leftId,
+  rightId,
+  emptyId,
+  node: n,
+  source,
+  target,
+}: DualNodeParams & {
+  source: string;
+  target: string;
+  node: JourneyBodyNode;
+}): Edge<EdgeData>[] {
+  return [
+    {
+      id: `${source}=>${n.id}`,
+      source,
+      target: n.id,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    },
+    {
+      id: `${n.id}=>${leftId}`,
+      source: n.id,
+      target: leftId,
+      type: "placeholder",
+      sourceHandle: "bottom",
+    },
+    {
+      id: `${n.id}=>${rightId}`,
+      source: n.id,
+      target: rightId,
+      type: "placeholder",
+      sourceHandle: "bottom",
+    },
+    {
+      id: `${leftId}=>${emptyId}`,
+      source: leftId,
+      target: emptyId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    },
+    {
+      id: `${rightId}=>${emptyId}`,
+      source: rightId,
+      target: emptyId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    },
+    {
+      id: `${emptyId}=>${target}`,
+      source: emptyId,
+      target,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    },
+  ];
+}
+
+// export function edgesForJourneyNode({type, source, target}: {type: JourneyNodeType
+// , source: string, target: string}): Edge<EdgeData>[] {
+//   switch (type) {
+
+// }
+
 // would ideally be initialized from partial of journey node or optional in some way so that be reused with create connection logic
 export function journeyNodeToState(
   node: JourneyNode,
