@@ -4,6 +4,7 @@ import {
   DelayVariantType,
   EntryNode,
   ExitNode,
+  JourneyBodyNode,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
@@ -364,6 +365,107 @@ export function journeyNodeToState(
   const nonJourneyNodes: Node<NonJourneyNodeData>[] = [];
   const edges: Edge<EdgeData>[] = [];
 
+  function pushDualEdge({
+    leftId,
+    rightId,
+    leftLabel,
+    rightLabel,
+    emptyId,
+  }: {
+    emptyId: string;
+    leftId: string;
+    rightId: string;
+    leftLabel: string;
+    rightLabel: string;
+  }) {
+    const n = node as JourneyBodyNode;
+    nonJourneyNodes.push({
+      id: leftId,
+      position: placeholderNodePosition,
+      type: "label",
+      data: {
+        type: "LabelNode",
+        title: leftLabel,
+      },
+    });
+    nonJourneyNodes.push({
+      id: rightId,
+      position: placeholderNodePosition,
+      type: "label",
+      data: {
+        type: "LabelNode",
+        title: rightLabel,
+      },
+    });
+    nonJourneyNodes.push({
+      id: emptyId,
+      position: placeholderNodePosition,
+      type: "empty",
+      data: {
+        type: "EmptyNode",
+      },
+    });
+
+    edges.push({
+      id: `${source}=>${n.id}`,
+      source,
+      target: n.id,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    });
+    edges.push({
+      id: `${n.id}=>${leftId}`,
+      source: n.id,
+      target: leftId,
+      type: "placeholder",
+      sourceHandle: "bottom",
+    });
+    edges.push({
+      id: `${n.id}=>${rightId}`,
+      source: n.id,
+      target: rightId,
+      type: "placeholder",
+      sourceHandle: "bottom",
+    });
+    edges.push({
+      id: `${leftId}=>${emptyId}`,
+      source: leftId,
+      target: emptyId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    });
+    edges.push({
+      id: `${rightId}=>${emptyId}`,
+      source: rightId,
+      target: emptyId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    });
+    edges.push({
+      id: `${emptyId}=>${target}`,
+      source: emptyId,
+      target,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    });
+  }
+
   switch (node.type) {
     case JourneyNodeType.DelayNode:
       edges.push({
@@ -427,90 +529,12 @@ export function journeyNodeToState(
       const falseId = uuid();
       const emptyId = uuid();
 
-      nonJourneyNodes.push({
-        id: trueId,
-        position: placeholderNodePosition,
-        type: "label",
-        data: {
-          type: "LabelNode",
-          title: "true",
-        },
-      });
-      nonJourneyNodes.push({
-        id: falseId,
-        position: placeholderNodePosition,
-        type: "label",
-        data: {
-          type: "LabelNode",
-          title: "false",
-        },
-      });
-      nonJourneyNodes.push({
-        id: emptyId,
-        position: placeholderNodePosition,
-        type: "empty",
-        data: {
-          type: "EmptyNode",
-        },
-      });
-
-      edges.push({
-        id: `${source}=>${node.id}`,
-        source,
-        target: node.id,
-        type: "workflow",
-        sourceHandle: "bottom",
-        data: {
-          type: "WorkflowEdge",
-          disableMarker: true,
-        },
-      });
-      edges.push({
-        id: `${node.id}=>${trueId}`,
-        source: node.id,
-        target: trueId,
-        type: "placeholder",
-        sourceHandle: "bottom",
-      });
-      edges.push({
-        id: `${node.id}=>${falseId}`,
-        source: node.id,
-        target: falseId,
-        type: "placeholder",
-        sourceHandle: "bottom",
-      });
-      edges.push({
-        id: `${trueId}=>${emptyId}`,
-        source: trueId,
-        target: emptyId,
-        type: "workflow",
-        sourceHandle: "bottom",
-        data: {
-          type: "WorkflowEdge",
-          disableMarker: true,
-        },
-      });
-      edges.push({
-        id: `${falseId}=>${emptyId}`,
-        source: falseId,
-        target: emptyId,
-        type: "workflow",
-        sourceHandle: "bottom",
-        data: {
-          type: "WorkflowEdge",
-          disableMarker: true,
-        },
-      });
-      edges.push({
-        id: `${emptyId}=>${target}`,
-        source: emptyId,
-        target,
-        type: "workflow",
-        sourceHandle: "bottom",
-        data: {
-          type: "WorkflowEdge",
-          disableMarker: true,
-        },
+      pushDualEdge({
+        emptyId,
+        leftId: trueId,
+        rightId: falseId,
+        leftLabel: "true",
+        rightLabel: "false",
       });
 
       nodeTypeProps = {
@@ -522,9 +546,17 @@ export function journeyNodeToState(
       };
       break;
     }
-    default:
-      // FIXME
-      throw new Error("Unimplemented node type");
+    case JourneyNodeType.WaitForNode: {
+      const segmentChild = node.segmentChildren[0];
+      if (!segmentChild) {
+        throw new Error("Malformed journey, WaitForNode has no children.");
+      }
+
+      const segmentChildLabelNodeId = uuid();
+      const timeoutLabelNodeId = uuid();
+
+      break;
+    }
   }
 
   const journeyNode: Node<JourneyNodeProps> = {
@@ -665,6 +697,7 @@ export function journeyToStateV2(
           throw new Error("Malformed journey, missing message node.");
         }
         const childNode = getJourneyNode(journey.definition, node.child);
+
         if (!childNode) {
           throw new Error("Malformed journey, missing message node child.");
         }
