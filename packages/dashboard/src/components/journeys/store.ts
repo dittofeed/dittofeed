@@ -5,7 +5,6 @@ import {
   DelayVariantType,
   EntryNode,
   ExitNode,
-  JourneyBodyNode,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
@@ -48,7 +47,6 @@ import findJourneyNode from "./findJourneyNode";
 import findNode from "./findNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
-import { defaultSegmentSplitName } from "./nodeTypes/defaultNodeTypeProps";
 
 type JourneyStateForResource = Pick<
   JourneyState,

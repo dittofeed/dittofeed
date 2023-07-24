@@ -9,7 +9,6 @@ import {
   EntryNode,
   EphemeralRequestStatus,
   ExitNode,
-  JourneyNode,
   JourneyNodeType,
   JourneyResource,
   MessageTemplateResource,
