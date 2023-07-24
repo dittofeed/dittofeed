@@ -10,10 +10,7 @@ import {
   defaultEdges,
   defaultNodes,
 } from "../../../components/journeys/defaults";
-import {
-  journeyToState,
-  journeyToStateV2,
-} from "../../../components/journeys/store";
+import { journeyToState } from "../../../components/journeys/store";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
@@ -77,7 +74,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         value: [journeyResource],
       };
       // const stateFromJourney = journeyToState(journeyResource);
-      const stateFromJourney = journeyToStateV2(journeyResource);
+      const stateFromJourney = journeyToState(journeyResource);
       Object.assign(serverInitialState, stateFromJourney);
     } else {
       serverInitialState.journeyName = `New Journey - ${id}`;
