@@ -349,13 +349,13 @@ interface StateFromJourneyNode {
   edges: Edge<EdgeData>[];
 }
 
-interface DualNodeParams {
+export interface DualNodeParams {
   leftId: string;
   rightId: string;
   emptyId: string;
 }
 
-function dualNodeNonJourneyNodes({
+export function dualNodeNonJourneyNodes({
   leftId,
   rightId,
   leftLabel,
@@ -395,7 +395,7 @@ function dualNodeNonJourneyNodes({
   ];
 }
 
-function dualNodeEdges({
+export function dualNodeEdges({
   leftId,
   rightId,
   emptyId,
@@ -643,7 +643,7 @@ export function journeyNodeToState(
 
       edges = edges.concat(
         edgesForJourneyNode({
-          type: JourneyNodeType.SegmentSplitNode,
+          type: node.type,
           nodeId: node.id,
           emptyId,
           leftId: segmentChildLabelNodeId,
