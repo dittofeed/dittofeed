@@ -298,7 +298,7 @@ describe("journeyToState", () => {
       };
     });
 
-    it.only("produces the correct ui state", () => {
+    it("produces the correct ui state", () => {
       const uiState = journeyToState(journeyResource);
 
       expect(
