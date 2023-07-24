@@ -26,10 +26,13 @@ import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
 
 import {
+  AddNodesParams,
   EdgeData,
   JourneyContent,
+  JourneyNodeProps,
   JourneyState,
   NodeData,
+  NonJourneyNodeData,
 } from "../../lib/types";
 import { durationDescription } from "../durationDescription";
 import {
@@ -336,6 +339,26 @@ export function journeyDefinitionFromState({
 
   return ok(definition);
 }
+
+interface StateFromJourneyNode {
+  journeyNode: Node<JourneyNodeProps>;
+  nonJourneyNodes: Node<NonJourneyNodeData>[];
+  edges: Edge<EdgeData>[];
+}
+
+// would ideally be initialized from partial of journey node or optional in some way so that be reused with create connection logic
+export function journeyNodeToState(node: JourneyNode): StateFromJourneyNode {}
+
+export function newStateFromNodes({
+  source,
+  target,
+  nodes,
+  edges,
+}: AddNodesParams): {
+  edges: Edge<EdgeData>[];
+  nodes: Node<NonJourneyNodeData>[];
+  journeyNodesIndex: Record<string, number>;
+} {}
 
 interface EdgeIntent {
   parentId: string;

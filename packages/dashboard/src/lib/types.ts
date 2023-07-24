@@ -247,15 +247,17 @@ export interface JourneyState {
   journeyUpdateRequest: EphemeralRequestStatus<Error>;
 }
 
+export interface AddNodesParams {
+  source: string;
+  target: string;
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+}
+
 export interface JourneyContent extends JourneyState {
   setDraggedComponentType: (t: JourneyNodeType | null) => void;
   setSelectedNodeId: (t: string | null) => void;
-  addNodes: (params: {
-    source: string;
-    target: string;
-    nodes: Node<NodeData>[];
-    edges: Edge[];
-  }) => void;
+  addNodes: (params: AddNodesParams) => void;
   setEdges: (changes: EdgeChange[]) => void;
   setNodes: (changes: NodeChange[]) => void;
   deleteJourneyNode: (nodeId: string) => void;
@@ -341,7 +343,9 @@ export interface LabelNodeProps {
   title: string;
 }
 
-export type NodeData = JourneyNodeProps | LabelNodeProps | EmptyNodeProps;
+export type NonJourneyNodeData = LabelNodeProps | EmptyNodeProps;
+
+export type NodeData = JourneyNodeProps | NonJourneyNodeData;
 
 export interface WorkflowEdgeProps {
   type: "WorkflowEdge";
