@@ -749,6 +749,37 @@ export function journeyToStateV2(
         newRemainingNodes.push([falseNode, nodeTypeProps.falseLabelNodeId]);
         break;
       }
+      case JourneyNodeType.WaitForNode: {
+        if (node.type !== JourneyNodeType.WaitForNode) {
+          throw new Error("Malformed journey, missing wait for node.");
+        }
+        const timeoutNode = getJourneyNode(
+          journey.definition,
+          node.timeoutChild
+        );
+        if (!timeoutNode) {
+          throw new Error("Malformed journey, missing wait for node timeout.");
+        }
+        const segmentChild = node.segmentChildren[0];
+        if (!segmentChild) {
+          throw new Error("Malformed journey, missing wait for node segment.");
+        }
+        const segmentNode = getJourneyNode(journey.definition, segmentChild.id);
+        if (!segmentNode) {
+          throw new Error("Malformed journey, missing wait for node segment.");
+        }
+
+        const uiSegmentChild = nodeTypeProps.segmentChildren[0];
+        if (!uiSegmentChild) {
+          throw new Error(
+            "Malformed journey, missing wait for node segment children."
+          );
+        }
+        newRemainingNodes = [];
+        newRemainingNodes.push([segmentNode, uiSegmentChild.labelNodeId]);
+        newRemainingNodes.push([segmentNode, nodeTypeProps.timeoutLabelNodeId]);
+        break;
+      }
       default:
         // FIXME
         throw new Error("Unimplemented node type");
