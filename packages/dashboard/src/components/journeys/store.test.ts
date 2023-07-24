@@ -252,6 +252,64 @@ describe("journeyToState", () => {
       });
     });
   });
+
+  describe("when a journey has a split, and a nested split", () => {
+    beforeEach(() => {
+      journeyId = uuid();
+      workspaceId = uuid();
+
+      journeyResource = {
+        id: journeyId,
+        name: "My Journey",
+        status: "NotStarted",
+        definition: {
+          entryNode: {
+            type: JourneyNodeType.EntryNode,
+            segment: uuid(),
+            child: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+          },
+          exitNode: {
+            type: JourneyNodeType.ExitNode,
+          },
+          nodes: [
+            {
+              id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+              type: JourneyNodeType.SegmentSplitNode,
+              variant: {
+                type: SegmentSplitVariantType.Boolean,
+                segment: uuid(),
+                trueChild: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+                falseChild: "ExitNode",
+              },
+            },
+            {
+              id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+              type: JourneyNodeType.SegmentSplitNode,
+              variant: {
+                type: SegmentSplitVariantType.Boolean,
+                segment: uuid(),
+                trueChild: "ExitNode",
+                falseChild: "ExitNode",
+              },
+            },
+          ],
+        },
+        workspaceId,
+      };
+    });
+
+    it.only("produces the correct ui state", () => {
+      const uiState = journeyToState(journeyResource);
+
+      expect(
+        uiState.journeyNodes.filter((n) => n.type === "label")
+      ).toHaveLength(4);
+
+      expect(
+        uiState.journeyNodes.filter((n) => n.type === "empty")
+      ).toHaveLength(2);
+    });
+  });
 });
 
 describe("journeyDefinitionFromState", () => {
