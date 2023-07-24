@@ -531,8 +531,142 @@ interface EdgeIntent {
 export function journeyToStateV2(
   journey: JourneyResource
 ): JourneyStateForResource {
-  const journeyNodes: Node<NodeData>[] = [];
-  const journeyEdges: Edge<EdgeData>[] = [];
+  let journeyNodes: Node<NodeData>[] = [
+    {
+      id: JourneyNodeType.EntryNode,
+      position: placeholderNodePosition,
+      type: "journey",
+      data: {
+        type: "JourneyNode",
+        nodeTypeProps: {
+          type: JourneyNodeType.EntryNode,
+          segmentId: journey.definition.entryNode.segment,
+        },
+      },
+    },
+    {
+      id: JourneyNodeType.ExitNode,
+      position: placeholderNodePosition,
+      type: "journey",
+      data: {
+        type: "JourneyNode",
+        nodeTypeProps: {
+          type: JourneyNodeType.ExitNode,
+        },
+      },
+    },
+  ];
+
+  let journeyEdges: Edge<EdgeData>[] = [
+    {
+      id: `${JourneyNodeType.EntryNode}=>${JourneyNodeType.ExitNode}`,
+      source: JourneyNodeType.EntryNode,
+      target: JourneyNodeType.ExitNode,
+      type: "workflow",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    },
+  ];
+
+  const firstBodyNode = journey.definition.nodes.find(
+    (n) => (n.id = journey.definition.entryNode.child)
+  );
+  if (!firstBodyNode) {
+    throw new Error("Malformed journey, missing first body node.");
+  }
+
+  let remainingNodes: [JourneyNode, string][] = [];
+  while (true) {
+    const [node, source] = remainingNodes.pop()!;
+
+    if (node.type === JourneyNodeType.ExitNode) {
+      continue;
+    }
+    const state = journeyNodeToState(node);
+    let newRemainingNodes: [JourneyNode, string][];
+    const { nodeTypeProps } = state.journeyNode.data;
+
+    switch (nodeTypeProps.type) {
+      case JourneyNodeType.DelayNode: {
+        const childNode = journey.definition.nodes.find((n) => {
+          if (node.type !== JourneyNodeType.DelayNode) {
+            throw new Error("Malformed journey, missing delay node.");
+          }
+
+          return n.id === node.child;
+        });
+
+        if (!childNode) {
+          throw new Error("Malformed journey, missing delay node child.");
+        }
+        newRemainingNodes = [[childNode, state.journeyNode.id]];
+        break;
+      }
+      case JourneyNodeType.MessageNode: {
+        if (node.type !== JourneyNodeType.MessageNode) {
+          throw new Error("Malformed journey, missing message node.");
+        }
+        const childNode = journey.definition.nodes.find((n) => {
+          return n.id === node.child;
+        });
+        if (!childNode) {
+          throw new Error("Malformed journey, missing message node child.");
+        }
+        newRemainingNodes = [[childNode, state.journeyNode.id]];
+        break;
+      }
+      case JourneyNodeType.SegmentSplitNode: {
+        if (node.type !== JourneyNodeType.SegmentSplitNode) {
+          throw new Error("Malformed journey, missing segment split node.");
+        }
+        const trueNode = journey.definition.nodes.find((n) => {
+          return n.id === node.variant.trueChild;
+        });
+        const falseNode = journey.definition.nodes.find((n) => {
+          return n.id === node.variant.falseChild;
+        });
+
+        if (!trueNode || !falseNode) {
+          throw new Error(
+            "Malformed journey, missing segment split node children."
+          );
+        }
+        newRemainingNodes = [];
+        newRemainingNodes.push([trueNode, nodeTypeProps.trueLabelNodeId]);
+        newRemainingNodes.push([falseNode, nodeTypeProps.falseLabelNodeId]);
+        break;
+      }
+      default:
+        // FIXME
+        throw new Error("Unimplemented node type");
+    }
+    remainingNodes = newRemainingNodes.concat(remainingNodes);
+
+    const target = journeyEdges.find((e) => e.source === source)?.target;
+    if (!target) {
+      throw new Error("Malformed journey, missing target.");
+    }
+
+    const newNodes: Node<NodeData>[] = [
+      state.journeyNode,
+      ...state.nonJourneyNodes,
+    ];
+
+    newStateFromNodes({
+      source,
+      target,
+      nodes: newNodes,
+      edges: state.edges,
+      existingNodes: journeyNodes,
+      existingEdges: journeyEdges,
+    });
+
+    if (remainingNodes.length === 0) {
+      break;
+    }
+  }
 
   const journeyNodesIndex = buildNodesIndex(journeyNodes);
 

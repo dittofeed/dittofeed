@@ -6,7 +6,10 @@ import {
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
   DFRequestContext,
+  EntryNode,
   EphemeralRequestStatus,
+  ExitNode,
+  JourneyNode,
   JourneyNodeType,
   JourneyResource,
   MessageTemplateResource,
@@ -20,6 +23,7 @@ import {
   SubscriptionGroupResource,
   UserPropertyDefinition,
   UserPropertyResource,
+  WaitForNode,
   WorkspaceMemberResource,
   WorkspaceResource,
   WriteKeyResource,
@@ -328,6 +332,14 @@ export type NodeTypeProps =
   | DelayNodeProps
   | SegmentSplitNodeProps
   | WaitForNodeProps;
+
+export type JourneyNodePairing =
+  | [EntryNodeProps, EntryNode]
+  | [ExitNodeProps, ExitNode]
+  | [MessageNodeProps, SegmentNode]
+  | [DelayNodeProps, SegmentNode]
+  | [SegmentSplitNodeProps, SegmentNode]
+  | [WaitForNodeProps, WaitForNode];
 
 export interface JourneyNodeProps {
   type: "JourneyNode";
