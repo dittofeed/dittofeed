@@ -367,9 +367,19 @@ export function journeyNodeToState(
   switch (node.type) {
     case JourneyNodeType.DelayNode:
       edges.push({
-        id: `${node.id}=>${node.child}`,
-        source: node.id,
-        target: node.child,
+        id: `${source}=>${node.id}`,
+        source,
+        target: node.id,
+        type: "workflow",
+        sourceHandle: "bottom",
+        data: {
+          type: "WorkflowEdge",
+        },
+      });
+      edges.push({
+        id: `${node.id}=>${target}`,
+        source,
+        target: node.id,
         type: "workflow",
         sourceHandle: "bottom",
         data: {
@@ -384,9 +394,19 @@ export function journeyNodeToState(
       break;
     case JourneyNodeType.MessageNode:
       edges.push({
-        id: `${node.id}=>${node.child}`,
+        id: `${source}=>${node.id}`,
+        source,
+        target: node.id,
+        type: "workflow",
+        sourceHandle: "bottom",
+        data: {
+          type: "WorkflowEdge",
+        },
+      });
+      edges.push({
+        id: `${node.id}=>${target}`,
         source: node.id,
-        target: node.child,
+        target,
         type: "workflow",
         sourceHandle: "bottom",
         data: {
@@ -402,7 +422,6 @@ export function journeyNodeToState(
         subscriptionGroupId: node.subscriptionGroupId,
       };
       break;
-    // FIXME incorporate source and target
     case JourneyNodeType.SegmentSplitNode: {
       const trueId = uuid();
       const falseId = uuid();
@@ -679,7 +698,6 @@ export function journeyToStateV2(
         // FIXME
         throw new Error("Unimplemented node type");
     }
-    console.log("newRemainingNodes", newRemainingNodes);
     remainingNodes = remainingNodes.concat(newRemainingNodes);
 
     const newNodes: Node<NodeData>[] = [
@@ -687,7 +705,6 @@ export function journeyToStateV2(
       ...state.nonJourneyNodes,
     ];
 
-    // FIXME
     const newState = newStateFromNodes({
       source,
       target,
