@@ -763,6 +763,8 @@ export function journeyToState(
   let remainingNodes: [JourneyNode, string][] = [
     [firstBodyNode, JourneyNodeType.EntryNode],
   ];
+
+  const seenNodes = new Set<string>();
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -774,6 +776,17 @@ export function journeyToState(
       }
       continue;
     }
+
+    if (node.type === JourneyNodeType.EntryNode) {
+      throw new Error("Entry node should already be handled");
+    }
+    if (seenNodes.has(node.id)) {
+      if (remainingNodes.length === 0) {
+        break;
+      }
+      continue;
+    }
+    seenNodes.add(node.id);
 
     const target = journeyEdges.find((e) => e.source === source)?.target;
 
@@ -892,11 +905,12 @@ export function journeyToState(
     }
   }
 
+  journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   const journeyNodesIndex = buildNodesIndex(journeyNodes);
 
   return {
     journeyName: journey.name,
-    journeyNodes: layoutNodes(journeyNodes, journeyEdges),
+    journeyNodes,
     journeyEdges,
     journeyNodesIndex,
   };

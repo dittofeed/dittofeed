@@ -6,11 +6,22 @@ import { NodeData } from "../../lib/types";
 
 export const nodeHeight = 200;
 
+const opt = dag.decrossOpt();
+const heuristic = dag.decrossTwoLayer();
+
+function decrossFallback(layers: dag.SugiNode[][]): void {
+  try {
+    opt(layers);
+  } catch {
+    heuristic(layers);
+  }
+}
+
 const dagLayout = dag
   .sugiyama()
-  .layering(dag.layeringLongestPath())
+  .layering(dag.layeringCoffmanGraham())
   .nodeSize(() => [400, nodeHeight])
-  .decross(dag.decrossOpt().large("large"))
+  .decross(decrossFallback)
   .coord(dag.coordCenter());
 
 // the layouting function
