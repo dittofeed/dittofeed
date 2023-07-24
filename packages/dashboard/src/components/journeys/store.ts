@@ -585,9 +585,13 @@ export function journeyToStateV2(
     const [node, source] = remainingNodes.pop()!;
 
     if (node.type === JourneyNodeType.ExitNode) {
+      if (remainingNodes.length === 0) {
+        break;
+      }
       continue;
     }
     const state = journeyNodeToState(node);
+
     let newRemainingNodes: [JourneyNode, string][];
     const { nodeTypeProps } = state.journeyNode.data;
 
@@ -629,11 +633,6 @@ export function journeyToStateV2(
         );
 
         if (!trueNode || !falseNode) {
-          console.log("trueNode", trueNode);
-          console.log("trueChild", node.variant.trueChild);
-          console.log("falseNode", falseNode);
-          console.log("falseChild", node.variant.falseChild);
-
           throw new Error(
             "Malformed journey, missing segment split node children."
           );
@@ -647,9 +646,14 @@ export function journeyToStateV2(
         // FIXME
         throw new Error("Unimplemented node type");
     }
+    console.log("newRemainingNodes", newRemainingNodes);
     remainingNodes = remainingNodes.concat(newRemainingNodes);
 
-    const target = journeyEdges.find((e) => e.source === source)?.target;
+    // FIXME is this right?
+    const target = state.edges
+      .concat(journeyEdges)
+      .find((e) => e.source === source)?.target;
+
     if (!target) {
       throw new Error("Malformed journey, missing target.");
     }
@@ -659,7 +663,8 @@ export function journeyToStateV2(
       ...state.nonJourneyNodes,
     ];
 
-    newStateFromNodes({
+    // FIXME
+    const newState = newStateFromNodes({
       source,
       target,
       nodes: newNodes,
@@ -667,6 +672,8 @@ export function journeyToStateV2(
       existingNodes: journeyNodes,
       existingEdges: journeyEdges,
     });
+    journeyEdges = newState.edges;
+    journeyNodes = newState.nodes;
 
     if (remainingNodes.length === 0) {
       break;
