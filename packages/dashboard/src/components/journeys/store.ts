@@ -47,6 +47,7 @@ import findNode from "./findNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
 import { defaultSegmentSplitName } from "./nodeTypes/defaultNodeTypeProps";
+import { getJourneyNode } from "isomorphic-lib/src/journeys";
 
 type JourneyStateForResource = Pick<
   JourneyState,
@@ -577,7 +578,9 @@ export function journeyToStateV2(
     throw new Error("Malformed journey, missing first body node.");
   }
 
-  let remainingNodes: [JourneyNode, string][] = [];
+  let remainingNodes: [JourneyNode, string][] = [
+    [firstBodyNode, JourneyNodeType.EntryNode],
+  ];
   while (true) {
     const [node, source] = remainingNodes.pop()!;
 
@@ -590,14 +593,11 @@ export function journeyToStateV2(
 
     switch (nodeTypeProps.type) {
       case JourneyNodeType.DelayNode: {
-        const childNode = journey.definition.nodes.find((n) => {
-          if (node.type !== JourneyNodeType.DelayNode) {
-            throw new Error("Malformed journey, missing delay node.");
-          }
+        if (node.type !== JourneyNodeType.DelayNode) {
+          throw new Error("Malformed journey, missing delay node.");
+        }
 
-          return n.id === node.child;
-        });
-
+        const childNode = getJourneyNode(journey.definition, node.child);
         if (!childNode) {
           throw new Error("Malformed journey, missing delay node child.");
         }
@@ -608,9 +608,7 @@ export function journeyToStateV2(
         if (node.type !== JourneyNodeType.MessageNode) {
           throw new Error("Malformed journey, missing message node.");
         }
-        const childNode = journey.definition.nodes.find((n) => {
-          return n.id === node.child;
-        });
+        const childNode = getJourneyNode(journey.definition, node.child);
         if (!childNode) {
           throw new Error("Malformed journey, missing message node child.");
         }
@@ -621,14 +619,21 @@ export function journeyToStateV2(
         if (node.type !== JourneyNodeType.SegmentSplitNode) {
           throw new Error("Malformed journey, missing segment split node.");
         }
-        const trueNode = journey.definition.nodes.find((n) => {
-          return n.id === node.variant.trueChild;
-        });
-        const falseNode = journey.definition.nodes.find((n) => {
-          return n.id === node.variant.falseChild;
-        });
+        const trueNode = getJourneyNode(
+          journey.definition,
+          node.variant.trueChild
+        );
+        const falseNode = getJourneyNode(
+          journey.definition,
+          node.variant.falseChild
+        );
 
         if (!trueNode || !falseNode) {
+          console.log("trueNode", trueNode);
+          console.log("trueChild", node.variant.trueChild);
+          console.log("falseNode", falseNode);
+          console.log("falseChild", node.variant.falseChild);
+
           throw new Error(
             "Malformed journey, missing segment split node children."
           );
@@ -642,7 +647,7 @@ export function journeyToStateV2(
         // FIXME
         throw new Error("Unimplemented node type");
     }
-    remainingNodes = newRemainingNodes.concat(remainingNodes);
+    remainingNodes = remainingNodes.concat(newRemainingNodes);
 
     const target = journeyEdges.find((e) => e.source === source)?.target;
     if (!target) {
