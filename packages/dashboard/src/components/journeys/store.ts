@@ -32,6 +32,7 @@ import {
   JourneyNodeProps,
   JourneyState,
   NodeData,
+  NodeTypeProps,
   NonJourneyNodeData,
 } from "../../lib/types";
 import { durationDescription } from "../durationDescription";
@@ -347,22 +348,200 @@ interface StateFromJourneyNode {
 }
 
 // would ideally be initialized from partial of journey node or optional in some way so that be reused with create connection logic
-export function journeyNodeToState(node: JourneyNode): StateFromJourneyNode {}
+export function journeyNodeToState(node: JourneyNode): StateFromJourneyNode {
+  if (
+    node.type === JourneyNodeType.EntryNode ||
+    node.type === JourneyNodeType.ExitNode
+  ) {
+    throw new Error("Entry and exit nodes should not be converted to state.");
+  }
+  let nodeTypeProps: NodeTypeProps;
+  const nonJourneyNodes: Node<NonJourneyNodeData>[] = [];
+  const edges: Edge<EdgeData>[] = [];
 
+  switch (node.type) {
+    case JourneyNodeType.DelayNode:
+      edges.push({
+        id: `${node.id}=>${node.child}`,
+        source: node.id,
+        target: node.child,
+        type: "workflow",
+        sourceHandle: "bottom",
+        data: {
+          type: "WorkflowEdge",
+        },
+      });
+
+      nodeTypeProps = {
+        type: JourneyNodeType.DelayNode,
+        seconds: node.variant.seconds,
+      };
+      break;
+    case JourneyNodeType.MessageNode:
+      edges.push({
+        id: `${node.id}=>${node.child}`,
+        source: node.id,
+        target: node.child,
+        type: "workflow",
+        sourceHandle: "bottom",
+        data: {
+          type: "WorkflowEdge",
+        },
+      });
+
+      nodeTypeProps = {
+        type: JourneyNodeType.MessageNode,
+        channel: node.variant.type,
+        name: node.name ?? "",
+        templateId: node.variant.templateId,
+        subscriptionGroupId: node.subscriptionGroupId,
+      };
+      break;
+    case JourneyNodeType.SegmentSplitNode: {
+      const trueId = uuid();
+      const falseId = uuid();
+      const emptyId = uuid();
+
+      nonJourneyNodes.push({
+        id: trueId,
+        position: placeholderNodePosition,
+        type: "label",
+        data: {
+          type: "LabelNode",
+          title: "true",
+        },
+      });
+      nonJourneyNodes.push({
+        id: falseId,
+        position: placeholderNodePosition,
+        type: "label",
+        data: {
+          type: "LabelNode",
+          title: "false",
+        },
+      });
+      nonJourneyNodes.push({
+        id: emptyId,
+        position: placeholderNodePosition,
+        type: "empty",
+        data: {
+          type: "EmptyNode",
+        },
+      });
+
+      edges.push({
+        id: `${node.id}=>${trueId}`,
+        source: node.id,
+        target: trueId,
+        type: "placeholder",
+        sourceHandle: "bottom",
+      });
+      edges.push({
+        id: `${node.id}=>${falseId}`,
+        source: node.id,
+        target: falseId,
+        type: "placeholder",
+        sourceHandle: "bottom",
+      });
+      edges.push({
+        id: `${trueId}=>${emptyId}`,
+        source: trueId,
+        target: emptyId,
+        type: "workflow",
+        sourceHandle: "bottom",
+        data: {
+          type: "WorkflowEdge",
+          disableMarker: true,
+        },
+      });
+      edges.push({
+        id: `${falseId}=>${emptyId}`,
+        source: falseId,
+        target: emptyId,
+        type: "workflow",
+        sourceHandle: "bottom",
+        data: {
+          type: "WorkflowEdge",
+          disableMarker: true,
+        },
+      });
+
+      nodeTypeProps = {
+        type: JourneyNodeType.SegmentSplitNode,
+        name: node.name ?? "",
+        segmentId: node.variant.segment,
+        trueLabelNodeId: trueId,
+        falseLabelNodeId: falseId,
+      };
+      break;
+    }
+    default:
+      // FIXME
+      throw new Error("Unimplemented node type");
+  }
+
+  const journeyNode: Node<JourneyNodeProps> = {
+    id: node.id,
+    position: placeholderNodePosition,
+    type: "journey",
+    data: {
+      type: "JourneyNode",
+      nodeTypeProps,
+    },
+  };
+  return {
+    journeyNode,
+    nonJourneyNodes,
+    edges,
+  };
+}
+
+// FIXME reuse in store
 export function newStateFromNodes({
   source,
   target,
   nodes,
+  existingNodes,
   edges,
-}: AddNodesParams): {
+  existingEdges,
+}: AddNodesParams & {
+  existingNodes: Node<NodeData>[];
+  existingEdges: Edge<EdgeData>[];
+}): {
   edges: Edge<EdgeData>[];
   nodes: Node<NonJourneyNodeData>[];
-  journeyNodesIndex: Record<string, number>;
-} {}
+} {
+  const newEdges = existingEdges
+    .filter((e) => !(e.source === source && e.target === target))
+    .concat(edges);
+
+  const newNodes = layoutNodes(existingNodes.concat(nodes), newEdges);
+
+  return {
+    edges: newEdges,
+    nodes: newNodes,
+  };
+}
 
 interface EdgeIntent {
   parentId: string;
   type: "placeholder" | "workflow";
+}
+
+export function journeyToStateV2(
+  journey: JourneyResource
+): JourneyStateForResource {
+  const journeyNodes: Node<NodeData>[] = [];
+  const journeyEdges: Edge<EdgeData>[] = [];
+
+  const journeyNodesIndex = buildNodesIndex(journeyNodes);
+
+  return {
+    journeyName: journey.name,
+    journeyNodes,
+    journeyEdges,
+    journeyNodesIndex,
+  };
 }
 
 export function journeyToState(
