@@ -6,7 +6,9 @@ import {
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
   DFRequestContext,
+  EntryNode,
   EphemeralRequestStatus,
+  ExitNode,
   JourneyNodeType,
   JourneyResource,
   MessageTemplateResource,
@@ -20,6 +22,7 @@ import {
   SubscriptionGroupResource,
   UserPropertyDefinition,
   UserPropertyResource,
+  WaitForNode,
   WorkspaceMemberResource,
   WorkspaceResource,
   WriteKeyResource,
@@ -247,15 +250,17 @@ export interface JourneyState {
   journeyUpdateRequest: EphemeralRequestStatus<Error>;
 }
 
+export interface AddNodesParams {
+  source: string;
+  target: string;
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+}
+
 export interface JourneyContent extends JourneyState {
   setDraggedComponentType: (t: JourneyNodeType | null) => void;
   setSelectedNodeId: (t: string | null) => void;
-  addNodes: (params: {
-    source: string;
-    target: string;
-    nodes: Node<NodeData>[];
-    edges: Edge[];
-  }) => void;
+  addNodes: (params: AddNodesParams) => void;
   setEdges: (changes: EdgeChange[]) => void;
   setNodes: (changes: NodeChange[]) => void;
   deleteJourneyNode: (nodeId: string) => void;
@@ -327,6 +332,14 @@ export type NodeTypeProps =
   | SegmentSplitNodeProps
   | WaitForNodeProps;
 
+export type JourneyNodePairing =
+  | [EntryNodeProps, EntryNode]
+  | [ExitNodeProps, ExitNode]
+  | [MessageNodeProps, SegmentNode]
+  | [DelayNodeProps, SegmentNode]
+  | [SegmentSplitNodeProps, SegmentNode]
+  | [WaitForNodeProps, WaitForNode];
+
 export interface JourneyNodeProps {
   type: "JourneyNode";
   nodeTypeProps: NodeTypeProps;
@@ -341,7 +354,9 @@ export interface LabelNodeProps {
   title: string;
 }
 
-export type NodeData = JourneyNodeProps | LabelNodeProps | EmptyNodeProps;
+export type NonJourneyNodeData = LabelNodeProps | EmptyNodeProps;
+
+export type NodeData = JourneyNodeProps | NonJourneyNodeData;
 
 export interface WorkflowEdgeProps {
   type: "WorkflowEdge";

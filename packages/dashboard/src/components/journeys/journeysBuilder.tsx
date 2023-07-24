@@ -31,38 +31,18 @@ import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
 import defaultNodeTypeProps from "./nodeTypes/defaultNodeTypeProps";
 import Sidebar from "./sidebar";
-import { WAIT_FOR_SATISFY_LABEL, waitForTimeoutLabel } from "./store";
+import {
+  dualNodeNonJourneyNodes,
+  edgesForJourneyNode,
+  WAIT_FOR_SATISFY_LABEL,
+  waitForTimeoutLabel,
+} from "./store";
 
 const proOptions: ProOptions = { account: "paid-pro", hideAttribution: true };
 
 const handleDragOver: DragEventHandler<HTMLDivElement> = (e) => {
   e.preventDefault();
 };
-
-function buildNewSingleNodeConnection({
-  source,
-  target,
-  newNodeId,
-}: {
-  source: string;
-  target: string;
-  newNodeId: string;
-}): Edge<EdgeData>[] {
-  return [
-    {
-      id: `${newNodeId}->${target}`,
-      source: newNodeId,
-      target,
-      type: "workflow",
-    },
-    {
-      id: `${source}->${newNodeId}`,
-      source,
-      target: newNodeId,
-      type: "workflow",
-    },
-  ];
-}
 
 // this function adds a new node and connects it to the source node
 function createConnections({
@@ -78,7 +58,7 @@ function createConnections({
   source: string;
   target: string;
 }) {
-  // create an incremental ID based on the number of elements already in the graph
+  // TODO create an incremental ID based on the number of elements already in the graph
   const newTargetId = uuid();
 
   const newJourneyNode: Node<JourneyNodeProps> = {
@@ -100,87 +80,25 @@ function createConnections({
       const falseId = nodeTypeProps.falseLabelNodeId;
       const emptyId = uuid();
 
-      newNodes = newNodes.concat([
-        {
-          id: trueId,
-          data: {
-            type: "LabelNode",
-            title: "true",
-          },
-          position: { x: 0, y: 0 },
-          type: "label",
-        },
-        {
-          id: falseId,
-          data: {
-            type: "LabelNode",
-            title: "false",
-          },
-          position: { x: 0, y: 0 },
-          type: "label",
-        },
-        {
-          id: emptyId,
-          data: {
-            type: "EmptyNode",
-          },
-          position: { x: 0, y: 0 },
-          type: "empty",
-        },
-      ]);
+      newNodes = newNodes.concat(
+        dualNodeNonJourneyNodes({
+          emptyId,
+          leftId: trueId,
+          rightId: falseId,
+          leftLabel: "true",
+          rightLabel: "false",
+        })
+      );
 
-      newEdges = [
-        {
-          id: `${source}->${newJourneyNode.id}`,
-          source,
-          sourceHandle: "bottom",
-          target: newJourneyNode.id,
-          type: "workflow",
-        },
-        {
-          id: `${newJourneyNode.id}->${trueId}`,
-          source: newJourneyNode.id,
-          sourceHandle: "bottom",
-          target: trueId,
-          type: "placeholder",
-        },
-        {
-          id: `${newJourneyNode.id}->${falseId}`,
-          source: newJourneyNode.id,
-          sourceHandle: "bottom",
-          target: falseId,
-          type: "placeholder",
-        },
-        {
-          id: `${trueId}->${emptyId}`,
-          source: trueId,
-          target: emptyId,
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: true,
-          },
-          type: "workflow",
-        },
-        {
-          id: `${falseId}->${emptyId}`,
-          source: falseId,
-          target: emptyId,
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: true,
-          },
-          type: "workflow",
-        },
-        {
-          id: `${emptyId}->${target}`,
-          source: emptyId,
-          sourceHandle: "bottom",
-          target,
-          type: "workflow",
-        },
-      ];
+      newEdges = edgesForJourneyNode({
+        type: nodeTypeProps.type,
+        nodeId: newTargetId,
+        emptyId,
+        leftId: trueId,
+        rightId: falseId,
+        source,
+        target,
+      });
       break;
     }
     case JourneyNodeType.WaitForNode: {
@@ -193,103 +111,42 @@ function createConnections({
       const { timeoutLabelNodeId } = nodeTypeProps;
       const emptyId = uuid();
 
-      newNodes = newNodes.concat([
-        {
-          id: segmentChildLabelNodeId,
-          data: {
-            type: "LabelNode",
-            title: WAIT_FOR_SATISFY_LABEL,
-          },
-          position: { x: 0, y: 0 },
-          type: "label",
-        },
-        {
-          id: timeoutLabelNodeId,
-          data: {
-            type: "LabelNode",
-            title: waitForTimeoutLabel(nodeTypeProps.timeoutSeconds),
-          },
-          position: { x: 0, y: 0 },
-          type: "label",
-        },
-        {
-          id: emptyId,
-          data: {
-            type: "EmptyNode",
-          },
-          position: { x: 0, y: 0 },
-          type: "empty",
-        },
-      ]);
+      newNodes = newNodes.concat(
+        dualNodeNonJourneyNodes({
+          emptyId,
+          leftId: segmentChildLabelNodeId,
+          rightId: timeoutLabelNodeId,
+          leftLabel: WAIT_FOR_SATISFY_LABEL,
+          rightLabel: waitForTimeoutLabel(nodeTypeProps.timeoutSeconds),
+        })
+      );
 
-      newEdges = [
-        {
-          id: `${source}->${newJourneyNode.id}`,
-          source,
-          target: newJourneyNode.id,
-          sourceHandle: "bottom",
-          type: "workflow",
-        },
-        {
-          id: `${newJourneyNode.id}->${segmentChildLabelNodeId}`,
-          source: newJourneyNode.id,
-          target: segmentChildLabelNodeId,
-          sourceHandle: "bottom",
-          type: "placeholder",
-        },
-        {
-          id: `${newJourneyNode.id}->${timeoutLabelNodeId}`,
-          source: newJourneyNode.id,
-          target: timeoutLabelNodeId,
-          sourceHandle: "bottom",
-          type: "placeholder",
-        },
-        {
-          id: `${segmentChildLabelNodeId}->${emptyId}`,
-          source: segmentChildLabelNodeId,
-          target: emptyId,
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: true,
-          },
-          type: "workflow",
-        },
-        {
-          id: `${timeoutLabelNodeId}->${emptyId}`,
-          source: timeoutLabelNodeId,
-          target: emptyId,
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: true,
-          },
-          type: "workflow",
-        },
-        {
-          id: `${emptyId}->${target}`,
-          source: emptyId,
-          target,
-          sourceHandle: "bottom",
-          type: "workflow",
-        },
-      ];
-
+      newEdges = edgesForJourneyNode({
+        type: nodeTypeProps.type,
+        nodeId: newTargetId,
+        emptyId,
+        leftId: segmentChildLabelNodeId,
+        rightId: timeoutLabelNodeId,
+        source,
+        target,
+      });
       break;
     }
     case JourneyNodeType.DelayNode: {
-      newEdges = buildNewSingleNodeConnection({
+      newEdges = edgesForJourneyNode({
+        type: nodeTypeProps.type,
+        nodeId: newTargetId,
         source,
         target,
-        newNodeId: newJourneyNode.id,
       });
       break;
     }
     case JourneyNodeType.MessageNode: {
-      newEdges = buildNewSingleNodeConnection({
+      newEdges = edgesForJourneyNode({
+        type: nodeTypeProps.type,
+        nodeId: newTargetId,
         source,
         target,
-        newNodeId: newJourneyNode.id,
       });
       break;
     }

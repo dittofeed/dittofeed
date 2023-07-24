@@ -1,4 +1,9 @@
-import { JourneyBodyNode, JourneyDefinition, JourneyNodeType } from "./types";
+import {
+  JourneyBodyNode,
+  JourneyDefinition,
+  JourneyNode,
+  JourneyNodeType,
+} from "./types";
 
 function nodeToSegments(node: JourneyBodyNode): string[] {
   switch (node.type) {
@@ -35,4 +40,20 @@ export function getSubscribedSegments(
     }
   }
   return subscribedSegments;
+}
+
+export function getJourneyNode(
+  definition: JourneyDefinition,
+  nodeId: string
+): JourneyNode | null {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+  if (nodeId === JourneyNodeType.EntryNode) {
+    return definition.entryNode;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+  if (nodeId === JourneyNodeType.ExitNode) {
+    return definition.exitNode;
+  }
+  const node = definition.nodes.find((n) => n.id === nodeId) ?? null;
+  return node;
 }
