@@ -73,7 +73,6 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         type: CompletionStatus.Successful,
         value: [journeyResource],
       };
-      // const stateFromJourney = journeyToState(journeyResource);
       const stateFromJourney = journeyToState(journeyResource);
       Object.assign(serverInitialState, stateFromJourney);
     } else {
