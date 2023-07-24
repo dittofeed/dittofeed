@@ -46,9 +46,11 @@ export function getJourneyNode(
   definition: JourneyDefinition,
   nodeId: string
 ): JourneyNode | null {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   if (nodeId === JourneyNodeType.EntryNode) {
     return definition.entryNode;
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   if (nodeId === JourneyNodeType.ExitNode) {
     return definition.exitNode;
   }
