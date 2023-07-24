@@ -399,19 +399,19 @@ function dualNodeEdges({
   leftId,
   rightId,
   emptyId,
-  node: n,
+  nodeId,
   source,
   target,
 }: DualNodeParams & {
   source: string;
   target: string;
-  node: JourneyBodyNode;
+  nodeId: string;
 }): Edge<EdgeData>[] {
   return [
     {
-      id: `${source}=>${n.id}`,
+      id: `${source}=>${nodeId}`,
       source,
-      target: n.id,
+      target: nodeId,
       type: "workflow",
       sourceHandle: "bottom",
       data: {
@@ -420,15 +420,15 @@ function dualNodeEdges({
       },
     },
     {
-      id: `${n.id}=>${leftId}`,
-      source: n.id,
+      id: `${nodeId}=>${leftId}`,
+      source: nodeId,
       target: leftId,
       type: "placeholder",
       sourceHandle: "bottom",
     },
     {
-      id: `${n.id}=>${rightId}`,
-      source: n.id,
+      id: `${nodeId}=>${rightId}`,
+      source: nodeId,
       target: rightId,
       type: "placeholder",
       sourceHandle: "bottom",
@@ -469,11 +469,62 @@ function dualNodeEdges({
   ];
 }
 
-// export function edgesForJourneyNode({type, source, target}: {type: JourneyNodeType
-// , source: string, target: string}): Edge<EdgeData>[] {
-//   switch (type) {
+export function edgesForJourneyNode({
+  type,
+  nodeId,
+  source,
+  target,
+}: {
+  type: JourneyNodeType;
+  nodeId: string;
+  source: string;
+  target: string;
+}): Edge<EdgeData>[] {
+  if (
+    type === JourneyNodeType.SegmentSplitNode ||
+    type === JourneyNodeType.WaitForNode
+  ) {
+    return dualNodeEdges({
+      source,
+      target,
+      nodeId,
+      leftId: uuid(),
+      rightId: uuid(),
+      emptyId: uuid(),
+    });
+  }
+  if (
+    type === JourneyNodeType.RateLimitNode ||
+    type === JourneyNodeType.ExperimentSplitNode ||
+    type === JourneyNodeType.EntryNode ||
+    type === JourneyNodeType.ExitNode
+  ) {
+    throw new Error(`Unimplemented node type ${type}`);
+  }
 
-// }
+  return [
+    {
+      id: `${source}=>${nodeId}`,
+      source,
+      target: nodeId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+      },
+    },
+    {
+      id: `${nodeId}=>${target}`,
+      source: nodeId,
+      target,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+      },
+    },
+  ];
+}
 
 // would ideally be initialized from partial of journey node or optional in some way so that be reused with create connection logic
 export function journeyNodeToState(
