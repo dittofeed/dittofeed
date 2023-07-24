@@ -535,7 +535,6 @@ export function edgesForJourneyNode({
   ];
 }
 
-// FIXME would ideally be initialized from partial of journey node or optional in some way so that be reused with create connection logic
 export function journeyNodeToState(
   node: JourneyNode,
   source: string,
