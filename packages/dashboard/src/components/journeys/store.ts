@@ -1,3 +1,4 @@
+import { getJourneyNode } from "isomorphic-lib/src/journeys";
 import {
   CompletionStatus,
   DelayNode,
@@ -48,7 +49,6 @@ import findNode from "./findNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
 import { defaultSegmentSplitName } from "./nodeTypes/defaultNodeTypeProps";
-import { getJourneyNode } from "isomorphic-lib/src/journeys";
 
 type JourneyStateForResource = Pick<
   JourneyState,
@@ -547,6 +547,7 @@ export function journeyNodeToState(
       break;
     }
     case JourneyNodeType.WaitForNode: {
+      const emptyId = uuid();
       const segmentChild = node.segmentChildren[0];
       if (!segmentChild) {
         throw new Error("Malformed journey, WaitForNode has no children.");
@@ -556,7 +557,7 @@ export function journeyNodeToState(
       const timeoutLabelNodeId = uuid();
 
       pushDualEdge({
-        emptyId: timeoutLabelNodeId,
+        emptyId,
         leftId: segmentChildLabelNodeId,
         rightId: timeoutLabelNodeId,
         leftLabel: WAIT_FOR_SATISFY_LABEL,
@@ -597,7 +598,6 @@ export function journeyNodeToState(
   };
 }
 
-// FIXME reuse in store
 export function newStateFromNodes({
   source,
   target,
@@ -610,13 +610,13 @@ export function newStateFromNodes({
   existingEdges: Edge<EdgeData>[];
 }): {
   edges: Edge<EdgeData>[];
-  nodes: Node<NonJourneyNodeData>[];
+  nodes: Node<NodeData>[];
 } {
   const newEdges = existingEdges
     .filter((e) => !(e.source === source && e.target === target))
     .concat(edges);
 
-  const newNodes = layoutNodes(existingNodes.concat(nodes), newEdges);
+  const newNodes = existingNodes.concat(nodes);
 
   return {
     edges: newEdges,
@@ -672,7 +672,7 @@ export function journeyToStateV2(
   ];
 
   const firstBodyNode = journey.definition.nodes.find(
-    (n) => (n.id = journey.definition.entryNode.child)
+    (n) => n.id === journey.definition.entryNode.child
   );
   if (!firstBodyNode) {
     throw new Error("Malformed journey, missing first body node.");
@@ -681,7 +681,9 @@ export function journeyToStateV2(
   let remainingNodes: [JourneyNode, string][] = [
     [firstBodyNode, JourneyNodeType.EntryNode],
   ];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [node, source] = remainingNodes.pop()!;
 
     if (node.type === JourneyNodeType.ExitNode) {
@@ -777,12 +779,13 @@ export function journeyToStateV2(
         }
         newRemainingNodes = [];
         newRemainingNodes.push([segmentNode, uiSegmentChild.labelNodeId]);
-        newRemainingNodes.push([segmentNode, nodeTypeProps.timeoutLabelNodeId]);
+        newRemainingNodes.push([timeoutNode, nodeTypeProps.timeoutLabelNodeId]);
         break;
       }
-      default:
-        // FIXME
-        throw new Error("Unimplemented node type");
+      case JourneyNodeType.EntryNode:
+        throw new Error("Entry node should already be handled");
+      case JourneyNodeType.ExitNode:
+        throw new Error("Exit node should already be handled");
     }
     remainingNodes = remainingNodes.concat(newRemainingNodes);
 
@@ -809,11 +812,9 @@ export function journeyToStateV2(
 
   const journeyNodesIndex = buildNodesIndex(journeyNodes);
 
-  console.log("journeyNodes", journeyNodes);
-  console.log("journeyEdges", journeyEdges);
   return {
     journeyName: journey.name,
-    journeyNodes,
+    journeyNodes: layoutNodes(journeyNodes, journeyEdges),
     journeyEdges,
     journeyNodesIndex,
   };
@@ -1081,6 +1082,7 @@ export function journeyToState(
       });
     }
   });
+
   journeyNodes = layoutNodes(journeyNodes, journeyEdges);
 
   const journeyNodesIndex: Record<string, number> =
@@ -1245,13 +1247,16 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     }),
   addNodes: ({ source, target, nodes, edges }) =>
     set((state) => {
-      state.journeyEdges = state.journeyEdges
-        .filter((e) => !(e.source === source && e.target === target))
-        .concat(edges);
-      state.journeyNodes = layoutNodes(
-        state.journeyNodes.concat(nodes),
-        state.journeyEdges
-      );
+      const newState = newStateFromNodes({
+        source,
+        target,
+        nodes,
+        edges,
+        existingNodes: state.journeyNodes,
+        existingEdges: state.journeyEdges,
+      });
+      state.journeyNodes = layoutNodes(newState.nodes, newState.edges);
+      state.journeyEdges = newState.edges;
       state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
     }),
   setDraggedComponentType: (t) =>
