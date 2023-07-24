@@ -349,7 +349,11 @@ interface StateFromJourneyNode {
 }
 
 // would ideally be initialized from partial of journey node or optional in some way so that be reused with create connection logic
-export function journeyNodeToState(node: JourneyNode): StateFromJourneyNode {
+export function journeyNodeToState(
+  node: JourneyNode,
+  source: string,
+  target: string
+): StateFromJourneyNode {
   if (
     node.type === JourneyNodeType.EntryNode ||
     node.type === JourneyNodeType.ExitNode
@@ -398,6 +402,7 @@ export function journeyNodeToState(node: JourneyNode): StateFromJourneyNode {
         subscriptionGroupId: node.subscriptionGroupId,
       };
       break;
+    // FIXME incorporate source and target
     case JourneyNodeType.SegmentSplitNode: {
       const trueId = uuid();
       const falseId = uuid();
@@ -431,6 +436,17 @@ export function journeyNodeToState(node: JourneyNode): StateFromJourneyNode {
       });
 
       edges.push({
+        id: `${source}=>${node.id}`,
+        source,
+        target: node.id,
+        type: "workflow",
+        sourceHandle: "bottom",
+        data: {
+          type: "WorkflowEdge",
+          disableMarker: true,
+        },
+      });
+      edges.push({
         id: `${node.id}=>${trueId}`,
         source: node.id,
         target: trueId,
@@ -459,6 +475,17 @@ export function journeyNodeToState(node: JourneyNode): StateFromJourneyNode {
         id: `${falseId}=>${emptyId}`,
         source: falseId,
         target: emptyId,
+        type: "workflow",
+        sourceHandle: "bottom",
+        data: {
+          type: "WorkflowEdge",
+          disableMarker: true,
+        },
+      });
+      edges.push({
+        id: `${emptyId}=>${target}`,
+        source: emptyId,
+        target,
         type: "workflow",
         sourceHandle: "bottom",
         data: {
@@ -590,7 +617,13 @@ export function journeyToStateV2(
       }
       continue;
     }
-    const state = journeyNodeToState(node);
+
+    const target = journeyEdges.find((e) => e.source === source)?.target;
+
+    if (!target) {
+      throw new Error("Malformed journey, missing target.");
+    }
+    const state = journeyNodeToState(node, source, target);
 
     let newRemainingNodes: [JourneyNode, string][];
     const { nodeTypeProps } = state.journeyNode.data;
@@ -649,15 +682,6 @@ export function journeyToStateV2(
     console.log("newRemainingNodes", newRemainingNodes);
     remainingNodes = remainingNodes.concat(newRemainingNodes);
 
-    // FIXME is this right?
-    const target = state.edges
-      .concat(journeyEdges)
-      .find((e) => e.source === source)?.target;
-
-    if (!target) {
-      throw new Error("Malformed journey, missing target.");
-    }
-
     const newNodes: Node<NodeData>[] = [
       state.journeyNode,
       ...state.nonJourneyNodes,
@@ -682,6 +706,8 @@ export function journeyToStateV2(
 
   const journeyNodesIndex = buildNodesIndex(journeyNodes);
 
+  console.log("journeyNodes", journeyNodes);
+  console.log("journeyEdges", journeyEdges);
   return {
     journeyName: journey.name,
     journeyNodes,
