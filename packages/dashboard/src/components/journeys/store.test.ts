@@ -63,7 +63,7 @@ describe("journeyToState", () => {
             timeoutSeconds: 604800,
             segmentChildren: [
               {
-                id: "80d43a6a-3ebc-4296-8ddd-abcdf92df174",
+                id: "ExitNode",
                 segmentId: "146ce2e1-fdbc-4bc6-98ea-51ec38728cb2",
               },
             ],
@@ -74,15 +74,15 @@ describe("journeyToState", () => {
             variant: {
               type: SegmentSplitVariantType.Boolean,
               segment: "84daa056-f768-4f5a-aad3-5afe1567df18",
-              trueChild: "ed8fa768-af64-4338-aa31-44824420c065",
-              falseChild: "0dbab64c-c451-44d3-af28-33678cc86895",
+              trueChild: "2c2efe28-d925-4c1c-a652-633a05f67d19",
+              falseChild: "5bde6032-0131-44a5-bcc5-6852d34a7940",
             },
           },
           {
-            id: "0dbab64c-c451-44d3-af28-33678cc86895",
-            name: "Message 3",
+            id: "5bde6032-0131-44a5-bcc5-6852d34a7940",
+            name: "Onboarding Reminder 2a",
             type: JourneyNodeType.MessageNode,
-            child: "80d43a6a-3ebc-4296-8ddd-abcdf92df174",
+            child: "ExitNode",
             variant: {
               type: ChannelType.Email,
               templateId: "9227c35b-2a05-4c04-a703-ddec48006b01",
@@ -90,22 +90,10 @@ describe("journeyToState", () => {
             subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
           },
           {
-            id: "80d43a6a-3ebc-4296-8ddd-abcdf92df174",
-            type: JourneyNodeType.WaitForNode,
-            timeoutChild: "ExitNode",
-            timeoutSeconds: 604800,
-            segmentChildren: [
-              {
-                id: "ExitNode",
-                segmentId: "146ce2e1-fdbc-4bc6-98ea-51ec38728cb2",
-              },
-            ],
-          },
-          {
-            id: "ed8fa768-af64-4338-aa31-44824420c065",
-            name: "Message 2",
+            id: "2c2efe28-d925-4c1c-a652-633a05f67d19",
+            name: "Onboarding Reminder 2b",
             type: JourneyNodeType.MessageNode,
-            child: "80d43a6a-3ebc-4296-8ddd-abcdf92df174",
+            child: "ExitNode",
             variant: {
               type: ChannelType.Email,
               templateId: "2dc8bf8b-92db-4e37-8c0d-47031647d99c",
@@ -122,6 +110,20 @@ describe("journeyToState", () => {
           segment: "d033db9c-4572-4f6c-bb7a-182598b1dde8",
         },
       };
+
+      journeyId = uuid();
+      workspaceId = uuid();
+      journeyResource = {
+        id: journeyId,
+        name: "My Journey",
+        status: "NotStarted",
+        definition,
+        workspaceId,
+      };
+    });
+
+    it("produces the right ui state", () => {
+      const uiState = journeyToState(journeyResource);
     });
   });
   describe("when journey has split then delay", () => {
