@@ -2,6 +2,7 @@ import {
   ChannelType,
   CompletionStatus,
   DelayVariantType,
+  JourneyDefinition,
   JourneyNodeType,
   JourneyResource,
   SegmentSplitVariantType,
@@ -16,6 +17,113 @@ describe("journeyToState", () => {
   let journeyId: string;
   let workspaceId: string;
 
+  describe("when journey has nested wait for's", () => {
+    beforeEach(() => {
+      const definition: JourneyDefinition = {
+        nodes: [
+          {
+            id: "c0794f62-24a8-4c64-acc1-d7866904b5bb",
+            type: JourneyNodeType.WaitForNode,
+            timeoutChild: "9503fc2f-eb34-4e25-893b-89221b98ba50",
+            timeoutSeconds: 604800,
+            segmentChildren: [
+              {
+                id: "ExitNode",
+                segmentId: "d40d5b69-7c16-4cba-8578-6268936d0ca4",
+              },
+            ],
+          },
+          {
+            id: "9503fc2f-eb34-4e25-893b-89221b98ba50",
+            name: "Code Deployment Reminder 1a",
+            type: JourneyNodeType.MessageNode,
+            child: "b6cffc04-7180-45af-8e7e-83c137bb4d2b",
+            variant: {
+              type: ChannelType.Email,
+              templateId: "4bad6541-aabf-46ce-a51e-0702773b8397",
+            },
+            subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
+          },
+          {
+            id: "b6cffc04-7180-45af-8e7e-83c137bb4d2b",
+            type: JourneyNodeType.WaitForNode,
+            timeoutChild: "ExitNode",
+            timeoutSeconds: 604800,
+            segmentChildren: [
+              {
+                id: "d8baec24-6d5b-4b93-811c-f61cc220cf92",
+                segmentId: "d40d5b69-7c16-4cba-8578-6268936d0ca4",
+              },
+            ],
+          },
+          {
+            id: "d8baec24-6d5b-4b93-811c-f61cc220cf92",
+            type: JourneyNodeType.WaitForNode,
+            timeoutChild: "0612abc1-dc54-407f-a603-01d396ddfdb2",
+            timeoutSeconds: 604800,
+            segmentChildren: [
+              {
+                id: "80d43a6a-3ebc-4296-8ddd-abcdf92df174",
+                segmentId: "146ce2e1-fdbc-4bc6-98ea-51ec38728cb2",
+              },
+            ],
+          },
+          {
+            id: "0612abc1-dc54-407f-a603-01d396ddfdb2",
+            type: JourneyNodeType.SegmentSplitNode,
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: "84daa056-f768-4f5a-aad3-5afe1567df18",
+              trueChild: "ed8fa768-af64-4338-aa31-44824420c065",
+              falseChild: "0dbab64c-c451-44d3-af28-33678cc86895",
+            },
+          },
+          {
+            id: "0dbab64c-c451-44d3-af28-33678cc86895",
+            name: "Message 3",
+            type: JourneyNodeType.MessageNode,
+            child: "80d43a6a-3ebc-4296-8ddd-abcdf92df174",
+            variant: {
+              type: ChannelType.Email,
+              templateId: "9227c35b-2a05-4c04-a703-ddec48006b01",
+            },
+            subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
+          },
+          {
+            id: "80d43a6a-3ebc-4296-8ddd-abcdf92df174",
+            type: JourneyNodeType.WaitForNode,
+            timeoutChild: "ExitNode",
+            timeoutSeconds: 604800,
+            segmentChildren: [
+              {
+                id: "ExitNode",
+                segmentId: "146ce2e1-fdbc-4bc6-98ea-51ec38728cb2",
+              },
+            ],
+          },
+          {
+            id: "ed8fa768-af64-4338-aa31-44824420c065",
+            name: "Message 2",
+            type: JourneyNodeType.MessageNode,
+            child: "80d43a6a-3ebc-4296-8ddd-abcdf92df174",
+            variant: {
+              type: ChannelType.Email,
+              templateId: "2dc8bf8b-92db-4e37-8c0d-47031647d99c",
+            },
+            subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
+          },
+        ],
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        entryNode: {
+          type: JourneyNodeType.EntryNode,
+          child: "c0794f62-24a8-4c64-acc1-d7866904b5bb",
+          segment: "d033db9c-4572-4f6c-bb7a-182598b1dde8",
+        },
+      };
+    });
+  });
   describe("when journey has split then delay", () => {
     beforeEach(() => {
       journeyId = uuid();
