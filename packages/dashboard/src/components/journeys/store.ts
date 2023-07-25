@@ -938,7 +938,7 @@ export function findDirectChildren(
  * @param edges
  * @returns
  */
-function findAllAncestors(
+export function findAllAncestors(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
 ): Map<string, number> {

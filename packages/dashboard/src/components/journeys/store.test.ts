@@ -9,12 +9,37 @@ import {
 } from "isomorphic-lib/src/types";
 import { v4 as uuid } from "uuid";
 
-import { JourneyState } from "../../lib/types";
+import { JourneyContent, JourneyState } from "../../lib/types";
 import {
   findDirectChildren,
   journeyDefinitionFromState,
   journeyToState,
 } from "./store";
+
+export function findAllAncestorsDepths(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): Map<string, number[]> {
+  const children = new Map<string, number[]>();
+  const unprocessed = [{ node: parentId, depth: 0 }];
+
+  while (unprocessed.length) {
+    const next = unprocessed.pop();
+    if (!next) {
+      throw new Error("next should exist");
+    }
+
+    const directChildren = findDirectChildren(next.node, edges);
+
+    for (const child of directChildren) {
+      const childDepths = children.get(child) ?? [];
+      childDepths.push(next.depth + 1);
+      children.set(child, childDepths);
+      unprocessed.push({ node: child, depth: next.depth + 1 });
+    }
+  }
+  return children;
+}
 
 describe("journeyToState", () => {
   let journeyResource: JourneyResource;
@@ -143,6 +168,13 @@ describe("journeyToState", () => {
       expect(
         findDirectChildren(JourneyNodeType.EntryNode, uiState.journeyEdges)
       ).toEqual(["wait-for-first-deployment-1"]);
+      console.log("uiState.journeyEdges", uiState.journeyEdges);
+      expect(
+        findAllAncestorsDepths(
+          "wait-for-first-deployment-1",
+          uiState.journeyEdges
+        ).get("wait-for-first-deployment-2")
+      ).toEqual([3, 3]);
     });
   });
   describe("when journey has split then delay", () => {
