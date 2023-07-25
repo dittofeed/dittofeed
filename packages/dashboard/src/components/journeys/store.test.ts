@@ -22,22 +22,22 @@ describe("journeyToState", () => {
       const definition: JourneyDefinition = {
         nodes: [
           {
-            id: "c0794f62-24a8-4c64-acc1-d7866904b5bb",
+            id: "wait-for-first-deployment-1",
             type: JourneyNodeType.WaitForNode,
-            timeoutChild: "9503fc2f-eb34-4e25-893b-89221b98ba50",
+            timeoutChild: "code-deployment-reminder-1a",
             timeoutSeconds: 604800,
             segmentChildren: [
               {
-                id: "ExitNode",
-                segmentId: "d40d5b69-7c16-4cba-8578-6268936d0ca4",
+                id: "wait-for-first-deployment-2",
+                segmentId: "deployment-segment-id",
               },
             ],
           },
           {
-            id: "9503fc2f-eb34-4e25-893b-89221b98ba50",
+            id: "code-deployment-reminder-1a",
             name: "Code Deployment Reminder 1a",
             type: JourneyNodeType.MessageNode,
-            child: "b6cffc04-7180-45af-8e7e-83c137bb4d2b",
+            child: "wait-for-first-deployment-2",
             variant: {
               type: ChannelType.Email,
               templateId: "4bad6541-aabf-46ce-a51e-0702773b8397",
@@ -45,44 +45,44 @@ describe("journeyToState", () => {
             subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
           },
           {
-            id: "b6cffc04-7180-45af-8e7e-83c137bb4d2b",
+            id: "wait-for-first-deployment-2",
             type: JourneyNodeType.WaitForNode,
             timeoutChild: "ExitNode",
             timeoutSeconds: 604800,
             segmentChildren: [
               {
-                id: "d8baec24-6d5b-4b93-811c-f61cc220cf92",
-                segmentId: "d40d5b69-7c16-4cba-8578-6268936d0ca4",
+                id: "wait-for-onboarding-1",
+                segmentId: "deployment-segment-id",
               },
             ],
           },
           {
-            id: "d8baec24-6d5b-4b93-811c-f61cc220cf92",
+            id: "wait-for-onboarding-1",
             type: JourneyNodeType.WaitForNode,
-            timeoutChild: "0612abc1-dc54-407f-a603-01d396ddfdb2",
+            timeoutChild: "onboarding-segment-split-received-a",
             timeoutSeconds: 604800,
             segmentChildren: [
               {
-                id: "ExitNode",
-                segmentId: "146ce2e1-fdbc-4bc6-98ea-51ec38728cb2",
+                id: "terminal-wait-for-node",
+                segmentId: "onboarding-segment-id",
               },
             ],
           },
           {
-            id: "0612abc1-dc54-407f-a603-01d396ddfdb2",
+            id: "onboarding-segment-split-received-a",
             type: JourneyNodeType.SegmentSplitNode,
             variant: {
               type: SegmentSplitVariantType.Boolean,
               segment: "84daa056-f768-4f5a-aad3-5afe1567df18",
-              trueChild: "2c2efe28-d925-4c1c-a652-633a05f67d19",
-              falseChild: "5bde6032-0131-44a5-bcc5-6852d34a7940",
+              trueChild: "onboarding-reminder-2b",
+              falseChild: "onboarding-reminder-2a",
             },
           },
           {
-            id: "5bde6032-0131-44a5-bcc5-6852d34a7940",
+            id: "onboarding-reminder-2a",
             name: "Onboarding Reminder 2a",
             type: JourneyNodeType.MessageNode,
-            child: "ExitNode",
+            child: "terminal-wait-for-node",
             variant: {
               type: ChannelType.Email,
               templateId: "9227c35b-2a05-4c04-a703-ddec48006b01",
@@ -90,15 +90,27 @@ describe("journeyToState", () => {
             subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
           },
           {
-            id: "2c2efe28-d925-4c1c-a652-633a05f67d19",
+            id: "onboarding-reminder-2b",
             name: "Onboarding Reminder 2b",
             type: JourneyNodeType.MessageNode,
-            child: "ExitNode",
+            child: "terminal-wait-for-node",
             variant: {
               type: ChannelType.Email,
               templateId: "2dc8bf8b-92db-4e37-8c0d-47031647d99c",
             },
             subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
+          },
+          {
+            id: "wait-for-onboarding-2",
+            type: JourneyNodeType.WaitForNode,
+            timeoutChild: "ExitNode",
+            timeoutSeconds: 604800,
+            segmentChildren: [
+              {
+                id: "ExitNode",
+                segmentId: "onboarding-segment-id",
+              },
+            ],
           },
         ],
         exitNode: {
@@ -106,8 +118,8 @@ describe("journeyToState", () => {
         },
         entryNode: {
           type: JourneyNodeType.EntryNode,
-          child: "c0794f62-24a8-4c64-acc1-d7866904b5bb",
-          segment: "d033db9c-4572-4f6c-bb7a-182598b1dde8",
+          child: "wait-for-first-deployment",
+          segment: "project-added-segment-id",
         },
       };
 
