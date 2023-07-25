@@ -58,7 +58,7 @@ export function getJourneyNode(
   return node;
 }
 
-export function getDirectChildren(
+export function findDirectChildren(
   nodeId: string,
   definition: JourneyDefinition
 ): Set<string> {
@@ -101,21 +101,25 @@ export function getDirectChildren(
   return children;
 }
 
-export function getDirectParents(
+export function findDirectParents(
   nodeId: string,
   definition: JourneyDefinition
 ): Set<string> {
   const parents = new Set<string>();
 
   // Iterate over all nodes in the journey definition
-  for (const node of definition.nodes) {
+  for (const node of [definition.entryNode, ...definition.nodes]) {
+    const id =
+      node.type === JourneyNodeType.EntryNode
+        ? JourneyNodeType.EntryNode
+        : node.id;
     // Get the direct children of the current node
-    const children = getDirectChildren(node.id, definition);
+    const children = findDirectChildren(id, definition);
 
     // Check if the specified node is a child of the current node
     if (children.has(nodeId)) {
       // If it is, add the current node to the set of direct parents
-      parents.add(node.id);
+      parents.add(id);
     }
   }
 

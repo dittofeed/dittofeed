@@ -1,3 +1,4 @@
+import { findDirectChildren } from "isomorphic-lib/src/journeys";
 import {
   ChannelType,
   CompletionStatus,
@@ -9,37 +10,8 @@ import {
 } from "isomorphic-lib/src/types";
 import { v4 as uuid } from "uuid";
 
-import { JourneyContent, JourneyState } from "../../lib/types";
-import {
-  findDirectChildren,
-  journeyDefinitionFromState,
-  journeyToState,
-} from "./store";
-
-export function findAllAncestorsDepths(
-  parentId: string,
-  edges: JourneyContent["journeyEdges"]
-): Map<string, number[]> {
-  const children = new Map<string, number[]>();
-  const unprocessed = [{ node: parentId, depth: 0 }];
-
-  while (unprocessed.length) {
-    const next = unprocessed.pop();
-    if (!next) {
-      throw new Error("next should exist");
-    }
-
-    const directChildren = findDirectChildren(next.node, edges);
-
-    for (const child of directChildren) {
-      const childDepths = children.get(child) ?? [];
-      childDepths.push(next.depth + 1);
-      children.set(child, childDepths);
-      unprocessed.push({ node: child, depth: next.depth + 1 });
-    }
-  }
-  return children;
-}
+import { JourneyState } from "../../lib/types";
+import { journeyDefinitionFromState, journeyToState } from "./store";
 
 describe("journeyToState", () => {
   let journeyResource: JourneyResource;
@@ -163,18 +135,36 @@ describe("journeyToState", () => {
       };
     });
 
-    it.only("produces the right ui state", () => {
+    it.only("produces the right ui state", async () => {
       const uiState = journeyToState(journeyResource);
+      console.log(
+        "uiState.edges",
+        JSON.stringify(uiState.journeyEdges, null, 2)
+      );
+      const result = await journeyDefinitionFromState({ state: uiState });
+      if (result.isErr()) {
+        throw new Error(JSON.stringify(result.error));
+      }
+
+      const definition = result.value;
+
+      expect(findDirectChildren(JourneyNodeType.EntryNode, definition)).toEqual(
+        new Set(["wait-for-first-deployment-1"])
+      );
       expect(
-        findDirectChildren(JourneyNodeType.EntryNode, uiState.journeyEdges)
-      ).toEqual(["wait-for-first-deployment-1"]);
-      // console.log("uiState.journeyEdges", uiState.journeyEdges);
+        findDirectChildren("wait-for-first-deployment-1", definition)
+      ).toEqual(
+        new Set(["code-deployment-reminder-1a", "wait-for-first-deployment-2"])
+      );
       expect(
-        findAllAncestorsDepths(
-          "wait-for-first-deployment-1",
-          uiState.journeyEdges
-        ).get("wait-for-first-deployment-2")
-      ).toEqual([3, 3]);
+        findDirectChildren("wait-for-first-deployment-2", definition)
+      ).toEqual(new Set([JourneyNodeType.ExitNode, "wait-for-onboarding-1"]));
+      expect(findDirectChildren("wait-for-onboarding-1", definition)).toEqual(
+        new Set([
+          "wait-for-onboarding-2",
+          "onboarding-segment-split-received-a",
+        ])
+      );
     });
   });
   describe("when journey has split then delay", () => {

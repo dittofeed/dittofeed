@@ -1,4 +1,8 @@
-import { getJourneyNode } from "isomorphic-lib/src/journeys";
+import {
+  findDirectChildren,
+  findDirectParents,
+  getJourneyNode,
+} from "isomorphic-lib/src/journeys";
 import {
   CompletionStatus,
   DelayNode,
@@ -52,6 +56,20 @@ type JourneyStateForResource = Pick<
   JourneyState,
   "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
 >;
+
+export function findDirectUiParents(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): string[] {
+  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
+}
+
+export function findDirectUiChildren(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): string[] {
+  return edges.flatMap((e) => (e.source === parentId ? e.target : []));
+}
 
 export const WAIT_FOR_SATISFY_LABEL = "In segment";
 
@@ -272,7 +290,9 @@ export function journeyDefinitionFromState({
     const nextNode = nextNodeId ? traverseUntilJourneyNode(nextNodeId) : null;
 
     if (!nextNode) {
-      throw new Error("Malformed node. Only exit nodes lack children.");
+      throw new Error(
+        `Malformed node. Only exit nodes lack children. ${current.id}`
+      );
     }
 
     stack.push(nextNode);
@@ -678,6 +698,13 @@ export function journeyNodeToState(
       nodeTypeProps,
     },
   };
+
+  console.log({
+    node,
+    source,
+    target,
+    edges,
+  });
   return {
     journeyNode,
     nonJourneyNodes,
@@ -702,6 +729,31 @@ export function newStateFromNodes({
   const newEdges = existingEdges
     .filter((e) => !(e.source === source && e.target === target))
     .concat(edges);
+
+  if (
+    // FIXME removing the wrong edge
+    existingEdges.find(
+      (e) =>
+        e.id ===
+        "code-deployment-reminder-1a=>wait-for-first-deployment-1-empty"
+    ) &&
+    !newEdges.find(
+      (e) =>
+        e.id ===
+        "code-deployment-reminder-1a=>wait-for-first-deployment-1-empty"
+    )
+  ) {
+    console.log(
+      "source",
+      source,
+      "target",
+      target,
+      "reminder edge lost",
+      existingEdges.map((e) => e.id),
+      "new edges",
+      newEdges.map((e) => e.id)
+    );
+  }
 
   const newNodes = existingNodes.concat(nodes);
 
@@ -754,8 +806,7 @@ export function journeyToState(
   ];
 
   // FIXME try to go backwards from exit node to entry node
-  // get target, and then lookup source
-  // should work because all placeholder and label nodes on the bottom
+  // get target, and then lookup parent
   const firstBodyNode = journey.definition.nodes.find(
     (n) => n.id === journey.definition.entryNode.child
   );
@@ -770,6 +821,7 @@ export function journeyToState(
   const seenNodes = new Set<string>();
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
+    // console.log("loop");
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [node, source] = remainingNodes.pop()!;
 
@@ -809,12 +861,41 @@ export function journeyToState(
     // }
     // FIXME should be source: wait-for-first-deployment-1-empty
 
-    console.log({
+    const nodeParents = findDirectParents(node.id, journey.definition);
+    let compensatedSource: string;
+    let compensatedTarget: string;
+    // console.log("nodeParents", nodeParents, "node.id", node.id);
+    if (nodeParents.size > 1) {
+      compensatedSource = findDirectUiChildren(source, journeyEdges)[0]!;
+      compensatedTarget = findDirectUiChildren(target, journeyEdges)[0]!;
+      // undefined
+    } else {
+      compensatedSource = source;
+      compensatedTarget = target;
+    }
+    // {
+    //   node: {
+    //     id: 'wait-for-first-deployment-2',
+    //     type: 'WaitForNode',
+    //     timeoutChild: 'ExitNode',
+    //     timeoutSeconds: 604800,
+    //     segmentChildren: [ [Object] ]
+    //   },
+    //   source: 'wait-for-first-deployment-1-empty',
+    //   target: 'wait-for-first-deployment-1-empty',
+    //   edges: [
+    // console.log({
+    //   node,
+    //   source,
+    //   compensatedSource,
+    //   target,
+    //   // journeyEdges,
+    // });
+    const state = journeyNodeToState(
       node,
-      source,
-      target,
-    });
-    const state = journeyNodeToState(node, source, target);
+      compensatedSource,
+      compensatedTarget
+    );
 
     let newRemainingNodes: [JourneyNode, string][];
     const { nodeTypeProps } = state.journeyNode.data;
@@ -914,8 +995,8 @@ export function journeyToState(
     ];
 
     const newState = newStateFromNodes({
-      source,
-      target,
+      source: compensatedSource,
+      target: compensatedTarget,
       nodes: newNodes,
       edges: state.edges,
       existingNodes: journeyNodes,
@@ -923,14 +1004,28 @@ export function journeyToState(
     });
     journeyEdges = newState.edges;
     journeyNodes = newState.nodes;
+    // if (
+    //   journeyEdges.find(
+    //     (e) =>
+    //       e.id ===
+    //       "code-deployment-reminder-1a=>wait-for-first-deployment-1-empty"
+    //   )
+    // ) {
+    //   console.log("reminder edge found", journeyEdges);
+    // } else {
+    //   console.log("reminder edge not found");
+    // }
 
     if (remainingNodes.length === 0) {
       break;
     }
   }
 
+  console.log("layout start");
   journeyNodes = layoutNodes(journeyNodes, journeyEdges);
+  console.log("layout end");
   const journeyNodesIndex = buildNodesIndex(journeyNodes);
+  console.log("build index");
 
   return {
     journeyName: journey.name,
@@ -938,20 +1033,6 @@ export function journeyToState(
     journeyEdges,
     journeyNodesIndex,
   };
-}
-
-export function findDirectParents(
-  parentId: string,
-  edges: JourneyContent["journeyEdges"]
-): string[] {
-  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
-}
-
-export function findDirectChildren(
-  parentId: string,
-  edges: JourneyContent["journeyEdges"]
-): string[] {
-  return edges.flatMap((e) => (e.source === parentId ? e.target : []));
 }
 
 /**
@@ -973,7 +1054,7 @@ export function findAllAncestors(
       throw new Error("next should exist");
     }
 
-    const directChildren = findDirectChildren(next.node, edges);
+    const directChildren = findDirectUiChildren(next.node, edges);
 
     for (const child of directChildren) {
       if (!children.has(child)) {
@@ -997,7 +1078,7 @@ function findAllParents(
     if (!next) {
       throw new Error("next should exist");
     }
-    const directParents = findDirectParents(next, edges);
+    const directParents = findDirectUiParents(next, edges);
 
     for (const parent of directParents) {
       unprocessed.push(parent);
@@ -1053,7 +1134,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       }
 
       const nodeType = node.data.nodeTypeProps.type;
-      const directChildren = findDirectChildren(node.id, state.journeyEdges);
+      const directChildren = findDirectUiChildren(node.id, state.journeyEdges);
 
       if (
         nodeType === JourneyNodeType.EntryNode ||
@@ -1114,12 +1195,12 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
           }
         }
 
-        const parents = findDirectParents(node.id, state.journeyEdges);
+        const parents = findDirectUiParents(node.id, state.journeyEdges);
         for (const p of parents) {
           edgesToAdd.push([p, secondSharedAncestor]);
         }
       } else if (directChildren.length === 1 && directChildren[0]) {
-        const parents = findDirectParents(node.id, state.journeyEdges);
+        const parents = findDirectUiParents(node.id, state.journeyEdges);
         const child = directChildren[0];
         parents.forEach((p) => {
           edgesToAdd.push([p, child]);
