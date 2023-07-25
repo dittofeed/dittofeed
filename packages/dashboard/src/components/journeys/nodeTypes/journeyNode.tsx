@@ -22,6 +22,7 @@ import { AppState, JourneyNodeProps, NodeTypeProps } from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
 import styles from "./nodeTypes.module.css";
+import { JOURNEY_NODE_WIDTH } from "./styles";
 
 export type JourneyNodeIcon = typeof FontSizeOutlined | typeof BackHandOutlined;
 
@@ -253,7 +254,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
     <Box
       onClick={clickInsideHandler}
       sx={{
-        width: 300,
+        width: JOURNEY_NODE_WIDTH,
         display: "flex",
         flexDirection: "row",
         backgroundColor: "white",
