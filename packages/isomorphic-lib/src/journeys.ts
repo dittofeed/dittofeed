@@ -23,6 +23,20 @@ function nodeToSegments(node: JourneyBodyNode): string[] {
   }
 }
 
+export function getDirectChildren(
+  nodeId: string,
+  definition: JourneyDefinition
+): Set<string> {
+  return new Set();
+}
+
+export function getDirectParents(
+  nodeId: string,
+  definition: JourneyDefinition
+): Set<string> {
+  return new Set();
+}
+
 /**
  * Returns the set of segments that this journey depends on.
  * @param definition

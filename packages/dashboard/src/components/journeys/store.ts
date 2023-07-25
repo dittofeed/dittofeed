@@ -753,6 +753,9 @@ export function journeyToState(
     },
   ];
 
+  // FIXME try to go backwards from exit node to entry node
+  // get target, and then lookup source
+  // should work because all placeholder and label nodes on the bottom
   const firstBodyNode = journey.definition.nodes.find(
     (n) => n.id === journey.definition.entryNode.child
   );
@@ -826,6 +829,7 @@ export function journeyToState(
         if (!childNode) {
           throw new Error("Malformed journey, missing delay node child.");
         }
+        // FIXME this is wrong can't just make the new node a child of this node, because need to account for empty nodes
         newRemainingNodes = [[childNode, state.journeyNode.id]];
         break;
       }
