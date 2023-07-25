@@ -168,7 +168,7 @@ describe("journeyToState", () => {
       expect(
         findDirectChildren(JourneyNodeType.EntryNode, uiState.journeyEdges)
       ).toEqual(["wait-for-first-deployment-1"]);
-      console.log("uiState.journeyEdges", uiState.journeyEdges);
+      // console.log("uiState.journeyEdges", uiState.journeyEdges);
       expect(
         findAllAncestorsDepths(
           "wait-for-first-deployment-1",

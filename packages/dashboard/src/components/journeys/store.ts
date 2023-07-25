@@ -583,9 +583,9 @@ export function journeyNodeToState(
       };
       break;
     case JourneyNodeType.SegmentSplitNode: {
-      const trueId = uuid();
-      const falseId = uuid();
-      const emptyId = uuid();
+      const trueId = `${node.id}-true`;
+      const falseId = `${node.id}-false`;
+      const emptyId = `${node.id}-empty`;
 
       nonJourneyNodes = nonJourneyNodes.concat(
         dualNodeNonJourneyNodes({
@@ -619,14 +619,14 @@ export function journeyNodeToState(
       break;
     }
     case JourneyNodeType.WaitForNode: {
-      const emptyId = uuid();
+      const emptyId = `${node.id}-empty`;
       const segmentChild = node.segmentChildren[0];
       if (!segmentChild) {
         throw new Error("Malformed journey, WaitForNode has no children.");
       }
 
-      const segmentChildLabelNodeId = uuid();
-      const timeoutLabelNodeId = uuid();
+      const segmentChildLabelNodeId = `${node.id}-segment-child`;
+      const timeoutLabelNodeId = `${node.id}-timeout`;
 
       nonJourneyNodes = nonJourneyNodes.concat(
         dualNodeNonJourneyNodes({
@@ -793,6 +793,24 @@ export function journeyToState(
     if (!target) {
       throw new Error("Malformed journey, missing target.");
     }
+    // {
+    //   node: {
+    //     id: 'wait-for-first-deployment-2',
+    //     type: 'WaitForNode',
+    //     timeoutChild: 'ExitNode',
+    //     timeoutSeconds: 604800,
+    //     segmentChildren: [ [Object] ]
+    //   },
+    //   source: 'code-deployment-reminder-1a',
+    //   target: 'wait-for-first-deployment-1-empty'
+    // }
+    // FIXME should be source: wait-for-first-deployment-1-empty
+
+    console.log({
+      node,
+      source,
+      target,
+    });
     const state = journeyNodeToState(node, source, target);
 
     let newRemainingNodes: [JourneyNode, string][];
@@ -1032,7 +1050,6 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
 
       const nodeType = node.data.nodeTypeProps.type;
       const directChildren = findDirectChildren(node.id, state.journeyEdges);
-      console.log("directChildren", directChildren);
 
       if (
         nodeType === JourneyNodeType.EntryNode ||
