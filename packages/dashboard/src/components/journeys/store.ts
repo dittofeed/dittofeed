@@ -859,11 +859,13 @@ export function journeyToState(
         }
         const segmentChild = node.segmentChildren[0];
         if (!segmentChild) {
-          throw new Error("Malformed journey, missing wait for node segment.");
+          throw new Error(`Malformed journey, missing wait for node segment.`);
         }
         const segmentNode = getJourneyNode(journey.definition, segmentChild.id);
         if (!segmentNode) {
-          throw new Error("Malformed journey, missing wait for node segment.");
+          throw new Error(
+            `Malformed journey, missing wait for node segment. ${segmentChild.id}`
+          );
         }
 
         const uiSegmentChild = nodeTypeProps.segmentChildren[0];
@@ -916,14 +918,14 @@ export function journeyToState(
   };
 }
 
-function findDirectParents(
+export function findDirectParents(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
 ): string[] {
   return edges.flatMap((e) => (e.target === parentId ? e.source : []));
 }
 
-function findDirectChildren(
+export function findDirectChildren(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
 ): string[] {

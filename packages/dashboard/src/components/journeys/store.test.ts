@@ -10,7 +10,11 @@ import {
 import { v4 as uuid } from "uuid";
 
 import { JourneyState } from "../../lib/types";
-import { journeyDefinitionFromState, journeyToState } from "./store";
+import {
+  findDirectChildren,
+  journeyDefinitionFromState,
+  journeyToState,
+} from "./store";
 
 describe("journeyToState", () => {
   let journeyResource: JourneyResource;
@@ -63,7 +67,7 @@ describe("journeyToState", () => {
             timeoutSeconds: 604800,
             segmentChildren: [
               {
-                id: "terminal-wait-for-node",
+                id: "wait-for-onboarding-2",
                 segmentId: "onboarding-segment-id",
               },
             ],
@@ -82,7 +86,7 @@ describe("journeyToState", () => {
             id: "onboarding-reminder-2a",
             name: "Onboarding Reminder 2a",
             type: JourneyNodeType.MessageNode,
-            child: "terminal-wait-for-node",
+            child: "wait-for-onboarding-2",
             variant: {
               type: ChannelType.Email,
               templateId: "9227c35b-2a05-4c04-a703-ddec48006b01",
@@ -93,7 +97,7 @@ describe("journeyToState", () => {
             id: "onboarding-reminder-2b",
             name: "Onboarding Reminder 2b",
             type: JourneyNodeType.MessageNode,
-            child: "terminal-wait-for-node",
+            child: "wait-for-onboarding-2",
             variant: {
               type: ChannelType.Email,
               templateId: "2dc8bf8b-92db-4e37-8c0d-47031647d99c",
@@ -118,7 +122,7 @@ describe("journeyToState", () => {
         },
         entryNode: {
           type: JourneyNodeType.EntryNode,
-          child: "wait-for-first-deployment",
+          child: "wait-for-first-deployment-1",
           segment: "project-added-segment-id",
         },
       };
@@ -134,8 +138,11 @@ describe("journeyToState", () => {
       };
     });
 
-    it("produces the right ui state", () => {
+    it.only("produces the right ui state", () => {
       const uiState = journeyToState(journeyResource);
+      expect(
+        findDirectChildren(JourneyNodeType.EntryNode, uiState.journeyEdges)
+      ).toEqual(["wait-for-first-deployment-1"]);
     });
   });
   describe("when journey has split then delay", () => {
