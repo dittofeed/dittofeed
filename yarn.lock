@@ -7582,31 +7582,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"d3-array@npm:^3.1.6":
-  version: 3.2.2
-  resolution: "d3-array@npm:3.2.2"
-  dependencies:
-    internmap: 1 - 2
-  checksum: 98af3db792685ceca5d9c3721efba0c567520da5532b2c7a590fd83627a598ea225d11c2cecbad404dc154120feb5ea6df0ded38f82ddf342c714cfd0c6143d1
-  languageName: node
-  linkType: hard
-
 "d3-color@npm:1 - 3":
   version: 3.1.0
   resolution: "d3-color@npm:3.1.0"
   checksum: 4931fbfda5d7c4b5cfa283a13c91a954f86e3b69d75ce588d06cde6c3628cebfc3af2069ccf225e982e8987c612aa7948b3932163ce15eb3c11cd7c003f3ee3b
-  languageName: node
-  linkType: hard
-
-"d3-dag@npm:^0.11.5":
-  version: 0.11.5
-  resolution: "d3-dag@npm:0.11.5"
-  dependencies:
-    d3-array: ^3.1.6
-    fastpriorityqueue: 0.7.2
-    javascript-lp-solver: 0.4.24
-    quadprog: ^1.6.1
-  checksum: 1f820cb4383fb51e1ec79a84ccad6672541ad1396b3ba9a5179b620759b71ee9dccb59085b87b1480fea3805c282dc43e87f196a3d28367f37bfa17a6e1f8c6b
   languageName: node
   linkType: hard
 
@@ -7735,7 +7714,6 @@ __metadata:
     "@uiw/react-codemirror": ^4.19.5
     axios: ^1.2.2
     backend-lib: 0.0.3
-    d3-dag: ^0.11.5
     dagre: ^0.8.5
     date-fns: ^2.29.3
     escape-html: ^1.0.3
@@ -9326,13 +9304,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fastpriorityqueue@npm:0.7.2":
-  version: 0.7.2
-  resolution: "fastpriorityqueue@npm:0.7.2"
-  checksum: e4d0cdb523c91ff0a06ee1f4a413b7646ce74aad0368b23a0c0aa4457fd11ff5192c3c4f6509418189da1eaaaa57e93d759bae2e9ef62e4f7acd1dfd60d6a7d8
-  languageName: node
-  linkType: hard
-
 "fastq@npm:^1.6.0, fastq@npm:^1.6.1":
   version: 1.15.0
   resolution: "fastq@npm:1.15.0"
@@ -10402,13 +10373,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"internmap@npm:1 - 2":
-  version: 2.0.3
-  resolution: "internmap@npm:2.0.3"
-  checksum: 7ca41ec6aba8f0072fc32fa8a023450a9f44503e2d8e403583c55714b25efd6390c38a87161ec456bf42d7bc83aab62eb28f5aef34876b1ac4e60693d5e1d241
-  languageName: node
-  linkType: hard
-
 "interpret@npm:^1.0.0":
   version: 1.4.0
   resolution: "interpret@npm:1.4.0"
@@ -10972,13 +10936,6 @@ __metadata:
     uuid: ^8.3.2
     xorshift: ^1.1.1
   checksum: fcdc0523b70299c0db1c07e6c209fa170cef75aa3ad00e6241c906423ba07dc6112a60e1b96de59c2a8eb9d335bf0a0c2a23cc13595ef24aededca2fdff65837
-  languageName: node
-  linkType: hard
-
-"javascript-lp-solver@npm:0.4.24":
-  version: 0.4.24
-  resolution: "javascript-lp-solver@npm:0.4.24"
-  checksum: 532812341efe4798710bdd6ae83178f966e803f9012613130ab6053ac9484d06b29a790d7b767649dc72821937880e8bcb151e6db2d990037ea7142cf080a737
   languageName: node
   linkType: hard
 
@@ -14794,13 +14751,6 @@ __metadata:
   version: 2.3.0
   resolution: "punycode@npm:2.3.0"
   checksum: 39f760e09a2a3bbfe8f5287cf733ecdad69d6af2fe6f97ca95f24b8921858b91e9ea3c9eeec6e08cede96181b3bb33f95c6ffd8c77e63986508aa2e8159fa200
-  languageName: node
-  linkType: hard
-
-"quadprog@npm:^1.6.1":
-  version: 1.6.1
-  resolution: "quadprog@npm:1.6.1"
-  checksum: b74d28e9aca9dc7eee2ee1cb0eb5c7c7e1cc06a74dcd3f16e7d0eb0be64a1c22802edb652ca4d218d015c323d127bf0c3f7615e4e88cf8feaf7766c6bc5a24d2
   languageName: node
   linkType: hard
 

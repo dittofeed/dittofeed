@@ -1,4 +1,3 @@
-import * as dag from "d3-dag";
 import dagre from "dagre";
 import { useEffect } from "react";
 import { Edge, Node, ReactFlowState, useReactFlow, useStore } from "reactflow";
@@ -7,26 +6,6 @@ import { NodeData } from "../../lib/types";
 import { JOURNEY_NODE_WIDTH } from "./nodeTypes/styles";
 
 export const nodeHeight = 200;
-
-const opt = dag.decrossOpt();
-const heuristic = dag.decrossTwoLayer();
-
-function decrossFallback(layers: dag.SugiNode[][]): void {
-  try {
-    opt(layers);
-  } catch {
-    heuristic(layers);
-  }
-}
-
-const dagLayout = dag
-  .sugiyama()
-  .layering(dag.layeringCoffmanGraham())
-  .nodeSize(() => [400, nodeHeight])
-  .decross(decrossFallback)
-  .coord(dag.coordCenter());
-
-// dagreGraph.setGraph({ rankdir: "TB", nodesep: 25 });
 
 // the layouting function
 // accepts current nodes and edges and returns the layouted nodes with their updated positions
