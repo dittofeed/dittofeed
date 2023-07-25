@@ -977,45 +977,6 @@ function findAllParents(
   return parents;
 }
 
-function findAllAncestors(
-  parentId: string,
-  edges: JourneyContent["journeyEdges"]
-): Set<string> {
-  const children = new Set<string>();
-  const unprocessed = [parentId];
-
-  while (unprocessed.length) {
-    const next = unprocessed.pop();
-    if (!next) {
-      throw new Error("next should exist");
-    }
-    const directChildren = findDirectChildren(next, edges);
-
-    for (const child of directChildren) {
-      unprocessed.push(child);
-      children.add(child);
-    }
-  }
-  return children;
-}
-
-function intersectionOfSets<T>(sets: Set<T>[]): Set<T> {
-  if (sets.length === 0) {
-    return new Set();
-  }
-
-  const intersection = new Set<T>(sets[0]);
-  for (const set of sets.slice(1)) {
-    for (const element of Array.from(intersection)) {
-      if (!set.has(element)) {
-        intersection.delete(element);
-      }
-    }
-  }
-
-  return intersection;
-}
-
 function combinedDepthMaps(maps: Map<string, number>[]): Map<string, number> {
   const intersection = new Map<string, number>();
   const keyCounts = new Map<string, number>();
