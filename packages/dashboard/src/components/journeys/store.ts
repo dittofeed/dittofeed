@@ -916,6 +916,13 @@ export function journeyToState(
   };
 }
 
+function findDirectParents(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): string[] {
+  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
+}
+
 function findDirectChildren(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
@@ -923,11 +930,29 @@ function findDirectChildren(
   return edges.flatMap((e) => (e.source === parentId ? e.target : []));
 }
 
-function findDirectParents(
+function findAllAncestorsV2(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
-): string[] {
-  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
+): Map<string, number> {
+  const children = new Map<string, number>();
+  const unprocessed = [{ node: parentId, depth: 0 }];
+
+  while (unprocessed.length) {
+    const next = unprocessed.pop();
+    if (!next) {
+      throw new Error("next should exist");
+    }
+
+    const directChildren = findDirectChildren(next.node, edges);
+
+    for (const child of directChildren) {
+      if (!children.has(child)) {
+        unprocessed.push({ node: child, depth: next.depth + 1 });
+        children.set(child, next.depth + 1);
+      }
+    }
+  }
+  return children;
 }
 
 function findAllAncestors(
@@ -969,6 +994,23 @@ function intersectionOfSets<T>(sets: Set<T>[]): Set<T> {
   return intersection;
 }
 
+function intersectionOfMaps<K, V>(maps: Map<K, V>[]): Map<K, V> {
+  const intersection = new Map<K, V>();
+
+  for (const map of maps) {
+    for (const [key, value] of map.entries()) {
+      if (intersection.has(key) && intersection.get(key) !== value) {
+        throw new Error(
+          `Duplicate key ${String(key)} with different values found.`
+        );
+      }
+      intersection.set(key, value);
+    }
+  }
+
+  return intersection;
+}
+
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
 export const createJourneySlice: CreateJourneySlice = (set) => ({
@@ -994,6 +1036,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
 
       const nodeType = node.data.nodeTypeProps.type;
       const directChildren = findDirectChildren(node.id, state.journeyEdges);
+      console.log("directChildren", directChildren);
 
       if (
         nodeType === JourneyNodeType.EntryNode ||
@@ -1009,31 +1052,72 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         directChildren.forEach((c) => nodesToDelete.add(c));
 
         const ancestorSets = directChildren.map((c) =>
-          findAllAncestors(c, state.journeyEdges)
+          findAllAncestorsV2(c, state.journeyEdges)
         );
-        const sharedAncestors = Array.from(intersectionOfSets(ancestorSets));
-        const firstSharedAncestor = sharedAncestors[0];
-        const secondSharedAncestor = sharedAncestors[1];
+        const sharedAncestorsMap = intersectionOfMaps(ancestorSets);
+
+        let firstSharedAncestor: string | null = null;
+        let secondSharedAncestor: string | null = null;
+        let minDepth = Infinity;
+        let secondMinDepth = Infinity;
+
+        for (const [sharedNode, depth] of sharedAncestorsMap.entries()) {
+          if (depth < minDepth) {
+            secondSharedAncestor = firstSharedAncestor;
+            secondMinDepth = minDepth;
+            firstSharedAncestor = sharedNode;
+            minDepth = depth;
+          } else if (
+            depth < secondMinDepth &&
+            sharedNode !== firstSharedAncestor
+          ) {
+            secondSharedAncestor = sharedNode;
+            secondMinDepth = depth;
+          }
+        }
+
         if (!firstSharedAncestor || !secondSharedAncestor) {
           throw new Error(
             "node with multiple children lacking correct shared ancestors"
           );
         }
 
-        nodesToDelete.add(firstSharedAncestor);
-
         for (const ancestorSet of ancestorSets) {
-          for (const ancestor of Array.from(ancestorSet)) {
-            if (ancestor === firstSharedAncestor) {
-              break;
+          for (const [ancestor, depth] of ancestorSet.entries()) {
+            if (depth <= minDepth) {
+              nodesToDelete.add(ancestor);
             }
-            nodesToDelete.add(ancestor);
           }
         }
+
+        // const ancestorSets = directChildren.map((c) =>
+        //   findAllAncestors(c, state.journeyEdges)
+        // );
+        // const sharedAncestorsSet = intersectionOfSets(ancestorSets);
+        // const sharedAncestors = Array.from(sharedAncestorsSet);
+        // const firstSharedAncestor = sharedAncestors[0];
+        // const secondSharedAncestor = sharedAncestors[1];
+        // if (!firstSharedAncestor || !secondSharedAncestor) {
+        //   throw new Error(
+        //     "node with multiple children lacking correct shared ancestors"
+        //   );
+        // }
+
+        // nodesToDelete.add(firstSharedAncestor);
+
+        // // FIXME this part right?
+        // for (const ancestorSet of ancestorSets) {
+        //   for (const ancestor of Array.from(ancestorSet)) {
+        //     if (ancestor === firstSharedAncestor) {
+        //       break;
+        //     }
+        //     nodesToDelete.add(ancestor);
+        //   }
+        // }
         const parents = findDirectParents(node.id, state.journeyEdges);
-        parents.forEach((p) => {
+        for (const p of parents) {
           edgesToAdd.push([p, secondSharedAncestor]);
-        });
+        }
       } else if (directChildren.length === 1 && directChildren[0]) {
         const parents = findDirectParents(node.id, state.journeyEdges);
         const child = directChildren[0];
