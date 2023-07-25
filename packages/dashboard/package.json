@@ -29,7 +29,7 @@
     "@uiw/react-codemirror": "^4.19.5",
     "axios": "^1.2.2",
     "backend-lib": "0.0.3",
-    "d3-dag": "^0.11.5",
+    "dagre": "^0.8.5",
     "date-fns": "^2.29.3",
     "escape-html": "^1.0.3",
     "fnv1a": "^1.1.1",
@@ -58,6 +58,7 @@
     "zustand": "^4.1.4"
   },
   "devDependencies": {
+    "@types/dagre": "^0.7.49",
     "@types/escape-html": "^1.0.2",
     "@types/humanize-duration": "^3.27.1",
     "@types/node": "18.11.7",
