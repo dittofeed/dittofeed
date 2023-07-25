@@ -930,7 +930,13 @@ function findDirectChildren(
   return edges.flatMap((e) => (e.source === parentId ? e.target : []));
 }
 
-function findAllAncestorsV2(
+/**
+ * find all ancestors of parent node with relative depth of node
+ * @param parentId
+ * @param edges
+ * @returns
+ */
+function findAllAncestors(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
 ): Map<string, number> {
@@ -1040,7 +1046,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         directChildren.forEach((c) => nodesToDelete.add(c));
 
         const ancestorSets = directChildren.map((c) =>
-          findAllAncestorsV2(c, state.journeyEdges)
+          findAllAncestors(c, state.journeyEdges)
         );
         const sharedAncestorsMap = combinedDepthMaps(ancestorSets);
 
