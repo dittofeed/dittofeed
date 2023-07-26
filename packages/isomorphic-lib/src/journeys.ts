@@ -143,7 +143,7 @@ export interface HeritageMapEntry {
   // ids of direct children nodes
   children: Set<string>;
   // ids of all N nested children of node
-  descendants: Set<string>;
+  ancestors: Set<string>;
   // ids of direct parents of the node
   parents: Set<string>;
   // ids of all N nested parents of node
@@ -169,7 +169,7 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
     const id = getNodeId(node);
     map.set(id, {
       children: findDirectChildren(id, definition),
-      descendants: new Set<string>(),
+      ancestors: new Set<string>(),
       parents: new Set<string>(),
       ancestors: new Set<string>(),
     });
@@ -196,18 +196,18 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
       const childId = getNodeId(currentChild);
 
       // add to descendants of parent and ancestors of child
-      map.get(id)?.descendants.add(childId);
+      map.get(id)?.ancestors.add(childId);
       map.get(childId)?.ancestors.add(id);
 
       // add parents to child and children to parent
       for (const parentId of map.get(id)?.ancestors.values() ?? []) {
-        map.get(parentId)?.descendants.add(childId);
+        map.get(parentId)?.ancestors.add(childId);
         map.get(childId)?.ancestors.add(parentId);
       }
 
       // add children to parent and parents to child
-      for (const cid of map.get(childId)?.descendants.values() ?? []) {
-        map.get(id)?.descendants.add(cid);
+      for (const cid of map.get(childId)?.ancestors.values() ?? []) {
+        map.get(id)?.ancestors.add(cid);
         map.get(cid)?.ancestors.add(id);
       }
 
@@ -226,12 +226,13 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
 }
 
 /**
- * Returns the nearest descendant which shares a common parent with the specified node.
+ * Find the ancestor which has all parents as descendants, and has the least
+ * number of descendents (nearest)
  * @param nId
  * @param hm
  * @returns
  */
-export function getNearestRejoinedDescendant(
+export function getNearestFromParents(
   nId: string,
   hm: HeritageMap
 ): string | null {
@@ -242,24 +243,57 @@ export function getNearestRejoinedDescendant(
     return null;
   }
 
-  // find the ancestor which has all parents are descendants, and has the least
-  // number of descendents (nearest)
-  const groupParents = sortBy(
+  const nearestAncestors = sortBy(
     Array.from(hmEntry.ancestors).flatMap((a) => {
-      const ancestryHmEntry = getUnsafe(hm, a);
-      if (
-        !parents.every((p) => p === a || ancestryHmEntry.descendants.has(p))
-      ) {
+      const ancestorHmEntry = getUnsafe(hm, a);
+      if (!parents.every((p) => p === a || ancestorHmEntry.ancestors.has(p))) {
         return [];
       }
-      const val: [string, number] = [a, ancestryHmEntry.descendants.size];
+      const val: [string, number] = [a, ancestorHmEntry.ancestors.size];
       return [val];
     }),
     (val) => val[1]
   );
-  const groupParent = groupParents[0];
-  if (!groupParent) {
+  const nearestAncestor = nearestAncestors[0];
+  if (!nearestAncestor) {
     throw new Error(`Missing group parent for ${nId}`);
   }
-  return groupParent[0];
+  return nearestAncestor[0];
+}
+
+/**
+ * find the descendant which has all children as ancestors, and has the least number of ancestors (nearest)
+ * @param nId
+ * @param hm
+ * @returns
+ */
+export function getNearestFromChildren(
+  nId: string,
+  hm: HeritageMap
+): string | null {
+  const hmEntry = getUnsafe(hm, nId);
+
+  const children = Array.from(hmEntry.children);
+  if (children.length <= 1) {
+    return null;
+  }
+
+  // find the descendant which has all children as ancestors, and has the least
+  // number of ancestors (nearest)
+  const nearestDescendants = sortBy(
+    Array.from(hmEntry.ancestors).flatMap((d) => {
+      const ancestorHmEntry = getUnsafe(hm, d);
+      if (!children.every((c) => c === d || ancestorHmEntry.ancestors.has(c))) {
+        return [];
+      }
+      const val: [string, number] = [d, ancestorHmEntry.ancestors.size];
+      return [val];
+    }),
+    (val) => val[1]
+  );
+  const nearestDescendant = nearestDescendants[0];
+  if (!nearestDescendant) {
+    throw new Error(`Missing group parent for ${nId}`);
+  }
+  return nearestDescendant[0];
 }

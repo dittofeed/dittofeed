@@ -1,6 +1,8 @@
 import {
+  HeritageMap,
   buildHeritageMap,
-  getNearestRejoinedDescendant,
+  getNearestFromChildren,
+  getNearestFromParents,
   getNodeId,
 } from "isomorphic-lib/src/journeys";
 import {
@@ -864,6 +866,31 @@ function replaceRedundantEdges(
   return result;
 }
 
+function findSource(nId: string, hm: HeritageMap) {
+  const hmEntry = getUnsafe(hm, nId);
+  const nearestRejoinedDescendant = getNearestFromParents(nId, hm);
+  let source: string;
+  if (nearestRejoinedDescendant) {
+    source = `${nearestRejoinedDescendant}-empty`;
+  } else {
+    const parents = Array.from(hmEntry.parents);
+    if (!parents[0]) {
+      throw new Error(`Missing source for ${nId}`);
+    }
+    const parentHmEntry = getUnsafe(hm, parents[0]);
+
+    // relies on the ordering of findDirectChildren method
+    if (parentHmEntry.children.size > 1) {
+      const index = Array.from(parentHmEntry.children).indexOf(nId);
+      source = `${parents[0]}-child-${index}`;
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, prefer-destructuring
+      source = parents[0];
+    }
+  }
+  return source;
+}
+
 export function journeyToState(
   journey: JourneyResource
 ): JourneyStateForResource {
@@ -912,29 +939,27 @@ export function journeyToState(
 
     // FIXME
     // eslint-disable-next-line @typescript-eslint/no-loop-func
-    const findSource = () => {
-      const nearestRejoinedDescendant = getNearestRejoinedDescendant(nId, hm);
-      let source: string;
-      if (nearestRejoinedDescendant) {
-        source = `${nearestRejoinedDescendant}-empty`;
-      } else {
-        const parents = Array.from(hmEntry.parents);
-        if (!parents[0]) {
-          throw new Error(`Missing source for ${nId}`);
-        }
-        const parentHmEntry = getUnsafe(hm, parents[0]);
 
-        // relies on the ordering of findDirectChildren method
-        if (parentHmEntry.children.size > 1) {
-          const index = Array.from(parentHmEntry.children).indexOf(nId);
-          source = `${parents[0]}-child-${index}`;
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, prefer-destructuring
-          source = parents[0];
-        }
-      }
-      return source;
-    };
+    // eslint-disable-next-line @typescript-eslint/no-loop-func
+    // const findTarget = () => {
+    //   const nearestFromChildren = getNearestFromChildren(nId, hm);
+
+    //   const children = Array.from(hmEntry.children);
+    //   if (!children[0]) {
+    //     throw new Error(`Missing source for ${nId}`);
+    //   }
+    //   const nfmChildrenDefault = nearestFromChildren ?? children[0];
+
+    //   const childHmEntry = getUnsafe(hm, nfmChildrenDefault);
+
+    //   if (childHmEntry.parents.size > 1) {
+    //     // FIXME call find source
+    //     const index = Array.from(childHmEntry.parents).indexOf(nId);
+    //     return `${nId}-child-${index}`;
+    //   } else {
+
+    //   }
+    // };
 
     switch (n.type) {
       case JourneyNodeType.EntryNode: {
@@ -967,7 +992,7 @@ export function journeyToState(
         break;
       }
       case JourneyNodeType.ExitNode: {
-        const source = findSource();
+        const source = findSource(nId, hm);
         newNodes = [
           {
             id: JourneyNodeType.ExitNode,
@@ -996,28 +1021,28 @@ export function journeyToState(
         break;
       }
       case JourneyNodeType.MessageNode: {
-        const source = findSource();
+        const source = findSource(nId, hm);
         const state = journeyNodeToState(n, source);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.DelayNode: {
-        const source = findSource();
+        const source = findSource(nId, hm);
         const state = journeyNodeToState(n, source);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.SegmentSplitNode: {
-        const source = findSource();
+        const source = findSource(nId, hm);
         const state = journeyNodeToState(n, source);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.WaitForNode: {
-        const source = findSource();
+        const source = findSource(nId, hm);
         const state = journeyNodeToState(n, source);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
