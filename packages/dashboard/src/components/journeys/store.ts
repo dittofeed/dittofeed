@@ -795,14 +795,77 @@ export function journeyToState(
     journey.definition.exitNode,
   ];
 
+  // {
+  //   id: JourneyNodeType.EntryNode,
+  //   position: placeholderNodePosition,
+  //   type: "journey",
+  //   data: {
+  //     type: "JourneyNode",
+  //     nodeTypeProps: {
+  //       type: JourneyNodeType.EntryNode,
+  //       segmentId: journey.definition.entryNode.segment,
+  //     },
+  //   },
+  // },
+  // {
+  //   id: JourneyNodeType.ExitNode,
+  //   position: placeholderNodePosition,
+  //   type: "journey",
+  //   data: {
+  //     type: "JourneyNode",
+  //     nodeTypeProps: {
+  //       type: JourneyNodeType.ExitNode,
+  //     },
+  //   },
+  // },
   for (const n of nodes) {
     let newNodes: Node<NodeData>[];
     let newEdges: Edge<EdgeData>[];
     switch (n.type) {
       case JourneyNodeType.EntryNode: {
+        newNodes = [
+          {
+            id: JourneyNodeType.EntryNode,
+            position: placeholderNodePosition,
+            type: "journey",
+            data: {
+              type: "JourneyNode",
+              nodeTypeProps: {
+                type: JourneyNodeType.EntryNode,
+                segmentId: n.segment,
+              },
+            },
+          },
+        ];
+        newEdges = [
+          {
+            id: `${JourneyNodeType.EntryNode}=>${n.child}`,
+            source: JourneyNodeType.EntryNode,
+            target: n.child,
+            type: "workflow",
+            data: {
+              type: "WorkflowEdge",
+              disableMarker: true,
+            },
+          },
+        ];
         break;
       }
       case JourneyNodeType.ExitNode: {
+        newNodes = [
+          {
+            id: JourneyNodeType.ExitNode,
+            position: placeholderNodePosition,
+            type: "journey",
+            data: {
+              type: "JourneyNode",
+              nodeTypeProps: {
+                type: JourneyNodeType.ExitNode,
+              },
+            },
+          },
+        ];
+        newEdges = [];
         break;
       }
       case JourneyNodeType.MessageNode: {
