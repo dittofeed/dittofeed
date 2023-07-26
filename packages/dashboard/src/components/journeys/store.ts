@@ -1,4 +1,8 @@
-import { buildHeritageMap, getNodeId } from "isomorphic-lib/src/journeys";
+import {
+  buildHeritageMap,
+  getNearestRejoinedDescendant,
+  getNodeId,
+} from "isomorphic-lib/src/journeys";
 import {
   CompletionStatus,
   DelayNode,
@@ -14,6 +18,7 @@ import {
   SegmentSplitVariantType,
   WaitForNode,
 } from "isomorphic-lib/src/types";
+import { getUnsafe } from "isomorphic-lib/src/maps";
 import { err, ok, Result } from "neverthrow";
 import {
   applyEdgeChanges,
@@ -607,8 +612,8 @@ export function journeyNodeToState(
       };
       break;
     case JourneyNodeType.SegmentSplitNode: {
-      const trueId = `${node.id}-true`;
-      const falseId = `${node.id}-false`;
+      const trueId = `${node.id}-child-0`;
+      const falseId = `${node.id}-child-1`;
       const emptyId = `${node.id}-empty`;
 
       nonJourneyNodes = nonJourneyNodes.concat(
@@ -649,8 +654,8 @@ export function journeyNodeToState(
         throw new Error("Malformed journey, WaitForNode has no children.");
       }
 
-      const segmentChildLabelNodeId = `${node.id}-segment-child`;
-      const timeoutLabelNodeId = `${node.id}-timeout`;
+      const segmentChildLabelNodeId = `${node.id}-child-0`;
+      const timeoutLabelNodeId = `${node.id}-child-1`;
 
       nonJourneyNodes = nonJourneyNodes.concat(
         dualNodeNonJourneyNodes({
@@ -728,31 +733,6 @@ export function newStateFromNodes({
     .filter((e) => !(e.source === source && e.target === target))
     .concat(edges);
 
-  if (
-    // FIXME removing the wrong edge
-    existingEdges.find(
-      (e) =>
-        e.id ===
-        "code-deployment-reminder-1a=>wait-for-first-deployment-1-empty"
-    ) &&
-    !newEdges.find(
-      (e) =>
-        e.id ===
-        "code-deployment-reminder-1a=>wait-for-first-deployment-1-empty"
-    )
-  ) {
-    console.log(
-      "source",
-      source,
-      "target",
-      target,
-      "reminder edge lost",
-      existingEdges.map((e) => e.id),
-      "new edges",
-      newEdges.map((e) => e.id)
-    );
-  }
-
   const newNodes = existingNodes.concat(nodes);
 
   return {
@@ -761,11 +741,134 @@ export function newStateFromNodes({
   };
 }
 
+// function findRedundantEdges(edges: Edge<EdgeData>[]): string[] {
+//   const childEdges = new Map<string, string[]>();
+//   const emptyEdges = new Map<string, string[]>();
+
+//   edges.forEach((edge) => {
+//     const sourceSuffix = edge.source.split("-").slice(-2).join("-");
+//     const targetSuffix = edge.target.split("-").slice(-1)[0];
+
+//     if (sourceSuffix.match(/child-\d+/) !== null) {
+//       if (childEdges.has(edge.source)) {
+//         childEdges.get(edge.source)?.push(edge.id);
+//       } else {
+//         childEdges.set(edge.source, [edge.id]);
+//       }
+//     }
+
+//     if (targetSuffix === "empty") {
+//       if (emptyEdges.has(edge.source)) {
+//         emptyEdges.get(edge.source)?.push(edge.id);
+//       } else {
+//         emptyEdges.set(edge.source, [edge.id]);
+//       }
+//     }
+//   });
+
+//   const result: string[] = [];
+
+//   emptyEdges.forEach((ids, source) => {
+//     if (childEdges.has(source)) {
+//       result.push(...ids);
+//     }
+//   });
+
+//   return result;
+// }
+
+function replaceRedundantEdges(
+  edges: Edge<EdgeData>[]
+): [string, Edge<EdgeData>][] {
+  const childEdges = new Map<string, Edge<EdgeData>[]>();
+  const childEmptyEdges = new Map<string, Edge<EdgeData>[]>();
+
+  edges.forEach((edge) => {
+    const sourceSuffix = edge.source.split("-").slice(-2).join("-");
+    const targetSuffix = edge.target.split("-").slice(-1)[0];
+
+    if (sourceSuffix.match(/child-\d+/) !== null) {
+      if (targetSuffix === "empty") {
+        if (!childEmptyEdges.has(edge.source)) {
+          childEmptyEdges.set(edge.source, []);
+        }
+        childEmptyEdges.get(edge.source)?.push(edge);
+      } else {
+        if (!childEdges.has(edge.source)) {
+          childEdges.set(edge.source, []);
+        }
+        childEdges.get(edge.source)?.push(edge);
+      }
+    }
+  });
+
+  const result: [string, Edge<EdgeData>][] = [];
+
+  // childEmptyEdges.forEach((cee, source) => {
+  //   const ce = childEdges.get(source);
+  //   if (ce?.length && cee[0] && ce[0]) {
+  //     const newSource = ce[0].target;
+  //     const newTarget = cee[0].target;
+
+  //     if (
+  //       cee[0].id ===
+  //       "wait-for-onboarding-1-child-1=>wait-for-onboarding-1-empty"
+  //     ) {
+  //       console.log("cee[0]", cee[0]);
+  //       console.log("ce[0]", ce[0]);
+  //       console.log("newSource", newSource);
+  //       console.log("newTarget", newTarget);
+  //       console.log("source", source);
+
+  //       // broken in this case because the new edge should connect to the empty node
+  //     //   cee[0] {
+  //     //     id: 'wait-for-onboarding-1-child-1=>wait-for-onboarding-1-empty',
+  //     //     source: 'wait-for-onboarding-1-child-1',
+  //     //     target: 'wait-for-onboarding-1-empty',
+  //     //     type: 'workflow',
+  //     //     sourceHandle: 'bottom',
+  //     //     data: { type: 'WorkflowEdge', disableMarker: true }
+  //     //   }
+
+  //     //     at packages/dashboard/src/components/journeys/store.ts:812:17
+  //     //         at Map.forEach (<anonymous>)
+
+  //     // console.log
+  //     //   ce[0] {
+  //     //     id: 'wait-for-onboarding-1-child-1=>onboarding-segment-split-received-a',
+  //     //     source: 'wait-for-onboarding-1-child-1',
+  //     //     target: 'onboarding-segment-split-received-a',
+  //     //     type: 'workflow',
+  //     //     sourceHandle: 'bottom',
+  //     //     data: { type: 'WorkflowEdge', disableMarker: true }
+  //     //   }
+  //     // }
+  //     result.push([
+  //       cee[0].id,
+  //       {
+  //         id: `${newSource}=>${newTarget}`,
+  //         source: newSource,
+  //         target: newTarget,
+  //         type: "workflow",
+  //         sourceHandle: "bottom",
+  //         data: {
+  //           type: "WorkflowEdge",
+  //           disableMarker: true,
+  //         },
+  //       },
+  //     ]);
+  //   }
+  // });
+  // console.log("replace result", result);
+
+  return result;
+}
+
 export function journeyToState(
   journey: JourneyResource
 ): JourneyStateForResource {
-  const jn = new Map<string, Node<NodeData>[]>();
-  const je = new Map<string, Edge<EdgeData>[]>();
+  const jn = new Map<string, Node<NodeData>>();
+  const je = new Map<string, Edge<EdgeData>>();
 
   const hm = buildHeritageMap(journey.definition);
   const nodes = [
@@ -773,8 +876,8 @@ export function journeyToState(
     ...journey.definition.nodes,
     journey.definition.exitNode,
   ];
-  console.log("hm", hm);
-
+  // console.log("hm", hm);
+  //
   // {
   //   id: JourneyNodeType.EntryNode,
   //   position: placeholderNodePosition,
@@ -807,64 +910,28 @@ export function journeyToState(
       throw new Error(`Missing heritage map entry ${nId}`);
     }
 
+    // FIXME
+    // eslint-disable-next-line @typescript-eslint/no-loop-func
     const findSource = () => {
-      const parents = Array.from(hmEntry.parents);
+      const nearestRejoinedDescendant = getNearestRejoinedDescendant(nId, hm);
       let source: string;
-      // if the node has more than 1 parent, it should be assigned the empty
-      // node of a group journey node as a source
-      if (parents.length > 1) {
-        // find the ancestor which has all parents are descendants, and has the
-        // least number of descendents (nearest)
-
-        const groupParents = sortBy(
-          Array.from(hmEntry.ancestors).flatMap((a) => {
-            const ancestryHmEntry = hm.get(a);
-            if (!ancestryHmEntry) {
-              throw new Error(`Missing heritage map entry ${a}`);
-            }
-            if (
-              !parents.every((p) => {
-                const d = p === a || ancestryHmEntry.descendants.has(p);
-                if (nId === "ExitNode") {
-                  console.log(
-                    "parent is descendent",
-                    nId,
-                    a,
-                    p,
-                    d,
-                    ancestryHmEntry
-                  );
-                }
-                return d;
-              })
-            ) {
-              return [];
-            }
-            const val: [string, number] = [a, ancestryHmEntry.descendants.size];
-            return [val];
-          }),
-          (val) => val[1]
-        );
-        const groupParent = groupParents[0];
-        if (!groupParent) {
-          throw new Error(`Missing group parent for ${nId}`);
-        }
-        if (nId === "ExitNode") {
-          // group parents [
-          //   [ 'code-deployment-reminder-1a', 7 ],
-          //   [ 'wait-for-first-deployment-1', 8 ],
-          //   [ 'EntryNode', 9 ]
-          // ]
-          console.log("group parents", groupParents);
-        }
-        // exit should be wait-for-first-deployment-1-empty but is onboarding-reminder-1a-empty
-        source = `${groupParent[0]}-empty`;
+      if (nearestRejoinedDescendant) {
+        source = `${nearestRejoinedDescendant}-empty`;
       } else {
+        const parents = Array.from(hmEntry.parents);
         if (!parents[0]) {
           throw new Error(`Missing source for ${nId}`);
         }
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, prefer-destructuring
-        source = parents[0];
+        const parentHmEntry = getUnsafe(hm, parents[0]);
+
+        // relies on the ordering of findDirectChildren method
+        if (parentHmEntry.children.size > 1) {
+          const index = Array.from(parentHmEntry.children).indexOf(nId);
+          source = `${parents[0]}-child-${index}`;
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, prefer-destructuring
+          source = parents[0];
+        }
       }
       return source;
     };
@@ -964,11 +1031,11 @@ export function journeyToState(
       }
     }
     for (const newNode of newNodes) {
-      jn.set(newNode.id, [newNode]);
+      jn.set(newNode.id, newNode);
     }
 
     for (const e of newEdges) {
-      je.set(e.id, [e]);
+      je.set(e.id, e);
     }
   }
 
@@ -1188,8 +1255,16 @@ export function journeyToState(
   //   }
   // }
 
-  let journeyNodes = Array.from(jn.values()).flat();
-  const journeyEdges = Array.from(je.values()).flat();
+  let journeyNodes = Array.from(jn.values());
+  //FIXME still doesn't add edge from code-deployment-reminder-1a as desired rather than just delete, may have to do a swap
+  replaceRedundantEdges(Array.from(je.values())).forEach(
+    ([toDelete, toAdd]) => {
+      je.delete(toDelete);
+      je.set(toAdd.id, toAdd);
+    }
+  );
+  const journeyEdges = Array.from(je.values());
+  // filter out any edges between child-n and empty nodes if the same child-n node has a child that does not connect to an empty
 
   journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   const journeyNodesIndex = buildNodesIndex(journeyNodes);

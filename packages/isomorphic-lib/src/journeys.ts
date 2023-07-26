@@ -1,3 +1,6 @@
+import { sortBy } from "remeda/dist/commonjs/sortBy";
+
+import { getUnsafe } from "./maps";
 import {
   JourneyBodyNode,
   JourneyDefinition,
@@ -75,8 +78,8 @@ export function findDirectChildren(
     }
     case JourneyNodeType.WaitForNode: {
       children = new Set<string>([
-        node.timeoutChild,
         ...node.segmentChildren.map((c) => c.id),
+        node.timeoutChild,
       ]);
       break;
     }
@@ -220,4 +223,43 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
   }
 
   return map;
+}
+
+/**
+ * Returns the nearest descendant which shares a common parent with the specified node.
+ * @param nId
+ * @param hm
+ * @returns
+ */
+export function getNearestRejoinedDescendant(
+  nId: string,
+  hm: HeritageMap
+): string | null {
+  const hmEntry = getUnsafe(hm, nId);
+
+  const parents = Array.from(hmEntry.parents);
+  if (parents.length <= 1) {
+    return null;
+  }
+
+  // find the ancestor which has all parents are descendants, and has the least
+  // number of descendents (nearest)
+  const groupParents = sortBy(
+    Array.from(hmEntry.ancestors).flatMap((a) => {
+      const ancestryHmEntry = getUnsafe(hm, a);
+      if (
+        !parents.every((p) => p === a || ancestryHmEntry.descendants.has(p))
+      ) {
+        return [];
+      }
+      const val: [string, number] = [a, ancestryHmEntry.descendants.size];
+      return [val];
+    }),
+    (val) => val[1]
+  );
+  const groupParent = groupParents[0];
+  if (!groupParent) {
+    throw new Error(`Missing group parent for ${nId}`);
+  }
+  return groupParent[0];
 }
