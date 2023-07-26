@@ -140,7 +140,7 @@ export interface HeritageMapEntry {
   // ids of direct children nodes
   children: Set<string>;
   // ids of all N nested children of node
-  descendents: Set<string>;
+  descendants: Set<string>;
   // ids of direct parents of the node
   parents: Set<string>;
   // ids of all N nested parents of node
@@ -166,7 +166,7 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
     const id = getNodeId(node);
     map.set(id, {
       children: findDirectChildren(id, definition),
-      descendents: new Set<string>(),
+      descendants: new Set<string>(),
       parents: new Set<string>(),
       ancestors: new Set<string>(),
     });
@@ -176,9 +176,14 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
   for (const node of nodes) {
     const id = getNodeId(node);
 
-    const queue: JourneyNode[] = Array.from(
+    const queue = Array.from(
       findDirectChildren(id, definition).values()
     ).flatMap((childId) => nodes.find((n) => getNodeId(n) === childId) ?? []);
+
+    queue.forEach((childNode) => {
+      const childId = getNodeId(childNode);
+      map.get(childId)?.parents.add(id);
+    });
 
     while (queue.length > 0) {
       const currentChild = queue.shift();
@@ -187,19 +192,19 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
       }
       const childId = getNodeId(currentChild);
 
-      // add to descendents of parent and ancestors of child
-      map.get(id)?.descendents.add(childId);
+      // add to descendants of parent and ancestors of child
+      map.get(id)?.descendants.add(childId);
       map.get(childId)?.ancestors.add(id);
 
       // add parents to child and children to parent
       for (const parentId of map.get(id)?.ancestors.values() ?? []) {
-        map.get(parentId)?.descendents.add(childId);
+        map.get(parentId)?.descendants.add(childId);
         map.get(childId)?.ancestors.add(parentId);
       }
 
       // add children to parent and parents to child
-      for (const cid of map.get(childId)?.descendents.values() ?? []) {
-        map.get(id)?.descendents.add(cid);
+      for (const cid of map.get(childId)?.descendants.values() ?? []) {
+        map.get(id)?.descendants.add(cid);
         map.get(cid)?.ancestors.add(id);
       }
 

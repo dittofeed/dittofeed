@@ -1,10 +1,4 @@
-import {
-  buildHeritageMap,
-  findDirectChildren,
-  findDirectParents,
-  getJourneyNode,
-  getNodeId,
-} from "isomorphic-lib/src/journeys";
+import { buildHeritageMap, getNodeId } from "isomorphic-lib/src/journeys";
 import {
   CompletionStatus,
   DelayNode,
@@ -425,10 +419,10 @@ export function dualNodeEdges({
   target,
 }: DualNodeParams & {
   source: string;
-  target: string;
+  target?: string;
   nodeId: string;
 }): Edge<EdgeData>[] {
-  return [
+  const edges: Edge<EdgeData>[] = [
     {
       id: `${source}=>${nodeId}`,
       source,
@@ -476,7 +470,9 @@ export function dualNodeEdges({
         disableMarker: true,
       },
     },
-    {
+  ];
+  if (target) {
+    edges.push({
       id: `${emptyId}=>${target}`,
       source: emptyId,
       target,
@@ -486,8 +482,9 @@ export function dualNodeEdges({
         type: "WorkflowEdge",
         disableMarker: true,
       },
-    },
-  ];
+    });
+  }
+  return edges;
 }
 
 export function edgesForJourneyNode({
@@ -502,7 +499,7 @@ export function edgesForJourneyNode({
   type: JourneyNodeType;
   nodeId: string;
   source: string;
-  target: string;
+  target?: string;
   leftId?: string;
   rightId?: string;
   emptyId?: string;
@@ -532,7 +529,7 @@ export function edgesForJourneyNode({
     throw new Error(`Unimplemented node type ${type}`);
   }
 
-  return [
+  const edges: Edge<EdgeData>[] = [
     {
       id: `${source}=>${nodeId}`,
       source,
@@ -543,7 +540,9 @@ export function edgesForJourneyNode({
         type: "WorkflowEdge",
       },
     },
-    {
+  ];
+  if (target) {
+    edges.push({
       id: `${nodeId}=>${target}`,
       source: nodeId,
       target,
@@ -552,14 +551,15 @@ export function edgesForJourneyNode({
       data: {
         type: "WorkflowEdge",
       },
-    },
-  ];
+    });
+  }
+  return edges;
 }
 
 export function journeyNodeToState(
   node: JourneyNode,
   source: string,
-  target: string
+  target?: string
 ): StateFromJourneyNode {
   if (
     node.type === JourneyNodeType.EntryNode ||
@@ -568,29 +568,6 @@ export function journeyNodeToState(
     throw new Error("Entry and exit nodes should not be converted to state.");
   }
 
-  // {
-  //   id: JourneyNodeType.EntryNode,
-  //   position: placeholderNodePosition,
-  //   type: "journey",
-  //   data: {
-  //     type: "JourneyNode",
-  //     nodeTypeProps: {
-  //       type: JourneyNodeType.EntryNode,
-  //       segmentId: journey.definition.entryNode.segment,
-  //     },
-  //   },
-  // },
-  // {
-  //   id: JourneyNodeType.ExitNode,
-  //   position: placeholderNodePosition,
-  //   type: "journey",
-  //   data: {
-  //     type: "JourneyNode",
-  //     nodeTypeProps: {
-  //       type: JourneyNodeType.ExitNode,
-  //     },
-  //   },
-  // },
   let nodeTypeProps: NodeTypeProps;
   let nonJourneyNodes: Node<NonJourneyNodeData>[] = [];
   let edges: Edge<EdgeData>[] = [];
@@ -796,6 +773,7 @@ export function journeyToState(
     ...journey.definition.nodes,
     journey.definition.exitNode,
   ];
+  console.log("hm", hm);
 
   // {
   //   id: JourneyNodeType.EntryNode,
@@ -829,6 +807,68 @@ export function journeyToState(
       throw new Error(`Missing heritage map entry ${nId}`);
     }
 
+    const findSource = () => {
+      const parents = Array.from(hmEntry.parents);
+      let source: string;
+      // if the node has more than 1 parent, it should be assigned the empty
+      // node of a group journey node as a source
+      if (parents.length > 1) {
+        // find the ancestor which has all parents are descendants, and has the
+        // least number of descendents (nearest)
+
+        const groupParents = sortBy(
+          Array.from(hmEntry.ancestors).flatMap((a) => {
+            const ancestryHmEntry = hm.get(a);
+            if (!ancestryHmEntry) {
+              throw new Error(`Missing heritage map entry ${a}`);
+            }
+            if (
+              !parents.every((p) => {
+                const d = p === a || ancestryHmEntry.descendants.has(p);
+                if (nId === "ExitNode") {
+                  console.log(
+                    "parent is descendent",
+                    nId,
+                    a,
+                    p,
+                    d,
+                    ancestryHmEntry
+                  );
+                }
+                return d;
+              })
+            ) {
+              return [];
+            }
+            const val: [string, number] = [a, ancestryHmEntry.descendants.size];
+            return [val];
+          }),
+          (val) => val[1]
+        );
+        const groupParent = groupParents[0];
+        if (!groupParent) {
+          throw new Error(`Missing group parent for ${nId}`);
+        }
+        if (nId === "ExitNode") {
+          // group parents [
+          //   [ 'code-deployment-reminder-1a', 7 ],
+          //   [ 'wait-for-first-deployment-1', 8 ],
+          //   [ 'EntryNode', 9 ]
+          // ]
+          console.log("group parents", groupParents);
+        }
+        // exit should be wait-for-first-deployment-1-empty but is onboarding-reminder-1a-empty
+        source = `${groupParent[0]}-empty`;
+      } else {
+        if (!parents[0]) {
+          throw new Error(`Missing source for ${nId}`);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, prefer-destructuring
+        source = parents[0];
+      }
+      return source;
+    };
+
     switch (n.type) {
       case JourneyNodeType.EntryNode: {
         newNodes = [
@@ -860,36 +900,7 @@ export function journeyToState(
         break;
       }
       case JourneyNodeType.ExitNode: {
-        const parents = Array.from(hmEntry.parents);
-        let source: string;
-        if (parents.length > 1) {
-          const groupParent = sortBy(
-            Array.from(hmEntry.ancestors).flatMap((a) => {
-              const ancestryHmEntry = hm.get(a);
-              if (!ancestryHmEntry) {
-                throw new Error(`Missing heritage map entry ${a}`);
-              }
-              if (!parents.every((p) => ancestryHmEntry.descendents.has(p))) {
-                return [];
-              }
-              const val: [string, number] = [
-                a,
-                ancestryHmEntry.descendents.size,
-              ];
-              return [val];
-            }),
-            (val) => val[1]
-          )[0];
-          if (!groupParent) {
-            throw new Error(`Missing group parent for ${nId}`);
-          }
-          [source] = groupParent;
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          source = parents[0]!;
-        }
-        const compensatedSource = `${source}-empty`;
-
+        const source = findSource();
         newNodes = [
           {
             id: JourneyNodeType.ExitNode,
@@ -905,8 +916,8 @@ export function journeyToState(
         ];
         newEdges = [
           {
-            id: `${compensatedSource}=>${JourneyNodeType.ExitNode}`,
-            source: compensatedSource,
+            id: `${source}=>${JourneyNodeType.ExitNode}`,
+            source,
             target: JourneyNodeType.ExitNode,
             type: "workflow",
             data: {
@@ -918,15 +929,31 @@ export function journeyToState(
         break;
       }
       case JourneyNodeType.MessageNode: {
+        const source = findSource();
+        const state = journeyNodeToState(n, source);
+        newEdges = state.edges;
+        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.DelayNode: {
+        const source = findSource();
+        const state = journeyNodeToState(n, source);
+        newEdges = state.edges;
+        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.SegmentSplitNode: {
+        const source = findSource();
+        const state = journeyNodeToState(n, source);
+        newEdges = state.edges;
+        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.WaitForNode: {
+        const source = findSource();
+        const state = journeyNodeToState(n, source);
+        newEdges = state.edges;
+        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.ExperimentSplitNode: {
@@ -936,8 +963,8 @@ export function journeyToState(
         throw new Error("Unimplemented node type");
       }
     }
-    for (const n of newNodes) {
-      jn.set(n.id, [n]);
+    for (const newNode of newNodes) {
+      jn.set(newNode.id, [newNode]);
     }
 
     for (const e of newEdges) {
@@ -1176,12 +1203,12 @@ export function journeyToState(
 }
 
 /**
- * find all ancestors of parent node with relative depth of node
+ * find all descendants of parent node with relative depth of node
  * @param parentId
  * @param edges
  * @returns
  */
-export function findAllAncestors(
+export function findAllDescendants(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
 ): Map<string, number> {
@@ -1290,7 +1317,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         directChildren.forEach((c) => nodesToDelete.add(c));
 
         const ancestorSets = directChildren.map((c) =>
-          findAllAncestors(c, state.journeyEdges)
+          findAllDescendants(c, state.journeyEdges)
         );
         const sharedAncestorsMap = combinedDepthMaps(ancestorSets);
 
