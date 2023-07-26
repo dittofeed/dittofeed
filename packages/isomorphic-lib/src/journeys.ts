@@ -136,19 +136,21 @@ export function getNodeId(node: JourneyNode): string {
   return node.id;
 }
 
+export interface HeritageMapEntry {
+  // ids of direct children nodes
+  children: Set<string>;
+  // ids of all N nested children of node
+  descendents: Set<string>;
+  // ids of direct parents of the node
+  parents: Set<string>;
+  // ids of all N nested parents of node
+  ancestors: Set<string>;
+}
+
 export type HeritageMap = Map<
   // id of node for which heritage entry applies
   string,
-  {
-    // ids of direct children nodes
-    children: Set<string>;
-    // ids of all N nested children of node
-    descendents: Set<string>;
-    // ids of direct parents of the node
-    parents: Set<string>;
-    // ids of all N nested parents of node
-    ancestors: Set<string>;
-  }
+  HeritageMapEntry
 >;
 
 export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {

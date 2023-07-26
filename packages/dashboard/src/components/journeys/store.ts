@@ -3,6 +3,7 @@ import {
   findDirectChildren,
   findDirectParents,
   getJourneyNode,
+  getNodeId,
 } from "isomorphic-lib/src/journeys";
 import {
   CompletionStatus,
@@ -28,6 +29,7 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
+import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
 
@@ -821,6 +823,12 @@ export function journeyToState(
   for (const n of nodes) {
     let newNodes: Node<NodeData>[];
     let newEdges: Edge<EdgeData>[];
+    const nId = getNodeId(n);
+    const hmEntry = hm.get(nId);
+    if (!hmEntry) {
+      throw new Error(`Missing heritage map entry ${nId}`);
+    }
+
     switch (n.type) {
       case JourneyNodeType.EntryNode: {
         newNodes = [
@@ -852,6 +860,36 @@ export function journeyToState(
         break;
       }
       case JourneyNodeType.ExitNode: {
+        const parents = Array.from(hmEntry.parents);
+        let source: string;
+        if (parents.length > 1) {
+          const groupParent = sortBy(
+            Array.from(hmEntry.ancestors).flatMap((a) => {
+              const ancestryHmEntry = hm.get(a);
+              if (!ancestryHmEntry) {
+                throw new Error(`Missing heritage map entry ${a}`);
+              }
+              if (!parents.every((p) => ancestryHmEntry.descendents.has(p))) {
+                return [];
+              }
+              const val: [string, number] = [
+                a,
+                ancestryHmEntry.descendents.size,
+              ];
+              return [val];
+            }),
+            (val) => val[1]
+          )[0];
+          if (!groupParent) {
+            throw new Error(`Missing group parent for ${nId}`);
+          }
+          [source] = groupParent;
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          source = parents[0]!;
+        }
+        const compensatedSource = `${source}-empty`;
+
         newNodes = [
           {
             id: JourneyNodeType.ExitNode,
@@ -865,7 +903,18 @@ export function journeyToState(
             },
           },
         ];
-        newEdges = [];
+        newEdges = [
+          {
+            id: `${compensatedSource}=>${JourneyNodeType.ExitNode}`,
+            source: compensatedSource,
+            target: JourneyNodeType.ExitNode,
+            type: "workflow",
+            data: {
+              type: "WorkflowEdge",
+              disableMarker: true,
+            },
+          },
+        ];
         break;
       }
       case JourneyNodeType.MessageNode: {
