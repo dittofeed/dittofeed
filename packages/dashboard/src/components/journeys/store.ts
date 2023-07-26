@@ -866,7 +866,7 @@ function replaceRedundantEdges(
   return result;
 }
 
-function findSource(nId: string, hm: HeritageMap) {
+function findSource(nId: string, hm: HeritageMap): string {
   const hmEntry = getUnsafe(hm, nId);
   const nearestRejoinedDescendant = getNearestFromParents(nId, hm);
   let source: string;
@@ -889,6 +889,37 @@ function findSource(nId: string, hm: HeritageMap) {
     }
   }
   return source;
+}
+
+function findTarget(nId: string, hm: HeritageMap): string {
+  // FIXME not working for wait for
+  const hmEntry = getUnsafe(hm, nId);
+  const nearestFromChildren = getNearestFromChildren(nId, hm);
+
+  const children = Array.from(hmEntry.children);
+  if (!children[0]) {
+    throw new Error(`Missing source for ${nId}`);
+  }
+  const nfmChildrenDefault = nearestFromChildren ?? children[0];
+
+  const childHmEntry = getUnsafe(hm, nfmChildrenDefault);
+
+  if (nId === "wait-for-first-deployment-1") {
+    // if (nId === "code-deployment-reminder-1a") {
+    console.log("nearestFromChildren", nearestFromChildren);
+    console.log("nfmChildrenDefault", nfmChildrenDefault);
+    console.log("childHmEntry", childHmEntry);
+  }
+
+  if (childHmEntry.parents.size > 1) {
+    const target = findSource(nfmChildrenDefault, hm);
+    if (nId === "wait-for-first-deployment-1") {
+      // if (nId === "code-deployment-reminder-1a") {
+      console.log("target", target);
+    }
+    return target;
+  }
+  return nfmChildrenDefault;
 }
 
 export function journeyToState(
@@ -1022,14 +1053,16 @@ export function journeyToState(
       }
       case JourneyNodeType.MessageNode: {
         const source = findSource(nId, hm);
-        const state = journeyNodeToState(n, source);
+        const target = findTarget(nId, hm);
+        const state = journeyNodeToState(n, source, target);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.DelayNode: {
         const source = findSource(nId, hm);
-        const state = journeyNodeToState(n, source);
+        const target = findTarget(nId, hm);
+        const state = journeyNodeToState(n, source, target);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
@@ -1043,7 +1076,8 @@ export function journeyToState(
       }
       case JourneyNodeType.WaitForNode: {
         const source = findSource(nId, hm);
-        const state = journeyNodeToState(n, source);
+        const target = findTarget(nId, hm);
+        const state = journeyNodeToState(n, source, target);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
@@ -1060,6 +1094,14 @@ export function journeyToState(
     }
 
     for (const e of newEdges) {
+      if (
+        e.id ===
+        "wait-for-first-deployment-1-empty=>code-deployment-reminder-1a"
+      ) {
+        // console.log("newNodes", newNodes);
+        // console.log("newEdges", newEdges);
+        // console.log("nId", nId);
+      }
       je.set(e.id, e);
     }
   }
@@ -1281,13 +1323,13 @@ export function journeyToState(
   // }
 
   let journeyNodes = Array.from(jn.values());
-  //FIXME still doesn't add edge from code-deployment-reminder-1a as desired rather than just delete, may have to do a swap
-  replaceRedundantEdges(Array.from(je.values())).forEach(
-    ([toDelete, toAdd]) => {
-      je.delete(toDelete);
-      je.set(toAdd.id, toAdd);
-    }
-  );
+  // FIXME still doesn't add edge from code-deployment-reminder-1a as desired rather than just delete, may have to do a swap
+  // replaceRedundantEdges(Array.from(je.values())).forEach(
+  //   ([toDelete, toAdd]) => {
+  //     je.delete(toDelete);
+  //     je.set(toAdd.id, toAdd);
+  //   }
+  // );
   const journeyEdges = Array.from(je.values());
   // filter out any edges between child-n and empty nodes if the same child-n node has a child that does not connect to an empty
 

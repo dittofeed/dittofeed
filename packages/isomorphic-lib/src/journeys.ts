@@ -143,7 +143,7 @@ export interface HeritageMapEntry {
   // ids of direct children nodes
   children: Set<string>;
   // ids of all N nested children of node
-  ancestors: Set<string>;
+  descendants: Set<string>;
   // ids of direct parents of the node
   parents: Set<string>;
   // ids of all N nested parents of node
@@ -169,7 +169,7 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
     const id = getNodeId(node);
     map.set(id, {
       children: findDirectChildren(id, definition),
-      ancestors: new Set<string>(),
+      descendants: new Set<string>(),
       parents: new Set<string>(),
       ancestors: new Set<string>(),
     });
@@ -196,18 +196,18 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
       const childId = getNodeId(currentChild);
 
       // add to descendants of parent and ancestors of child
-      map.get(id)?.ancestors.add(childId);
+      map.get(id)?.descendants.add(childId);
       map.get(childId)?.ancestors.add(id);
 
       // add parents to child and children to parent
       for (const parentId of map.get(id)?.ancestors.values() ?? []) {
-        map.get(parentId)?.ancestors.add(childId);
+        map.get(parentId)?.descendants.add(childId);
         map.get(childId)?.ancestors.add(parentId);
       }
 
       // add children to parent and parents to child
-      for (const cid of map.get(childId)?.ancestors.values() ?? []) {
-        map.get(id)?.ancestors.add(cid);
+      for (const cid of map.get(childId)?.descendants.values() ?? []) {
+        map.get(id)?.descendants.add(cid);
         map.get(cid)?.ancestors.add(id);
       }
 
@@ -227,7 +227,8 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
 
 /**
  * Find the ancestor which has all parents as descendants, and has the least
- * number of descendents (nearest)
+ * number of descendents (nearest). Returns null if node only has a single
+ * parent.
  * @param nId
  * @param hm
  * @returns
@@ -246,7 +247,9 @@ export function getNearestFromParents(
   const nearestAncestors = sortBy(
     Array.from(hmEntry.ancestors).flatMap((a) => {
       const ancestorHmEntry = getUnsafe(hm, a);
-      if (!parents.every((p) => p === a || ancestorHmEntry.ancestors.has(p))) {
+      if (
+        !parents.every((p) => p === a || ancestorHmEntry.descendants.has(p))
+      ) {
         return [];
       }
       const val: [string, number] = [a, ancestorHmEntry.ancestors.size];
@@ -262,7 +265,7 @@ export function getNearestFromParents(
 }
 
 /**
- * find the descendant which has all children as ancestors, and has the least number of ancestors (nearest)
+ * find the descendant which has all children as ancestors, and has the least number of ancestors (nearest). Returns null if node only has a single child.
  * @param nId
  * @param hm
  * @returns
@@ -278,19 +281,23 @@ export function getNearestFromChildren(
     return null;
   }
 
-  // find the descendant which has all children as ancestors, and has the least
-  // number of ancestors (nearest)
   const nearestDescendants = sortBy(
-    Array.from(hmEntry.ancestors).flatMap((d) => {
-      const ancestorHmEntry = getUnsafe(hm, d);
-      if (!children.every((c) => c === d || ancestorHmEntry.ancestors.has(c))) {
+    Array.from(hmEntry.descendants).flatMap((d) => {
+      const descendantHmEntry = getUnsafe(hm, d);
+      if (
+        !children.every((c) => c === d || descendantHmEntry.ancestors.has(c))
+      ) {
+        // if (!children.every((c) => ancestorHmEntry.ancestors.has(c))) {
         return [];
       }
-      const val: [string, number] = [d, ancestorHmEntry.ancestors.size];
+      const val: [string, number] = [d, descendantHmEntry.descendants.size];
       return [val];
     }),
     (val) => val[1]
   );
+  if (nId === "wait-for-first-deployment-1") {
+    console.log("nearestDescendants", nearestDescendants);
+  }
   const nearestDescendant = nearestDescendants[0];
   if (!nearestDescendant) {
     throw new Error(`Missing group parent for ${nId}`);
