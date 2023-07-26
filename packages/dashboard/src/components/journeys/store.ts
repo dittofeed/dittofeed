@@ -1333,7 +1333,7 @@ export function journeyToState(
   const journeyEdges = Array.from(je.values());
   // filter out any edges between child-n and empty nodes if the same child-n node has a child that does not connect to an empty
 
-  journeyNodes = layoutNodes(journeyNodes, journeyEdges);
+  // journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   const journeyNodesIndex = buildNodesIndex(journeyNodes);
 
   return {

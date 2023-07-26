@@ -252,7 +252,7 @@ export function getNearestFromParents(
       ) {
         return [];
       }
-      const val: [string, number] = [a, ancestorHmEntry.ancestors.size];
+      const val: [string, number] = [a, ancestorHmEntry.descendants.size];
       return [val];
     }),
     (val) => val[1]
@@ -265,7 +265,7 @@ export function getNearestFromParents(
 }
 
 /**
- * find the descendant which has all children as ancestors, and has the least number of ancestors (nearest). Returns null if node only has a single child.
+ * find the descendant which has all children as ancestors, and has the smallest number of ancestors (nearest). Returns null if node only has a single child.
  * @param nId
  * @param hm
  * @returns
@@ -285,18 +285,20 @@ export function getNearestFromChildren(
     Array.from(hmEntry.descendants).flatMap((d) => {
       const descendantHmEntry = getUnsafe(hm, d);
       if (
+        // !children.every((c) => descendantHmEntry.ancestors.has(c))
         !children.every((c) => c === d || descendantHmEntry.ancestors.has(c))
       ) {
         // if (!children.every((c) => ancestorHmEntry.ancestors.has(c))) {
         return [];
       }
-      const val: [string, number] = [d, descendantHmEntry.descendants.size];
+      const val: [string, number] = [d, descendantHmEntry.ancestors.size];
       return [val];
     }),
     (val) => val[1]
   );
   if (nId === "wait-for-first-deployment-1") {
     console.log("nearestDescendants", nearestDescendants);
+    // console.log("hm", hm);
   }
   const nearestDescendant = nearestDescendants[0];
   if (!nearestDescendant) {
