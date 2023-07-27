@@ -296,7 +296,8 @@ export function getNearestFromChildren(
     }),
     (val) => val[1]
   );
-  if (nId === "wait-for-first-deployment-1") {
+  // if (nId === "wait-for-first-deployment-1") {
+  if (nId === "code-deployment-reminder-1a") {
     console.log("nearestDescendants", nearestDescendants);
     // console.log("hm", hm);
   }

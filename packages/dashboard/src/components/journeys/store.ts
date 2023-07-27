@@ -21,7 +21,7 @@ import {
   WaitForNode,
 } from "isomorphic-lib/src/types";
 import { getUnsafe } from "isomorphic-lib/src/maps";
-import { err, ok, Result } from "neverthrow";
+import { Err, err, ok, Result } from "neverthrow";
 import {
   applyEdgeChanges,
   applyNodeChanges,
@@ -30,8 +30,6 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
-import { sortBy } from "remeda/dist/commonjs/sortBy";
-import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
 
 import {
@@ -780,89 +778,44 @@ export function newStateFromNodes({
 // }
 
 function replaceRedundantEdges(
+  nodes: Node<NodeData>[],
   edges: Edge<EdgeData>[]
-): [string, Edge<EdgeData>][] {
+): string[] {
   const childEdges = new Map<string, Edge<EdgeData>[]>();
   const childEmptyEdges = new Map<string, Edge<EdgeData>[]>();
 
-  edges.forEach((edge) => {
-    const sourceSuffix = edge.source.split("-").slice(-2).join("-");
-    const targetSuffix = edge.target.split("-").slice(-1)[0];
+  const nodeMap = nodes.reduce<Map<string, Node<NodeData>>>(
+    (acc, node) => acc.set(node.id, node),
+    new Map()
+  );
 
-    if (sourceSuffix.match(/child-\d+/) !== null) {
-      if (targetSuffix === "empty") {
-        if (!childEmptyEdges.has(edge.source)) {
-          childEmptyEdges.set(edge.source, []);
-        }
-        childEmptyEdges.get(edge.source)?.push(edge);
-      } else {
-        if (!childEdges.has(edge.source)) {
-          childEdges.set(edge.source, []);
-        }
-        childEdges.get(edge.source)?.push(edge);
+  for (const e of edges) {
+    const sourceNode = nodeMap.get(e.source);
+    const targetNode = nodeMap.get(e.target);
+
+    if (!sourceNode || !targetNode || sourceNode.type !== "label") {
+      continue;
+    }
+    if (targetNode.type === "empty") {
+      if (!childEmptyEdges.has(e.source)) {
+        childEmptyEdges.set(e.source, []);
       }
+      childEmptyEdges.get(e.source)?.push(e);
+    } else {
+      if (!childEdges.has(e.source)) {
+        childEdges.set(e.source, []);
+      }
+      childEdges.get(e.source)?.push(e);
+    }
+  }
+
+  const result: string[] = [];
+
+  childEmptyEdges.forEach((cee, source) => {
+    if (childEdges.get(source)?.length) {
+      cee.forEach((edge) => result.push(edge.id));
     }
   });
-
-  const result: [string, Edge<EdgeData>][] = [];
-
-  // childEmptyEdges.forEach((cee, source) => {
-  //   const ce = childEdges.get(source);
-  //   if (ce?.length && cee[0] && ce[0]) {
-  //     const newSource = ce[0].target;
-  //     const newTarget = cee[0].target;
-
-  //     if (
-  //       cee[0].id ===
-  //       "wait-for-onboarding-1-child-1=>wait-for-onboarding-1-empty"
-  //     ) {
-  //       console.log("cee[0]", cee[0]);
-  //       console.log("ce[0]", ce[0]);
-  //       console.log("newSource", newSource);
-  //       console.log("newTarget", newTarget);
-  //       console.log("source", source);
-
-  //       // broken in this case because the new edge should connect to the empty node
-  //     //   cee[0] {
-  //     //     id: 'wait-for-onboarding-1-child-1=>wait-for-onboarding-1-empty',
-  //     //     source: 'wait-for-onboarding-1-child-1',
-  //     //     target: 'wait-for-onboarding-1-empty',
-  //     //     type: 'workflow',
-  //     //     sourceHandle: 'bottom',
-  //     //     data: { type: 'WorkflowEdge', disableMarker: true }
-  //     //   }
-
-  //     //     at packages/dashboard/src/components/journeys/store.ts:812:17
-  //     //         at Map.forEach (<anonymous>)
-
-  //     // console.log
-  //     //   ce[0] {
-  //     //     id: 'wait-for-onboarding-1-child-1=>onboarding-segment-split-received-a',
-  //     //     source: 'wait-for-onboarding-1-child-1',
-  //     //     target: 'onboarding-segment-split-received-a',
-  //     //     type: 'workflow',
-  //     //     sourceHandle: 'bottom',
-  //     //     data: { type: 'WorkflowEdge', disableMarker: true }
-  //     //   }
-  //     // }
-  //     result.push([
-  //       cee[0].id,
-  //       {
-  //         id: `${newSource}=>${newTarget}`,
-  //         source: newSource,
-  //         target: newTarget,
-  //         type: "workflow",
-  //         sourceHandle: "bottom",
-  //         data: {
-  //           type: "WorkflowEdge",
-  //           disableMarker: true,
-  //         },
-  //       },
-  //     ]);
-  //   }
-  // });
-  // console.log("replace result", result);
-
   return result;
 }
 
@@ -903,19 +856,89 @@ function findTarget(nId: string, hm: HeritageMap): string {
   const nfmChildrenDefault = nearestFromChildren ?? children[0];
 
   const childHmEntry = getUnsafe(hm, nfmChildrenDefault);
+  // const parents = Array.from(hmEntry.parents);
+  // if (!parents[0]) {
+  //   throw new Error(`Missing parent for ${nId}`);
+  // }
+  // const parentHmEntry = getUnsafe(hm, parents[0]);
 
-  if (nId === "wait-for-first-deployment-1") {
-    // if (nId === "code-deployment-reminder-1a") {
-    console.log("nearestFromChildren", nearestFromChildren);
-    console.log("nfmChildrenDefault", nfmChildrenDefault);
-    console.log("childHmEntry", childHmEntry);
+  // if (nId === "wait-for-first-deployment-1") {
+
+  // const connectsToParentEmpty = !Array.from(childHmEntry.ancestors).every(
+  //   (ancestor) => {
+  //     const ancestorHmEntry = getUnsafe(hm, ancestor);
+  //     return !(ancestorHmEntry.children.has(nfmChildrenDefault));
+  //   }
+  //     // ancestor === nId ||
+  //     // hmEntry.ancestors.has(ancestor) ||
+  //     // hmEntry.descendants.has(ancestor)
+  // );
+
+  const nearestFromParents = getNearestFromParents(nfmChildrenDefault, hm);
+  const nfmpHmEntry = getUnsafe(hm, nearestFromParents);
+  const connectsToParentEmpty =
+    nId !== nearestFromParents && nfmpHmEntry.descendants.has(nId);
+
+  if (
+    nId === "wait-for-first-deployment-1" ||
+    nId === "code-deployment-reminder-1a"
+  ) {
+    console.log("nId", nId);
+    console.log("connectsToParentEmpty", connectsToParentEmpty);
+    console.log("nearestFromParents", nearestFromParents);
+    console.log("nfmpHmEntry.descendants", nfmpHmEntry.descendants);
   }
 
-  if (childHmEntry.parents.size > 1) {
+  // const childParents = Array.from(childHmEntry.parents);
+  // const connectsToParentEmpty = !Array.from(childHmEntry.ancestors).every(
+  //   (ancestor) => {
+  //     const ancestorHmEntry = getUnsafe(hm, ancestor);
+
+  //     // const allParentsAreDescendants = childParents.every(
+  //     //   (parent) =>
+  //     //     ancestor === parent ||
+  //     //     ancestorHmEntry.descendants.has(parent) ||
+  //     //     hmEntry.descendants.has(ancestor)
+  //     // );
+  //     const breakingParent = childParents.find(
+  //       (parent) =>
+  //         !(
+  //           ancestor === parent ||
+  //           ancestorHmEntry.descendants.has(parent) ||
+  //           ancestorHmEntry.ancestors.has(parent)
+  //         )
+  //     );
+  //     const allParentsAreDescendants = breakingParent === undefined;
+
+  //     if (nId === "wait-for-first-deployment-1" && !allParentsAreDescendants) {
+  //       // if (nId === "code-deployment-reminder-1a") {
+  //       console.log("connectsToParentEmpty", {
+  //         allParentsAreDescendants,
+  //         ancestor,
+  //         childParents,
+  //         descendants: ancestorHmEntry.descendants,
+  //         breakingParent,
+  //       });
+  //     }
+  //     return allParentsAreDescendants;
+  //   }
+  //   // ancestor === nId ||
+  //   // hmEntry.ancestors.has(ancestor) ||
+  //   // hmEntry.descendants.has(ancestor)
+  // );
+
+  // const connectsToParentEmpty = !Array.from(hmEntry.ancestors).some((ancestor) =>
+  //   findSource(ancestor, hm)
+  // );
+
+  if (connectsToParentEmpty) {
+    // FIXME not working as intended
+    // FIXME deduplicate operation
     const target = findSource(nfmChildrenDefault, hm);
-    if (nId === "wait-for-first-deployment-1") {
-      // if (nId === "code-deployment-reminder-1a") {
-      console.log("target", target);
+    if (nId === "code-deployment-reminder-1a") {
+      // if (nId === "wait-for-first-deployment-1") {
+      //   // if (nId === "code-deployment-reminder-1a") {
+      console.log("bad target", target);
     }
     return target;
   }
@@ -1092,16 +1115,16 @@ export function journeyToState(
     for (const newNode of newNodes) {
       jn.set(newNode.id, newNode);
     }
-
     for (const e of newEdges) {
-      if (
-        e.id ===
-        "wait-for-first-deployment-1-empty=>code-deployment-reminder-1a"
-      ) {
-        // console.log("newNodes", newNodes);
-        // console.log("newEdges", newEdges);
-        // console.log("nId", nId);
-      }
+      // if (
+      //   e.id ===
+      //   "wait-for-first-deployment-1-empty=>wait-for-first-deployment-1-empty"
+      //   // "wait-for-first-deployment-1-empty=>code-deployment-reminder-1a"
+      // ) {
+      //   console.log("newNodes", newNodes);
+      //   console.log("newEdges", newEdges);
+      //   console.log("nId", nId);
+      // }
       je.set(e.id, e);
     }
   }
@@ -1324,12 +1347,11 @@ export function journeyToState(
 
   let journeyNodes = Array.from(jn.values());
   // FIXME still doesn't add edge from code-deployment-reminder-1a as desired rather than just delete, may have to do a swap
-  // replaceRedundantEdges(Array.from(je.values())).forEach(
-  //   ([toDelete, toAdd]) => {
-  //     je.delete(toDelete);
-  //     je.set(toAdd.id, toAdd);
-  //   }
-  // );
+  replaceRedundantEdges(journeyNodes, Array.from(je.values())).forEach(
+    (toDelete) => {
+      je.delete(toDelete);
+    }
+  );
   const journeyEdges = Array.from(je.values());
   // filter out any edges between child-n and empty nodes if the same child-n node has a child that does not connect to an empty
 
