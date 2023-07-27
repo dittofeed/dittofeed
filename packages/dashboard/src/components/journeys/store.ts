@@ -5,8 +5,10 @@ import {
   getNodeId,
   HeritageMap,
   isMultiChildNode,
+  removeNode,
 } from "isomorphic-lib/src/journeys";
 import { getUnsafe } from "isomorphic-lib/src/maps";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   CompletionStatus,
   DelayNode,
@@ -927,7 +929,7 @@ function findTarget(
 }
 
 export function journeyToState(
-  journey: JourneyResource
+  journey: Omit<JourneyResource, "id" | "status" | "workspaceId">
 ): JourneyStateForResource {
   const jn = new Map<string, Node<NodeData>>();
   const je = new Map<string, Edge<EdgeData>>();
@@ -1110,50 +1112,6 @@ export function findAllDescendants(
   return children;
 }
 
-function findAllParents(
-  childId: string,
-  edges: JourneyContent["journeyEdges"]
-): Set<string> {
-  const parents = new Set<string>();
-  const unprocessed = [childId];
-
-  while (unprocessed.length) {
-    const next = unprocessed.pop();
-    if (!next) {
-      throw new Error("next should exist");
-    }
-    const directParents = findDirectUiParents(next, edges);
-
-    for (const parent of directParents) {
-      unprocessed.push(parent);
-      parents.add(parent);
-    }
-  }
-  return parents;
-}
-
-function combinedDepthMaps(maps: Map<string, number>[]): Map<string, number> {
-  const intersection = new Map<string, number>();
-  const keyCounts = new Map<string, number>();
-
-  for (const map of maps) {
-    for (const key of map.keys()) {
-      keyCounts.set(key, (keyCounts.get(key) || 0) + 1);
-    }
-  }
-
-  for (const map of maps) {
-    for (const [key, value] of map.entries()) {
-      if (keyCounts.get(key) === maps.length) {
-        const existingValue = intersection.get(key) || 0;
-        intersection.set(key, value + existingValue);
-      }
-    }
-  }
-
-  return intersection;
-}
-
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
 export const createJourneySlice: CreateJourneySlice = (set) => ({
@@ -1172,103 +1130,17 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     }),
   deleteJourneyNode: (nodeId: string) =>
     set((state) => {
-      const node = state.journeyNodes.find((n) => n.id === nodeId);
-      if (!node || node.data.type !== "JourneyNode") {
-        return state;
-      }
+      const definition = unwrap(journeyDefinitionFromState({ state }));
+      const newDefinition = removeNode(nodeId, definition);
 
-      const nodeType = node.data.nodeTypeProps.type;
-      const directChildren = findDirectUiChildren(node.id, state.journeyEdges);
-
-      if (
-        nodeType === JourneyNodeType.EntryNode ||
-        nodeType === JourneyNodeType.ExitNode
-      ) {
-        return state;
-      }
-
-      const nodesToDelete = new Set<string>([node.id]);
-      const edgesToAdd: [string, string][] = [];
-
-      if (directChildren.length > 1) {
-        directChildren.forEach((c) => nodesToDelete.add(c));
-
-        const ancestorSets = directChildren.map((c) =>
-          findAllDescendants(c, state.journeyEdges)
-        );
-        const sharedAncestorsMap = combinedDepthMaps(ancestorSets);
-
-        let firstSharedAncestor: string | null = null;
-        let secondSharedAncestor: string | null = null;
-        let minDepth = Infinity;
-        let secondMinDepth = Infinity;
-
-        for (const [sharedNode, depth] of sharedAncestorsMap.entries()) {
-          if (depth < minDepth) {
-            secondSharedAncestor = firstSharedAncestor;
-            secondMinDepth = minDepth;
-            firstSharedAncestor = sharedNode;
-            minDepth = depth;
-          } else if (
-            depth < secondMinDepth &&
-            sharedNode !== firstSharedAncestor
-          ) {
-            secondSharedAncestor = sharedNode;
-            secondMinDepth = depth;
-          }
-        }
-
-        if (!firstSharedAncestor || !secondSharedAncestor) {
-          throw new Error(
-            "node with multiple children lacking correct shared ancestors"
-          );
-        }
-
-        nodesToDelete.add(firstSharedAncestor);
-
-        const firstAncestorParents = findAllParents(
-          firstSharedAncestor,
-          state.journeyEdges
-        );
-
-        for (const ancestorSet of ancestorSets) {
-          for (const ancestor of Array.from(ancestorSet.keys())) {
-            if (firstAncestorParents.has(ancestor)) {
-              nodesToDelete.add(ancestor);
-            }
-          }
-        }
-
-        const parents = findDirectUiParents(node.id, state.journeyEdges);
-        for (const p of parents) {
-          edgesToAdd.push([p, secondSharedAncestor]);
-        }
-      } else if (directChildren.length === 1 && directChildren[0]) {
-        const parents = findDirectUiParents(node.id, state.journeyEdges);
-        const child = directChildren[0];
-        parents.forEach((p) => {
-          edgesToAdd.push([p, child]);
-        });
-      }
-
-      state.journeyEdges = state.journeyEdges.filter(
-        (e) => !(nodesToDelete.has(e.source) || nodesToDelete.has(e.target))
-      );
-      state.journeyNodes = state.journeyNodes.filter(
-        (n) => !nodesToDelete.has(n.id)
-      );
-      edgesToAdd.forEach(([source, target]) => {
-        state.journeyEdges.push({
-          id: `${source}->${target}`,
-          source,
-          target,
-          type: "workflow",
-        });
+      const uiState = journeyToState({
+        name: state.journeyName,
+        definition: newDefinition,
       });
 
-      state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
-      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
-      return state;
+      state.journeyNodes = uiState.journeyNodes;
+      state.journeyEdges = uiState.journeyEdges;
+      state.journeyNodesIndex = uiState.journeyNodesIndex;
     }),
   setNodes: (changes: NodeChange[]) =>
     set((state) => {

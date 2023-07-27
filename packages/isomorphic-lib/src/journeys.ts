@@ -2,6 +2,7 @@ import { sortBy } from "remeda/dist/commonjs/sortBy";
 
 import { getUnsafe } from "./maps";
 import {
+  EntryNode,
   JourneyBodyNode,
   JourneyDefinition,
   JourneyNode,
@@ -308,4 +309,134 @@ export function getNearestFromChildren(
     throw new Error(`Missing nearest for ${nId}`);
   }
   return nearestDescendant[0];
+}
+
+export function modifyChild(
+  priorChildId: string,
+  newChildId: string,
+  node: JourneyNode
+): JourneyNode {
+  switch (node.type) {
+    case JourneyNodeType.MessageNode:
+      return {
+        ...node,
+        child: newChildId,
+      };
+    case JourneyNodeType.DelayNode:
+      return {
+        ...node,
+        child: newChildId,
+      };
+    case JourneyNodeType.EntryNode:
+      return {
+        ...node,
+        child: newChildId,
+      };
+    case JourneyNodeType.ExitNode:
+      return node;
+    case JourneyNodeType.SegmentSplitNode: {
+      const trueChild =
+        node.variant.trueChild === priorChildId
+          ? newChildId
+          : node.variant.trueChild;
+      const falseChild =
+        node.variant.falseChild === priorChildId
+          ? newChildId
+          : node.variant.falseChild;
+      return {
+        ...node,
+        variant: {
+          ...node.variant,
+          trueChild,
+          falseChild,
+        },
+      };
+    }
+    case JourneyNodeType.WaitForNode: {
+      const timeoutChild =
+        node.timeoutChild === priorChildId ? newChildId : node.timeoutChild;
+      const segmentChildren = node.segmentChildren.map((c) =>
+        c.id === priorChildId ? { ...c, id: newChildId } : c
+      );
+      return {
+        ...node,
+        timeoutChild,
+        segmentChildren,
+      };
+    }
+    case JourneyNodeType.RateLimitNode:
+      throw new Error("Not implemented");
+    case JourneyNodeType.ExperimentSplitNode:
+      throw new Error("Not implemented");
+  }
+}
+
+function conditionallyRemoveNode(
+  primaryDeletedNode: string,
+  currentNode: JourneyNode,
+  hmEntry: HeritageMapEntry,
+  childNodesToDelete: Set<string>,
+  target: string
+): JourneyNode | null {
+  const id = getNodeId(currentNode);
+  if (id === primaryDeletedNode || childNodesToDelete.has(id)) {
+    return null;
+  }
+  if (hmEntry.parents.has(id)) {
+    return modifyChild(primaryDeletedNode, target, currentNode);
+  }
+  return currentNode;
+}
+
+export function removeNode(
+  nodeId: string,
+  definition: JourneyDefinition
+): JourneyDefinition {
+  if (
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    nodeId === JourneyNodeType.EntryNode ||
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    nodeId === JourneyNodeType.ExitNode
+  ) {
+    throw new Error(`Cannot remove ${nodeId}`);
+  }
+  const hm = buildHeritageMap(definition);
+  const nearestFromChildren = getNearestFromChildren(nodeId, hm);
+  const hmEntry = getUnsafe(hm, nodeId);
+  let target: string;
+  const childNodesToDelete = new Set<string>();
+  if (nearestFromChildren) {
+    target = nearestFromChildren;
+    const nfcHmEntry = getUnsafe(hm, nearestFromChildren);
+    for (const child of hmEntry.descendants) {
+      if (nfcHmEntry.ancestors.has(child)) {
+        childNodesToDelete.add(child);
+      }
+    }
+  } else {
+    const children = Array.from(hmEntry.children);
+    if (children.length !== 1) {
+      throw new Error(`Expected 1 child, got ${hmEntry.children.size}`);
+    }
+    if (!children[0]) {
+      throw new Error("Missing child");
+    }
+    [target] = children;
+  }
+
+  const nodes = definition.nodes.flatMap(
+    (n) =>
+      conditionallyRemoveNode(nodeId, n, hmEntry, childNodesToDelete, target) ??
+      []
+  ) as JourneyBodyNode[];
+
+  const entryNode = hmEntry.parents.has(JourneyNodeType.EntryNode)
+    ? (modifyChild(nodeId, target, definition.entryNode) as EntryNode)
+    : definition.entryNode;
+
+  return {
+    entryNode,
+    exitNode: definition.exitNode,
+    nodes,
+  };
 }

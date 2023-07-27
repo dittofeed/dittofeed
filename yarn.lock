@@ -10855,6 +10855,7 @@ __metadata:
   resolution: "isomorphic-lib@workspace:packages/isomorphic-lib"
   dependencies:
     "@sinclair/typebox": ^0.27.8
+    "@types/jest": ^29.2.5
     "@typescript-eslint/eslint-plugin": ^5.60.0
     "@typescript-eslint/parser": ^5.60.0
     eslint: ^8.43.0
