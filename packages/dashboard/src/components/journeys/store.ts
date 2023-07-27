@@ -504,7 +504,7 @@ export function edgesForJourneyNode({
   type: JourneyNodeType;
   nodeId: string;
   source: string;
-  target?: string;
+  target: string;
   leftId?: string;
   rightId?: string;
   emptyId?: string;
@@ -564,7 +564,7 @@ export function edgesForJourneyNode({
 export function journeyNodeToState(
   node: JourneyNode,
   source: string,
-  target?: string
+  target: string
 ): StateFromJourneyNode {
   if (
     node.type === JourneyNodeType.EntryNode ||
@@ -741,42 +741,6 @@ export function newStateFromNodes({
   };
 }
 
-// function findRedundantEdges(edges: Edge<EdgeData>[]): string[] {
-//   const childEdges = new Map<string, string[]>();
-//   const emptyEdges = new Map<string, string[]>();
-
-//   edges.forEach((edge) => {
-//     const sourceSuffix = edge.source.split("-").slice(-2).join("-");
-//     const targetSuffix = edge.target.split("-").slice(-1)[0];
-
-//     if (sourceSuffix.match(/child-\d+/) !== null) {
-//       if (childEdges.has(edge.source)) {
-//         childEdges.get(edge.source)?.push(edge.id);
-//       } else {
-//         childEdges.set(edge.source, [edge.id]);
-//       }
-//     }
-
-//     if (targetSuffix === "empty") {
-//       if (emptyEdges.has(edge.source)) {
-//         emptyEdges.get(edge.source)?.push(edge.id);
-//       } else {
-//         emptyEdges.set(edge.source, [edge.id]);
-//       }
-//     }
-//   });
-
-//   const result: string[] = [];
-
-//   emptyEdges.forEach((ids, source) => {
-//     if (childEdges.has(source)) {
-//       result.push(...ids);
-//     }
-//   });
-
-//   return result;
-// }
-
 function replaceRedundantEdges(
   nodes: Node<NodeData>[],
   edges: Edge<EdgeData>[]
@@ -832,12 +796,11 @@ function findSource(nId: string, hm: HeritageMap): string {
     }
     const parentHmEntry = getUnsafe(hm, parents[0]);
 
-    // relies on the ordering of findDirectChildren method
+    // README: relies on the ordering of findDirectChildren method
     if (parentHmEntry.children.size > 1) {
       const index = Array.from(parentHmEntry.children).indexOf(nId);
       source = `${parents[0]}-child-${index}`;
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, prefer-destructuring
       source = parents[0];
     }
   }
@@ -845,7 +808,6 @@ function findSource(nId: string, hm: HeritageMap): string {
 }
 
 function findTarget(nId: string, hm: HeritageMap): string {
-  // FIXME not working for wait for
   const hmEntry = getUnsafe(hm, nId);
   const nearestFromChildren = getNearestFromChildren(nId, hm);
 
@@ -854,92 +816,14 @@ function findTarget(nId: string, hm: HeritageMap): string {
     throw new Error(`Missing source for ${nId}`);
   }
   const nfmChildrenDefault = nearestFromChildren ?? children[0];
-
-  const childHmEntry = getUnsafe(hm, nfmChildrenDefault);
-  // const parents = Array.from(hmEntry.parents);
-  // if (!parents[0]) {
-  //   throw new Error(`Missing parent for ${nId}`);
-  // }
-  // const parentHmEntry = getUnsafe(hm, parents[0]);
-
-  // if (nId === "wait-for-first-deployment-1") {
-
-  // const connectsToParentEmpty = !Array.from(childHmEntry.ancestors).every(
-  //   (ancestor) => {
-  //     const ancestorHmEntry = getUnsafe(hm, ancestor);
-  //     return !(ancestorHmEntry.children.has(nfmChildrenDefault));
-  //   }
-  //     // ancestor === nId ||
-  //     // hmEntry.ancestors.has(ancestor) ||
-  //     // hmEntry.descendants.has(ancestor)
-  // );
-
   const nearestFromParents = getNearestFromParents(nfmChildrenDefault, hm);
   const nfmpHmEntry = getUnsafe(hm, nearestFromParents);
   const connectsToParentEmpty =
     nId !== nearestFromParents && nfmpHmEntry.descendants.has(nId);
 
-  if (
-    nId === "wait-for-first-deployment-1" ||
-    nId === "code-deployment-reminder-1a"
-  ) {
-    console.log("nId", nId);
-    console.log("connectsToParentEmpty", connectsToParentEmpty);
-    console.log("nearestFromParents", nearestFromParents);
-    console.log("nfmpHmEntry.descendants", nfmpHmEntry.descendants);
-  }
-
-  // const childParents = Array.from(childHmEntry.parents);
-  // const connectsToParentEmpty = !Array.from(childHmEntry.ancestors).every(
-  //   (ancestor) => {
-  //     const ancestorHmEntry = getUnsafe(hm, ancestor);
-
-  //     // const allParentsAreDescendants = childParents.every(
-  //     //   (parent) =>
-  //     //     ancestor === parent ||
-  //     //     ancestorHmEntry.descendants.has(parent) ||
-  //     //     hmEntry.descendants.has(ancestor)
-  //     // );
-  //     const breakingParent = childParents.find(
-  //       (parent) =>
-  //         !(
-  //           ancestor === parent ||
-  //           ancestorHmEntry.descendants.has(parent) ||
-  //           ancestorHmEntry.ancestors.has(parent)
-  //         )
-  //     );
-  //     const allParentsAreDescendants = breakingParent === undefined;
-
-  //     if (nId === "wait-for-first-deployment-1" && !allParentsAreDescendants) {
-  //       // if (nId === "code-deployment-reminder-1a") {
-  //       console.log("connectsToParentEmpty", {
-  //         allParentsAreDescendants,
-  //         ancestor,
-  //         childParents,
-  //         descendants: ancestorHmEntry.descendants,
-  //         breakingParent,
-  //       });
-  //     }
-  //     return allParentsAreDescendants;
-  //   }
-  //   // ancestor === nId ||
-  //   // hmEntry.ancestors.has(ancestor) ||
-  //   // hmEntry.descendants.has(ancestor)
-  // );
-
-  // const connectsToParentEmpty = !Array.from(hmEntry.ancestors).some((ancestor) =>
-  //   findSource(ancestor, hm)
-  // );
-
   if (connectsToParentEmpty) {
-    // FIXME not working as intended
     // FIXME deduplicate operation
     const target = findSource(nfmChildrenDefault, hm);
-    if (nId === "code-deployment-reminder-1a") {
-      // if (nId === "wait-for-first-deployment-1") {
-      //   // if (nId === "code-deployment-reminder-1a") {
-      console.log("bad target", target);
-    }
     return target;
   }
   return nfmChildrenDefault;
@@ -957,31 +841,7 @@ export function journeyToState(
     ...journey.definition.nodes,
     journey.definition.exitNode,
   ];
-  // console.log("hm", hm);
-  //
-  // {
-  //   id: JourneyNodeType.EntryNode,
-  //   position: placeholderNodePosition,
-  //   type: "journey",
-  //   data: {
-  //     type: "JourneyNode",
-  //     nodeTypeProps: {
-  //       type: JourneyNodeType.EntryNode,
-  //       segmentId: journey.definition.entryNode.segment,
-  //     },
-  //   },
-  // },
-  // {
-  //   id: JourneyNodeType.ExitNode,
-  //   position: placeholderNodePosition,
-  //   type: "journey",
-  //   data: {
-  //     type: "JourneyNode",
-  //     nodeTypeProps: {
-  //       type: JourneyNodeType.ExitNode,
-  //     },
-  //   },
-  // },
+
   for (const n of nodes) {
     let newNodes: Node<NodeData>[];
     let newEdges: Edge<EdgeData>[];
@@ -990,30 +850,6 @@ export function journeyToState(
     if (!hmEntry) {
       throw new Error(`Missing heritage map entry ${nId}`);
     }
-
-    // FIXME
-    // eslint-disable-next-line @typescript-eslint/no-loop-func
-
-    // eslint-disable-next-line @typescript-eslint/no-loop-func
-    // const findTarget = () => {
-    //   const nearestFromChildren = getNearestFromChildren(nId, hm);
-
-    //   const children = Array.from(hmEntry.children);
-    //   if (!children[0]) {
-    //     throw new Error(`Missing source for ${nId}`);
-    //   }
-    //   const nfmChildrenDefault = nearestFromChildren ?? children[0];
-
-    //   const childHmEntry = getUnsafe(hm, nfmChildrenDefault);
-
-    //   if (childHmEntry.parents.size > 1) {
-    //     // FIXME call find source
-    //     const index = Array.from(childHmEntry.parents).indexOf(nId);
-    //     return `${nId}-child-${index}`;
-    //   } else {
-
-    //   }
-    // };
 
     switch (n.type) {
       case JourneyNodeType.EntryNode: {
@@ -1092,7 +928,8 @@ export function journeyToState(
       }
       case JourneyNodeType.SegmentSplitNode: {
         const source = findSource(nId, hm);
-        const state = journeyNodeToState(n, source);
+        const target = findTarget(nId, hm);
+        const state = journeyNodeToState(n, source, target);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
