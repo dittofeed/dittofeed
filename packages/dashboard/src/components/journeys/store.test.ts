@@ -135,7 +135,7 @@ describe("journeyToState", () => {
       };
     });
 
-    it.only("produces the right ui state", async () => {
+    it("produces the right ui state", async () => {
       const uiState = journeyToState(journeyResource);
       const result = await journeyDefinitionFromState({ state: uiState });
       if (result.isErr()) {

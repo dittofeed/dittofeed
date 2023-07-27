@@ -783,12 +783,15 @@ function replaceRedundantEdges(
   return result;
 }
 
-function findSource(nId: string, hm: HeritageMap): string {
+function findSourceFromNearest(
+  nId: string,
+  hm: HeritageMap,
+  nearest: string | null
+): string {
   const hmEntry = getUnsafe(hm, nId);
-  const nearestRejoinedDescendant = getNearestFromParents(nId, hm);
   let source: string;
-  if (nearestRejoinedDescendant) {
-    source = `${nearestRejoinedDescendant}-empty`;
+  if (nearest) {
+    source = `${nearest}-empty`;
   } else {
     const parents = Array.from(hmEntry.parents);
     if (!parents[0]) {
@@ -807,6 +810,11 @@ function findSource(nId: string, hm: HeritageMap): string {
   return source;
 }
 
+function findSource(nId: string, hm: HeritageMap): string {
+  const nearest = getNearestFromParents(nId, hm);
+  return findSourceFromNearest(nId, hm, nearest);
+}
+
 function findTarget(nId: string, hm: HeritageMap): string {
   const hmEntry = getUnsafe(hm, nId);
   const nearestFromChildren = getNearestFromChildren(nId, hm);
@@ -822,8 +830,11 @@ function findTarget(nId: string, hm: HeritageMap): string {
     nId !== nearestFromParents && nfmpHmEntry.descendants.has(nId);
 
   if (connectsToParentEmpty) {
-    // FIXME deduplicate operation
-    const target = findSource(nfmChildrenDefault, hm);
+    const target = findSourceFromNearest(
+      nfmChildrenDefault,
+      hm,
+      nearestFromParents
+    );
     return target;
   }
   return nfmChildrenDefault;
