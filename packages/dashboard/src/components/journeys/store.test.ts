@@ -137,10 +137,6 @@ describe("journeyToState", () => {
 
     it.only("produces the right ui state", async () => {
       const uiState = journeyToState(journeyResource);
-      console.log(
-        "uiState.edges",
-        JSON.stringify(uiState.journeyEdges, null, 2)
-      );
       const result = await journeyDefinitionFromState({ state: uiState });
       if (result.isErr()) {
         throw new Error(JSON.stringify(result.error));
@@ -164,6 +160,18 @@ describe("journeyToState", () => {
           "wait-for-onboarding-2",
           "onboarding-segment-split-received-a",
         ])
+      );
+      expect(
+        findDirectChildren("onboarding-segment-split-received-a", definition)
+      ).toEqual(new Set(["onboarding-reminder-2a", "onboarding-reminder-2b"]));
+      expect(findDirectChildren("onboarding-reminder-2a", definition)).toEqual(
+        new Set(["wait-for-onboarding-2"])
+      );
+      expect(findDirectChildren("onboarding-reminder-2b", definition)).toEqual(
+        new Set(["wait-for-onboarding-2"])
+      );
+      expect(findDirectChildren("wait-for-onboarding-2", definition)).toEqual(
+        new Set([JourneyNodeType.ExitNode])
       );
     });
   });
