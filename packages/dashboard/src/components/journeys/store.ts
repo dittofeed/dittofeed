@@ -1130,121 +1130,17 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     }),
   deleteJourneyNode: (nodeId: string) =>
     set((state) => {
-      console.log("loc1");
       const definition = unwrap(journeyDefinitionFromState({ state }));
-      console.log("loc2");
       const newDefinition = removeNode(nodeId, definition);
 
-      console.log("loc3");
-      // FIXME freezing
       const uiState = journeyToState({
         name: state.journeyName,
         definition: newDefinition,
       });
 
-      console.log("loc4");
       state.journeyNodes = uiState.journeyNodes;
       state.journeyEdges = uiState.journeyEdges;
       state.journeyNodesIndex = uiState.journeyNodesIndex;
-
-      // const node = state.journeyNodes.find((n) => n.id === nodeId);
-
-      // if (!node || node.data.type !== "JourneyNode") {
-      //   return state;
-      // }
-
-      // const nodeType = node.data.nodeTypeProps.type;
-      // const directChildren = findDirectUiChildren(node.id, state.journeyEdges);
-
-      // if (
-      //   nodeType === JourneyNodeType.EntryNode ||
-      //   nodeType === JourneyNodeType.ExitNode
-      // ) {
-      //   return state;
-      // }
-
-      // const nodesToDelete = new Set<string>([node.id]);
-      // const edgesToAdd: [string, string][] = [];
-
-      // if (directChildren.length > 1) {
-      //   directChildren.forEach((c) => nodesToDelete.add(c));
-
-      //   const ancestorSets = directChildren.map((c) =>
-      //     findAllDescendants(c, state.journeyEdges)
-      //   );
-      //   const sharedAncestorsMap = combinedDepthMaps(ancestorSets);
-
-      //   let firstSharedAncestor: string | null = null;
-      //   let secondSharedAncestor: string | null = null;
-      //   let minDepth = Infinity;
-      //   let secondMinDepth = Infinity;
-
-      //   for (const [sharedNode, depth] of sharedAncestorsMap.entries()) {
-      //     if (depth < minDepth) {
-      //       secondSharedAncestor = firstSharedAncestor;
-      //       secondMinDepth = minDepth;
-      //       firstSharedAncestor = sharedNode;
-      //       minDepth = depth;
-      //     } else if (
-      //       depth < secondMinDepth &&
-      //       sharedNode !== firstSharedAncestor
-      //     ) {
-      //       secondSharedAncestor = sharedNode;
-      //       secondMinDepth = depth;
-      //     }
-      //   }
-
-      //   if (!firstSharedAncestor || !secondSharedAncestor) {
-      //     throw new Error(
-      //       "node with multiple children lacking correct shared ancestors"
-      //     );
-      //   }
-
-      //   nodesToDelete.add(firstSharedAncestor);
-
-      //   const firstAncestorParents = findAllParents(
-      //     firstSharedAncestor,
-      //     state.journeyEdges
-      //   );
-
-      //   for (const ancestorSet of ancestorSets) {
-      //     for (const ancestor of Array.from(ancestorSet.keys())) {
-      //       if (firstAncestorParents.has(ancestor)) {
-      //         nodesToDelete.add(ancestor);
-      //       }
-      //     }
-      //   }
-
-      //   const parents = findDirectUiParents(node.id, state.journeyEdges);
-      //   for (const p of parents) {
-      //     edgesToAdd.push([p, secondSharedAncestor]);
-      //   }
-      // } else if (directChildren.length === 1 && directChildren[0]) {
-      //   const parents = findDirectUiParents(node.id, state.journeyEdges);
-      //   const child = directChildren[0];
-      //   parents.forEach((p) => {
-      //     edgesToAdd.push([p, child]);
-      //   });
-      // }
-
-      // state.journeyEdges = state.journeyEdges.filter(
-      //   (e) => !(nodesToDelete.has(e.source) || nodesToDelete.has(e.target))
-      // );
-      // state.journeyNodes = state.journeyNodes.filter(
-      //   (n) => !nodesToDelete.has(n.id)
-      // );
-      // edgesToAdd.forEach(([source, target]) => {
-      //   state.journeyEdges.push({
-      //     id: `${source}->${target}`,
-      //     source,
-      //     target,
-      //     type: "workflow",
-      //   });
-      // });
-
-      // state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
-      // state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
-      // return state;
     }),
   setNodes: (changes: NodeChange[]) =>
     set((state) => {
