@@ -11,12 +11,88 @@ import {
 import { v4 as uuid } from "uuid";
 
 import { JourneyState } from "../../lib/types";
-import { journeyDefinitionFromState, journeyToState } from "./store";
+import {
+  findDirectUiChildren,
+  journeyDefinitionFromState,
+  journeyToState,
+} from "./store";
 
 describe("journeyToState", () => {
   let journeyResource: JourneyResource;
   let journeyId: string;
   let workspaceId: string;
+
+  describe("with a simple segment split", () => {
+    beforeEach(() => {
+      const definition: JourneyDefinition = {
+        nodes: [
+          {
+            id: "segment-split",
+            type: JourneyNodeType.SegmentSplitNode,
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: "segment-id",
+              trueChild: JourneyNodeType.ExitNode,
+              falseChild: JourneyNodeType.ExitNode,
+            },
+          },
+        ],
+        entryNode: {
+          type: JourneyNodeType.EntryNode,
+          child: "segment-split",
+          segment: "segment-id",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+      };
+
+      journeyId = uuid();
+      workspaceId = uuid();
+      journeyResource = {
+        id: journeyId,
+        name: "My Journey",
+        status: "NotStarted",
+        definition,
+        workspaceId,
+      };
+    });
+
+    it("produces the right ui state", async () => {
+      const uiState = journeyToState(journeyResource);
+      const uiExpectations: [string, string[]][] = [
+        [JourneyNodeType.EntryNode, ["segment-split"]],
+        ["segment-split", ["segment-split-child-0", "segment-split-child-1"]],
+        ["segment-split-child-0", ["segment-split-empty"]],
+        ["segment-split-child-1", ["segment-split-empty"]],
+        ["segment-split-empty", [JourneyNodeType.ExitNode]],
+      ];
+
+      for (const [nodeId, expectedChildren] of uiExpectations) {
+        const actualChildren = findDirectUiChildren(
+          nodeId,
+          uiState.journeyEdges
+        );
+        expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
+      }
+
+      const result = await journeyDefinitionFromState({ state: uiState });
+      if (result.isErr()) {
+        throw new Error(JSON.stringify(result.error));
+      }
+      const definition = result.value;
+
+      const definitionExpectations: [string, string[]][] = [
+        [JourneyNodeType.EntryNode, ["segment-split"]],
+        ["segment-split", [JourneyNodeType.ExitNode]],
+      ];
+
+      for (const [nodeId, expectedChildren] of definitionExpectations) {
+        const actualChildren = findDirectChildren(nodeId, definition);
+        expect(actualChildren).toEqual(new Set(expectedChildren));
+      }
+    });
+  });
 
   describe("when journey has nested wait for's", () => {
     beforeEach(() => {
@@ -137,6 +213,64 @@ describe("journeyToState", () => {
 
     it("produces the right ui state", async () => {
       const uiState = journeyToState(journeyResource);
+
+      console.log("uiState", JSON.stringify(uiState.journeyEdges, null, 2));
+      const uiExpectations: [string, string[]][] = [
+        [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
+        [
+          "wait-for-first-deployment-1",
+          [
+            "wait-for-first-deployment-1-child-0",
+            "wait-for-first-deployment-1-child-1",
+          ],
+        ],
+        [
+          "wait-for-first-deployment-1-child-0",
+          ["wait-for-first-deployment-1-empty"],
+        ],
+        [
+          "wait-for-first-deployment-1-child-1",
+          ["code-deployment-reminder-1a"],
+        ],
+        ["code-deployment-reminder-1a", ["wait-for-first-deployment-1-empty"]],
+        ["wait-for-first-deployment-1-empty", ["wait-for-first-deployment-2"]],
+        [
+          "wait-for-first-deployment-2",
+          [
+            "wait-for-first-deployment-2-child-0",
+            "wait-for-first-deployment-2-child-1",
+          ],
+        ],
+        ["wait-for-first-deployment-2-child-0", ["wait-for-onboarding-1"]],
+        [
+          "wait-for-first-deployment-2-child-1",
+          ["wait-for-first-deployment-2-empty"],
+        ],
+        [
+          "wait-for-onboarding-1",
+          ["wait-for-onboarding-1-child-0", "wait-for-onboarding-1-child-1"],
+        ],
+        ["wait-for-onboarding-1-child-0", ["wait-for-onboarding-1-empty"]],
+        [
+          "wait-for-onboarding-1-child-1",
+          ["onboarding-segment-split-received-a"],
+        ],
+        [
+          "onboarding-segment-split-received-a",
+          [
+            "onboarding-segment-split-received-a-child-1",
+            "onboarding-segment-split-received-a-child-0",
+          ],
+        ],
+      ];
+
+      for (const [nodeId, expectedChildren] of uiExpectations) {
+        const actualChildren = findDirectUiChildren(
+          nodeId,
+          uiState.journeyEdges
+        );
+        expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
+      }
       const result = await journeyDefinitionFromState({ state: uiState });
       if (result.isErr()) {
         throw new Error(JSON.stringify(result.error));

@@ -26,6 +26,16 @@ function nodeToSegments(node: JourneyBodyNode): string[] {
   }
 }
 
+export function isMultiChildNode(type: JourneyNodeType): boolean {
+  if (
+    type === JourneyNodeType.SegmentSplitNode ||
+    type === JourneyNodeType.WaitForNode
+  ) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Returns the set of segments that this journey depends on.
  * @param definition
@@ -238,9 +248,8 @@ export function getNearestFromParents(
   hm: HeritageMap
 ): string | null {
   const hmEntry = getUnsafe(hm, nId);
-
   const parents = Array.from(hmEntry.parents);
-  if (parents.length <= 1) {
+  if (parents.length === 1) {
     return null;
   }
 
