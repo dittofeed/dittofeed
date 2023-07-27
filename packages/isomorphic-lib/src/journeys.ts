@@ -1,3 +1,6 @@
+import { sortBy } from "remeda/dist/commonjs/sortBy";
+
+import { getUnsafe } from "./maps";
 import {
   JourneyBodyNode,
   JourneyDefinition,
@@ -21,6 +24,16 @@ function nodeToSegments(node: JourneyBodyNode): string[] {
     case JourneyNodeType.WaitForNode:
       return node.segmentChildren.map((c) => c.segmentId);
   }
+}
+
+export function isMultiChildNode(type: JourneyNodeType): boolean {
+  if (
+    type === JourneyNodeType.SegmentSplitNode ||
+    type === JourneyNodeType.WaitForNode
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -56,4 +69,243 @@ export function getJourneyNode(
   }
   const node = definition.nodes.find((n) => n.id === nodeId) ?? null;
   return node;
+}
+
+export function findDirectChildren(
+  nodeId: string,
+  definition: JourneyDefinition
+): Set<string> {
+  const node = getJourneyNode(definition, nodeId);
+  if (!node) {
+    throw new Error(`Node ${nodeId} not found in journey`);
+  }
+  let children: Set<string>;
+  switch (node.type) {
+    case JourneyNodeType.SegmentSplitNode: {
+      const { trueChild, falseChild } = node.variant;
+      children = new Set<string>([trueChild, falseChild]);
+      break;
+    }
+    case JourneyNodeType.WaitForNode: {
+      children = new Set<string>([
+        ...node.segmentChildren.map((c) => c.id),
+        node.timeoutChild,
+      ]);
+      break;
+    }
+    case JourneyNodeType.MessageNode:
+      children = new Set<string>([node.child]);
+      break;
+    case JourneyNodeType.EntryNode:
+      children = new Set<string>([node.child]);
+      break;
+    case JourneyNodeType.DelayNode:
+      children = new Set<string>([node.child]);
+      break;
+    case JourneyNodeType.ExitNode:
+      children = new Set<string>();
+      break;
+    case JourneyNodeType.ExperimentSplitNode:
+      throw new Error("Not implemented");
+    case JourneyNodeType.RateLimitNode:
+      throw new Error("Not implemented");
+  }
+
+  return children;
+}
+
+export function findDirectParents(
+  nodeId: string,
+  definition: JourneyDefinition
+): Set<string> {
+  const parents = new Set<string>();
+
+  // Iterate over all nodes in the journey definition
+  for (const node of [definition.entryNode, ...definition.nodes]) {
+    const id =
+      node.type === JourneyNodeType.EntryNode
+        ? JourneyNodeType.EntryNode
+        : node.id;
+    // Get the direct children of the current node
+    const children = findDirectChildren(id, definition);
+
+    // Check if the specified node is a child of the current node
+    if (children.has(nodeId)) {
+      // If it is, add the current node to the set of direct parents
+      parents.add(id);
+    }
+  }
+
+  return parents;
+}
+
+export function getNodeId(node: JourneyNode): string {
+  if (node.type === JourneyNodeType.EntryNode) {
+    return JourneyNodeType.EntryNode;
+  }
+  if (node.type === JourneyNodeType.ExitNode) {
+    return JourneyNodeType.ExitNode;
+  }
+  return node.id;
+}
+
+export interface HeritageMapEntry {
+  // ids of direct children nodes
+  children: Set<string>;
+  // ids of all N nested children of node
+  descendants: Set<string>;
+  // ids of direct parents of the node
+  parents: Set<string>;
+  // ids of all N nested parents of node
+  ancestors: Set<string>;
+}
+
+export type HeritageMap = Map<
+  // id of node for which heritage entry applies
+  string,
+  HeritageMapEntry
+>;
+
+export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
+  const map: HeritageMap = new Map();
+  const nodes: JourneyNode[] = [
+    definition.entryNode,
+    definition.exitNode,
+    ...definition.nodes,
+  ];
+
+  // initialize map
+  for (const node of nodes) {
+    const id = getNodeId(node);
+    map.set(id, {
+      children: findDirectChildren(id, definition),
+      descendants: new Set<string>(),
+      parents: new Set<string>(),
+      ancestors: new Set<string>(),
+    });
+  }
+
+  // fill children, parents, and descendant, ancestor relationships
+  for (const node of nodes) {
+    const id = getNodeId(node);
+
+    const queue = Array.from(
+      findDirectChildren(id, definition).values()
+    ).flatMap((childId) => nodes.find((n) => getNodeId(n) === childId) ?? []);
+
+    queue.forEach((childNode) => {
+      const childId = getNodeId(childNode);
+      map.get(childId)?.parents.add(id);
+    });
+
+    while (queue.length > 0) {
+      const currentChild = queue.shift();
+      if (!currentChild) {
+        throw new Error("Queue should not be empty");
+      }
+      const childId = getNodeId(currentChild);
+
+      // add to descendants of parent and ancestors of child
+      map.get(id)?.descendants.add(childId);
+      map.get(childId)?.ancestors.add(id);
+
+      // add parents to child and children to parent
+      for (const parentId of map.get(id)?.ancestors.values() ?? []) {
+        map.get(parentId)?.descendants.add(childId);
+        map.get(childId)?.ancestors.add(parentId);
+      }
+
+      // add children to parent and parents to child
+      for (const cid of map.get(childId)?.descendants.values() ?? []) {
+        map.get(id)?.descendants.add(cid);
+        map.get(cid)?.ancestors.add(id);
+      }
+
+      // add children of current child to queue
+      const grandchildren = Array.from(
+        map.get(childId)?.children.values() ?? []
+      ).flatMap(
+        (grandChildId) => nodes.find((n) => getNodeId(n) === grandChildId) ?? []
+      );
+
+      queue.push(...grandchildren);
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Find the ancestor which has all parents as descendants, and has the least
+ * number of descendents (nearest). Returns null if node only has a single
+ * parent.
+ * @param nId
+ * @param hm
+ * @returns
+ */
+export function getNearestFromParents(
+  nId: string,
+  hm: HeritageMap
+): string | null {
+  const hmEntry = getUnsafe(hm, nId);
+  const parents = Array.from(hmEntry.parents);
+  if (parents.length === 1) {
+    return null;
+  }
+
+  const nearestAncestors = sortBy(
+    Array.from(hmEntry.ancestors).flatMap((a) => {
+      const ancestorHmEntry = getUnsafe(hm, a);
+      if (
+        !parents.every((p) => p === a || ancestorHmEntry.descendants.has(p))
+      ) {
+        return [];
+      }
+      const val: [string, number] = [a, ancestorHmEntry.descendants.size];
+      return [val];
+    }),
+    (val) => val[1]
+  );
+  const nearestAncestor = nearestAncestors[0];
+  if (!nearestAncestor) {
+    throw new Error(`Missing nearest for ${nId}`);
+  }
+  return nearestAncestor[0];
+}
+
+/**
+ * find the descendant which has all children as ancestors, and has the smallest number of ancestors (nearest). Returns null if node only has a single child.
+ * @param nId
+ * @param hm
+ * @returns
+ */
+export function getNearestFromChildren(
+  nId: string,
+  hm: HeritageMap
+): string | null {
+  const hmEntry = getUnsafe(hm, nId);
+
+  const children = Array.from(hmEntry.children);
+  if (children.length <= 1) {
+    return null;
+  }
+
+  const nearestDescendants = sortBy(
+    Array.from(hmEntry.descendants).flatMap((d) => {
+      const descendantHmEntry = getUnsafe(hm, d);
+      if (
+        !children.every((c) => c === d || descendantHmEntry.ancestors.has(c))
+      ) {
+        return [];
+      }
+      const val: [string, number] = [d, descendantHmEntry.ancestors.size];
+      return [val];
+    }),
+    (val) => val[1]
+  );
+  const nearestDescendant = nearestDescendants[0];
+  if (!nearestDescendant) {
+    throw new Error(`Missing nearest for ${nId}`);
+  }
+  return nearestDescendant[0];
 }

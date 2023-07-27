@@ -1,4 +1,12 @@
-import { getJourneyNode } from "isomorphic-lib/src/journeys";
+import {
+  buildHeritageMap,
+  getNearestFromChildren,
+  getNearestFromParents,
+  getNodeId,
+  HeritageMap,
+  isMultiChildNode,
+} from "isomorphic-lib/src/journeys";
+import { getUnsafe } from "isomorphic-lib/src/maps";
 import {
   CompletionStatus,
   DelayNode,
@@ -23,7 +31,6 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
-import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
 
 import {
@@ -52,6 +59,20 @@ type JourneyStateForResource = Pick<
   JourneyState,
   "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
 >;
+
+export function findDirectUiParents(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): string[] {
+  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
+}
+
+export function findDirectUiChildren(
+  parentId: string,
+  edges: JourneyContent["journeyEdges"]
+): string[] {
+  return edges.flatMap((e) => (e.source === parentId ? e.target : []));
+}
 
 export const WAIT_FOR_SATISFY_LABEL = "In segment";
 
@@ -272,7 +293,9 @@ export function journeyDefinitionFromState({
     const nextNode = nextNodeId ? traverseUntilJourneyNode(nextNodeId) : null;
 
     if (!nextNode) {
-      throw new Error("Malformed node. Only exit nodes lack children.");
+      throw new Error(
+        `Malformed node. Only exit nodes lack children. ${current.id}`
+      );
     }
 
     stack.push(nextNode);
@@ -405,7 +428,7 @@ export function dualNodeEdges({
   target: string;
   nodeId: string;
 }): Edge<EdgeData>[] {
-  return [
+  const edges: Edge<EdgeData>[] = [
     {
       id: `${source}=>${nodeId}`,
       source,
@@ -453,7 +476,9 @@ export function dualNodeEdges({
         disableMarker: true,
       },
     },
-    {
+  ];
+  if (target) {
+    edges.push({
       id: `${emptyId}=>${target}`,
       source: emptyId,
       target,
@@ -463,8 +488,9 @@ export function dualNodeEdges({
         type: "WorkflowEdge",
         disableMarker: true,
       },
-    },
-  ];
+    });
+  }
+  return edges;
 }
 
 export function edgesForJourneyNode({
@@ -509,7 +535,7 @@ export function edgesForJourneyNode({
     throw new Error(`Unimplemented node type ${type}`);
   }
 
-  return [
+  const edges: Edge<EdgeData>[] = [
     {
       id: `${source}=>${nodeId}`,
       source,
@@ -520,7 +546,9 @@ export function edgesForJourneyNode({
         type: "WorkflowEdge",
       },
     },
-    {
+  ];
+  if (target) {
+    edges.push({
       id: `${nodeId}=>${target}`,
       source: nodeId,
       target,
@@ -529,8 +557,9 @@ export function edgesForJourneyNode({
       data: {
         type: "WorkflowEdge",
       },
-    },
-  ];
+    });
+  }
+  return edges;
 }
 
 export function journeyNodeToState(
@@ -544,6 +573,7 @@ export function journeyNodeToState(
   ) {
     throw new Error("Entry and exit nodes should not be converted to state.");
   }
+
   let nodeTypeProps: NodeTypeProps;
   let nonJourneyNodes: Node<NonJourneyNodeData>[] = [];
   let edges: Edge<EdgeData>[] = [];
@@ -583,9 +613,9 @@ export function journeyNodeToState(
       };
       break;
     case JourneyNodeType.SegmentSplitNode: {
-      const trueId = uuid();
-      const falseId = uuid();
-      const emptyId = uuid();
+      const trueId = `${node.id}-child-0`;
+      const falseId = `${node.id}-child-1`;
+      const emptyId = `${node.id}-empty`;
 
       nonJourneyNodes = nonJourneyNodes.concat(
         dualNodeNonJourneyNodes({
@@ -619,14 +649,14 @@ export function journeyNodeToState(
       break;
     }
     case JourneyNodeType.WaitForNode: {
-      const emptyId = uuid();
+      const emptyId = `${node.id}-empty`;
       const segmentChild = node.segmentChildren[0];
       if (!segmentChild) {
         throw new Error("Malformed journey, WaitForNode has no children.");
       }
 
-      const segmentChildLabelNodeId = uuid();
-      const timeoutLabelNodeId = uuid();
+      const segmentChildLabelNodeId = `${node.id}-child-0`;
+      const timeoutLabelNodeId = `${node.id}-child-1`;
 
       nonJourneyNodes = nonJourneyNodes.concat(
         dualNodeNonJourneyNodes({
@@ -678,6 +708,7 @@ export function journeyNodeToState(
       nodeTypeProps,
     },
   };
+
   return {
     journeyNode,
     nonJourneyNodes,
@@ -711,200 +742,308 @@ export function newStateFromNodes({
   };
 }
 
+function removeParts(
+  nodes: Node<NodeData>[],
+  edges: Edge<EdgeData>[]
+): { edges: string[]; nodes: string[] } {
+  const childEdges = new Map<string, Edge<EdgeData>[]>();
+  const childEmptyEdges = new Map<string, Edge<EdgeData>[]>();
+
+  const nodeMap = nodes.reduce<Map<string, Node<NodeData>>>(
+    (acc, node) => acc.set(node.id, node),
+    new Map()
+  );
+
+  for (const e of edges) {
+    const sourceNode = nodeMap.get(e.source);
+    const targetNode = nodeMap.get(e.target);
+
+    if (!sourceNode || !targetNode || sourceNode.type !== "label") {
+      continue;
+    }
+    if (targetNode.type === "empty") {
+      if (!childEmptyEdges.has(e.source)) {
+        childEmptyEdges.set(e.source, []);
+      }
+      childEmptyEdges.get(e.source)?.push(e);
+    } else {
+      if (!childEdges.has(e.source)) {
+        childEdges.set(e.source, []);
+      }
+      childEdges.get(e.source)?.push(e);
+    }
+  }
+
+  const edgesResult = new Set<string>();
+
+  childEmptyEdges.forEach((cee, source) => {
+    if (childEdges.get(source)?.length) {
+      cee.forEach((edge) => edgesResult.add(edge.id));
+    }
+  });
+
+  for (const edge of edges) {
+    if (!nodeMap.has(edge.target) || !nodeMap.has(edge.source)) {
+      edgesResult.add(edge.id);
+    }
+  }
+
+  const nodesResult = new Set<string>();
+  const filteredEdges = edges.filter((e) => !edgesResult.has(e.id));
+
+  for (const node of nodes) {
+    if (
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      node.id === JourneyNodeType.EntryNode ||
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      node.id === JourneyNodeType.ExitNode
+    ) {
+      continue;
+    }
+    if (node.type === "journey") {
+      continue;
+    }
+    const children = findDirectUiChildren(node.id, filteredEdges);
+    const parents = findDirectUiParents(node.id, filteredEdges);
+
+    if (!children.length || !parents.length) {
+      nodesResult.add(node.id);
+    }
+  }
+
+  for (const edge of edges) {
+    if (nodesResult.has(edge.target) || nodesResult.has(edge.source)) {
+      edgesResult.add(edge.id);
+    }
+  }
+  return {
+    edges: Array.from(edgesResult),
+    nodes: Array.from(nodesResult),
+  };
+}
+
+function findSourceFromNearest(
+  nId: string,
+  hm: HeritageMap,
+  nearest: string | null,
+  nodes: Map<string, Node<NodeData>>
+): string {
+  const hmEntry = getUnsafe(hm, nId);
+  let source: string;
+
+  if (nearest) {
+    source = `${nearest}-empty`;
+  } else {
+    const parents = Array.from(hmEntry.parents);
+    if (!parents[0]) {
+      throw new Error(`Missing source for ${nId}`);
+    }
+    const parentNode = getUnsafe(nodes, parents[0]);
+    const parentHmEntry = getUnsafe(hm, parents[0]);
+
+    if (
+      parentNode.data.type === "JourneyNode" &&
+      isMultiChildNode(parentNode.data.nodeTypeProps.type) &&
+      parentHmEntry.children.size === 1
+    ) {
+      source = `${parents[0]}-empty`;
+    } else if (parentHmEntry.children.size > 1) {
+      // README: relies on the ordering of findDirectChildren method
+      const index = Array.from(parentHmEntry.children).indexOf(nId);
+      source = `${parents[0]}-child-${index}`;
+    } else {
+      [source] = parents;
+    }
+  }
+  return source;
+}
+
+function findSource(
+  nId: string,
+  hm: HeritageMap,
+  nodes: Map<string, Node<NodeData>>
+): string {
+  const nearest = getNearestFromParents(nId, hm);
+  return findSourceFromNearest(nId, hm, nearest, nodes);
+}
+
+function findTarget(
+  nId: string,
+  hm: HeritageMap,
+  nodes: Map<string, Node<NodeData>>
+): string {
+  const hmEntry = getUnsafe(hm, nId);
+  const nearestFromChildren = getNearestFromChildren(nId, hm);
+
+  const children = Array.from(hmEntry.children);
+  if (!children[0]) {
+    throw new Error(`Missing source for ${nId}`);
+  }
+  const nfmChildrenDefault = nearestFromChildren ?? children[0];
+  const nearestFromParents = getNearestFromParents(nfmChildrenDefault, hm);
+
+  if (!nearestFromParents) {
+    return nfmChildrenDefault;
+  }
+
+  const nfmpHmEntry = getUnsafe(hm, nearestFromParents);
+  const connectsToParentEmpty =
+    nId !== nearestFromParents && nfmpHmEntry.descendants.has(nId);
+
+  if (!connectsToParentEmpty) {
+    return nfmChildrenDefault;
+  }
+
+  const target = findSourceFromNearest(
+    nfmChildrenDefault,
+    hm,
+    nearestFromParents,
+    nodes
+  );
+
+  return target;
+}
+
 export function journeyToState(
   journey: JourneyResource
 ): JourneyStateForResource {
-  let journeyNodes: Node<NodeData>[] = [
-    {
-      id: JourneyNodeType.EntryNode,
-      position: placeholderNodePosition,
-      type: "journey",
-      data: {
-        type: "JourneyNode",
-        nodeTypeProps: {
-          type: JourneyNodeType.EntryNode,
-          segmentId: journey.definition.entryNode.segment,
-        },
-      },
-    },
-    {
-      id: JourneyNodeType.ExitNode,
-      position: placeholderNodePosition,
-      type: "journey",
-      data: {
-        type: "JourneyNode",
-        nodeTypeProps: {
-          type: JourneyNodeType.ExitNode,
-        },
-      },
-    },
+  const jn = new Map<string, Node<NodeData>>();
+  const je = new Map<string, Edge<EdgeData>>();
+
+  const hm = buildHeritageMap(journey.definition);
+  const nodes = [
+    journey.definition.entryNode,
+    ...journey.definition.nodes,
+    journey.definition.exitNode,
   ];
 
-  let journeyEdges: Edge<EdgeData>[] = [
-    {
-      id: `${JourneyNodeType.EntryNode}=>${JourneyNodeType.ExitNode}`,
-      source: JourneyNodeType.EntryNode,
-      target: JourneyNodeType.ExitNode,
-      type: "workflow",
-      data: {
-        type: "WorkflowEdge",
-        disableMarker: true,
-      },
-    },
-  ];
+  for (const n of nodes) {
+    let newNodes: Node<NodeData>[];
+    let newEdges: Edge<EdgeData>[];
+    const nId = getNodeId(n);
+    const hmEntry = hm.get(nId);
+    if (!hmEntry) {
+      throw new Error(`Missing heritage map entry ${nId}`);
+    }
 
-  const firstBodyNode = journey.definition.nodes.find(
-    (n) => n.id === journey.definition.entryNode.child
-  );
-  if (!firstBodyNode) {
-    throw new Error("Malformed journey, missing first body node.");
-  }
-
-  let remainingNodes: [JourneyNode, string][] = [
-    [firstBodyNode, JourneyNodeType.EntryNode],
-  ];
-
-  const seenNodes = new Set<string>();
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-  while (true) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const [node, source] = remainingNodes.pop()!;
-
-    if (node.type === JourneyNodeType.ExitNode) {
-      if (remainingNodes.length === 0) {
+    switch (n.type) {
+      case JourneyNodeType.EntryNode: {
+        newNodes = [
+          {
+            id: JourneyNodeType.EntryNode,
+            position: placeholderNodePosition,
+            type: "journey",
+            data: {
+              type: "JourneyNode",
+              nodeTypeProps: {
+                type: JourneyNodeType.EntryNode,
+                segmentId: n.segment,
+              },
+            },
+          },
+        ];
+        newEdges = [
+          {
+            id: `${JourneyNodeType.EntryNode}=>${n.child}`,
+            source: JourneyNodeType.EntryNode,
+            target: n.child,
+            type: "workflow",
+            data: {
+              type: "WorkflowEdge",
+              disableMarker: true,
+            },
+          },
+        ];
         break;
       }
-      continue;
-    }
-
-    if (node.type === JourneyNodeType.EntryNode) {
-      throw new Error("Entry node should already be handled");
-    }
-    if (seenNodes.has(node.id)) {
-      if (remainingNodes.length === 0) {
-        break;
-      }
-      continue;
-    }
-    seenNodes.add(node.id);
-
-    const target = journeyEdges.find((e) => e.source === source)?.target;
-
-    if (!target) {
-      throw new Error("Malformed journey, missing target.");
-    }
-    const state = journeyNodeToState(node, source, target);
-
-    let newRemainingNodes: [JourneyNode, string][];
-    const { nodeTypeProps } = state.journeyNode.data;
-
-    switch (nodeTypeProps.type) {
-      case JourneyNodeType.DelayNode: {
-        if (node.type !== JourneyNodeType.DelayNode) {
-          throw new Error("Malformed journey, missing delay node.");
-        }
-
-        const childNode = getJourneyNode(journey.definition, node.child);
-        if (!childNode) {
-          throw new Error("Malformed journey, missing delay node child.");
-        }
-        newRemainingNodes = [[childNode, state.journeyNode.id]];
+      case JourneyNodeType.ExitNode: {
+        const source = findSource(nId, hm, jn);
+        newNodes = [
+          {
+            id: JourneyNodeType.ExitNode,
+            position: placeholderNodePosition,
+            type: "journey",
+            data: {
+              type: "JourneyNode",
+              nodeTypeProps: {
+                type: JourneyNodeType.ExitNode,
+              },
+            },
+          },
+        ];
+        newEdges = [
+          {
+            id: `${source}=>${JourneyNodeType.ExitNode}`,
+            source,
+            target: JourneyNodeType.ExitNode,
+            type: "workflow",
+            data: {
+              type: "WorkflowEdge",
+              disableMarker: true,
+            },
+          },
+        ];
         break;
       }
       case JourneyNodeType.MessageNode: {
-        if (node.type !== JourneyNodeType.MessageNode) {
-          throw new Error("Malformed journey, missing message node.");
-        }
-        const childNode = getJourneyNode(journey.definition, node.child);
-
-        if (!childNode) {
-          throw new Error("Malformed journey, missing message node child.");
-        }
-        newRemainingNodes = [[childNode, state.journeyNode.id]];
+        const source = findSource(nId, hm, jn);
+        const target = findTarget(nId, hm, jn);
+        const state = journeyNodeToState(n, source, target);
+        newEdges = state.edges;
+        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
+        break;
+      }
+      case JourneyNodeType.DelayNode: {
+        const source = findSource(nId, hm, jn);
+        const target = findTarget(nId, hm, jn);
+        const state = journeyNodeToState(n, source, target);
+        newEdges = state.edges;
+        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.SegmentSplitNode: {
-        if (node.type !== JourneyNodeType.SegmentSplitNode) {
-          throw new Error("Malformed journey, missing segment split node.");
-        }
-        const trueNode = getJourneyNode(
-          journey.definition,
-          node.variant.trueChild
-        );
-        const falseNode = getJourneyNode(
-          journey.definition,
-          node.variant.falseChild
-        );
-
-        if (!trueNode || !falseNode) {
-          throw new Error(
-            "Malformed journey, missing segment split node children."
-          );
-        }
-        newRemainingNodes = [];
-        newRemainingNodes.push([trueNode, nodeTypeProps.trueLabelNodeId]);
-        newRemainingNodes.push([falseNode, nodeTypeProps.falseLabelNodeId]);
+        const source = findSource(nId, hm, jn);
+        const target = findTarget(nId, hm, jn);
+        const state = journeyNodeToState(n, source, target);
+        newEdges = state.edges;
+        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
       case JourneyNodeType.WaitForNode: {
-        if (node.type !== JourneyNodeType.WaitForNode) {
-          throw new Error("Malformed journey, missing wait for node.");
-        }
-        const timeoutNode = getJourneyNode(
-          journey.definition,
-          node.timeoutChild
-        );
-        if (!timeoutNode) {
-          throw new Error("Malformed journey, missing wait for node timeout.");
-        }
-        const segmentChild = node.segmentChildren[0];
-        if (!segmentChild) {
-          throw new Error("Malformed journey, missing wait for node segment.");
-        }
-        const segmentNode = getJourneyNode(journey.definition, segmentChild.id);
-        if (!segmentNode) {
-          throw new Error("Malformed journey, missing wait for node segment.");
-        }
-
-        const uiSegmentChild = nodeTypeProps.segmentChildren[0];
-        if (!uiSegmentChild) {
-          throw new Error(
-            "Malformed journey, missing wait for node segment children."
-          );
-        }
-        newRemainingNodes = [];
-        newRemainingNodes.push([segmentNode, uiSegmentChild.labelNodeId]);
-        newRemainingNodes.push([timeoutNode, nodeTypeProps.timeoutLabelNodeId]);
+        const source = findSource(nId, hm, jn);
+        const target = findTarget(nId, hm, jn);
+        const state = journeyNodeToState(n, source, target);
+        newEdges = state.edges;
+        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
         break;
       }
-      case JourneyNodeType.EntryNode:
-        throw new Error("Entry node should already be handled");
-      case JourneyNodeType.ExitNode:
-        throw new Error("Exit node should already be handled");
+      case JourneyNodeType.ExperimentSplitNode: {
+        throw new Error("Unimplemented node type");
+      }
+      case JourneyNodeType.RateLimitNode: {
+        throw new Error("Unimplemented node type");
+      }
     }
-    remainingNodes = remainingNodes.concat(newRemainingNodes);
 
-    const newNodes: Node<NodeData>[] = [
-      state.journeyNode,
-      ...state.nonJourneyNodes,
-    ];
-
-    const newState = newStateFromNodes({
-      source,
-      target,
-      nodes: newNodes,
-      edges: state.edges,
-      existingNodes: journeyNodes,
-      existingEdges: journeyEdges,
-    });
-    journeyEdges = newState.edges;
-    journeyNodes = newState.nodes;
-
-    if (remainingNodes.length === 0) {
-      break;
+    for (const newNode of newNodes) {
+      jn.set(newNode.id, newNode);
+    }
+    for (const e of newEdges) {
+      je.set(e.id, e);
     }
   }
 
+  let journeyNodes = Array.from(jn.values());
+
+  const toRemove = removeParts(journeyNodes, Array.from(je.values()));
+  toRemove.edges.forEach((toDelete) => {
+    je.delete(toDelete);
+  });
+  toRemove.nodes.forEach((toDelete) => {
+    jn.delete(toDelete);
+  });
+
+  const journeyEdges = Array.from(je.values());
   journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   const journeyNodesIndex = buildNodesIndex(journeyNodes);
 
@@ -916,27 +1055,13 @@ export function journeyToState(
   };
 }
 
-function findDirectParents(
-  parentId: string,
-  edges: JourneyContent["journeyEdges"]
-): string[] {
-  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
-}
-
-function findDirectChildren(
-  parentId: string,
-  edges: JourneyContent["journeyEdges"]
-): string[] {
-  return edges.flatMap((e) => (e.source === parentId ? e.target : []));
-}
-
 /**
- * find all ancestors of parent node with relative depth of node
+ * find all descendants of parent node with relative depth of node
  * @param parentId
  * @param edges
  * @returns
  */
-function findAllAncestors(
+export function findAllDescendants(
   parentId: string,
   edges: JourneyContent["journeyEdges"]
 ): Map<string, number> {
@@ -949,7 +1074,7 @@ function findAllAncestors(
       throw new Error("next should exist");
     }
 
-    const directChildren = findDirectChildren(next.node, edges);
+    const directChildren = findDirectUiChildren(next.node, edges);
 
     for (const child of directChildren) {
       if (!children.has(child)) {
@@ -973,7 +1098,7 @@ function findAllParents(
     if (!next) {
       throw new Error("next should exist");
     }
-    const directParents = findDirectParents(next, edges);
+    const directParents = findDirectUiParents(next, edges);
 
     for (const parent of directParents) {
       unprocessed.push(parent);
@@ -1029,8 +1154,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       }
 
       const nodeType = node.data.nodeTypeProps.type;
-      const directChildren = findDirectChildren(node.id, state.journeyEdges);
-      console.log("directChildren", directChildren);
+      const directChildren = findDirectUiChildren(node.id, state.journeyEdges);
 
       if (
         nodeType === JourneyNodeType.EntryNode ||
@@ -1046,7 +1170,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         directChildren.forEach((c) => nodesToDelete.add(c));
 
         const ancestorSets = directChildren.map((c) =>
-          findAllAncestors(c, state.journeyEdges)
+          findAllDescendants(c, state.journeyEdges)
         );
         const sharedAncestorsMap = combinedDepthMaps(ancestorSets);
 
@@ -1091,12 +1215,12 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
           }
         }
 
-        const parents = findDirectParents(node.id, state.journeyEdges);
+        const parents = findDirectUiParents(node.id, state.journeyEdges);
         for (const p of parents) {
           edgesToAdd.push([p, secondSharedAncestor]);
         }
       } else if (directChildren.length === 1 && directChildren[0]) {
-        const parents = findDirectParents(node.id, state.journeyEdges);
+        const parents = findDirectUiParents(node.id, state.journeyEdges);
         const child = directChildren[0];
         parents.forEach((p) => {
           edgesToAdd.push([p, child]);

@@ -49,7 +49,7 @@
     "pino": "^8.11.0",
     "pino-pretty": "^10.0.0",
     "prisma": "^4.16.2",
-    "remeda": "^1.12.0",
+    "remeda": "^1.24.0",
     "utility-types": "^3.10.0",
     "uuid": "^9.0.0"
   },

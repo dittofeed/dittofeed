@@ -1,7 +1,9 @@
+import { findDirectChildren } from "isomorphic-lib/src/journeys";
 import {
   ChannelType,
   CompletionStatus,
   DelayVariantType,
+  JourneyDefinition,
   JourneyNodeType,
   JourneyResource,
   SegmentSplitVariantType,
@@ -9,13 +11,300 @@ import {
 import { v4 as uuid } from "uuid";
 
 import { JourneyState } from "../../lib/types";
-import { journeyDefinitionFromState, journeyToState } from "./store";
+import {
+  findDirectUiChildren,
+  journeyDefinitionFromState,
+  journeyToState,
+} from "./store";
 
 describe("journeyToState", () => {
   let journeyResource: JourneyResource;
   let journeyId: string;
   let workspaceId: string;
 
+  describe("with a simple segment split", () => {
+    beforeEach(() => {
+      const definition: JourneyDefinition = {
+        nodes: [
+          {
+            id: "segment-split",
+            type: JourneyNodeType.SegmentSplitNode,
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: "segment-id",
+              trueChild: JourneyNodeType.ExitNode,
+              falseChild: JourneyNodeType.ExitNode,
+            },
+          },
+        ],
+        entryNode: {
+          type: JourneyNodeType.EntryNode,
+          child: "segment-split",
+          segment: "segment-id",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+      };
+
+      journeyId = uuid();
+      workspaceId = uuid();
+      journeyResource = {
+        id: journeyId,
+        name: "My Journey",
+        status: "NotStarted",
+        definition,
+        workspaceId,
+      };
+    });
+
+    it("produces the right ui state", async () => {
+      const uiState = journeyToState(journeyResource);
+      const uiExpectations: [string, string[]][] = [
+        [JourneyNodeType.EntryNode, ["segment-split"]],
+        ["segment-split", ["segment-split-child-0", "segment-split-child-1"]],
+        ["segment-split-child-0", ["segment-split-empty"]],
+        ["segment-split-child-1", ["segment-split-empty"]],
+        ["segment-split-empty", [JourneyNodeType.ExitNode]],
+      ];
+
+      for (const [nodeId, expectedChildren] of uiExpectations) {
+        const actualChildren = findDirectUiChildren(
+          nodeId,
+          uiState.journeyEdges
+        );
+        expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
+      }
+
+      const result = await journeyDefinitionFromState({ state: uiState });
+      if (result.isErr()) {
+        throw new Error(JSON.stringify(result.error));
+      }
+      const definition = result.value;
+
+      const definitionExpectations: [string, string[]][] = [
+        [JourneyNodeType.EntryNode, ["segment-split"]],
+        ["segment-split", [JourneyNodeType.ExitNode]],
+      ];
+
+      for (const [nodeId, expectedChildren] of definitionExpectations) {
+        const actualChildren = findDirectChildren(nodeId, definition);
+        expect(actualChildren).toEqual(new Set(expectedChildren));
+      }
+    });
+  });
+
+  describe("when journey has nested wait for's", () => {
+    beforeEach(() => {
+      const definition: JourneyDefinition = {
+        nodes: [
+          {
+            id: "wait-for-first-deployment-1",
+            type: JourneyNodeType.WaitForNode,
+            timeoutChild: "code-deployment-reminder-1a",
+            timeoutSeconds: 604800,
+            segmentChildren: [
+              {
+                id: "wait-for-first-deployment-2",
+                segmentId: "deployment-segment-id",
+              },
+            ],
+          },
+          {
+            id: "code-deployment-reminder-1a",
+            name: "Code Deployment Reminder 1a",
+            type: JourneyNodeType.MessageNode,
+            child: "wait-for-first-deployment-2",
+            variant: {
+              type: ChannelType.Email,
+              templateId: "4bad6541-aabf-46ce-a51e-0702773b8397",
+            },
+            subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
+          },
+          {
+            id: "wait-for-first-deployment-2",
+            type: JourneyNodeType.WaitForNode,
+            timeoutChild: "ExitNode",
+            timeoutSeconds: 604800,
+            segmentChildren: [
+              {
+                id: "wait-for-onboarding-1",
+                segmentId: "deployment-segment-id",
+              },
+            ],
+          },
+          {
+            id: "wait-for-onboarding-1",
+            type: JourneyNodeType.WaitForNode,
+            timeoutChild: "onboarding-segment-split-received-a",
+            timeoutSeconds: 604800,
+            segmentChildren: [
+              {
+                id: "wait-for-onboarding-2",
+                segmentId: "onboarding-segment-id",
+              },
+            ],
+          },
+          {
+            id: "onboarding-segment-split-received-a",
+            type: JourneyNodeType.SegmentSplitNode,
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: "84daa056-f768-4f5a-aad3-5afe1567df18",
+              trueChild: "onboarding-reminder-2b",
+              falseChild: "onboarding-reminder-2a",
+            },
+          },
+          {
+            id: "onboarding-reminder-2a",
+            name: "Onboarding Reminder 2a",
+            type: JourneyNodeType.MessageNode,
+            child: "wait-for-onboarding-2",
+            variant: {
+              type: ChannelType.Email,
+              templateId: "9227c35b-2a05-4c04-a703-ddec48006b01",
+            },
+            subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
+          },
+          {
+            id: "onboarding-reminder-2b",
+            name: "Onboarding Reminder 2b",
+            type: JourneyNodeType.MessageNode,
+            child: "wait-for-onboarding-2",
+            variant: {
+              type: ChannelType.Email,
+              templateId: "2dc8bf8b-92db-4e37-8c0d-47031647d99c",
+            },
+            subscriptionGroupId: "05e11d83-0b16-4ac3-9c86-b53a25967781",
+          },
+          {
+            id: "wait-for-onboarding-2",
+            type: JourneyNodeType.WaitForNode,
+            timeoutChild: "ExitNode",
+            timeoutSeconds: 604800,
+            segmentChildren: [
+              {
+                id: "ExitNode",
+                segmentId: "onboarding-segment-id",
+              },
+            ],
+          },
+        ],
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        entryNode: {
+          type: JourneyNodeType.EntryNode,
+          child: "wait-for-first-deployment-1",
+          segment: "project-added-segment-id",
+        },
+      };
+
+      journeyId = uuid();
+      workspaceId = uuid();
+      journeyResource = {
+        id: journeyId,
+        name: "My Journey",
+        status: "NotStarted",
+        definition,
+        workspaceId,
+      };
+    });
+
+    it("produces the right ui state", async () => {
+      const uiState = journeyToState(journeyResource);
+
+      const uiExpectations: [string, string[]][] = [
+        [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
+        [
+          "wait-for-first-deployment-1",
+          [
+            "wait-for-first-deployment-1-child-0",
+            "wait-for-first-deployment-1-child-1",
+          ],
+        ],
+        [
+          "wait-for-first-deployment-1-child-0",
+          ["wait-for-first-deployment-1-empty"],
+        ],
+        [
+          "wait-for-first-deployment-1-child-1",
+          ["code-deployment-reminder-1a"],
+        ],
+        ["code-deployment-reminder-1a", ["wait-for-first-deployment-1-empty"]],
+        ["wait-for-first-deployment-1-empty", ["wait-for-first-deployment-2"]],
+        [
+          "wait-for-first-deployment-2",
+          [
+            "wait-for-first-deployment-2-child-0",
+            "wait-for-first-deployment-2-child-1",
+          ],
+        ],
+        ["wait-for-first-deployment-2-child-0", ["wait-for-onboarding-1"]],
+        [
+          "wait-for-first-deployment-2-child-1",
+          ["wait-for-first-deployment-2-empty"],
+        ],
+        [
+          "wait-for-onboarding-1",
+          ["wait-for-onboarding-1-child-0", "wait-for-onboarding-1-child-1"],
+        ],
+        ["wait-for-onboarding-1-child-0", ["wait-for-onboarding-1-empty"]],
+        [
+          "wait-for-onboarding-1-child-1",
+          ["onboarding-segment-split-received-a"],
+        ],
+        [
+          "onboarding-segment-split-received-a",
+          [
+            "onboarding-segment-split-received-a-child-1",
+            "onboarding-segment-split-received-a-child-0",
+          ],
+        ],
+      ];
+
+      for (const [nodeId, expectedChildren] of uiExpectations) {
+        const actualChildren = findDirectUiChildren(
+          nodeId,
+          uiState.journeyEdges
+        );
+        expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
+      }
+      const result = await journeyDefinitionFromState({ state: uiState });
+      if (result.isErr()) {
+        throw new Error(JSON.stringify(result.error));
+      }
+      const definition = result.value;
+
+      const expectations: [string, string[]][] = [
+        [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
+        [
+          "wait-for-first-deployment-1",
+          ["code-deployment-reminder-1a", "wait-for-first-deployment-2"],
+        ],
+        [
+          "wait-for-first-deployment-2",
+          [JourneyNodeType.ExitNode, "wait-for-onboarding-1"],
+        ],
+        [
+          "wait-for-onboarding-1",
+          ["wait-for-onboarding-2", "onboarding-segment-split-received-a"],
+        ],
+        [
+          "onboarding-segment-split-received-a",
+          ["onboarding-reminder-2a", "onboarding-reminder-2b"],
+        ],
+        ["onboarding-reminder-2a", ["wait-for-onboarding-2"]],
+        ["onboarding-reminder-2b", ["wait-for-onboarding-2"]],
+        ["wait-for-onboarding-2", [JourneyNodeType.ExitNode]],
+      ];
+
+      for (const [nodeId, expectedChildren] of expectations) {
+        const actualChildren = findDirectChildren(nodeId, definition);
+        expect(actualChildren).toEqual(new Set(expectedChildren));
+      }
+    });
+  });
   describe("when journey has split then delay", () => {
     beforeEach(() => {
       journeyId = uuid();
@@ -29,42 +318,42 @@ describe("journeyToState", () => {
           entryNode: {
             type: JourneyNodeType.EntryNode,
             segment: uuid(),
-            child: "908b9795-60b7-4333-a57c-a30f4972fb6b",
+            child: "message-1",
           },
           exitNode: {
             type: JourneyNodeType.ExitNode,
           },
           nodes: [
             {
-              id: "908b9795-60b7-4333-a57c-a30f4972fb6b",
+              id: "message-1",
               type: JourneyNodeType.MessageNode,
-              child: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
+              child: "delay",
               variant: {
                 type: ChannelType.Email,
                 templateId: uuid(),
               },
             },
             {
-              id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
+              id: "delay",
               type: JourneyNodeType.DelayNode,
-              child: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+              child: "segment-split",
               variant: {
                 type: DelayVariantType.Second,
                 seconds: 1800,
               },
             },
             {
-              id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+              id: "segment-split",
               type: JourneyNodeType.SegmentSplitNode,
               variant: {
                 type: SegmentSplitVariantType.Boolean,
                 segment: uuid(),
-                trueChild: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+                trueChild: "message-2",
                 falseChild: "ExitNode",
               },
             },
             {
-              id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+              id: "message-2",
               type: JourneyNodeType.MessageNode,
               child: JourneyNodeType.ExitNode,
               variant: {
@@ -78,178 +367,26 @@ describe("journeyToState", () => {
       };
     });
 
-    it("produces the correct ui state", () => {
+    it("produces the correct ui state", async () => {
       const uiState = journeyToState(journeyResource);
-      expect(uiState).toEqual({
-        journeyNodes: expect.arrayContaining([
-          {
-            id: "EntryNode",
-            position: { x: 400, y: 100 },
-            type: "journey",
-            data: {
-              type: "JourneyNode",
-              nodeTypeProps: {
-                type: "EntryNode",
-                segmentId: journeyResource.definition.entryNode.segment,
-              },
-            },
-          },
-          {
-            id: "908b9795-60b7-4333-a57c-a30f4972fb6b",
-            position: { x: 400, y: 300 },
-            type: "journey",
-            data: {
-              type: "JourneyNode",
-              nodeTypeProps: {
-                type: "MessageNode",
-                templateId: journeyResource.definition.nodes.flatMap((n) =>
-                  n.type === JourneyNodeType.MessageNode &&
-                  n.id === "908b9795-60b7-4333-a57c-a30f4972fb6b"
-                    ? n
-                    : []
-                )[0]?.variant.templateId,
-                name: "Message - 908b9795-60b7-4333-a57c-a30f4972fb6b",
-              },
-            },
-          },
-          {
-            id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-            position: { x: 400, y: 500 },
-            type: "journey",
-            data: {
-              type: "JourneyNode",
-              nodeTypeProps: { type: "DelayNode", seconds: 1800 },
-            },
-          },
-          {
-            id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-            position: { x: 400, y: 700 },
-            type: "journey",
-            data: {
-              type: "JourneyNode",
-              nodeTypeProps: {
-                type: "SegmentSplitNode",
-                name: "True / False Branch",
-                segmentId: journeyResource.definition.nodes.flatMap((n) =>
-                  n.type === JourneyNodeType.SegmentSplitNode &&
-                  n.id === "9d5367b0-882e-49c2-a6d2-4c28e5416d04"
-                    ? n
-                    : []
-                )[0]?.variant.segment,
-                trueLabelNodeId: expect.any(String),
-                falseLabelNodeId: expect.any(String),
-              },
-            },
-          },
-          {
-            id: expect.any(String),
-            position: { x: 200, y: 900 },
-            type: "label",
-            data: { type: "LabelNode", title: "true" },
-          },
-          {
-            id: expect.any(String),
-            position: { x: 600, y: 900 },
-            type: "label",
-            data: { type: "LabelNode", title: "false" },
-          },
-          {
-            id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
-            position: { x: 200, y: 1100 },
-            type: "journey",
-            data: {
-              type: "JourneyNode",
-              nodeTypeProps: {
-                type: "MessageNode",
-                templateId: journeyResource.definition.nodes.flatMap((n) =>
-                  n.type === JourneyNodeType.MessageNode &&
-                  n.id === "6ce89301-2a35-4562-b1db-54689bfe0e05"
-                    ? n
-                    : []
-                )[0]?.variant.templateId,
-                name: "Message - 6ce89301-2a35-4562-b1db-54689bfe0e05",
-              },
-            },
-          },
-          {
-            id: expect.any(String),
-            position: { x: 400, y: 1300 },
-            type: "empty",
-            data: { type: "EmptyNode" },
-          },
-          {
-            id: "ExitNode",
-            position: { x: 400, y: 1500 },
-            type: "journey",
-            data: { type: "JourneyNode", nodeTypeProps: { type: "ExitNode" } },
-          },
-        ]),
-        journeyNodesIndex: expect.objectContaining({
-          EntryNode: 0,
-          "908b9795-60b7-4333-a57c-a30f4972fb6b": 1,
-          "6940ebec-a2ca-47dc-a356-42dc0245dd2e": 2,
-          "9d5367b0-882e-49c2-a6d2-4c28e5416d04": 3,
-          "6ce89301-2a35-4562-b1db-54689bfe0e05": 5,
-          ExitNode: 7,
-        }),
-        journeyEdges: [
-          {
-            id: "EntryNode=>908b9795-60b7-4333-a57c-a30f4972fb6b",
-            source: "EntryNode",
-            target: "908b9795-60b7-4333-a57c-a30f4972fb6b",
-            type: "workflow",
-          },
-          {
-            id: "908b9795-60b7-4333-a57c-a30f4972fb6b=>6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-            source: "908b9795-60b7-4333-a57c-a30f4972fb6b",
-            target: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-            type: "workflow",
-          },
-          {
-            id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e=>9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-            source: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-            target: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-            type: "workflow",
-          },
-          {
-            id: expect.any(String),
-            source: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-            target: expect.any(String),
-            type: "placeholder",
-          },
-          {
-            id: expect.any(String),
-            source: expect.any(String),
-            target: "6ce89301-2a35-4562-b1db-54689bfe0e05",
-            type: "workflow",
-          },
-          {
-            id: expect.any(String),
-            source: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-            target: expect.any(String),
-            type: "placeholder",
-          },
-          {
-            id: expect.any(String),
-            source: expect.any(String),
-            target: expect.any(String),
-            type: "workflow",
-          },
-          {
-            id: expect.any(String),
-            source: expect.any(String),
-            target: expect.any(String),
-            type: "workflow",
-          },
-          {
-            id: expect.any(String),
-            source: expect.any(String),
-            target: "ExitNode",
-            type: "workflow",
-          },
-        ],
-        journeyName: "My Journey",
-      });
+      const result = await journeyDefinitionFromState({ state: uiState });
+      if (result.isErr()) {
+        throw new Error(JSON.stringify(result.error));
+      }
+      const definition = result.value;
+
+      const expectations: [string, string[]][] = [
+        [JourneyNodeType.EntryNode, ["message-1"]],
+        ["message-1", ["delay"]],
+        ["delay", ["segment-split"]],
+        ["segment-split", ["message-2", JourneyNodeType.ExitNode]],
+        ["message-2", [JourneyNodeType.ExitNode]],
+      ];
+
+      for (const [nodeId, expectedChildren] of expectations) {
+        const actualChildren = findDirectChildren(nodeId, definition);
+        expect(actualChildren).toEqual(new Set(expectedChildren));
+      }
     });
   });
 
