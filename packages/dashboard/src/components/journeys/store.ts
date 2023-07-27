@@ -1,11 +1,12 @@
 import {
-  HeritageMap,
   buildHeritageMap,
   getNearestFromChildren,
   getNearestFromParents,
   getNodeId,
+  HeritageMap,
   isMultiChildNode,
 } from "isomorphic-lib/src/journeys";
+import { getUnsafe } from "isomorphic-lib/src/maps";
 import {
   CompletionStatus,
   DelayNode,
@@ -21,8 +22,7 @@ import {
   SegmentSplitVariantType,
   WaitForNode,
 } from "isomorphic-lib/src/types";
-import { getUnsafe } from "isomorphic-lib/src/maps";
-import { Err, err, ok, Result } from "neverthrow";
+import { err, ok, Result } from "neverthrow";
 import {
   applyEdgeChanges,
   applyNodeChanges,
@@ -793,7 +793,9 @@ function removeParts(
 
   for (const node of nodes) {
     if (
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       node.id === JourneyNodeType.EntryNode ||
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       node.id === JourneyNodeType.ExitNode
     ) {
       continue;
@@ -845,16 +847,12 @@ function findSourceFromNearest(
       parentHmEntry.children.size === 1
     ) {
       source = `${parents[0]}-empty`;
-    } else {
-      const parentHmEntry = getUnsafe(hm, parents[0]);
-
+    } else if (parentHmEntry.children.size > 1) {
       // README: relies on the ordering of findDirectChildren method
-      if (parentHmEntry.children.size > 1) {
-        const index = Array.from(parentHmEntry.children).indexOf(nId);
-        source = `${parents[0]}-child-${index}`;
-      } else {
-        source = parents[0];
-      }
+      const index = Array.from(parentHmEntry.children).indexOf(nId);
+      source = `${parents[0]}-child-${index}`;
+    } else {
+      [source] = parents;
     }
   }
   return source;

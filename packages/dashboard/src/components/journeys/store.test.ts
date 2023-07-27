@@ -214,7 +214,6 @@ describe("journeyToState", () => {
     it("produces the right ui state", async () => {
       const uiState = journeyToState(journeyResource);
 
-      console.log("uiState", JSON.stringify(uiState.journeyEdges, null, 2));
       const uiExpectations: [string, string[]][] = [
         [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
         [
