@@ -13,6 +13,7 @@ import { v4 as uuid } from "uuid";
 import { JourneyState } from "../../lib/types";
 import {
   findDirectUiChildren,
+  findDirectUiParents,
   journeyDefinitionFromState,
   journeyToState,
 } from "./store";
@@ -270,6 +271,21 @@ describe("journeyToState", () => {
         );
         expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
       }
+      uiState.journeyNodes.forEach((node) => {
+        if (
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+          node.id === JourneyNodeType.EntryNode ||
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+          node.id === JourneyNodeType.ExitNode
+        ) {
+          return;
+        }
+        const ch = findDirectUiChildren(node.id, uiState.journeyEdges);
+        const pa = findDirectUiParents(node.id, uiState.journeyEdges);
+        expect(ch.length).toBeGreaterThan(0);
+        expect(pa.length).toBeGreaterThan(0);
+      });
+
       const result = await journeyDefinitionFromState({ state: uiState });
       if (result.isErr()) {
         throw new Error(JSON.stringify(result.error));
