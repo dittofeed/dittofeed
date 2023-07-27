@@ -15,6 +15,7 @@ import {
   findDirectUiChildren,
   findDirectUiParents,
   journeyDefinitionFromState,
+  JourneyStateForResource,
   journeyToState,
 } from "./store";
 
@@ -22,6 +23,110 @@ describe("journeyToState", () => {
   let journeyResource: JourneyResource;
   let journeyId: string;
   let workspaceId: string;
+
+  describe("with a triple nested segment split", () => {
+    let uiState: JourneyStateForResource;
+    beforeEach(() => {
+      const definition: JourneyDefinition = {
+        nodes: [
+          {
+            id: "segment-split-1",
+            type: JourneyNodeType.SegmentSplitNode,
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: "segment-id",
+              trueChild: JourneyNodeType.ExitNode,
+              falseChild: "segment-split-2",
+            },
+          },
+          {
+            id: "segment-split-2",
+            type: JourneyNodeType.SegmentSplitNode,
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: "segment-id",
+              trueChild: JourneyNodeType.ExitNode,
+              falseChild: "segment-split-3",
+            },
+          },
+          {
+            id: "segment-split-3",
+            type: JourneyNodeType.SegmentSplitNode,
+            variant: {
+              type: SegmentSplitVariantType.Boolean,
+              segment: "segment-id",
+              trueChild: JourneyNodeType.ExitNode,
+              falseChild: JourneyNodeType.ExitNode,
+            },
+          },
+        ],
+        entryNode: {
+          type: JourneyNodeType.EntryNode,
+          child: "segment-split-1",
+          segment: "segment-id",
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+      };
+
+      journeyId = uuid();
+      workspaceId = uuid();
+      journeyResource = {
+        id: journeyId,
+        name: "My Journey",
+        status: "NotStarted",
+        definition,
+        workspaceId,
+      };
+
+      journeyId = uuid();
+      workspaceId = uuid();
+      journeyResource = {
+        id: journeyId,
+        name: "My Journey",
+        status: "NotStarted",
+        definition,
+        workspaceId,
+      };
+      uiState = journeyToState(journeyResource);
+    });
+
+    const uiExpectations: [string, string[]][] = [
+      [JourneyNodeType.EntryNode, ["segment-split-1"]],
+      [
+        "segment-split-1",
+        ["segment-split-1-child-0", "segment-split-1-child-1"],
+      ],
+      ["segment-split-1-child-0", ["segment-split-1-empty"]],
+      ["segment-split-1-child-1", ["segment-split-2"]],
+      ["segment-split-1-empty", [JourneyNodeType.ExitNode]],
+      [
+        "segment-split-2",
+        ["segment-split-2-child-0", "segment-split-2-child-1"],
+      ],
+      ["segment-split-2-child-0", ["segment-split-2-empty"]],
+      ["segment-split-2-child-1", ["segment-split-3"]],
+      ["segment-split-2-empty", ["segment-split-1-empty"]],
+      [
+        "segment-split-3",
+        ["segment-split-3-child-0", "segment-split-3-child-1"],
+      ],
+      ["segment-split-3-child-0", ["segment-split-3-empty"]],
+      ["segment-split-3-child-1", ["segment-split-3-empty"]],
+      ["segment-split-3-empty", ["segment-split-2-empty"]],
+    ];
+    test.each(uiExpectations)(
+      "node %p has %p as children",
+      (nodeId, expectedChildren) => {
+        const actualChildren = findDirectUiChildren(
+          nodeId,
+          uiState.journeyEdges
+        );
+        expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
+      }
+    );
+  });
 
   describe("with a simple segment split", () => {
     beforeEach(() => {

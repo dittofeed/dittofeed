@@ -57,7 +57,7 @@ import findNode from "./findNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
 
-type JourneyStateForResource = Pick<
+export type JourneyStateForResource = Pick<
   JourneyState,
   "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
 >;
