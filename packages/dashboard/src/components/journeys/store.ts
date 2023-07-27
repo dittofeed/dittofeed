@@ -825,19 +825,25 @@ function findTarget(nId: string, hm: HeritageMap): string {
   }
   const nfmChildrenDefault = nearestFromChildren ?? children[0];
   const nearestFromParents = getNearestFromParents(nfmChildrenDefault, hm);
+
+  if (!nearestFromParents) {
+    return nfmChildrenDefault;
+  }
+
   const nfmpHmEntry = getUnsafe(hm, nearestFromParents);
   const connectsToParentEmpty =
     nId !== nearestFromParents && nfmpHmEntry.descendants.has(nId);
 
-  if (connectsToParentEmpty) {
-    const target = findSourceFromNearest(
-      nfmChildrenDefault,
-      hm,
-      nearestFromParents
-    );
-    return target;
+  if (!connectsToParentEmpty) {
+    return nfmChildrenDefault;
   }
-  return nfmChildrenDefault;
+
+  const target = findSourceFromNearest(
+    nfmChildrenDefault,
+    hm,
+    nearestFromParents
+  );
+  return target;
 }
 
 export function journeyToState(
