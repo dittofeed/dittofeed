@@ -259,7 +259,7 @@ export function getNearestFromParents(
   );
   const nearestAncestor = nearestAncestors[0];
   if (!nearestAncestor) {
-    throw new Error(`Missing group parent for ${nId}`);
+    throw new Error(`Missing nearest for ${nId}`);
   }
   return nearestAncestor[0];
 }
@@ -285,10 +285,8 @@ export function getNearestFromChildren(
     Array.from(hmEntry.descendants).flatMap((d) => {
       const descendantHmEntry = getUnsafe(hm, d);
       if (
-        // !children.every((c) => descendantHmEntry.ancestors.has(c))
         !children.every((c) => c === d || descendantHmEntry.ancestors.has(c))
       ) {
-        // if (!children.every((c) => ancestorHmEntry.ancestors.has(c))) {
         return [];
       }
       const val: [string, number] = [d, descendantHmEntry.ancestors.size];
@@ -298,7 +296,7 @@ export function getNearestFromChildren(
   );
   const nearestDescendant = nearestDescendants[0];
   if (!nearestDescendant) {
-    throw new Error(`Missing group parent for ${nId}`);
+    throw new Error(`Missing nearest for ${nId}`);
   }
   return nearestDescendant[0];
 }
