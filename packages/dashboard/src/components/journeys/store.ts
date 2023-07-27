@@ -742,6 +742,12 @@ export function newStateFromNodes({
   };
 }
 
+/**
+ * Removes replaced and isolated nodes/edges from journey.
+ * @param nodes
+ * @param edges
+ * @returns list of nodes and edges to remove.
+ */
 function removeParts(
   nodes: Node<NodeData>[],
   edges: Edge<EdgeData>[]
@@ -775,6 +781,7 @@ function removeParts(
   }
 
   const edgesResult = new Set<string>();
+  const nodesResult = new Set<string>();
 
   childEmptyEdges.forEach((cee, source) => {
     if (childEdges.get(source)?.length) {
@@ -782,40 +789,55 @@ function removeParts(
     }
   });
 
-  for (const edge of edges) {
-    if (!nodeMap.has(edge.target) || !nodeMap.has(edge.source)) {
-      edgesResult.add(edge.id);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
+    let removed = false;
+    for (const edge of edges) {
+      if (edgesResult.has(edge.id)) {
+        continue;
+      }
+      if (
+        !nodeMap.has(edge.target) ||
+        !nodeMap.has(edge.source) ||
+        nodesResult.has(edge.target) ||
+        nodesResult.has(edge.source)
+      ) {
+        edgesResult.add(edge.id);
+        removed = true;
+      }
+    }
+
+    const filteredEdges = edges.filter((e) => !edgesResult.has(e.id));
+
+    for (const node of nodes) {
+      if (
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+        node.id === JourneyNodeType.EntryNode ||
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+        node.id === JourneyNodeType.ExitNode
+      ) {
+        continue;
+      }
+      if (node.type === "journey") {
+        continue;
+      }
+      if (nodesResult.has(node.id)) {
+        continue;
+      }
+
+      const children = findDirectUiChildren(node.id, filteredEdges);
+      const parents = findDirectUiParents(node.id, filteredEdges);
+
+      if (!children.length || !parents.length) {
+        nodesResult.add(node.id);
+        removed = true;
+      }
+    }
+    if (!removed) {
+      break;
     }
   }
 
-  const nodesResult = new Set<string>();
-  const filteredEdges = edges.filter((e) => !edgesResult.has(e.id));
-
-  for (const node of nodes) {
-    if (
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-      node.id === JourneyNodeType.EntryNode ||
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-      node.id === JourneyNodeType.ExitNode
-    ) {
-      continue;
-    }
-    if (node.type === "journey") {
-      continue;
-    }
-    const children = findDirectUiChildren(node.id, filteredEdges);
-    const parents = findDirectUiParents(node.id, filteredEdges);
-
-    if (!children.length || !parents.length) {
-      nodesResult.add(node.id);
-    }
-  }
-
-  for (const edge of edges) {
-    if (nodesResult.has(edge.target) || nodesResult.has(edge.source)) {
-      edgesResult.add(edge.id);
-    }
-  }
   return {
     edges: Array.from(edgesResult),
     nodes: Array.from(nodesResult),
@@ -1043,6 +1065,8 @@ export function journeyToState(
     jn.delete(toDelete);
   });
 
+  // re-set with deleted nodes
+  journeyNodes = Array.from(jn.values());
   const journeyEdges = Array.from(je.values());
   journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   const journeyNodesIndex = buildNodesIndex(journeyNodes);
