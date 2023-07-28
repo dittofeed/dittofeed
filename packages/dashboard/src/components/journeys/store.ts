@@ -1359,6 +1359,74 @@ export function journeyBranchToState(
   let nextNodeId: string | null = null;
 
   if (isMultiChildNode(node.type)) {
+    const childNextNodes: string[] = [];
+    const emptyId = `${nId}-child-empty`;
+    switch (node.type) {
+      case JourneyNodeType.SegmentSplitNode: {
+        const trueId = `${nId}-child-0`;
+        const falseId = `${nId}-child-1`;
+
+        edgesState.push({
+          id: `${nodeId}=>${trueId}`,
+          source: nodeId,
+          target: trueId,
+          type: "placeholder",
+          sourceHandle: "bottom",
+        });
+        edgesState.push({
+          id: `${nodeId}=>${falseId}`,
+          source: nodeId,
+          target: falseId,
+          type: "placeholder",
+          sourceHandle: "bottom",
+        });
+        edgesState.push({
+          id: `${trueId}=>${node.variant.trueChild}`,
+          source: trueId,
+          target: node.variant.trueChild,
+          type: "workflow",
+          sourceHandle: "bottom",
+          data: {
+            type: "WorkflowEdge",
+            disableMarker: true,
+          },
+        });
+        edgesState.push({
+          id: `${falseId}=>${node.variant.falseChild}`,
+          source: falseId,
+          target: node.variant.falseChild,
+          type: "workflow",
+          sourceHandle: "bottom",
+          data: {
+            type: "WorkflowEdge",
+            disableMarker: false,
+          },
+        });
+
+        nextNodeId = Array.from(hmEntry.children)[0] ?? null;
+        if (!nextNodeId) {
+          throw new Error(
+            "multi child node has no children, this should not be possible"
+          );
+        }
+
+        edgesState.push({
+          id: `${emptyId}=>${nextNodeId}`,
+          source: emptyId,
+          target: nextNodeId,
+          type: "workflow",
+          sourceHandle: "bottom",
+          data: {
+            type: "WorkflowEdge",
+            disableMarker: true,
+          },
+        });
+
+        break;
+      }
+      default:
+        throw new Error(`unhandled multi child node type ${node.type}`);
+    }
     // recurse, calling journeyBranchToState on each child
     // start with child that is shallower (fewer ancestors)
     // this will allow us to pre-empt empy children. might not be necessary with
