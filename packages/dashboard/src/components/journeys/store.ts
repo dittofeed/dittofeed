@@ -1447,6 +1447,13 @@ export function journeyBranchToState(
         };
         nodesState.push(buildJourneyNode(nId, exitNode));
         nextNodeId = null;
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: nId,
+          };
+        }
         break;
       }
       case JourneyNodeType.DelayNode: {
@@ -1457,6 +1464,12 @@ export function journeyBranchToState(
         nodesState.push(buildJourneyNode(nId, delayNode));
         edgesState.push(buildWorkflowEdge(nId, node.child));
         nextNodeId = node.child;
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: nId,
+          };
+        }
         break;
       }
       case JourneyNodeType.MessageNode: {
@@ -1469,6 +1482,12 @@ export function journeyBranchToState(
         nodesState.push(buildJourneyNode(nId, messageNode));
         edgesState.push(buildWorkflowEdge(nId, node.child));
         nextNodeId = node.child;
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: nId,
+          };
+        }
         break;
       }
       case JourneyNodeType.ExperimentSplitNode:
@@ -1543,7 +1562,14 @@ export function journeyBranchToState(
               "segment split children terminate which should not be possible"
             );
           }
-          console.log("false sub child branch", { falseId, terminalId, nId });
+          console.log("false sub child branch", {
+            falseId,
+            terminalId,
+            falseChild: node.variant.falseChild,
+            nId,
+            nfc,
+            emptyId,
+          });
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
         }
 
@@ -1553,6 +1579,12 @@ export function journeyBranchToState(
         console.log("segment split node end block", {
           nextNodeId,
         });
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: emptyId,
+          };
+        }
         break;
       }
       case JourneyNodeType.WaitForNode: {
@@ -1663,12 +1695,6 @@ export function journeyBranchToState(
         // });
         break;
       }
-    }
-
-    if (nextNodeId === terminateBefore) {
-      return {
-        terminalNode: nId,
-      };
     }
 
     if (!nextNodeId) {
