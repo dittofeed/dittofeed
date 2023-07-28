@@ -298,11 +298,25 @@ function journeyDefinitionFromStateBranch(
             nodeId: nId,
           });
         }
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
         const timeoutChild = idxUnsafe(
           findDirectUiChildren(uiNode.timeoutLabelNodeId, edges),
           0
         );
-        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+
+        if (nfc !== timeoutChild) {
+          const branchResult = journeyDefinitionFromStateBranch(
+            timeoutChild,
+            hm,
+            nodes,
+            uiJourneyNodes,
+            edges,
+            nfc
+          );
+          if (branchResult.isErr()) {
+            return err(branchResult.error);
+          }
+        }
 
         const segmentChildren: WaitForSegmentChild[] = [];
         for (const segmentChild of uiNode.segmentChildren) {
@@ -341,6 +355,65 @@ function journeyDefinitionFromStateBranch(
           timeoutChild,
           segmentChildren,
           id: nId,
+        };
+        nodes.push(node);
+        nextId = nfc;
+        break;
+      }
+      case JourneyNodeType.SegmentSplitNode: {
+        if (!uiNode.segmentId) {
+          return err({
+            message: "Segment split node must have a segment",
+            nodeId: nId,
+          });
+        }
+        const trueChild = idxUnsafe(
+          findDirectUiChildren(uiNode.trueLabelNodeId, edges),
+          0
+        );
+
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+        if (nfc !== trueChild) {
+          const branchResult = journeyDefinitionFromStateBranch(
+            trueChild,
+            hm,
+            nodes,
+            uiJourneyNodes,
+            edges,
+            nfc
+          );
+          if (branchResult.isErr()) {
+            return err(branchResult.error);
+          }
+        }
+
+        const falseChild = idxUnsafe(
+          findDirectUiChildren(uiNode.falseLabelNodeId, edges),
+          0
+        );
+        if (nfc !== falseChild) {
+          const branchResult = journeyDefinitionFromStateBranch(
+            falseChild,
+            hm,
+            nodes,
+            uiJourneyNodes,
+            edges,
+            nfc
+          );
+          if (branchResult.isErr()) {
+            return err(branchResult.error);
+          }
+        }
+
+        const node: SegmentSplitNode = {
+          type: JourneyNodeType.SegmentSplitNode,
+          id: nId,
+          variant: {
+            type: SegmentSplitVariantType.Boolean,
+            segment: uiNode.segmentId,
+            trueChild,
+            falseChild,
+          },
         };
         nodes.push(node);
         nextId = nfc;
