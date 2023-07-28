@@ -1,4 +1,5 @@
 import { findDirectChildren } from "isomorphic-lib/src/journeys";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   ChannelType,
   CompletionStatus,
@@ -24,6 +25,7 @@ describe("journeyToState", () => {
   let journeyId: string;
   let workspaceId: string;
   let uiState: JourneyStateForResource;
+  let definitionFromState: JourneyDefinition;
 
   describe("with a nested segment and multiple messages", () => {});
 
@@ -203,7 +205,7 @@ describe("journeyToState", () => {
   });
 
   describe("when journey has nested wait for's", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       const definition: JourneyDefinition = {
         nodes: [
           {
@@ -318,6 +320,10 @@ describe("journeyToState", () => {
         workspaceId,
       };
       uiState = journeyToState(journeyResource);
+
+      definitionFromState = unwrap(
+        await journeyDefinitionFromState({ state: uiState })
+      );
     });
     const uiExpectations: [string, string[]][] = [
       [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
@@ -376,7 +382,38 @@ describe("journeyToState", () => {
       }
     );
 
-    it("produces the right ui state", async () => {
+    const expectations: [string, string[]][] = [
+      [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
+      [
+        "wait-for-first-deployment-1",
+        ["code-deployment-reminder-1a", "wait-for-first-deployment-2"],
+      ],
+      [
+        "wait-for-first-deployment-2",
+        [JourneyNodeType.ExitNode, "wait-for-onboarding-1"],
+      ],
+      [
+        "wait-for-onboarding-1",
+        ["wait-for-onboarding-2", "onboarding-segment-split-received-a"],
+      ],
+      [
+        "onboarding-segment-split-received-a",
+        ["onboarding-reminder-2a", "onboarding-reminder-2b"],
+      ],
+      ["onboarding-reminder-2a", ["wait-for-onboarding-2"]],
+      ["onboarding-reminder-2b", ["wait-for-onboarding-2"]],
+      ["wait-for-onboarding-2", [JourneyNodeType.ExitNode]],
+    ];
+
+    test.each(expectations)(
+      "node %p has %p as children in definition from state",
+      (nodeId, expectedChildren) => {
+        const actualChildren = findDirectChildren(nodeId, definitionFromState);
+        expect(actualChildren).toEqual(new Set(expectedChildren));
+      }
+    );
+
+    it("doesn't contain isolated nodes", async () => {
       uiState.journeyNodes.forEach((node) => {
         if (
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
@@ -391,40 +428,6 @@ describe("journeyToState", () => {
         expect(ch.length).toBeGreaterThan(0);
         expect(pa.length).toBeGreaterThan(0);
       });
-
-      const result = await journeyDefinitionFromState({ state: uiState });
-      if (result.isErr()) {
-        throw new Error(JSON.stringify(result.error));
-      }
-      const definition = result.value;
-
-      const expectations: [string, string[]][] = [
-        [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
-        [
-          "wait-for-first-deployment-1",
-          ["code-deployment-reminder-1a", "wait-for-first-deployment-2"],
-        ],
-        [
-          "wait-for-first-deployment-2",
-          [JourneyNodeType.ExitNode, "wait-for-onboarding-1"],
-        ],
-        [
-          "wait-for-onboarding-1",
-          ["wait-for-onboarding-2", "onboarding-segment-split-received-a"],
-        ],
-        [
-          "onboarding-segment-split-received-a",
-          ["onboarding-reminder-2a", "onboarding-reminder-2b"],
-        ],
-        ["onboarding-reminder-2a", ["wait-for-onboarding-2"]],
-        ["onboarding-reminder-2b", ["wait-for-onboarding-2"]],
-        ["wait-for-onboarding-2", [JourneyNodeType.ExitNode]],
-      ];
-
-      for (const [nodeId, expectedChildren] of expectations) {
-        const actualChildren = findDirectChildren(nodeId, definition);
-        expect(actualChildren).toEqual(new Set(expectedChildren));
-      }
     });
   });
   describe("when journey has split then delay", () => {
