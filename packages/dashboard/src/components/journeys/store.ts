@@ -99,6 +99,79 @@ function multiMapSet<P, C, M extends Map<C, P[]>>(
   existing.push(parent);
 }
 
+function buildUiHeritageMap(
+  nodes: Node<NodeData>[],
+  edges: Edge<EdgeData>[]
+): HeritageMap {
+  const map: HeritageMap = new Map();
+
+  // initialize map
+  for (const node of nodes) {
+    const { id } = node;
+    map.set(id, {
+      children: new Set(findDirectUiChildren(id, edges)),
+      descendants: new Set<string>(),
+      parents: new Set<string>(),
+      ancestors: new Set<string>(),
+    });
+  }
+
+  // fill children, parents, and descendant, ancestor relationships
+  for (const node of nodes) {
+    const { id } = node;
+
+    const queue = Array.from(findDirectUiChildren(id, edges).values()).flatMap(
+      (childId) => nodes.find((n) => n.id === childId) ?? []
+    );
+
+    queue.forEach((childNode) => {
+      const childId = childNode.id;
+      map.get(childId)?.parents.add(id);
+    });
+
+    while (queue.length > 0) {
+      const currentChild = queue.shift();
+      if (!currentChild) {
+        throw new Error("Queue should not be empty");
+      }
+      const childId = currentChild.id;
+
+      // add to descendants of parent and ancestors of child
+      map.get(id)?.descendants.add(childId);
+      map.get(childId)?.ancestors.add(id);
+
+      // add parents to child and children to parent
+      for (const parentId of map.get(id)?.ancestors.values() ?? []) {
+        map.get(parentId)?.descendants.add(childId);
+        map.get(childId)?.ancestors.add(parentId);
+      }
+
+      // add children to parent and parents to child
+      for (const cid of map.get(childId)?.descendants.values() ?? []) {
+        map.get(id)?.descendants.add(cid);
+        map.get(cid)?.ancestors.add(id);
+      }
+
+      // add children of current child to queue
+      const grandchildren = Array.from(
+        map.get(childId)?.children.values() ?? []
+      ).flatMap(
+        (grandChildId) => nodes.find((n) => n.id === grandChildId) ?? []
+      );
+
+      queue.push(...grandchildren);
+    }
+  }
+
+  return map;
+}
+
+// export function journeyDefinitionFromStateV2({
+//   state,
+// }: {
+//   state: Omit<JourneyStateForResource, "journeyName">;
+// }): Result<JourneyDefinition, { message: string; nodeId: string }> {}
+
 export function journeyDefinitionFromState({
   state,
 }: {
@@ -1271,6 +1344,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     }),
   deleteJourneyNode: (nodeId: string) =>
     set((state) => {
+      // FIXME handle result
       const definition = unwrap(journeyDefinitionFromState({ state }));
       const newDefinition = removeNode(nodeId, definition);
 
