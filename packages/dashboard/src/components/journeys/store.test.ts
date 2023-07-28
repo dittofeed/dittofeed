@@ -18,6 +18,7 @@ import {
   journeyDefinitionFromState,
   JourneyStateForResource,
   journeyToState,
+  journeyToStateV2,
 } from "./store";
 
 describe("journeyToState", () => {
@@ -132,7 +133,7 @@ describe("journeyToState", () => {
     );
   });
 
-  describe("with a simple segment split", () => {
+  describe.only("with a simple segment split", () => {
     beforeEach(() => {
       const definition: JourneyDefinition = {
         nodes: [
@@ -166,7 +167,7 @@ describe("journeyToState", () => {
         definition,
         workspaceId,
       };
-      uiState = journeyToState(journeyResource);
+      uiState = journeyToStateV2(journeyResource);
     });
 
     it("produces the right ui state", async () => {

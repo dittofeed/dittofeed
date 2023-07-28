@@ -291,6 +291,7 @@ export function getNearestFromChildren(
     return null;
   }
 
+  // TODO use DFS
   const nearestDescendants = sortBy(
     Array.from(hmEntry.descendants).flatMap((d) => {
       const descendantHmEntry = getUnsafe(hm, d);

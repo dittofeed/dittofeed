@@ -1347,7 +1347,8 @@ export function journeyBranchToState(
   nodesState: Node<NodeData>[],
   edgesState: Edge<EdgeData>[],
   nodes: Map<string, JourneyNode>,
-  hm: HeritageMap
+  hm: HeritageMap,
+  branchTermination?: string
 ): {
   nodesState: Node<NodeData>[];
   edgesState: Edge<EdgeData>[];
@@ -1358,9 +1359,14 @@ export function journeyBranchToState(
   let hmEntry = getUnsafe(hm, nId);
   let nextNodeId: string | null = null;
 
+  console.log("journeyBranchToState start", {
+    nId,
+  });
   if (isMultiChildNode(node.type)) {
     const childNextNodes: string[] = [];
     const emptyId = `${nId}-child-empty`;
+    console.log("isMultiChildNode start");
+
     switch (node.type) {
       case JourneyNodeType.SegmentSplitNode: {
         const trueId = `${nId}-child-0`;
@@ -1466,7 +1472,7 @@ export function journeyBranchToState(
           });
         }
 
-        nextNodeId = Array.from(hmEntry.children)[0] ?? null;
+        nextNodeId = childNextNodes[0] ?? null;
         if (!nextNodeId) {
           throw new Error(
             "multi child node has no children, this should not be possible"
@@ -1482,6 +1488,9 @@ export function journeyBranchToState(
             type: "WorkflowEdge",
             disableMarker: true,
           },
+        });
+        console.log("segment split node end block", {
+          nextNodeId,
         });
         break;
       }
@@ -1571,13 +1580,13 @@ export function journeyBranchToState(
           nodes,
           hm
         ).nextNodeId;
-        if (!terminalSegmentChildId || !terminalTimeoutId) {
-          throw new Error(
-            "wait for children terminate which should not be possible"
-          );
+        if (terminalSegmentChildId) {
+          childNextNodes.push(terminalSegmentChildId);
         }
-        childNextNodes.push(terminalSegmentChildId);
-        childNextNodes.push(terminalTimeoutId);
+
+        if (terminalTimeoutId) {
+          childNextNodes.push(terminalTimeoutId);
+        }
 
         for (const childNextNode of childNextNodes) {
           edgesState.push({
@@ -1618,6 +1627,7 @@ export function journeyBranchToState(
   } else {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
     while (true) {
+      console.log("single child node loop start", { nId });
       let nodeTypeProps: NodeTypeProps;
 
       switch (node.type) {
@@ -1677,15 +1687,37 @@ export function journeyBranchToState(
           nodeTypeProps,
         },
       };
+
       nodesState.push(newNode);
       nextNodeId = Array.from(hmEntry.children)[0] ?? null;
       if (nextNodeId === null) {
         break;
       }
+      const nextNode = getUnsafe(nodes, nextNodeId);
       const nextHmEntry = getUnsafe(hm, nextNodeId);
-      if (nextHmEntry.parents.size > 1) {
+
+      console.log({
+        nextNode,
+      });
+      if (isMultiChildNode(nextNode.type)) {
         break;
       }
+
+      // console.log({
+      //   firstParent:
+      //     nextHmEntry.parents.size >= 1
+      //       ? getUnsafe(nodes, idxUnsafe(Array.from(nextHmEntry.parents), 0))
+      //       : null,
+      // });
+      // if (
+      //   nextHmEntry.parents.size > 1 ||
+      //   (nextHmEntry.parents.size === 1 &&
+      //     isMultiChildNode(
+      //       getUnsafe(nodes, idxUnsafe(Array.from(nextHmEntry.parents), 0)).type
+      //     ))
+      // ) {
+      //   break;
+      // }
 
       edgesState.push({
         id: `${nId}=>${nextNodeId}`,
@@ -1699,10 +1731,9 @@ export function journeyBranchToState(
         },
       });
 
-      node = getUnsafe(nodes, nId);
+      node = nextNode;
       nId = nextNodeId;
       hmEntry = nextHmEntry;
-      nextNodeId = nId;
     }
   }
 
