@@ -1366,6 +1366,33 @@ export function journeyBranchToState(
         const trueId = `${nId}-child-0`;
         const falseId = `${nId}-child-1`;
 
+        nodesState.push({
+          id: trueId,
+          position: placeholderNodePosition,
+          type: "label",
+          data: {
+            type: "LabelNode",
+            title: "true",
+          },
+        });
+        nodesState.push({
+          id: falseId,
+          position: placeholderNodePosition,
+          type: "label",
+          data: {
+            type: "LabelNode",
+            title: "false",
+          },
+        });
+        nodesState.push({
+          id: emptyId,
+          position: placeholderNodePosition,
+          type: "empty",
+          data: {
+            type: "EmptyNode",
+          },
+        });
+
         edgesState.push({
           id: `${nodeId}=>${trueId}`,
           source: nodeId,
@@ -1403,13 +1430,48 @@ export function journeyBranchToState(
           },
         });
 
+        const terminalTrueId = journeyBranchToState(
+          node.variant.trueChild,
+          nodesState,
+          edgesState,
+          nodes,
+          hm
+        ).nextNodeId;
+        const terminalFalseId = journeyBranchToState(
+          node.variant.falseChild,
+          nodesState,
+          edgesState,
+          nodes,
+          hm
+        ).nextNodeId;
+        if (!terminalTrueId || !terminalFalseId) {
+          throw new Error(
+            "segment split children terminate which should not be possible"
+          );
+        }
+        childNextNodes.push(terminalTrueId);
+        childNextNodes.push(terminalFalseId);
+
+        for (const childNextNode of childNextNodes) {
+          edgesState.push({
+            id: `${childNextNode}=>${emptyId}`,
+            source: childNextNode,
+            target: emptyId,
+            type: "workflow",
+            sourceHandle: "bottom",
+            data: {
+              type: "WorkflowEdge",
+              disableMarker: true,
+            },
+          });
+        }
+
         nextNodeId = Array.from(hmEntry.children)[0] ?? null;
         if (!nextNodeId) {
           throw new Error(
             "multi child node has no children, this should not be possible"
           );
         }
-
         edgesState.push({
           id: `${emptyId}=>${nextNodeId}`,
           source: emptyId,
@@ -1421,7 +1483,6 @@ export function journeyBranchToState(
             disableMarker: true,
           },
         });
-
         break;
       }
       default:
