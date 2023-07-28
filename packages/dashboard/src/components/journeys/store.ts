@@ -1,6 +1,7 @@
 import { idxUnsafe } from "isomorphic-lib/src/arrays";
 import {
   buildHeritageMap,
+  getNearestFromChildren,
   getNearestFromParents,
   getNodeId,
   HeritageMap,
@@ -1365,6 +1366,20 @@ function buildEmptyNode(id: string): Node<NodeData> {
   };
 }
 
+function buildWorkflowEdge(source: string, target: string): Edge<EdgeData> {
+  return {
+    id: `${source}=>${target}`,
+    source,
+    target,
+    type: "workflow",
+    sourceHandle: "bottom",
+    data: {
+      type: "WorkflowEdge",
+      disableMarker: true,
+    },
+  };
+}
+
 export function journeyBranchToState(
   nodeId: string,
   nodesState: Node<NodeData>[],
@@ -1437,48 +1452,51 @@ export function journeyBranchToState(
           },
         });
 
-        const terminalTrueId = journeyBranchToState(
-          node.variant.trueChild,
-          nodesState,
-          edgesState,
-          nodes,
-          hm
-        ).nextNodeId;
-        const terminalFalseId = journeyBranchToState(
-          node.variant.falseChild,
-          nodesState,
-          edgesState,
-          nodes,
-          hm
-        ).nextNodeId;
-        if (!terminalTrueId || !terminalFalseId) {
-          throw new Error(
-            "segment split children terminate which should not be possible"
-          );
-        }
-        childNextNodes.push(terminalTrueId);
-        childNextNodes.push(terminalFalseId);
+        const nfc = getNearestFromChildren(nodeId, hm);
 
-        for (const childNextNode of childNextNodes) {
-          edgesState.push({
-            id: `${childNextNode}=>${emptyId}`,
-            source: childNextNode,
-            target: emptyId,
-            type: "workflow",
-            sourceHandle: "bottom",
-            data: {
-              type: "WorkflowEdge",
-              disableMarker: true,
-            },
-          });
+        if (node.variant.trueChild === nfc || nfc === null) {
+          edgesState.push(buildWorkflowEdge(trueId, emptyId));
+        } else {
+          edgesState.push(buildWorkflowEdge(trueId, node.variant.trueChild));
+
+          const terminalId = journeyBranchToState(
+            node.variant.trueChild,
+            nodesState,
+            edgesState,
+            nodes,
+            hm
+          ).nextNodeId;
+          if (!terminalId) {
+            throw new Error(
+              "segment split children terminate which should not be possible"
+            );
+          }
+          edgesState.push(buildWorkflowEdge(terminalId, emptyId));
         }
 
-        nextNodeId = childNextNodes[0] ?? null;
-        if (!nextNodeId) {
-          throw new Error(
-            "multi child node has no children, this should not be possible"
-          );
+        if (node.variant.falseChild === nfc || nfc === null) {
+          edgesState.push(buildWorkflowEdge(falseId, emptyId));
+        } else {
+          edgesState.push(buildWorkflowEdge(falseId, node.variant.trueChild));
+
+          const terminalId = journeyBranchToState(
+            node.variant.falseChild,
+            nodesState,
+            edgesState,
+            nodes,
+            hm
+          ).nextNodeId;
+          if (!terminalId) {
+            throw new Error(
+              "segment split children terminate which should not be possible"
+            );
+          }
+          edgesState.push(buildWorkflowEdge(terminalId, emptyId));
         }
+
+        // default to true child because will be null if both children are equal
+        nextNodeId = nfc ?? node.variant.trueChild;
+
         edgesState.push({
           id: `${emptyId}=>${nextNodeId}`,
           source: emptyId,

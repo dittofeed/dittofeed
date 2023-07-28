@@ -287,7 +287,7 @@ export function getNearestFromChildren(
   const hmEntry = getUnsafe(hm, nId);
 
   const children = Array.from(hmEntry.children);
-  if (children.length <= 1) {
+  if (children.length === 1) {
     return null;
   }
 
