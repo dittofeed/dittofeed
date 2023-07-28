@@ -1,4 +1,3 @@
-import { idxUnsafe } from "isomorphic-lib/src/arrays";
 import {
   buildHeritageMap,
   getNearestFromChildren,
@@ -34,7 +33,6 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
-import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { type immer } from "zustand/middleware/immer";
 
 import {
@@ -1422,7 +1420,6 @@ export function journeyBranchToState(
   console.log("journeyBranchToState start", {
     nId,
   });
-  const childNextNodes: string[] = [];
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
@@ -1599,100 +1596,140 @@ export function journeyBranchToState(
         if (!segmentChild) {
           throw new Error("Malformed journey, WaitForNode has no children.");
         }
-        const timeoutId = `${nId}-child-1`;
-        const segmentChildId = `${nId}-child-0`;
+        const trueId = `${nId}-child-0`;
+        const falseId = `${nId}-child-1`;
         const emptyId = `${nId}-empty`;
 
-        nodesState.push(buildLabelNode(segmentChildId, WAIT_FOR_SATISFY_LABEL));
         nodesState.push(
-          buildLabelNode(timeoutId, waitForTimeoutLabel(node.timeoutSeconds))
+          buildJourneyNode(nId, {
+            type: JourneyNodeType.WaitForNode,
+            timeoutLabelNodeId: trueId,
+            timeoutSeconds: node.timeoutSeconds,
+            segmentChildren: [
+              {
+                segmentId: segmentChild.segmentId,
+                labelNodeId: trueId,
+              },
+            ],
+          })
         );
+        nodesState.push(buildLabelNode(trueId, "true"));
+        nodesState.push(buildLabelNode(falseId, "false"));
         nodesState.push(buildEmptyNode(emptyId));
+        edgesState.push(buildPlaceholderEdge(nId, trueId));
+        edgesState.push(buildPlaceholderEdge(nId, falseId));
 
-        edgesState.push({
-          id: `${nId}=>${segmentChildId}`,
-          source: nId,
-          target: segmentChildId,
-          type: "placeholder",
-          sourceHandle: "bottom",
-        });
-        edgesState.push({
-          id: `${nId}=>${timeoutId}`,
-          source: nId,
-          target: timeoutId,
-          type: "placeholder",
-          sourceHandle: "bottom",
-        });
-        edgesState.push({
-          id: `${segmentChildId}=>${segmentChild.id}`,
-          source: segmentChildId,
-          target: segmentChild.id,
-          type: "workflow",
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: true,
-          },
-        });
-        edgesState.push({
-          id: `${timeoutId}=>${node.timeoutChild}`,
-          source: timeoutId,
-          target: node.timeoutChild,
-          type: "workflow",
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: false,
-          },
-        });
+        const nfc = getNearestFromChildren(nId, hm);
 
-        const terminalSegmentChildId = journeyBranchToState(
-          segmentChild.id,
-          nodesState,
-          edgesState,
-          nodes,
-          hm
-        ).terminalNode;
-        const terminalTimeoutId = journeyBranchToState(
-          node.timeoutChild,
-          nodesState,
-          edgesState,
-          nodes,
-          hm
-        ).terminalNode;
-        if (terminalSegmentChildId) {
-          childNextNodes.push(terminalSegmentChildId);
-        }
+        if (segmentChild.id === nfc || nfc === null) {
+          edgesState.push(buildWorkflowEdge(trueId, emptyId));
+        } else {
+          edgesState.push(buildWorkflowEdge(trueId, segmentChild.id));
 
-        if (terminalTimeoutId) {
-          childNextNodes.push(terminalTimeoutId);
-        }
-
-        for (const childNextNode of childNextNodes) {
-          edgesState.push({
-            id: `${childNextNode}=>${emptyId}`,
-            source: childNextNode,
-            target: emptyId,
-            type: "workflow",
-            sourceHandle: "bottom",
-            data: {
-              type: "WorkflowEdge",
-              disableMarker: true,
-            },
+          const terminalId = journeyBranchToState(
+            segmentChild.id,
+            nodesState,
+            edgesState,
+            nodes,
+            hm,
+            nfc
+          ).terminalNode;
+          if (!terminalId) {
+            throw new Error(
+              "segment split children terminate which should not be possible"
+            );
+          }
+          edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+          console.log("true sub child branch", {
+            trueId,
+            terminalId,
+            nId,
+            nfc,
+            emptyId,
           });
         }
 
-        // FIXME
-        // nextNodeId = Array.from(hmEntry.children)[0] ?? null;
-        // if (!nextNodeId) {
-        //   throw new Error(
-        //     "multi child node has no children, this should not be possible"
-        //   );
+        // if (nId === "segment-split-1") {
+        // console.log("segment-split-1 children", {
+        //   nfc,
+        //   falseChild: node.variant.falseChild,
+        //   trueChild: node.variant.trueChild,
+        // });
         // }
+        if (node.timeoutChild === nfc || nfc === null) {
+          edgesState.push(buildWorkflowEdge(falseId, emptyId));
+        } else {
+          edgesState.push(buildWorkflowEdge(falseId, node.timeoutChild));
+
+          const terminalId = journeyBranchToState(
+            node.timeoutChild,
+            nodesState,
+            edgesState,
+            nodes,
+            hm,
+            nfc
+          ).terminalNode;
+          if (!terminalId) {
+            throw new Error(
+              "segment split children terminate which should not be possible"
+            );
+          }
+          // console.log("false sub child branch", {
+          //   falseId,
+          //   terminalId,
+          //   falseChild: node.variant.falseChild,
+          //   nId,
+          //   nfc,
+          //   emptyId,
+          // });
+          edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+        }
+
+        // default to true child because will be null if both children are equal
+        nextNodeId = nfc ?? segmentChild.id;
+        console.log("segment split node end block", {
+          nextNodeId,
+        });
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: emptyId,
+          };
+        }
+        edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
+        break;
+        // const segmentChild = node.segmentChildren[0];
+        // if (!segmentChild) {
+        //   throw new Error("Malformed journey, WaitForNode has no children.");
+        // }
+        // const timeoutId = `${nId}-child-1`;
+        // const segmentChildId = `${nId}-child-0`;
+        // const emptyId = `${nId}-empty`;
+
+        // nodesState.push(buildLabelNode(segmentChildId, WAIT_FOR_SATISFY_LABEL));
+        // nodesState.push(
+        //   buildLabelNode(timeoutId, waitForTimeoutLabel(node.timeoutSeconds))
+        // );
+        // nodesState.push(buildEmptyNode(emptyId));
+
         // edgesState.push({
-        //   id: `${emptyId}=>${nextNodeId}`,
-        //   source: emptyId,
-        //   target: nextNodeId,
+        //   id: `${nId}=>${segmentChildId}`,
+        //   source: nId,
+        //   target: segmentChildId,
+        //   type: "placeholder",
+        //   sourceHandle: "bottom",
+        // });
+        // edgesState.push({
+        //   id: `${nId}=>${timeoutId}`,
+        //   source: nId,
+        //   target: timeoutId,
+        //   type: "placeholder",
+        //   sourceHandle: "bottom",
+        // });
+        // edgesState.push({
+        //   id: `${segmentChildId}=>${segmentChild.id}`,
+        //   source: segmentChildId,
+        //   target: segmentChild.id,
         //   type: "workflow",
         //   sourceHandle: "bottom",
         //   data: {
@@ -1700,6 +1737,72 @@ export function journeyBranchToState(
         //     disableMarker: true,
         //   },
         // });
+        // edgesState.push({
+        //   id: `${timeoutId}=>${node.timeoutChild}`,
+        //   source: timeoutId,
+        //   target: node.timeoutChild,
+        //   type: "workflow",
+        //   sourceHandle: "bottom",
+        //   data: {
+        //     type: "WorkflowEdge",
+        //     disableMarker: false,
+        //   },
+        // });
+
+        // const terminalSegmentChildId = journeyBranchToState(
+        //   segmentChild.id,
+        //   nodesState,
+        //   edgesState,
+        //   nodes,
+        //   hm
+        // ).terminalNode;
+        // const terminalTimeoutId = journeyBranchToState(
+        //   node.timeoutChild,
+        //   nodesState,
+        //   edgesState,
+        //   nodes,
+        //   hm
+        // ).terminalNode;
+        // if (terminalSegmentChildId) {
+        //   childNextNodes.push(terminalSegmentChildId);
+        // }
+
+        // if (terminalTimeoutId) {
+        //   childNextNodes.push(terminalTimeoutId);
+        // }
+
+        // for (const childNextNode of childNextNodes) {
+        //   edgesState.push({
+        //     id: `${childNextNode}=>${emptyId}`,
+        //     source: childNextNode,
+        //     target: emptyId,
+        //     type: "workflow",
+        //     sourceHandle: "bottom",
+        //     data: {
+        //       type: "WorkflowEdge",
+        //       disableMarker: true,
+        //     },
+        //   });
+        // }
+
+        // // FIXME
+        // // nextNodeId = Array.from(hmEntry.children)[0] ?? null;
+        // // if (!nextNodeId) {
+        // //   throw new Error(
+        // //     "multi child node has no children, this should not be possible"
+        // //   );
+        // // }
+        // // edgesState.push({
+        // //   id: `${emptyId}=>${nextNodeId}`,
+        // //   source: emptyId,
+        // //   target: nextNodeId,
+        // //   type: "workflow",
+        // //   sourceHandle: "bottom",
+        // //   data: {
+        // //     type: "WorkflowEdge",
+        // //     disableMarker: true,
+        // //   },
+        // // });
         break;
       }
     }
