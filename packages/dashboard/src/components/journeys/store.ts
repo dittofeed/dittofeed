@@ -1,3 +1,4 @@
+import { idxUnsafe } from "isomorphic-lib/src/arrays";
 import {
   buildHeritageMap,
   getNearestFromParents,
@@ -1344,9 +1345,14 @@ export function journeyBranchToState(
 ): {
   nodesState: Node<NodeData>[];
   edgesState: Edge<EdgeData>[];
+  nextNode: string | null;
 } {
-  const node = getUnsafe(nodes, nodeId);
-  const hmEntry = getUnsafe(hm, nodeId);
+  let nId: string = nodeId;
+  let nodesState: Node<NodeData>[] = [];
+  let edgesState: Edge<EdgeData>[] = [];
+  let node = getUnsafe(nodes, nId);
+  let hmEntry = getUnsafe(hm, nId);
+  let nextNode: string | null = null;
 
   if (isMultiChildNode(node.type)) {
     // recurse, calling journeyBranchToState on each child
@@ -1354,9 +1360,21 @@ export function journeyBranchToState(
     // this will allow us to pre-empt empy children. might not be necessary with
     // multiple parents check
   } else {
+    while (hmEntry.children.size === 1) {
+      nId = idxUnsafe(Array.from(hmEntry.children), 0);
+      node = getUnsafe(nodes, nId);
+      hmEntry = getUnsafe(hm, nId);
+      nextNode = nId;
+    }
+
     // use while loop to find next child
     // exit when child has multiple parents
   }
+  return {
+    nodesState,
+    edgesState,
+    nextNode,
+  };
 }
 
 export function journeyToStateV2(
