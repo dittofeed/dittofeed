@@ -38,10 +38,14 @@ import { type immer } from "zustand/middleware/immer";
 
 import {
   AddNodesParams,
+  DelayNodeProps,
   EdgeData,
+  EntryNodeProps,
+  ExitNodeProps,
   JourneyContent,
   JourneyNodeProps,
   JourneyState,
+  MessageNodeProps,
   NodeData,
   NodeTypeProps,
   NonJourneyNodeData,
@@ -1340,19 +1344,19 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
 
 export function journeyBranchToState(
   nodeId: string,
+  nodesState: Node<NodeData>[],
+  edgesState: Edge<EdgeData>[],
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap
 ): {
   nodesState: Node<NodeData>[];
   edgesState: Edge<EdgeData>[];
-  nextNode: string | null;
+  nextNodeId: string | null;
 } {
   let nId: string = nodeId;
-  let nodesState: Node<NodeData>[] = [];
-  let edgesState: Edge<EdgeData>[] = [];
   let node = getUnsafe(nodes, nId);
   let hmEntry = getUnsafe(hm, nId);
-  let nextNode: string | null = null;
+  let nextNodeId: string | null = null;
 
   if (isMultiChildNode(node.type)) {
     // recurse, calling journeyBranchToState on each child
@@ -1360,20 +1364,104 @@ export function journeyBranchToState(
     // this will allow us to pre-empt empy children. might not be necessary with
     // multiple parents check
   } else {
-    while (hmEntry.children.size === 1) {
-      nId = idxUnsafe(Array.from(hmEntry.children), 0);
-      node = getUnsafe(nodes, nId);
-      hmEntry = getUnsafe(hm, nId);
-      nextNode = nId;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+    while (true) {
+      let nodeTypeProps: NodeTypeProps;
 
-    // use while loop to find next child
-    // exit when child has multiple parents
+      switch (node.type) {
+        case JourneyNodeType.EntryNode: {
+          const entryNode: EntryNodeProps = {
+            type: JourneyNodeType.EntryNode,
+            segmentId: node.segment,
+          };
+          nodeTypeProps = entryNode;
+          break;
+        }
+        case JourneyNodeType.ExitNode: {
+          const exitNode: ExitNodeProps = {
+            type: JourneyNodeType.ExitNode,
+          };
+          nodeTypeProps = exitNode;
+          break;
+        }
+        case JourneyNodeType.DelayNode: {
+          const delayNode: DelayNodeProps = {
+            type: JourneyNodeType.DelayNode,
+            seconds: node.variant.seconds,
+          };
+          nodeTypeProps = delayNode;
+          break;
+        }
+        case JourneyNodeType.MessageNode: {
+          const messageNode: MessageNodeProps = {
+            type: JourneyNodeType.MessageNode,
+            templateId: node.variant.templateId,
+            channel: node.variant.type,
+            name: node.name ?? "",
+          };
+          nodeTypeProps = messageNode;
+          break;
+        }
+        case JourneyNodeType.WaitForNode:
+          throw new Error(
+            "WaitForNode not is a multi child node and should not enter this block"
+          );
+        case JourneyNodeType.SegmentSplitNode:
+          throw new Error(
+            "SegmentSplitNode not is a multi child node and should not enter this block"
+          );
+        case JourneyNodeType.ExperimentSplitNode:
+          throw new Error("ExperimentSplitNode is not implemented");
+        case JourneyNodeType.RateLimitNode:
+          throw new Error("RateLimitNode is not implemented");
+      }
+
+      const newNode: Node<JourneyNodeProps> = {
+        id: nId,
+        position: placeholderNodePosition,
+        type: "journey",
+        data: {
+          type: "JourneyNode",
+          nodeTypeProps,
+        },
+      };
+      nodesState.push(newNode);
+      nextNodeId = Array.from(hmEntry.children)[0] ?? null;
+      if (nextNodeId === null) {
+        break;
+      }
+      const nextHmEntry = getUnsafe(hm, nextNodeId);
+      if (nextHmEntry.parents.size > 1) {
+        break;
+      }
+
+      edgesState.push({
+        id: `${nId}=>${nextNodeId}`,
+        source: nId,
+        target: nextNodeId,
+        type: "workflow",
+        sourceHandle: "bottom",
+        data: {
+          type: "WorkflowEdge",
+          disableMarker: true,
+        },
+      });
+
+      node = getUnsafe(nodes, nId);
+      nId = nextNodeId;
+      hmEntry = nextHmEntry;
+      nextNodeId = nId;
+    }
   }
+
+  if (nextNodeId !== null) {
+    return journeyBranchToState(nextNodeId, nodesState, edgesState, nodes, hm);
+  }
+
   return {
     nodesState,
     edgesState,
-    nextNode,
+    nextNodeId,
   };
 }
 
