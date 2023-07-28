@@ -28,9 +28,7 @@ describe("journeyToState", () => {
   let uiState: JourneyStateForResource;
   let definitionFromState: JourneyDefinition;
 
-  describe("with a nested segment and multiple messages", () => {});
-
-  describe.only("with a triple nested segment split", () => {
+  describe("with a triple nested segment split", () => {
     beforeEach(() => {
       const definition: JourneyDefinition = {
         nodes: [
@@ -205,7 +203,7 @@ describe("journeyToState", () => {
     });
   });
 
-  describe("when journey has nested wait for's", () => {
+  describe.only("when journey has nested wait for's", () => {
     beforeEach(async () => {
       const definition: JourneyDefinition = {
         nodes: [
@@ -320,7 +318,7 @@ describe("journeyToState", () => {
         definition,
         workspaceId,
       };
-      uiState = journeyToState(journeyResource);
+      uiState = journeyToStateV2(journeyResource);
 
       definitionFromState = unwrap(
         await journeyDefinitionFromState({ state: uiState })
