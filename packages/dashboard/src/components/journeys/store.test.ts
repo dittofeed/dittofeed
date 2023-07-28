@@ -23,11 +23,11 @@ describe("journeyToState", () => {
   let journeyResource: JourneyResource;
   let journeyId: string;
   let workspaceId: string;
+  let uiState: JourneyStateForResource;
 
   describe("with a nested segment and multiple messages", () => {});
 
   describe("with a triple nested segment split", () => {
-    let uiState: JourneyStateForResource;
     beforeEach(() => {
       const definition: JourneyDefinition = {
         nodes: [
@@ -119,7 +119,7 @@ describe("journeyToState", () => {
       ["segment-split-3-empty", ["segment-split-2-empty"]],
     ];
     test.each(uiExpectations)(
-      "node %p has %p as children",
+      "node %p has %p as children in ui state",
       (nodeId, expectedChildren) => {
         const actualChildren = findDirectUiChildren(
           nodeId,
@@ -164,10 +164,10 @@ describe("journeyToState", () => {
         definition,
         workspaceId,
       };
+      uiState = journeyToState(journeyResource);
     });
 
     it("produces the right ui state", async () => {
-      const uiState = journeyToState(journeyResource);
       const uiExpectations: [string, string[]][] = [
         [JourneyNodeType.EntryNode, ["segment-split"]],
         ["segment-split", ["segment-split-child-0", "segment-split-child-1"]],
@@ -317,67 +317,66 @@ describe("journeyToState", () => {
         definition,
         workspaceId,
       };
+      uiState = journeyToState(journeyResource);
     });
-
-    it("produces the right ui state", async () => {
-      const uiState = journeyToState(journeyResource);
-
-      const uiExpectations: [string, string[]][] = [
-        [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
-        [
-          "wait-for-first-deployment-1",
-          [
-            "wait-for-first-deployment-1-child-0",
-            "wait-for-first-deployment-1-child-1",
-          ],
-        ],
+    const uiExpectations: [string, string[]][] = [
+      [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
+      [
+        "wait-for-first-deployment-1",
         [
           "wait-for-first-deployment-1-child-0",
-          ["wait-for-first-deployment-1-empty"],
-        ],
-        [
           "wait-for-first-deployment-1-child-1",
-          ["code-deployment-reminder-1a"],
         ],
-        ["code-deployment-reminder-1a", ["wait-for-first-deployment-1-empty"]],
-        ["wait-for-first-deployment-1-empty", ["wait-for-first-deployment-2"]],
+      ],
+      [
+        "wait-for-first-deployment-1-child-0",
+        ["wait-for-first-deployment-1-empty"],
+      ],
+      ["wait-for-first-deployment-1-child-1", ["code-deployment-reminder-1a"]],
+      ["code-deployment-reminder-1a", ["wait-for-first-deployment-1-empty"]],
+      ["wait-for-first-deployment-1-empty", ["wait-for-first-deployment-2"]],
+      [
+        "wait-for-first-deployment-2",
         [
-          "wait-for-first-deployment-2",
-          [
-            "wait-for-first-deployment-2-child-0",
-            "wait-for-first-deployment-2-child-1",
-          ],
-        ],
-        ["wait-for-first-deployment-2-child-0", ["wait-for-onboarding-1"]],
-        [
+          "wait-for-first-deployment-2-child-0",
           "wait-for-first-deployment-2-child-1",
-          ["wait-for-first-deployment-2-empty"],
         ],
+      ],
+      ["wait-for-first-deployment-2-child-0", ["wait-for-onboarding-1"]],
+      [
+        "wait-for-first-deployment-2-child-1",
+        ["wait-for-first-deployment-2-empty"],
+      ],
+      [
+        "wait-for-onboarding-1",
+        ["wait-for-onboarding-1-child-0", "wait-for-onboarding-1-child-1"],
+      ],
+      ["wait-for-onboarding-1-child-0", ["wait-for-onboarding-1-empty"]],
+      [
+        "wait-for-onboarding-1-child-1",
+        ["onboarding-segment-split-received-a"],
+      ],
+      [
+        "onboarding-segment-split-received-a",
         [
-          "wait-for-onboarding-1",
-          ["wait-for-onboarding-1-child-0", "wait-for-onboarding-1-child-1"],
+          "onboarding-segment-split-received-a-child-1",
+          "onboarding-segment-split-received-a-child-0",
         ],
-        ["wait-for-onboarding-1-child-0", ["wait-for-onboarding-1-empty"]],
-        [
-          "wait-for-onboarding-1-child-1",
-          ["onboarding-segment-split-received-a"],
-        ],
-        [
-          "onboarding-segment-split-received-a",
-          [
-            "onboarding-segment-split-received-a-child-1",
-            "onboarding-segment-split-received-a-child-0",
-          ],
-        ],
-      ];
+      ],
+    ];
 
-      for (const [nodeId, expectedChildren] of uiExpectations) {
+    test.each(uiExpectations)(
+      "node %p has %p as children in ui state",
+      (nodeId, expectedChildren) => {
         const actualChildren = findDirectUiChildren(
           nodeId,
           uiState.journeyEdges
         );
         expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
       }
+    );
+
+    it("produces the right ui state", async () => {
       uiState.journeyNodes.forEach((node) => {
         if (
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
@@ -488,10 +487,10 @@ describe("journeyToState", () => {
         },
         workspaceId,
       };
+      uiState = journeyToState(journeyResource);
     });
 
     it("produces the correct ui state", async () => {
-      const uiState = journeyToState(journeyResource);
       const result = await journeyDefinitionFromState({ state: uiState });
       if (result.isErr()) {
         throw new Error(JSON.stringify(result.error));
@@ -556,11 +555,10 @@ describe("journeyToState", () => {
         },
         workspaceId,
       };
+      uiState = journeyToState(journeyResource);
     });
 
     it("produces the correct ui state", () => {
-      const uiState = journeyToState(journeyResource);
-
       expect(
         uiState.journeyNodes.filter((n) => n.type === "label")
       ).toHaveLength(4);
