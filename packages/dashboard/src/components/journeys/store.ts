@@ -1485,13 +1485,136 @@ export function journeyBranchToState(
         });
         break;
       }
+      case JourneyNodeType.WaitForNode: {
+        const segmentChild = node.segmentChildren[0];
+        if (!segmentChild) {
+          throw new Error("Malformed journey, WaitForNode has no children.");
+        }
+        const timeoutId = `${nId}-child-1`;
+        const segmentChildId = `${nId}-child-0`;
+
+        nodesState.push({
+          id: segmentChildId,
+          position: placeholderNodePosition,
+          type: "label",
+          data: {
+            type: "LabelNode",
+            title: WAIT_FOR_SATISFY_LABEL,
+          },
+        });
+        nodesState.push({
+          id: timeoutId,
+          position: placeholderNodePosition,
+          type: "label",
+          data: {
+            type: "LabelNode",
+            title: waitForTimeoutLabel(node.timeoutSeconds),
+          },
+        });
+        nodesState.push({
+          id: emptyId,
+          position: placeholderNodePosition,
+          type: "empty",
+          data: {
+            type: "EmptyNode",
+          },
+        });
+
+        edgesState.push({
+          id: `${nodeId}=>${segmentChildId}`,
+          source: nodeId,
+          target: segmentChildId,
+          type: "placeholder",
+          sourceHandle: "bottom",
+        });
+        edgesState.push({
+          id: `${nodeId}=>${timeoutId}`,
+          source: nodeId,
+          target: timeoutId,
+          type: "placeholder",
+          sourceHandle: "bottom",
+        });
+        edgesState.push({
+          id: `${segmentChildId}=>${segmentChild.id}`,
+          source: segmentChildId,
+          target: segmentChild.id,
+          type: "workflow",
+          sourceHandle: "bottom",
+          data: {
+            type: "WorkflowEdge",
+            disableMarker: true,
+          },
+        });
+        edgesState.push({
+          id: `${timeoutId}=>${node.timeoutChild}`,
+          source: timeoutId,
+          target: node.timeoutChild,
+          type: "workflow",
+          sourceHandle: "bottom",
+          data: {
+            type: "WorkflowEdge",
+            disableMarker: false,
+          },
+        });
+
+        const terminalSegmentChildId = journeyBranchToState(
+          segmentChild.id,
+          nodesState,
+          edgesState,
+          nodes,
+          hm
+        ).nextNodeId;
+        const terminalTimeoutId = journeyBranchToState(
+          node.timeoutChild,
+          nodesState,
+          edgesState,
+          nodes,
+          hm
+        ).nextNodeId;
+        if (!terminalSegmentChildId || !terminalTimeoutId) {
+          throw new Error(
+            "wait for children terminate which should not be possible"
+          );
+        }
+        childNextNodes.push(terminalSegmentChildId);
+        childNextNodes.push(terminalTimeoutId);
+
+        for (const childNextNode of childNextNodes) {
+          edgesState.push({
+            id: `${childNextNode}=>${emptyId}`,
+            source: childNextNode,
+            target: emptyId,
+            type: "workflow",
+            sourceHandle: "bottom",
+            data: {
+              type: "WorkflowEdge",
+              disableMarker: true,
+            },
+          });
+        }
+
+        nextNodeId = Array.from(hmEntry.children)[0] ?? null;
+        if (!nextNodeId) {
+          throw new Error(
+            "multi child node has no children, this should not be possible"
+          );
+        }
+        edgesState.push({
+          id: `${emptyId}=>${nextNodeId}`,
+          source: emptyId,
+          target: nextNodeId,
+          type: "workflow",
+          sourceHandle: "bottom",
+          data: {
+            type: "WorkflowEdge",
+            disableMarker: true,
+          },
+        });
+        break;
+      }
       default:
         throw new Error(`unhandled multi child node type ${node.type}`);
     }
-    // recurse, calling journeyBranchToState on each child
-    // start with child that is shallower (fewer ancestors)
-    // this will allow us to pre-empt empy children. might not be necessary with
-    // multiple parents check
   } else {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
     while (true) {
@@ -1597,5 +1720,30 @@ export function journeyBranchToState(
 export function journeyToStateV2(
   journey: Omit<JourneyResource, "id" | "status" | "workspaceId">
 ): JourneyStateForResource {
-  throw new Error("unimplemented");
+  const journeyEdges: Edge<EdgeData>[] = [];
+  let journeyNodes: Node<NodeData>[] = [];
+  const nodes = [
+    journey.definition.entryNode,
+    ...journey.definition.nodes,
+    journey.definition.exitNode,
+  ].reduce((acc, node) => {
+    acc.set(getNodeId(node), node);
+    return acc;
+  }, new Map<string, JourneyNode>());
+  const hm = buildHeritageMap(journey.definition);
+  journeyBranchToState(
+    JourneyNodeType.EntryNode,
+    journeyNodes,
+    journeyEdges,
+    nodes,
+    hm
+  );
+  journeyNodes = layoutNodes(journeyNodes, journeyEdges);
+  const journeyNodesIndex = buildNodesIndex(journeyNodes);
+  return {
+    journeyName: journey.name,
+    journeyNodes,
+    journeyNodesIndex,
+    journeyEdges,
+  };
 }
