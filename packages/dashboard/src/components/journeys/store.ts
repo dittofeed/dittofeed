@@ -1,6 +1,5 @@
 import {
   buildHeritageMap,
-  getNearestFromChildren,
   getNearestFromParents,
   getNodeId,
   HeritageMap,
@@ -947,6 +946,7 @@ function findSourceFromNearest(
 function findSource(
   nId: string,
   hm: HeritageMap,
+  // FIXME use definition nodema
   nodes: Map<string, Node<NodeData>>
 ): string {
   const nearest = getNearestFromParents(nId, hm);
@@ -956,77 +956,74 @@ function findSource(
 function findTarget(
   nId: string,
   hm: HeritageMap,
-  nodes: Map<string, Node<NodeData>>
+  nodes: Map<string, JourneyNode>
 ): string {
   const hmEntry = getUnsafe(hm, nId);
-  const nearestFromChildren = getNearestFromChildren(nId, hm);
 
-  const children = Array.from(hmEntry.children);
-  if (!children[0]) {
-    throw new Error(`Missing source for ${nId}`);
-  }
-  const nfmChildrenDefault = nearestFromChildren ?? children[0];
-  const nearestFromParents = getNearestFromParents(nfmChildrenDefault, hm);
+  return "";
+  // const nearestFromChildren = getNearestFromChildren(nId, hm);
 
-  if (nId === "segment-split-3") {
-  }
+  // const children = Array.from(hmEntry.children);
+  // if (!children[0]) {
+  //   throw new Error(`Missing source for ${nId}`);
+  // }
+  // const nfmChildrenDefault = nearestFromChildren ?? children[0];
+  // const nearestFromParents = getNearestFromParents(nfmChildrenDefault, hm);
 
-  if (!nearestFromParents) {
-    return nfmChildrenDefault;
-  }
+  // if (!nearestFromParents) {
+  //   return nfmChildrenDefault;
+  // }
 
-  const nfmpHmEntry = getUnsafe(hm, nearestFromParents);
-  const connectsToParentEmpty =
-    nId !== nearestFromParents && nfmpHmEntry.descendants.has(nId);
+  // const nfmpHmEntry = getUnsafe(hm, nearestFromParents);
+  // const connectsToParentEmpty =
+  //   nId !== nearestFromParents && nfmpHmEntry.descendants.has(nId);
 
-  if (!connectsToParentEmpty) {
-    return nfmChildrenDefault;
-  }
+  // if (!connectsToParentEmpty) {
+  //   return nfmChildrenDefault;
+  // }
 
-  // Highest ancestor they share a child with
-  const highestSharedAncestor = sortBy(
-    Array.from(hmEntry.ancestors).flatMap((a) => {
-      const ancestorHmEntry = getUnsafe(hm, a);
-      const ancestorNode = getUnsafe(nodes, a);
-      if (
-        !(
-          ancestorNode.data.type === "JourneyNode" &&
-          isMultiChildNode(ancestorNode.data.nodeTypeProps.type)
-        )
-      ) {
-        return [];
-      }
-      const val: [string, number] = [a, -ancestorHmEntry.ancestors.size];
-      return [val];
-    }),
-    (val) => val[1]
-  )[0];
+  // // Lowest ancestor they share a child with
+  // // FIXME not right
+  // const lowestSharedAncestor = sortBy(
+  //   Array.from(hmEntry.ancestors).flatMap((a) => {
+  //     const ancestorHmEntry = getUnsafe(hm, a);
+  //     const ancestorNode = getUnsafe(nodes, a);
+  //     if (!isMultiChildNode(ancestorNode.type)) {
+  //       return [];
+  //     }
+  //     const val: [string, number] = [a, -ancestorHmEntry.ancestors.size];
+  //     return [val];
+  //   }),
+  //   (val) => val[1]
+  // )[0];
 
-  if (nId === "segment-split-3") {
-    console.log(
-      "bad target 1",
-      JSON.stringify(
-        {
-          nId,
-          nearestFromChildren,
-          nfmChildrenDefault,
-          nearestFromParents,
-        },
-        null,
-        2
-      )
-    );
-    console.log("bad target 2", {
-      hmEntry,
-      nfmpHmEntry,
-      highestSharedAncestor,
-      connectsToParentEmpty,
-    });
-  }
-  if (!highestSharedAncestor) {
-    throw new Error(`Missing highestSharedAncestor for ${nId}`);
-  }
-  return `${highestSharedAncestor[0]}-empty`;
+  // if (!lowestSharedAncestor) {
+  //   throw new Error(`Missing highestSharedAncestor for ${nId}`);
+  // }
+
+  // if (nId === "wait-for-onboarding-2") {
+  //   console.log(
+  //     "bad target 1",
+  //     JSON.stringify(
+  //       {
+  //         nId,
+  //         nearestFromChildren,
+  //         nfmChildrenDefault,
+  //         nearestFromParents,
+  //       },
+  //       null,
+  //       2
+  //     )
+  //   );
+  //   console.log("bad target 2", {
+  //     hmEntry,
+  //     nfmpHmEntry,
+  //     highestSharedAncestor: lowestSharedAncestor,
+  //     connectsToParentEmpty,
+  //     target: `${lowestSharedAncestor[0]}-empty`,
+  //   });
+  // }
+  // return `${lowestSharedAncestor[0]}-empty`;
 
   // if (!parents[0] || parents.length > 1) {
   //   throw new Error(`expecting exactly 1 parent for ${nId}`);
@@ -1062,6 +1059,15 @@ function findTarget(
 export function journeyToState(
   journey: Omit<JourneyResource, "id" | "status" | "workspaceId">
 ): JourneyStateForResource {
+  const nodeMap = [
+    journey.definition.entryNode,
+    ...journey.definition.nodes,
+    journey.definition.exitNode,
+  ].reduce((acc, n) => {
+    acc.set(getNodeId(n), n);
+    return acc;
+  }, new Map<string, JourneyNode>());
+
   const jn = new Map<string, Node<NodeData>>();
   const je = new Map<string, Edge<EdgeData>>();
 
@@ -1142,7 +1148,7 @@ export function journeyToState(
       }
       case JourneyNodeType.MessageNode: {
         const source = findSource(nId, hm, jn);
-        const target = findTarget(nId, hm, jn);
+        const target = findTarget(nId, hm, nodeMap);
         const state = journeyNodeToState(n, source, target);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
@@ -1150,7 +1156,7 @@ export function journeyToState(
       }
       case JourneyNodeType.DelayNode: {
         const source = findSource(nId, hm, jn);
-        const target = findTarget(nId, hm, jn);
+        const target = findTarget(nId, hm, nodeMap);
         const state = journeyNodeToState(n, source, target);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
@@ -1158,7 +1164,7 @@ export function journeyToState(
       }
       case JourneyNodeType.SegmentSplitNode: {
         const source = findSource(nId, hm, jn);
-        const target = findTarget(nId, hm, jn);
+        const target = findTarget(nId, hm, nodeMap);
         const state = journeyNodeToState(n, source, target);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
@@ -1166,7 +1172,7 @@ export function journeyToState(
       }
       case JourneyNodeType.WaitForNode: {
         const source = findSource(nId, hm, jn);
-        const target = findTarget(nId, hm, jn);
+        const target = findTarget(nId, hm, nodeMap);
         const state = journeyNodeToState(n, source, target);
         newEdges = state.edges;
         newNodes = [state.journeyNode, ...state.nonJourneyNodes];
@@ -1330,3 +1336,31 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       }
     }),
 });
+
+export function journeyBranchToState(
+  nodeId: string,
+  nodes: Map<string, JourneyNode>,
+  hm: HeritageMap
+): {
+  nodesState: Node<NodeData>[];
+  edgesState: Edge<EdgeData>[];
+} {
+  const node = getUnsafe(nodes, nodeId);
+  const hmEntry = getUnsafe(hm, nodeId);
+
+  if (isMultiChildNode(node.type)) {
+    // recurse, calling journeyBranchToState on each child
+    // start with child that is shallower (fewer ancestors)
+    // this will allow us to pre-empt empy children. might not be necessary with
+    // multiple parents check
+  } else {
+    // use while loop to find next child
+    // exit when child has multiple parents
+  }
+}
+
+export function journeyToStateV2(
+  journey: Omit<JourneyResource, "id" | "status" | "workspaceId">
+): JourneyStateForResource {
+  throw new Error("unimplemented");
+}
