@@ -1342,6 +1342,29 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     }),
 });
 
+function buildLabelNode(id: string, title: string): Node<NodeData> {
+  return {
+    id,
+    position: placeholderNodePosition,
+    type: "label",
+    data: {
+      type: "LabelNode",
+      title,
+    },
+  };
+}
+
+function buildEmptyNode(id: string): Node<NodeData> {
+  return {
+    id,
+    position: placeholderNodePosition,
+    type: "empty",
+    data: {
+      type: "EmptyNode",
+    },
+  };
+}
+
 export function journeyBranchToState(
   nodeId: string,
   nodesState: Node<NodeData>[],
@@ -1373,32 +1396,9 @@ export function journeyBranchToState(
         const trueId = `${nId}-child-0`;
         const falseId = `${nId}-child-1`;
 
-        nodesState.push({
-          id: trueId,
-          position: placeholderNodePosition,
-          type: "label",
-          data: {
-            type: "LabelNode",
-            title: "true",
-          },
-        });
-        nodesState.push({
-          id: falseId,
-          position: placeholderNodePosition,
-          type: "label",
-          data: {
-            type: "LabelNode",
-            title: "false",
-          },
-        });
-        nodesState.push({
-          id: emptyId,
-          position: placeholderNodePosition,
-          type: "empty",
-          data: {
-            type: "EmptyNode",
-          },
-        });
+        nodesState.push(buildLabelNode(trueId, "true"));
+        nodesState.push(buildLabelNode(falseId, "false"));
+        nodesState.push(buildEmptyNode(emptyId));
 
         edgesState.push({
           id: `${nodeId}=>${trueId}`,
@@ -1503,32 +1503,11 @@ export function journeyBranchToState(
         const timeoutId = `${nId}-child-1`;
         const segmentChildId = `${nId}-child-0`;
 
-        nodesState.push({
-          id: segmentChildId,
-          position: placeholderNodePosition,
-          type: "label",
-          data: {
-            type: "LabelNode",
-            title: WAIT_FOR_SATISFY_LABEL,
-          },
-        });
-        nodesState.push({
-          id: timeoutId,
-          position: placeholderNodePosition,
-          type: "label",
-          data: {
-            type: "LabelNode",
-            title: waitForTimeoutLabel(node.timeoutSeconds),
-          },
-        });
-        nodesState.push({
-          id: emptyId,
-          position: placeholderNodePosition,
-          type: "empty",
-          data: {
-            type: "EmptyNode",
-          },
-        });
+        nodesState.push(buildLabelNode(segmentChildId, WAIT_FOR_SATISFY_LABEL));
+        nodesState.push(
+          buildLabelNode(timeoutId, waitForTimeoutLabel(node.timeoutSeconds))
+        );
+        nodesState.push(buildEmptyNode(emptyId));
 
         edgesState.push({
           id: `${nodeId}=>${segmentChildId}`,
