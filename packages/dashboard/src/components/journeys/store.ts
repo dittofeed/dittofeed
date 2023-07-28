@@ -1380,6 +1380,16 @@ function buildWorkflowEdge(source: string, target: string): Edge<EdgeData> {
   };
 }
 
+function buildPlaceholderEdge(source: string, target: string): Edge<EdgeData> {
+  return {
+    id: `${source}=>${target}`,
+    source,
+    target,
+    type: "placeholder",
+    sourceHandle: "bottom",
+  };
+}
+
 function buildJourneyNode(
   id: string,
   nodeTypeProps: NodeTypeProps
@@ -1401,28 +1411,23 @@ export function journeyBranchToState(
   edgesState: Edge<EdgeData>[],
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap,
-  branchTermination?: string
+  terminateBefore?: string
 ): {
-  nodesState: Node<NodeData>[];
-  edgesState: Edge<EdgeData>[];
-  nextNodeId: string | null;
+  terminalNode: string | null;
 } {
   let nId: string = nodeId;
   let node = getUnsafe(nodes, nId);
-  let hmEntry = getUnsafe(hm, nId);
   let nextNodeId: string | null = null;
 
   console.log("journeyBranchToState start", {
     nId,
   });
   const childNextNodes: string[] = [];
-  const emptyId = `${nId}-child-empty`;
   console.log("isMultiChildNode start");
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
-    console.log("single child node loop start", { nId });
-    let nodeTypeProps: NodeTypeProps;
+    console.log("node loop start", { nId });
 
     switch (node.type) {
       case JourneyNodeType.EntryNode: {
@@ -1430,14 +1435,19 @@ export function journeyBranchToState(
           type: JourneyNodeType.EntryNode,
           segmentId: node.segment,
         };
-        nodeTypeProps = entryNode;
+        nodesState.push(buildJourneyNode(nId, entryNode));
+        edgesState.push(
+          buildWorkflowEdge(JourneyNodeType.EntryNode, node.child)
+        );
+        nextNodeId = node.child;
         break;
       }
       case JourneyNodeType.ExitNode: {
         const exitNode: ExitNodeProps = {
           type: JourneyNodeType.ExitNode,
         };
-        nodeTypeProps = exitNode;
+        nodesState.push(buildJourneyNode(nId, exitNode));
+        nextNodeId = null;
         break;
       }
       case JourneyNodeType.DelayNode: {
@@ -1445,7 +1455,9 @@ export function journeyBranchToState(
           type: JourneyNodeType.DelayNode,
           seconds: node.variant.seconds,
         };
-        nodeTypeProps = delayNode;
+        nodesState.push(buildJourneyNode(nId, delayNode));
+        edgesState.push(buildWorkflowEdge(nId, node.child));
+        nextNodeId = node.child;
         break;
       }
       case JourneyNodeType.MessageNode: {
@@ -1455,7 +1467,9 @@ export function journeyBranchToState(
           channel: node.variant.type,
           name: node.name ?? "",
         };
-        nodeTypeProps = messageNode;
+        nodesState.push(buildJourneyNode(nId, messageNode));
+        edgesState.push(buildWorkflowEdge(nId, node.child));
+        nextNodeId = node.child;
         break;
       }
       case JourneyNodeType.ExperimentSplitNode:
@@ -1465,6 +1479,7 @@ export function journeyBranchToState(
       case JourneyNodeType.SegmentSplitNode: {
         const trueId = `${nId}-child-0`;
         const falseId = `${nId}-child-1`;
+        const emptyId = `${nId}-empty`;
 
         nodesState.push(
           buildJourneyNode(nId, {
@@ -1478,43 +1493,8 @@ export function journeyBranchToState(
         nodesState.push(buildLabelNode(trueId, "true"));
         nodesState.push(buildLabelNode(falseId, "false"));
         nodesState.push(buildEmptyNode(emptyId));
-
-        edgesState.push({
-          id: `${nodeId}=>${trueId}`,
-          source: nodeId,
-          target: trueId,
-          type: "placeholder",
-          sourceHandle: "bottom",
-        });
-        edgesState.push({
-          id: `${nodeId}=>${falseId}`,
-          source: nodeId,
-          target: falseId,
-          type: "placeholder",
-          sourceHandle: "bottom",
-        });
-        edgesState.push({
-          id: `${trueId}=>${node.variant.trueChild}`,
-          source: trueId,
-          target: node.variant.trueChild,
-          type: "workflow",
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: true,
-          },
-        });
-        edgesState.push({
-          id: `${falseId}=>${node.variant.falseChild}`,
-          source: falseId,
-          target: node.variant.falseChild,
-          type: "workflow",
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: false,
-          },
-        });
+        edgesState.push(buildPlaceholderEdge(nId, trueId));
+        edgesState.push(buildPlaceholderEdge(nId, falseId));
 
         const nfc = getNearestFromChildren(nodeId, hm);
 
@@ -1528,8 +1508,9 @@ export function journeyBranchToState(
             nodesState,
             edgesState,
             nodes,
-            hm
-          ).nextNodeId;
+            hm,
+            nfc
+          ).terminalNode;
           if (!terminalId) {
             throw new Error(
               "segment split children terminate which should not be possible"
@@ -1548,8 +1529,9 @@ export function journeyBranchToState(
             nodesState,
             edgesState,
             nodes,
-            hm
-          ).nextNodeId;
+            hm,
+            nfc
+          ).terminalNode;
           if (!terminalId) {
             throw new Error(
               "segment split children terminate which should not be possible"
@@ -1560,18 +1542,7 @@ export function journeyBranchToState(
 
         // default to true child because will be null if both children are equal
         nextNodeId = nfc ?? node.variant.trueChild;
-
-        edgesState.push({
-          id: `${emptyId}=>${nextNodeId}`,
-          source: emptyId,
-          target: nextNodeId,
-          type: "workflow",
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: true,
-          },
-        });
+        edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
         console.log("segment split node end block", {
           nextNodeId,
         });
@@ -1584,6 +1555,7 @@ export function journeyBranchToState(
         }
         const timeoutId = `${nId}-child-1`;
         const segmentChildId = `${nId}-child-0`;
+        const emptyId = `${nId}-empty`;
 
         nodesState.push(buildLabelNode(segmentChildId, WAIT_FOR_SATISFY_LABEL));
         nodesState.push(
@@ -1634,14 +1606,14 @@ export function journeyBranchToState(
           edgesState,
           nodes,
           hm
-        ).nextNodeId;
+        ).terminalNode;
         const terminalTimeoutId = journeyBranchToState(
           node.timeoutChild,
           nodesState,
           edgesState,
           nodes,
           hm
-        ).nextNodeId;
+        ).terminalNode;
         if (terminalSegmentChildId) {
           childNextNodes.push(terminalSegmentChildId);
         }
@@ -1664,93 +1636,44 @@ export function journeyBranchToState(
           });
         }
 
-        nextNodeId = Array.from(hmEntry.children)[0] ?? null;
-        if (!nextNodeId) {
-          throw new Error(
-            "multi child node has no children, this should not be possible"
-          );
-        }
-        edgesState.push({
-          id: `${emptyId}=>${nextNodeId}`,
-          source: emptyId,
-          target: nextNodeId,
-          type: "workflow",
-          sourceHandle: "bottom",
-          data: {
-            type: "WorkflowEdge",
-            disableMarker: true,
-          },
-        });
+        // FIXME
+        // nextNodeId = Array.from(hmEntry.children)[0] ?? null;
+        // if (!nextNodeId) {
+        //   throw new Error(
+        //     "multi child node has no children, this should not be possible"
+        //   );
+        // }
+        // edgesState.push({
+        //   id: `${emptyId}=>${nextNodeId}`,
+        //   source: emptyId,
+        //   target: nextNodeId,
+        //   type: "workflow",
+        //   sourceHandle: "bottom",
+        //   data: {
+        //     type: "WorkflowEdge",
+        //     disableMarker: true,
+        //   },
+        // });
         break;
       }
     }
 
-    const newNode: Node<JourneyNodeProps> = {
-      id: nId,
-      position: placeholderNodePosition,
-      type: "journey",
-      data: {
-        type: "JourneyNode",
-        nodeTypeProps,
-      },
-    };
+    if (nextNodeId === terminateBefore) {
+      return {
+        terminalNode: nId,
+      };
+    }
 
-    nodesState.push(newNode);
-    nextNodeId = Array.from(hmEntry.children)[0] ?? null;
-    if (nextNodeId === null) {
+    if (!nextNodeId) {
       break;
     }
     const nextNode = getUnsafe(nodes, nextNodeId);
-    const nextHmEntry = getUnsafe(hm, nextNodeId);
-
-    console.log({
-      nextNode,
-    });
-    if (isMultiChildNode(nextNode.type)) {
-      break;
-    }
-
-    // console.log({
-    //   firstParent:
-    //     nextHmEntry.parents.size >= 1
-    //       ? getUnsafe(nodes, idxUnsafe(Array.from(nextHmEntry.parents), 0))
-    //       : null,
-    // });
-    // if (
-    //   nextHmEntry.parents.size > 1 ||
-    //   (nextHmEntry.parents.size === 1 &&
-    //     isMultiChildNode(
-    //       getUnsafe(nodes, idxUnsafe(Array.from(nextHmEntry.parents), 0)).type
-    //     ))
-    // ) {
-    //   break;
-    // }
-
-    edgesState.push({
-      id: `${nId}=>${nextNodeId}`,
-      source: nId,
-      target: nextNodeId,
-      type: "workflow",
-      sourceHandle: "bottom",
-      data: {
-        type: "WorkflowEdge",
-        disableMarker: true,
-      },
-    });
-
     node = nextNode;
     nId = nextNodeId;
-    hmEntry = nextHmEntry;
-  }
-
-  if (nextNodeId !== null) {
-    return journeyBranchToState(nextNodeId, nodesState, edgesState, nodes, hm);
   }
 
   return {
-    nodesState,
-    edgesState,
-    nextNodeId,
+    terminalNode: null,
   };
 }
 
