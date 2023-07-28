@@ -1406,7 +1406,7 @@ function buildJourneyNode(
 }
 
 export function journeyBranchToState(
-  nodeId: string,
+  initialNodeId: string,
   nodesState: Node<NodeData>[],
   edgesState: Edge<EdgeData>[],
   nodes: Map<string, JourneyNode>,
@@ -1415,7 +1415,7 @@ export function journeyBranchToState(
 ): {
   terminalNode: string | null;
 } {
-  let nId: string = nodeId;
+  let nId: string = initialNodeId;
   let node = getUnsafe(nodes, nId);
   let nextNodeId: string | null = null;
 
@@ -1423,7 +1423,6 @@ export function journeyBranchToState(
     nId,
   });
   const childNextNodes: string[] = [];
-  console.log("isMultiChildNode start");
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
@@ -1496,7 +1495,7 @@ export function journeyBranchToState(
         edgesState.push(buildPlaceholderEdge(nId, trueId));
         edgesState.push(buildPlaceholderEdge(nId, falseId));
 
-        const nfc = getNearestFromChildren(nodeId, hm);
+        const nfc = getNearestFromChildren(nId, hm);
 
         if (node.variant.trueChild === nfc || nfc === null) {
           edgesState.push(buildWorkflowEdge(trueId, emptyId));
@@ -1519,10 +1518,17 @@ export function journeyBranchToState(
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
         }
 
+        if (nId === "segment-split-1") {
+          console.log("segment-split-1 children", {
+            nfc,
+            falseChild: node.variant.falseChild,
+            trueChild: node.variant.trueChild,
+          });
+        }
         if (node.variant.falseChild === nfc || nfc === null) {
           edgesState.push(buildWorkflowEdge(falseId, emptyId));
         } else {
-          edgesState.push(buildWorkflowEdge(falseId, node.variant.trueChild));
+          edgesState.push(buildWorkflowEdge(falseId, node.variant.falseChild));
 
           const terminalId = journeyBranchToState(
             node.variant.falseChild,
@@ -1537,6 +1543,7 @@ export function journeyBranchToState(
               "segment split children terminate which should not be possible"
             );
           }
+          console.log("false sub child branch", { falseId, terminalId, nId });
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
         }
 
@@ -1564,15 +1571,15 @@ export function journeyBranchToState(
         nodesState.push(buildEmptyNode(emptyId));
 
         edgesState.push({
-          id: `${nodeId}=>${segmentChildId}`,
-          source: nodeId,
+          id: `${nId}=>${segmentChildId}`,
+          source: nId,
           target: segmentChildId,
           type: "placeholder",
           sourceHandle: "bottom",
         });
         edgesState.push({
-          id: `${nodeId}=>${timeoutId}`,
-          source: nodeId,
+          id: `${nId}=>${timeoutId}`,
+          source: nId,
           target: timeoutId,
           type: "placeholder",
           sourceHandle: "bottom",

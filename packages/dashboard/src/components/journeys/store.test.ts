@@ -30,7 +30,7 @@ describe("journeyToState", () => {
 
   describe("with a nested segment and multiple messages", () => {});
 
-  describe("with a triple nested segment split", () => {
+  describe.only("with a triple nested segment split", () => {
     beforeEach(() => {
       const definition: JourneyDefinition = {
         nodes: [
@@ -94,7 +94,7 @@ describe("journeyToState", () => {
         definition,
         workspaceId,
       };
-      uiState = journeyToState(journeyResource);
+      uiState = journeyToStateV2(journeyResource);
     });
 
     const uiExpectations: [string, string[]][] = [
@@ -133,7 +133,7 @@ describe("journeyToState", () => {
     );
   });
 
-  describe.only("with a simple segment split", () => {
+  describe("with a simple segment split", () => {
     beforeEach(() => {
       const definition: JourneyDefinition = {
         nodes: [

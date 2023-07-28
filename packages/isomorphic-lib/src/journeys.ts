@@ -287,6 +287,13 @@ export function getNearestFromChildren(
   const hmEntry = getUnsafe(hm, nId);
 
   const children = Array.from(hmEntry.children);
+  if (nId === "segment-split-1") {
+    console.log("gnfc", {
+      nId,
+      children,
+      hmEntry,
+    });
+  }
   if (children.length === 1) {
     return null;
   }
