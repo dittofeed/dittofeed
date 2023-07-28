@@ -24,6 +24,8 @@ describe("journeyToState", () => {
   let journeyId: string;
   let workspaceId: string;
 
+  describe("with a nested segment and multiple messages", () => {});
+
   describe("with a triple nested segment split", () => {
     let uiState: JourneyStateForResource;
     beforeEach(() => {

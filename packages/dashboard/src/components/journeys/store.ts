@@ -33,6 +33,7 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
+import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { type immer } from "zustand/middleware/immer";
 
 import {
@@ -857,6 +858,19 @@ function findSourceFromNearest(
 
   if (nearest) {
     source = `${nearest}-empty`;
+
+    if (nId === "segment-split-3") {
+      console.log(
+        "bad target 4",
+        JSON.stringify(
+          {
+            source,
+          },
+          null,
+          2
+        )
+      );
+    }
   } else {
     const parents = Array.from(hmEntry.parents);
     if (!parents[0]) {
@@ -865,18 +879,66 @@ function findSourceFromNearest(
     const parentNode = getUnsafe(nodes, parents[0]);
     const parentHmEntry = getUnsafe(hm, parents[0]);
 
+    // const nonExitChildren = Array.from(parentHmEntry.children).filter(
+    //   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+    //   (c) => c !== JourneyNodeType.ExitNode
+    // ).length;
+
     if (
       parentNode.data.type === "JourneyNode" &&
       isMultiChildNode(parentNode.data.nodeTypeProps.type) &&
+      // FIXME not hitting this condition because of exit node
       parentHmEntry.children.size === 1
     ) {
       source = `${parents[0]}-empty`;
+
+      // FIXME should be hitting this case
+      if (nId === "segment-split-3") {
+        // console.log(
+        //   "bad target 5",
+        //   JSON.stringify(
+        //     {
+        //       source,
+        //     },
+        //     null,
+        //     2
+        //   )
+        // );
+      }
     } else if (parentHmEntry.children.size > 1) {
       // README: relies on the ordering of findDirectChildren method
       const index = Array.from(parentHmEntry.children).indexOf(nId);
       source = `${parents[0]}-child-${index}`;
+
+      // FIXME this case
+      if (nId === "segment-split-3") {
+        // console.log(
+        //   "bad target 6",
+        //   JSON.stringify(
+        //     {
+        //       parent: parents[0],
+        //       source,
+        //     },
+        //     null,
+        //     2
+        //   )
+        // );
+      }
     } else {
       [source] = parents;
+
+      if (nId === "segment-split-3") {
+        // console.log(
+        //   "bad target 7",
+        //   JSON.stringify(
+        //     {
+        //       source,
+        //     },
+        //     null,
+        //     2
+        //   )
+        // );
+      }
     }
   }
   return source;
@@ -906,6 +968,9 @@ function findTarget(
   const nfmChildrenDefault = nearestFromChildren ?? children[0];
   const nearestFromParents = getNearestFromParents(nfmChildrenDefault, hm);
 
+  if (nId === "segment-split-3") {
+  }
+
   if (!nearestFromParents) {
     return nfmChildrenDefault;
   }
@@ -918,14 +983,80 @@ function findTarget(
     return nfmChildrenDefault;
   }
 
-  const target = findSourceFromNearest(
-    nfmChildrenDefault,
-    hm,
-    nearestFromParents,
-    nodes
-  );
+  // Highest ancestor they share a child with
+  const highestSharedAncestor = sortBy(
+    Array.from(hmEntry.ancestors).flatMap((a) => {
+      const ancestorHmEntry = getUnsafe(hm, a);
+      const ancestorNode = getUnsafe(nodes, a);
+      if (
+        !(
+          ancestorNode.data.type === "JourneyNode" &&
+          isMultiChildNode(ancestorNode.data.nodeTypeProps.type)
+        )
+      ) {
+        return [];
+      }
+      const val: [string, number] = [a, -ancestorHmEntry.ancestors.size];
+      return [val];
+    }),
+    (val) => val[1]
+  )[0];
 
-  return target;
+  if (nId === "segment-split-3") {
+    console.log(
+      "bad target 1",
+      JSON.stringify(
+        {
+          nId,
+          nearestFromChildren,
+          nfmChildrenDefault,
+          nearestFromParents,
+        },
+        null,
+        2
+      )
+    );
+    console.log("bad target 2", {
+      hmEntry,
+      nfmpHmEntry,
+      highestSharedAncestor,
+      connectsToParentEmpty,
+    });
+  }
+  if (!highestSharedAncestor) {
+    throw new Error(`Missing highestSharedAncestor for ${nId}`);
+  }
+  return `${highestSharedAncestor[0]}-empty`;
+
+  // if (!parents[0] || parents.length > 1) {
+  //   throw new Error(`expecting exactly 1 parent for ${nId}`);
+  // }
+  // return `${parents[0]}-empty`;
+
+  // // finding source of child is not right way to connect to parent empty
+  // // FIXME this is the wrong strategy, passing empty to this node, but has no way of deciding which empty to select. should be connecting to parents empty
+  // const target = findSourceFromNearest(
+  //   nfmChildrenDefault,
+  //   hm,
+  //   nearestFromParents,
+  //   nodes
+  // );
+
+  // if (nId === "segment-split-3") {
+  //   // FIXME
+  //   console.log(
+  //     "bad target 3",
+  //     JSON.stringify(
+  //       {
+  //         target,
+  //       },
+  //       null,
+  //       2
+  //     )
+  //   );
+  // }
+
+  // return target;
 }
 
 export function journeyToState(
