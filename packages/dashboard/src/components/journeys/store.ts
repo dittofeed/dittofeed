@@ -1380,6 +1380,21 @@ function buildWorkflowEdge(source: string, target: string): Edge<EdgeData> {
   };
 }
 
+function buildJourneyNode(
+  id: string,
+  nodeTypeProps: NodeTypeProps
+): Node<JourneyNodeProps> {
+  return {
+    id,
+    position: placeholderNodePosition,
+    type: "journey",
+    data: {
+      type: "JourneyNode",
+      nodeTypeProps,
+    },
+  };
+}
+
 export function journeyBranchToState(
   nodeId: string,
   nodesState: Node<NodeData>[],
@@ -1406,11 +1421,60 @@ export function journeyBranchToState(
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
+    console.log("single child node loop start", { nId });
+    let nodeTypeProps: NodeTypeProps;
+
     switch (node.type) {
+      case JourneyNodeType.EntryNode: {
+        const entryNode: EntryNodeProps = {
+          type: JourneyNodeType.EntryNode,
+          segmentId: node.segment,
+        };
+        nodeTypeProps = entryNode;
+        break;
+      }
+      case JourneyNodeType.ExitNode: {
+        const exitNode: ExitNodeProps = {
+          type: JourneyNodeType.ExitNode,
+        };
+        nodeTypeProps = exitNode;
+        break;
+      }
+      case JourneyNodeType.DelayNode: {
+        const delayNode: DelayNodeProps = {
+          type: JourneyNodeType.DelayNode,
+          seconds: node.variant.seconds,
+        };
+        nodeTypeProps = delayNode;
+        break;
+      }
+      case JourneyNodeType.MessageNode: {
+        const messageNode: MessageNodeProps = {
+          type: JourneyNodeType.MessageNode,
+          templateId: node.variant.templateId,
+          channel: node.variant.type,
+          name: node.name ?? "",
+        };
+        nodeTypeProps = messageNode;
+        break;
+      }
+      case JourneyNodeType.ExperimentSplitNode:
+        throw new Error("ExperimentSplitNode is not implemented");
+      case JourneyNodeType.RateLimitNode:
+        throw new Error("RateLimitNode is not implemented");
       case JourneyNodeType.SegmentSplitNode: {
         const trueId = `${nId}-child-0`;
         const falseId = `${nId}-child-1`;
 
+        nodesState.push(
+          buildJourneyNode(nId, {
+            type: JourneyNodeType.SegmentSplitNode,
+            segmentId: node.variant.segment,
+            name: node.name ?? "",
+            trueLabelNodeId: trueId,
+            falseLabelNodeId: falseId,
+          })
+        );
         nodesState.push(buildLabelNode(trueId, "true"));
         nodesState.push(buildLabelNode(falseId, "false"));
         nodesState.push(buildEmptyNode(emptyId));
@@ -1619,58 +1683,6 @@ export function journeyBranchToState(
         });
         break;
       }
-      default:
-        throw new Error(`unhandled multi child node type ${node.type}`);
-    }
-    console.log("single child node loop start", { nId });
-    let nodeTypeProps: NodeTypeProps;
-
-    switch (node.type) {
-      case JourneyNodeType.EntryNode: {
-        const entryNode: EntryNodeProps = {
-          type: JourneyNodeType.EntryNode,
-          segmentId: node.segment,
-        };
-        nodeTypeProps = entryNode;
-        break;
-      }
-      case JourneyNodeType.ExitNode: {
-        const exitNode: ExitNodeProps = {
-          type: JourneyNodeType.ExitNode,
-        };
-        nodeTypeProps = exitNode;
-        break;
-      }
-      case JourneyNodeType.DelayNode: {
-        const delayNode: DelayNodeProps = {
-          type: JourneyNodeType.DelayNode,
-          seconds: node.variant.seconds,
-        };
-        nodeTypeProps = delayNode;
-        break;
-      }
-      case JourneyNodeType.MessageNode: {
-        const messageNode: MessageNodeProps = {
-          type: JourneyNodeType.MessageNode,
-          templateId: node.variant.templateId,
-          channel: node.variant.type,
-          name: node.name ?? "",
-        };
-        nodeTypeProps = messageNode;
-        break;
-      }
-      case JourneyNodeType.WaitForNode:
-        throw new Error(
-          "WaitForNode not is a multi child node and should not enter this block"
-        );
-      case JourneyNodeType.SegmentSplitNode:
-        throw new Error(
-          "SegmentSplitNode not is a multi child node and should not enter this block"
-        );
-      case JourneyNodeType.ExperimentSplitNode:
-        throw new Error("ExperimentSplitNode is not implemented");
-      case JourneyNodeType.RateLimitNode:
-        throw new Error("RateLimitNode is not implemented");
     }
 
     const newNode: Node<JourneyNodeProps> = {
