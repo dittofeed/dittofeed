@@ -1535,6 +1535,13 @@ export function journeyBranchToState(
             );
           }
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+          console.log("true sub child branch", {
+            trueId,
+            terminalId,
+            nId,
+            nfc,
+            emptyId,
+          });
         }
 
         if (nId === "segment-split-1") {
@@ -1575,7 +1582,6 @@ export function journeyBranchToState(
 
         // default to true child because will be null if both children are equal
         nextNodeId = nfc ?? node.variant.trueChild;
-        edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
         console.log("segment split node end block", {
           nextNodeId,
         });
@@ -1585,6 +1591,7 @@ export function journeyBranchToState(
             terminalNode: emptyId,
           };
         }
+        edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
         break;
       }
       case JourneyNodeType.WaitForNode: {
