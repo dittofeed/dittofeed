@@ -1459,7 +1459,6 @@ export function journeyBranchToState(
           seconds: node.variant.seconds,
         };
         nodesState.push(buildJourneyNode(nId, delayNode));
-        edgesState.push(buildWorkflowEdge(nId, node.child));
         nextNodeId = node.child;
 
         if (nextNodeId === terminateBefore) {
@@ -1467,6 +1466,7 @@ export function journeyBranchToState(
             terminalNode: nId,
           };
         }
+        edgesState.push(buildWorkflowEdge(nId, node.child));
         break;
       }
       case JourneyNodeType.MessageNode: {
@@ -1477,7 +1477,6 @@ export function journeyBranchToState(
           name: node.name ?? "",
         };
         nodesState.push(buildJourneyNode(nId, messageNode));
-        edgesState.push(buildWorkflowEdge(nId, node.child));
         nextNodeId = node.child;
 
         if (nextNodeId === terminateBefore) {
@@ -1485,6 +1484,7 @@ export function journeyBranchToState(
             terminalNode: nId,
           };
         }
+        edgesState.push(buildWorkflowEdge(nId, node.child));
         break;
       }
       case JourneyNodeType.ExperimentSplitNode:
@@ -1581,6 +1581,9 @@ export function journeyBranchToState(
         nextNodeId = nfc ?? node.variant.trueChild;
         console.log("segment split node end block", {
           nextNodeId,
+          nfc,
+          trueChild: node.variant.trueChild,
+          falseChild: node.variant.falseChild,
         });
 
         if (nextNodeId === terminateBefore) {
@@ -1596,35 +1599,38 @@ export function journeyBranchToState(
         if (!segmentChild) {
           throw new Error("Malformed journey, WaitForNode has no children.");
         }
-        const trueId = `${nId}-child-0`;
-        const falseId = `${nId}-child-1`;
+        const segmentChildLabelId = `${nId}-child-0`;
+        const timeoutId = `${nId}-child-1`;
         const emptyId = `${nId}-empty`;
 
         nodesState.push(
           buildJourneyNode(nId, {
             type: JourneyNodeType.WaitForNode,
-            timeoutLabelNodeId: trueId,
+            timeoutLabelNodeId: segmentChildLabelId,
             timeoutSeconds: node.timeoutSeconds,
             segmentChildren: [
               {
                 segmentId: segmentChild.segmentId,
-                labelNodeId: trueId,
+                labelNodeId: segmentChildLabelId,
               },
             ],
           })
         );
-        nodesState.push(buildLabelNode(trueId, "true"));
-        nodesState.push(buildLabelNode(falseId, "false"));
+        // FIXME labels
+        nodesState.push(buildLabelNode(segmentChildLabelId, "true"));
+        nodesState.push(buildLabelNode(timeoutId, "false"));
         nodesState.push(buildEmptyNode(emptyId));
-        edgesState.push(buildPlaceholderEdge(nId, trueId));
-        edgesState.push(buildPlaceholderEdge(nId, falseId));
+        edgesState.push(buildPlaceholderEdge(nId, segmentChildLabelId));
+        edgesState.push(buildPlaceholderEdge(nId, timeoutId));
 
         const nfc = getNearestFromChildren(nId, hm);
 
         if (segmentChild.id === nfc || nfc === null) {
-          edgesState.push(buildWorkflowEdge(trueId, emptyId));
+          edgesState.push(buildWorkflowEdge(segmentChildLabelId, emptyId));
         } else {
-          edgesState.push(buildWorkflowEdge(trueId, segmentChild.id));
+          edgesState.push(
+            buildWorkflowEdge(segmentChildLabelId, segmentChild.id)
+          );
 
           const terminalId = journeyBranchToState(
             segmentChild.id,
@@ -1641,7 +1647,7 @@ export function journeyBranchToState(
           }
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
           console.log("true sub child branch", {
-            trueId,
+            trueId: segmentChildLabelId,
             terminalId,
             nId,
             nfc,
@@ -1657,9 +1663,9 @@ export function journeyBranchToState(
         // });
         // }
         if (node.timeoutChild === nfc || nfc === null) {
-          edgesState.push(buildWorkflowEdge(falseId, emptyId));
+          edgesState.push(buildWorkflowEdge(timeoutId, emptyId));
         } else {
-          edgesState.push(buildWorkflowEdge(falseId, node.timeoutChild));
+          edgesState.push(buildWorkflowEdge(timeoutId, node.timeoutChild));
 
           const terminalId = journeyBranchToState(
             node.timeoutChild,
@@ -1670,28 +1676,31 @@ export function journeyBranchToState(
             nfc
           ).terminalNode;
           if (!terminalId) {
-            throw new Error(
-              "segment split children terminate which should not be possible"
-            );
+            throw new Error("children terminate which should not be possible");
           }
-          // console.log("false sub child branch", {
-          //   falseId,
-          //   terminalId,
-          //   falseChild: node.variant.falseChild,
-          //   nId,
-          //   nfc,
-          //   emptyId,
-          // });
+          console.log("timeout sub child branch", {
+            timeoutId,
+            terminalId,
+            falseChild: node.timeoutChild,
+            nId,
+            nfc,
+            emptyId,
+          });
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
         }
 
         // default to true child because will be null if both children are equal
         nextNodeId = nfc ?? segmentChild.id;
-        console.log("segment split node end block", {
+        console.log("wait for node end block", {
           nextNodeId,
+          nId,
+          nfc,
+          segmentChildId: segmentChild.id,
+          timoutChildId: node.timeoutChild,
         });
 
         if (nextNodeId === terminateBefore) {
+          console.log("wait for early terminate");
           return {
             terminalNode: emptyId,
           };
