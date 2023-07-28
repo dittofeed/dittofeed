@@ -1,3 +1,4 @@
+import { idxUnsafe } from "isomorphic-lib/src/arrays";
 import {
   buildHeritageMap,
   getNearestFromChildren,
@@ -166,11 +167,120 @@ function buildUiHeritageMap(
   return map;
 }
 
-// export function journeyDefinitionFromStateV2({
-//   state,
-// }: {
-//   state: Omit<JourneyStateForResource, "journeyName">;
-// }): Result<JourneyDefinition, { message: string; nodeId: string }> {}
+function journeyDefinitionFromStateBranch(
+  initialNodeId: string,
+  hm: HeritageMap,
+  nodes: JourneyNode[],
+  uiJourneyNodes: Map<string, NodeTypeProps>,
+  edges: Edge<EdgeData>[]
+): Result<string | null, { message: string; nodeId: string }> {
+  let hmEntry = getUnsafe(hm, initialNodeId);
+  let nId = initialNodeId;
+  let nextId: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
+    const uiNode = getUnsafe(uiJourneyNodes, nId);
+
+    switch (uiNode.type) {
+      case JourneyNodeType.EntryNode: {
+        if (!uiNode.segmentId) {
+          return err({
+            message: "Entry node must have a segment",
+            nodeId: nId,
+          });
+        }
+
+        const child = idxUnsafe(findDirectUiChildren(nId, edges), 0);
+        const node: EntryNode = {
+          type: JourneyNodeType.EntryNode,
+          segment: uiNode.segmentId,
+          child,
+        };
+        nodes.push(node);
+        break;
+      }
+      case JourneyNodeType.ExitNode: {
+        const node: ExitNode = {
+          type: JourneyNodeType.ExitNode,
+        };
+        nodes.push(node);
+        break;
+      }
+      case JourneyNodeType.MessageNode: {
+        if (!uiNode.templateId) {
+          return err({
+            message: "Message node must have a template",
+            nodeId: nId,
+          });
+        }
+
+        const child = idxUnsafe(findDirectUiChildren(nId, edges), 0);
+        const node: MessageNode = {
+          id: nId,
+          type: JourneyNodeType.MessageNode,
+          variant: {
+            type: uiNode.channel,
+            templateId: uiNode.templateId,
+          },
+          child,
+        };
+        nodes.push(node);
+        break;
+      }
+      case JourneyNodeType.DelayNode: {
+        if (!uiNode.seconds) {
+          return err({
+            message: "Delay node must have a timeout",
+            nodeId: nId,
+          });
+        }
+        const child = idxUnsafe(findDirectUiChildren(nId, edges), 0);
+        const node: DelayNode = {
+          type: JourneyNodeType.DelayNode,
+          id: nId,
+          variant: {
+            type: DelayVariantType.Second,
+            seconds: uiNode.seconds,
+          },
+          child,
+        };
+        nodes.push(node);
+        break;
+      }
+    }
+
+    const children = Array.from(hmEntry.children);
+    if (children.length > 1) {
+      children.map((childId) => {
+        console.log("childId", childId);
+        return journeyDefinitionFromStateBranch(
+          childId,
+          hm,
+          nodes,
+          uiJourneyNodes,
+          edges
+        );
+      });
+    }
+  }
+}
+
+export function journeyDefinitionFromStateV2({
+  state,
+}: {
+  state: Omit<JourneyStateForResource, "journeyName">;
+}): Result<JourneyDefinition, { message: string; nodeId: string }> {
+  const nodes: JourneyNode[] = [];
+  const journeyNodes = state.journeyNodes.reduce((acc, node) => {
+    if (node.data.type === "JourneyNode") {
+      acc.set(node.id, node.data.nodeTypeProps);
+    }
+    return acc;
+  }, new Map<string, NodeTypeProps>());
+  const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+
+  throw new Error("Not implemented");
+}
 
 export function journeyDefinitionFromState({
   state,
