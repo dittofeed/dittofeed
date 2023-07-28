@@ -10,6 +10,7 @@ import {
 } from "isomorphic-lib/src/journeys";
 import { getUnsafe } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   DelayNode,
@@ -24,6 +25,7 @@ import {
   SegmentSplitNode,
   SegmentSplitVariantType,
   WaitForNode,
+  WaitForSegmentChild,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 import {
@@ -34,6 +36,7 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
+import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { type immer } from "zustand/middleware/immer";
 
 import {
@@ -167,13 +170,50 @@ function buildUiHeritageMap(
   return map;
 }
 
+export function getNearestJourneyFromChildren(
+  nId: string,
+  hm: HeritageMap,
+  uiJourneyNodes: Map<string, NodeTypeProps>
+): string {
+  const hmEntry = getUnsafe(hm, nId);
+
+  const children = Array.from(hmEntry.children);
+  if (children.length <= 1) {
+    throw new Error(`Expected at least 2 children for ${nId}`);
+  }
+
+  // TODO use DFS
+  const nearestDescendants = sortBy(
+    Array.from(hmEntry.descendants).flatMap((d) => {
+      const descendantHmEntry = getUnsafe(hm, d);
+      if (
+        !children.every((c) => c === d || descendantHmEntry.ancestors.has(c))
+      ) {
+        return [];
+      }
+      if (!uiJourneyNodes.has(d)) {
+        return [];
+      }
+      const val: [string, number] = [d, descendantHmEntry.ancestors.size];
+      return [val];
+    }),
+    (val) => val[1]
+  );
+  const nearestDescendant = nearestDescendants[0];
+  if (!nearestDescendant) {
+    throw new Error(`Missing nearest for ${nId}`);
+  }
+  return nearestDescendant[0];
+}
+
 function journeyDefinitionFromStateBranch(
   initialNodeId: string,
   hm: HeritageMap,
   nodes: JourneyNode[],
   uiJourneyNodes: Map<string, NodeTypeProps>,
-  edges: Edge<EdgeData>[]
-): Result<string | null, { message: string; nodeId: string }> {
+  edges: Edge<EdgeData>[],
+  terminateBefore?: string
+): Result<null, { message: string; nodeId: string }> {
   let hmEntry = getUnsafe(hm, initialNodeId);
   let nId = initialNodeId;
   let nextId: string | null = null;
@@ -197,6 +237,7 @@ function journeyDefinitionFromStateBranch(
           child,
         };
         nodes.push(node);
+        nextId = child;
         break;
       }
       case JourneyNodeType.ExitNode: {
@@ -204,6 +245,7 @@ function journeyDefinitionFromStateBranch(
           type: JourneyNodeType.ExitNode,
         };
         nodes.push(node);
+        nextId = null;
         break;
       }
       case JourneyNodeType.MessageNode: {
@@ -225,6 +267,7 @@ function journeyDefinitionFromStateBranch(
           child,
         };
         nodes.push(node);
+        nextId = child;
         break;
       }
       case JourneyNodeType.DelayNode: {
@@ -245,24 +288,75 @@ function journeyDefinitionFromStateBranch(
           child,
         };
         nodes.push(node);
+        nextId = child;
         break;
       }
-    }
-
-    const children = Array.from(hmEntry.children);
-    if (children.length > 1) {
-      children.map((childId) => {
-        console.log("childId", childId);
-        return journeyDefinitionFromStateBranch(
-          childId,
-          hm,
-          nodes,
-          uiJourneyNodes,
-          edges
+      case JourneyNodeType.WaitForNode: {
+        if (!uiNode.timeoutSeconds) {
+          return err({
+            message: "Wait for node must have a timeout",
+            nodeId: nId,
+          });
+        }
+        const timeoutChild = idxUnsafe(
+          findDirectUiChildren(uiNode.timeoutLabelNodeId, edges),
+          0
         );
-      });
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+
+        const segmentChildren: WaitForSegmentChild[] = [];
+        for (const segmentChild of uiNode.segmentChildren) {
+          if (!segmentChild.segmentId) {
+            return err({
+              message: "All wait for segment children must have a segment",
+              nodeId: nId,
+            });
+          }
+          const child = idxUnsafe(
+            findDirectUiChildren(segmentChild.labelNodeId, edges),
+            0
+          );
+          if (nfc !== child) {
+            const branchResult = journeyDefinitionFromStateBranch(
+              child,
+              hm,
+              nodes,
+              uiJourneyNodes,
+              edges,
+              nfc
+            );
+            if (branchResult.isErr()) {
+              return err(branchResult.error);
+            }
+          }
+          segmentChildren.push({
+            id: child,
+            segmentId: segmentChild.segmentId,
+          });
+        }
+
+        const node: WaitForNode = {
+          type: JourneyNodeType.WaitForNode,
+          timeoutSeconds: uiNode.timeoutSeconds,
+          timeoutChild,
+          segmentChildren,
+          id: nId,
+        };
+        nodes.push(node);
+        nextId = nfc;
+        break;
+      }
+      default:
+        assertUnreachable(uiNode);
+    }
+    if (nextId === null) {
+      break;
+    }
+    if (nextId === terminateBefore) {
+      break;
     }
   }
+  return ok(null);
 }
 
 export function journeyDefinitionFromStateV2({
