@@ -1362,11 +1362,12 @@ export function journeyBranchToState(
   console.log("journeyBranchToState start", {
     nId,
   });
-  if (isMultiChildNode(node.type)) {
-    const childNextNodes: string[] = [];
-    const emptyId = `${nId}-child-empty`;
-    console.log("isMultiChildNode start");
+  const childNextNodes: string[] = [];
+  const emptyId = `${nId}-child-empty`;
+  console.log("isMultiChildNode start");
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
     switch (node.type) {
       case JourneyNodeType.SegmentSplitNode: {
         const trueId = `${nId}-child-0`;
@@ -1624,117 +1625,113 @@ export function journeyBranchToState(
       default:
         throw new Error(`unhandled multi child node type ${node.type}`);
     }
-  } else {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-    while (true) {
-      console.log("single child node loop start", { nId });
-      let nodeTypeProps: NodeTypeProps;
+    console.log("single child node loop start", { nId });
+    let nodeTypeProps: NodeTypeProps;
 
-      switch (node.type) {
-        case JourneyNodeType.EntryNode: {
-          const entryNode: EntryNodeProps = {
-            type: JourneyNodeType.EntryNode,
-            segmentId: node.segment,
-          };
-          nodeTypeProps = entryNode;
-          break;
-        }
-        case JourneyNodeType.ExitNode: {
-          const exitNode: ExitNodeProps = {
-            type: JourneyNodeType.ExitNode,
-          };
-          nodeTypeProps = exitNode;
-          break;
-        }
-        case JourneyNodeType.DelayNode: {
-          const delayNode: DelayNodeProps = {
-            type: JourneyNodeType.DelayNode,
-            seconds: node.variant.seconds,
-          };
-          nodeTypeProps = delayNode;
-          break;
-        }
-        case JourneyNodeType.MessageNode: {
-          const messageNode: MessageNodeProps = {
-            type: JourneyNodeType.MessageNode,
-            templateId: node.variant.templateId,
-            channel: node.variant.type,
-            name: node.name ?? "",
-          };
-          nodeTypeProps = messageNode;
-          break;
-        }
-        case JourneyNodeType.WaitForNode:
-          throw new Error(
-            "WaitForNode not is a multi child node and should not enter this block"
-          );
-        case JourneyNodeType.SegmentSplitNode:
-          throw new Error(
-            "SegmentSplitNode not is a multi child node and should not enter this block"
-          );
-        case JourneyNodeType.ExperimentSplitNode:
-          throw new Error("ExperimentSplitNode is not implemented");
-        case JourneyNodeType.RateLimitNode:
-          throw new Error("RateLimitNode is not implemented");
-      }
-
-      const newNode: Node<JourneyNodeProps> = {
-        id: nId,
-        position: placeholderNodePosition,
-        type: "journey",
-        data: {
-          type: "JourneyNode",
-          nodeTypeProps,
-        },
-      };
-
-      nodesState.push(newNode);
-      nextNodeId = Array.from(hmEntry.children)[0] ?? null;
-      if (nextNodeId === null) {
+    switch (node.type) {
+      case JourneyNodeType.EntryNode: {
+        const entryNode: EntryNodeProps = {
+          type: JourneyNodeType.EntryNode,
+          segmentId: node.segment,
+        };
+        nodeTypeProps = entryNode;
         break;
       }
-      const nextNode = getUnsafe(nodes, nextNodeId);
-      const nextHmEntry = getUnsafe(hm, nextNodeId);
-
-      console.log({
-        nextNode,
-      });
-      if (isMultiChildNode(nextNode.type)) {
+      case JourneyNodeType.ExitNode: {
+        const exitNode: ExitNodeProps = {
+          type: JourneyNodeType.ExitNode,
+        };
+        nodeTypeProps = exitNode;
         break;
       }
-
-      // console.log({
-      //   firstParent:
-      //     nextHmEntry.parents.size >= 1
-      //       ? getUnsafe(nodes, idxUnsafe(Array.from(nextHmEntry.parents), 0))
-      //       : null,
-      // });
-      // if (
-      //   nextHmEntry.parents.size > 1 ||
-      //   (nextHmEntry.parents.size === 1 &&
-      //     isMultiChildNode(
-      //       getUnsafe(nodes, idxUnsafe(Array.from(nextHmEntry.parents), 0)).type
-      //     ))
-      // ) {
-      //   break;
-      // }
-
-      edgesState.push({
-        id: `${nId}=>${nextNodeId}`,
-        source: nId,
-        target: nextNodeId,
-        type: "workflow",
-        sourceHandle: "bottom",
-        data: {
-          type: "WorkflowEdge",
-          disableMarker: true,
-        },
-      });
-
-      node = nextNode;
-      nId = nextNodeId;
-      hmEntry = nextHmEntry;
+      case JourneyNodeType.DelayNode: {
+        const delayNode: DelayNodeProps = {
+          type: JourneyNodeType.DelayNode,
+          seconds: node.variant.seconds,
+        };
+        nodeTypeProps = delayNode;
+        break;
+      }
+      case JourneyNodeType.MessageNode: {
+        const messageNode: MessageNodeProps = {
+          type: JourneyNodeType.MessageNode,
+          templateId: node.variant.templateId,
+          channel: node.variant.type,
+          name: node.name ?? "",
+        };
+        nodeTypeProps = messageNode;
+        break;
+      }
+      case JourneyNodeType.WaitForNode:
+        throw new Error(
+          "WaitForNode not is a multi child node and should not enter this block"
+        );
+      case JourneyNodeType.SegmentSplitNode:
+        throw new Error(
+          "SegmentSplitNode not is a multi child node and should not enter this block"
+        );
+      case JourneyNodeType.ExperimentSplitNode:
+        throw new Error("ExperimentSplitNode is not implemented");
+      case JourneyNodeType.RateLimitNode:
+        throw new Error("RateLimitNode is not implemented");
     }
+
+    const newNode: Node<JourneyNodeProps> = {
+      id: nId,
+      position: placeholderNodePosition,
+      type: "journey",
+      data: {
+        type: "JourneyNode",
+        nodeTypeProps,
+      },
+    };
+
+    nodesState.push(newNode);
+    nextNodeId = Array.from(hmEntry.children)[0] ?? null;
+    if (nextNodeId === null) {
+      break;
+    }
+    const nextNode = getUnsafe(nodes, nextNodeId);
+    const nextHmEntry = getUnsafe(hm, nextNodeId);
+
+    console.log({
+      nextNode,
+    });
+    if (isMultiChildNode(nextNode.type)) {
+      break;
+    }
+
+    // console.log({
+    //   firstParent:
+    //     nextHmEntry.parents.size >= 1
+    //       ? getUnsafe(nodes, idxUnsafe(Array.from(nextHmEntry.parents), 0))
+    //       : null,
+    // });
+    // if (
+    //   nextHmEntry.parents.size > 1 ||
+    //   (nextHmEntry.parents.size === 1 &&
+    //     isMultiChildNode(
+    //       getUnsafe(nodes, idxUnsafe(Array.from(nextHmEntry.parents), 0)).type
+    //     ))
+    // ) {
+    //   break;
+    // }
+
+    edgesState.push({
+      id: `${nId}=>${nextNodeId}`,
+      source: nId,
+      target: nextNodeId,
+      type: "workflow",
+      sourceHandle: "bottom",
+      data: {
+        type: "WorkflowEdge",
+        disableMarker: true,
+      },
+    });
+
+    node = nextNode;
+    nId = nextNodeId;
+    hmEntry = nextHmEntry;
   }
 
   if (nextNodeId !== null) {
