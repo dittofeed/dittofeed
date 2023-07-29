@@ -145,7 +145,12 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
         sidebarColor: "#F77520",
         icon: journeyNodeIcon(JourneyNodeType.DelayNode),
         title: journeyNodeLabel(JourneyNodeType.DelayNode),
-        body: <DurationDescription durationSeconds={props.seconds} />,
+        body: (
+          <DurationDescription
+            durationSeconds={props.seconds}
+            timeUnit={props.timeUnit}
+          />
+        ),
       };
     case JourneyNodeType.SegmentSplitNode: {
       const body = <SegmentDescriptionBody segmentId={props.segmentId} />;

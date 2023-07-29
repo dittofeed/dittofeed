@@ -303,6 +303,7 @@ export interface MessageNodeProps {
 }
 export interface DelayNodeProps {
   type: JourneyNodeType.DelayNode;
+  timeUnit?: TimeUnit;
   seconds?: number;
 }
 
@@ -353,6 +354,8 @@ export interface LabelNodeProps {
   type: "LabelNode";
   title: string;
 }
+
+export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
 
 export type NonJourneyNodeData = LabelNodeProps | EmptyNodeProps;
 

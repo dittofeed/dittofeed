@@ -21,7 +21,7 @@ import {
   SegmentResource,
   SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { Node } from "reactflow";
 import { shallow } from "zustand/shallow";
 
@@ -33,8 +33,10 @@ import {
   MessageNodeProps,
   SegmentSplitNodeProps,
   WaitForNodeProps,
+  TimeUnit,
 } from "../../lib/types";
 import DurationSelect from "../durationSelect";
+import TimeUnitSelect from "../timeUnitSelect";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { waitForTimeoutLabel } from "./store";
@@ -291,6 +293,14 @@ function DelayNodeFields({
     (state) => state.updateJourneyNodeData
   );
 
+  const [timeUnit, setTimeUnit] = useState<TimeUnit>("seconds");
+
+  const handleTimeUnitChange = (
+    event: React.ChangeEvent<{ value: unknown }>
+  ) => {
+    setTimeUnit(event.target.value as TimeUnit);
+  };
+
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
@@ -301,12 +311,21 @@ function DelayNodeFields({
   };
 
   return (
-    <DurationSelect
-      value={nodeProps.seconds}
-      onChange={handleDurationChange}
-      description="Will wait"
-      inputLabel="Duration (Seconds)"
-    />
+    <>
+      <DurationSelect
+        value={nodeProps.seconds}
+        onChange={handleDurationChange}
+        description="Will wait"
+        inputLabel={`Duration (${timeUnit})`}
+        timeUnit={timeUnit}
+      />
+      <TimeUnitSelect
+        value={timeUnit}
+        onChange={handleTimeUnitChange}
+        inputLabel="Duration (Seconds)"
+        timeUnit={timeUnit}
+      />
+    </>
   );
 }
 
@@ -325,6 +344,14 @@ function WaitForNodeFields({
     }),
     shallow
   );
+
+  const [timeUnit, setTimeUnit] = useState<TimeUnit>("seconds");
+
+  const handleTimeUnitChange = (
+    event: React.ChangeEvent<{ value: unknown }>
+  ) => {
+    setTimeUnit(event.target.value as TimeUnit);
+  };
 
   if (segments.type !== CompletionStatus.Successful) {
     return null;
@@ -381,6 +408,7 @@ function WaitForNodeFields({
         description="Will timeout after"
         value={nodeProps.timeoutSeconds}
         onChange={handleDurationChange}
+        timeUnit={timeUnit}
       />
     </>
   );
