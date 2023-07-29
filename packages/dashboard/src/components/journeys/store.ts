@@ -6,10 +6,8 @@ import {
   getNodeId,
   HeritageMap,
   isMultiChildNode,
-  removeNode,
 } from "isomorphic-lib/src/journeys";
 import { getUnsafe } from "isomorphic-lib/src/maps";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
@@ -89,6 +87,18 @@ export const WAIT_FOR_SATISFY_LABEL = "In segment";
 
 export function waitForTimeoutLabel(timeoutSeconds?: number): string {
   return `Timed out after ${durationDescription(timeoutSeconds)}`;
+}
+
+type JourneyNodeMap = Map<string, NodeTypeProps>;
+
+function buildJourneyNodeMap(journeyNodes: Node<NodeData>[]): JourneyNodeMap {
+  const jn: JourneyNodeMap = journeyNodes.reduce((acc, node) => {
+    if (node.data.type === "JourneyNode") {
+      acc.set(node.id, node.data.nodeTypeProps);
+    }
+    return acc;
+  }, new Map());
+  return jn;
 }
 
 function multiMapSet<P, C, M extends Map<C, P[]>>(
@@ -171,10 +181,41 @@ function buildUiHeritageMap(
   return map;
 }
 
+export function getNearestUiFromChildren(
+  nId: string,
+  hm: HeritageMap
+): string | null {
+  const hmEntry = getUnsafe(hm, nId);
+
+  const children = Array.from(hmEntry.children);
+  if (children.length <= 1) {
+    return null;
+  }
+
+  const nearestDescendants = sortBy(
+    Array.from(hmEntry.descendants).flatMap((d) => {
+      const descendantHmEntry = getUnsafe(hm, d);
+      if (
+        !children.every((c) => c === d || descendantHmEntry.ancestors.has(c))
+      ) {
+        return [];
+      }
+      const val: [string, number] = [d, descendantHmEntry.ancestors.size];
+      return [val];
+    }),
+    (val) => val[1]
+  );
+  const nearestDescendant = nearestDescendants[0];
+  if (!nearestDescendant) {
+    throw new Error(`Missing nearest for ${nId}`);
+  }
+  return nearestDescendant[0];
+}
+
 export function getNearestJourneyFromChildren(
   nId: string,
   hm: HeritageMap,
-  uiJourneyNodes: Map<string, NodeTypeProps>
+  uiJourneyNodes: JourneyNodeMap
 ): string {
   const hmEntry = getUnsafe(hm, nId);
 
@@ -233,7 +274,7 @@ function journeyDefinitionFromStateBranch(
   initialNodeId: string,
   hm: HeritageMap,
   nodes: JourneyNode[],
-  uiJourneyNodes: Map<string, NodeTypeProps>,
+  uiJourneyNodes: JourneyNodeMap,
   edges: Edge<EdgeData>[],
   terminateBefore?: string
 ): Result<null, { message: string; nodeId: string }> {
@@ -327,22 +368,6 @@ function journeyDefinitionFromStateBranch(
           uiJourneyNodes
         );
 
-        if (nId === "wait-for-first-deployment-1") {
-          // FIXME timeout child is not correct
-          // FIXME timeoutLabelNodeId should be child-1 not child-0
-          // to definition wait for child {
-          //   timeoutLabelNodeId: 'wait-for-first-deployment-1-child-0',
-          //   nId: 'wait-for-first-deployment-1',
-          //   timeoutChild: 'wait-for-first-deployment-2',
-          //   nfc: 'wait-for-first-deployment-2'
-          // }
-          console.log("to definition wait for child", {
-            timeoutLabelNodeId: uiNode.timeoutLabelNodeId,
-            nId,
-            timeoutChild,
-            nfc,
-          });
-        }
         if (nfc !== timeoutChild) {
           const branchResult = journeyDefinitionFromStateBranch(
             timeoutChild,
@@ -487,12 +512,7 @@ export function journeyDefinitionFromStateV2({
   state: Omit<JourneyStateForResource, "journeyName">;
 }): Result<JourneyDefinition, { message: string; nodeId: string }> {
   const nodes: JourneyNode[] = [];
-  const journeyNodes = state.journeyNodes.reduce((acc, node) => {
-    if (node.data.type === "JourneyNode") {
-      acc.set(node.id, node.data.nodeTypeProps);
-    }
-    return acc;
-  }, new Map<string, NodeTypeProps>());
+  const journeyNodes = buildJourneyNodeMap(state.journeyNodes);
   const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
 
   const result = journeyDefinitionFromStateBranch(
@@ -1297,19 +1317,6 @@ function findSourceFromNearest(
 
   if (nearest) {
     source = `${nearest}-empty`;
-
-    if (nId === "segment-split-3") {
-      console.log(
-        "bad target 4",
-        JSON.stringify(
-          {
-            source,
-          },
-          null,
-          2
-        )
-      );
-    }
   } else {
     const parents = Array.from(hmEntry.parents);
     if (!parents[0]) {
@@ -1318,66 +1325,18 @@ function findSourceFromNearest(
     const parentNode = getUnsafe(nodes, parents[0]);
     const parentHmEntry = getUnsafe(hm, parents[0]);
 
-    // const nonExitChildren = Array.from(parentHmEntry.children).filter(
-    //   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    //   (c) => c !== JourneyNodeType.ExitNode
-    // ).length;
-
     if (
       parentNode.data.type === "JourneyNode" &&
       isMultiChildNode(parentNode.data.nodeTypeProps.type) &&
-      // FIXME not hitting this condition because of exit node
       parentHmEntry.children.size === 1
     ) {
       source = `${parents[0]}-empty`;
-
-      // FIXME should be hitting this case
-      if (nId === "segment-split-3") {
-        // console.log(
-        //   "bad target 5",
-        //   JSON.stringify(
-        //     {
-        //       source,
-        //     },
-        //     null,
-        //     2
-        //   )
-        // );
-      }
     } else if (parentHmEntry.children.size > 1) {
       // README: relies on the ordering of findDirectChildren method
       const index = Array.from(parentHmEntry.children).indexOf(nId);
       source = `${parents[0]}-child-${index}`;
-
-      // FIXME this case
-      if (nId === "segment-split-3") {
-        // console.log(
-        //   "bad target 6",
-        //   JSON.stringify(
-        //     {
-        //       parent: parents[0],
-        //       source,
-        //     },
-        //     null,
-        //     2
-        //   )
-        // );
-      }
     } else {
       [source] = parents;
-
-      if (nId === "segment-split-3") {
-        // console.log(
-        //   "bad target 7",
-        //   JSON.stringify(
-        //     {
-        //       source,
-        //     },
-        //     null,
-        //     2
-        //   )
-        // );
-      }
     }
   }
   return source;
@@ -1386,7 +1345,6 @@ function findSourceFromNearest(
 function findSource(
   nId: string,
   hm: HeritageMap,
-  // FIXME use definition nodema
   nodes: Map<string, Node<NodeData>>
 ): string {
   const nearest = getNearestFromParents(nId, hm);
@@ -1691,93 +1649,6 @@ export function findAllDescendants(
 
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
-export const createJourneySlice: CreateJourneySlice = (set) => ({
-  journeySelectedNodeId: null,
-  journeyNodes: defaultNodes,
-  journeyEdges: defaultEdges,
-  journeyNodesIndex: buildNodesIndex(defaultNodes),
-  journeyDraggedComponentType: null,
-  journeyName: "",
-  journeyUpdateRequest: {
-    type: CompletionStatus.NotStarted,
-  },
-  setEdges: (changes: EdgeChange[]) =>
-    set((state) => {
-      state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);
-    }),
-  deleteJourneyNode: (nodeId: string) =>
-    set((state) => {
-      // FIXME handle result
-      const definition = unwrap(journeyDefinitionFromState({ state }));
-      const newDefinition = removeNode(nodeId, definition);
-
-      const uiState = journeyToState({
-        name: state.journeyName,
-        definition: newDefinition,
-      });
-
-      state.journeyNodes = uiState.journeyNodes;
-      state.journeyEdges = uiState.journeyEdges;
-      state.journeyNodesIndex = uiState.journeyNodesIndex;
-    }),
-  setNodes: (changes: NodeChange[]) =>
-    set((state) => {
-      state.journeyNodes = applyNodeChanges(changes, state.journeyNodes);
-    }),
-  addNodes: ({ source, target, nodes, edges }) =>
-    set((state) => {
-      const newState = newStateFromNodes({
-        source,
-        target,
-        nodes,
-        edges,
-        existingNodes: state.journeyNodes,
-        existingEdges: state.journeyEdges,
-      });
-      state.journeyNodes = layoutNodes(newState.nodes, newState.edges);
-      state.journeyEdges = newState.edges;
-      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
-    }),
-  setDraggedComponentType: (t) =>
-    set((state) => {
-      state.journeyDraggedComponentType = t;
-    }),
-  setSelectedNodeId: (selectedNodeId: string | null) =>
-    set((state) => {
-      state.journeySelectedNodeId = selectedNodeId;
-    }),
-  updateJourneyNodeData: (nodeId, updater) =>
-    set((state) => {
-      const node = findJourneyNode(
-        nodeId,
-        state.journeyNodes,
-        state.journeyNodesIndex
-      );
-      if (node) {
-        updater(node);
-      }
-    }),
-  setJourneyUpdateRequest: (request) =>
-    set((state) => {
-      state.journeyUpdateRequest = request;
-    }),
-  setJourneyName: (name) =>
-    set((state) => {
-      state.journeyName = name;
-    }),
-  updateLabelNode: (nodeId, title) =>
-    set((state) => {
-      const node = findNode(
-        nodeId,
-        state.journeyNodes,
-        state.journeyNodesIndex
-      );
-      if (node && isLabelNode(node)) {
-        node.data.title = title;
-      }
-    }),
-});
-
 function buildLabelNode(id: string, title: string): Node<NodeData> {
   return {
     id,
@@ -1839,6 +1710,115 @@ function buildJourneyNode(
     },
   };
 }
+
+export const createJourneySlice: CreateJourneySlice = (set) => ({
+  journeySelectedNodeId: null,
+  journeyNodes: defaultNodes,
+  journeyEdges: defaultEdges,
+  journeyNodesIndex: buildNodesIndex(defaultNodes),
+  journeyDraggedComponentType: null,
+  journeyName: "",
+  journeyUpdateRequest: {
+    type: CompletionStatus.NotStarted,
+  },
+  setEdges: (changes: EdgeChange[]) =>
+    set((state) => {
+      state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);
+    }),
+  deleteJourneyNode: (nodeId: string) =>
+    set((state) => {
+      const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+      const hmEntry = getUnsafe(hm, nodeId);
+
+      // Will be an empty node
+      const nfc = getNearestUiFromChildren(nodeId, hm);
+      const nodesToRemove = new Set<string>([nodeId]);
+      let terminalNode: string;
+      if (nfc) {
+        nodesToRemove.add(nfc);
+        for (const n of state.journeyNodes) {
+          const nHmEntry = getUnsafe(hm, n.id);
+          if (nHmEntry.descendants.has(nfc) && nHmEntry.ancestors.has(nodeId)) {
+            nodesToRemove.add(n.id);
+          }
+        }
+        terminalNode = nfc;
+      } else {
+        terminalNode = nodeId;
+      }
+
+      state.journeyNodes = state.journeyNodes.filter(
+        (n) => !nodesToRemove.has(n.id)
+      );
+      state.journeyEdges = state.journeyEdges.filter(
+        (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target)
+      );
+
+      const terminalHmEntry = getUnsafe(hm, terminalNode);
+      const newTarget = idxUnsafe(Array.from(terminalHmEntry.children), 0);
+      const source = idxUnsafe(Array.from(hmEntry.parents), 0);
+      state.journeyEdges.push(buildWorkflowEdge(source, newTarget));
+
+      state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+    }),
+  setNodes: (changes: NodeChange[]) =>
+    set((state) => {
+      state.journeyNodes = applyNodeChanges(changes, state.journeyNodes);
+    }),
+  addNodes: ({ source, target, nodes, edges }) =>
+    set((state) => {
+      const newState = newStateFromNodes({
+        source,
+        target,
+        nodes,
+        edges,
+        existingNodes: state.journeyNodes,
+        existingEdges: state.journeyEdges,
+      });
+      state.journeyNodes = layoutNodes(newState.nodes, newState.edges);
+      state.journeyEdges = newState.edges;
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
+    }),
+  setDraggedComponentType: (t) =>
+    set((state) => {
+      state.journeyDraggedComponentType = t;
+    }),
+  setSelectedNodeId: (selectedNodeId: string | null) =>
+    set((state) => {
+      state.journeySelectedNodeId = selectedNodeId;
+    }),
+  updateJourneyNodeData: (nodeId, updater) =>
+    set((state) => {
+      const node = findJourneyNode(
+        nodeId,
+        state.journeyNodes,
+        state.journeyNodesIndex
+      );
+      if (node) {
+        updater(node);
+      }
+    }),
+  setJourneyUpdateRequest: (request) =>
+    set((state) => {
+      state.journeyUpdateRequest = request;
+    }),
+  setJourneyName: (name) =>
+    set((state) => {
+      state.journeyName = name;
+    }),
+  updateLabelNode: (nodeId, title) =>
+    set((state) => {
+      const node = findNode(
+        nodeId,
+        state.journeyNodes,
+        state.journeyNodesIndex
+      );
+      if (node && isLabelNode(node)) {
+        node.data.title = title;
+      }
+    }),
+});
 
 export function journeyBranchToState(
   initialNodeId: string,
@@ -2053,9 +2033,13 @@ export function journeyBranchToState(
             ],
           })
         );
-        // FIXME labels
-        nodesState.push(buildLabelNode(segmentChildLabelId, "true"));
-        nodesState.push(buildLabelNode(timeoutId, "false"));
+
+        nodesState.push(
+          buildLabelNode(segmentChildLabelId, WAIT_FOR_SATISFY_LABEL)
+        );
+        nodesState.push(
+          buildLabelNode(timeoutId, waitForTimeoutLabel(node.timeoutSeconds))
+        );
         nodesState.push(buildEmptyNode(emptyId));
         edgesState.push(buildPlaceholderEdge(nId, segmentChildLabelId));
         edgesState.push(buildPlaceholderEdge(nId, timeoutId));

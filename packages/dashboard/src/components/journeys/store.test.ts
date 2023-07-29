@@ -204,7 +204,7 @@ describe("journeyToState", () => {
     });
   });
 
-  describe.only("when journey has nested wait for's", () => {
+  describe("when journey has nested wait for's", () => {
     beforeEach(async () => {
       const definition: JourneyDefinition = {
         nodes: [
