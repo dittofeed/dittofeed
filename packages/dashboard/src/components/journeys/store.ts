@@ -207,6 +207,28 @@ export function getNearestJourneyFromChildren(
   return nearestDescendant[0];
 }
 
+function findNextJourneyNode(
+  nodeId: string,
+  hm: HeritageMap,
+  uiJourneyNodes: Map<string, NodeTypeProps>
+): string {
+  let hmEntry = getUnsafe(hm, nodeId);
+  let child: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
+    const children = Array.from(hmEntry.children);
+    child = idxUnsafe(children, 0);
+    if (uiJourneyNodes.has(child)) {
+      break;
+    }
+    hmEntry = getUnsafe(hm, child);
+  }
+  if (!child) {
+    throw new Error(`Missing child for ${nodeId}`);
+  }
+  return child;
+}
+
 function journeyDefinitionFromStateBranch(
   initialNodeId: string,
   hm: HeritageMap,
@@ -230,7 +252,7 @@ function journeyDefinitionFromStateBranch(
           });
         }
 
-        const child = idxUnsafe(findDirectUiChildren(nId, edges), 0);
+        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
         const node: EntryNode = {
           type: JourneyNodeType.EntryNode,
           segment: uiNode.segmentId,
@@ -256,7 +278,7 @@ function journeyDefinitionFromStateBranch(
           });
         }
 
-        const child = idxUnsafe(findDirectUiChildren(nId, edges), 0);
+        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
         const node: MessageNode = {
           id: nId,
           type: JourneyNodeType.MessageNode,
@@ -277,7 +299,7 @@ function journeyDefinitionFromStateBranch(
             nodeId: nId,
           });
         }
-        const child = idxUnsafe(findDirectUiChildren(nId, edges), 0);
+        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
         const node: DelayNode = {
           type: JourneyNodeType.DelayNode,
           id: nId,
@@ -299,9 +321,10 @@ function journeyDefinitionFromStateBranch(
           });
         }
         const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
-        const timeoutChild = idxUnsafe(
-          findDirectUiChildren(uiNode.timeoutLabelNodeId, edges),
-          0
+        const timeoutChild = findNextJourneyNode(
+          uiNode.timeoutLabelNodeId,
+          hm,
+          uiJourneyNodes
         );
 
         if (nfc !== timeoutChild) {
@@ -326,10 +349,12 @@ function journeyDefinitionFromStateBranch(
               nodeId: nId,
             });
           }
-          const child = idxUnsafe(
-            findDirectUiChildren(segmentChild.labelNodeId, edges),
-            0
+          const child = findNextJourneyNode(
+            segmentChild.labelNodeId,
+            hm,
+            uiJourneyNodes
           );
+
           if (nfc !== child) {
             const branchResult = journeyDefinitionFromStateBranch(
               child,
@@ -367,9 +392,10 @@ function journeyDefinitionFromStateBranch(
             nodeId: nId,
           });
         }
-        const trueChild = idxUnsafe(
-          findDirectUiChildren(uiNode.trueLabelNodeId, edges),
-          0
+        const trueChild = findNextJourneyNode(
+          uiNode.trueLabelNodeId,
+          hm,
+          uiJourneyNodes
         );
 
         const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
@@ -387,10 +413,12 @@ function journeyDefinitionFromStateBranch(
           }
         }
 
-        const falseChild = idxUnsafe(
-          findDirectUiChildren(uiNode.falseLabelNodeId, edges),
-          0
+        const falseChild = findNextJourneyNode(
+          uiNode.falseLabelNodeId,
+          hm,
+          uiJourneyNodes
         );
+
         if (nfc !== falseChild) {
           const branchResult = journeyDefinitionFromStateBranch(
             falseChild,
@@ -428,6 +456,10 @@ function journeyDefinitionFromStateBranch(
     if (nextId === terminateBefore) {
       break;
     }
+    console.log("definition from state loop end", {
+      nextId,
+      nId,
+    });
     nId = nextId;
   }
   return ok(null);

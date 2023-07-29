@@ -16,6 +16,7 @@ import {
   findDirectUiChildren,
   findDirectUiParents,
   journeyDefinitionFromState,
+  journeyDefinitionFromStateV2,
   JourneyStateForResource,
   journeyToState,
   journeyToStateV2,
@@ -321,7 +322,7 @@ describe("journeyToState", () => {
       uiState = journeyToStateV2(journeyResource);
 
       definitionFromState = unwrap(
-        await journeyDefinitionFromState({ state: uiState })
+        await journeyDefinitionFromStateV2({ state: uiState })
       );
     });
     const uiExpectations: [string, string[]][] = [
