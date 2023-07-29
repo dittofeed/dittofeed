@@ -2,7 +2,6 @@ import { sortBy } from "remeda/dist/commonjs/sortBy";
 
 import { getUnsafe } from "./maps";
 import {
-  EntryNode,
   JourneyBodyNode,
   JourneyDefinition,
   JourneyNode,
@@ -237,44 +236,6 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
 }
 
 /**
- * Find the ancestor which has all parents as descendants, and has the least
- * number of descendents (nearest). Returns null if node only has a single
- * parent.
- * @param nId
- * @param hm
- * @returns
- */
-export function getNearestFromParents(
-  nId: string,
-  hm: HeritageMap
-): string | null {
-  const hmEntry = getUnsafe(hm, nId);
-  const parents = Array.from(hmEntry.parents);
-  if (parents.length === 1) {
-    return null;
-  }
-
-  const nearestAncestors = sortBy(
-    Array.from(hmEntry.ancestors).flatMap((a) => {
-      const ancestorHmEntry = getUnsafe(hm, a);
-      if (
-        !parents.every((p) => p === a || ancestorHmEntry.descendants.has(p))
-      ) {
-        return [];
-      }
-      const val: [string, number] = [a, ancestorHmEntry.descendants.size];
-      return [val];
-    }),
-    (val) => val[1]
-  );
-  const nearestAncestor = nearestAncestors[0];
-  if (!nearestAncestor) {
-    throw new Error(`Missing nearest for ${nId}`);
-  }
-  return nearestAncestor[0];
-}
-
-/**
  * find the descendant which has all children as ancestors, and has the smallest number of ancestors (nearest). Returns null if node only has a single child.
  * @param nId
  * @param hm
@@ -310,134 +271,4 @@ export function getNearestFromChildren(
     throw new Error(`Missing nearest for ${nId}`);
   }
   return nearestDescendant[0];
-}
-
-export function modifyChild(
-  priorChildId: string,
-  newChildId: string,
-  node: JourneyNode
-): JourneyNode {
-  switch (node.type) {
-    case JourneyNodeType.MessageNode:
-      return {
-        ...node,
-        child: newChildId,
-      };
-    case JourneyNodeType.DelayNode:
-      return {
-        ...node,
-        child: newChildId,
-      };
-    case JourneyNodeType.EntryNode:
-      return {
-        ...node,
-        child: newChildId,
-      };
-    case JourneyNodeType.ExitNode:
-      return node;
-    case JourneyNodeType.SegmentSplitNode: {
-      const trueChild =
-        node.variant.trueChild === priorChildId
-          ? newChildId
-          : node.variant.trueChild;
-      const falseChild =
-        node.variant.falseChild === priorChildId
-          ? newChildId
-          : node.variant.falseChild;
-      return {
-        ...node,
-        variant: {
-          ...node.variant,
-          trueChild,
-          falseChild,
-        },
-      };
-    }
-    case JourneyNodeType.WaitForNode: {
-      const timeoutChild =
-        node.timeoutChild === priorChildId ? newChildId : node.timeoutChild;
-      const segmentChildren = node.segmentChildren.map((c) =>
-        c.id === priorChildId ? { ...c, id: newChildId } : c
-      );
-      return {
-        ...node,
-        timeoutChild,
-        segmentChildren,
-      };
-    }
-    case JourneyNodeType.RateLimitNode:
-      throw new Error("Not implemented");
-    case JourneyNodeType.ExperimentSplitNode:
-      throw new Error("Not implemented");
-  }
-}
-
-function conditionallyRemoveNode(
-  primaryDeletedNode: string,
-  currentNode: JourneyNode,
-  hmEntry: HeritageMapEntry,
-  childNodesToDelete: Set<string>,
-  target: string
-): JourneyNode | null {
-  const id = getNodeId(currentNode);
-  if (id === primaryDeletedNode || childNodesToDelete.has(id)) {
-    return null;
-  }
-  if (hmEntry.parents.has(id)) {
-    return modifyChild(primaryDeletedNode, target, currentNode);
-  }
-  return currentNode;
-}
-
-export function removeNode(
-  nodeId: string,
-  definition: JourneyDefinition
-): JourneyDefinition {
-  if (
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    nodeId === JourneyNodeType.EntryNode ||
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-    nodeId === JourneyNodeType.ExitNode
-  ) {
-    throw new Error(`Cannot remove ${nodeId}`);
-  }
-  const hm = buildHeritageMap(definition);
-  const nearestFromChildren = getNearestFromChildren(nodeId, hm);
-  const hmEntry = getUnsafe(hm, nodeId);
-  let target: string;
-  const childNodesToDelete = new Set<string>();
-  if (nearestFromChildren) {
-    target = nearestFromChildren;
-    const nfcHmEntry = getUnsafe(hm, nearestFromChildren);
-    for (const child of hmEntry.descendants) {
-      if (nfcHmEntry.ancestors.has(child)) {
-        childNodesToDelete.add(child);
-      }
-    }
-  } else {
-    const children = Array.from(hmEntry.children);
-    if (children.length !== 1) {
-      throw new Error(`Expected 1 child, got ${hmEntry.children.size}`);
-    }
-    if (!children[0]) {
-      throw new Error("Missing child");
-    }
-    [target] = children;
-  }
-
-  const nodes = definition.nodes.flatMap(
-    (n) =>
-      conditionallyRemoveNode(nodeId, n, hmEntry, childNodesToDelete, target) ??
-      []
-  ) as JourneyBodyNode[];
-
-  const entryNode = hmEntry.parents.has(JourneyNodeType.EntryNode)
-    ? (modifyChild(nodeId, target, definition.entryNode) as EntryNode)
-    : definition.entryNode;
-
-  return {
-    entryNode,
-    exitNode: definition.exitNode,
-    nodes,
-  };
 }
