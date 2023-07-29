@@ -1133,14 +1133,8 @@ export function journeyBranchToState(
   let node = getUnsafe(nodes, nId);
   let nextNodeId: string | null = null;
 
-  console.log("journeyBranchToState start", {
-    nId,
-  });
-
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
-    console.log("node loop start", { nId });
-
     switch (node.type) {
       case JourneyNodeType.EntryNode: {
         const entryNode: EntryNodeProps = {
@@ -1248,22 +1242,8 @@ export function journeyBranchToState(
             );
           }
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
-          console.log("true sub child branch", {
-            trueId,
-            terminalId,
-            nId,
-            nfc,
-            emptyId,
-          });
         }
 
-        if (nId === "segment-split-1") {
-          console.log("segment-split-1 children", {
-            nfc,
-            falseChild: node.variant.falseChild,
-            trueChild: node.variant.trueChild,
-          });
-        }
         if (node.variant.falseChild === nfc || nfc === null) {
           edgesState.push(buildWorkflowEdge(falseId, emptyId));
         } else {
@@ -1282,25 +1262,11 @@ export function journeyBranchToState(
               "segment split children terminate which should not be possible"
             );
           }
-          console.log("false sub child branch", {
-            falseId,
-            terminalId,
-            falseChild: node.variant.falseChild,
-            nId,
-            nfc,
-            emptyId,
-          });
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
         }
 
         // default to true child because will be null if both children are equal
         nextNodeId = nfc ?? node.variant.trueChild;
-        console.log("segment split node end block", {
-          nextNodeId,
-          nfc,
-          trueChild: node.variant.trueChild,
-          falseChild: node.variant.falseChild,
-        });
 
         if (nextNodeId === terminateBefore) {
           return {
@@ -1366,22 +1332,8 @@ export function journeyBranchToState(
             );
           }
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
-          console.log("true sub child branch", {
-            trueId: segmentChildLabelId,
-            terminalId,
-            nId,
-            nfc,
-            emptyId,
-          });
         }
 
-        // if (nId === "segment-split-1") {
-        // console.log("segment-split-1 children", {
-        //   nfc,
-        //   falseChild: node.variant.falseChild,
-        //   trueChild: node.variant.trueChild,
-        // });
-        // }
         if (node.timeoutChild === nfc || nfc === null) {
           edgesState.push(buildWorkflowEdge(timeoutId, emptyId));
         } else {
@@ -1398,29 +1350,13 @@ export function journeyBranchToState(
           if (!terminalId) {
             throw new Error("children terminate which should not be possible");
           }
-          console.log("timeout sub child branch", {
-            timeoutId,
-            terminalId,
-            falseChild: node.timeoutChild,
-            nId,
-            nfc,
-            emptyId,
-          });
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
         }
 
         // default to true child because will be null if both children are equal
         nextNodeId = nfc ?? segmentChild.id;
-        console.log("wait for node end block", {
-          nextNodeId,
-          nId,
-          nfc,
-          segmentChildId: segmentChild.id,
-          timoutChildId: node.timeoutChild,
-        });
 
         if (nextNodeId === terminateBefore) {
-          console.log("wait for early terminate");
           return {
             terminalNode: emptyId,
           };
