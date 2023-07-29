@@ -1,20 +1,19 @@
+import { idxUnsafe } from "isomorphic-lib/src/arrays";
 import {
   buildHeritageMap,
   getNearestFromChildren,
-  getNearestFromParents,
   getNodeId,
   HeritageMap,
-  isMultiChildNode,
-  removeNode,
 } from "isomorphic-lib/src/journeys";
 import { getUnsafe } from "isomorphic-lib/src/maps";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   DelayNode,
   DelayVariantType,
   EntryNode,
   ExitNode,
+  JourneyBodyNode,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
@@ -23,6 +22,7 @@ import {
   SegmentSplitNode,
   SegmentSplitVariantType,
   WaitForNode,
+  WaitForSegmentChild,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 import {
@@ -33,14 +33,19 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
+import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { type immer } from "zustand/middleware/immer";
 
 import {
   AddNodesParams,
+  DelayNodeProps,
   EdgeData,
+  EntryNodeProps,
+  ExitNodeProps,
   JourneyContent,
   JourneyNodeProps,
   JourneyState,
+  MessageNodeProps,
   NodeData,
   NodeTypeProps,
   NonJourneyNodeData,
@@ -57,7 +62,7 @@ import findNode from "./findNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
 
-type JourneyStateForResource = Pick<
+export type JourneyStateForResource = Pick<
   JourneyState,
   "journeyNodes" | "journeyEdges" | "journeyNodesIndex" | "journeyName"
 >;
@@ -82,17 +87,405 @@ export function waitForTimeoutLabel(timeoutSeconds?: number): string {
   return `Timed out after ${durationDescription(timeoutSeconds)}`;
 }
 
-function multiMapSet<P, C, M extends Map<C, P[]>>(
-  parent: P,
-  childId: C,
-  map: M
-) {
-  let existing = map.get(childId);
-  if (!existing) {
-    existing = [];
-    map.set(childId, existing);
+type JourneyNodeMap = Map<string, NodeTypeProps>;
+
+function buildJourneyNodeMap(journeyNodes: Node<NodeData>[]): JourneyNodeMap {
+  const jn: JourneyNodeMap = journeyNodes.reduce((acc, node) => {
+    if (node.data.type === "JourneyNode") {
+      acc.set(node.id, node.data.nodeTypeProps);
+    }
+    return acc;
+  }, new Map());
+  return jn;
+}
+
+function buildUiHeritageMap(
+  nodes: Node<NodeData>[],
+  edges: Edge<EdgeData>[]
+): HeritageMap {
+  const map: HeritageMap = new Map();
+
+  // initialize map
+  for (const node of nodes) {
+    const { id } = node;
+    map.set(id, {
+      children: new Set(findDirectUiChildren(id, edges)),
+      descendants: new Set<string>(),
+      parents: new Set<string>(),
+      ancestors: new Set<string>(),
+    });
   }
-  existing.push(parent);
+
+  // fill children, parents, and descendant, ancestor relationships
+  for (const node of nodes) {
+    const { id } = node;
+
+    const queue = Array.from(findDirectUiChildren(id, edges).values()).flatMap(
+      (childId) => nodes.find((n) => n.id === childId) ?? []
+    );
+
+    queue.forEach((childNode) => {
+      const childId = childNode.id;
+      map.get(childId)?.parents.add(id);
+    });
+
+    while (queue.length > 0) {
+      const currentChild = queue.shift();
+      if (!currentChild) {
+        throw new Error("Queue should not be empty");
+      }
+      const childId = currentChild.id;
+
+      // add to descendants of parent and ancestors of child
+      map.get(id)?.descendants.add(childId);
+      map.get(childId)?.ancestors.add(id);
+
+      // add parents to child and children to parent
+      for (const parentId of map.get(id)?.ancestors.values() ?? []) {
+        map.get(parentId)?.descendants.add(childId);
+        map.get(childId)?.ancestors.add(parentId);
+      }
+
+      // add children to parent and parents to child
+      for (const cid of map.get(childId)?.descendants.values() ?? []) {
+        map.get(id)?.descendants.add(cid);
+        map.get(cid)?.ancestors.add(id);
+      }
+
+      // add children of current child to queue
+      const grandchildren = Array.from(
+        map.get(childId)?.children.values() ?? []
+      ).flatMap(
+        (grandChildId) => nodes.find((n) => n.id === grandChildId) ?? []
+      );
+
+      queue.push(...grandchildren);
+    }
+  }
+
+  return map;
+}
+
+export function getNearestUiFromChildren(
+  nId: string,
+  hm: HeritageMap
+): string | null {
+  const hmEntry = getUnsafe(hm, nId);
+
+  const children = Array.from(hmEntry.children);
+  if (children.length <= 1) {
+    return null;
+  }
+
+  const nearestDescendants = sortBy(
+    Array.from(hmEntry.descendants).flatMap((d) => {
+      const descendantHmEntry = getUnsafe(hm, d);
+      if (
+        !children.every((c) => c === d || descendantHmEntry.ancestors.has(c))
+      ) {
+        return [];
+      }
+      const val: [string, number] = [d, descendantHmEntry.ancestors.size];
+      return [val];
+    }),
+    (val) => val[1]
+  );
+  const nearestDescendant = nearestDescendants[0];
+  if (!nearestDescendant) {
+    throw new Error(`Missing nearest for ${nId}`);
+  }
+  return nearestDescendant[0];
+}
+
+export function getNearestJourneyFromChildren(
+  nId: string,
+  hm: HeritageMap,
+  uiJourneyNodes: JourneyNodeMap
+): string {
+  const hmEntry = getUnsafe(hm, nId);
+
+  const children = Array.from(hmEntry.children);
+  if (children.length <= 1) {
+    throw new Error(`Expected at least 2 children for ${nId}`);
+  }
+
+  // TODO use DFS
+  const nearestDescendants = sortBy(
+    Array.from(hmEntry.descendants).flatMap((d) => {
+      const descendantHmEntry = getUnsafe(hm, d);
+      if (
+        !children.every((c) => c === d || descendantHmEntry.ancestors.has(c))
+      ) {
+        return [];
+      }
+      if (!uiJourneyNodes.has(d)) {
+        return [];
+      }
+      const val: [string, number] = [d, descendantHmEntry.ancestors.size];
+      return [val];
+    }),
+    (val) => val[1]
+  );
+  const nearestDescendant = nearestDescendants[0];
+  if (!nearestDescendant) {
+    throw new Error(`Missing nearest for ${nId}`);
+  }
+  return nearestDescendant[0];
+}
+
+function findNextJourneyNode(
+  nodeId: string,
+  hm: HeritageMap,
+  uiJourneyNodes: Map<string, NodeTypeProps>
+): string {
+  let hmEntry = getUnsafe(hm, nodeId);
+  let child: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
+    const children = Array.from(hmEntry.children);
+    child = idxUnsafe(children, 0);
+    if (uiJourneyNodes.has(child)) {
+      break;
+    }
+    hmEntry = getUnsafe(hm, child);
+  }
+  if (!child) {
+    throw new Error(`Missing child for ${nodeId}`);
+  }
+  return child;
+}
+
+function journeyDefinitionFromStateBranch(
+  initialNodeId: string,
+  hm: HeritageMap,
+  nodes: JourneyNode[],
+  uiJourneyNodes: JourneyNodeMap,
+  edges: Edge<EdgeData>[],
+  terminateBefore?: string
+): Result<null, { message: string; nodeId: string }> {
+  let nId = initialNodeId;
+  let nextId: string | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
+    const uiNode = getUnsafe(uiJourneyNodes, nId);
+
+    switch (uiNode.type) {
+      case JourneyNodeType.EntryNode: {
+        if (!uiNode.segmentId) {
+          return err({
+            message: "Entry node must have a segment",
+            nodeId: nId,
+          });
+        }
+
+        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
+        const node: EntryNode = {
+          type: JourneyNodeType.EntryNode,
+          segment: uiNode.segmentId,
+          child,
+        };
+        nodes.push(node);
+        nextId = child;
+        break;
+      }
+      case JourneyNodeType.ExitNode: {
+        const node: ExitNode = {
+          type: JourneyNodeType.ExitNode,
+        };
+        nodes.push(node);
+        nextId = null;
+        break;
+      }
+      case JourneyNodeType.MessageNode: {
+        if (!uiNode.templateId) {
+          return err({
+            message: "Message node must have a template",
+            nodeId: nId,
+          });
+        }
+
+        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
+        const node: MessageNode = {
+          id: nId,
+          type: JourneyNodeType.MessageNode,
+          name: uiNode.name,
+          variant: {
+            type: uiNode.channel,
+            templateId: uiNode.templateId,
+          },
+          child,
+        };
+        nodes.push(node);
+        nextId = child;
+        break;
+      }
+      case JourneyNodeType.DelayNode: {
+        if (!uiNode.seconds) {
+          return err({
+            message: "Delay node must have a timeout",
+            nodeId: nId,
+          });
+        }
+        const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
+        const node: DelayNode = {
+          type: JourneyNodeType.DelayNode,
+          id: nId,
+          variant: {
+            type: DelayVariantType.Second,
+            seconds: uiNode.seconds,
+          },
+          child,
+        };
+        nodes.push(node);
+        nextId = child;
+        break;
+      }
+      case JourneyNodeType.WaitForNode: {
+        if (!uiNode.timeoutSeconds) {
+          return err({
+            message: "Wait for node must have a timeout",
+            nodeId: nId,
+          });
+        }
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+        const timeoutChild = findNextJourneyNode(
+          uiNode.timeoutLabelNodeId,
+          hm,
+          uiJourneyNodes
+        );
+
+        if (nfc !== timeoutChild) {
+          const branchResult = journeyDefinitionFromStateBranch(
+            timeoutChild,
+            hm,
+            nodes,
+            uiJourneyNodes,
+            edges,
+            nfc
+          );
+          if (branchResult.isErr()) {
+            return err(branchResult.error);
+          }
+        }
+
+        const segmentChildren: WaitForSegmentChild[] = [];
+        for (const segmentChild of uiNode.segmentChildren) {
+          if (!segmentChild.segmentId) {
+            return err({
+              message: "All wait for segment children must have a segment",
+              nodeId: nId,
+            });
+          }
+          const child = findNextJourneyNode(
+            segmentChild.labelNodeId,
+            hm,
+            uiJourneyNodes
+          );
+
+          if (nfc !== child) {
+            const branchResult = journeyDefinitionFromStateBranch(
+              child,
+              hm,
+              nodes,
+              uiJourneyNodes,
+              edges,
+              nfc
+            );
+            if (branchResult.isErr()) {
+              return err(branchResult.error);
+            }
+          }
+          segmentChildren.push({
+            id: child,
+            segmentId: segmentChild.segmentId,
+          });
+        }
+
+        const node: WaitForNode = {
+          type: JourneyNodeType.WaitForNode,
+          timeoutSeconds: uiNode.timeoutSeconds,
+          timeoutChild,
+          segmentChildren,
+          id: nId,
+        };
+        nodes.push(node);
+        nextId = nfc;
+        break;
+      }
+      case JourneyNodeType.SegmentSplitNode: {
+        if (!uiNode.segmentId) {
+          return err({
+            message: "Segment split node must have a segment",
+            nodeId: nId,
+          });
+        }
+        const trueChild = findNextJourneyNode(
+          uiNode.trueLabelNodeId,
+          hm,
+          uiJourneyNodes
+        );
+
+        const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
+        if (nfc !== trueChild) {
+          const branchResult = journeyDefinitionFromStateBranch(
+            trueChild,
+            hm,
+            nodes,
+            uiJourneyNodes,
+            edges,
+            nfc
+          );
+          if (branchResult.isErr()) {
+            return err(branchResult.error);
+          }
+        }
+
+        const falseChild = findNextJourneyNode(
+          uiNode.falseLabelNodeId,
+          hm,
+          uiJourneyNodes
+        );
+
+        if (nfc !== falseChild) {
+          const branchResult = journeyDefinitionFromStateBranch(
+            falseChild,
+            hm,
+            nodes,
+            uiJourneyNodes,
+            edges,
+            nfc
+          );
+          if (branchResult.isErr()) {
+            return err(branchResult.error);
+          }
+        }
+
+        const node: SegmentSplitNode = {
+          type: JourneyNodeType.SegmentSplitNode,
+          id: nId,
+          variant: {
+            type: SegmentSplitVariantType.Boolean,
+            segment: uiNode.segmentId,
+            trueChild,
+            falseChild,
+          },
+        };
+        nodes.push(node);
+        nextId = nfc;
+        break;
+      }
+      default:
+        assertUnreachable(uiNode);
+    }
+    if (nextId === null) {
+      break;
+    }
+    if (nextId === terminateBefore) {
+      break;
+    }
+    nId = nextId;
+  }
+  return ok(null);
 }
 
 export function journeyDefinitionFromState({
@@ -100,269 +493,47 @@ export function journeyDefinitionFromState({
 }: {
   state: Omit<JourneyStateForResource, "journeyName">;
 }): Result<JourneyDefinition, { message: string; nodeId: string }> {
-  // parent, child
-  const edgeIndex = new Map<string, string[]>();
-  for (const edge of state.journeyEdges) {
-    multiMapSet(edge.target, edge.source, edgeIndex);
-  }
+  const nodes: JourneyNode[] = [];
+  const journeyNodes = buildJourneyNodeMap(state.journeyNodes);
+  const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
 
-  const entryNode = findNode(
+  const result = journeyDefinitionFromStateBranch(
     JourneyNodeType.EntryNode,
-    state.journeyNodes,
-    state.journeyNodesIndex
+    hm,
+    nodes,
+    journeyNodes,
+    state.journeyEdges
   );
 
-  if (
-    !entryNode ||
-    entryNode.data.type !== "JourneyNode" ||
-    entryNode.data.nodeTypeProps.type !== JourneyNodeType.EntryNode
-  ) {
-    throw new Error("Entry node is missing or malformed");
+  if (result.isErr()) {
+    return err(result.error);
   }
+  let exitNode: ExitNode | null = null;
+  let entryNode: EntryNode | null = null;
+  const bodyNodes: JourneyBodyNode[] = [];
 
-  if (!entryNode.data.nodeTypeProps.segmentId) {
-    return err({
-      message: "Entry node must include a segment id.",
-      nodeId: entryNode.id,
-    });
-  }
-
-  const edges = edgeIndex.get(entryNode.id);
-  if (!edges?.[0]) {
-    throw new Error("Edge is missing or malformed");
-  }
-
-  const entryNodeResource: EntryNode = {
-    type: JourneyNodeType.EntryNode,
-    segment: entryNode.data.nodeTypeProps.segmentId,
-    child: edges[0],
-  };
-  let exitNodeResource: ExitNode | null = null;
-  const nodeResources: JourneyDefinition["nodes"] = [];
-  const visited = new Set<string>();
-  const entryChildId = edgeIndex.get(entryNode.id)?.at(0);
-  if (!entryChildId) {
-    throw new Error("Unable to find entry child id");
-  }
-  const entryChild = findNode(
-    entryChildId,
-    state.journeyNodes,
-    state.journeyNodesIndex
-  );
-  if (!entryChild) {
-    throw new Error("Unable to find entry child");
-  }
-  const stack: Node<NodeData>[] = [entryChild];
-
-  function traverseUntilJourneyNode(start: string): Node<NodeData> | null {
-    let currentId = start;
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-    while (true) {
-      const node = findNode(
-        currentId,
-        state.journeyNodes,
-        state.journeyNodesIndex
-      );
-      if (!node) {
-        return null;
-      }
-
-      if (node.data.type === "JourneyNode") {
-        return node;
-      }
-
-      const edgesToTraverse = edgeIndex.get(currentId);
-      if (!edgesToTraverse) {
-        return null;
-      }
-
-      const edge = edgesToTraverse[0];
-      if (!edge) {
-        return null;
-      }
-
-      currentId = edge;
+  for (const node of nodes) {
+    if (node.type === JourneyNodeType.EntryNode) {
+      entryNode = node;
+    } else if (node.type === JourneyNodeType.ExitNode) {
+      exitNode = node;
+    } else {
+      bodyNodes.push(node);
     }
   }
 
-  while (stack.length > 0) {
-    const current = stack.pop();
-
-    if (!current) {
-      throw new Error("Tried to pop empty journey node stack.");
-    }
-
-    if (current.type !== "journey" || current.data.type !== "JourneyNode") {
-      throw new Error("Journey node stack contains a non journey node. ");
-    }
-
-    if (visited.has(current.id)) {
-      continue;
-    }
-
-    visited.add(current.id);
-    const props = current.data.nodeTypeProps;
-
-    if (props.type === JourneyNodeType.SegmentSplitNode) {
-      const trueNode = traverseUntilJourneyNode(props.trueLabelNodeId);
-      const falseNode = traverseUntilJourneyNode(props.falseLabelNodeId);
-
-      if (!trueNode || !falseNode) {
-        throw new Error("Can't find true and false nodes for segment split.");
-      }
-
-      if (!props.segmentId) {
-        return err({
-          message: "Segment split node is missing an assigned segment",
-          nodeId: current.id,
-        });
-      }
-
-      const newNodeResource: SegmentSplitNode = {
-        id: current.id,
-        type: JourneyNodeType.SegmentSplitNode,
-        variant: {
-          type: SegmentSplitVariantType.Boolean,
-          segment: props.segmentId,
-          trueChild: trueNode.id,
-          falseChild: falseNode.id,
-        },
-      };
-      nodeResources.push(newNodeResource);
-
-      stack.push(trueNode);
-      stack.push(falseNode);
-      continue;
-    }
-
-    if (props.type === JourneyNodeType.WaitForNode) {
-      const segmentChild = props.segmentChildren[0];
-      if (!segmentChild) {
-        return err({
-          message: "Wait for node is missing a segment child",
-          nodeId: current.id,
-        });
-      }
-      const segmentNode = traverseUntilJourneyNode(segmentChild.labelNodeId);
-      const timeoutNode = traverseUntilJourneyNode(props.timeoutLabelNodeId);
-
-      if (!segmentNode || !timeoutNode) {
-        throw new Error("Can't find timeout and segment nodes");
-      }
-
-      if (!segmentChild.segmentId) {
-        return err({
-          message: "Wait for node segment child is missing an assigned segment",
-          nodeId: current.id,
-        });
-      }
-
-      if (!props.timeoutSeconds) {
-        return err({
-          message: "Wait for node is missing a timeout",
-          nodeId: current.id,
-        });
-      }
-
-      const newNodeResource: WaitForNode = {
-        id: current.id,
-        type: JourneyNodeType.WaitForNode,
-        timeoutChild: timeoutNode.id,
-        timeoutSeconds: props.timeoutSeconds,
-        segmentChildren: [
-          {
-            id: segmentNode.id,
-            segmentId: segmentChild.segmentId,
-          },
-        ],
-      };
-
-      nodeResources.push(newNodeResource);
-
-      stack.push(segmentNode);
-      stack.push(timeoutNode);
-      continue;
-    }
-
-    if (props.type === JourneyNodeType.ExitNode) {
-      exitNodeResource = {
-        type: JourneyNodeType.ExitNode,
-      };
-      continue;
-    }
-
-    const nextNodeId = edgeIndex.get(current.id)?.at(0);
-    const nextNode = nextNodeId ? traverseUntilJourneyNode(nextNodeId) : null;
-
-    if (!nextNode) {
-      throw new Error(
-        `Malformed node. Only exit nodes lack children. ${current.id}`
-      );
-    }
-
-    stack.push(nextNode);
-
-    let newNodeResource: JourneyNode;
-    switch (props.type) {
-      case JourneyNodeType.DelayNode: {
-        if (!props.seconds) {
-          return err({
-            message: "Delay node is missing duration.",
-            nodeId: current.id,
-          });
-        }
-
-        const delayNode: DelayNode = {
-          id: current.id,
-          type: JourneyNodeType.DelayNode,
-          child: nextNode.id,
-          variant: {
-            type: DelayVariantType.Second,
-            seconds: props.seconds,
-          },
-        };
-        newNodeResource = delayNode;
-        break;
-      }
-      case JourneyNodeType.MessageNode: {
-        if (!props.templateId) {
-          return err({
-            message: "Message node is missing template.",
-            nodeId: current.id,
-          });
-        }
-        const messageNode: MessageNode = {
-          id: current.id,
-          type: JourneyNodeType.MessageNode,
-          child: nextNode.id,
-          name: props.name,
-          subscriptionGroupId: props.subscriptionGroupId,
-          variant: {
-            type: props.channel,
-            templateId: props.templateId,
-          },
-        };
-        newNodeResource = messageNode;
-        break;
-      }
-      case JourneyNodeType.EntryNode: {
-        throw new Error("Entry node should already be handled");
-      }
-    }
-
-    nodeResources.push(newNodeResource);
+  if (!entryNode) {
+    throw new Error("Entry node is missing");
   }
-
-  if (!exitNodeResource) {
-    throw new Error("Malformed journey, missing exit node.");
+  if (!exitNode) {
+    throw new Error("Exit node is missing");
   }
 
   const definition: JourneyDefinition = {
-    entryNode: entryNodeResource,
-    exitNode: exitNodeResource,
-    nodes: nodeResources,
+    entryNode,
+    exitNode,
+    nodes: bodyNodes,
   };
-
   return ok(definition);
 }
 
@@ -745,343 +916,6 @@ export function newStateFromNodes({
 }
 
 /**
- * Removes replaced and isolated nodes/edges from journey.
- * @param nodes
- * @param edges
- * @returns list of nodes and edges to remove.
- */
-function removeParts(
-  nodes: Node<NodeData>[],
-  edges: Edge<EdgeData>[]
-): { edges: string[]; nodes: string[] } {
-  const childEdges = new Map<string, Edge<EdgeData>[]>();
-  const childEmptyEdges = new Map<string, Edge<EdgeData>[]>();
-
-  const nodeMap = nodes.reduce<Map<string, Node<NodeData>>>(
-    (acc, node) => acc.set(node.id, node),
-    new Map()
-  );
-
-  for (const e of edges) {
-    const sourceNode = nodeMap.get(e.source);
-    const targetNode = nodeMap.get(e.target);
-
-    if (!sourceNode || !targetNode || sourceNode.type !== "label") {
-      continue;
-    }
-    if (targetNode.type === "empty") {
-      if (!childEmptyEdges.has(e.source)) {
-        childEmptyEdges.set(e.source, []);
-      }
-      childEmptyEdges.get(e.source)?.push(e);
-    } else {
-      if (!childEdges.has(e.source)) {
-        childEdges.set(e.source, []);
-      }
-      childEdges.get(e.source)?.push(e);
-    }
-  }
-
-  const edgesResult = new Set<string>();
-  const nodesResult = new Set<string>();
-
-  childEmptyEdges.forEach((cee, source) => {
-    if (childEdges.get(source)?.length) {
-      cee.forEach((edge) => edgesResult.add(edge.id));
-    }
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-  while (true) {
-    let removed = false;
-    for (const edge of edges) {
-      if (edgesResult.has(edge.id)) {
-        continue;
-      }
-      if (
-        !nodeMap.has(edge.target) ||
-        !nodeMap.has(edge.source) ||
-        nodesResult.has(edge.target) ||
-        nodesResult.has(edge.source)
-      ) {
-        edgesResult.add(edge.id);
-        removed = true;
-      }
-    }
-
-    const filteredEdges = edges.filter((e) => !edgesResult.has(e.id));
-
-    for (const node of nodes) {
-      if (
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        node.id === JourneyNodeType.EntryNode ||
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-        node.id === JourneyNodeType.ExitNode
-      ) {
-        continue;
-      }
-      if (node.type === "journey") {
-        continue;
-      }
-      if (nodesResult.has(node.id)) {
-        continue;
-      }
-
-      const children = findDirectUiChildren(node.id, filteredEdges);
-      const parents = findDirectUiParents(node.id, filteredEdges);
-
-      if (!children.length || !parents.length) {
-        nodesResult.add(node.id);
-        removed = true;
-      }
-    }
-    if (!removed) {
-      break;
-    }
-  }
-
-  return {
-    edges: Array.from(edgesResult),
-    nodes: Array.from(nodesResult),
-  };
-}
-
-function findSourceFromNearest(
-  nId: string,
-  hm: HeritageMap,
-  nearest: string | null,
-  nodes: Map<string, Node<NodeData>>
-): string {
-  const hmEntry = getUnsafe(hm, nId);
-  let source: string;
-
-  if (nearest) {
-    source = `${nearest}-empty`;
-  } else {
-    const parents = Array.from(hmEntry.parents);
-    if (!parents[0]) {
-      throw new Error(`Missing source for ${nId}`);
-    }
-    const parentNode = getUnsafe(nodes, parents[0]);
-    const parentHmEntry = getUnsafe(hm, parents[0]);
-
-    if (
-      parentNode.data.type === "JourneyNode" &&
-      isMultiChildNode(parentNode.data.nodeTypeProps.type) &&
-      parentHmEntry.children.size === 1
-    ) {
-      source = `${parents[0]}-empty`;
-    } else if (parentHmEntry.children.size > 1) {
-      // README: relies on the ordering of findDirectChildren method
-      const index = Array.from(parentHmEntry.children).indexOf(nId);
-      source = `${parents[0]}-child-${index}`;
-    } else {
-      [source] = parents;
-    }
-  }
-  return source;
-}
-
-function findSource(
-  nId: string,
-  hm: HeritageMap,
-  nodes: Map<string, Node<NodeData>>
-): string {
-  const nearest = getNearestFromParents(nId, hm);
-  return findSourceFromNearest(nId, hm, nearest, nodes);
-}
-
-function findTarget(
-  nId: string,
-  hm: HeritageMap,
-  nodes: Map<string, Node<NodeData>>
-): string {
-  const hmEntry = getUnsafe(hm, nId);
-  const nearestFromChildren = getNearestFromChildren(nId, hm);
-
-  const children = Array.from(hmEntry.children);
-  if (!children[0]) {
-    throw new Error(`Missing source for ${nId}`);
-  }
-  const nfmChildrenDefault = nearestFromChildren ?? children[0];
-  const nearestFromParents = getNearestFromParents(nfmChildrenDefault, hm);
-
-  if (!nearestFromParents) {
-    return nfmChildrenDefault;
-  }
-
-  const nfmpHmEntry = getUnsafe(hm, nearestFromParents);
-  const connectsToParentEmpty =
-    nId !== nearestFromParents && nfmpHmEntry.descendants.has(nId);
-
-  if (!connectsToParentEmpty) {
-    return nfmChildrenDefault;
-  }
-
-  const target = findSourceFromNearest(
-    nfmChildrenDefault,
-    hm,
-    nearestFromParents,
-    nodes
-  );
-
-  return target;
-}
-
-export function journeyToState(
-  journey: Omit<JourneyResource, "id" | "status" | "workspaceId">
-): JourneyStateForResource {
-  const jn = new Map<string, Node<NodeData>>();
-  const je = new Map<string, Edge<EdgeData>>();
-
-  const hm = buildHeritageMap(journey.definition);
-  const nodes = [
-    journey.definition.entryNode,
-    ...journey.definition.nodes,
-    journey.definition.exitNode,
-  ];
-
-  for (const n of nodes) {
-    let newNodes: Node<NodeData>[];
-    let newEdges: Edge<EdgeData>[];
-    const nId = getNodeId(n);
-    const hmEntry = hm.get(nId);
-    if (!hmEntry) {
-      throw new Error(`Missing heritage map entry ${nId}`);
-    }
-
-    switch (n.type) {
-      case JourneyNodeType.EntryNode: {
-        newNodes = [
-          {
-            id: JourneyNodeType.EntryNode,
-            position: placeholderNodePosition,
-            type: "journey",
-            data: {
-              type: "JourneyNode",
-              nodeTypeProps: {
-                type: JourneyNodeType.EntryNode,
-                segmentId: n.segment,
-              },
-            },
-          },
-        ];
-        newEdges = [
-          {
-            id: `${JourneyNodeType.EntryNode}=>${n.child}`,
-            source: JourneyNodeType.EntryNode,
-            target: n.child,
-            type: "workflow",
-            data: {
-              type: "WorkflowEdge",
-              disableMarker: true,
-            },
-          },
-        ];
-        break;
-      }
-      case JourneyNodeType.ExitNode: {
-        const source = findSource(nId, hm, jn);
-        newNodes = [
-          {
-            id: JourneyNodeType.ExitNode,
-            position: placeholderNodePosition,
-            type: "journey",
-            data: {
-              type: "JourneyNode",
-              nodeTypeProps: {
-                type: JourneyNodeType.ExitNode,
-              },
-            },
-          },
-        ];
-        newEdges = [
-          {
-            id: `${source}=>${JourneyNodeType.ExitNode}`,
-            source,
-            target: JourneyNodeType.ExitNode,
-            type: "workflow",
-            data: {
-              type: "WorkflowEdge",
-              disableMarker: true,
-            },
-          },
-        ];
-        break;
-      }
-      case JourneyNodeType.MessageNode: {
-        const source = findSource(nId, hm, jn);
-        const target = findTarget(nId, hm, jn);
-        const state = journeyNodeToState(n, source, target);
-        newEdges = state.edges;
-        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
-        break;
-      }
-      case JourneyNodeType.DelayNode: {
-        const source = findSource(nId, hm, jn);
-        const target = findTarget(nId, hm, jn);
-        const state = journeyNodeToState(n, source, target);
-        newEdges = state.edges;
-        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
-        break;
-      }
-      case JourneyNodeType.SegmentSplitNode: {
-        const source = findSource(nId, hm, jn);
-        const target = findTarget(nId, hm, jn);
-        const state = journeyNodeToState(n, source, target);
-        newEdges = state.edges;
-        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
-        break;
-      }
-      case JourneyNodeType.WaitForNode: {
-        const source = findSource(nId, hm, jn);
-        const target = findTarget(nId, hm, jn);
-        const state = journeyNodeToState(n, source, target);
-        newEdges = state.edges;
-        newNodes = [state.journeyNode, ...state.nonJourneyNodes];
-        break;
-      }
-      case JourneyNodeType.ExperimentSplitNode: {
-        throw new Error("Unimplemented node type");
-      }
-      case JourneyNodeType.RateLimitNode: {
-        throw new Error("Unimplemented node type");
-      }
-    }
-
-    for (const newNode of newNodes) {
-      jn.set(newNode.id, newNode);
-    }
-    for (const e of newEdges) {
-      je.set(e.id, e);
-    }
-  }
-
-  let journeyNodes = Array.from(jn.values());
-
-  const toRemove = removeParts(journeyNodes, Array.from(je.values()));
-  toRemove.edges.forEach((toDelete) => {
-    je.delete(toDelete);
-  });
-  toRemove.nodes.forEach((toDelete) => {
-    jn.delete(toDelete);
-  });
-
-  // re-set with deleted nodes
-  journeyNodes = Array.from(jn.values());
-  const journeyEdges = Array.from(je.values());
-  journeyNodes = layoutNodes(journeyNodes, journeyEdges);
-  const journeyNodesIndex = buildNodesIndex(journeyNodes);
-
-  return {
-    journeyName: journey.name,
-    journeyNodes,
-    journeyEdges,
-    journeyNodesIndex,
-  };
-}
-
-/**
  * find all descendants of parent node with relative depth of node
  * @param parentId
  * @param edges
@@ -1114,6 +948,68 @@ export function findAllDescendants(
 
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
+function buildLabelNode(id: string, title: string): Node<NodeData> {
+  return {
+    id,
+    position: placeholderNodePosition,
+    type: "label",
+    data: {
+      type: "LabelNode",
+      title,
+    },
+  };
+}
+
+function buildEmptyNode(id: string): Node<NodeData> {
+  return {
+    id,
+    position: placeholderNodePosition,
+    type: "empty",
+    data: {
+      type: "EmptyNode",
+    },
+  };
+}
+
+function buildWorkflowEdge(source: string, target: string): Edge<EdgeData> {
+  return {
+    id: `${source}=>${target}`,
+    source,
+    target,
+    type: "workflow",
+    sourceHandle: "bottom",
+    data: {
+      type: "WorkflowEdge",
+      disableMarker: true,
+    },
+  };
+}
+
+function buildPlaceholderEdge(source: string, target: string): Edge<EdgeData> {
+  return {
+    id: `${source}=>${target}`,
+    source,
+    target,
+    type: "placeholder",
+    sourceHandle: "bottom",
+  };
+}
+
+function buildJourneyNode(
+  id: string,
+  nodeTypeProps: NodeTypeProps
+): Node<JourneyNodeProps> {
+  return {
+    id,
+    position: placeholderNodePosition,
+    type: "journey",
+    data: {
+      type: "JourneyNode",
+      nodeTypeProps,
+    },
+  };
+}
+
 export const createJourneySlice: CreateJourneySlice = (set) => ({
   journeySelectedNodeId: null,
   journeyNodes: defaultNodes,
@@ -1130,17 +1026,40 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     }),
   deleteJourneyNode: (nodeId: string) =>
     set((state) => {
-      const definition = unwrap(journeyDefinitionFromState({ state }));
-      const newDefinition = removeNode(nodeId, definition);
+      const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+      const hmEntry = getUnsafe(hm, nodeId);
 
-      const uiState = journeyToState({
-        name: state.journeyName,
-        definition: newDefinition,
-      });
+      // Will be an empty node
+      const nfc = getNearestUiFromChildren(nodeId, hm);
+      const nodesToRemove = new Set<string>([nodeId]);
+      let terminalNode: string;
+      if (nfc) {
+        nodesToRemove.add(nfc);
+        for (const n of state.journeyNodes) {
+          const nHmEntry = getUnsafe(hm, n.id);
+          if (nHmEntry.descendants.has(nfc) && nHmEntry.ancestors.has(nodeId)) {
+            nodesToRemove.add(n.id);
+          }
+        }
+        terminalNode = nfc;
+      } else {
+        terminalNode = nodeId;
+      }
 
-      state.journeyNodes = uiState.journeyNodes;
-      state.journeyEdges = uiState.journeyEdges;
-      state.journeyNodesIndex = uiState.journeyNodesIndex;
+      state.journeyNodes = state.journeyNodes.filter(
+        (n) => !nodesToRemove.has(n.id)
+      );
+      state.journeyEdges = state.journeyEdges.filter(
+        (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target)
+      );
+
+      const terminalHmEntry = getUnsafe(hm, terminalNode);
+      const newTarget = idxUnsafe(Array.from(terminalHmEntry.children), 0);
+      const source = idxUnsafe(Array.from(hmEntry.parents), 0);
+      state.journeyEdges.push(buildWorkflowEdge(source, newTarget));
+
+      state.journeyNodes = layoutNodes(state.journeyNodes, state.journeyEdges);
+      state.journeyNodesIndex = buildNodesIndex(state.journeyNodes);
     }),
   setNodes: (changes: NodeChange[]) =>
     set((state) => {
@@ -1199,3 +1118,294 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       }
     }),
 });
+
+export function journeyBranchToState(
+  initialNodeId: string,
+  nodesState: Node<NodeData>[],
+  edgesState: Edge<EdgeData>[],
+  nodes: Map<string, JourneyNode>,
+  hm: HeritageMap,
+  terminateBefore?: string
+): {
+  terminalNode: string | null;
+} {
+  let nId: string = initialNodeId;
+  let node = getUnsafe(nodes, nId);
+  let nextNodeId: string | null = null;
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
+    switch (node.type) {
+      case JourneyNodeType.EntryNode: {
+        const entryNode: EntryNodeProps = {
+          type: JourneyNodeType.EntryNode,
+          segmentId: node.segment,
+        };
+        nodesState.push(buildJourneyNode(nId, entryNode));
+        edgesState.push(
+          buildWorkflowEdge(JourneyNodeType.EntryNode, node.child)
+        );
+        nextNodeId = node.child;
+        break;
+      }
+      case JourneyNodeType.ExitNode: {
+        const exitNode: ExitNodeProps = {
+          type: JourneyNodeType.ExitNode,
+        };
+        nodesState.push(buildJourneyNode(nId, exitNode));
+        nextNodeId = null;
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: nId,
+          };
+        }
+        break;
+      }
+      case JourneyNodeType.DelayNode: {
+        const delayNode: DelayNodeProps = {
+          type: JourneyNodeType.DelayNode,
+          seconds: node.variant.seconds,
+        };
+        nodesState.push(buildJourneyNode(nId, delayNode));
+        nextNodeId = node.child;
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: nId,
+          };
+        }
+        edgesState.push(buildWorkflowEdge(nId, node.child));
+        break;
+      }
+      case JourneyNodeType.MessageNode: {
+        const messageNode: MessageNodeProps = {
+          type: JourneyNodeType.MessageNode,
+          templateId: node.variant.templateId,
+          channel: node.variant.type,
+          name: node.name ?? "",
+        };
+        nodesState.push(buildJourneyNode(nId, messageNode));
+        nextNodeId = node.child;
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: nId,
+          };
+        }
+        edgesState.push(buildWorkflowEdge(nId, node.child));
+        break;
+      }
+      case JourneyNodeType.ExperimentSplitNode:
+        throw new Error("ExperimentSplitNode is not implemented");
+      case JourneyNodeType.RateLimitNode:
+        throw new Error("RateLimitNode is not implemented");
+      case JourneyNodeType.SegmentSplitNode: {
+        const trueId = `${nId}-child-0`;
+        const falseId = `${nId}-child-1`;
+        const emptyId = `${nId}-empty`;
+
+        nodesState.push(
+          buildJourneyNode(nId, {
+            type: JourneyNodeType.SegmentSplitNode,
+            segmentId: node.variant.segment,
+            name: node.name ?? "",
+            trueLabelNodeId: trueId,
+            falseLabelNodeId: falseId,
+          })
+        );
+        nodesState.push(buildLabelNode(trueId, "true"));
+        nodesState.push(buildLabelNode(falseId, "false"));
+        nodesState.push(buildEmptyNode(emptyId));
+        edgesState.push(buildPlaceholderEdge(nId, trueId));
+        edgesState.push(buildPlaceholderEdge(nId, falseId));
+
+        const nfc = getNearestFromChildren(nId, hm);
+
+        if (node.variant.trueChild === nfc || nfc === null) {
+          edgesState.push(buildWorkflowEdge(trueId, emptyId));
+        } else {
+          edgesState.push(buildWorkflowEdge(trueId, node.variant.trueChild));
+
+          const terminalId = journeyBranchToState(
+            node.variant.trueChild,
+            nodesState,
+            edgesState,
+            nodes,
+            hm,
+            nfc
+          ).terminalNode;
+          if (!terminalId) {
+            throw new Error(
+              "segment split children terminate which should not be possible"
+            );
+          }
+          edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+        }
+
+        if (node.variant.falseChild === nfc || nfc === null) {
+          edgesState.push(buildWorkflowEdge(falseId, emptyId));
+        } else {
+          edgesState.push(buildWorkflowEdge(falseId, node.variant.falseChild));
+
+          const terminalId = journeyBranchToState(
+            node.variant.falseChild,
+            nodesState,
+            edgesState,
+            nodes,
+            hm,
+            nfc
+          ).terminalNode;
+          if (!terminalId) {
+            throw new Error(
+              "segment split children terminate which should not be possible"
+            );
+          }
+          edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+        }
+
+        // default to true child because will be null if both children are equal
+        nextNodeId = nfc ?? node.variant.trueChild;
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: emptyId,
+          };
+        }
+        edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
+        break;
+      }
+      case JourneyNodeType.WaitForNode: {
+        const segmentChild = node.segmentChildren[0];
+        if (!segmentChild) {
+          throw new Error("Malformed journey, WaitForNode has no children.");
+        }
+        const segmentChildLabelId = `${nId}-child-0`;
+        const timeoutId = `${nId}-child-1`;
+        const emptyId = `${nId}-empty`;
+
+        nodesState.push(
+          buildJourneyNode(nId, {
+            type: JourneyNodeType.WaitForNode,
+            timeoutLabelNodeId: timeoutId,
+            timeoutSeconds: node.timeoutSeconds,
+            segmentChildren: [
+              {
+                segmentId: segmentChild.segmentId,
+                labelNodeId: segmentChildLabelId,
+              },
+            ],
+          })
+        );
+
+        nodesState.push(
+          buildLabelNode(segmentChildLabelId, WAIT_FOR_SATISFY_LABEL)
+        );
+        nodesState.push(
+          buildLabelNode(timeoutId, waitForTimeoutLabel(node.timeoutSeconds))
+        );
+        nodesState.push(buildEmptyNode(emptyId));
+        edgesState.push(buildPlaceholderEdge(nId, segmentChildLabelId));
+        edgesState.push(buildPlaceholderEdge(nId, timeoutId));
+
+        const nfc = getNearestFromChildren(nId, hm);
+
+        if (segmentChild.id === nfc || nfc === null) {
+          edgesState.push(buildWorkflowEdge(segmentChildLabelId, emptyId));
+        } else {
+          edgesState.push(
+            buildWorkflowEdge(segmentChildLabelId, segmentChild.id)
+          );
+
+          const terminalId = journeyBranchToState(
+            segmentChild.id,
+            nodesState,
+            edgesState,
+            nodes,
+            hm,
+            nfc
+          ).terminalNode;
+          if (!terminalId) {
+            throw new Error(
+              "segment split children terminate which should not be possible"
+            );
+          }
+          edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+        }
+
+        if (node.timeoutChild === nfc || nfc === null) {
+          edgesState.push(buildWorkflowEdge(timeoutId, emptyId));
+        } else {
+          edgesState.push(buildWorkflowEdge(timeoutId, node.timeoutChild));
+
+          const terminalId = journeyBranchToState(
+            node.timeoutChild,
+            nodesState,
+            edgesState,
+            nodes,
+            hm,
+            nfc
+          ).terminalNode;
+          if (!terminalId) {
+            throw new Error("children terminate which should not be possible");
+          }
+          edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+        }
+
+        // default to true child because will be null if both children are equal
+        nextNodeId = nfc ?? segmentChild.id;
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: emptyId,
+          };
+        }
+        edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
+        break;
+      }
+    }
+
+    if (!nextNodeId) {
+      break;
+    }
+    const nextNode = getUnsafe(nodes, nextNodeId);
+    node = nextNode;
+    nId = nextNodeId;
+  }
+
+  return {
+    terminalNode: null,
+  };
+}
+
+export function journeyToState(
+  journey: Omit<JourneyResource, "id" | "status" | "workspaceId">
+): JourneyStateForResource {
+  const journeyEdges: Edge<EdgeData>[] = [];
+  let journeyNodes: Node<NodeData>[] = [];
+  const nodes = [
+    journey.definition.entryNode,
+    ...journey.definition.nodes,
+    journey.definition.exitNode,
+  ].reduce((acc, node) => {
+    acc.set(getNodeId(node), node);
+    return acc;
+  }, new Map<string, JourneyNode>());
+  const hm = buildHeritageMap(journey.definition);
+  journeyBranchToState(
+    JourneyNodeType.EntryNode,
+    journeyNodes,
+    journeyEdges,
+    nodes,
+    hm
+  );
+  journeyNodes = layoutNodes(journeyNodes, journeyEdges);
+  const journeyNodesIndex = buildNodesIndex(journeyNodes);
+  return {
+    journeyName: journey.name,
+    journeyNodes,
+    journeyNodesIndex,
+    journeyEdges,
+  };
+}
