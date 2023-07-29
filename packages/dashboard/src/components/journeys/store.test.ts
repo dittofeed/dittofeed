@@ -412,7 +412,6 @@ describe("journeyToState", () => {
     );
 
     it("doesn't contain isolated nodes", async () => {
-      // console.log("uiState", JSON.stringify(uiState, null, 2));
       uiState.journeyNodes.forEach((node) => {
         if (
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
