@@ -16,10 +16,8 @@ import {
   findDirectUiChildren,
   findDirectUiParents,
   journeyDefinitionFromState,
-  journeyDefinitionFromStateV2,
   JourneyStateForResource,
   journeyToState,
-  journeyToStateV2,
 } from "./store";
 
 describe("journeyToState", () => {
@@ -93,7 +91,7 @@ describe("journeyToState", () => {
         definition,
         workspaceId,
       };
-      uiState = journeyToStateV2(journeyResource);
+      uiState = journeyToState(journeyResource);
     });
 
     const uiExpectations: [string, string[]][] = [
@@ -166,7 +164,7 @@ describe("journeyToState", () => {
         definition,
         workspaceId,
       };
-      uiState = journeyToStateV2(journeyResource);
+      uiState = journeyToState(journeyResource);
     });
 
     it("produces the right ui state", async () => {
@@ -319,10 +317,9 @@ describe("journeyToState", () => {
         definition,
         workspaceId,
       };
-      uiState = journeyToStateV2(journeyResource);
+      uiState = journeyToState(journeyResource);
 
       definitionFromState = unwrap(
-        // await journeyDefinitionFromStateV2({ state: uiState })
         await journeyDefinitionFromState({ state: uiState })
       );
     });
@@ -779,56 +776,58 @@ describe("journeyDefinitionFromState", () => {
         `journeyResourceFromState failed with ${result.error.message}`
       );
     }
-    expect(result.value).toEqual({
-      entryNode: {
-        type: JourneyNodeType.EntryNode,
-        segment: expect.any(String),
-        child: "908b9795-60b7-4333-a57c-a30f4972fb6b",
-      },
-      exitNode: {
-        type: JourneyNodeType.ExitNode,
-      },
-      nodes: [
-        {
-          id: "908b9795-60b7-4333-a57c-a30f4972fb6b",
-          type: JourneyNodeType.MessageNode,
-          child: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-          name: "Message 1",
-          variant: {
-            type: ChannelType.Email,
-            templateId: expect.any(String),
-          },
-        },
-        {
-          id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-          type: JourneyNodeType.DelayNode,
-          child: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-          variant: {
-            type: "Second",
-            seconds: 1800,
-          },
-        },
-        {
-          id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-          type: JourneyNodeType.SegmentSplitNode,
-          variant: {
-            type: SegmentSplitVariantType.Boolean,
-            segment: expect.any(String),
-            trueChild: "6ce89301-2a35-4562-b1db-54689bfe0e05",
-            falseChild: "ExitNode",
-          },
-        },
-        {
-          id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
-          type: JourneyNodeType.MessageNode,
-          name: "Message 2",
-          child: JourneyNodeType.ExitNode,
-          variant: {
-            type: ChannelType.Email,
-            templateId: expect.any(String),
-          },
-        },
-      ],
+    const { exitNode, entryNode, nodes } = result.value;
+    expect(entryNode).toEqual({
+      type: JourneyNodeType.EntryNode,
+      segment: expect.any(String),
+      child: "908b9795-60b7-4333-a57c-a30f4972fb6b",
     });
+    expect(exitNode).toEqual({
+      type: JourneyNodeType.ExitNode,
+    });
+
+    const expectedNodes = [
+      {
+        id: "908b9795-60b7-4333-a57c-a30f4972fb6b",
+        type: JourneyNodeType.MessageNode,
+        child: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
+        name: "Message 1",
+        variant: {
+          type: ChannelType.Email,
+          templateId: expect.any(String),
+        },
+      },
+      {
+        id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
+        type: JourneyNodeType.DelayNode,
+        child: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+        variant: {
+          type: "Second",
+          seconds: 1800,
+        },
+      },
+      {
+        id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+        type: JourneyNodeType.SegmentSplitNode,
+        variant: {
+          type: SegmentSplitVariantType.Boolean,
+          segment: expect.any(String),
+          trueChild: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+          falseChild: "ExitNode",
+        },
+      },
+      {
+        id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+        type: JourneyNodeType.MessageNode,
+        name: "Message 2",
+        child: JourneyNodeType.ExitNode,
+        variant: {
+          type: ChannelType.Email,
+          templateId: expect.any(String),
+        },
+      },
+    ];
+    expect(nodes).toEqual(expect.arrayContaining(expectedNodes));
+    expect(nodes).toHaveLength(expectedNodes.length);
   });
 });
