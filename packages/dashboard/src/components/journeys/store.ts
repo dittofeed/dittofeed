@@ -215,7 +215,6 @@ function journeyDefinitionFromStateBranch(
   edges: Edge<EdgeData>[],
   terminateBefore?: string
 ): Result<null, { message: string; nodeId: string }> {
-  let hmEntry = getUnsafe(hm, initialNodeId);
   let nId = initialNodeId;
   let nextId: string | null = null;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
@@ -429,6 +428,7 @@ function journeyDefinitionFromStateBranch(
     if (nextId === terminateBefore) {
       break;
     }
+    nId = nextId;
   }
   return ok(null);
 }
