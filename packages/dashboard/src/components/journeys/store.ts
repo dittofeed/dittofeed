@@ -17,6 +17,7 @@ import {
   DelayVariantType,
   EntryNode,
   ExitNode,
+  JourneyBodyNode,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
@@ -446,7 +447,44 @@ export function journeyDefinitionFromStateV2({
   }, new Map<string, NodeTypeProps>());
   const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
 
-  throw new Error("Not implemented");
+  const result = journeyDefinitionFromStateBranch(
+    JourneyNodeType.EntryNode,
+    hm,
+    nodes,
+    journeyNodes,
+    state.journeyEdges
+  );
+
+  if (result.isErr()) {
+    return err(result.error);
+  }
+  let exitNode: ExitNode | null = null;
+  let entryNode: EntryNode | null = null;
+  const bodyNodes: JourneyBodyNode[] = [];
+
+  for (const node of nodes) {
+    if (node.type === JourneyNodeType.EntryNode) {
+      entryNode = node;
+    } else if (node.type === JourneyNodeType.ExitNode) {
+      exitNode = node;
+    } else {
+      bodyNodes.push(node);
+    }
+  }
+
+  if (!entryNode) {
+    throw new Error("Entry node is missing");
+  }
+  if (!exitNode) {
+    throw new Error("Exit node is missing");
+  }
+
+  const definition: JourneyDefinition = {
+    entryNode,
+    exitNode,
+    nodes: bodyNodes,
+  };
+  return ok(definition);
 }
 
 export function journeyDefinitionFromState({
