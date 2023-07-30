@@ -1,9 +1,6 @@
 import humanizeDuration from "humanize-duration";
-import { TimeUnit } from "../lib/types";
 
-export interface DurationDescriptionProps {
-  durationSeconds?: number;
-}
+import { TimeUnit } from "../lib/types";
 
 const timeUnitOrder: TimeUnit[] = [
   "weeks",
@@ -34,9 +31,13 @@ export function nearestTimeUnit(seconds?: number): TimeUnit {
   throw new Error("should by default select seconds from loop above");
 }
 
-export function durationDescription({
-  durationSeconds,
-}: DurationDescriptionProps): string {
+export interface DurationDescriptionProps {
+  durationSeconds?: number;
+}
+
+export function durationDescription(
+  durationSeconds: number | undefined
+): string {
   if (durationSeconds === 0 || !durationSeconds) {
     return "0 days";
   }
@@ -44,6 +45,8 @@ export function durationDescription({
   return humanizeDuration(durationMilliseconds);
 }
 
-export default function DurationDescription(props: DurationDescriptionProps) {
-  return <>{durationDescription(props)}</>;
+export default function DurationDescription({
+  durationSeconds,
+}: DurationDescriptionProps) {
+  return <>{durationDescription(durationSeconds)}</>;
 }

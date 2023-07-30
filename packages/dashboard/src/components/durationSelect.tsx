@@ -1,12 +1,12 @@
 import { Box, Stack, TextField } from "@mui/material";
 import { ComponentProps, useState } from "react";
-import { TimeUnit } from "../lib/types";
-import TimeUnitSelect, { isTimeUnit } from "./timeUnitSelect";
 
+import { TimeUnit } from "../lib/types";
 import DurationDescription, {
   nearestTimeUnit,
   timeUnitConversion,
 } from "./durationDescription";
+import TimeUnitSelect, { isTimeUnit } from "./timeUnitSelect";
 
 export type OnChange = (seconds: number) => void;
 

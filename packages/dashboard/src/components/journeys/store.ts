@@ -50,7 +50,7 @@ import {
   NodeTypeProps,
   NonJourneyNodeData,
 } from "../../lib/types";
-import { durationDescription, nearestTimeUnit } from "../durationDescription";
+import { durationDescription } from "../durationDescription";
 import {
   buildNodesIndex,
   defaultEdges,
@@ -84,10 +84,7 @@ export function findDirectUiChildren(
 export const WAIT_FOR_SATISFY_LABEL = "In segment";
 
 export function waitForTimeoutLabel(timeoutSeconds?: number): string {
-  const timeUnit = nearestTimeUnit(timeoutSeconds);
-  return `Timed out after ${durationDescription({
-    durationSeconds: timeoutSeconds,
-  })}`;
+  return `Timed out after ${durationDescription(timeoutSeconds)}`;
 }
 
 type JourneyNodeMap = Map<string, NodeTypeProps>;

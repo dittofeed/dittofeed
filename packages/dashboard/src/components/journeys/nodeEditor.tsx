@@ -21,7 +21,7 @@ import {
   SegmentResource,
   SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
 import { shallow } from "zustand/shallow";
 
@@ -33,10 +33,8 @@ import {
   MessageNodeProps,
   SegmentSplitNodeProps,
   WaitForNodeProps,
-  TimeUnit,
 } from "../../lib/types";
 import DurationSelect from "../durationSelect";
-import TimeUnitSelect from "../timeUnitSelect";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { waitForTimeoutLabel } from "./store";
@@ -307,7 +305,7 @@ function DelayNodeFields({
       value={nodeProps.seconds}
       onChange={handleDurationChange}
       description="Will wait"
-      inputLabel={`Duration`}
+      inputLabel="Duration"
     />
   );
 }
@@ -327,14 +325,6 @@ function WaitForNodeFields({
     }),
     shallow
   );
-
-  const [timeUnit, setTimeUnit] = useState<TimeUnit>("seconds");
-
-  const handleTimeUnitChange = (
-    event: React.ChangeEvent<{ value: unknown }>
-  ) => {
-    setTimeUnit(event.target.value as TimeUnit);
-  };
 
   if (segments.type !== CompletionStatus.Successful) {
     return null;
