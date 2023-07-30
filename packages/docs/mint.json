@@ -121,6 +121,15 @@
         "resources/workspaces",
         "resources/subscription-groups",
         "resources/user-properties",
+        {
+          "group": "User Property Types",
+          "pages": [
+            "resources/user-property-types/trait",
+            "resources/user-property-types/performed",
+            "resources/user-property-types/id",
+            "resources/user-property-types/anonymous-id"
+          ]
+        },
         "resources/broadcasts"
       ]
     },

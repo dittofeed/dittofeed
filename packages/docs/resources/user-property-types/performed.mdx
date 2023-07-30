@@ -1,0 +1,34 @@
+---
+title: "Performed - User Property"
+---
+
+Performed user properties select the last observed `property` value of a `track` event.
+
+
+## Example Use Case
+
+As an example, imagine you are running an e-commerce application. You might create a `lastPurchasedItem` user property, to track the last item that a user purchased.
+
+<Frame>
+  <img src="/images/last-purchased-item-up.png" />
+</Frame>
+
+```json
+{
+  "type": "track",
+  "userId": "1234",
+  "event": "purchase",
+  "properties": {
+    "item": {
+      "name": "orange socks"
+    }
+  }
+}
+```
+
+This property would then be available to render in a template.
+
+
+```html
+{{ user.lastPurchasedItem | default: "this amazing item" }}!
+```
