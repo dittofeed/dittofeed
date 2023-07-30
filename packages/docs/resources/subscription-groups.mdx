@@ -13,11 +13,15 @@ Subscription groups are associated with a specific channel e.g. email, SMS, or p
 
 By default, workspaces are populated with one subscription group per channel. Additional subscription groups can be created via [`/dashboard/subscription-groups`](https://demo.dittofeed.com/dashboard/subscription-groups) page.
 
+<Frame>
 ![Subscription Groups Page](/images/subscription-groups-page.png)
+</Frame>
 
 To create a new subscription group, click the (+) button. Then edit the subscription group name, and press save.
 
+<Frame>
 ![Subscription Groups Configuration Page](/images/subscription-groups-configure-page.png)
+</Frame>
 
 
 ## Opt-In vs Opt-Out Subscription Groups
@@ -100,20 +104,26 @@ The subscription management will either unsubscribe, or subscribe the user to a 
 
 Note that this subscription state change occurs synchronously, and will be reflected immediately. This is in contrast to the asynchronous subscription state change that occurs when submitting a track event.
 
+<Frame>
 ![Subscription Management Page](/images/subscription-management-page.png)
+</Frame>
 
 This page is exempt from the dashboard's standard authentication requirements, and can be accessed by any user. Instead, it is authenticated by a cryptographically signed hash, which is generated on the backend and included in the link to the page.
 
 The subscription management page can be previewed from the dashboard's settings page [`/dashboard/settings`](https://demo.dittofeed.com/dashboard/settings).
 
+<Frame>
 ![Subscription Management Preview](/images/subscription-management-preview.png)
+</Frame>
 
 
 ## Adding Subscription Groups to a User Journey
 
 In order to use a subscription group, it must be added to a user journey. This ensures that users are not messaged from message nodes unless they are in the subscription group at the time of send.
 
+<Frame>
 ![Subscription Groups in User Journeys](/images/journey-message-subscription-group.png)
+</Frame>
 
 It also allows unsubscribe links to be rendered in emails.
 
@@ -125,7 +135,9 @@ When journey message nodes have subscription groups associated with them, unsubs
 {% unsubscribe_link %}
 ```
 
+<Frame>
 ![Unsubscribe Link in Email](/images/template-unsubscribe-link.png)
+</Frame>
 
 On loading the Subscription Management page, users will be either subscribed or unsubscribed to a specific subscription group.
 
