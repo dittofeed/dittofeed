@@ -3,7 +3,13 @@ title: "Templates"
 description: "Use templates to render user messages."
 ---
 
-Templates are used to render the messages which get sent to users. Messages are rendered with the liquid templating language.
+Templates are used to render the messages which get sent to users. Messages are rendered with the liquid templating language, using [user properties](/resources/user-properties) to render values.
+
+```html
+<body>
+    Hey {{ user.firstName | default: "there" }}
+</body>
+```
 
 [Journey message nodes](/resources/journey-nodes/message) are configured with templates.
 

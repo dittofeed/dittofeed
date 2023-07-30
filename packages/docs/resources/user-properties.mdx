@@ -2,3 +2,38 @@
 title: "User Properties"
 description: "Customizable values for user messages."
 ---
+
+User properties are a powerful feature in Dittofeed that allow you to define how user events are aggregated to be rendered in your templates.
+
+User properties are also used to identify users when contacting channel providers. For example, the `email` property is used to identify users when sending emails.
+
+## User Property Types
+
+- [Trait](/resources/user-property-types/trait)
+- [Performed](/resources/user-property-types/performed)
+- [Id](/resources/user-property-types/id)
+- [AnonymousId](/resources/user-property-types/anonymous-id)
+
+## Default User properties
+
+Dittofeed comes pre-populated with a set of default user properties.
+
+- `email`: The user's email address. Used to identify users when sending emails.
+- `phone`: The user's phone number. Used to identify users when sending SMS messages.
+- `deviceToken`: The user's device token. Used to identify users when sending push notifications.
+- `firstName`: The user's first name.
+- `lastName`: The user's last name.
+- `language`: The user's language.
+- `accountManager`: The user's account manager.
+- `id`: The user's unique identifier, provided by your system. This user property cannot be deleted or changed.
+- `anonymousId`: The user's anonymous identifier, provided for logged out users. This user property cannot be deleted or changed.
+
+## User Property Examples
+
+For example, when rendering an email, you can use the `firstName` user property to personalize the email.
+
+```html
+<body>
+    Hey {{ user.firstName | default: "there" }}
+</body>
+```
