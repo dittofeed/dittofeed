@@ -3,7 +3,12 @@ import { ComponentProps, useState } from "react";
 import { TimeUnit } from "../lib/types";
 import TimeUnitSelect, { isTimeUnit } from "./timeUnitSelect";
 
-import DurationDescription, { nearestTimeUnit } from "./durationDescription";
+import DurationDescription, {
+  nearestTimeUnit,
+  timeUnitConversion,
+} from "./durationDescription";
+
+export type OnChange = (seconds: number) => void;
 
 export default function DurationSelect({
   value,
@@ -14,17 +19,31 @@ export default function DurationSelect({
   value: number | undefined;
   inputLabel: string;
   description?: string;
-  onChange: ComponentProps<typeof TextField>["onChange"];
+  onChange: OnChange;
 }) {
   const [timeUnit, setTimeUnit] = useState<TimeUnit>(nearestTimeUnit(value));
+  const timeNonSeconds = (value ?? 0) / timeUnitConversion[timeUnit];
 
   const handleTimeUnitChange: ComponentProps<
     typeof TimeUnitSelect
   >["onChange"] = (e) => {
-    if (isTimeUnit(e.target.value)) {
-      setTimeUnit(e.target.value);
+    const newTimeUnit = e.target.value;
+    if (isTimeUnit(newTimeUnit)) {
+      setTimeUnit(newTimeUnit);
+      const newSeconds =
+        ((value ?? 0) * timeUnitConversion[newTimeUnit]) /
+        timeUnitConversion[timeUnit];
+
+      onChange(newSeconds);
     }
   };
+  const handleTimeChange: ComponentProps<typeof TextField>["onChange"] = (
+    e
+  ) => {
+    const time = parseInt(e.target.value, 10);
+    onChange(time * timeUnitConversion[timeUnit]);
+  };
+
   return (
     <>
       <TextField
@@ -32,14 +51,14 @@ export default function DurationSelect({
         InputProps={{
           type: "number",
         }}
-        value={String(value)}
-        onChange={onChange}
+        value={String(timeNonSeconds)}
+        onChange={handleTimeChange}
       />
       <TimeUnitSelect value={timeUnit} onChange={handleTimeUnitChange} />
       <Stack direction="row" spacing={1}>
         {description ? <Box>{description}</Box> : null}
         <Box>
-          <DurationDescription durationSeconds={value} timeUnit={timeUnit} />
+          <DurationDescription durationSeconds={value} />
         </Box>
       </Stack>
     </>

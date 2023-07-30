@@ -3,7 +3,6 @@ import { TimeUnit } from "../lib/types";
 
 export interface DurationDescriptionProps {
   durationSeconds?: number;
-  timeUnit: TimeUnit;
 }
 
 const timeUnitOrder: TimeUnit[] = [
@@ -22,16 +21,13 @@ export const timeUnitConversion: Record<TimeUnit, number> = {
   weeks: 60 * 60 * 24 * 7,
 };
 
-export function nearestTimeUnit(time?: number): TimeUnit {
-  console.log("time", time);
-  if (!time) {
-    console.log("time early return");
+export function nearestTimeUnit(seconds?: number): TimeUnit {
+  if (!seconds) {
     return "days";
   }
   for (const unit of timeUnitOrder) {
     const conversion = timeUnitConversion[unit];
-    if ((time / conversion) % 1 === 0) {
-      console.log("time loop return", unit);
+    if ((seconds / conversion) % 1 === 0) {
       return unit;
     }
   }
@@ -40,14 +36,11 @@ export function nearestTimeUnit(time?: number): TimeUnit {
 
 export function durationDescription({
   durationSeconds,
-  timeUnit,
 }: DurationDescriptionProps): string {
   if (durationSeconds === 0 || !durationSeconds) {
     return "0 days";
   }
-
-  const durationMilliseconds =
-    durationSeconds * 1000 * timeUnitConversion[timeUnit];
+  const durationMilliseconds = durationSeconds * 1000;
   return humanizeDuration(durationMilliseconds);
 }
 

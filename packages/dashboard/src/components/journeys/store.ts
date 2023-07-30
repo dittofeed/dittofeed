@@ -87,7 +87,6 @@ export function waitForTimeoutLabel(timeoutSeconds?: number): string {
   const timeUnit = nearestTimeUnit(timeoutSeconds);
   return `Timed out after ${durationDescription({
     durationSeconds: timeoutSeconds,
-    timeUnit,
   })}`;
 }
 
