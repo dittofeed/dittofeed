@@ -18,16 +18,22 @@ Dittofeed receives segment data from its `POST /api/public/webhooks/segment` [en
 Configure Segment to send its event payloads to your Dittofeed installation, [`POST /api/public/webhooks/segment`](/api-reference/endpoints/webhooks/segment). For example, `https://my-dittofeed-host.com/api/public/webhooks/segment`.
 
 {/* TODO correct URL in screenshot */}
+<Frame>
 ![Segment Webhook URL](/images/segment-webhook-url.png)
+</Frame>
 
 Next add a shared secret to Segment.
 
 <Tip> You can generate shared secrets using password generators, like [1password's](https://1password.com/password-generator/)</Tip>
 
+<Frame>
 ![Segment Shared Secret](/images/segment-shared-secret.png)
+</Frame>
 
 Finally, add that same shared secret to Dittofeed on the settings page `/dashboard/settings#data-sources-title`.
 
+<Frame>
 ![Dittofeed Segment Shared Secret](/images/dittofeed-segment-shared-secret.png)
+</Frame>
 
 That's it. At this point your Segment payloads should be flowing through Dittofeed.

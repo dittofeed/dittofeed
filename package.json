@@ -35,6 +35,6 @@
   },
   "packageManager": "yarn@3.6.0",
   "dependencies": {
-    "mintlify": "^3.0.54"
+    "mintlify": "^3.0.79"
   }
 }
