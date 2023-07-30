@@ -114,7 +114,8 @@
           "group": "Templates",
           "pages": [
             "resources/templates/email",
-            "resources/templates/mjml"
+            "resources/templates/mjml",
+            "resources/templates/liquid-presets"
           ]
         },
         "resources/workspaces",
