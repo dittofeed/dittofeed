@@ -293,14 +293,6 @@ function DelayNodeFields({
     (state) => state.updateJourneyNodeData
   );
 
-  const [timeUnit, setTimeUnit] = useState<TimeUnit>("seconds");
-
-  const handleTimeUnitChange = (
-    event: React.ChangeEvent<{ value: unknown }>
-  ) => {
-    setTimeUnit(event.target.value as TimeUnit);
-  };
-
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
@@ -311,21 +303,12 @@ function DelayNodeFields({
   };
 
   return (
-    <>
-      <DurationSelect
-        value={nodeProps.seconds}
-        onChange={handleDurationChange}
-        description="Will wait"
-        inputLabel={`Duration (${timeUnit})`}
-        timeUnit={timeUnit}
-      />
-      <TimeUnitSelect
-        value={timeUnit}
-        onChange={handleTimeUnitChange}
-        inputLabel="Duration (Seconds)"
-        timeUnit={timeUnit}
-      />
-    </>
+    <DurationSelect
+      value={nodeProps.seconds}
+      onChange={handleDurationChange}
+      description="Will wait"
+      inputLabel={`Duration`}
+    />
   );
 }
 
@@ -404,11 +387,10 @@ function WaitForNodeFields({
         )}
       />
       <DurationSelect
-        inputLabel="Timeout (Seconds)"
+        inputLabel="Timeout"
         description="Will timeout after"
         value={nodeProps.timeoutSeconds}
         onChange={handleDurationChange}
-        timeUnit={timeUnit}
       />
     </>
   );

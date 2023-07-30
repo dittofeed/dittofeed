@@ -215,11 +215,7 @@ function DurationValueSelect({
   };
 
   return (
-    <DurationSelect
-      value={value}
-      onChange={handleChange}
-      inputLabel="Value (Seconds)"
-    />
+    <DurationSelect value={value} onChange={handleChange} inputLabel="Value" />
   );
 }
 

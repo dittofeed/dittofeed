@@ -3,7 +3,7 @@ import { ComponentProps, useState } from "react";
 import { TimeUnit } from "../lib/types";
 import TimeUnitSelect, { isTimeUnit } from "./timeUnitSelect";
 
-import DurationDescription from "./durationDescription";
+import DurationDescription, { nearestTimeUnit } from "./durationDescription";
 
 export default function DurationSelect({
   value,
@@ -16,7 +16,7 @@ export default function DurationSelect({
   description?: string;
   onChange: ComponentProps<typeof TextField>["onChange"];
 }) {
-  const [timeUnit, setTimeUnit] = useState<TimeUnit>("hours");
+  const [timeUnit, setTimeUnit] = useState<TimeUnit>(nearestTimeUnit(value));
 
   const handleTimeUnitChange: ComponentProps<
     typeof TimeUnitSelect

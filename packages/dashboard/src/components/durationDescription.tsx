@@ -1,23 +1,56 @@
 import humanizeDuration from "humanize-duration";
 import { TimeUnit } from "../lib/types";
 
-interface DurationDescriptionProps {
+export interface DurationDescriptionProps {
   durationSeconds?: number;
   timeUnit: TimeUnit;
 }
 
-export default function DurationDescription({
+const timeUnitOrder: TimeUnit[] = [
+  "weeks",
+  "days",
+  "hours",
+  "minutes",
+  "seconds",
+];
+
+export const timeUnitConversion: Record<TimeUnit, number> = {
+  seconds: 1,
+  minutes: 60,
+  hours: 60 * 60,
+  days: 60 * 60 * 24,
+  weeks: 60 * 60 * 24 * 7,
+};
+
+export function nearestTimeUnit(time?: number): TimeUnit {
+  console.log("time", time);
+  if (!time) {
+    console.log("time early return");
+    return "days";
+  }
+  for (const unit of timeUnitOrder) {
+    const conversion = timeUnitConversion[unit];
+    if ((time / conversion) % 1 === 0) {
+      console.log("time loop return", unit);
+      return unit;
+    }
+  }
+  throw new Error("should by default select seconds from loop above");
+}
+
+export function durationDescription({
   durationSeconds,
   timeUnit,
-}: DurationDescriptionProps) {
-  const durationMilliseconds =
-    {
-      seconds: durationSeconds ?? 0,
-      minutes: (durationSeconds ?? 0) * 60,
-      hours: (durationSeconds ?? 0) * 60 * 60,
-      days: (durationSeconds ?? 0) * 60 * 60 * 24,
-      weeks: (durationSeconds ?? 0) * 60 * 60 * 24 * 7,
-    }[timeUnit] * 1000;
+}: DurationDescriptionProps): string {
+  if (durationSeconds === 0 || !durationSeconds) {
+    return "0 days";
+  }
 
-  return <>{humanizeDuration(durationMilliseconds)}</>;
+  const durationMilliseconds =
+    durationSeconds * 1000 * timeUnitConversion[timeUnit];
+  return humanizeDuration(durationMilliseconds);
+}
+
+export default function DurationDescription(props: DurationDescriptionProps) {
+  return <>{durationDescription(props)}</>;
 }

@@ -19,7 +19,9 @@ import { Handle, NodeProps, Position } from "reactflow";
 
 import { useAppStore } from "../../../lib/appStore";
 import { AppState, JourneyNodeProps, NodeTypeProps } from "../../../lib/types";
-import DurationDescription from "../../durationDescription";
+import DurationDescription, {
+  nearestTimeUnit,
+} from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
 import styles from "./nodeTypes.module.css";
 import { JOURNEY_NODE_WIDTH } from "./styles";
@@ -148,7 +150,7 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
         body: (
           <DurationDescription
             durationSeconds={props.seconds}
-            timeUnit={props.timeUnit}
+            timeUnit={nearestTimeUnit(props.seconds)}
           />
         ),
       };
