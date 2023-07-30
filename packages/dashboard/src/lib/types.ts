@@ -354,6 +354,8 @@ export interface LabelNodeProps {
   title: string;
 }
 
+export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
+
 export type NonJourneyNodeData = LabelNodeProps | EmptyNodeProps;
 
 export type NodeData = JourneyNodeProps | NonJourneyNodeData;

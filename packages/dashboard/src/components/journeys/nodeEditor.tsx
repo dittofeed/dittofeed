@@ -291,11 +291,11 @@ function DelayNodeFields({
     (state) => state.updateJourneyNodeData
   );
 
-  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDurationChange = (seconds: number) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.DelayNode) {
-        props.seconds = parseInt(e.target.value, 10);
+        props.seconds = seconds;
       }
     });
   };
@@ -305,7 +305,7 @@ function DelayNodeFields({
       value={nodeProps.seconds}
       onChange={handleDurationChange}
       description="Will wait"
-      inputLabel="Duration (Seconds)"
+      inputLabel="Duration"
     />
   );
 }
@@ -330,19 +330,15 @@ function WaitForNodeFields({
     return null;
   }
 
-  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const timeoutSeconds = parseInt(e.target.value, 10);
+  const handleDurationChange = (seconds: number) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
       if (props.type === JourneyNodeType.WaitForNode) {
-        props.timeoutSeconds = timeoutSeconds;
+        props.timeoutSeconds = seconds;
       }
     });
 
-    updateLabelNode(
-      nodeProps.timeoutLabelNodeId,
-      waitForTimeoutLabel(timeoutSeconds)
-    );
+    updateLabelNode(nodeProps.timeoutLabelNodeId, waitForTimeoutLabel(seconds));
   };
 
   const onSegmentChangeHandler = (
@@ -377,7 +373,7 @@ function WaitForNodeFields({
         )}
       />
       <DurationSelect
-        inputLabel="Timeout (Seconds)"
+        inputLabel="Timeout"
         description="Will timeout after"
         value={nodeProps.timeoutSeconds}
         onChange={handleDurationChange}

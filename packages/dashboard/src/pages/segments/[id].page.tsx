@@ -202,24 +202,20 @@ function DurationValueSelect({
     (state) => state.updateEditableSegmentNodeData
   );
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (seconds: number) => {
     updateSegmentNodeData(nodeId, (node) => {
       if (
         node.type === SegmentNodeType.Trait &&
         (node.operator.type === SegmentOperatorType.Within ||
           node.operator.type === SegmentOperatorType.HasBeen)
       ) {
-        node.operator.windowSeconds = parseInt(e.target.value, 10);
+        node.operator.windowSeconds = seconds;
       }
     });
   };
 
   return (
-    <DurationSelect
-      value={value}
-      onChange={handleChange}
-      inputLabel="Value (Seconds)"
-    />
+    <DurationSelect value={value} onChange={handleChange} inputLabel="Value" />
   );
 }
 
