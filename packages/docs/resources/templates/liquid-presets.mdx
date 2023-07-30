@@ -1,0 +1,44 @@
+---
+title: Liquid Presets
+description: "Built-in Tags and Filters"
+---
+
+Dittofeed comes with a number of built-in liquid tags, filters. These are available to use in your templates. These serve as useful utility functions for rendering messages.
+
+## Tags
+
+### `unsubscribe_link`
+
+The `unsubscribe_link` tag outputs a link to unsubscribe from the message's [subscription group](/resources/subscription-groups). 
+
+```html
+{{ unsubscribe_link }}
+```
+
+This renders a link of the form,
+
+```html
+<a class="df-unsubscribe" clicktracking=off href="..." target="_blank">unsubscribe</a>
+```
+
+This tag is only usable in templates used within a [journey message node](resources/journey-nodes/message) that has been assigned a [subscription group](/resources/subscription-groups), and will otherwise produce an empty href.
+
+The link's text can also be overridden by passing a parameter to the tag e.g.
+
+```html
+You can unsubscribe by clicking {{ unsubscribe_link here }}.
+```
+
+Including an `unsubscribe_link` is critical for marketing emails, for both legal and user experience reasons. It should be included in the footer of your email, along with your company name, and address e.g.
+
+```html
+<mj-text align="center" color="#525252">
+  MyCompany, Inc., 40 Rosewood Lane, New York, NY 10003
+  <br/>
+  <br/>
+  Don't want to receive these emails? You can {% unsubscribe_link %} from them here.
+  <br/>
+  <br/>
+  Powered by <a href="https://dittofeed.com" target="_blank" rel="noopener noreferrer">Dittofeed</a>.
+</mj-text>
+```

@@ -109,11 +109,13 @@
             "resources/segment-nodes/broadcast"
           ]
         },
+        "resources/templates",
         {
           "group": "Templates",
           "pages": [
-            "resources/templates/email-templates",
-            "resources/templates/mjml"
+            "resources/templates/email",
+            "resources/templates/mjml",
+            "resources/templates/liquid-presets"
           ]
         },
         "resources/workspaces",
