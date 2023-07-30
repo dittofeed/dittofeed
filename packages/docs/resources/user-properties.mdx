@@ -5,14 +5,18 @@ description: "Customizable values for user messages."
 
 User properties are a powerful feature in Dittofeed that allow you to define how user events are aggregated to be rendered in your templates.
 
+<Frame>
+  <img src="/images/plan-up.png" />
+</Frame>
+
 User properties are also used to identify users when contacting channel providers. For example, the `email` property is used to identify users when sending emails.
 
 ## User Property Types
 
-- [Trait](/resources/user-property-types/trait)
-- [Performed](/resources/user-property-types/performed)
-- [Id](/resources/user-property-types/id)
-- [AnonymousId](/resources/user-property-types/anonymous-id)
+- [Trait](/resources/user-property-types/trait): Trait user properties selects the last observed `trait` value of an `identify` event.
+- [Performed](/resources/user-property-types/performed): Performed user properties select the last observed `property` value of a `track` event.
+- [Id](/resources/user-property-types/id): Dittofeed uses the `id` property to identify logged in users.
+- [AnonymousId](/resources/user-property-types/anonymous-id): Dittofeed uses the `anonymousId` user property to identify logged out users.
 
 ## Default User properties
 
