@@ -1,6 +1,7 @@
 import { writeToString } from "@fast-csv/format";
 import { ValueError } from "@sinclair/typebox/errors";
 import { format } from "date-fns";
+import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { pick } from "remeda/dist/commonjs/pick";
@@ -177,29 +178,72 @@ export async function buildSegmentsFile({
   fileName: string;
   fileContent: string;
 }> {
-  // FIXME add email
-  const dbAssignments = await prisma().segmentAssignment.findMany({
-    where: { workspaceId },
-    include: {
-      segment: {
-        select: {
-          name: true,
-          subscriptionGroup: {
-            select: {
-              name: true,
+  const identifiers = Object.values(CHANNEL_IDENTIFIERS);
+  const [dbSegmentAssignments, userIdentifiers] = await Promise.all([
+    prisma().segmentAssignment.findMany({
+      where: { workspaceId },
+      include: {
+        segment: {
+          select: {
+            name: true,
+            subscriptionGroup: {
+              select: {
+                name: true,
+              },
             },
           },
         },
       },
-    },
-  });
-  const assignments = dbAssignments.map((a) => ({
-    segmentName: a.segment.name,
-    subscriptionGroupName: a.segment.subscriptionGroup?.name ?? "",
-    ...pick(a, ["segmentId", "userId", "inSegment"]),
-  }));
+    }),
+    prisma().userPropertyAssignment.findMany({
+      where: {
+        workspaceId,
+        userProperty: {
+          name: {
+            in: identifiers,
+          },
+        },
+      },
+      select: {
+        userProperty: {
+          select: {
+            name: true,
+          },
+        },
+        userId: true,
+        value: true,
+      },
+    }),
+  ]);
+  const userIdentifiersMap = userIdentifiers.reduce((acc, curr) => {
+    const userPropertyName = curr.userProperty.name;
+    const ui = acc.get(curr.userId) ?? new Map<string, string>();
+    ui.set(userPropertyName, curr.value);
+    acc.set(curr.userId, ui);
+    return acc;
+  }, new Map<string, Map<string, string>>());
+
+  const assignments: Record<string, string>[] = dbSegmentAssignments.map(
+    (a) => {
+      const csvAssignment: Record<string, string> = {
+        segmentName: a.segment.name,
+        subscriptionGroupName: a.segment.subscriptionGroup?.name ?? "",
+        segmentId: a.segmentId,
+        userId: a.userId,
+        inSegment: a.inSegment.toString(),
+      };
+      const ui = userIdentifiersMap.get(a.userId);
+      ui?.forEach((value, key) => {
+        const parsed = JSON.parse(value);
+        if (typeof parsed === "string" && parsed.length > 0) {
+          csvAssignment[key] = parsed;
+        }
+      });
+      return csvAssignment;
+    }
+  );
   const fileContent = await writeToString(assignments, {
-    headers: downloadCsvHeaders,
+    headers: [...downloadCsvHeaders, ...identifiers],
   });
 
   const formattedDate = format(new Date(), "yyyy-MM-dd");
