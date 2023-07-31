@@ -6166,6 +6166,7 @@ __metadata:
     backend-lib: 0.0.3
     change-case: ^4.1.2
     csv-parser: ^3.0.0
+    date-fns: ^2.29.3
     dotenv: ^16.0.3
     eslint: ^8.43.0
     eslint-config-airbnb-base: ^15.0.0
