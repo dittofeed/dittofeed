@@ -6575,6 +6575,7 @@ __metadata:
     "@typescript-eslint/parser": ^5.60.0
     change-case: ^4.1.2
     cross-spawn: ^7.0.3
+    date-fns: ^2.29.3
     deepmerge: ^4.2.2
     dotenv: ^16.0.3
     escape-html: ^1.0.3
