@@ -1,9 +1,10 @@
-import { Delete } from "@mui/icons-material";
+import { Delete, DownloadForOffline } from "@mui/icons-material";
 import {
   IconButton,
   ListItem,
   ListItemButton,
   ListItemText,
+  Tooltip,
 } from "@mui/material";
 import {
   CompletionStatus,
@@ -141,6 +142,13 @@ export default function SegmentList() {
       ? segmentsRequest.value
       : [];
 
+  const controls = (
+    <Tooltip title="download segments" placement="right" arrow>
+      <IconButton>
+        <DownloadForOffline />
+      </IconButton>
+    </Tooltip>
+  );
   return (
     <>
       <Head>
@@ -152,6 +160,7 @@ export default function SegmentList() {
           <ResourceListContainer
             title="Segments"
             newItemHref={(newItemId) => `/segments/${newItemId}`}
+            controls={controls}
           >
             {segments.length ? (
               <ResourceList>

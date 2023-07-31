@@ -12,7 +12,6 @@ import {
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
-import InfoTooltip from "./infoTooltip";
 
 export function ResourceListItemButton({
   sx,
@@ -58,8 +57,10 @@ export function ResourceListContainer({
   children,
   title,
   newItemHref,
+  controls,
 }: {
   children: React.ReactNode;
+  controls?: React.ReactNode;
   newItemHref: (id: string) => string;
   title: string;
 }) {
@@ -79,18 +80,20 @@ export function ResourceListContainer({
         <Typography sx={{ padding: 1 }} variant="h5">
           {title}
         </Typography>
-        {/* <IconButton></IconButton> */}
-        <Tooltip title="create new" placement="right" arrow>
-          <IconButton
-            LinkComponent={Link}
-            href={href}
-            onClick={() => {
-              setNewItemId(uuid());
-            }}
-          >
-            <AddCircleOutline />
-          </IconButton>
-        </Tooltip>
+        <Stack direction="row" spacing={1}>
+          {controls}
+          <Tooltip title="create new" placement="right" arrow>
+            <IconButton
+              LinkComponent={Link}
+              href={href}
+              onClick={() => {
+                setNewItemId(uuid());
+              }}
+            >
+              <AddCircleOutline />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </Stack>
       {children}
     </Stack>
