@@ -964,7 +964,7 @@ export type WorkspaceId = Static<typeof WorkspaceId>;
 export const UserUploadEmailRow = Type.Intersect([
   Type.Record(Type.String(), Type.String()),
   Type.Object({
-    email: Type.String({ format: "email", minLength: 1 }),
+    email: Type.String({ minLength: 1 }),
   }),
 ]);
 
