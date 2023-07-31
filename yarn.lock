@@ -4961,6 +4961,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/file-saver@npm:^2.0.5":
+  version: 2.0.5
+  resolution: "@types/file-saver@npm:2.0.5"
+  checksum: a31d6ee2abf99598647139f8f35b37b6e1bacf6c7ddf05c66651b9b0e6e53381aa0e8ed13f37faa6e496e0eb1da87c97e6c70fd589d5b83b0c95c57cb64ce92a
+  languageName: node
+  linkType: hard
+
 "@types/generic-pool@npm:^3.1.9":
   version: 3.8.1
   resolution: "@types/generic-pool@npm:3.8.1"
@@ -7747,6 +7754,7 @@ __metadata:
     "@sinclair/typebox": ^0.27.8
     "@types/dagre": ^0.7.49
     "@types/escape-html": ^1.0.2
+    "@types/file-saver": ^2.0.5
     "@types/humanize-duration": ^3.27.1
     "@types/node": 18.11.7
     "@types/react": 18.0.23

@@ -4,7 +4,6 @@ import { format } from "date-fns";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
-import { pick } from "remeda/dist/commonjs/pick";
 
 import prisma from "./prisma";
 import {

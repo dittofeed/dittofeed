@@ -61,6 +61,7 @@
   "devDependencies": {
     "@types/dagre": "^0.7.49",
     "@types/escape-html": "^1.0.2",
+    "@types/file-saver": "^2.0.5",
     "@types/humanize-duration": "^3.27.1",
     "@types/node": "18.11.7",
     "@types/react": "18.0.23",
