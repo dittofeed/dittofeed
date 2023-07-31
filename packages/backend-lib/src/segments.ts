@@ -1,6 +1,9 @@
+import { writeToString } from "@fast-csv/format";
 import { ValueError } from "@sinclair/typebox/errors";
+import { format } from "date-fns";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+import { pick } from "remeda/dist/commonjs/pick";
 
 import prisma from "./prisma";
 import {
@@ -155,4 +158,38 @@ export function segmentHasBroadcast(definition: SegmentDefinition): boolean {
     }
   }
   return false;
+}
+
+// TODO use pagination, and blob store
+export async function buildSegmentsFile({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<{
+  fileName: string;
+  fileContent: string;
+}> {
+  const dbAssignments = await prisma().segmentAssignment.findMany({
+    where: { workspaceId },
+    include: {
+      segment: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+  const assignments = dbAssignments.map((a) => ({
+    segmentName: a.segment.name,
+    ...pick(a, ["segmentId", "userId", "inSegment"]),
+  }));
+  const fileContent = await writeToString(assignments, { headers: true });
+
+  const formattedDate = format(new Date(), "yyyy-MM-dd");
+  const fileName = `segment-assignments-${formattedDate}.csv`;
+
+  return {
+    fileName,
+    fileContent,
+  };
 }
