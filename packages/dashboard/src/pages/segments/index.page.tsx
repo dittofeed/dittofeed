@@ -1,12 +1,9 @@
-import { AddCircleOutline, Delete } from "@mui/icons-material";
+import { Delete } from "@mui/icons-material";
 import {
   IconButton,
-  List,
   ListItem,
   ListItemButton,
   ListItemText,
-  Stack,
-  Typography,
 } from "@mui/material";
 import {
   CompletionStatus,
@@ -17,9 +14,13 @@ import {
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { v4 as uuid } from "uuid";
+import { pick } from "remeda/dist/commonjs/pick";
 
-import MainLayout from "../../components/mainLayout";
+import DashboardContent from "../../components/dashboardContent";
+import {
+  ResourceList,
+  ResourceListContainer,
+} from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
@@ -131,59 +132,15 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
   );
 }
 
-function SegmentListContents() {
-  const path = useRouter();
-  const segmentsResult = useAppStore((store) => store.segments);
+export default function SegmentList() {
+  const { segments: segmentsRequest } = useAppStore((store) =>
+    pick(store, ["segments"])
+  );
   const segments =
-    segmentsResult.type === CompletionStatus.Successful
-      ? segmentsResult.value
+    segmentsRequest.type === CompletionStatus.Successful
+      ? segmentsRequest.value
       : [];
 
-  let innerContents;
-  if (segments.length) {
-    innerContents = (
-      <List
-        sx={{
-          width: "100%",
-          bgcolor: "background.paper",
-          borderRadius: 1,
-        }}
-      >
-        {segments.map((segment) => (
-          <SegmentItem segment={segment} key={segment.id} />
-        ))}
-      </List>
-    );
-  } else {
-    innerContents = null;
-  }
-
-  return (
-    <Stack
-      sx={{
-        padding: 1,
-        width: "100%",
-        maxWidth: "40rem",
-      }}
-      spacing={2}
-    >
-      <Stack direction="row" justifyContent="space-between">
-        <Typography sx={{ padding: 1 }} variant="h5">
-          Segments
-        </Typography>
-        <IconButton
-          onClick={() => {
-            path.push(`/segments/${uuid()}`);
-          }}
-        >
-          <AddCircleOutline />
-        </IconButton>
-      </Stack>
-      {innerContents}
-    </Stack>
-  );
-}
-export default function SegmentList() {
   return (
     <>
       <Head>
@@ -191,9 +148,20 @@ export default function SegmentList() {
         <meta name="description" content="Open Source Customer Engagement" />
       </Head>
       <main>
-        <MainLayout>
-          <SegmentListContents />
-        </MainLayout>
+        <DashboardContent>
+          <ResourceListContainer
+            title="Segments"
+            newItemHref={(newItemId) => `/segments/${newItemId}`}
+          >
+            {segments.length ? (
+              <ResourceList>
+                {segments.map((segment) => (
+                  <SegmentItem key={segment.id} segment={segment} />
+                ))}
+              </ResourceList>
+            ) : null}
+          </ResourceListContainer>
+        </DashboardContent>
       </main>
     </>
   );
