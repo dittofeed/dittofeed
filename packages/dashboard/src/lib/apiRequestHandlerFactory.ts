@@ -11,6 +11,7 @@ import { enqueueSnackbar } from "notistack";
 import { noticeAnchorOrigin } from "./notices";
 
 /**
+ * handler for api requests, but downloads file instead of setting a response
  * @param param0
  * @returns
  */
