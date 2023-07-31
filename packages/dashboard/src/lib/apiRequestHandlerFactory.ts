@@ -9,6 +9,65 @@ import { enqueueSnackbar } from "notistack";
 
 import { noticeAnchorOrigin } from "./notices";
 
+/**
+ * Useful for constructing handlers where the response does not need to be parsed.
+ * @param param0
+ * @returns
+ */
+export function emptyFactory<D>({
+  request,
+  requestConfig,
+  setRequest,
+  onFailureNoticeHandler,
+  onSuccessNotice,
+}: {
+  requestConfig: AxiosRequestConfig<D>;
+  request: EphemeralRequestStatus<Error>;
+  onSuccessNotice?: string;
+  onFailureNoticeHandler?: (e: Error) => string;
+  setRequest: (request: EphemeralRequestStatus<Error>) => void;
+}) {
+  return async function apiRequestHandler() {
+    if (request.type === CompletionStatus.InProgress) {
+      return;
+    }
+
+    setRequest({
+      type: CompletionStatus.InProgress,
+    });
+    try {
+      await axios(requestConfig);
+    } catch (e) {
+      const error = e as Error;
+
+      setRequest({
+        type: CompletionStatus.Failed,
+        error,
+      });
+
+      if (onFailureNoticeHandler) {
+        enqueueSnackbar(onFailureNoticeHandler(error), {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
+      }
+      return;
+    }
+    setRequest({
+      type: CompletionStatus.NotStarted,
+    });
+
+    if (onSuccessNotice) {
+      enqueueSnackbar(onSuccessNotice, {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    }
+  };
+}
+
 export default function apiRequestHandlerFactory<D, S extends TSchema>({
   request,
   requestConfig,

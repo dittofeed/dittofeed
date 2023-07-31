@@ -1,11 +1,6 @@
 import { Delete, DownloadForOffline } from "@mui/icons-material";
-import {
-  IconButton,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Tooltip,
-} from "@mui/material";
+import { LoadingButton } from "@mui/lab";
+import { IconButton, ListItem, ListItemText, Tooltip } from "@mui/material";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
@@ -14,16 +9,18 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
-import { useRouter } from "next/router";
 import { pick } from "remeda/dist/commonjs/pick";
 
 import DashboardContent from "../../components/dashboardContent";
 import {
   ResourceList,
   ResourceListContainer,
+  ResourceListItemButton,
 } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
+import apiRequestHandlerFactory, {
+  emptyFactory,
+} from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
@@ -67,15 +64,19 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 function SegmentItem({ segment }: { segment: SegmentResource }) {
-  const path = useRouter();
-  const setSegmentDeleteRequest = useAppStore(
-    (store) => store.setSegmentDeleteRequest
+  const {
+    setSegmentDeleteRequest,
+    apiBase,
+    segmentDeleteRequest,
+    deleteSegment,
+  } = useAppStore((store) =>
+    pick(store, [
+      "setSegmentDeleteRequest",
+      "apiBase",
+      "segmentDeleteRequest",
+      "deleteSegment",
+    ])
   );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const segmentDeleteRequest = useAppStore(
-    (store) => store.segmentDeleteRequest
-  );
-  const deleteSegment = useAppStore((store) => store.deleteSegment);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
@@ -115,38 +116,71 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
         </IconButton>
       }
     >
-      <ListItemButton
-        sx={{
-          border: 1,
-          borderTopLeftRadius: 1,
-          borderBottomLeftRadius: 1,
-          borderColor: "grey.200",
-        }}
-        onClick={() => {
-          // TODO use next/link
-          path.push(`/segments/${segment.id}`);
-        }}
-      >
-        <ListItemText primary={segment.name} />
-      </ListItemButton>
+      <ResourceListItemButton href={`/dashboard/segments/${segment.id}`}>
+        <ListItemText>{segment.name}</ListItemText>
+      </ResourceListItemButton>
     </ListItem>
   );
 }
 
 export default function SegmentList() {
-  const { segments: segmentsRequest } = useAppStore((store) =>
-    pick(store, ["segments"])
+  const {
+    segments: segmentsRequest,
+    segmentDownloadRequest,
+    setSegmentDownloadRequest,
+    workspace: workspaceRequest,
+    apiBase,
+  } = useAppStore((store) =>
+    pick(store, [
+      "segments",
+      "segmentDownloadRequest",
+      "setSegmentDownloadRequest",
+      "apiBase",
+      "workspace",
+    ])
   );
   const segments =
     segmentsRequest.type === CompletionStatus.Successful
       ? segmentsRequest.value
       : [];
+  const workspace =
+    workspaceRequest.type === CompletionStatus.Successful
+      ? workspaceRequest.value
+      : null;
 
+  if (!workspace) {
+    console.error("No workspace found");
+    return null;
+  }
+
+  const handleDownload = emptyFactory({
+    request: segmentDownloadRequest,
+    setRequest: setSegmentDownloadRequest,
+    onSuccessNotice: `Downloaded user segment assignments.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to download user segment assignments.`,
+    requestConfig: {
+      method: "GET",
+      url: `${apiBase}/api/segments/download`,
+      params: {
+        workspaceId: workspace.id,
+      },
+    },
+  });
+  // const controls = (
+  //   <Tooltip title="download segments" placement="right" arrow>
+  //     <IconButton onClick={handleDownload}>
+  //       <DownloadForOffline />
+  //     </IconButton>
+  //   </Tooltip>
+  // );
   const controls = (
-    <Tooltip title="download segments" placement="right" arrow>
-      <IconButton>
-        <DownloadForOffline />
-      </IconButton>
+    <Tooltip title="download user segments" placement="right" arrow>
+      <LoadingButton
+        loading={segmentDownloadRequest.type === CompletionStatus.InProgress}
+        startIcon={<DownloadForOffline />}
+        onClick={handleDownload}
+      />
     </Tooltip>
   );
   return (

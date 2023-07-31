@@ -277,6 +277,10 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
 
+        segmentDownloadRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+
         upsertSegment: (segment) =>
           set((state) => {
             let { segments } = state;
@@ -311,6 +315,11 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setSegmentDeleteRequest: (request) =>
           set((state) => {
             state.segmentDeleteRequest = request;
+          }),
+
+        setSegmentDownloadRequest: (request) =>
+          set((state) => {
+            state.segmentDownloadRequest = request;
           }),
 
         // journey index view
