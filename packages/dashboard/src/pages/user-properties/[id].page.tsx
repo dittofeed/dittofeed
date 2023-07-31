@@ -120,7 +120,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     ]);
 
     let userPropertyResource: UserPropertyResource;
-    if (userProperty) {
+    if (userProperty && userProperty.workspaceId === workspaceId) {
       const definition = unwrap(
         schemaValidate(userProperty.definition, UserPropertyDefinition)
       );

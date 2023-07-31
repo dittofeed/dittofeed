@@ -60,7 +60,7 @@ const getSegmentServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
 
     let segmentResource: SegmentResource;
-    if (segment) {
+    if (segment && segment.workspaceId === workspaceId) {
       const segmentDefinition = unwrap(
         schemaValidate(segment.definition, SegmentDefinition)
       );

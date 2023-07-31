@@ -79,7 +79,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       ),
     };
 
-    if (emailMessage) {
+    if (emailMessage && emailMessage.workspaceId === workspaceId) {
       const { from, subject, body, name, replyTo } = emailMessage;
       Object.assign(serverInitialState, {
         emailMessageTitle: name,
