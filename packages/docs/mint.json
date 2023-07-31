@@ -103,6 +103,7 @@
           "group": "Segment Nodes",
           "pages": [
             "resources/segment-nodes/trait",
+            "resources/segment-nodes/performed",
             "resources/segment-nodes/and",
             "resources/segment-nodes/or",
             "resources/segment-nodes/subscription-group",
