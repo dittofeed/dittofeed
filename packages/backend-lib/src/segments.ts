@@ -160,7 +160,13 @@ export function segmentHasBroadcast(definition: SegmentDefinition): boolean {
   return false;
 }
 
-const downloadCsvHeaders = ["segmentName", "segmentId", "userId", "inSegment"];
+const downloadCsvHeaders = [
+  "segmentName",
+  "segmentId",
+  "userId",
+  "inSegment",
+  "subscriptionGroupName",
+];
 
 // TODO use pagination, and blob store
 export async function buildSegmentsFile({
@@ -171,18 +177,25 @@ export async function buildSegmentsFile({
   fileName: string;
   fileContent: string;
 }> {
+  // FIXME add email
   const dbAssignments = await prisma().segmentAssignment.findMany({
     where: { workspaceId },
     include: {
       segment: {
         select: {
           name: true,
+          subscriptionGroup: {
+            select: {
+              name: true,
+            },
+          },
         },
       },
     },
   });
   const assignments = dbAssignments.map((a) => ({
     segmentName: a.segment.name,
+    subscriptionGroupName: a.segment.subscriptionGroup?.name ?? "",
     ...pick(a, ["segmentId", "userId", "inSegment"]),
   }));
   const fileContent = await writeToString(assignments, {
