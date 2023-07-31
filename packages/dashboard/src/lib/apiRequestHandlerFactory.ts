@@ -1,5 +1,6 @@
 import { Static, TSchema } from "@sinclair/typebox";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import FileSaver from "file-saver";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
@@ -10,11 +11,10 @@ import { enqueueSnackbar } from "notistack";
 import { noticeAnchorOrigin } from "./notices";
 
 /**
- * Useful for constructing handlers where the response does not need to be parsed.
  * @param param0
  * @returns
  */
-export function emptyFactory<D>({
+export function downloadFileFactory<D>({
   request,
   requestConfig,
   setRequest,
@@ -36,7 +36,21 @@ export function emptyFactory<D>({
       type: CompletionStatus.InProgress,
     });
     try {
-      await axios(requestConfig);
+      const response = await axios(requestConfig);
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = "output.csv"; // Default filename
+
+      if (contentDisposition) {
+        // Extract filename from Content-Disposition header
+        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+        const matches = filenameRegex.exec(contentDisposition);
+        if (matches?.[1]) {
+          filename = matches[1].replace(/['"]/g, "");
+        }
+      }
+
+      const blob = new Blob([response.data], { type: "text/csv" });
+      FileSaver.saveAs(blob, filename);
     } catch (e) {
       const error = e as Error;
 

@@ -19,7 +19,7 @@ import {
 } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory, {
-  emptyFactory,
+  downloadFileFactory,
 } from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
@@ -153,7 +153,7 @@ export default function SegmentList() {
     return null;
   }
 
-  const handleDownload = emptyFactory({
+  const handleDownload = downloadFileFactory({
     request: segmentDownloadRequest,
     setRequest: setSegmentDownloadRequest,
     onSuccessNotice: `Downloaded user segment assignments.`,
@@ -167,13 +167,7 @@ export default function SegmentList() {
       },
     },
   });
-  // const controls = (
-  //   <Tooltip title="download segments" placement="right" arrow>
-  //     <IconButton onClick={handleDownload}>
-  //       <DownloadForOffline />
-  //     </IconButton>
-  //   </Tooltip>
-  // );
+
   const controls = (
     <Tooltip title="download user segments" placement="right" arrow>
       <LoadingButton

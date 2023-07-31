@@ -160,6 +160,8 @@ export function segmentHasBroadcast(definition: SegmentDefinition): boolean {
   return false;
 }
 
+const downloadCsvHeaders = ["segmentName", "segmentId", "userId", "inSegment"];
+
 // TODO use pagination, and blob store
 export async function buildSegmentsFile({
   workspaceId,
@@ -183,7 +185,9 @@ export async function buildSegmentsFile({
     segmentName: a.segment.name,
     ...pick(a, ["segmentId", "userId", "inSegment"]),
   }));
-  const fileContent = await writeToString(assignments, { headers: true });
+  const fileContent = await writeToString(assignments, {
+    headers: downloadCsvHeaders,
+  });
 
   const formattedDate = format(new Date(), "yyyy-MM-dd");
   const fileName = `segment-assignments-${formattedDate}.csv`;

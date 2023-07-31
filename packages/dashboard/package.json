@@ -32,6 +32,7 @@
     "dagre": "^0.8.5",
     "date-fns": "^2.29.3",
     "escape-html": "^1.0.3",
+    "file-saver": "^2.0.5",
     "fnv1a": "^1.1.1",
     "humanize-duration": "^3.27.3",
     "immer": "^9.0.16",
