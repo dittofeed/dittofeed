@@ -564,10 +564,10 @@ export const SegmentResource = Type.Object({
 
 export type SegmentResource = Static<typeof SegmentResource>;
 
-export const UpsertSubscriptionGroupResource = Type.Intersect([
-  Type.Omit(SubscriptionGroupResource, ["id"]),
-  Type.Pick(Type.Partial(SubscriptionGroupResource), ["id"]),
-]);
+export const UpsertSubscriptionGroupResource = Type.Omit(
+  SubscriptionGroupResource,
+  ["createdAt"]
+);
 
 export type UpsertSubscriptionGroupResource = Static<
   typeof UpsertSubscriptionGroupResource

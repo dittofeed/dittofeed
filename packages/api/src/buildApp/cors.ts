@@ -9,6 +9,7 @@ const cors = fp(async (fastify: FastifyInstance) => {
     origin: "*",
     methods: "*",
     allowedHeaders: "*",
+    exposedHeaders: ["Content-Disposition"],
   });
 });
 export default cors;

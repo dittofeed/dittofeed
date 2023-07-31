@@ -1,6 +1,7 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { Type } from "@sinclair/typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
-import { upsertSegment } from "backend-lib/src/segments";
+import { buildSegmentsFile, upsertSegment } from "backend-lib/src/segments";
 import { submitBroadcast } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import {
@@ -121,6 +122,32 @@ export default async function segmentsController(fastify: FastifyInstance) {
         createdAt: broadcast.createdAt.getTime(),
       };
       return reply.status(200).send(resource);
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/download",
+    {
+      schema: {
+        description: "Download a csv containing segment assignments.",
+        querystring: Type.Object({
+          workspaceId: Type.String(),
+        }),
+        200: {
+          type: "string",
+          format: "binary",
+        },
+      },
+    },
+
+    async (request, reply) => {
+      const { fileName, fileContent } = await buildSegmentsFile({
+        workspaceId: request.query.workspaceId,
+      });
+      return reply
+        .header("Content-Disposition", `attachment; filename=${fileName}`)
+        .type("text/csv")
+        .send(fileContent);
     }
   );
 }

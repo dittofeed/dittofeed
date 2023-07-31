@@ -1,4 +1,7 @@
+import { writeToString } from "@fast-csv/format";
 import { ValueError } from "@sinclair/typebox/errors";
+import { format } from "date-fns";
+import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
@@ -155,4 +158,98 @@ export function segmentHasBroadcast(definition: SegmentDefinition): boolean {
     }
   }
   return false;
+}
+
+const downloadCsvHeaders = [
+  "segmentName",
+  "segmentId",
+  "userId",
+  "inSegment",
+  "subscriptionGroupName",
+];
+
+// TODO use pagination, and blob store
+export async function buildSegmentsFile({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<{
+  fileName: string;
+  fileContent: string;
+}> {
+  const identifiers = Object.values(CHANNEL_IDENTIFIERS);
+  const [dbSegmentAssignments, userIdentifiers] = await Promise.all([
+    prisma().segmentAssignment.findMany({
+      where: { workspaceId },
+      include: {
+        segment: {
+          select: {
+            name: true,
+            subscriptionGroup: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma().userPropertyAssignment.findMany({
+      where: {
+        workspaceId,
+        userProperty: {
+          name: {
+            in: identifiers,
+          },
+        },
+      },
+      select: {
+        userProperty: {
+          select: {
+            name: true,
+          },
+        },
+        userId: true,
+        value: true,
+      },
+    }),
+  ]);
+  const userIdentifiersMap = userIdentifiers.reduce((acc, curr) => {
+    const userPropertyName = curr.userProperty.name;
+    const ui = acc.get(curr.userId) ?? new Map<string, string>();
+    ui.set(userPropertyName, curr.value);
+    acc.set(curr.userId, ui);
+    return acc;
+  }, new Map<string, Map<string, string>>());
+
+  const assignments: Record<string, string>[] = dbSegmentAssignments.map(
+    (a) => {
+      const csvAssignment: Record<string, string> = {
+        segmentName: a.segment.name,
+        subscriptionGroupName: a.segment.subscriptionGroup?.name ?? "",
+        segmentId: a.segmentId,
+        userId: a.userId,
+        inSegment: a.inSegment.toString(),
+      };
+      const ui = userIdentifiersMap.get(a.userId);
+      ui?.forEach((value, key) => {
+        const parsed = JSON.parse(value);
+        if (typeof parsed === "string" && parsed.length > 0) {
+          csvAssignment[key] = parsed;
+        }
+      });
+      return csvAssignment;
+    }
+  );
+  const fileContent = await writeToString(assignments, {
+    headers: [...downloadCsvHeaders, ...identifiers],
+  });
+
+  const formattedDate = format(new Date(), "yyyy-MM-dd");
+  const fileName = `segment-assignments-${formattedDate}.csv`;
+
+  return {
+    fileName,
+    fileContent,
+  };
 }

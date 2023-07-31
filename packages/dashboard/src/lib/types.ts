@@ -118,6 +118,8 @@ export interface AppActions {
 export interface SegmentIndexContent {
   segmentDeleteRequest: EphemeralRequestStatus<Error>;
   setSegmentDeleteRequest: (request: EphemeralRequestStatus<Error>) => void;
+  segmentDownloadRequest: EphemeralRequestStatus<Error>;
+  setSegmentDownloadRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
 export interface UserPropertyIndexContent {

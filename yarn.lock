@@ -934,6 +934,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fast-csv/format@npm:^4.3.5":
+  version: 4.3.5
+  resolution: "@fast-csv/format@npm:4.3.5"
+  dependencies:
+    "@types/node": ^14.0.1
+    lodash.escaperegexp: ^4.1.2
+    lodash.isboolean: ^3.0.3
+    lodash.isequal: ^4.5.0
+    lodash.isfunction: ^3.0.9
+    lodash.isnil: ^4.0.0
+  checksum: 36d5fb76c26179bd1718dffd49fc88f4ab62675464d7ec44c5f1de55b8c454ecdf3faf84fe291df934832233f531d24c810a71cc0c390c7c4df09685d614c65b
+  languageName: node
+  linkType: hard
+
 "@fastify/accept-negotiator@npm:^1.0.0":
   version: 1.1.0
   resolution: "@fastify/accept-negotiator@npm:1.1.0"
@@ -4947,6 +4961,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/file-saver@npm:^2.0.5":
+  version: 2.0.5
+  resolution: "@types/file-saver@npm:2.0.5"
+  checksum: a31d6ee2abf99598647139f8f35b37b6e1bacf6c7ddf05c66651b9b0e6e53381aa0e8ed13f37faa6e496e0eb1da87c97e6c70fd589d5b83b0c95c57cb64ce92a
+  languageName: node
+  linkType: hard
+
 "@types/generic-pool@npm:^3.1.9":
   version: 3.8.1
   resolution: "@types/generic-pool@npm:3.8.1"
@@ -5318,6 +5339,13 @@ __metadata:
   version: 18.11.7
   resolution: "@types/node@npm:18.11.7"
   checksum: 69d630825cf6fbf580d08d76a4d4836ef8c34ed4fe0842221ade87d275f517099cbfabe8e22397208e564bd24926db97699ab9db5c091383269a432b336665e2
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^14.0.1":
+  version: 14.18.54
+  resolution: "@types/node@npm:14.18.54"
+  checksum: 9fd66f91fcd8e9b25067f784a9c60bd710ef86a89c838c131ab2b1921398adc53b1c70d741bceed48bb2403b75c434b1bbbb255240773819cde36295c4b6abf1
   languageName: node
   linkType: hard
 
@@ -6166,6 +6194,7 @@ __metadata:
     backend-lib: 0.0.3
     change-case: ^4.1.2
     csv-parser: ^3.0.0
+    date-fns: ^2.29.3
     dotenv: ^16.0.3
     eslint: ^8.43.0
     eslint-config-airbnb-base: ^15.0.0
@@ -6545,6 +6574,7 @@ __metadata:
   resolution: "backend-lib@workspace:packages/backend-lib"
   dependencies:
     "@clickhouse/client": ^0.0.10
+    "@fast-csv/format": ^4.3.5
     "@opentelemetry/api": ^1.4.1
     "@opentelemetry/auto-instrumentations-node": ^0.37.0
     "@opentelemetry/exporter-metrics-otlp-grpc": ^0.38.0
@@ -6575,6 +6605,7 @@ __metadata:
     "@typescript-eslint/parser": ^5.60.0
     change-case: ^4.1.2
     cross-spawn: ^7.0.3
+    date-fns: ^2.29.3
     deepmerge: ^4.2.2
     dotenv: ^16.0.3
     escape-html: ^1.0.3
@@ -7723,6 +7754,7 @@ __metadata:
     "@sinclair/typebox": ^0.27.8
     "@types/dagre": ^0.7.49
     "@types/escape-html": ^1.0.2
+    "@types/file-saver": ^2.0.5
     "@types/humanize-duration": ^3.27.1
     "@types/node": 18.11.7
     "@types/react": 18.0.23
@@ -7747,6 +7779,7 @@ __metadata:
     eslint-plugin-react: ^7.32.2
     eslint-plugin-react-hooks: ^4.6.0
     eslint-plugin-simple-import-sort: ^10.0.0
+    file-saver: ^2.0.5
     fnv1a: ^1.1.1
     humanize-duration: ^3.27.3
     immer: ^9.0.16
@@ -9361,6 +9394,13 @@ __metadata:
   dependencies:
     flat-cache: ^3.0.4
   checksum: f49701feaa6314c8127c3c2f6173cfefff17612f5ed2daaafc6da13b5c91fd43e3b2a58fd0d63f9f94478a501b167615931e7200e31485e320f74a33885a9c74
+  languageName: node
+  linkType: hard
+
+"file-saver@npm:^2.0.5":
+  version: 2.0.5
+  resolution: "file-saver@npm:2.0.5"
+  checksum: c62d96e5cebc58b4bdf3ae8a60d5cf9607ad82f75f798c33a4ee63435ac2203002584d5256a2a780eda7feb5e19dc3b6351c2212e58b3f529e63d265a7cc79f7
   languageName: node
   linkType: hard
 
@@ -11895,6 +11935,41 @@ __metadata:
   version: 4.0.8
   resolution: "lodash.debounce@npm:4.0.8"
   checksum: a3f527d22c548f43ae31c861ada88b2637eb48ac6aa3eb56e82d44917971b8aa96fbb37aa60efea674dc4ee8c42074f90f7b1f772e9db375435f6c83a19b3bc6
+  languageName: node
+  linkType: hard
+
+"lodash.escaperegexp@npm:^4.1.2":
+  version: 4.1.2
+  resolution: "lodash.escaperegexp@npm:4.1.2"
+  checksum: 6d99452b1cfd6073175a9b741a9b09ece159eac463f86f02ea3bee2e2092923fce812c8d2bf446309cc52d1d61bf9af51c8118b0d7421388e6cead7bd3798f0f
+  languageName: node
+  linkType: hard
+
+"lodash.isboolean@npm:^3.0.3":
+  version: 3.0.3
+  resolution: "lodash.isboolean@npm:3.0.3"
+  checksum: b70068b4a8b8837912b54052557b21fc4774174e3512ed3c5b94621e5aff5eb6c68089d0a386b7e801d679cd105d2e35417978a5e99071750aa2ed90bffd0250
+  languageName: node
+  linkType: hard
+
+"lodash.isequal@npm:^4.5.0":
+  version: 4.5.0
+  resolution: "lodash.isequal@npm:4.5.0"
+  checksum: da27515dc5230eb1140ba65ff8de3613649620e8656b19a6270afe4866b7bd461d9ba2ac8a48dcc57f7adac4ee80e1de9f965d89d4d81a0ad52bb3eec2609644
+  languageName: node
+  linkType: hard
+
+"lodash.isfunction@npm:^3.0.9":
+  version: 3.0.9
+  resolution: "lodash.isfunction@npm:3.0.9"
+  checksum: 99e54c34b1e8a9ba75c034deb39cedbd2aca7af685815e67a2a8ec4f73ec9748cda6ebee5a07d7de4b938e90d421fd280e9c385cc190f903ac217ac8aff30314
+  languageName: node
+  linkType: hard
+
+"lodash.isnil@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "lodash.isnil@npm:4.0.0"
+  checksum: ebf8df69879badd6ad99c4f64c54c470248df5cf92b208ca730861b1d8ac058da7b632ac811d18b0929d93cbac8d8fc866e781ee816b0142c56952e85edc682f
   languageName: node
   linkType: hard
 

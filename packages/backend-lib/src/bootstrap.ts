@@ -4,6 +4,7 @@ import {
   DEBUG_USER_ID1,
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
+import { v5 as uuidv5 } from "uuid";
 
 import { segmentIdentifyEvent } from "../test/factories/segment";
 import { createWriteKey } from "./auth";
@@ -185,12 +186,14 @@ async function bootstrapPostgres({
   await Promise.all([
     upsertSubscriptionGroup({
       workspaceId,
+      id: uuidv5("email-subscription-group", workspaceId),
       name: `${workspaceName} - Email`,
       type: SubscriptionGroupType.OptOut,
       channel: ChannelType.Email,
     }),
     upsertSubscriptionGroup({
       workspaceId,
+      id: uuidv5("mobile-push-subscription-group", workspaceId),
       name: `${workspaceName} - Mobile Push`,
       type: SubscriptionGroupType.OptOut,
       channel: ChannelType.MobilePush,

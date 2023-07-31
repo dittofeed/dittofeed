@@ -1,13 +1,6 @@
-import { AddCircleOutline, Delete } from "@mui/icons-material";
-import {
-  IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Delete, DownloadForOffline } from "@mui/icons-material";
+import { LoadingButton } from "@mui/lab";
+import { IconButton, ListItem, ListItemText, Tooltip } from "@mui/material";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
@@ -16,12 +9,18 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
-import { useRouter } from "next/router";
-import { v4 as uuid } from "uuid";
+import { pick } from "remeda/dist/commonjs/pick";
 
-import MainLayout from "../../components/mainLayout";
+import DashboardContent from "../../components/dashboardContent";
+import {
+  ResourceList,
+  ResourceListContainer,
+  ResourceListItemButton,
+} from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
+import apiRequestHandlerFactory, {
+  downloadFileFactory,
+} from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
@@ -65,15 +64,19 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 function SegmentItem({ segment }: { segment: SegmentResource }) {
-  const path = useRouter();
-  const setSegmentDeleteRequest = useAppStore(
-    (store) => store.setSegmentDeleteRequest
+  const {
+    setSegmentDeleteRequest,
+    apiBase,
+    segmentDeleteRequest,
+    deleteSegment,
+  } = useAppStore((store) =>
+    pick(store, [
+      "setSegmentDeleteRequest",
+      "apiBase",
+      "segmentDeleteRequest",
+      "deleteSegment",
+    ])
   );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const segmentDeleteRequest = useAppStore(
-    (store) => store.segmentDeleteRequest
-  );
-  const deleteSegment = useAppStore((store) => store.deleteSegment);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
@@ -113,77 +116,67 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
         </IconButton>
       }
     >
-      <ListItemButton
-        sx={{
-          border: 1,
-          borderTopLeftRadius: 1,
-          borderBottomLeftRadius: 1,
-          borderColor: "grey.200",
-        }}
-        onClick={() => {
-          // TODO use next/link
-          path.push(`/segments/${segment.id}`);
-        }}
-      >
-        <ListItemText primary={segment.name} />
-      </ListItemButton>
+      <ResourceListItemButton href={`/dashboard/segments/${segment.id}`}>
+        <ListItemText>{segment.name}</ListItemText>
+      </ResourceListItemButton>
     </ListItem>
   );
 }
 
-function SegmentListContents() {
-  const path = useRouter();
-  const segmentsResult = useAppStore((store) => store.segments);
+export default function SegmentList() {
+  const {
+    segments: segmentsRequest,
+    segmentDownloadRequest,
+    setSegmentDownloadRequest,
+    workspace: workspaceRequest,
+    apiBase,
+  } = useAppStore((store) =>
+    pick(store, [
+      "segments",
+      "segmentDownloadRequest",
+      "setSegmentDownloadRequest",
+      "apiBase",
+      "workspace",
+    ])
+  );
   const segments =
-    segmentsResult.type === CompletionStatus.Successful
-      ? segmentsResult.value
+    segmentsRequest.type === CompletionStatus.Successful
+      ? segmentsRequest.value
       : [];
+  const workspace =
+    workspaceRequest.type === CompletionStatus.Successful
+      ? workspaceRequest.value
+      : null;
 
-  let innerContents;
-  if (segments.length) {
-    innerContents = (
-      <List
-        sx={{
-          width: "100%",
-          bgcolor: "background.paper",
-          borderRadius: 1,
-        }}
-      >
-        {segments.map((segment) => (
-          <SegmentItem segment={segment} key={segment.id} />
-        ))}
-      </List>
-    );
-  } else {
-    innerContents = null;
+  if (!workspace) {
+    console.error("No workspace found");
+    return null;
   }
 
-  return (
-    <Stack
-      sx={{
-        padding: 1,
-        width: "100%",
-        maxWidth: "40rem",
-      }}
-      spacing={2}
-    >
-      <Stack direction="row" justifyContent="space-between">
-        <Typography sx={{ padding: 1 }} variant="h5">
-          Segments
-        </Typography>
-        <IconButton
-          onClick={() => {
-            path.push(`/segments/${uuid()}`);
-          }}
-        >
-          <AddCircleOutline />
-        </IconButton>
-      </Stack>
-      {innerContents}
-    </Stack>
+  const handleDownload = downloadFileFactory({
+    request: segmentDownloadRequest,
+    setRequest: setSegmentDownloadRequest,
+    onSuccessNotice: `Downloaded user segment assignments.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to download user segment assignments.`,
+    requestConfig: {
+      method: "GET",
+      url: `${apiBase}/api/segments/download`,
+      params: {
+        workspaceId: workspace.id,
+      },
+    },
+  });
+
+  const controls = (
+    <Tooltip title="download user segments" placement="right" arrow>
+      <LoadingButton
+        loading={segmentDownloadRequest.type === CompletionStatus.InProgress}
+        startIcon={<DownloadForOffline />}
+        onClick={handleDownload}
+      />
+    </Tooltip>
   );
-}
-export default function SegmentList() {
   return (
     <>
       <Head>
@@ -191,9 +184,21 @@ export default function SegmentList() {
         <meta name="description" content="Open Source Customer Engagement" />
       </Head>
       <main>
-        <MainLayout>
-          <SegmentListContents />
-        </MainLayout>
+        <DashboardContent>
+          <ResourceListContainer
+            title="Segments"
+            newItemHref={(newItemId) => `/segments/${newItemId}`}
+            controls={controls}
+          >
+            {segments.length ? (
+              <ResourceList>
+                {segments.map((segment) => (
+                  <SegmentItem key={segment.id} segment={segment} />
+                ))}
+              </ResourceList>
+            ) : null}
+          </ResourceListContainer>
+        </DashboardContent>
       </main>
     </>
   );

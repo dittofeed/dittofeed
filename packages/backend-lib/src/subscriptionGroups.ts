@@ -1,9 +1,4 @@
-import {
-  Prisma,
-  Segment,
-  SegmentAssignment,
-  SubscriptionGroup,
-} from "@prisma/client";
+import { Segment, SegmentAssignment, SubscriptionGroup } from "@prisma/client";
 import {
   SUBSCRIPTION_MANAGEMENT_PAGE,
   SUBSCRIPTION_SECRET_NAME,
@@ -77,19 +72,10 @@ export async function upsertSubscriptionGroup({
   channel,
 }: UpsertSubscriptionGroupResource): Promise<Result<SubscriptionGroup, Error>> {
   const sg = await prisma().$transaction(async (tx) => {
-    const where: Prisma.SubscriptionGroupUpsertArgs["where"] = id
-      ? {
-          id,
-        }
-      : {
-          workspaceId_name: {
-            workspaceId,
-            name,
-          },
-        };
-
     const subscriptionGroup = await tx.subscriptionGroup.upsert({
-      where,
+      where: {
+        id,
+      },
       create: {
         name,
         type,

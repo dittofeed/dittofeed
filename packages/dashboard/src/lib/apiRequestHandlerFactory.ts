@@ -1,5 +1,6 @@
 import { Static, TSchema } from "@sinclair/typebox";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import FileSaver from "file-saver";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
@@ -8,6 +9,79 @@ import {
 import { enqueueSnackbar } from "notistack";
 
 import { noticeAnchorOrigin } from "./notices";
+
+/**
+ * handler for api requests, but downloads file instead of setting a response
+ * @param param0
+ * @returns
+ */
+export function downloadFileFactory<D>({
+  request,
+  requestConfig,
+  setRequest,
+  onFailureNoticeHandler,
+  onSuccessNotice,
+}: {
+  requestConfig: AxiosRequestConfig<D>;
+  request: EphemeralRequestStatus<Error>;
+  onSuccessNotice?: string;
+  onFailureNoticeHandler?: (e: Error) => string;
+  setRequest: (request: EphemeralRequestStatus<Error>) => void;
+}) {
+  return async function apiRequestHandler() {
+    if (request.type === CompletionStatus.InProgress) {
+      return;
+    }
+
+    setRequest({
+      type: CompletionStatus.InProgress,
+    });
+    try {
+      const response = await axios(requestConfig);
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = "output.csv"; // Default filename
+
+      if (contentDisposition) {
+        // Extract filename from Content-Disposition header
+        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+        const matches = filenameRegex.exec(contentDisposition);
+        if (matches?.[1]) {
+          filename = matches[1].replace(/['"]/g, "");
+        }
+      }
+
+      const blob = new Blob([response.data], { type: "text/csv" });
+      FileSaver.saveAs(blob, filename);
+    } catch (e) {
+      const error = e as Error;
+
+      setRequest({
+        type: CompletionStatus.Failed,
+        error,
+      });
+
+      if (onFailureNoticeHandler) {
+        enqueueSnackbar(onFailureNoticeHandler(error), {
+          variant: "error",
+          autoHideDuration: 10000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
+      }
+      return;
+    }
+    setRequest({
+      type: CompletionStatus.NotStarted,
+    });
+
+    if (onSuccessNotice) {
+      enqueueSnackbar(onSuccessNotice, {
+        variant: "success",
+        autoHideDuration: 3000,
+        anchorOrigin: noticeAnchorOrigin,
+      });
+    }
+  };
+}
 
 export default function apiRequestHandlerFactory<D, S extends TSchema>({
   request,

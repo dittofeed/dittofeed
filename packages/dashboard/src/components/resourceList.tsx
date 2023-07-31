@@ -6,6 +6,7 @@ import {
   Stack,
   SxProps,
   Theme,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import Link from "next/link";
@@ -56,8 +57,10 @@ export function ResourceListContainer({
   children,
   title,
   newItemHref,
+  controls,
 }: {
   children: React.ReactNode;
+  controls?: React.ReactNode;
   newItemHref: (id: string) => string;
   title: string;
 }) {
@@ -77,15 +80,20 @@ export function ResourceListContainer({
         <Typography sx={{ padding: 1 }} variant="h5">
           {title}
         </Typography>
-        <IconButton
-          LinkComponent={Link}
-          href={href}
-          onClick={() => {
-            setNewItemId(uuid());
-          }}
-        >
-          <AddCircleOutline />
-        </IconButton>
+        <Stack direction="row" spacing={1}>
+          {controls}
+          <Tooltip title="create new" placement="right" arrow>
+            <IconButton
+              LinkComponent={Link}
+              href={href}
+              onClick={() => {
+                setNewItemId(uuid());
+              }}
+            >
+              <AddCircleOutline />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </Stack>
       {children}
     </Stack>
