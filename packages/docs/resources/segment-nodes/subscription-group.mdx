@@ -2,3 +2,15 @@
 title: "Subscription Group - Segment Node"
 description: "Restrict a segment to members of a subscription group."
 ---
+
+The subscription group segment node is restricted to users who are currently within a subscription group.
+
+## Example Use Case - Subscription Group Broadcasts
+
+["And" segment nodes](/resources/segment-nodes/and) are commonly combined with [broadcast segment nodes](/resources/segment-nodes/broadcast) and subscription group nodes to allow you to broadcast to users in a specific subscription group.
+
+<Frame>
+![Weekly Newsletter Broadcast Segment](/images/weekly-newsletter-broadcast-segment.png)
+</Frame>
+
+In this case, this allows you to manually trigger (broadcast) a message to all users who are subscribed to the "Weekly Newsletter" subscription group.
