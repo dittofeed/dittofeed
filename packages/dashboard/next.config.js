@@ -1,30 +1,36 @@
-const path = require('path');
+const path = require("path");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   basePath: "/dashboard",
-  output: 'standalone',
-  pageExtensions: ['page.tsx', 'page.ts'],
+  output: "standalone",
+  pageExtensions: ["page.tsx", "page.ts"],
   poweredByHeader: false,
   reactStrictMode: true,
-  transpilePackages: ['isomorphic-lib', 'backend-lib'],
+  transpilePackages: ["isomorphic-lib", "backend-lib"],
   swcMinify: true,
   images: {
-    domains: ['*']
+    domains: ["*"],
   },
   async redirects() {
     return [
       {
-        source: '/',
-        destination: '/journeys',
+        source: "/",
+        destination: "/journeys",
         permanent: false,
       },
-    ]
+      {
+        source: "/",
+        destination: "/dashboard",
+        basePath: false,
+        permanent: false,
+      },
+    ];
   },
   experimental: {
     newNextLinkBehavior: true,
     instrumentationHook: true,
-    outputFileTracingRoot: path.join(__dirname, '../../'),
+    outputFileTracingRoot: path.join(__dirname, "../../"),
   },
 };
 
