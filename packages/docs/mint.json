@@ -7,7 +7,9 @@
   },
   "api": {
     "baseUrl": "https://api.dittofeed.com",
-    "hidePlayground": true
+    "playground": {
+      "mode": "hide"
+    }
   },
   "favicon": "/favicon.png",
   "colors": {
