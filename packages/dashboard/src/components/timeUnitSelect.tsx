@@ -5,8 +5,8 @@ import { TimeUnit } from "../lib/types";
 
 const timeUnitSet = new Set(["seconds", "minutes", "hours", "days", "weeks"]);
 
-export function isTimeUnit(str: string): str is TimeUnit {
-  return timeUnitSet.has(str);
+export function isTimeUnit(str: unknown): str is TimeUnit {
+  return typeof str === "string" && timeUnitSet.has(str);
 }
 export interface TimeUnitSelectProps {
   value: TimeUnit;
