@@ -12,6 +12,7 @@ import {
   SelectProps,
   Stack,
   TextField,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -379,20 +380,26 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
         </Select>
       </FormControl>
       <Box sx={{ width: selectorWidth }}>
-        <Autocomplete
-          value={message}
-          onChange={(_event, newValue) => {
-            updateEditableSegmentNodeData(node.id, (segmentNode) => {
-              if (newValue && segmentNode.type === SegmentNodeType.Email) {
-                segmentNode.templateId = newValue.id;
-              }
-            });
-          }}
-          options={messageOptions}
-          renderInput={(params) => (
-            <TextField {...params} label="Email Template" variant="outlined" />
-          )}
-        />
+        <Tooltip placement="right" arrow title={message?.label}>
+          <Autocomplete
+            value={message}
+            onChange={(_event, newValue) => {
+              updateEditableSegmentNodeData(node.id, (segmentNode) => {
+                if (newValue && segmentNode.type === SegmentNodeType.Email) {
+                  segmentNode.templateId = newValue.id;
+                }
+              });
+            }}
+            options={messageOptions}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Email Template"
+                variant="outlined"
+              />
+            )}
+          />
+        </Tooltip>
       </Box>
     </Stack>
   );
