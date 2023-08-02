@@ -55,12 +55,14 @@ export default function DurationSelect({
         onChange={handleTimeChange}
       />
       <TimeUnitSelect value={timeUnit} onChange={handleTimeUnitChange} />
-      <Stack direction="row" spacing={1}>
-        {description ? <Box>{description}</Box> : null}
-        <Box>
-          <DurationDescription durationSeconds={value} />
-        </Box>
-      </Stack>
+      {description ? (
+        <Stack direction="row" spacing={1}>
+          <Box>{description}</Box>
+          <Box>
+            <DurationDescription durationSeconds={value} />
+          </Box>
+        </Stack>
+      ) : null}
     </>
   );
 }
