@@ -720,6 +720,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@dittofeed/sdk-js-base@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "@dittofeed/sdk-js-base@npm:0.1.0"
+  checksum: df3b2a76cbf8b09e9fb83536ccfc116e5f2dfb487a50ca1cd09243c79348e37b89a49011394ee8f6c687587a73d5121d002d3e4e78c160246e8bfc0a59d8559b
+  languageName: node
+  linkType: hard
+
+"@dittofeed/sdk-web@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "@dittofeed/sdk-web@npm:0.1.0"
+  dependencies:
+    "@dittofeed/sdk-js-base": ^0.1.0
+    uuid: ^9.0.0
+  checksum: 5257b7208bd4b1acde92c590a08202acb6211b0b9d06b6500630324cd45f117d3ebf962faa16fb351076cc1783af5773b3aa376ea791625002b43daf91d61176
+  languageName: node
+  linkType: hard
+
 "@emotion/babel-plugin@npm:^11.10.5":
   version: 11.10.5
   resolution: "@emotion/babel-plugin@npm:11.10.5"
@@ -7740,6 +7757,7 @@ __metadata:
     "@codemirror/lang-json": ^6.0.1
     "@codemirror/lint": ^6.1.0
     "@codemirror/view": ^6.7.1
+    "@dittofeed/sdk-web": ^0.1.0
     "@emotion/cache": ^11.10.5
     "@emotion/react": ^11.10.5
     "@emotion/server": ^11.10.0
