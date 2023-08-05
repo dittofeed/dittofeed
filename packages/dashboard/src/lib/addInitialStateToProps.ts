@@ -1,7 +1,7 @@
 import backendConfig from "backend-lib/src/config";
 import { CompletionStatus, DFRequestContext } from "isomorphic-lib/src/types";
 
-import AppsApi from "./appsApi";
+import { apiBase } from "./apiBase";
 import { AppState, PropsWithInitialState } from "./types";
 
 function clone<T>(obj: T): T {
@@ -28,9 +28,8 @@ export function addInitialStateToProps<
     enableMobilePush,
   } = backendConfig();
 
-  const apiBase = process.env.DASHBOARD_API_BASE ?? "http://localhost:3001";
   const stateWithEnvVars: Partial<AppState> = clone({
-    apiBase: process.env.DASHBOARD_API_BASE ?? "http://localhost:3001",
+    apiBase: apiBase(),
     sourceControlProvider,
     enableSourceControl,
     ...serverInitialState,
@@ -43,25 +42,6 @@ export function addInitialStateToProps<
     trackDashboard,
     dashboardWriteKey,
     enableMobilePush,
-  });
-
-  const appsApi = new AppsApi({
-    workspace: {
-      type: CompletionStatus.Successful,
-      value: dfContext.workspace,
-    },
-    trackDashboard,
-    dashboardWriteKey,
-    apiBase,
-  });
-  appsApi.identify({
-    userId: dfContext.member.id,
-    traits: {
-      email: dfContext.member.email,
-      firstName: dfContext.member.name,
-      nickname: dfContext.member.nickname,
-      createdAt: dfContext.member.createdAt,
-    },
   });
 
   return {

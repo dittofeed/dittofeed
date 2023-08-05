@@ -1,3 +1,5 @@
+import { DittofeedSdk } from "@dittofeed/sdk-node";
+import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import {
   getRequestContext,
@@ -10,6 +12,7 @@ import {
 } from "isomorphic-lib/src/constants";
 import { GetServerSideProps } from "next";
 
+import { apiBase } from "./apiBase";
 import { GetDFServerSideProps, PropsWithInitialState } from "./types";
 
 export const requestContext: <T>(
@@ -53,5 +56,29 @@ export const requestContext: <T>(
           throw new Error(rc.error.message);
       }
     }
-    return gssp(context, rc.value);
+
+    const { dashboardWriteKey, trackDashboard } = backendConfig();
+
+    console.log("dashboardWriteKey", dashboardWriteKey);
+    console.log("trackDashboard", trackDashboard);
+    if (dashboardWriteKey && trackDashboard) {
+      await DittofeedSdk.init({
+        writeKey: dashboardWriteKey,
+        host: apiBase(),
+      });
+    }
+
+    const dfContext = rc.value;
+
+    DittofeedSdk.identify({
+      userId: dfContext.member.id,
+      traits: {
+        email: dfContext.member.email,
+        firstName: dfContext.member.name,
+        nickname: dfContext.member.nickname,
+        createdAt: dfContext.member.createdAt,
+      },
+    });
+
+    return gssp(context, dfContext);
   };
