@@ -16,6 +16,7 @@ import { PropsWithInitialState } from "../lib/types";
 interface WaitingRoomProps {
   refreshUrl: string;
   emailVerified: boolean;
+  signOutUrl?: string;
 }
 
 export const getServerSideProps: GetServerSideProps<
@@ -32,14 +33,21 @@ export const getServerSideProps: GetServerSideProps<
   }
   logger().info(rc.error, "waiting room onboarding incomplete");
 
-  const { oauthStartUrl } = backendConfig();
+  const { oauthStartUrl, signoutUrl } = backendConfig();
 
   const emailVerified =
     rc.error.type !== RequestContextErrorType.EmailNotVerified;
+
+  const props: WaitingRoomProps = {
+    refreshUrl: oauthStartUrl ?? "/waiting-room",
+    emailVerified,
+  };
+  if (signoutUrl) {
+    props.signOutUrl = signoutUrl;
+  }
   return {
     props: {
-      refreshUrl: oauthStartUrl ?? "/waiting-room",
-      emailVerified,
+      ...props,
       serverInitialState: {},
     },
   };
@@ -48,6 +56,7 @@ export const getServerSideProps: GetServerSideProps<
 const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
   refreshUrl,
   emailVerified,
+  signOutUrl,
 }) {
   const theme = useTheme();
   return (
@@ -85,12 +94,7 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
               are done click the <b>Refresh</b> button.
             </Typography>
             <Box>
-              <Button
-                href={refreshUrl}
-                LinkComponent={Link}
-                sx={{ fontSize: "1.5rem" }}
-                variant="outlined"
-              >
+              <Button href={refreshUrl} LinkComponent={Link} variant="outlined">
                 Refresh
               </Button>
             </Box>
@@ -102,6 +106,17 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
               <Typography variant="subtitle1">Reach out on slack:</Typography>
               <SlackLink>Dittofeed Slack community</SlackLink>
             </Stack>
+            {signOutUrl ? (
+              <Box>
+                <Button
+                  LinkComponent={Link}
+                  href={signOutUrl}
+                  variant="outlined"
+                >
+                  Sign Out
+                </Button>
+              </Box>
+            ) : null}
           </Stack>
         </Stack>
       </main>
