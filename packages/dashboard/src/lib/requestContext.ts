@@ -59,8 +59,6 @@ export const requestContext: <T>(
 
     const { dashboardWriteKey, trackDashboard } = backendConfig();
 
-    console.log("dashboardWriteKey", dashboardWriteKey);
-    console.log("trackDashboard", trackDashboard);
     if (dashboardWriteKey && trackDashboard) {
       await DittofeedSdk.init({
         writeKey: dashboardWriteKey,
