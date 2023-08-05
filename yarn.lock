@@ -720,6 +720,33 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@dittofeed/sdk-js-base@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "@dittofeed/sdk-js-base@npm:0.1.0"
+  checksum: df3b2a76cbf8b09e9fb83536ccfc116e5f2dfb487a50ca1cd09243c79348e37b89a49011394ee8f6c687587a73d5121d002d3e4e78c160246e8bfc0a59d8559b
+  languageName: node
+  linkType: hard
+
+"@dittofeed/sdk-node@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "@dittofeed/sdk-node@npm:0.1.0"
+  dependencies:
+    "@dittofeed/sdk-js-base": ^0.1.0
+    node-fetch: ^3.3.2
+  checksum: ef4e2e37028e4a190c8245c34c0862f99dee3153b0a52e5eae825f891d4d647a80fa7f77fb296e9f24541311b5ab25381cad868fb7899b8d8054c7ec09508cef
+  languageName: node
+  linkType: hard
+
+"@dittofeed/sdk-web@npm:^0.1.2":
+  version: 0.1.2
+  resolution: "@dittofeed/sdk-web@npm:0.1.2"
+  dependencies:
+    "@dittofeed/sdk-js-base": ^0.1.0
+    uuid: ^9.0.0
+  checksum: 11f14f386ec4ef12e3daf2648270fc5778a1a052ebc8a920197e7b6eeb95f35c6cd5cb66580e8181b7f9ab02c0d59c99e5a204d87909b6a82c5d078737b0c86e
+  languageName: node
+  linkType: hard
+
 "@emotion/babel-plugin@npm:^11.10.5":
   version: 11.10.5
   resolution: "@emotion/babel-plugin@npm:11.10.5"
@@ -7740,6 +7767,8 @@ __metadata:
     "@codemirror/lang-json": ^6.0.1
     "@codemirror/lint": ^6.1.0
     "@codemirror/view": ^6.7.1
+    "@dittofeed/sdk-node": ^0.1.0
+    "@dittofeed/sdk-web": ^0.1.2
     "@emotion/cache": ^11.10.5
     "@emotion/react": ^11.10.5
     "@emotion/server": ^11.10.0
@@ -7814,6 +7843,13 @@ __metadata:
       optional: true
   languageName: unknown
   linkType: soft
+
+"data-uri-to-buffer@npm:^4.0.0":
+  version: 4.0.1
+  resolution: "data-uri-to-buffer@npm:4.0.1"
+  checksum: 0d0790b67ffec5302f204c2ccca4494f70b4e2d940fea3d36b09f0bb2b8539c2e86690429eb1f1dc4bcc9e4df0644193073e63d9ee48ac9fce79ec1506e4aa4c
+  languageName: node
+  linkType: hard
 
 "date-fns@npm:^2.29.3":
   version: 2.29.3
@@ -9378,6 +9414,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fetch-blob@npm:^3.1.2, fetch-blob@npm:^3.1.4":
+  version: 3.2.0
+  resolution: "fetch-blob@npm:3.2.0"
+  dependencies:
+    node-domexception: ^1.0.0
+    web-streams-polyfill: ^3.0.3
+  checksum: f19bc28a2a0b9626e69fd7cf3a05798706db7f6c7548da657cbf5026a570945f5eeaedff52007ea35c8bcd3d237c58a20bf1543bc568ab2422411d762dd3d5bf
+  languageName: node
+  linkType: hard
+
 "figures@npm:^5.0.0":
   version: 5.0.0
   resolution: "figures@npm:5.0.0"
@@ -9532,6 +9578,15 @@ __metadata:
   version: 0.2.2
   resolution: "format@npm:0.2.2"
   checksum: 646a60e1336250d802509cf24fb801e43bd4a70a07510c816fa133aa42cdbc9c21e66e9cc0801bb183c5b031c9d68be62e7fbb6877756e52357850f92aa28799
+  languageName: node
+  linkType: hard
+
+"formdata-polyfill@npm:^4.0.10":
+  version: 4.0.10
+  resolution: "formdata-polyfill@npm:4.0.10"
+  dependencies:
+    fetch-blob: ^3.1.2
+  checksum: 82a34df292afadd82b43d4a740ce387bc08541e0a534358425193017bf9fb3567875dc5f69564984b1da979979b70703aa73dee715a17b6c229752ae736dd9db
   languageName: node
   linkType: hard
 
@@ -13773,6 +13828,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-domexception@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "node-domexception@npm:1.0.0"
+  checksum: ee1d37dd2a4eb26a8a92cd6b64dfc29caec72bff5e1ed9aba80c294f57a31ba4895a60fd48347cf17dd6e766da0ae87d75657dfd1f384ebfa60462c2283f5c7f
+  languageName: node
+  linkType: hard
+
 "node-fetch@npm:^2.6.0, node-fetch@npm:^2.6.1":
   version: 2.6.11
   resolution: "node-fetch@npm:2.6.11"
@@ -13798,6 +13860,17 @@ __metadata:
     encoding:
       optional: true
   checksum: 91f57be68e29f9b1382750693619e199733a6936998e6d618f1aa779853ad8fc4a2facf170db7957bf1d2510bad33449edf74b5802713d81b63de5986fa3be00
+  languageName: node
+  linkType: hard
+
+"node-fetch@npm:^3.3.2":
+  version: 3.3.2
+  resolution: "node-fetch@npm:3.3.2"
+  dependencies:
+    data-uri-to-buffer: ^4.0.0
+    fetch-blob: ^3.1.4
+    formdata-polyfill: ^4.0.10
+  checksum: 06a04095a2ddf05b0830a0d5302699704d59bda3102894ea64c7b9d4c865ecdff2d90fd042df7f5bc40337266961cb6183dcc808ea4f3000d024f422b462da92
   languageName: node
   linkType: hard
 
@@ -17128,6 +17201,13 @@ __metadata:
     node-fetch: ^2.6.0
     valid-data-url: ^3.0.0
   checksum: 17d9e53a6e5f07361abc584b6bb2bb8470978be580f8b5cdcab5998507ffccf5fb645616d3fe1550965d2db497f4a5cdc1ea1460c9cf464de315751962708ecc
+  languageName: node
+  linkType: hard
+
+"web-streams-polyfill@npm:^3.0.3":
+  version: 3.2.1
+  resolution: "web-streams-polyfill@npm:3.2.1"
+  checksum: b119c78574b6d65935e35098c2afdcd752b84268e18746606af149e3c424e15621b6f1ff0b42b2676dc012fc4f0d313f964b41a4b5031e525faa03997457da02
   languageName: node
   linkType: hard
 
