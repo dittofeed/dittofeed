@@ -9,11 +9,11 @@ import type { AppProps } from "next/app";
 import Head from "next/head";
 import { SnackbarProvider } from "notistack";
 
+import { SdkInitializer } from "../components/dittofeedSdk";
 import { Provider as StoreProvider, useCreateStore } from "../lib/appStore";
 import createEmotionCache from "../lib/createEmotionCache";
 import { PreloadedState } from "../lib/types";
 import ThemeCustomization from "../themeCustomization";
-import { SdkInitializer } from "../components/dittofeedSdk";
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
