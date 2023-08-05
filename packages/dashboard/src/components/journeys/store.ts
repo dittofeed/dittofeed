@@ -49,6 +49,8 @@ import {
   NodeData,
   NodeTypeProps,
   NonJourneyNodeData,
+  SegmentSplitNodeProps,
+  WaitForNodeProps,
 } from "../../lib/types";
 import { durationDescription } from "../durationDescription";
 import {
@@ -1025,6 +1027,7 @@ export function journeyBranchToState(
           templateId: node.variant.templateId,
           channel: node.variant.type,
           name: node.name ?? "",
+          subscriptionGroupId: node.subscriptionGroupId,
         };
         nodesState.push(buildJourneyNode(nId, messageNode));
         nextNodeId = node.child;
@@ -1046,15 +1049,14 @@ export function journeyBranchToState(
         const falseId = `${nId}-child-1`;
         const emptyId = `${nId}-empty`;
 
-        nodesState.push(
-          buildJourneyNode(nId, {
-            type: JourneyNodeType.SegmentSplitNode,
-            segmentId: node.variant.segment,
-            name: node.name ?? "",
-            trueLabelNodeId: trueId,
-            falseLabelNodeId: falseId,
-          })
-        );
+        const segmentSplitNode: SegmentSplitNodeProps = {
+          type: JourneyNodeType.SegmentSplitNode,
+          segmentId: node.variant.segment,
+          name: node.name ?? "",
+          trueLabelNodeId: trueId,
+          falseLabelNodeId: falseId,
+        };
+        nodesState.push(buildJourneyNode(nId, segmentSplitNode));
         nodesState.push(buildLabelNode(trueId, "true"));
         nodesState.push(buildLabelNode(falseId, "false"));
         nodesState.push(buildEmptyNode(emptyId));
@@ -1124,21 +1126,19 @@ export function journeyBranchToState(
         const segmentChildLabelId = `${nId}-child-0`;
         const timeoutId = `${nId}-child-1`;
         const emptyId = `${nId}-empty`;
+        const waitForNodeProps: WaitForNodeProps = {
+          type: JourneyNodeType.WaitForNode,
+          timeoutLabelNodeId: timeoutId,
+          timeoutSeconds: node.timeoutSeconds,
+          segmentChildren: [
+            {
+              segmentId: segmentChild.segmentId,
+              labelNodeId: segmentChildLabelId,
+            },
+          ],
+        };
 
-        nodesState.push(
-          buildJourneyNode(nId, {
-            type: JourneyNodeType.WaitForNode,
-            timeoutLabelNodeId: timeoutId,
-            timeoutSeconds: node.timeoutSeconds,
-            segmentChildren: [
-              {
-                segmentId: segmentChild.segmentId,
-                labelNodeId: segmentChildLabelId,
-              },
-            ],
-          })
-        );
-
+        nodesState.push(buildJourneyNode(nId, waitForNodeProps));
         nodesState.push(
           buildLabelNode(segmentChildLabelId, WAIT_FOR_SATISFY_LABEL)
         );
