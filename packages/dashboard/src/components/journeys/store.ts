@@ -311,6 +311,7 @@ function journeyDefinitionFromStateBranch(
           id: nId,
           type: JourneyNodeType.MessageNode,
           name: uiNode.name,
+          subscriptionGroupId: uiNode.subscriptionGroupId,
           variant: {
             type: uiNode.channel,
             templateId: uiNode.templateId,
