@@ -65,7 +65,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       findManyJourneys({ where: { workspaceId } }),
     ]);
 
-    if (broadcast && broadcast.workspaceId === workspaceId) {
+    if (
+      broadcast &&
+      broadcast.workspaceId === workspaceId &&
+      broadcast.segmentId
+    ) {
       appState.editedBroadcast = {
         workspaceId,
         id,

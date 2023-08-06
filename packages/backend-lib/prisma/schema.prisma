@@ -41,7 +41,7 @@ enum DBResourceType {
 
 model Segment {
   id                  String              @id() @default(uuid()) @db.Uuid
-  workspace           Workspace           @relation(fields: [workspaceId], references: [id])
+  workspace           Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId         String              @db.Uuid
   resourceType        DBResourceType      @default(Declarative)
   name                String
@@ -49,7 +49,7 @@ model Segment {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   subscriptionGroupId String?             @db.Uuid
-  subscriptionGroup   SubscriptionGroup?  @relation(fields: [subscriptionGroupId], references: [id])
+  subscriptionGroup   SubscriptionGroup?  @relation(fields: [subscriptionGroupId], references: [id], onDelete: SetNull)
   SegmentAssignment   SegmentAssignment[]
   Broadcast           Broadcast[]
 
@@ -65,7 +65,7 @@ enum JourneyStatus {
 
 model Journey {
   id               String             @id() @default(uuid()) @db.Uuid
-  workspace        Workspace          @relation(fields: [workspaceId], references: [id])
+  workspace        Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId      String             @db.Uuid
   name             String
   status           JourneyStatus      @default(NotStarted)
@@ -88,8 +88,8 @@ model Broadcast {
   id          String             @id() @default(uuid()) @db.Uuid
   workspace   Workspace          @relation(fields: [workspaceId], references: [id])
   workspaceId String             @db.Uuid
-  segment     Segment            @relation(fields: [segmentId], references: [id], onDelete: Cascade)
-  segmentId   String             @db.Uuid
+  segment     Segment?           @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  segmentId   String?            @db.Uuid
   name        String
   status      DBCompletionStatus @default(NotStarted)
   triggeredAt DateTime?
@@ -101,7 +101,7 @@ model Broadcast {
 
 model UserProperty {
   id                     String                   @id() @default(uuid()) @db.Uuid
-  workspace              Workspace                @relation(fields: [workspaceId], references: [id])
+  workspace              Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId            String                   @db.Uuid
   name                   String
   definition             Json
@@ -113,10 +113,10 @@ model UserProperty {
 }
 
 model SegmentAssignment {
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String    @db.Uuid
   userId      String
-  segment     Segment   @relation(fields: [segmentId], references: [id])
+  segment     Segment   @relation(fields: [segmentId], references: [id], onDelete: Cascade)
   segmentId   String    @db.Uuid
   inSegment   Boolean
 
@@ -124,10 +124,10 @@ model SegmentAssignment {
 }
 
 model UserPropertyAssignment {
-  workspace      Workspace    @relation(fields: [workspaceId], references: [id])
+  workspace      Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId    String       @db.Uuid
   userId         String
-  userProperty   UserProperty @relation(fields: [userPropertyId], references: [id])
+  userProperty   UserProperty @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
   userPropertyId String       @db.Uuid
   value          String
 
@@ -138,7 +138,7 @@ model UserPropertyAssignment {
 // TODO consolidate with generic MessageTemplate
 model EmailTemplate {
   id          String    @id() @default(uuid()) @db.Uuid
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String    @db.Uuid
   name        String
   from        String
@@ -151,7 +151,7 @@ model EmailTemplate {
 
 model MessageTemplate {
   id          String    @id() @default(uuid()) @db.Uuid
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String    @db.Uuid
   name        String
   definition  Json
@@ -162,10 +162,10 @@ model MessageTemplate {
 }
 
 model DefaultEmailProvider {
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String    @db.Uuid
 
-  emailProvider   EmailProvider @relation(fields: [emailProviderId], references: [id])
+  emailProvider   EmailProvider @relation(fields: [emailProviderId], references: [id], onDelete: Cascade)
   emailProviderId String        @db.Uuid
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -174,7 +174,7 @@ model DefaultEmailProvider {
 }
 
 model CurrentUserEventsTable {
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String    @db.Uuid
   version     String
   createdAt   DateTime  @default(now())
@@ -185,7 +185,7 @@ model CurrentUserEventsTable {
 
 model EmailProvider {
   id                   String                 @id() @default(uuid()) @db.Uuid
-  workspace            Workspace              @relation(fields: [workspaceId], references: [id])
+  workspace            Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId          String                 @db.Uuid
   type                 String
   apiKey               String
@@ -198,7 +198,7 @@ model EmailProvider {
 
 model SegmentIOConfiguration {
   id           String    @id() @default(uuid()) @db.Uuid
-  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId  String    @db.Uuid
   sharedSecret String
   createdAt    DateTime  @default(now())
@@ -211,8 +211,8 @@ model SegmentIOConfiguration {
 model UserJourneyEvent {
   id               String   @id() @default(uuid()) @db.Uuid
   userId           String
-  journeyId        String   @db.Uuid()
-  journey          Journey  @relation(fields: [journeyId], references: [id])
+  journeyId        String?  @db.Uuid()
+  journey          Journey? @relation(fields: [journeyId], references: [id], onDelete: SetNull)
   type             String
   journeyStartedAt DateTime
   createdAt        DateTime @default(now())
