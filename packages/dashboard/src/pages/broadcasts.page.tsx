@@ -27,14 +27,18 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     appState.broadcasts = {
       type: CompletionStatus.Successful,
-      value: broadcasts.map((b) => ({
-        id: b.id,
-        name: b.name,
-        workspaceId: b.workspaceId,
-        triggeredAt: b.triggeredAt?.getTime(),
-        createdAt: b.createdAt.getTime(),
-        segmentId: b.segmentId,
-      })),
+      value: broadcasts.flatMap((b) =>
+        b.segmentId
+          ? {
+              id: b.id,
+              name: b.name,
+              workspaceId: b.workspaceId,
+              triggeredAt: b.triggeredAt?.getTime(),
+              createdAt: b.createdAt.getTime(),
+              segmentId: b.segmentId,
+            }
+          : []
+      ),
     };
     return {
       props: addInitialStateToProps({
