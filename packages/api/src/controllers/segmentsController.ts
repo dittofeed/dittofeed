@@ -115,7 +115,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
         workspaceId: broadcast.workspaceId,
         id: broadcast.id,
         name: broadcast.name,
-        segmentId: broadcast.segmentId,
+        segmentId,
         triggeredAt: broadcast.triggeredAt
           ? broadcast.triggeredAt.getTime()
           : undefined,
