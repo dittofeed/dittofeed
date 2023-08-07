@@ -71,7 +71,7 @@ describe("end to end journeys", () => {
     await clickhouseClient().close();
   });
 
-  describe.only("wait for journey", () => {
+  describe("wait for journey", () => {
     let journey: EnrichedJourney;
     let tableVersion: string;
     let workspace: Workspace;
