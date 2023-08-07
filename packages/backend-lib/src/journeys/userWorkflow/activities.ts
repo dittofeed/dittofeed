@@ -9,6 +9,7 @@ import {
   FCM_SECRET_NAME,
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
+import { getNodeId } from "isomorphic-lib/src/journeys";
 import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
 
@@ -531,13 +532,15 @@ export async function onNodeProcessed({
   node: JourneyNode;
 }) {
   const journeyStartedAtDate = new Date(journeyStartedAt);
+  const nodeId = getNodeId(node);
   await prisma().userJourneyEvent.upsert({
     where: {
-      journeyId_userId_type_journeyStartedAt: {
+      journeyId_userId_type_journeyStartedAt_nodeId: {
         journeyStartedAt: journeyStartedAtDate,
         journeyId,
         userId,
         type: node.type,
+        nodeId,
       },
     },
     update: {},
@@ -546,6 +549,7 @@ export async function onNodeProcessed({
       journeyId,
       userId,
       type: node.type,
+      nodeId,
     },
   });
 }
