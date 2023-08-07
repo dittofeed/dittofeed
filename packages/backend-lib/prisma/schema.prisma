@@ -211,13 +211,14 @@ model SegmentIOConfiguration {
 model UserJourneyEvent {
   id               String   @id() @default(uuid()) @db.Uuid
   userId           String
+  nodeId           String?
   journeyId        String?  @db.Uuid()
   journey          Journey? @relation(fields: [journeyId], references: [id], onDelete: SetNull)
   type             String
   journeyStartedAt DateTime
   createdAt        DateTime @default(now())
 
-  @@unique([journeyId, userId, type, journeyStartedAt])
+  @@unique([journeyId, userId, type, journeyStartedAt, nodeId])
 }
 
 enum DBSubscriptionGroupType {
