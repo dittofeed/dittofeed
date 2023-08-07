@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import { Row } from "@clickhouse/client";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -22,6 +23,8 @@ import {
 } from "../../../types";
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
 import writeAssignments from "./computeProperties/writeAssignments";
+
+const READ_QUERY_PAGE_SIZE = 200;
 
 async function signalJourney({
   segmentId,
@@ -176,163 +179,180 @@ export async function computePropertiesPeriodSafe({
     )
   `;
 
-  const resultSet = await clickhouseClient().query({
-    query: readQuery,
-    query_params: readChqb.getQueries(),
-    format: "JSONEachRow",
-  });
+  let offset = 0;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
+    const paginatedReadQuery = `${readQuery} LIMIT ${READ_QUERY_PAGE_SIZE} OFFSET ${offset}`;
 
-  for await (const rows of resultSet.stream()) {
-    const assignments: ComputedAssignment[] = await Promise.all(
-      rows.flatMap(async (row: Row) => {
-        const json = await row.json();
-        const result = schemaValidate(json, ComputedAssignment);
-        if (result.isErr()) {
-          logger().error(
-            { err: result.error, json },
-            "failed to parse assignment json"
-          );
-          return [];
+    const resultSet = await clickhouseClient().query({
+      query: paginatedReadQuery,
+      query_params: readChqb.getQueries(),
+      format: "JSONEachRow",
+    });
+
+    let hasRows = false;
+    for await (const rows of resultSet.stream()) {
+      const assignments: ComputedAssignment[] = await Promise.all(
+        rows.flatMap(async (row: Row) => {
+          const json = await row.json();
+          const result = schemaValidate(json, ComputedAssignment);
+          if (result.isErr()) {
+            logger().error(
+              { err: result.error, json },
+              "failed to parse assignment json"
+            );
+            return [];
+          }
+          return result.value;
+        })
+      );
+
+      const pgUserPropertyAssignments: ComputedAssignment[] = [];
+      const pgSegmentAssignments: ComputedAssignment[] = [];
+      const signalSegmentAssignments: ComputedAssignment[] = [];
+
+      for (const assignment of assignments) {
+        hasRows = true;
+
+        let assignmentCategory: ComputedAssignment[];
+        if (assignment.processed_for === "pg") {
+          switch (assignment.type) {
+            case "segment":
+              assignmentCategory = pgSegmentAssignments;
+              break;
+            case "user_property":
+              assignmentCategory = pgUserPropertyAssignments;
+              break;
+          }
+        } else {
+          assignmentCategory = signalSegmentAssignments;
         }
-        return result.value;
-      })
-    );
-
-    const pgUserPropertyAssignments: ComputedAssignment[] = [];
-    const pgSegmentAssignments: ComputedAssignment[] = [];
-    const signalSegmentAssignments: ComputedAssignment[] = [];
-
-    for (const assignment of assignments) {
-      let assignmentCategory: ComputedAssignment[];
-      if (assignment.processed_for === "pg") {
-        switch (assignment.type) {
-          case "segment":
-            assignmentCategory = pgSegmentAssignments;
-            break;
-          case "user_property":
-            assignmentCategory = pgUserPropertyAssignments;
-            break;
-        }
-      } else {
-        assignmentCategory = signalSegmentAssignments;
+        assignmentCategory.push(assignment);
       }
-      assignmentCategory.push(assignment);
-    }
 
-    logger().debug(
-      {
-        workspaceId,
-        assignmentsCount: assignments.length,
-        pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
-        pgSegmentAssignmentsCount: pgSegmentAssignments.length,
-        signalSegmentAssignmentsCount: signalSegmentAssignments.length,
-      },
-      "processing computed assignments"
-    );
+      logger().debug(
+        {
+          workspaceId,
+          assignmentsCount: assignments.length,
+          pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
+          pgSegmentAssignmentsCount: pgSegmentAssignments.length,
+          signalSegmentAssignmentsCount: signalSegmentAssignments.length,
+        },
+        "processing computed assignments"
+      );
 
-    await Promise.all([
-      ...pgUserPropertyAssignments.map(async (a) => {
-        try {
-          await prisma().userPropertyAssignment.upsert({
-            where: {
-              workspaceId_userPropertyId_userId: {
+      await Promise.all([
+        ...pgUserPropertyAssignments.map(async (a) => {
+          try {
+            await prisma().userPropertyAssignment.upsert({
+              where: {
+                workspaceId_userPropertyId_userId: {
+                  workspaceId: a.workspace_id,
+                  userId: a.user_id,
+                  userPropertyId: a.computed_property_id,
+                },
+              },
+              update: {
+                value: a.latest_user_property_value,
+              },
+              create: {
                 workspaceId: a.workspace_id,
                 userId: a.user_id,
                 userPropertyId: a.computed_property_id,
+                value: a.latest_user_property_value,
               },
-            },
-            update: {
-              value: a.latest_user_property_value,
-            },
-            create: {
-              workspaceId: a.workspace_id,
-              userId: a.user_id,
-              userPropertyId: a.computed_property_id,
-              value: a.latest_user_property_value,
-            },
-          });
-        } catch (e) {
-          // If reference error due to user assignment not existing anymore, swallow error and continue
-          if (
-            !(
-              e instanceof Prisma.PrismaClientKnownRequestError &&
-              e.code === "P2003"
-            )
-          ) {
-            throw e;
+            });
+          } catch (e) {
+            // If reference error due to user assignment not existing anymore, swallow error and continue
+            if (
+              !(
+                e instanceof Prisma.PrismaClientKnownRequestError &&
+                e.code === "P2003"
+              )
+            ) {
+              throw e;
+            }
           }
-        }
-      }),
-      ...pgSegmentAssignments.map(async (a) => {
-        const inSegment = Boolean(a.latest_segment_value);
-        try {
-          await prisma().segmentAssignment.upsert({
-            where: {
-              workspaceId_userId_segmentId: {
+        }),
+        ...pgSegmentAssignments.map(async (a) => {
+          const inSegment = Boolean(a.latest_segment_value);
+          try {
+            await prisma().segmentAssignment.upsert({
+              where: {
+                workspaceId_userId_segmentId: {
+                  workspaceId: a.workspace_id,
+                  userId: a.user_id,
+                  segmentId: a.computed_property_id,
+                },
+              },
+              update: {
+                inSegment,
+              },
+              create: {
                 workspaceId: a.workspace_id,
                 userId: a.user_id,
                 segmentId: a.computed_property_id,
+                inSegment,
               },
-            },
-            update: {
-              inSegment,
-            },
-            create: {
-              workspaceId: a.workspace_id,
-              userId: a.user_id,
-              segmentId: a.computed_property_id,
-              inSegment,
-            },
-          });
-        } catch (e) {
-          // If reference error due to segment not existing anymore, swallow error and continue
-          if (
-            !(
-              e instanceof Prisma.PrismaClientKnownRequestError &&
-              e.code === "P2003"
-            )
-          ) {
-            throw e;
+            });
+          } catch (e) {
+            // If reference error due to segment not existing anymore, swallow error and continue
+            if (
+              !(
+                e instanceof Prisma.PrismaClientKnownRequestError &&
+                e.code === "P2003"
+              )
+            ) {
+              throw e;
+            }
           }
-        }
-      }),
-    ]);
+        }),
+      ]);
 
-    await Promise.all(
-      signalSegmentAssignments.flatMap((assignment) => {
-        const journey = subscribedJourneys.find(
-          (j) => j.id === assignment.processed_for
-        );
-        if (!journey) {
-          logger().error(
-            {
-              subscribedJourneys: subscribedJourneys.map((j) => j.id),
-              processed_for: assignment.processed_for,
-            },
-            "journey in assignment.processed_for missing from subscribed journeys"
+      await Promise.all(
+        signalSegmentAssignments.flatMap((assignment) => {
+          const journey = subscribedJourneys.find(
+            (j) => j.id === assignment.processed_for
           );
-          return [];
-        }
+          if (!journey) {
+            logger().error(
+              {
+                subscribedJourneys: subscribedJourneys.map((j) => j.id),
+                processed_for: assignment.processed_for,
+              },
+              "journey in assignment.processed_for missing from subscribed journeys"
+            );
+            return [];
+          }
 
-        return signalJourney({
-          workspaceId,
-          segmentId: assignment.computed_property_id,
-          segmentAssignment: assignment,
-          journey,
-        });
-      })
-    );
+          return signalJourney({
+            workspaceId,
+            segmentId: assignment.computed_property_id,
+            segmentAssignment: assignment,
+            journey,
+          });
+        })
+      );
 
-    const processedAssignments: ComputedPropertyAssignment[] =
-      assignments.flatMap((assignment) => ({
-        user_property_value: assignment.latest_user_property_value,
-        segment_value: assignment.latest_segment_value,
-        ...assignment,
-      }));
+      const processedAssignments: ComputedPropertyAssignment[] =
+        assignments.flatMap((assignment) => ({
+          user_property_value: assignment.latest_user_property_value,
+          segment_value: assignment.latest_segment_value,
+          ...assignment,
+        }));
 
-    await insertProcessedComputedProperties({
-      assignments: processedAssignments,
-    });
+      await insertProcessedComputedProperties({
+        assignments: processedAssignments,
+      });
+    }
+
+    // If no rows were fetched in this iteration, break out of the loop.
+    if (!hasRows) {
+      break;
+    }
+
+    // Increment the offset by PAGE_SIZE to fetch the next set of rows in the next iteration.
+    offset += READ_QUERY_PAGE_SIZE;
   }
 
   return ok(null);
