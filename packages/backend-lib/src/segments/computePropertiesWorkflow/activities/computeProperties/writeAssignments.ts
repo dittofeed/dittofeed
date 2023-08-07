@@ -586,7 +586,23 @@ function buildGroupedUserPropertyQueryExpression({
   userProperty: GroupUserPropertyDefinition;
   queryBuilder: ClickHouseQueryBuilder;
 }): string | null {
-  return "";
+  switch (child.type) {
+    case UserPropertyDefinitionType.Performed: {
+      return buildLeafUserPropertyQueryExpression({
+        userProperty: child,
+        queryBuilder,
+      });
+    }
+    case UserPropertyDefinitionType.Trait: {
+      return buildLeafUserPropertyQueryExpression({
+        userProperty: child,
+        queryBuilder,
+      });
+    }
+    case UserPropertyDefinitionType.AnyOf: {
+      return "";
+    }
+  }
 }
 
 function buildUserPropertyQueryExpression({
@@ -598,7 +614,19 @@ function buildUserPropertyQueryExpression({
 }): string | null {
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Group: {
-      return "";
+      const { entry } = userProperty.definition;
+
+      const entryNode = userProperty.definition.nodes.find(
+        (n) => n.id === entry
+      );
+      if (!entryNode) {
+        return null;
+      }
+      return buildGroupedUserPropertyQueryExpression({
+        userProperty: userProperty.definition,
+        child: entryNode,
+        queryBuilder,
+      });
     }
     case UserPropertyDefinitionType.Id: {
       return "user_id";

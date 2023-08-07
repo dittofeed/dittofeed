@@ -377,7 +377,7 @@ export const GroupUserPropertyDefinition = Type.Object({
   id: Type.String(),
   type: Type.Literal(UserPropertyDefinitionType.Group),
   entry: Type.String(),
-  nodes: GroupChildrenUserPropertyDefinitions,
+  nodes: Type.Array(GroupChildrenUserPropertyDefinitions),
 });
 
 export type GroupUserPropertyDefinition = Static<
