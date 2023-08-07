@@ -179,11 +179,6 @@ describe("end to end journeys", () => {
         ],
       };
 
-      console.log({
-        segmentId1: segment1.id,
-        segmentId2: segment2.id,
-      });
-
       journey = unwrap(
         enrichJourney(
           await prisma().journey.create({
