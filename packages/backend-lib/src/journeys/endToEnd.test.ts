@@ -71,6 +71,272 @@ describe("end to end journeys", () => {
     await clickhouseClient().close();
   });
 
+  describe.only("wait for journey", () => {
+    let journey: EnrichedJourney;
+    let tableVersion: string;
+    let workspace: Workspace;
+    let userId1: string;
+    let userJourneyWorkflowId: string;
+    let currentTimeMS: number;
+    let waitForNode1: string;
+    let messageNode1: string;
+    let messageNode2: string;
+    beforeEach(async () => {
+      tableVersion = getChCompatibleUuid();
+      await createUserEventsTables({ tableVersion });
+
+      workspace = await prisma().workspace.create({
+        data: { name: `workspace-${randomUUID()}` },
+      });
+
+      userId1 = `user1-${randomUUID()}`;
+
+      const segmentDefinition1: SegmentDefinition = {
+        entryNode: {
+          type: SegmentNodeType.Trait,
+          id: randomUUID(),
+          path: "onboardingState",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "step1",
+          },
+        },
+        nodes: [],
+      };
+
+      const segment1 = await prisma().segment.create({
+        data: {
+          workspaceId: workspace.id,
+          name: randomUUID(),
+          definition: segmentDefinition1,
+        },
+      });
+
+      const segmentDefinition2: SegmentDefinition = {
+        entryNode: {
+          type: SegmentNodeType.Trait,
+          id: randomUUID(),
+          path: "onboardingState",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: "step2",
+          },
+        },
+        nodes: [],
+      };
+      const segment2 = await prisma().segment.create({
+        data: {
+          workspaceId: workspace.id,
+          name: randomUUID(),
+          definition: segmentDefinition2,
+        },
+      });
+
+      waitForNode1 = "waitForNode1";
+      messageNode1 = "messageNode1";
+      messageNode2 = "messageNode2";
+
+      const journeyDefinition: JourneyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.EntryNode,
+          segment: segment1.id,
+          child: waitForNode1,
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            type: JourneyNodeType.WaitForNode,
+            id: waitForNode1,
+            timeoutChild: messageNode1,
+            timeoutSeconds: 60 * 60 * 24,
+            segmentChildren: [
+              {
+                id: messageNode2,
+                segmentId: segment2.id,
+              },
+            ],
+          },
+          {
+            type: JourneyNodeType.MessageNode,
+            id: messageNode1,
+            child: JourneyNodeType.ExitNode,
+            variant: {
+              type: ChannelType.Email,
+              templateId: randomUUID(),
+            },
+          },
+          {
+            type: JourneyNodeType.MessageNode,
+            id: messageNode2,
+            child: JourneyNodeType.ExitNode,
+            variant: {
+              type: ChannelType.Email,
+              templateId: randomUUID(),
+            },
+          },
+        ],
+      };
+
+      journey = unwrap(
+        enrichJourney(
+          await prisma().journey.create({
+            data: {
+              name: `user-journey-${randomUUID()}`,
+              workspaceId: workspace.id,
+              definition: journeyDefinition,
+              status: "Running",
+            },
+          })
+        )
+      );
+
+      currentTimeMS = await testEnv.currentTimeMs();
+
+      await insertUserEvents({
+        tableVersion,
+        workspaceId: workspace.id,
+        events: [
+          {
+            messageId: randomUUID(),
+            processingTime: new Date(currentTimeMS - 5000).toISOString(),
+            messageRaw: segmentIdentifyEvent({
+              userId: userId1,
+              timestamp: new Date(currentTimeMS - 10000).toISOString(),
+              traits: {
+                onboardingState: "step1",
+              },
+            }),
+          },
+        ],
+      });
+
+      userJourneyWorkflowId = `user-journey-${journey.id}-${userId1}`;
+    });
+
+    describe("when the times out wait for before the timeout", () => {
+      it("sends them an email from the segment branch", async () => {
+        const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
+
+        await worker.runUntil(async () => {
+          await testEnv.client.workflow.start(computePropertiesWorkflow, {
+            workflowId: segmentWorkflow1,
+            taskQueue: "default",
+            args: [
+              {
+                tableVersion,
+                workspaceId: workspace.id,
+                // poll multiple times to ensure we get segment update
+                maxPollingAttempts: 10,
+                shouldContinueAsNew: false,
+              },
+            ],
+          });
+
+          const segmentWorkflowHandle =
+            testEnv.client.workflow.getHandle(segmentWorkflow1);
+
+          // waiting past 1 day timeout
+          await testEnv.sleep("1 week");
+
+          await insertUserEvents({
+            tableVersion,
+            workspaceId: workspace.id,
+            events: [
+              {
+                messageId: randomUUID(),
+                processingTime: new Date(currentTimeMS - 1000).toISOString(),
+                messageRaw: segmentIdentifyEvent({
+                  userId: userId1,
+                  timestamp: new Date(currentTimeMS - 6000).toISOString(),
+                  traits: {
+                    onboardingState: "step2",
+                  },
+                }),
+              },
+            ],
+          });
+
+          await segmentWorkflowHandle.result();
+
+          const handle = testEnv.client.workflow.getHandle(
+            userJourneyWorkflowId
+          );
+
+          await handle.result();
+        });
+
+        expect(testActivities.sendEmail).toHaveBeenCalledTimes(1);
+        expect(testActivities.sendEmail).toHaveBeenCalledWith(
+          expect.objectContaining({
+            nodeId: messageNode1,
+          })
+        );
+      });
+    });
+
+    describe("when the user satisfies the wait for before the timeout", () => {
+      it("sends them an email from the segment branch", async () => {
+        const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
+
+        await worker.runUntil(async () => {
+          await testEnv.client.workflow.start(computePropertiesWorkflow, {
+            workflowId: segmentWorkflow1,
+            taskQueue: "default",
+            args: [
+              {
+                tableVersion,
+                workspaceId: workspace.id,
+                // poll multiple times to ensure we get segment update
+                maxPollingAttempts: 10,
+                shouldContinueAsNew: false,
+              },
+            ],
+          });
+
+          const segmentWorkflowHandle =
+            testEnv.client.workflow.getHandle(segmentWorkflow1);
+
+          await testEnv.sleep(45000);
+
+          await insertUserEvents({
+            tableVersion,
+            workspaceId: workspace.id,
+            events: [
+              {
+                messageId: randomUUID(),
+                processingTime: new Date(currentTimeMS - 1000).toISOString(),
+                messageRaw: segmentIdentifyEvent({
+                  userId: userId1,
+                  timestamp: new Date(currentTimeMS - 6000).toISOString(),
+                  traits: {
+                    onboardingState: "step2",
+                  },
+                }),
+              },
+            ],
+          });
+
+          await segmentWorkflowHandle.result();
+
+          const handle = testEnv.client.workflow.getHandle(
+            userJourneyWorkflowId
+          );
+
+          await handle.result();
+        });
+
+        expect(testActivities.sendEmail).toHaveBeenCalledTimes(1);
+        expect(testActivities.sendEmail).toHaveBeenCalledWith(
+          expect.objectContaining({
+            nodeId: messageNode2,
+          })
+        );
+      });
+    });
+  });
+
   describe("onboarding journey", () => {
     let journey: EnrichedJourney;
     let tableVersion: string;
