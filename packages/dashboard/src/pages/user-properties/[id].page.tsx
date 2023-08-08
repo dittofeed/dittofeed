@@ -1,3 +1,4 @@
+import { PlusCircleFilled } from "@ant-design/icons";
 import {
   Autocomplete,
   Box,
@@ -41,7 +42,6 @@ import {
   PreloadedState,
   PropsWithInitialState,
 } from "../../lib/types";
-import { PlusCircleFilled } from "@ant-design/icons";
 
 const selectorWidth = "192px";
 
@@ -87,6 +87,11 @@ const userPropertyOptions: UserPropertyGroupedOption[] = [
   anonymousIdOption,
 ];
 
+const groupedUserPropertyOptions: UserPropertyGroupedOption[] = [
+  performedOption,
+  traitOption,
+];
+
 function getUserPropertyOption(
   type: UserPropertyDefinitionType
 ): UserPropertyGroupedOption {
@@ -107,6 +112,57 @@ function getUserPropertyOption(
       return anyOfOption;
     case UserPropertyDefinitionType.Group:
       return anyOfOption;
+  }
+}
+
+function defaultUserProperty(
+  type: UserPropertyDefinitionType,
+  id?: string
+): UserPropertyDefinition {
+  switch (type) {
+    case UserPropertyDefinitionType.Id:
+      return {
+        type: UserPropertyDefinitionType.Id,
+      };
+    case UserPropertyDefinitionType.AnonymousId:
+      return {
+        type: UserPropertyDefinitionType.AnonymousId,
+      };
+    case UserPropertyDefinitionType.Trait:
+      return {
+        id,
+        type: UserPropertyDefinitionType.Trait,
+        path: "",
+      };
+    case UserPropertyDefinitionType.Performed:
+      return {
+        id,
+        type: UserPropertyDefinitionType.Performed,
+        event: "",
+        path: "",
+      };
+    case UserPropertyDefinitionType.AnyOf: {
+      const childId = id ?? uuidv4();
+      return {
+        type: UserPropertyDefinitionType.Group,
+        nodes: [
+          {
+            id: "any-of-1",
+            type: UserPropertyDefinitionType.AnyOf,
+            children: [childId],
+          },
+          {
+            id: childId,
+            type: UserPropertyDefinitionType.Trait,
+            path: "",
+          },
+        ],
+        entry: "any-of-1",
+      };
+    }
+    case UserPropertyDefinitionType.Group: {
+      throw new Error("Not implemented");
+    }
   }
 }
 
@@ -241,12 +297,92 @@ function AnyOfUserPropertyDefinitionEditor({
   );
   return (
     <>
-      <IconButton color="primary" size="large" onClick={() => null}>
+      <IconButton
+        color="primary"
+        size="large"
+        onClick={() =>
+          updateUserPropertyDefinition((current) => {
+            if (current.type !== UserPropertyDefinitionType.Group) {
+              return current;
+            }
+            const entry = current.nodes.find((n) => n.id === current.entry);
+            if (!entry || entry.type !== UserPropertyDefinitionType.AnyOf) {
+              return current;
+            }
+            const newId = uuidv4();
+            const newChild = defaultUserProperty(
+              UserPropertyDefinitionType.Trait,
+              newId
+            );
+            if (newChild.type !== UserPropertyDefinitionType.Trait) {
+              return current;
+            }
+            entry.children.push(newId);
+            current.nodes.push(newChild);
+            return current;
+          })
+        }
+      >
         <PlusCircleFilled />
       </IconButton>
       {groupedUserProperty.nodes
         .filter((n) => n.id && definition.children.includes(n.id))
-        .map((n) => n.type)}
+        .map((n) => {
+          const condition = getUserPropertyOption(n.type);
+          return (
+            <>
+              <Autocomplete
+                key={n.id}
+                value={condition}
+                sx={{ width: selectorWidth }}
+                getOptionDisabled={(option) => option.disabled === true}
+                groupBy={(option) => option.group}
+                onChange={(
+                  _event: unknown,
+                  newValue: UserPropertyGroupedOption
+                ) => {
+                  updateUserPropertyDefinition((current) => {
+                    if (current.type !== UserPropertyDefinitionType.Group) {
+                      return current;
+                    }
+                    current.nodes = current.nodes.map((node) => {
+                      if (node.id === n.id) {
+                        const newNode = defaultUserProperty(
+                          newValue.id,
+                          node.id
+                        );
+
+                        if (
+                          !(
+                            newNode.type === UserPropertyDefinitionType.Trait ||
+                            newNode.type ===
+                              UserPropertyDefinitionType.Performed
+                          )
+                        ) {
+                          return node;
+                        }
+                        return newNode;
+                      }
+                      return node;
+                    });
+
+                    return current;
+                  });
+                }}
+                disableClearable
+                options={groupedUserPropertyOptions}
+                renderInput={(params) => (
+                  <TextField
+                    label="User Property Type"
+                    {...params}
+                    variant="outlined"
+                  />
+                )}
+              />
+              {n.type}
+            </>
+          );
+        })}
     </>
   );
 }
@@ -301,54 +437,6 @@ function PerformedUserPropertyDefinitionEditor({
       />
     </Stack>
   );
-}
-
-function defaultUserProperty(
-  type: UserPropertyDefinitionType
-): UserPropertyDefinition {
-  switch (type) {
-    case UserPropertyDefinitionType.Id:
-      return {
-        type: UserPropertyDefinitionType.Id,
-      };
-    case UserPropertyDefinitionType.AnonymousId:
-      return {
-        type: UserPropertyDefinitionType.AnonymousId,
-      };
-    case UserPropertyDefinitionType.Trait:
-      return {
-        type: UserPropertyDefinitionType.Trait,
-        path: "",
-      };
-    case UserPropertyDefinitionType.Performed:
-      return {
-        type: UserPropertyDefinitionType.Performed,
-        event: "",
-        path: "",
-      };
-    case UserPropertyDefinitionType.AnyOf: {
-      const childId = uuidv4();
-      return {
-        type: UserPropertyDefinitionType.Group,
-        nodes: [
-          {
-            id: "any-of-1",
-            type: UserPropertyDefinitionType.AnyOf,
-            children: [childId],
-          },
-          {
-            id: childId,
-            type: UserPropertyDefinitionType.Trait,
-            path: "",
-          },
-        ],
-        entry: "any-of-1",
-      };
-    }
-    case UserPropertyDefinitionType.Group: {
-      throw new Error("Not implemented");
-    }
-  }
 }
 
 function UserPropertyDefinitionEditor({
