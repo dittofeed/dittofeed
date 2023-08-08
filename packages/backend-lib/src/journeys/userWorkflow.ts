@@ -23,6 +23,8 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 export const segmentUpdateSignal =
   wf.defineSignal<[SegmentUpdate]>("segmentUpdate");
 
+const WORKFLOW_NAME = "userJourneyWorkflow";
+
 const {
   sendEmail,
   getSegmentAssignment,
@@ -51,7 +53,12 @@ export async function userJourneyWorkflow({
 }): Promise<void> {
   // TODO write end to end test
   if (!(await isRunnable({ journeyId, userId }))) {
-    logger.info("early exit unrunnable user journey", {});
+    logger.info("early exit unrunnable user journey", {
+      workflow: WORKFLOW_NAME,
+      journeyId,
+      userId,
+      workspaceId,
+    });
     return;
   }
 
@@ -85,7 +92,17 @@ export async function userJourneyWorkflow({
 
   // loop with finite length as a safety stopgap
   nodeLoop: for (let i = 0; i < nodes.size + 1; i++) {
+    const defaultLoggingFields = {
+      workflow: WORKFLOW_NAME,
+      type: currentNode.type,
+      workspaceId,
+      journeyId,
+      userId,
+      runId,
+      currentNode,
+    };
     logger.info("user journey node", {
+      ...defaultLoggingFields,
       type: currentNode.type,
     });
     switch (currentNode.type) {
@@ -103,6 +120,7 @@ export async function userJourneyWorkflow({
         const nextNode = nodes.get(currentNode.child);
         if (!nextNode) {
           logger.error("missing entry node child", {
+            ...defaultLoggingFields,
             child: currentNode.child,
           });
           currentNode = definition.exitNode;
@@ -130,6 +148,7 @@ export async function userJourneyWorkflow({
         const nextNode = nodes.get(currentNode.child);
         if (!nextNode) {
           logger.error("missing delay node child", {
+            ...defaultLoggingFields,
             child: currentNode.child,
           });
           currentNode = definition.exitNode;
@@ -150,6 +169,7 @@ export async function userJourneyWorkflow({
           );
           if (!child) {
             logger.error("missing wait for segment child", {
+              ...defaultLoggingFields,
               segmentChildren,
             });
             currentNode = definition.exitNode;
@@ -158,6 +178,7 @@ export async function userJourneyWorkflow({
           const nextNode = nodes.get(child.id);
           if (!nextNode) {
             logger.error("missing wait for segment child node", {
+              ...defaultLoggingFields,
               child,
             });
             currentNode = definition.exitNode;
@@ -167,9 +188,10 @@ export async function userJourneyWorkflow({
         } else {
           const nextNode = nodes.get(currentNode.timeoutChild);
           if (!nextNode) {
-            logger.error("missing wait for timeout child node", {
-              currentNode,
-            });
+            logger.error(
+              "missing wait for timeout child node",
+              defaultLoggingFields
+            );
             currentNode = definition.exitNode;
             break;
           }
@@ -203,7 +225,10 @@ export async function userJourneyWorkflow({
         const nextNode = nodes.get(nextNodeId);
 
         if (!nextNode) {
-          logger.error("missing segment split node child", { nextNodeId });
+          logger.error("missing segment split node child", {
+            ...defaultLoggingFields,
+            nextNodeId,
+          });
           currentNode = definition.exitNode;
           break;
         }
@@ -251,6 +276,7 @@ export async function userJourneyWorkflow({
 
         if (!shouldContinue) {
           logger.info("message node early exit", {
+            ...defaultLoggingFields,
             child: currentNode.child,
           });
           currentNode = definition.exitNode;
@@ -260,6 +286,7 @@ export async function userJourneyWorkflow({
         const nextNode = nodes.get(currentNode.child);
         if (!nextNode) {
           logger.error("missing message node child", {
+            ...defaultLoggingFields,
             child: currentNode.child,
           });
           currentNode = definition.exitNode;
@@ -280,6 +307,7 @@ export async function userJourneyWorkflow({
       }
       default:
         logger.error("unable to handle un-implemented node type", {
+          ...defaultLoggingFields,
           nodeType: currentNode.type,
         });
         currentNode = definition.exitNode;
