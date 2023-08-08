@@ -23,6 +23,8 @@ const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 export const segmentUpdateSignal =
   wf.defineSignal<[SegmentUpdate]>("segmentUpdate");
 
+const WORKFLOW_NAME = "userJourneyWorkflow";
+
 const {
   sendEmail,
   getSegmentAssignment,
@@ -52,7 +54,7 @@ export async function userJourneyWorkflow({
   // TODO write end to end test
   if (!(await isRunnable({ journeyId, userId }))) {
     logger.info("early exit unrunnable user journey", {
-      workflow: "userJourneyWorkflow",
+      workflow: WORKFLOW_NAME,
       journeyId,
       userId,
       workspaceId,
@@ -91,7 +93,7 @@ export async function userJourneyWorkflow({
   // loop with finite length as a safety stopgap
   nodeLoop: for (let i = 0; i < nodes.size + 1; i++) {
     const defaultLoggingFields = {
-      workflow: "userJourneyWorkflow",
+      workflow: WORKFLOW_NAME,
       type: currentNode.type,
       workspaceId,
       journeyId,
