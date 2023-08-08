@@ -600,7 +600,29 @@ function buildGroupedUserPropertyQueryExpression({
       });
     }
     case UserPropertyDefinitionType.AnyOf: {
-      return "";
+      const childIds = new Set(child.children);
+      const childNodes = userProperty.nodes.filter(
+        (n) => n.id && childIds.has(n.id)
+      );
+      const childFragments = childNodes
+        .map((childNode) =>
+          buildGroupedUserPropertyQueryExpression({
+            child: childNode,
+            userProperty,
+            queryBuilder,
+          })
+        )
+        .filter((query) => query !== null);
+
+      if (childFragments.length === 0) {
+        return null;
+      }
+      if (childFragments[0] && childFragments.length === 1) {
+        return childFragments[0];
+      }
+      return `coalesce(
+        ${childFragments.join(", ")}
+      )`;
     }
   }
 }
