@@ -296,9 +296,13 @@ export enum UserPropertyDefinitionType {
   Id = "Id",
   AnonymousId = "AnonymousId",
   Performed = "Performed",
+  Group = "Group",
+  AnyOf = "AnyOf",
 }
 
 export const TraitUserPropertyDefinition = Type.Object({
+  // set to optional for backwards compatibility
+  id: Type.Optional(Type.String()),
   type: Type.Literal(UserPropertyDefinitionType.Trait),
   path: Type.String(),
 });
@@ -322,6 +326,8 @@ export type AnonymousIdUserPropertyDefinition = Static<
 >;
 
 export const PerformedUserPropertyDefinition = Type.Object({
+  // set to optional for backwards compatibility
+  id: Type.Optional(Type.String()),
   type: Type.Literal(UserPropertyDefinitionType.Performed),
   event: Type.String(),
   path: Type.String(),
@@ -331,11 +337,57 @@ export type PerformedUserPropertyDefinition = Static<
   typeof PerformedUserPropertyDefinition
 >;
 
-export const UserPropertyDefinition = Type.Union([
+export const AnyOfUserPropertyDefinition = Type.Object({
+  id: Type.String(),
+  type: Type.Literal(UserPropertyDefinitionType.AnyOf),
+  children: Type.Array(Type.String()),
+});
+
+export type AnyOfUserPropertyDefinition = Static<
+  typeof AnyOfUserPropertyDefinition
+>;
+
+export const GroupParentUserPropertyDefinitions = Type.Union([
+  AnyOfUserPropertyDefinition,
+]);
+
+export type GroupParentUserPropertyDefinitions = Static<
+  typeof GroupParentUserPropertyDefinitions
+>;
+
+export const LeafUserPropertyDefinition = Type.Union([
   TraitUserPropertyDefinition,
+  PerformedUserPropertyDefinition,
+]);
+
+export type LeafUserPropertyDefinition = Static<
+  typeof LeafUserPropertyDefinition
+>;
+
+export const GroupChildrenUserPropertyDefinitions = Type.Union([
+  GroupParentUserPropertyDefinitions,
+  LeafUserPropertyDefinition,
+]);
+
+export type GroupChildrenUserPropertyDefinitions = Static<
+  typeof GroupChildrenUserPropertyDefinitions
+>;
+
+export const GroupUserPropertyDefinition = Type.Object({
+  type: Type.Literal(UserPropertyDefinitionType.Group),
+  entry: Type.String(),
+  nodes: Type.Array(GroupChildrenUserPropertyDefinitions),
+});
+
+export type GroupUserPropertyDefinition = Static<
+  typeof GroupUserPropertyDefinition
+>;
+
+export const UserPropertyDefinition = Type.Union([
   IdUserPropertyDefinition,
   AnonymousIdUserPropertyDefinition,
-  PerformedUserPropertyDefinition,
+  GroupUserPropertyDefinition,
+  LeafUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;

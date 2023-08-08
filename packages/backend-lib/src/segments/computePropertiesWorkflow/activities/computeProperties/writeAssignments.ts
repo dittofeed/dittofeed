@@ -9,8 +9,11 @@ import logger from "../../../../logger";
 import {
   EnrichedSegment,
   EnrichedUserProperty,
+  GroupChildrenUserPropertyDefinitions,
+  GroupUserPropertyDefinition,
   InternalEventType,
   LastPerformedSegmentNode,
+  LeafUserPropertyDefinition,
   PerformedSegmentNode,
   RelationalOperators,
   SegmentHasBeenOperatorComparator,
@@ -515,16 +518,43 @@ function buildSegmentQueryFragment({
   `;
 }
 
-function buildUserPropertyQueryExpression({
+function buildLeafUserPropertyQueryExpression({
   userProperty,
   queryBuilder,
 }: {
-  userProperty: EnrichedUserProperty;
+  userProperty: LeafUserPropertyDefinition;
   queryBuilder: ClickHouseQueryBuilder;
 }): string | null {
-  switch (userProperty.definition.type) {
+  switch (userProperty.type) {
+    case UserPropertyDefinitionType.Performed: {
+      const { path } = userProperty;
+      const jsonValuePath = queryBuilder.addQueryValue(
+        `$.properties.${path}`,
+        "String"
+      );
+      const pathArgs = pathToArgs(path, queryBuilder);
+      if (!pathArgs) {
+        return null;
+      }
+
+      return `
+          JSON_VALUE(
+            arrayFirst(
+              m -> and(
+                JSONHas(m.1, 'properties', ${pathArgs}),
+                JSON_VALUE(m.1, '$.event') = ${queryBuilder.addQueryValue(
+                  userProperty.event,
+                  "String"
+                )}
+              ),
+              timed_messages
+            ).1,
+            ${jsonValuePath}
+          )
+      `;
+    }
     case UserPropertyDefinitionType.Trait: {
-      const { path } = userProperty.definition;
+      const { path } = userProperty;
       const jsonValuePath = queryBuilder.addQueryValue(
         `$.traits.${path}`,
         "String"
@@ -543,7 +573,85 @@ function buildUserPropertyQueryExpression({
           ${jsonValuePath}
         )
       `;
-      break;
+    }
+  }
+}
+
+function buildGroupedUserPropertyQueryExpression({
+  userProperty,
+  child,
+  queryBuilder,
+}: {
+  child: GroupChildrenUserPropertyDefinitions;
+  userProperty: GroupUserPropertyDefinition;
+  queryBuilder: ClickHouseQueryBuilder;
+}): string | null {
+  switch (child.type) {
+    case UserPropertyDefinitionType.Performed: {
+      return buildLeafUserPropertyQueryExpression({
+        userProperty: child,
+        queryBuilder,
+      });
+    }
+    case UserPropertyDefinitionType.Trait: {
+      return buildLeafUserPropertyQueryExpression({
+        userProperty: child,
+        queryBuilder,
+      });
+    }
+    case UserPropertyDefinitionType.AnyOf: {
+      const childIds = new Set(child.children);
+      const childNodes = userProperty.nodes.filter(
+        (n) => n.id && childIds.has(n.id)
+      );
+      const childFragments = childNodes
+        .map((childNode) =>
+          buildGroupedUserPropertyQueryExpression({
+            child: childNode,
+            userProperty,
+            queryBuilder,
+          })
+        )
+        .filter((query) => query !== null)
+        .map((query) => {
+          const queryId = getChCompatibleUuid();
+          return `if(empty(${query} as ${queryId}), Null, ${queryId})`;
+        });
+      if (childFragments.length === 0) {
+        return null;
+      }
+      if (childFragments[0] && childFragments.length === 1) {
+        return childFragments[0];
+      }
+      return `coalesce(
+        ${childFragments.join(", ")}
+      )`;
+    }
+  }
+}
+
+function buildUserPropertyQueryExpression({
+  userProperty,
+  queryBuilder,
+}: {
+  userProperty: EnrichedUserProperty;
+  queryBuilder: ClickHouseQueryBuilder;
+}): string | null {
+  switch (userProperty.definition.type) {
+    case UserPropertyDefinitionType.Group: {
+      const { entry } = userProperty.definition;
+
+      const entryNode = userProperty.definition.nodes.find(
+        (n) => n.id === entry
+      );
+      if (!entryNode) {
+        return null;
+      }
+      return buildGroupedUserPropertyQueryExpression({
+        userProperty: userProperty.definition,
+        child: entryNode,
+        queryBuilder,
+      });
     }
     case UserPropertyDefinitionType.Id: {
       return "user_id";
@@ -551,32 +659,17 @@ function buildUserPropertyQueryExpression({
     case UserPropertyDefinitionType.AnonymousId: {
       return "any(anonymous_id)";
     }
+    case UserPropertyDefinitionType.Trait: {
+      return buildLeafUserPropertyQueryExpression({
+        userProperty: userProperty.definition,
+        queryBuilder,
+      });
+    }
     case UserPropertyDefinitionType.Performed: {
-      const { path } = userProperty.definition;
-      const jsonValuePath = queryBuilder.addQueryValue(
-        `$.properties.${path}`,
-        "String"
-      );
-      const pathArgs = pathToArgs(path, queryBuilder);
-      if (!pathArgs) {
-        return null;
-      }
-
-      return `
-          JSON_VALUE(
-            arrayFirst(
-              m -> and(
-                JSONHas(m.1, 'properties', ${pathArgs}),
-                JSON_VALUE(m.1, '$.event') = ${queryBuilder.addQueryValue(
-                  userProperty.definition.event,
-                  "String"
-                )}
-              ),
-              timed_messages
-            ).1,
-            ${jsonValuePath}
-          )
-      `;
+      return buildLeafUserPropertyQueryExpression({
+        userProperty: userProperty.definition,
+        queryBuilder,
+      });
     }
   }
 }
