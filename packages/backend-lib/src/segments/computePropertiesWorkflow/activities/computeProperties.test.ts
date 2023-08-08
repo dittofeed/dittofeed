@@ -2,6 +2,7 @@ import { Segment, Workspace } from "@prisma/client";
 import { uuid4 } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { mapValues } from "remeda";
 import { Overwrite } from "utility-types";
 
 import {
@@ -161,7 +162,6 @@ describe("compute properties activities", () => {
     interface TableTest {
       description: string;
       currentTime?: number;
-      // array with at least one item
       segments?: TestSegmentData[];
       userProperties?: TestUserPropertyData[];
       events?: {
@@ -175,7 +175,8 @@ describe("compute properties activities", () => {
       }[];
       // map from segment name to value
       expectedSegments?: Record<string, boolean>;
-      expectedUserProperties?: Record<string, string>;
+      // map from user id -> user property name -> value
+      expectedUserProperties?: Record<string, Record<string, string>>;
     }
 
     const broadcastSegmentId = randomUUID();
@@ -666,6 +667,8 @@ describe("compute properties activities", () => {
           segments: testSegments,
           events = [],
           currentTime = 1681334178956,
+          userProperties: testUserProperties,
+          expectedUserProperties,
           expectedSegments,
           expectedSignals,
         }) => {
@@ -696,41 +699,70 @@ describe("compute properties activities", () => {
             data: { name: `workspace-${randomUUID()}` },
           });
 
+          const subscribedJourneys: EnrichedJourney[] = [];
+          const userProperties: EnrichedUserProperty[] = [];
+          const promises: (Promise<unknown> | null)[] = [
+            insertUserEvents({
+              tableVersion,
+              workspaceId: workspace.id,
+              events: eventPayloads,
+            }),
+            testUserProperties?.length
+              ? Promise.all(
+                  testUserProperties.map((up) =>
+                    prisma()
+                      .userProperty.create({
+                        data: {
+                          workspaceId: workspace.id,
+                          ...up,
+                        },
+                      })
+                      .then((up2) =>
+                        userProperties.push(up2 as EnrichedUserProperty)
+                      )
+                  )
+                )
+              : null,
+          ];
           if (testSegments?.[0]) {
             const firstSegmentId = testSegments[0].id ?? randomUUID();
-            const results = await Promise.all([
-              prisma().journey.create({
-                data: {
-                  workspaceId: workspace.id,
-                  name: `user-journey-${randomUUID()}`,
-                  definition: basicJourneyDefinition(
-                    randomUUID(),
-                    firstSegmentId
-                  ),
-                },
-              }),
+
+            promises.push(
+              prisma()
+                .journey.create({
+                  data: {
+                    workspaceId: workspace.id,
+                    name: `user-journey-${randomUUID()}`,
+                    definition: basicJourneyDefinition(
+                      randomUUID(),
+                      firstSegmentId
+                    ),
+                  },
+                })
+                .then((j) => {
+                  journey = j as EnrichedJourney;
+                  subscribedJourneys.push(journey);
+                })
+            );
+            promises.push(
               prisma().segment.createMany({
                 data: testSegments.map((s, i) => ({
                   workspaceId: workspace.id,
                   id: i === 0 ? firstSegmentId : undefined,
                   ...s,
                 })),
-              }),
-              insertUserEvents({
-                tableVersion,
-                workspaceId: workspace.id,
-                events: eventPayloads,
-              }),
-            ]);
-            journey = results[0] as EnrichedJourney;
+              })
+            );
           }
+
+          await Promise.all(promises);
 
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
             tableVersion,
-            subscribedJourneys: [journey],
-            userProperties: [],
+            subscribedJourneys,
+            userProperties,
           });
 
           const [createdSegments, createdSegmentAssignments] =
@@ -758,6 +790,23 @@ describe("compute properties activities", () => {
               return memo;
             }, {});
             expect(segmentsRecord).toEqual(expectedSegments);
+          }
+
+          if (expectedUserProperties) {
+            await Promise.all(
+              Object.values(
+                mapValues(
+                  expectedUserProperties,
+                  async (expectedValue, userId2) => {
+                    const assignments = await findAllUserPropertyAssignments({
+                      workspaceId: workspace.id,
+                      userId: userId2,
+                    });
+                    expect(assignments).toEqual(expectedValue);
+                  }
+                )
+              )
+            );
           }
 
           for (const { segmentName } of expectedSignals ?? []) {
