@@ -521,12 +521,14 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
 
-        updateUserPropertyDefinition: (definition) =>
+        updateUserPropertyDefinition: (updater) =>
           set((state) => {
             if (!state.editedUserProperty) {
               return state;
             }
-            state.editedUserProperty.definition = definition;
+            state.editedUserProperty.definition = updater(
+              state.editedUserProperty.definition
+            );
             return state;
           }),
 

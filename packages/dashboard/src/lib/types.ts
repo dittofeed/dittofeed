@@ -131,7 +131,11 @@ export interface UserPropertyIndexContent {
 
 export interface UserPropertyEditorContent {
   editedUserProperty: UserPropertyResource | null;
-  updateUserPropertyDefinition: (definition: UserPropertyDefinition) => void;
+  updateUserPropertyDefinition: (
+    updater: (
+      currentValue: Draft<UserPropertyDefinition>
+    ) => Draft<UserPropertyDefinition>
+  ) => void;
   userPropertyUpdateRequest: EphemeralRequestStatus<Error>;
   setUserPropertyUpdateRequest: (
     request: EphemeralRequestStatus<Error>

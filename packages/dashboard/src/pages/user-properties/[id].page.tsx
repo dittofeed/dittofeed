@@ -2,6 +2,7 @@ import {
   Autocomplete,
   Box,
   Button,
+  IconButton,
   Stack,
   TextField,
   Typography,
@@ -40,6 +41,7 @@ import {
   PreloadedState,
   PropsWithInitialState,
 } from "../../lib/types";
+import { PlusCircleFilled } from "@ant-design/icons";
 
 const selectorWidth = "192px";
 
@@ -188,9 +190,12 @@ function TraitUserPropertyDefinitionEditor({
     (state) => state.updateUserPropertyDefinition
   );
   const handleTraitChange = (trait: string) => {
-    updateUserPropertyDefinition({
-      ...definition,
-      path: trait,
+    updateUserPropertyDefinition((current) => {
+      if (current.type !== UserPropertyDefinitionType.Trait) {
+        return current;
+      }
+      current.path = trait;
+      return current;
     });
   };
 
@@ -230,8 +235,15 @@ function AnyOfUserPropertyDefinitionEditor({
   groupedUserProperty: GroupUserPropertyDefinition;
   definition: AnyOfUserPropertyDefinition;
 }) {
+  const { updateUserPropertyDefinition } = useAppStore(
+    (store) => pick(store, ["updateUserPropertyDefinition"]),
+    shallow
+  );
   return (
     <>
+      <IconButton color="primary" size="large" onClick={() => null}>
+        <PlusCircleFilled />
+      </IconButton>
       {groupedUserProperty.nodes
         .filter((n) => n.id && definition.children.includes(n.id))
         .map((n) => n.type)}
@@ -252,18 +264,24 @@ function PerformedUserPropertyDefinitionEditor({
   const handlePathChange: ComponentProps<typeof TextField>["onChange"] = (
     e
   ) => {
-    updateUserPropertyDefinition({
-      ...definition,
-      path: e.target.value,
+    updateUserPropertyDefinition((current) => {
+      if (current.type !== UserPropertyDefinitionType.Performed) {
+        return current;
+      }
+      current.path = e.target.value;
+      return current;
     });
   };
 
   const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
     e
   ) => {
-    updateUserPropertyDefinition({
-      ...definition,
-      event: e.target.value,
+    updateUserPropertyDefinition((current) => {
+      if (current.type !== UserPropertyDefinitionType.Performed) {
+        return current;
+      }
+      current.event = e.target.value;
+      return current;
     });
   };
 
@@ -353,7 +371,7 @@ function UserPropertyDefinitionEditor({
       getOptionDisabled={(option) => option.disabled === true}
       groupBy={(option) => option.group}
       onChange={(_event: unknown, newValue: UserPropertyGroupedOption) => {
-        updateUserPropertyDefinition(defaultUserProperty(newValue.id));
+        updateUserPropertyDefinition(() => defaultUserProperty(newValue.id));
       }}
       disableClearable
       options={userPropertyOptions}
