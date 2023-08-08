@@ -1,4 +1,5 @@
 import { PlusCircleFilled } from "@ant-design/icons";
+import { Delete } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
@@ -411,7 +412,7 @@ function AnyOfUserPropertyDefinitionEditor({
       <Stack spacing={3} direction="column">
         {groupedUserProperty.nodes
           .filter((n) => n.id && definition.children.includes(n.id))
-          .map((n: GroupChildrenUserPropertyDefinitions) => {
+          .map((n: GroupChildrenUserPropertyDefinitions, i) => {
             const condition = getUserPropertyOption(n.type);
             if (n.type === UserPropertyDefinitionType.AnyOf) {
               return null;
@@ -473,6 +474,37 @@ function AnyOfUserPropertyDefinitionEditor({
                 />
                 {/* eslint-disable-next-line @typescript-eslint/no-use-before-define */}
                 <DefinitionComponent definition={n} />
+                {i > 0 ? (
+                  <IconButton
+                    color="error"
+                    size="large"
+                    onClick={() =>
+                      updateUserPropertyDefinition((current) => {
+                        if (current.type !== UserPropertyDefinitionType.Group) {
+                          return current;
+                        }
+                        const entry = current.nodes.find(
+                          (node) => node.id === current.entry
+                        );
+                        if (
+                          !entry ||
+                          entry.type !== UserPropertyDefinitionType.AnyOf
+                        ) {
+                          return current;
+                        }
+                        entry.children = entry.children.filter(
+                          (c) => c !== n.id
+                        );
+                        current.nodes = current.nodes.filter(
+                          (c) => c.id !== n.id
+                        );
+                        return current;
+                      })
+                    }
+                  >
+                    <Delete />
+                  </IconButton>
+                ) : null}
               </Stack>
             );
           })}
