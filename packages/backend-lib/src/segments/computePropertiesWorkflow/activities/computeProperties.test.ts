@@ -150,12 +150,20 @@ describe("compute properties activities", () => {
     }
   >;
 
+  type TestUserPropertyData = Overwrite<
+    Omit<Prisma.UserPropertyCreateInput, "workspaceId" | "workspace">,
+    {
+      definition: UserPropertyDefinition;
+    }
+  >;
+
   describe("computePropertiesPeriod", () => {
     interface TableTest {
       description: string;
       currentTime?: number;
-      // arra with at least one item
-      segments: [TestSegmentData, ...TestSegmentData[]];
+      // array with at least one item
+      segments?: TestSegmentData[];
+      userProperties?: TestUserPropertyData[];
       events?: {
         eventTimeOffset: number;
         overrides?: (
@@ -167,6 +175,7 @@ describe("compute properties activities", () => {
       }[];
       // map from segment name to value
       expectedSegments?: Record<string, boolean>;
+      expectedUserProperties?: Record<string, string>;
     }
 
     const broadcastSegmentId = randomUUID();
@@ -687,32 +696,34 @@ describe("compute properties activities", () => {
             data: { name: `workspace-${randomUUID()}` },
           });
 
-          const firstSegmentId = testSegments[0].id ?? randomUUID();
-          const results = await Promise.all([
-            prisma().journey.create({
-              data: {
+          if (testSegments?.[0]) {
+            const firstSegmentId = testSegments[0].id ?? randomUUID();
+            const results = await Promise.all([
+              prisma().journey.create({
+                data: {
+                  workspaceId: workspace.id,
+                  name: `user-journey-${randomUUID()}`,
+                  definition: basicJourneyDefinition(
+                    randomUUID(),
+                    firstSegmentId
+                  ),
+                },
+              }),
+              prisma().segment.createMany({
+                data: testSegments.map((s, i) => ({
+                  workspaceId: workspace.id,
+                  id: i === 0 ? firstSegmentId : undefined,
+                  ...s,
+                })),
+              }),
+              insertUserEvents({
+                tableVersion,
                 workspaceId: workspace.id,
-                name: `user-journey-${randomUUID()}`,
-                definition: basicJourneyDefinition(
-                  randomUUID(),
-                  firstSegmentId
-                ),
-              },
-            }),
-            prisma().segment.createMany({
-              data: testSegments.map((s, i) => ({
-                workspaceId: workspace.id,
-                id: i === 0 ? firstSegmentId : undefined,
-                ...s,
-              })),
-            }),
-            insertUserEvents({
-              tableVersion,
-              workspaceId: workspace.id,
-              events: eventPayloads,
-            }),
-          ]);
-          journey = results[0] as EnrichedJourney;
+                events: eventPayloads,
+              }),
+            ]);
+            journey = results[0] as EnrichedJourney;
+          }
 
           await computePropertiesPeriod({
             currentTime,
