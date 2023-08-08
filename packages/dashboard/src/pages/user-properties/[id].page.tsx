@@ -12,7 +12,9 @@ import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties"
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  AnyOfUserPropertyDefinition,
   CompletionStatus,
+  GroupUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   TraitUserPropertyDefinition,
   UserPropertyDefinition,
@@ -23,7 +25,7 @@ import { GetServerSideProps } from "next";
 import Head from "next/head";
 import React, { ComponentProps } from "react";
 import { pick } from "remeda/dist/commonjs/pick";
-import { validate } from "uuid";
+import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
 
 import EditableName from "../../components/editableName";
@@ -67,11 +69,18 @@ const performedOption = {
   label: "Performed",
 };
 
+const anyOfOption = {
+  id: UserPropertyDefinitionType.AnyOf,
+  group: "Group",
+  label: "Any Of",
+};
+
 type UserPropertyGroupedOption = GroupedOption<UserPropertyDefinitionType>;
 
 const userPropertyOptions: UserPropertyGroupedOption[] = [
   performedOption,
   traitOption,
+  anyOfOption,
   idOption,
   anonymousIdOption,
 ];
@@ -92,6 +101,10 @@ function getUserPropertyOption(
       return traitOption;
     case UserPropertyDefinitionType.Performed:
       return performedOption;
+    case UserPropertyDefinitionType.AnyOf:
+      return anyOfOption;
+    case UserPropertyDefinitionType.Group:
+      return anyOfOption;
   }
 }
 
@@ -210,6 +223,22 @@ function TraitUserPropertyDefinitionEditor({
   );
 }
 
+function AnyOfUserPropertyDefinitionEditor({
+  groupedUserProperty,
+  definition,
+}: {
+  groupedUserProperty: GroupUserPropertyDefinition;
+  definition: AnyOfUserPropertyDefinition;
+}) {
+  return (
+    <>
+      {groupedUserProperty.nodes
+        .filter((n) => n.id && definition.children.includes(n.id))
+        .map((n) => n.type)}
+    </>
+  );
+}
+
 function PerformedUserPropertyDefinitionEditor({
   definition,
 }: {
@@ -279,6 +308,28 @@ function defaultUserProperty(
         event: "",
         path: "",
       };
+    case UserPropertyDefinitionType.AnyOf: {
+      const childId = uuidv4();
+      return {
+        type: UserPropertyDefinitionType.Group,
+        nodes: [
+          {
+            id: "any-of-1",
+            type: UserPropertyDefinitionType.AnyOf,
+            children: [childId],
+          },
+          {
+            id: childId,
+            type: UserPropertyDefinitionType.Trait,
+            path: "",
+          },
+        ],
+        entry: "any-of-1",
+      };
+    }
+    case UserPropertyDefinitionType.Group: {
+      throw new Error("Not implemented");
+    }
   }
 }
 
@@ -328,6 +379,19 @@ function UserPropertyDefinitionEditor({
     case UserPropertyDefinitionType.Performed:
       up = <PerformedUserPropertyDefinitionEditor definition={definition} />;
       break;
+    case UserPropertyDefinitionType.Group: {
+      const entryNode = definition.nodes.find((n) => n.id === definition.entry);
+      if (!entryNode || entryNode.type !== UserPropertyDefinitionType.AnyOf) {
+        throw new Error("Entry node not found");
+      }
+      up = (
+        <AnyOfUserPropertyDefinitionEditor
+          groupedUserProperty={definition}
+          definition={entryNode}
+        />
+      );
+      break;
+    }
   }
   return (
     <Stack spacing={1} direction="row" sx={{ alignItems: "center" }}>
