@@ -658,6 +658,67 @@ describe("compute properties activities", () => {
         },
         expectedSignals: [],
       },
+      {
+        description:
+          "with grouped any of user property defaults to available value from performed",
+        userProperties: [
+          {
+            name: "email",
+            definition: {
+              type: UserPropertyDefinitionType.Group,
+              entry: "any-of",
+              nodes: [
+                {
+                  id: "any-of",
+                  type: UserPropertyDefinitionType.AnyOf,
+                  children: ["trait", "performed"],
+                },
+                {
+                  id: "performed",
+                  type: UserPropertyDefinitionType.Performed,
+                  event: "action",
+                  path: "email",
+                },
+                {
+                  id: "trait",
+                  type: UserPropertyDefinitionType.Trait,
+                  path: "email",
+                },
+              ],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -1000,
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                userId,
+                traits: {
+                  unrelated: "value",
+                },
+              }),
+          },
+          {
+            eventTimeOffset: -500,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                userId,
+                event: "action",
+                properties: {
+                  email: "max@email.com",
+                },
+              }),
+          },
+        ],
+        expectedUserProperties: {
+          "user-id-1": {
+            email: "max@email.com",
+          },
+        },
+      },
     ];
 
     describe("table driven tests", () => {
@@ -672,7 +733,7 @@ describe("compute properties activities", () => {
           expectedSegments,
           expectedSignals,
         }) => {
-          userId = randomUUID();
+          userId = "user-id-1";
 
           const eventPayloads: InsertValue[] = events.map(
             ({ eventTimeOffset, overrides }) => {
@@ -797,10 +858,10 @@ describe("compute properties activities", () => {
               Object.values(
                 mapValues(
                   expectedUserProperties,
-                  async (expectedValue, userId2) => {
+                  async (expectedValue, uid) => {
                     const assignments = await findAllUserPropertyAssignments({
                       workspaceId: workspace.id,
-                      userId: userId2,
+                      userId: uid,
                     });
                     expect(assignments).toEqual(expectedValue);
                   }

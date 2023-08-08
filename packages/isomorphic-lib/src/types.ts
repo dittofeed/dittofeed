@@ -374,7 +374,6 @@ export type GroupChildrenUserPropertyDefinitions = Static<
 >;
 
 export const GroupUserPropertyDefinition = Type.Object({
-  id: Type.String(),
   type: Type.Literal(UserPropertyDefinitionType.Group),
   entry: Type.String(),
   nodes: Type.Array(GroupChildrenUserPropertyDefinitions),
@@ -387,8 +386,8 @@ export type GroupUserPropertyDefinition = Static<
 export const UserPropertyDefinition = Type.Union([
   IdUserPropertyDefinition,
   AnonymousIdUserPropertyDefinition,
-  LeafUserPropertyDefinition,
   GroupUserPropertyDefinition,
+  LeafUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;

@@ -612,8 +612,11 @@ function buildGroupedUserPropertyQueryExpression({
             queryBuilder,
           })
         )
-        .filter((query) => query !== null);
-
+        .filter((query) => query !== null)
+        .map((query) => {
+          const queryId = getChCompatibleUuid();
+          return `if(empty(${query} as ${queryId}), Null, ${queryId})`;
+        });
       if (childFragments.length === 0) {
         return null;
       }

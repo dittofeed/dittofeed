@@ -41,11 +41,9 @@ export function segmentTrackEvent(
       event: "Course Clicked",
       integrations: {},
       messageId: randomUUID(),
-      properties: {
-        title: "Intro to Analytics",
-      },
+      properties: {},
       type: "track",
-      userId: "AiUGstSDIg",
+      userId: randomUUID(),
       originalTimestamp: "2015-12-12T19:11:01.152Z",
       ...getTimestamps(),
     },
