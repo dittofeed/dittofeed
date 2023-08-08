@@ -3,7 +3,6 @@ import { Row } from "@clickhouse/client";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
-import { v5 as uuidv5 } from "uuid";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "../../../clickhouse";
 import { getSubscribedSegments } from "../../../journeys";
