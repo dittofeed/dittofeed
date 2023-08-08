@@ -52,6 +52,7 @@ export async function userJourneyWorkflow({
   // TODO write end to end test
   if (!(await isRunnable({ journeyId, userId }))) {
     logger.info("early exit unrunnable user journey", {
+      workflow: "userJourneyWorkflow",
       journeyId,
       userId,
       workspaceId,
@@ -90,6 +91,7 @@ export async function userJourneyWorkflow({
   // loop with finite length as a safety stopgap
   nodeLoop: for (let i = 0; i < nodes.size + 1; i++) {
     const defaultLoggingFields = {
+      workflow: "userJourneyWorkflow",
       type: currentNode.type,
       workspaceId,
       journeyId,
