@@ -16,6 +16,7 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import {
   AnyOfUserPropertyDefinition,
   CompletionStatus,
+  GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
   PerformedUserPropertyDefinition,
   TraitUserPropertyDefinition,
@@ -247,10 +248,20 @@ function TraitUserPropertyDefinitionEditor({
   );
   const handleTraitChange = (trait: string) => {
     updateUserPropertyDefinition((current) => {
-      if (current.type !== UserPropertyDefinitionType.Trait) {
+      let traitDefinition: TraitUserPropertyDefinition;
+      if (current.type === UserPropertyDefinitionType.Trait) {
+        traitDefinition = current;
+      } else if (
+        current.type === UserPropertyDefinitionType.Group &&
+        definition.id
+      ) {
+        traitDefinition = current.nodes.find(
+          (n) => n.id === definition.id
+        ) as TraitUserPropertyDefinition;
+      } else {
         return current;
       }
-      current.path = trait;
+      traitDefinition.path = trait;
       return current;
     });
   };
@@ -281,6 +292,78 @@ function TraitUserPropertyDefinitionEditor({
         />
       )}
     />
+  );
+}
+
+function PerformedUserPropertyDefinitionEditor({
+  definition,
+}: {
+  definition: PerformedUserPropertyDefinition;
+}) {
+  const { updateUserPropertyDefinition } = useAppStore(
+    (store) => pick(store, ["updateUserPropertyDefinition"]),
+    shallow
+  );
+
+  const handlePathChange: ComponentProps<typeof TextField>["onChange"] = (
+    e
+  ) => {
+    updateUserPropertyDefinition((current) => {
+      let d: PerformedUserPropertyDefinition;
+      if (current.type === UserPropertyDefinitionType.Performed) {
+        d = current;
+      } else if (
+        current.type === UserPropertyDefinitionType.Group &&
+        definition.id
+      ) {
+        d = current.nodes.find(
+          (n) => n.id === definition.id
+        ) as PerformedUserPropertyDefinition;
+      } else {
+        return current;
+      }
+      d.path = e.target.value;
+      return current;
+    });
+  };
+
+  const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
+    e
+  ) => {
+    updateUserPropertyDefinition((current) => {
+      let d: PerformedUserPropertyDefinition;
+      if (current.type === UserPropertyDefinitionType.Performed) {
+        d = current;
+      } else if (
+        current.type === UserPropertyDefinitionType.Group &&
+        definition.id
+      ) {
+        d = current.nodes.find(
+          (n) => n.id === definition.id
+        ) as PerformedUserPropertyDefinition;
+      } else {
+        return current;
+      }
+      d.event = e.target.value;
+      return current;
+    });
+  };
+
+  return (
+    <Stack spacing={1} direction="row">
+      <TextField
+        label="Event Name"
+        sx={{ width: selectorWidth }}
+        value={definition.event}
+        onChange={handleEventNameChange}
+      />
+      <TextField
+        label="Property Path"
+        sx={{ width: selectorWidth }}
+        value={definition.path}
+        onChange={handlePathChange}
+      />
+    </Stack>
   );
 }
 
@@ -325,118 +408,115 @@ function AnyOfUserPropertyDefinitionEditor({
       >
         <PlusCircleFilled />
       </IconButton>
-      {groupedUserProperty.nodes
-        .filter((n) => n.id && definition.children.includes(n.id))
-        .map((n) => {
-          const condition = getUserPropertyOption(n.type);
-          return (
-            <>
-              <Autocomplete
+      <Stack spacing={3} direction="column">
+        {groupedUserProperty.nodes
+          .filter((n) => n.id && definition.children.includes(n.id))
+          .map((n: GroupChildrenUserPropertyDefinitions) => {
+            const condition = getUserPropertyOption(n.type);
+            if (n.type === UserPropertyDefinitionType.AnyOf) {
+              return null;
+            }
+            return (
+              <Stack
+                direction="row"
+                spacing={1}
                 key={n.id}
-                value={condition}
-                sx={{ width: selectorWidth }}
-                getOptionDisabled={(option) => option.disabled === true}
-                groupBy={(option) => option.group}
-                onChange={(
-                  _event: unknown,
-                  newValue: UserPropertyGroupedOption
-                ) => {
-                  updateUserPropertyDefinition((current) => {
-                    if (current.type !== UserPropertyDefinitionType.Group) {
-                      return current;
-                    }
-                    current.nodes = current.nodes.map((node) => {
-                      if (node.id === n.id) {
-                        const newNode = defaultUserProperty(
-                          newValue.id,
-                          node.id
-                        );
-
-                        if (
-                          !(
-                            newNode.type === UserPropertyDefinitionType.Trait ||
-                            newNode.type ===
-                              UserPropertyDefinitionType.Performed
-                          )
-                        ) {
-                          return node;
-                        }
-                        return newNode;
+                sx={{ alignItems: "center" }}
+              >
+                <Autocomplete
+                  value={condition}
+                  sx={{ width: selectorWidth }}
+                  getOptionDisabled={(option) => option.disabled === true}
+                  groupBy={(option) => option.group}
+                  onChange={(
+                    _event: unknown,
+                    newValue: UserPropertyGroupedOption
+                  ) => {
+                    updateUserPropertyDefinition((current) => {
+                      if (current.type !== UserPropertyDefinitionType.Group) {
+                        return current;
                       }
-                      return node;
-                    });
+                      current.nodes = current.nodes.map((node) => {
+                        if (node.id === n.id) {
+                          const newNode = defaultUserProperty(
+                            newValue.id,
+                            node.id
+                          );
 
-                    return current;
-                  });
-                }}
-                disableClearable
-                options={groupedUserPropertyOptions}
-                renderInput={(params) => (
-                  <TextField
-                    label="User Property Type"
-                    {...params}
-                    variant="outlined"
-                  />
-                )}
-              />
-              {n.type}
-            </>
-          );
-        })}
+                          if (
+                            !(
+                              newNode.type ===
+                                UserPropertyDefinitionType.Trait ||
+                              newNode.type ===
+                                UserPropertyDefinitionType.Performed
+                            )
+                          ) {
+                            return node;
+                          }
+                          return newNode;
+                        }
+                        return node;
+                      });
+
+                      return current;
+                    });
+                  }}
+                  disableClearable
+                  options={groupedUserPropertyOptions}
+                  renderInput={(params) => (
+                    <TextField
+                      label="User Property Type"
+                      {...params}
+                      variant="outlined"
+                    />
+                  )}
+                />
+                {/* eslint-disable-next-line @typescript-eslint/no-use-before-define */}
+                <DefinitionComponent definition={n} />
+              </Stack>
+            );
+          })}
+      </Stack>
     </>
   );
 }
 
-function PerformedUserPropertyDefinitionEditor({
+function DefinitionComponent({
   definition,
 }: {
-  definition: PerformedUserPropertyDefinition;
+  definition: UserPropertyDefinition;
 }) {
-  const { updateUserPropertyDefinition } = useAppStore(
-    (store) => pick(store, ["updateUserPropertyDefinition"]),
-    shallow
-  );
-
-  const handlePathChange: ComponentProps<typeof TextField>["onChange"] = (
-    e
-  ) => {
-    updateUserPropertyDefinition((current) => {
-      if (current.type !== UserPropertyDefinitionType.Performed) {
-        return current;
+  let up: React.ReactElement;
+  switch (definition.type) {
+    case UserPropertyDefinitionType.Id:
+      up = <Typography>Hard coded user property for user id.</Typography>;
+      break;
+    case UserPropertyDefinitionType.AnonymousId:
+      up = (
+        <Typography>Hard coded user property for anonymous users.</Typography>
+      );
+      break;
+    case UserPropertyDefinitionType.Trait:
+      up = <TraitUserPropertyDefinitionEditor definition={definition} />;
+      break;
+    case UserPropertyDefinitionType.Performed:
+      up = <PerformedUserPropertyDefinitionEditor definition={definition} />;
+      break;
+    case UserPropertyDefinitionType.Group: {
+      const entryNode = definition.nodes.find((n) => n.id === definition.entry);
+      if (!entryNode || entryNode.type !== UserPropertyDefinitionType.AnyOf) {
+        throw new Error("Entry node not found");
       }
-      current.path = e.target.value;
-      return current;
-    });
-  };
-
-  const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
-    e
-  ) => {
-    updateUserPropertyDefinition((current) => {
-      if (current.type !== UserPropertyDefinitionType.Performed) {
-        return current;
-      }
-      current.event = e.target.value;
-      return current;
-    });
-  };
-
-  return (
-    <Stack spacing={1} direction="row">
-      <TextField
-        label="Event Name"
-        sx={{ width: selectorWidth }}
-        value={definition.event}
-        onChange={handleEventNameChange}
-      />
-      <TextField
-        label="Property Path"
-        sx={{ width: selectorWidth }}
-        value={definition.path}
-        onChange={handlePathChange}
-      />
-    </Stack>
-  );
+      up = (
+        <AnyOfUserPropertyDefinitionEditor
+          groupedUserProperty={definition}
+          definition={entryNode}
+        />
+      );
+      break;
+    }
+  }
+  return up;
 }
 
 function UserPropertyDefinitionEditor({
@@ -469,40 +549,10 @@ function UserPropertyDefinitionEditor({
     />
   );
 
-  let up: React.ReactElement;
-  switch (definition.type) {
-    case UserPropertyDefinitionType.Id:
-      up = <Typography>Hard coded user property for user id.</Typography>;
-      break;
-    case UserPropertyDefinitionType.AnonymousId:
-      up = (
-        <Typography>Hard coded user property for anonymous users.</Typography>
-      );
-      break;
-    case UserPropertyDefinitionType.Trait:
-      up = <TraitUserPropertyDefinitionEditor definition={definition} />;
-      break;
-    case UserPropertyDefinitionType.Performed:
-      up = <PerformedUserPropertyDefinitionEditor definition={definition} />;
-      break;
-    case UserPropertyDefinitionType.Group: {
-      const entryNode = definition.nodes.find((n) => n.id === definition.entry);
-      if (!entryNode || entryNode.type !== UserPropertyDefinitionType.AnyOf) {
-        throw new Error("Entry node not found");
-      }
-      up = (
-        <AnyOfUserPropertyDefinitionEditor
-          groupedUserProperty={definition}
-          definition={entryNode}
-        />
-      );
-      break;
-    }
-  }
   return (
-    <Stack spacing={1} direction="row" sx={{ alignItems: "center" }}>
+    <Stack spacing={1} direction="row">
       {selectUserPropertyType}
-      {up}
+      <DefinitionComponent definition={definition} />
     </Stack>
   );
 }
