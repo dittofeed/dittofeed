@@ -189,7 +189,7 @@ function buildSegmentQueryExpression({
       if (node.whereProperties) {
         for (const property of node.whereProperties) {
           const path = queryBuilder.addQueryValue(
-            `$.properties.${property.path}`,
+            `$.${property.path}`,
             "String"
           );
           const operatorType = property.operator.type;
@@ -232,10 +232,7 @@ function buildSegmentQueryExpression({
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const property = node.hasProperties[i]!;
         const operatorType = property.operator.type;
-        const path = queryBuilder.addQueryValue(
-          `$.properties.${property.path}`,
-          "String"
-        );
+        const path = queryBuilder.addQueryValue(`$.${property.path}`, "String");
 
         let condition: string;
         switch (property.operator.type) {
@@ -283,7 +280,7 @@ function buildSegmentQueryExpression({
       if (node.properties) {
         for (const property of node.properties) {
           const path = queryBuilder.addQueryValue(
-            `$.properties.${property.path}`,
+            `$.${property.path}`,
             "String"
           );
           const operatorType = property.operator.type;
@@ -325,7 +322,7 @@ function buildSegmentQueryExpression({
     case SegmentNodeType.Trait: {
       const pathArgs = pathToArgs(node.path, queryBuilder);
       const jsonValuePath = queryBuilder.addQueryValue(
-        `$.traits.${node.path}`,
+        `$.${node.path}`,
         "String"
       );
       if (!pathArgs) {
@@ -353,7 +350,7 @@ function buildSegmentQueryExpression({
             JSON_VALUE(
               (
                 arrayFirst(
-                  m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                  m -> JSONHas(m.1, ${pathArgs}),
                   timed_messages
                 )
               ).1,
@@ -391,7 +388,7 @@ function buildSegmentQueryExpression({
               JSON_VALUE(
                 (
                   arrayFirst(
-                    m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                    m -> JSONHas(m.1, ${pathArgs}),
                     timed_messages
                   ) as ${varName}
                 ).1,
@@ -414,7 +411,7 @@ function buildSegmentQueryExpression({
                 parseDateTime64BestEffortOrNull(
                   JSON_VALUE(
                     arrayFirst(
-                      m -> JSONHas(m.1, 'traits', ${pathArgs}),
+                      m -> JSONHas(m.1, ${pathArgs}),
                       timed_messages
                     ).1,
                     ${jsonValuePath}
@@ -528,10 +525,7 @@ function buildLeafUserPropertyQueryExpression({
   switch (userProperty.type) {
     case UserPropertyDefinitionType.Performed: {
       const { path } = userProperty;
-      const jsonValuePath = queryBuilder.addQueryValue(
-        `$.properties.${path}`,
-        "String"
-      );
+      const jsonValuePath = queryBuilder.addQueryValue(`$.${path}`, "String");
       const pathArgs = pathToArgs(path, queryBuilder);
       if (!pathArgs) {
         return null;
@@ -541,7 +535,7 @@ function buildLeafUserPropertyQueryExpression({
           JSON_VALUE(
             arrayFirst(
               m -> and(
-                JSONHas(m.1, 'properties', ${pathArgs}),
+                JSONHas(m.1, ${pathArgs}),
                 JSON_VALUE(m.1, '$.event') = ${queryBuilder.addQueryValue(
                   userProperty.event,
                   "String"
@@ -555,10 +549,7 @@ function buildLeafUserPropertyQueryExpression({
     }
     case UserPropertyDefinitionType.Trait: {
       const { path } = userProperty;
-      const jsonValuePath = queryBuilder.addQueryValue(
-        `$.traits.${path}`,
-        "String"
-      );
+      const jsonValuePath = queryBuilder.addQueryValue(`$.${path}`, "String");
       const pathArgs = pathToArgs(path, queryBuilder);
       if (!pathArgs) {
         return null;
@@ -567,7 +558,7 @@ function buildLeafUserPropertyQueryExpression({
       return `
         JSON_VALUE(
           arrayFirst(
-            m -> JSONHas(m.1, 'traits', ${pathArgs}),
+            m -> JSONHas(m.1, ${pathArgs}),
             timed_messages
           ).1,
           ${jsonValuePath}
@@ -749,7 +740,7 @@ function computedToQueryFragments({
       arraySort(
         m -> -toInt64(m.2),
         arrayZip(
-          groupArray(message_raw),
+          groupArray(if(event_type == 'identify', JSONExtractString(message_raw, 'traits'), JSONExtractString(message_raw, 'properties'))),
           groupArray(event_time),
           groupArray(processing_time),
           groupArray(event_type),
@@ -846,8 +837,7 @@ export default async function writeAssignments({
         history_length,
         in_segment,
         user_property,
-        latest_processing_time,
-        timed_messages
+        latest_processing_time
       FROM user_events_${tableVersion}
       WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
       GROUP BY user_id
