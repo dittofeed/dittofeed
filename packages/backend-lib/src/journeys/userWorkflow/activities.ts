@@ -3,6 +3,7 @@ import {
   JourneyStatus,
   SegmentAssignment,
 } from "@prisma/client";
+import { MailDataRequired } from "@sendgrid/mail";
 import escapeHTML from "escape-html";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
@@ -443,27 +444,28 @@ async function sendEmailWithPayload(
       switch (channelConfig.emailProvider.type) {
         case EmailProviderType.Sendgrid: {
           const headers: Record<string, string> = {};
+          const mailData: MailDataRequired = {
+            to: identifier,
+            from,
+            subject,
+            html: body,
+            customArgs: {
+              journeyId,
+              runId,
+              messageId,
+              userId,
+              workspaceId,
+              templateId,
+              nodeId,
+            },
+            headers,
+          };
           if (replyTo) {
-            headers["Reply-To"] = replyTo;
+            mailData.replyTo = replyTo;
           }
           // TODO distinguish between retryable and non-retryable errors
           const result = await sendEmailSendgrid({
-            mailData: {
-              to: identifier,
-              from,
-              subject,
-              html: body,
-              customArgs: {
-                journeyId,
-                runId,
-                messageId,
-                userId,
-                workspaceId,
-                templateId,
-                nodeId,
-              },
-              headers,
-            },
+            mailData,
             apiKey: channelConfig.emailProvider.apiKey,
           });
 
