@@ -194,29 +194,28 @@ describe("end to end journeys", () => {
 
       currentTimeMS = await testEnv.currentTimeMs();
 
-      await insertUserEvents({
-        tableVersion,
-        workspaceId: workspace.id,
-        events: [
-          {
-            messageId: randomUUID(),
-            processingTime: new Date(currentTimeMS - 5000).toISOString(),
-            messageRaw: segmentIdentifyEvent({
-              userId: userId1,
-              timestamp: new Date(currentTimeMS - 10000).toISOString(),
-              traits: {
-                onboardingState: "step1",
-              },
-            }),
-          },
-        ],
-      });
-
       userJourneyWorkflowId = `user-journey-${journey.id}-${userId1}`;
     });
 
     describe("when the timer times out before the segment is satisfied", () => {
       it("sends them an email from the segment branch", async () => {
+        await insertUserEvents({
+          tableVersion,
+          workspaceId: workspace.id,
+          events: [
+            {
+              messageId: randomUUID(),
+              processingTime: new Date(currentTimeMS - 5000).toISOString(),
+              messageRaw: segmentIdentifyEvent({
+                userId: userId1,
+                timestamp: new Date(currentTimeMS - 10000).toISOString(),
+                traits: {
+                  onboardingState: "step1",
+                },
+              }),
+            },
+          ],
+        });
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
         await worker.runUntil(async () => {
@@ -276,9 +275,103 @@ describe("end to end journeys", () => {
       });
     });
 
-    describe("when the user satisfied the wait for before entering the node", () => {});
+    describe("when the user satisfied the wait for before entering the node", () => {
+      it("sends them an email from the segment branch", async () => {
+        const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
+
+        await insertUserEvents({
+          tableVersion,
+          workspaceId: workspace.id,
+          events: [
+            {
+              messageId: randomUUID(),
+              processingTime: new Date(currentTimeMS - 1000).toISOString(),
+              messageRaw: segmentIdentifyEvent({
+                userId: userId1,
+                timestamp: new Date(currentTimeMS - 6000).toISOString(),
+                traits: {
+                  plan: "paid",
+                },
+              }),
+            },
+          ],
+        });
+
+        await worker.runUntil(async () => {
+          await testEnv.client.workflow.start(computePropertiesWorkflow, {
+            workflowId: segmentWorkflow1,
+            taskQueue: "default",
+            args: [
+              {
+                tableVersion,
+                workspaceId: workspace.id,
+                // poll multiple times to ensure we get segment update
+                maxPollingAttempts: 10,
+                shouldContinueAsNew: false,
+              },
+            ],
+          });
+
+          const segmentWorkflowHandle =
+            testEnv.client.workflow.getHandle(segmentWorkflow1);
+
+          await testEnv.sleep(45000);
+
+          await insertUserEvents({
+            tableVersion,
+            workspaceId: workspace.id,
+            events: [
+              {
+                messageId: randomUUID(),
+                processingTime: new Date(currentTimeMS - 5000).toISOString(),
+                messageRaw: segmentIdentifyEvent({
+                  userId: userId1,
+                  timestamp: new Date(currentTimeMS - 10000).toISOString(),
+                  traits: {
+                    onboardingState: "step1",
+                  },
+                }),
+              },
+            ],
+          });
+
+          await segmentWorkflowHandle.result();
+
+          const handle = testEnv.client.workflow.getHandle(
+            userJourneyWorkflowId
+          );
+
+          await handle.result();
+        });
+
+        expect(testActivities.sendEmail).toHaveBeenCalledTimes(1);
+        expect(testActivities.sendEmail).toHaveBeenCalledWith(
+          expect.objectContaining({
+            nodeId: messageNode2,
+          })
+        );
+      });
+    });
+
     describe("when the user satisfies the wait for before the timeout", () => {
       it("sends them an email from the segment branch", async () => {
+        await insertUserEvents({
+          tableVersion,
+          workspaceId: workspace.id,
+          events: [
+            {
+              messageId: randomUUID(),
+              processingTime: new Date(currentTimeMS - 5000).toISOString(),
+              messageRaw: segmentIdentifyEvent({
+                userId: userId1,
+                timestamp: new Date(currentTimeMS - 10000).toISOString(),
+                traits: {
+                  onboardingState: "step1",
+                },
+              }),
+            },
+          ],
+        });
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
         await worker.runUntil(async () => {
