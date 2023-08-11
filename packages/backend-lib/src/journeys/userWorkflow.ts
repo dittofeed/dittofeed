@@ -14,9 +14,7 @@ import {
   DelayVariantType,
   JourneyDefinition,
   JourneyNode,
-  JourneyNodeType,
   SegmentUpdate,
-  WaitForNode,
 } from "../types";
 import type * as activities from "./userWorkflow/activities";
 
@@ -97,7 +95,6 @@ export async function userJourneyWorkflow({
   });
 
   let currentNode: JourneyNode = definition.entryNode;
-  let nextNode: JourneyNode | null = null;
 
   function segmentAssignedTrue(segmentId: string): boolean {
     return segmentAssignments.get(segmentId)?.currentlyInSegment === true;
@@ -119,21 +116,30 @@ export async function userJourneyWorkflow({
       type: currentNode.type,
     });
     switch (currentNode.type) {
-      case JourneyNodeType.EntryNode: {
+      case "EntryNode": {
         const cn = currentNode;
         await wf.condition(() => segmentAssignedTrue(cn.segment));
-        nextNode = nodes.get(currentNode.child) ?? null;
+
+        await onNodeProcessed({
+          userId,
+          node: currentNode,
+          journeyStartedAt,
+          journeyId,
+        });
+
+        const nextNode = nodes.get(currentNode.child);
         if (!nextNode) {
           logger.error("missing entry node child", {
             ...defaultLoggingFields,
             child: currentNode.child,
           });
-          nextNode = definition.exitNode;
+          currentNode = definition.exitNode;
           break;
         }
+        currentNode = nextNode;
         break;
       }
-      case JourneyNodeType.DelayNode: {
+      case "DelayNode": {
         let delay: string | number;
         switch (currentNode.variant.type) {
           case DelayVariantType.Second: {
@@ -142,20 +148,27 @@ export async function userJourneyWorkflow({
           }
         }
         await sleep(delay);
-        nextNode = nodes.get(currentNode.child) ?? null;
+        await onNodeProcessed({
+          userId,
+          node: currentNode,
+          journeyStartedAt,
+          journeyId,
+        });
+
+        const nextNode = nodes.get(currentNode.child);
         if (!nextNode) {
           logger.error("missing delay node child", {
             ...defaultLoggingFields,
             child: currentNode.child,
           });
-          nextNode = definition.exitNode;
+          currentNode = definition.exitNode;
           break;
         }
+        currentNode = nextNode;
         break;
       }
-      case JourneyNodeType.WaitForNode: {
-        const cn: WaitForNode = currentNode;
-        const { timeoutSeconds, segmentChildren } = cn;
+      case "WaitForNode": {
+        const { segmentChildren, timeoutSeconds } = currentNode;
         const satisfiedSegmentWithinTimeout = await wf.condition(
           () => segmentChildren.some((s) => segmentAssignedTrue(s.segmentId)),
           timeoutSeconds * 1000
@@ -169,32 +182,34 @@ export async function userJourneyWorkflow({
               ...defaultLoggingFields,
               segmentChildren,
             });
-            nextNode = definition.exitNode;
+            currentNode = definition.exitNode;
             break;
           }
-          nextNode = nodes.get(child.id) ?? null;
+          const nextNode = nodes.get(child.id);
           if (!nextNode) {
             logger.error("missing wait for segment child node", {
               ...defaultLoggingFields,
               child,
             });
-            nextNode = definition.exitNode;
+            currentNode = definition.exitNode;
             break;
           }
+          currentNode = nextNode;
         } else {
-          nextNode = nodes.get(currentNode.timeoutChild) ?? null;
+          const nextNode = nodes.get(currentNode.timeoutChild);
           if (!nextNode) {
             logger.error(
               "missing wait for timeout child node",
               defaultLoggingFields
             );
-            nextNode = definition.exitNode;
+            currentNode = definition.exitNode;
             break;
           }
+          currentNode = nextNode;
         }
         break;
       }
-      case JourneyNodeType.SegmentSplitNode: {
+      case "SegmentSplitNode": {
         const cn = currentNode;
 
         const segmentAssignment = await getSegmentAssignment({
@@ -202,27 +217,35 @@ export async function userJourneyWorkflow({
           userId,
           segmentId: cn.variant.segment,
         });
-        const nextNodeId: string = segmentAssignment?.inSegment
+        await onNodeProcessed({
+          userId,
+          node: currentNode,
+          journeyStartedAt,
+          journeyId,
+        });
+
+        const nextNodeId = segmentAssignment?.inSegment
           ? currentNode.variant.trueChild
           : currentNode.variant.falseChild;
 
         if (!nextNodeId) {
-          nextNode = definition.exitNode;
+          currentNode = definition.exitNode;
           break;
         }
-        nextNode = nodes.get(nextNodeId) ?? null;
+        const nextNode = nodes.get(nextNodeId);
 
         if (!nextNode) {
           logger.error("missing segment split node child", {
             ...defaultLoggingFields,
             nextNodeId,
           });
-          nextNode = definition.exitNode;
+          currentNode = definition.exitNode;
           break;
         }
+        currentNode = nextNode;
         break;
       }
-      case JourneyNodeType.MessageNode: {
+      case "MessageNode": {
         let shouldContinue: boolean;
         const messageId = uuid4();
         switch (currentNode.variant.type) {
@@ -254,27 +277,42 @@ export async function userJourneyWorkflow({
           }
         }
 
+        await onNodeProcessed({
+          userId,
+          node: currentNode,
+          journeyStartedAt,
+          journeyId,
+        });
+
         if (!shouldContinue) {
           logger.info("message node early exit", {
             ...defaultLoggingFields,
             child: currentNode.child,
           });
-          nextNode = definition.exitNode;
+          currentNode = definition.exitNode;
           break;
         }
 
-        nextNode = nodes.get(currentNode.child) ?? null;
+        const nextNode = nodes.get(currentNode.child);
         if (!nextNode) {
           logger.error("missing message node child", {
             ...defaultLoggingFields,
             child: currentNode.child,
           });
-          nextNode = definition.exitNode;
+          currentNode = definition.exitNode;
           break;
         }
+        currentNode = nextNode;
+
         break;
       }
-      case JourneyNodeType.ExitNode: {
+      case "ExitNode": {
+        await onNodeProcessed({
+          userId,
+          node: currentNode,
+          journeyStartedAt,
+          journeyId,
+        });
         break nodeLoop;
       }
       default:
@@ -282,16 +320,8 @@ export async function userJourneyWorkflow({
           ...defaultLoggingFields,
           nodeType: currentNode.type,
         });
-        nextNode = definition.exitNode;
+        currentNode = definition.exitNode;
         break;
     }
-
-    await onNodeProcessed({
-      userId,
-      node: currentNode,
-      journeyStartedAt,
-      journeyId,
-    });
-    currentNode = nextNode;
   }
 }
