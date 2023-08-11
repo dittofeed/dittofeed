@@ -116,10 +116,10 @@ describe("end to end journeys", () => {
         entryNode: {
           type: SegmentNodeType.Trait,
           id: randomUUID(),
-          path: "onboardingState",
+          path: "plan",
           operator: {
             type: SegmentOperatorType.Equals,
-            value: "step2",
+            value: "paid",
           },
         },
         nodes: [],
@@ -215,7 +215,7 @@ describe("end to end journeys", () => {
       userJourneyWorkflowId = `user-journey-${journey.id}-${userId1}`;
     });
 
-    describe("when the times out wait for before the timeout", () => {
+    describe("when the timer times out before the segment is satisfied", () => {
       it("sends them an email from the segment branch", async () => {
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
@@ -251,7 +251,7 @@ describe("end to end journeys", () => {
                   userId: userId1,
                   timestamp: new Date(currentTimeMS - 6000).toISOString(),
                   traits: {
-                    onboardingState: "step2",
+                    plan: "paid",
                   },
                 }),
               },
@@ -276,6 +276,7 @@ describe("end to end journeys", () => {
       });
     });
 
+    describe("when the user satisfied the wait for before entering the node", () => {});
     describe("when the user satisfies the wait for before the timeout", () => {
       it("sends them an email from the segment branch", async () => {
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
@@ -311,7 +312,7 @@ describe("end to end journeys", () => {
                   userId: userId1,
                   timestamp: new Date(currentTimeMS - 6000).toISOString(),
                   traits: {
-                    onboardingState: "step2",
+                    plan: "paid",
                   },
                 }),
               },
