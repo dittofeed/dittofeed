@@ -74,10 +74,20 @@ export async function userJourneyWorkflow({
 
   wf.setHandler(segmentUpdateSignal, (update) => {
     const prev = segmentAssignments.get(update.segmentId);
+    const loggerAttrs = {
+      workflow: WORKFLOW_NAME,
+      journeyId,
+      userId,
+      workspaceId,
+      prev,
+      update,
+    };
     if (prev && prev.segmentVersion >= update.segmentVersion) {
+      logger.info("ignoring stale segment update", loggerAttrs);
       return;
     }
 
+    logger.info("segment update", loggerAttrs);
     segmentAssignments.set(update.segmentId, {
       currentlyInSegment: update.currentlyInSegment,
       segmentVersion: update.segmentVersion,
