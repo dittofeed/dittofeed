@@ -536,7 +536,7 @@ function buildLeafUserPropertyQueryExpression({
             arrayFirst(
               m -> and(
                 JSONHas(m.1, ${pathArgs}),
-                JSON_VALUE(m.1, '$.event') = ${queryBuilder.addQueryValue(
+                m.5 = ${queryBuilder.addQueryValue(
                   userProperty.event,
                   "String"
                 )}
