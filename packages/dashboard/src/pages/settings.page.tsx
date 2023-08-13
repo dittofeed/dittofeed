@@ -52,6 +52,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { Collapaseable } from "../components/collapsable";
+import ExternalLink from "../components/externalLink";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
@@ -637,6 +638,9 @@ const Settings: NextPage<
   return (
     <SettingsLayout>
       <Stack spacing={1} sx={{ padding: 2, width: "100%" }}>
+        <ExternalLink href="https://app.hubspot.com/oauth/authorize?client_id=9128468e-b771-4bab-b301-21b479213975&redirect_uri=https://dittofeed.com/dashboard/oauth2/callback/hubspot&scope=timeline%20sales-email-read%20crm.objects.contacts.read%20crm.objects.companies.read">
+          hubspot
+        </ExternalLink>
         <Typography
           id="data-sources-title"
           variant="h2"

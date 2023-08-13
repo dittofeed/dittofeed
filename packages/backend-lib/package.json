@@ -33,6 +33,7 @@
     "@temporalio/worker": "^1.7.4",
     "@temporalio/workflow": "^1.7.4",
     "@types/mjml": "^4.7.1",
+    "axios": "^1.4.0",
     "change-case": "^4.1.2",
     "cross-spawn": "^7.0.3",
     "date-fns": "^2.29.3",

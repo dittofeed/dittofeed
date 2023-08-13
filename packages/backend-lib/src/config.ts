@@ -63,6 +63,8 @@ const BaseRawConfigProps = {
   dashboardWriteKey: Type.Optional(Type.String()),
   dashboardUrl: Type.Optional(Type.String()),
   enableMobilePush: Type.Optional(BoolStr),
+  hubspotClientId: Type.Optional(Type.String()),
+  hubspotClientSecret: Type.Optional(Type.String()),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
