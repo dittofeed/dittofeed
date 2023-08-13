@@ -1,12 +1,16 @@
 import { UserProperty } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafe,
+  schemaValidate,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
 import logger from "./logger";
 import prisma from "./prisma";
 import {
   EnrichedUserProperty,
+  JSONValue,
   UserPropertyDefinition,
   UserPropertyResource,
 } from "./types";
@@ -82,7 +86,7 @@ export async function findAllUserPropertyAssignments({
   userId: string;
   workspaceId: string;
   // TODO change this type when we begin supporting more complex, nested user properties
-}): Promise<Record<string, string>> {
+}): Promise<Record<string, JSONValue>> {
   const assignments = await prisma().userPropertyAssignment.findMany({
     where: { userId, workspaceId },
     include: {
@@ -94,17 +98,18 @@ export async function findAllUserPropertyAssignments({
     },
   });
 
-  const combinedAssignments: Record<string, string> = {};
+  const combinedAssignments: Record<string, JSONValue> = {};
 
   for (const assignment of assignments) {
-    let parsedValue: string;
-    try {
-      parsedValue = JSON.parse(assignment.value);
-    } catch (e) {
-      // to maintain backwards compatibility before all values have been serialized as json
-      parsedValue = assignment.value;
+    const parsed = jsonParseSafe(assignment.value);
+    if (parsed.isErr()) {
+      logger().error(
+        { err: parsed.error },
+        "failed to parse user property assignment"
+      );
+      continue;
     }
-    combinedAssignments[assignment.userProperty.name] = parsedValue;
+    combinedAssignments[assignment.userProperty.name] = parsed.value;
   }
 
   return combinedAssignments;
