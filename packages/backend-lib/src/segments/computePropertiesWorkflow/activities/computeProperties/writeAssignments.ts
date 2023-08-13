@@ -557,7 +557,7 @@ function buildLeafUserPropertyQueryExpression({
       );
       return `
         arrayMap(
-          m -> Map('event', m.5, 'properties', m.1, 'timestamp', m.2),
+          m -> map('event', m.5, 'properties', m.1, 'timestamp', formatDateTime(m.2, '%Y-%m-%dT%H:%M:%S')),
           arrayFilter(
             m -> or(${orFragments.join(", ")}),
             timed_messages
