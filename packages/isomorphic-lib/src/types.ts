@@ -298,7 +298,7 @@ export enum UserPropertyDefinitionType {
   Performed = "Performed",
   Group = "Group",
   AnyOf = "AnyOf",
-  PerformedMany = "AllPerformed",
+  PerformedMany = "PerformedMany",
 }
 
 export const TraitUserPropertyDefinition = Type.Object({
@@ -338,13 +338,15 @@ export type PerformedUserPropertyDefinition = Static<
   typeof PerformedUserPropertyDefinition
 >;
 
-export const PerformedMany = Type.Object({
+export const PerformedManyUserPropertyDefinition = Type.Object({
   id: Type.Optional(Type.String()),
   type: Type.Literal(UserPropertyDefinitionType.PerformedMany),
   or: Type.Array(Type.Object({ event: Type.String() })),
 });
 
-export type PerformedMany = Static<typeof PerformedMany>;
+export type PerformedManyUserPropertyDefinition = Static<
+  typeof PerformedManyUserPropertyDefinition
+>;
 
 export const PerformedManyValueItem = Type.Object({
   event: Type.String(),
@@ -379,7 +381,6 @@ export type GroupParentUserPropertyDefinitions = Static<
 export const LeafUserPropertyDefinition = Type.Union([
   TraitUserPropertyDefinition,
   PerformedUserPropertyDefinition,
-  PerformedMany,
 ]);
 
 export type LeafUserPropertyDefinition = Static<
@@ -410,6 +411,7 @@ export const UserPropertyDefinition = Type.Union([
   AnonymousIdUserPropertyDefinition,
   GroupUserPropertyDefinition,
   LeafUserPropertyDefinition,
+  PerformedManyUserPropertyDefinition,
 ]);
 
 export type UserPropertyDefinition = Static<typeof UserPropertyDefinition>;

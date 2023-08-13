@@ -547,25 +547,6 @@ function buildLeafUserPropertyQueryExpression({
           )
       `;
     }
-    case UserPropertyDefinitionType.PerformedMany: {
-      if (userProperty.or.length === 0) {
-        return null;
-      }
-      const orFragments = userProperty.or.map(
-        ({ event }) => `m.5 = ${queryBuilder.addQueryValue(event, "String")}`
-      );
-      return `
-        toJSONString(
-          arrayMap(
-            m -> map('event', m.5, 'properties', m.1, 'timestamp', formatDateTime(m.2, '%Y-%m-%dT%H:%M:%S')),
-            arrayFilter(
-              m -> or(${orFragments.join(", ")}),
-              timed_messages
-            )
-          )
-        )
-      `;
-    }
     case UserPropertyDefinitionType.Trait: {
       const { path } = userProperty;
       const jsonValuePath = queryBuilder.addQueryValue(`$.${path}`, "String");
@@ -598,12 +579,6 @@ function buildGroupedUserPropertyQueryExpression({
 }): string | null {
   switch (child.type) {
     case UserPropertyDefinitionType.Performed: {
-      return buildLeafUserPropertyQueryExpression({
-        userProperty: child,
-        queryBuilder,
-      });
-    }
-    case UserPropertyDefinitionType.PerformedMany: {
       return buildLeafUserPropertyQueryExpression({
         userProperty: child,
         queryBuilder,
@@ -688,10 +663,23 @@ function buildUserPropertyQueryExpression({
       });
     }
     case UserPropertyDefinitionType.PerformedMany: {
-      return buildLeafUserPropertyQueryExpression({
-        userProperty: userProperty.definition,
-        queryBuilder,
-      });
+      if (userProperty.definition.or.length === 0) {
+        return null;
+      }
+      const orFragments = userProperty.definition.or.map(
+        ({ event }) => `m.5 = ${queryBuilder.addQueryValue(event, "String")}`
+      );
+      return `
+        toJSONString(
+          arrayMap(
+            m -> map('event', m.5, 'properties', m.1, 'timestamp', formatDateTime(m.2, '%Y-%m-%dT%H:%M:%S')),
+            arrayFilter(
+              m -> or(${orFragments.join(", ")}),
+              timed_messages
+            )
+          )
+        )
+      `;
     }
   }
 }
