@@ -7,6 +7,7 @@ import mjml2html from "mjml";
 import logger from "./logger";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
+import { UserPropertyAssignments, assignmentAsString } from "./userProperties";
 
 const md = new MarkdownIt({
   html: true,
@@ -71,7 +72,6 @@ export const liquidEngine = new Liquid({
 liquidEngine.registerFilter("markdown", (value) => md.render(value));
 
 type Secrets = Record<string, string>;
-type UserProperties = Record<string, string>;
 
 liquidEngine.registerTag("unsubscribe_link", {
   parse(tagToken) {
@@ -86,13 +86,14 @@ liquidEngine.registerTag("unsubscribe_link", {
     const subscriptionGroupId = allScope.subscription_group_id as
       | string
       | undefined;
-    const userProperties = allScope.user as UserProperties;
+    const userProperties = allScope.user as UserPropertyAssignments;
     const identifierKey = allScope.identifier_key as string;
 
     let href = "";
 
-    const identifier = userProperties[identifierKey];
-    const userId = userProperties.id;
+    const identifier = assignmentAsString(userProperties, identifierKey);
+    const userId = assignmentAsString(userProperties, "id");
+
     const subscriptionSecret = secrets?.[SUBSCRIPTION_SECRET_NAME];
     if (subscriptionSecret && identifier && userId) {
       const url = generateSubscriptionChangeUrl({
@@ -136,7 +137,7 @@ export function renderLiquid({
   template: string;
   mjml?: boolean;
   identifierKey: string;
-  userProperties: UserProperties;
+  userProperties: UserPropertyAssignments;
   secrets?: Secrets;
   subscriptionGroupId?: string;
   workspaceId: string;

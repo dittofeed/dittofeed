@@ -79,14 +79,26 @@ export async function findAllUserProperties({
   return enrichedUserProperties;
 }
 
+export type UserPropertyAssignments = Record<string, JSONValue>;
+
+export function assignmentAsString(
+  assignments: UserPropertyAssignments,
+  key: string
+): string | null {
+  const assignment = assignments[key];
+  if (typeof assignment !== "string") {
+    return null;
+  }
+  return assignment;
+}
+
 export async function findAllUserPropertyAssignments({
   userId,
   workspaceId,
 }: {
   userId: string;
   workspaceId: string;
-  // TODO change this type when we begin supporting more complex, nested user properties
-}): Promise<Record<string, JSONValue>> {
+}): Promise<UserPropertyAssignments> {
   const assignments = await prisma().userPropertyAssignment.findMany({
     where: { userId, workspaceId },
     include: {
@@ -98,7 +110,7 @@ export async function findAllUserPropertyAssignments({
     },
   });
 
-  const combinedAssignments: Record<string, JSONValue> = {};
+  const combinedAssignments: UserPropertyAssignments = {};
 
   for (const assignment of assignments) {
     const parsed = jsonParseSafe(assignment.value);
