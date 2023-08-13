@@ -91,10 +91,25 @@ function processUserProperty(
 ): JSONValue | undefined {
   switch (definition.type) {
     case UserPropertyDefinitionType.PerformedMany: {
-      if (!(value instanceof Array)) {
+      if (typeof value !== "string") {
         return undefined;
       }
-      return value.flatMap((item) => {
+      const jsonParsedValue = jsonParseSafe(value);
+      if (jsonParsedValue.isErr()) {
+        logger().error(
+          {
+            err: jsonParsedValue.error,
+          },
+          "failed to json parse performed many value"
+        );
+        return undefined;
+      }
+      if (!(jsonParsedValue.value instanceof Array)) {
+        logger().error("performed many json parsed value is not an array");
+        return undefined;
+      }
+
+      return jsonParsedValue.value.flatMap((item) => {
         const result = schemaValidate(item, PerformedManyValueItem);
         if (result.isErr()) {
           logger().error(
@@ -139,7 +154,6 @@ export async function findAllUserPropertyAssignments({
 
   const combinedAssignments: UserPropertyAssignments = {};
 
-  // FIXME test any of
   for (const userProperty of userProperties) {
     const definitionResult = schemaValidate(
       userProperty.definition,

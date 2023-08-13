@@ -531,7 +531,6 @@ function buildLeafUserPropertyQueryExpression({
         return null;
       }
 
-      // FIXME this doesn't seem right JSON_VALUE(m.1, '$.event')
       return `
           JSON_VALUE(
             arrayFirst(
@@ -556,11 +555,13 @@ function buildLeafUserPropertyQueryExpression({
         ({ event }) => `m.5 = ${queryBuilder.addQueryValue(event, "String")}`
       );
       return `
-        arrayMap(
-          m -> map('event', m.5, 'properties', m.1, 'timestamp', formatDateTime(m.2, '%Y-%m-%dT%H:%M:%S')),
-          arrayFilter(
-            m -> or(${orFragments.join(", ")}),
-            timed_messages
+        toJSONString(
+          arrayMap(
+            m -> map('event', m.5, 'properties', m.1, 'timestamp', formatDateTime(m.2, '%Y-%m-%dT%H:%M:%S')),
+            arrayFilter(
+              m -> or(${orFragments.join(", ")}),
+              timed_messages
+            )
           )
         )
       `;
