@@ -340,7 +340,7 @@ export type PerformedUserPropertyDefinition = Static<
 
 export const AllPerformed = Type.Object({
   id: Type.Optional(Type.String()),
-  type: Type.Literal(UserPropertyDefinitionType.Performed),
+  type: Type.Literal(UserPropertyDefinitionType.AllPerformed),
   anyOf: Type.Array(Type.Object({ event: Type.String() })),
 });
 

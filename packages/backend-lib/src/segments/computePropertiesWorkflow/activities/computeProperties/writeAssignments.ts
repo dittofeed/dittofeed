@@ -531,6 +531,7 @@ function buildLeafUserPropertyQueryExpression({
         return null;
       }
 
+      // FIXME this doesn't seem right JSON_VALUE(m.1, '$.event')
       return `
           JSON_VALUE(
             arrayFirst(
@@ -546,6 +547,9 @@ function buildLeafUserPropertyQueryExpression({
             ${jsonValuePath}
           )
       `;
+    }
+    case UserPropertyDefinitionType.AllPerformed: {
+      break;
     }
     case UserPropertyDefinitionType.Trait: {
       const { path } = userProperty;
