@@ -19,9 +19,9 @@ const { getOauthToken, refreshToken } = proxyActivities<typeof activities>({
 });
 
 // FIXME
-export const userJourneyInitialize = wf.defineSignal<[string]>(
-  "userJourneyInitialize"
-);
+// export const userJourneyInitialize = wf.defineSignal<[string]>(
+//   "userJourneyInitialize"
+// );
 
 export function generateId(workspaceId: string) {
   return `hubspot-${workspaceId}`;
@@ -72,7 +72,7 @@ export async function hubspotWorkflow({
         0
       )
     );
-    await refreshToken({ workspaceId });
+    token = await refreshToken({ workspaceId, token: token.refreshToken });
   }
 
   if (shouldContinueAsNew) {

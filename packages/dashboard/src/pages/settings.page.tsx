@@ -59,7 +59,7 @@ import { MenuItemGroup } from "../components/menuItems/types";
 import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
+import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
@@ -626,6 +626,7 @@ function SubscriptionManagementSettings() {
 const Settings: NextPage<
   InferGetServerSidePropsType<typeof getServerSideProps>
 > = function Settings() {
+  const { dashboardUrl } = useAppStorePick(["dashboardUrl"]);
   const [sendgridOpen, setSendgridOpen] = useState<boolean>(true);
   const [segmentIoOpen, setSegmentIoOpen] = useState<boolean>(true);
   const handleSendgridOpen = () => {
@@ -638,7 +639,9 @@ const Settings: NextPage<
   return (
     <SettingsLayout>
       <Stack spacing={1} sx={{ padding: 2, width: "100%" }}>
-        <ExternalLink href="https://app.hubspot.com/oauth/authorize?client_id=9128468e-b771-4bab-b301-21b479213975&redirect_uri=https://dittofeed.com/dashboard/oauth2/callback/hubspot&scope=timeline%20sales-email-read%20crm.objects.contacts.read%20crm.objects.companies.read">
+        <ExternalLink
+          href={`https://app.hubspot.com/oauth/authorize?client_id=9128468e-b771-4bab-b301-21b479213975&redirect_uri=${dashboardUrl}/dashboard/oauth2/callback/hubspot&scope=timeline%20sales-email-read%20crm.objects.contacts.read%20crm.objects.companies.read`}
+        >
           hubspot
         </ExternalLink>
         <Typography

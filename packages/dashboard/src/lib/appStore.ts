@@ -10,6 +10,7 @@ import {
   SubscriptionGroupType,
 } from "isomorphic-lib/src/types";
 import { useLayoutEffect } from "react";
+import { pick } from "remeda/dist/commonjs/pick";
 import { v4 as uuid } from "uuid";
 import { create, UseBoundStore } from "zustand";
 import createContext from "zustand/context";
@@ -22,6 +23,9 @@ import { AppContents, AppState, PreloadedState } from "./types";
 const zustandContext = createContext<UseStoreState>();
 export const { Provider } = zustandContext;
 export const useAppStore = zustandContext.useStore;
+export function useAppStorePick(params: (keyof AppContents)[]) {
+  return useAppStore((store) => pick(store, params));
+}
 
 function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
   const nonOrphanNodes = new Set<string>();
@@ -191,6 +195,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
     immer<AppContents>((set, ...remaining) => {
       const appContents: AppContents = {
         apiBase: "",
+        dashboardUrl: "",
         trackDashboard: false,
         workspace: {
           type: CompletionStatus.NotStarted,

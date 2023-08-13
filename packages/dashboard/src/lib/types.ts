@@ -59,6 +59,7 @@ export type GetDFServerSideProps<
 // reason properties should not be nested in AppState.
 export type AppState = {
   apiBase: string;
+  dashboardUrl: string;
   workspace: RequestStatus<WorkspaceResource, Error>;
   member: WorkspaceMemberResource | null;
   drawerOpen: boolean;
