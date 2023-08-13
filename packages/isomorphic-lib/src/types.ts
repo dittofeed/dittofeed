@@ -298,6 +298,7 @@ export enum UserPropertyDefinitionType {
   Performed = "Performed",
   Group = "Group",
   AnyOf = "AnyOf",
+  AllPerformed = "AllPerformed",
 }
 
 export const TraitUserPropertyDefinition = Type.Object({
@@ -337,6 +338,14 @@ export type PerformedUserPropertyDefinition = Static<
   typeof PerformedUserPropertyDefinition
 >;
 
+export const AllPerformed = Type.Object({
+  id: Type.Optional(Type.String()),
+  type: Type.Literal(UserPropertyDefinitionType.Performed),
+  anyOf: Type.Array(Type.Object({ event: Type.String() })),
+});
+
+export type AllPerformed = Static<typeof AllPerformed>;
+
 export const AnyOfUserPropertyDefinition = Type.Object({
   id: Type.String(),
   type: Type.Literal(UserPropertyDefinitionType.AnyOf),
@@ -358,6 +367,7 @@ export type GroupParentUserPropertyDefinitions = Static<
 export const LeafUserPropertyDefinition = Type.Union([
   TraitUserPropertyDefinition,
   PerformedUserPropertyDefinition,
+  AllPerformed,
 ]);
 
 export type LeafUserPropertyDefinition = Static<
