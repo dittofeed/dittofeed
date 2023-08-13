@@ -11,19 +11,12 @@ import prisma from "./prisma";
 import {
   EnrichedUserProperty,
   JSONValue,
+  PerformedManyValueItem,
   UserPropertyDefinition,
+  UserPropertyDefinitionType,
   UserPropertyResource,
 } from "./types";
-
-export async function upsertComputedProperty() {
-  // create computed property pg record
-  // create live view in clickhouse
-  return null;
-}
-
-export async function subscribeToComputedPropery() {
-  return null;
-}
+import { values } from "remeda";
 
 export function enrichedUserProperty(
   userProperty: UserProperty
@@ -92,6 +85,42 @@ export function assignmentAsString(
   return assignment;
 }
 
+function processUserProperty(
+  definition: UserPropertyDefinition,
+  value: JSONValue
+): JSONValue | undefined {
+  switch (definition.type) {
+    case UserPropertyDefinitionType.PerformedMany: {
+      if (!(value instanceof Array)) {
+        return undefined;
+      }
+      return value.flatMap((item) => {
+        const result = schemaValidate(item, PerformedManyValueItem);
+        if (result.isErr()) {
+          logger().error(
+            { err: result.error, item, definition },
+            "failed to parse performed many item"
+          );
+          return [];
+        }
+        const parsedProperties = jsonParseSafe(result.value.properties);
+        if (parsedProperties.isErr()) {
+          logger().error(
+            { err: parsedProperties.error, item, definition },
+            "failed to json parse performed many item properties"
+          );
+          return [];
+        }
+        return {
+          ...result.value,
+          properties: parsedProperties.value,
+        };
+      });
+    }
+  }
+  return value;
+}
+
 export async function findAllUserPropertyAssignments({
   userId,
   workspaceId,
@@ -99,29 +128,48 @@ export async function findAllUserPropertyAssignments({
   userId: string;
   workspaceId: string;
 }): Promise<UserPropertyAssignments> {
-  const assignments = await prisma().userPropertyAssignment.findMany({
-    where: { userId, workspaceId },
+  const userProperties = await prisma().userProperty.findMany({
+    where: { workspaceId },
     include: {
-      userProperty: {
-        select: {
-          name: true,
-        },
+      UserPropertyAssignment: {
+        where: { userId },
       },
     },
   });
 
   const combinedAssignments: UserPropertyAssignments = {};
 
-  for (const assignment of assignments) {
-    const parsed = jsonParseSafe(assignment.value);
-    if (parsed.isErr()) {
+  // FIXME test any of
+  for (const userProperty of userProperties) {
+    const definitionResult = schemaValidate(
+      userProperty.definition,
+      UserPropertyDefinition
+    );
+    if (definitionResult.isErr()) {
       logger().error(
-        { err: parsed.error },
-        "failed to parse user property assignment"
+        { err: definitionResult.error, workspaceId, userProperty },
+        "failed to parse user property definition"
       );
       continue;
     }
-    combinedAssignments[assignment.userProperty.name] = parsed.value;
+    const definition = definitionResult.value;
+    const assignments = userProperty.UserPropertyAssignment;
+
+    for (const assignment of assignments) {
+      const parsed = jsonParseSafe(assignment.value);
+      if (parsed.isErr()) {
+        logger().error(
+          { err: parsed.error },
+          "failed to parse user property assignment"
+        );
+        continue;
+      }
+      const processed = processUserProperty(definition, parsed.value);
+      if (processed === undefined) {
+        continue;
+      }
+      combinedAssignments[userProperty.name] = processed;
+    }
   }
 
   return combinedAssignments;

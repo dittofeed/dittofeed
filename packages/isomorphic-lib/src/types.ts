@@ -346,6 +346,18 @@ export const PerformedMany = Type.Object({
 
 export type PerformedMany = Static<typeof PerformedMany>;
 
+export const PerformedManyValueItem = Type.Object({
+  event: Type.String(),
+  timestamp: Type.String(),
+  properties: Type.String(),
+});
+
+export type PerformedManyValueItem = Static<typeof PerformedManyValueItem>;
+
+export const PerformedManyValue = Type.Array(PerformedManyValueItem);
+
+export type PerformedManyValue = Static<typeof PerformedManyValue>;
+
 export const AnyOfUserPropertyDefinition = Type.Object({
   id: Type.String(),
   type: Type.Literal(UserPropertyDefinitionType.AnyOf),
