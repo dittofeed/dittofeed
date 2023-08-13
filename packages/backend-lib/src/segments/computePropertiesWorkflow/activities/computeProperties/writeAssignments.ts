@@ -548,8 +548,22 @@ function buildLeafUserPropertyQueryExpression({
           )
       `;
     }
-    case UserPropertyDefinitionType.AllPerformed: {
-      break;
+    case UserPropertyDefinitionType.PerformedMany: {
+      if (userProperty.or.length === 0) {
+        return null;
+      }
+      const orFragments = userProperty.or.map(
+        ({ event }) => `m.5 = ${queryBuilder.addQueryValue(event, "String")}`
+      );
+      return `
+        arrayMap(
+          m -> Map('event', m.5, 'properties', m.1, 'timestamp', m.2),
+          arrayFilter(
+            m -> or(${orFragments.join(", ")}),
+            timed_messages
+          )
+        )
+      `;
     }
     case UserPropertyDefinitionType.Trait: {
       const { path } = userProperty;
@@ -583,6 +597,12 @@ function buildGroupedUserPropertyQueryExpression({
 }): string | null {
   switch (child.type) {
     case UserPropertyDefinitionType.Performed: {
+      return buildLeafUserPropertyQueryExpression({
+        userProperty: child,
+        queryBuilder,
+      });
+    }
+    case UserPropertyDefinitionType.PerformedMany: {
       return buildLeafUserPropertyQueryExpression({
         userProperty: child,
         queryBuilder,
@@ -661,6 +681,12 @@ function buildUserPropertyQueryExpression({
       });
     }
     case UserPropertyDefinitionType.Performed: {
+      return buildLeafUserPropertyQueryExpression({
+        userProperty: userProperty.definition,
+        queryBuilder,
+      });
+    }
+    case UserPropertyDefinitionType.PerformedMany: {
       return buildLeafUserPropertyQueryExpression({
         userProperty: userProperty.definition,
         queryBuilder,
