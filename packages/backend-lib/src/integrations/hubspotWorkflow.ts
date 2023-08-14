@@ -1,17 +1,16 @@
+/* eslint-disable @typescript-eslint/no-loop-func */
 /* eslint-disable no-await-in-loop */
 import {
   continueAsNew,
   LoggerSinks,
   proxyActivities,
   proxySinks,
-  sleep,
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
 import { EnrichedJourney } from "../types";
 // Only import the activity types
 import type * as activities from "./hubspotWorkflow/activities";
-import connectWorkflowClient from "../temporal/connectWorkflowClient";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -19,10 +18,9 @@ const { getOauthToken, refreshToken } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
 });
 
-// FIXME
-// export const userJourneyInitialize = wf.defineSignal<[string]>(
-//   "userJourneyInitialize"
-// );
+export const hubspotJourneyInitialize = wf.defineSignal(
+  "hubspotJourneyInitialize"
+);
 
 export function generateId(workspaceId: string) {
   return `hubspot-${workspaceId}`;
@@ -40,16 +38,17 @@ interface HubspotWorkflowParams {
   subscribedJourneys?: EnrichedJourney[];
 }
 
-export const POLLING_JITTER_COEFFICIENT = 1000;
+export const HUBSPOT_POLLING_JITTER_COEFFICIENT = 1000;
 
 export async function hubspotWorkflow({
   workspaceId,
   shouldContinueAsNew = false,
   maxPollingAttempts = 1500,
   basePollingPeriod = REFRESH_WINDOW,
-  pollingJitterCoefficient = POLLING_JITTER_COEFFICIENT,
+  pollingJitterCoefficient = HUBSPOT_POLLING_JITTER_COEFFICIENT,
 }: HubspotWorkflowParams): Promise<HubspotWorkflowParams> {
   let token = await getOauthToken({ workspaceId });
+  let tokenStale = false;
 
   const params: HubspotWorkflowParams = {
     basePollingPeriod,
@@ -64,42 +63,56 @@ export async function hubspotWorkflow({
     return params;
   }
 
-  for (let i = 0; i < maxPollingAttempts; i++) {
-    logger.info("hubspot polling period", { workspaceId });
-    await sleep(
-      Math.max(
-        token.expiresIn * 1000 -
-          REFRESH_WINDOW -
-          Math.random() * pollingJitterCoefficient,
-        0
-      )
+  wf.setHandler(hubspotJourneyInitialize, () => {
+    logger.info("hubspot journey initialize signal", { workspaceId });
+    tokenStale = true;
+  });
+
+  function getTimeToWait(jitter: number): number {
+    if (!token) {
+      throw new Error("no token to generate time to wait");
+    }
+    logger.info("getTimeToWait", { workspaceId, token });
+    return Math.max(
+      // time to wait until token expires
+      token.expiresIn * 1000 -
+        // time since token was created
+        (Date.now() - (token.updatedAt ?? token.createdAt)) -
+        // how much time to leave before token expires to refresh
+        REFRESH_WINDOW -
+        // add jitter to prevent thundering herd
+        jitter * pollingJitterCoefficient,
+      0
     );
+  }
+
+  for (let i = 0; i < maxPollingAttempts; i++) {
+    const timeToWaitJitter = Math.random();
+    const timeToWait = getTimeToWait(timeToWaitJitter);
+    logger.info("hubspot polling period", {
+      workspaceId,
+      timeToWait,
+    });
+    await wf.condition(() => tokenStale, timeToWait);
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (tokenStale) {
+      token = await getOauthToken({ workspaceId });
+      tokenStale = false;
+      if (!token) {
+        logger.info("no hubspot oauth token found, exiting", { workspaceId });
+        return params;
+      }
+    } else if (getTimeToWait(timeToWaitJitter) <= 0) {
+      logger.info("refreshing hubspot oauth token", { workspaceId });
+      token = await refreshToken({ workspaceId, token: token.refreshToken });
+    }
+
     // FIXME check if integration enabled
-    token = await refreshToken({ workspaceId, token: token.refreshToken });
   }
 
   if (shouldContinueAsNew) {
     await continueAsNew<typeof hubspotWorkflow>(params);
   }
   return params;
-}
-
-export async function startHubspotIntegrationWorkflow({
-  workspaceId,
-}: {
-  workspaceId: string;
-}) {
-  const workflowClient = await connectWorkflowClient();
-
-  try {
-    await workflowClient.start<typeof hubspotWorkflow>(hubspotWorkflow, {
-      taskQueue: "default",
-      workflowId: generateId(workspaceId),
-      args: [{ workspaceId }],
-    });
-  } catch (e) {
-    if (!(e instanceof wf.WorkflowExecutionAlreadyStartedError)) {
-      throw e;
-    }
-  }
 }

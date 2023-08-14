@@ -1,5 +1,6 @@
 import axios from "axios";
 import backendConfig from "backend-lib/src/config";
+import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspotWorkflow/signalUtils";
 import {
   HUBSPOT_INTEGRATION,
   HUBSPOT_OAUTH_TOKEN,
@@ -8,12 +9,6 @@ import { GetServerSideProps } from "next";
 
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
-import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
-import {
-  hubspotWorkflow,
-  generateId,
-  startHubspotIntegrationWorkflow,
-} from "backend-lib/src/integrations/hubspotWorkflow";
 
 export const getServerSideProps: GetServerSideProps = requestContext(
   async (ctx, dfContext) => {
