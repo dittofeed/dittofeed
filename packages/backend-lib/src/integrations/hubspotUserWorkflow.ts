@@ -1,5 +1,6 @@
 import { LoggerSinks, proxyActivities, proxySinks } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
+import { ComputedPropertyAssignment } from "isomorphic-lib/src/types";
 
 // Only import the activity types
 import type * as activities from "./hubspotUserWorkflow/activities";
@@ -10,9 +11,9 @@ const {} = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
 });
 
-export const hubspotUserComputedProperties = wf.defineSignal(
-  "hubspotUserComputedProperties"
-);
+export const hubspotUserComputedProperties = wf.defineSignal<
+  [ComputedPropertyAssignment]
+>("hubspotUserComputedProperties");
 
 export function generateHubspotUserWorkflowId({
   workspaceId,

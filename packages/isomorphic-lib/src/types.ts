@@ -86,6 +86,16 @@ export interface SegmentUpdate {
   segmentVersion: number;
 }
 
+export interface UserPropertyAssignment {
+  userPropertyId: string;
+  value: string;
+  userPropertyVersion: number;
+}
+
+export type ComputedPropertyAssignment =
+  | (SegmentUpdate & { type: "segment" })
+  | (UserPropertyAssignment & { type: "user_property" });
+
 export enum SegmentOperatorType {
   Within = "Within",
   Equals = "Equals",
