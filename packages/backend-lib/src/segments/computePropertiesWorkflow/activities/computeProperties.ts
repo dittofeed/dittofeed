@@ -23,6 +23,7 @@ import {
 } from "../../../types";
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
 import writeAssignments from "./computeProperties/writeAssignments";
+import { INTEGRATION_SUBSCRIBED_USER_PROPERTIES } from "../../../integrations/subscriptions";
 
 const READ_QUERY_PAGE_SIZE = 200;
 
@@ -79,7 +80,15 @@ export async function computePropertiesPeriodSafe({
   workspaceId,
   userProperties,
 }: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
-  const segmentResult = await findAllEnrichedSegments(workspaceId);
+  const [segmentResult, integrations] = await Promise.all([
+    findAllEnrichedSegments(workspaceId),
+    prisma().integration.findMany({
+      where: {
+        workspaceId,
+        enabled: true,
+      },
+    }),
+  ]);
 
   if (segmentResult.isErr()) {
     return err(new Error(JSON.stringify(segmentResult.error)));
@@ -93,7 +102,7 @@ export async function computePropertiesPeriodSafe({
     workspaceId,
   });
 
-  // segment id / pg + journey id
+  // Map<segment id, Set<journey id>>
   const subscribedSegmentPairs = subscribedJourneys.reduce<
     Map<string, Set<string>>
   >((memo, j) => {
@@ -107,6 +116,32 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
+  const subscribedUserPropertyPairs = integrations.reduce<
+    Map<string, Set<string>>
+  >((memo, i) => {
+    const sub = INTEGRATION_SUBSCRIBED_USER_PROPERTIES.get(i.name);
+    if (!sub) {
+      return memo;
+    }
+    sub.forEach((userPropertyName) => {
+      const userPropertyId = userProperties.find(
+        (up) => up.name === userPropertyName
+      )?.id;
+      if (!userPropertyId) {
+        logger().error(
+          { workspaceId, integration: i, userPropertyName },
+          "integration subscribed to user property that doesn't exist"
+        );
+        return;
+      }
+      const subbed = memo.get(userPropertyId) ?? new Set();
+      subbed.add(i.name);
+      memo.set(userPropertyId, subbed);
+    });
+    return memo;
+  }, new Map());
+
+  // Map<user property id, Set<integration name>>
   const readChqb = new ClickHouseQueryBuilder();
 
   const subscribedSegmentKeys: string[] = [];
