@@ -33,6 +33,7 @@ model Workspace {
   WriteKey               WriteKey[]
   MessageTemplate        MessageTemplate[]
   OauthToken             OauthToken[]
+  Integration            Integration[]
 }
 
 enum DBResourceType {
@@ -329,6 +330,18 @@ model OauthToken {
   accessToken  String
   expiresIn    Int
   createdAt    DateTime  @default(now())
+
+  @@unique([workspaceId, name])
+}
+
+model Integration {
+  id          String    @id() @default(uuid()) @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String    @db.Uuid
+  name        String
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([workspaceId, name])
 }
