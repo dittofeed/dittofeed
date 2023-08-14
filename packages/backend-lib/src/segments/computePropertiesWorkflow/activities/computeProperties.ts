@@ -5,6 +5,7 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { err, ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "../../../clickhouse";
+import { INTEGRATION_SUBSCRIBED_USER_PROPERTIES } from "../../../integrations/subscriptions";
 import { getSubscribedSegments } from "../../../journeys";
 import {
   segmentUpdateSignal,
@@ -23,7 +24,6 @@ import {
 } from "../../../types";
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
 import writeAssignments from "./computeProperties/writeAssignments";
-import { INTEGRATION_SUBSCRIBED_USER_PROPERTIES } from "../../../integrations/subscriptions";
 
 const READ_QUERY_PAGE_SIZE = 200;
 
@@ -135,7 +135,7 @@ export async function computePropertiesPeriodSafe({
         return;
       }
       const subbed = memo.get(userPropertyId) ?? new Set();
-      subbed.add(i.name);
+      subbed.add(`integration:${i.name}`);
       memo.set(userPropertyId, subbed);
     });
     return memo;
@@ -146,7 +146,6 @@ export async function computePropertiesPeriodSafe({
 
   const subscribedSegmentKeys: string[] = [];
   const subscribedSegmentValues: string[][] = [];
-  // FIXME add subscribed integrations
 
   for (const [segmentId, journeySet] of Array.from(subscribedSegmentPairs)) {
     subscribedSegmentKeys.push(segmentId);
@@ -160,6 +159,26 @@ export async function computePropertiesPeriodSafe({
 
   const subscribedSegmentValuesQuery = readChqb.addQueryValue(
     subscribedSegmentValues,
+    "Array(Array(String))"
+  );
+
+  const subscribedUserPropertyKeys: string[] = [];
+  const subscribedUserPropertyValues: string[][] = [];
+
+  for (const [userPropertyId, subscribedIds] of Array.from(
+    subscribedUserPropertyPairs
+  )) {
+    subscribedUserPropertyKeys.push(userPropertyId);
+    subscribedUserPropertyValues.push(Array.from(subscribedIds));
+  }
+
+  const subscribedUserPropertyKeysQuery = readChqb.addQueryValue(
+    subscribedUserPropertyKeys,
+    "Array(String)"
+  );
+
+  const subscribedUserPropertyValuesQuery = readChqb.addQueryValue(
+    subscribedUserPropertyValues,
     "Array(Array(String))"
   );
 
@@ -188,6 +207,11 @@ export async function computePropertiesPeriodSafe({
                   if(
                       type = 'segment' AND indexOf(${subscribedSegmentKeysQuery}, computed_property_id) > 0,
                       arrayElement(${subscribedSegmentValuesQuery}, indexOf(${subscribedSegmentKeysQuery}, computed_property_id)),
+                      []
+                  ),
+                  if(
+                      type = 'user_property' AND indexOf(${subscribedUserPropertyKeysQuery}, computed_property_id) > 0,
+                      arrayElement(${subscribedUserPropertyValuesQuery}, indexOf(${subscribedUserPropertyKeysQuery}, computed_property_id)),
                       []
                   ),
                   ['pg']
@@ -246,6 +270,7 @@ export async function computePropertiesPeriodSafe({
       const pgUserPropertyAssignments: ComputedAssignment[] = [];
       const pgSegmentAssignments: ComputedAssignment[] = [];
       const signalSegmentAssignments: ComputedAssignment[] = [];
+      const integrationAssignments: ComputedAssignment[] = [];
 
       for (const assignment of assignments) {
         hasRows = true;
@@ -260,6 +285,8 @@ export async function computePropertiesPeriodSafe({
               assignmentCategory = pgUserPropertyAssignments;
               break;
           }
+        } else if (assignment.processed_for.startsWith("integration:")) {
+          assignmentCategory = integrationAssignments;
         } else {
           assignmentCategory = signalSegmentAssignments;
         }
