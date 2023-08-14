@@ -7,6 +7,7 @@ CREATE TABLE "OauthToken" (
     "accessToken" TEXT NOT NULL,
     "expiresIn" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "OauthToken_pkey" PRIMARY KEY ("id")
 );
