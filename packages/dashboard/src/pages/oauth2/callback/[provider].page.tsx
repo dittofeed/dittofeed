@@ -9,7 +9,10 @@ import { GetServerSideProps } from "next";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
-import hubspotWorkflow from "backend-lib/src/integrations/hubspotWorkflow";
+import {
+  hubspotWorkflow,
+  generateId,
+} from "backend-lib/src/integrations/hubspotWorkflow";
 
 export const getServerSideProps: GetServerSideProps = requestContext(
   async (ctx, dfContext) => {
@@ -52,9 +55,6 @@ export const getServerSideProps: GetServerSideProps = requestContext(
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
-        console.log("access_token", access_token);
-        console.log("refresh_token", refresh_token);
-        console.log("expires_in", expires_in);
         const [workflowClient] = await Promise.all([
           connectWorkflowClient(),
           prisma().oauthToken.upsert({
@@ -93,7 +93,15 @@ export const getServerSideProps: GetServerSideProps = requestContext(
             },
           }),
         ]);
-        await workflowClient.start(hubspotWorkflow, []);
+        await workflowClient.start<typeof hubspotWorkflow>(hubspotWorkflow, {
+          taskQueue: "default",
+          workflowId: generateId(dfContext.workspace.id),
+          args: [
+            {
+              workspaceId: dfContext.workspace.id,
+            },
+          ],
+        });
         break;
       }
       default:
