@@ -8,7 +8,6 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
-import { EnrichedJourney } from "../types";
 // Only import the activity types
 import type * as activities from "./hubspotWorkflow/activities";
 
@@ -18,8 +17,8 @@ const { getOauthToken, refreshToken } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
 });
 
-export const hubspotJourneyInitialize = wf.defineSignal(
-  "hubspotJourneyInitialize"
+export const hubspotWorkflowInitialize = wf.defineSignal(
+  "hubspotWorkflowInitialize"
 );
 
 export function generateId(workspaceId: string) {
@@ -35,7 +34,6 @@ interface HubspotWorkflowParams {
   shouldContinueAsNew?: boolean;
   basePollingPeriod?: number;
   pollingJitterCoefficient?: number;
-  subscribedJourneys?: EnrichedJourney[];
 }
 
 export const HUBSPOT_POLLING_JITTER_COEFFICIENT = 1000;
@@ -63,8 +61,8 @@ export async function hubspotWorkflow({
     return params;
   }
 
-  wf.setHandler(hubspotJourneyInitialize, () => {
-    logger.info("hubspot journey initialize signal", { workspaceId });
+  wf.setHandler(hubspotWorkflowInitialize, () => {
+    logger.info("hubspot workflow initialize signal", { workspaceId });
     tokenStale = true;
   });
 
@@ -107,7 +105,6 @@ export async function hubspotWorkflow({
       logger.info("refreshing hubspot oauth token", { workspaceId });
       token = await refreshToken({ workspaceId, token: token.refreshToken });
     }
-
     // FIXME check if integration enabled
   }
 
