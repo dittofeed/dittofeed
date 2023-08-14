@@ -39,6 +39,7 @@ import {
 import {
   enrichedUserProperty,
   findAllUserPropertyAssignments,
+  UserPropertyAssignments,
 } from "../../../userProperties";
 import { computePropertiesPeriod } from "./computeProperties";
 
@@ -176,7 +177,7 @@ describe("compute properties activities", () => {
       // map from segment name to value
       expectedSegments?: Record<string, boolean>;
       // map from user id -> user property name -> value
-      expectedUserProperties?: Record<string, Record<string, string>>;
+      expectedUserProperties?: Record<string, UserPropertyAssignments>;
     }
 
     const broadcastSegmentId = randomUUID();
@@ -716,6 +717,73 @@ describe("compute properties activities", () => {
         expectedUserProperties: {
           "user-id-1": {
             email: "max@email.com",
+          },
+        },
+      },
+      {
+        description:
+          "with performed many, collects all events that match the event name",
+        userProperties: [
+          {
+            name: "relevantEvents",
+            definition: {
+              type: UserPropertyDefinitionType.PerformedMany,
+              or: [
+                {
+                  event: "action1",
+                },
+                {
+                  event: "action2",
+                },
+              ],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -500,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: "action3",
+              }),
+          },
+          {
+            eventTimeOffset: -400,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: "action2",
+              }),
+          },
+          {
+            eventTimeOffset: -300,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: "action1",
+                properties: {
+                  some: "value",
+                },
+              }),
+          },
+        ],
+        expectedUserProperties: {
+          "user-id-1": {
+            relevantEvents: [
+              {
+                event: "action2",
+                timestamp: "2023-04-12T21:16:18",
+                properties: {},
+              },
+              {
+                event: "action1",
+                timestamp: "2023-04-12T21:16:18",
+                properties: {
+                  some: "value",
+                },
+              },
+            ],
           },
         },
       },

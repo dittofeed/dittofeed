@@ -662,6 +662,25 @@ function buildUserPropertyQueryExpression({
         queryBuilder,
       });
     }
+    case UserPropertyDefinitionType.PerformedMany: {
+      if (userProperty.definition.or.length === 0) {
+        return null;
+      }
+      const orFragments = userProperty.definition.or.map(
+        ({ event }) => `m.5 = ${queryBuilder.addQueryValue(event, "String")}`
+      );
+      return `
+        toJSONString(
+          arrayMap(
+            m -> map('event', m.5, 'properties', m.1, 'timestamp', formatDateTime(m.2, '%Y-%m-%dT%H:%M:%S')),
+            arrayFilter(
+              m -> or(${orFragments.join(", ")}),
+              timed_messages
+            )
+          )
+        )
+      `;
+    }
   }
 }
 

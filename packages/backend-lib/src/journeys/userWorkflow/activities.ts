@@ -33,7 +33,10 @@ import {
   SubscriptionGroupType,
   TrackData,
 } from "../../types";
-import { findAllUserPropertyAssignments } from "../../userProperties";
+import {
+  assignmentAsString,
+  findAllUserPropertyAssignments,
+} from "../../userProperties";
 
 export { findAllUserPropertyAssignments } from "../../userProperties";
 
@@ -216,7 +219,7 @@ async function sendWithTracking<C>(
   }
 
   const identifierKey = CHANNEL_IDENTIFIERS[channel];
-  const identifier = userPropertyAssignments[identifierKey];
+  const identifier = assignmentAsString(userPropertyAssignments, identifierKey);
 
   if (!identifier) {
     return buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
