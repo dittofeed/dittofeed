@@ -16,7 +16,6 @@ import {
   UserPropertyDefinitionType,
   UserPropertyResource,
 } from "./types";
-import { values } from "remeda";
 
 export function enrichedUserProperty(
   userProperty: UserProperty

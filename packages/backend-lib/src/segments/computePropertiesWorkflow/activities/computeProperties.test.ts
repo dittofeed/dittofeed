@@ -37,9 +37,9 @@ import {
   InsertValue,
 } from "../../../userEvents/clickhouse";
 import {
-  UserPropertyAssignments,
   enrichedUserProperty,
   findAllUserPropertyAssignments,
+  UserPropertyAssignments,
 } from "../../../userProperties";
 import { computePropertiesPeriod } from "./computeProperties";
 

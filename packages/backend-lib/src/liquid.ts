@@ -7,7 +7,7 @@ import mjml2html from "mjml";
 import logger from "./logger";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
-import { UserPropertyAssignments, assignmentAsString } from "./userProperties";
+import { assignmentAsString,UserPropertyAssignments } from "./userProperties";
 
 const md = new MarkdownIt({
   html: true,
