@@ -1,10 +1,15 @@
 import axios from "axios";
 import backendConfig from "backend-lib/src/config";
-import { HUBSPOT_OAUTH_TOKEN } from "isomorphic-lib/src/constants";
+import {
+  HUBSPOT_INTEGRATION,
+  HUBSPOT_OAUTH_TOKEN,
+} from "isomorphic-lib/src/constants";
 import { GetServerSideProps } from "next";
 
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
+import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
+import hubspotWorkflow from "backend-lib/src/integrations/hubspotWorkflow";
 
 export const getServerSideProps: GetServerSideProps = requestContext(
   async (ctx, dfContext) => {
@@ -47,27 +52,48 @@ export const getServerSideProps: GetServerSideProps = requestContext(
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
-        await prisma().oauthToken.upsert({
-          where: {
-            workspaceId_name: {
+        console.log("access_token", access_token);
+        console.log("refresh_token", refresh_token);
+        console.log("expires_in", expires_in);
+        const [workflowClient] = await Promise.all([
+          connectWorkflowClient(),
+          prisma().oauthToken.upsert({
+            where: {
+              workspaceId_name: {
+                workspaceId: dfContext.workspace.id,
+                name: HUBSPOT_OAUTH_TOKEN,
+              },
+            },
+            create: {
               workspaceId: dfContext.workspace.id,
               name: HUBSPOT_OAUTH_TOKEN,
+              accessToken: access_token,
+              refreshToken: refresh_token,
+              expiresIn: expires_in,
             },
-          },
-          create: {
-            workspaceId: dfContext.workspace.id,
-            name: HUBSPOT_OAUTH_TOKEN,
-            accessToken: access_token,
-            refreshToken: refresh_token,
-            expiresIn: expires_in,
-          },
-          update: {
-            accessToken: access_token,
-            refreshToken: refresh_token,
-            expiresIn: expires_in,
-          },
-        });
-        // FIXME start integration job
+            update: {
+              accessToken: access_token,
+              refreshToken: refresh_token,
+              expiresIn: expires_in,
+            },
+          }),
+          prisma().integration.upsert({
+            where: {
+              workspaceId_name: {
+                workspaceId: dfContext.workspace.id,
+                name: HUBSPOT_INTEGRATION,
+              },
+            },
+            create: {
+              workspaceId: dfContext.workspace.id,
+              name: HUBSPOT_INTEGRATION,
+            },
+            update: {
+              enabled: true,
+            },
+          }),
+        ]);
+        await workflowClient.start(hubspotWorkflow, []);
         break;
       }
       default:

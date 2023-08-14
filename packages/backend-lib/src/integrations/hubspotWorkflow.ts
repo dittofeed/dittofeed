@@ -72,6 +72,7 @@ export async function hubspotWorkflow({
         0
       )
     );
+    // FIXME check if integration enabled
     token = await refreshToken({ workspaceId, token: token.refreshToken });
   }
 

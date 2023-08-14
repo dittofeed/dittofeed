@@ -111,6 +111,7 @@ export async function computePropertiesPeriodSafe({
 
   const subscribedSegmentKeys: string[] = [];
   const subscribedSegmentValues: string[][] = [];
+  // FIXME add subscribed integrations
 
   for (const [segmentId, journeySet] of Array.from(subscribedSegmentPairs)) {
     subscribedSegmentKeys.push(segmentId);
