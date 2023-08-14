@@ -12,6 +12,7 @@ import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClien
 import {
   hubspotWorkflow,
   generateId,
+  startHubspotIntegrationWorkflow,
 } from "backend-lib/src/integrations/hubspotWorkflow";
 
 export const getServerSideProps: GetServerSideProps = requestContext(
@@ -55,8 +56,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
-        const [workflowClient] = await Promise.all([
-          connectWorkflowClient(),
+        await Promise.all([
           prisma().oauthToken.upsert({
             where: {
               workspaceId_name: {
@@ -93,14 +93,8 @@ export const getServerSideProps: GetServerSideProps = requestContext(
             },
           }),
         ]);
-        await workflowClient.start<typeof hubspotWorkflow>(hubspotWorkflow, {
-          taskQueue: "default",
-          workflowId: generateId(dfContext.workspace.id),
-          args: [
-            {
-              workspaceId: dfContext.workspace.id,
-            },
-          ],
+        await startHubspotIntegrationWorkflow({
+          workspaceId: dfContext.workspace.id,
         });
         break;
       }

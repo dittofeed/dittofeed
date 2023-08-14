@@ -11,6 +11,7 @@ import * as wf from "@temporalio/workflow";
 import { EnrichedJourney } from "../types";
 // Only import the activity types
 import type * as activities from "./hubspotWorkflow/activities";
+import connectWorkflowClient from "../temporal/connectWorkflowClient";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -64,6 +65,7 @@ export async function hubspotWorkflow({
   }
 
   for (let i = 0; i < maxPollingAttempts; i++) {
+    logger.info("hubspot polling period", { workspaceId });
     await sleep(
       Math.max(
         token.expiresIn * 1000 -
@@ -80,4 +82,24 @@ export async function hubspotWorkflow({
     await continueAsNew<typeof hubspotWorkflow>(params);
   }
   return params;
+}
+
+export async function startHubspotIntegrationWorkflow({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  const workflowClient = await connectWorkflowClient();
+
+  try {
+    await workflowClient.start<typeof hubspotWorkflow>(hubspotWorkflow, {
+      taskQueue: "default",
+      workflowId: generateId(workspaceId),
+      args: [{ workspaceId }],
+    });
+  } catch (e) {
+    if (!(e instanceof wf.WorkflowExecutionAlreadyStartedError)) {
+      throw e;
+    }
+  }
 }
