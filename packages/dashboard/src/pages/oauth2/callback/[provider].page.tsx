@@ -1,10 +1,15 @@
 import axios from "axios";
 import backendConfig from "backend-lib/src/config";
-import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspotWorkflow/signalUtils";
 import {
+  EMAIL_EVENTS_UP_NAME,
   HUBSPOT_INTEGRATION,
   HUBSPOT_OAUTH_TOKEN,
-} from "isomorphic-lib/src/constants";
+} from "backend-lib/src/constants";
+import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspotWorkflow/signalUtils";
+import {
+  EmailEventList,
+  UserPropertyDefinitionType,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 
 import prisma from "../../../lib/prisma";
@@ -86,6 +91,27 @@ export const getServerSideProps: GetServerSideProps = requestContext(
             update: {
               enabled: true,
             },
+          }),
+          prisma().userProperty.upsert({
+            where: {
+              workspaceId_name: {
+                workspaceId: dfContext.workspace.id,
+                name: EMAIL_EVENTS_UP_NAME,
+              },
+            },
+            create: {
+              workspaceId: dfContext.workspace.id,
+              name: EMAIL_EVENTS_UP_NAME,
+              definition: {
+                type: UserPropertyDefinitionType.PerformedMany,
+                or: [
+                  EmailEventList.map((event) => ({
+                    event,
+                  })),
+                ],
+              },
+            },
+            update: {},
           }),
         ]);
         await startHubspotIntegrationWorkflow({

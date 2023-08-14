@@ -35,6 +35,7 @@ export async function hubspotUserWorkflow({
   workspaceId,
   userId,
 }: HubspotWorkflowParams): Promise<void> {
+  // FIXME check integration enabled
   wf.setHandler(hubspotUserComputedProperties, () => {
     logger.info("hubspot computedProperties", { workspaceId });
   });

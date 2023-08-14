@@ -183,21 +183,20 @@ export const PerformedSegmentNode = Type.Object({
 
 export type PerformedSegmentNode = Static<typeof PerformedSegmentNode>;
 
-export const EmailEventList: string[] = [
-  InternalEventType.MessageSent,
-  InternalEventType.EmailDropped,
-  InternalEventType.EmailDelivered,
-  InternalEventType.EmailOpened,
-  InternalEventType.EmailClicked,
-  InternalEventType.EmailBounced,
-  InternalEventType.EmailMarkedSpam,
-];
-
-export const EmailEvent = Type.Union(
-  EmailEventList.map((s) => Type.Literal(s))
-);
+// Order of this union is important, as it determines the order of the listed events in the UI
+export const EmailEvent = Type.Union([
+  Type.Literal(InternalEventType.MessageSent),
+  Type.Literal(InternalEventType.EmailDropped),
+  Type.Literal(InternalEventType.EmailDelivered),
+  Type.Literal(InternalEventType.EmailOpened),
+  Type.Literal(InternalEventType.EmailClicked),
+  Type.Literal(InternalEventType.EmailBounced),
+  Type.Literal(InternalEventType.EmailMarkedSpam),
+]);
 
 export type EmailEvent = Static<typeof EmailEvent>;
+
+export const EmailEventList: string[] = EmailEvent.anyOf.map((e) => e.const);
 
 export const EmailSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Email),
