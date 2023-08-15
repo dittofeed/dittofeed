@@ -30,8 +30,6 @@ interface HubspotWorkflowParams {
   userId: string;
 }
 
-export const HUBSPOT_POLLING_JITTER_COEFFICIENT = 1000;
-
 export async function hubspotUserWorkflow({
   workspaceId,
   userId,

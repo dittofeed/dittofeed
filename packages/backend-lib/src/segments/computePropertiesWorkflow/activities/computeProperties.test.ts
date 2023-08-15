@@ -11,6 +11,7 @@ import {
 } from "../../../../test/factories/segment";
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
 import { EMAIL_EVENTS_UP_NAME, HUBSPOT_INTEGRATION } from "../../../constants";
+import { EMAIL_EVENTS_UP_DEFINITION } from "../../../integrations/subscriptions";
 import { enrichJourney } from "../../../journeys";
 import prisma, { Prisma } from "../../../prisma";
 import { buildSubscriptionChangeEventInner } from "../../../subscriptionGroups";
@@ -43,7 +44,6 @@ import {
   UserPropertyAssignments,
 } from "../../../userProperties";
 import { computePropertiesPeriod } from "./computeProperties";
-import { EMAIL_EVENTS_UP_DEFINITION } from "../../../integrations/subscriptions";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();

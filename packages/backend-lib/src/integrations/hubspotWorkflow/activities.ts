@@ -31,7 +31,7 @@ export async function getOauthToken({
   }
   return {
     ...token,
-    updatedAt: token.updatedAt?.getTime() ?? null,
+    updatedAt: token.updatedAt.getTime() ?? null,
     createdAt: token.createdAt.getTime(),
   };
 }
@@ -98,7 +98,7 @@ export async function refreshToken({
     return {
       ...oauthToken,
       createdAt: oauthToken.createdAt.getTime(),
-      updatedAt: oauthToken.updatedAt?.getTime() ?? null,
+      updatedAt: oauthToken.updatedAt.getTime() ?? null,
     };
   } catch (e) {
     const err = e as AxiosError;
