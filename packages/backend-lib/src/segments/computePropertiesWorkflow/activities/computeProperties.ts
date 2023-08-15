@@ -404,9 +404,12 @@ export async function computePropertiesPeriodSafe({
         ...integrationUserPropertyAssignments.flatMap(async (assignment) => {
           switch (assignment.processed_for) {
             case HUBSPOT_INTEGRATION: {
+              const { workflowClient } = getContext();
+
               return startHubspotUserIntegrationWorkflow({
                 workspaceId: assignment.workspace_id,
                 userId: assignment.user_id,
+                workflowClient,
                 computedPropertyAssignment: {
                   type: "user_property",
                   userPropertyId: assignment.computed_property_id,

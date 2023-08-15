@@ -165,6 +165,7 @@ describe("compute properties activities", () => {
       currentTime?: number;
       segments?: TestSegmentData[];
       userProperties?: TestUserPropertyData[];
+      integrations?: string[];
       events?: {
         eventTimeOffset: number;
         overrides?: (
@@ -172,7 +173,9 @@ describe("compute properties activities", () => {
         ) => Record<string, JSONValue>;
       }[];
       expectedSignals?: {
-        segmentName: string;
+        segmentName?: string;
+        userPropertyName?: string;
+        userPropertyValue?: string;
       }[];
       // map from segment name to value
       expectedSegments?: Record<string, boolean>;
@@ -787,6 +790,41 @@ describe("compute properties activities", () => {
           },
         },
       },
+      {
+        description: "with a hubspot integration, it signals appropriately",
+        userProperties: [
+          {
+            name: "status",
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "status",
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -500,
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                traits: {
+                  status: "status1",
+                },
+              }),
+          },
+        ],
+        expectedUserProperties: {
+          "user-id-1": {
+            status: "status1",
+          },
+        },
+        expectedSignals: [
+          {
+            userPropertyName: "status",
+            userPropertyValue: "status1",
+          },
+        ],
+      },
     ];
 
     describe("table driven tests", () => {
@@ -797,6 +835,7 @@ describe("compute properties activities", () => {
           events = [],
           currentTime = 1681334178956,
           userProperties: testUserProperties,
+          integrations: testIntegrations,
           expectedUserProperties,
           expectedSegments,
           expectedSignals,
@@ -884,6 +923,20 @@ describe("compute properties activities", () => {
             );
           }
 
+          if (testIntegrations?.length) {
+            testIntegrations.forEach((integration) => {
+              promises.push(
+                prisma().integration.create({
+                  data: {
+                    workspaceId: workspace.id,
+                    name: integration,
+                    enabled: true,
+                  },
+                })
+              );
+            });
+          }
+
           await Promise.all(promises);
 
           await computePropertiesPeriod({
@@ -938,24 +991,52 @@ describe("compute properties activities", () => {
             );
           }
 
-          for (const { segmentName } of expectedSignals ?? []) {
-            const segmentId = createdSegments.find(
-              (s) => s.name === segmentName
-            )?.id;
-            if (!segmentId) {
-              throw new Error(`Unable to find segment ${segmentName}`);
+          for (const {
+            segmentName,
+            userPropertyName,
+            userPropertyValue,
+          } of expectedSignals ?? []) {
+            if (segmentName) {
+              const segmentId = createdSegments.find(
+                (s) => s.name === segmentName
+              )?.id;
+              if (!segmentId) {
+                throw new Error(`Unable to find segment ${segmentName}`);
+              }
+              expect(signalWithStart).toHaveBeenCalledWith(
+                expect.any(Function),
+                expect.objectContaining({
+                  signalArgs: [
+                    expect.objectContaining({
+                      segmentId,
+                      currentlyInSegment: true,
+                    }),
+                  ],
+                })
+              );
+            } else if (userPropertyName && userPropertyValue) {
+              const userPropertyId = userProperties.find(
+                (up) => up.name === userPropertyName
+              )?.id;
+
+              if (!userPropertyId) {
+                throw new Error(
+                  `Unable to find user property ${userPropertyName}`
+                );
+              }
+
+              expect(signalWithStart).toHaveBeenCalledWith(
+                expect.any(Function),
+                expect.objectContaining({
+                  signalArgs: [
+                    expect.objectContaining({
+                      userPropertyId,
+                      value: userPropertyValue,
+                    }),
+                  ],
+                })
+              );
             }
-            expect(signalWithStart).toHaveBeenCalledWith(
-              expect.any(Function),
-              expect.objectContaining({
-                signalArgs: [
-                  expect.objectContaining({
-                    segmentId,
-                    currentlyInSegment: true,
-                  }),
-                ],
-              })
-            );
           }
         }
       );
