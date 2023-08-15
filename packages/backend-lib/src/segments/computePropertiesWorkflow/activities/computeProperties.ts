@@ -137,7 +137,7 @@ export async function computePropertiesPeriodSafe({
         return;
       }
       const subbed = memo.get(userPropertyId) ?? new Set();
-      subbed.add(`integration:${i.name}`);
+      subbed.add(i.name);
       memo.set(userPropertyId, subbed);
     });
     return memo;
@@ -284,7 +284,7 @@ export async function computePropertiesPeriodSafe({
         hasRows = true;
 
         let assignmentCategory: ComputedAssignment[];
-        if (assignment.processed_for === "pg") {
+        if (assignment.processed_for_type === "pg") {
           switch (assignment.type) {
             case "segment":
               assignmentCategory = pgSegmentAssignments;
@@ -293,6 +293,8 @@ export async function computePropertiesPeriodSafe({
               assignmentCategory = pgUserPropertyAssignments;
               break;
           }
+        } else if (assignment.processed_for_type === "integration") {
+          assignmentCategory = integrationUserPropertyAssignments;
         } else {
           assignmentCategory = journeySegmentAssignments;
         }
@@ -305,7 +307,9 @@ export async function computePropertiesPeriodSafe({
           assignmentsCount: assignments.length,
           pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
           pgSegmentAssignmentsCount: pgSegmentAssignments.length,
-          signalSegmentAssignmentsCount: journeySegmentAssignments.length,
+          journeySegmentAssignmentsCount: journeySegmentAssignments.length,
+          integrationSegmentAssignmentsCount:
+            integrationSegmentAssignments.length,
         },
         "processing computed assignments"
       );

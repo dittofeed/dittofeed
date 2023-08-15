@@ -706,7 +706,7 @@ function buildUserPropertyQueryFragment({
     `;
   }
 
-  // TODO use query builder for this
+  // TODO remove json stringification
   return `
     (
       Null,

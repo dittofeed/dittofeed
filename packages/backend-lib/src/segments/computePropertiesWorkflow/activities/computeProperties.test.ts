@@ -10,6 +10,7 @@ import {
   segmentTrackEvent,
 } from "../../../../test/factories/segment";
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
+import { EMAIL_EVENTS_UP_NAME, HUBSPOT_INTEGRATION } from "../../../constants";
 import { enrichJourney } from "../../../journeys";
 import prisma, { Prisma } from "../../../prisma";
 import { buildSubscriptionChangeEventInner } from "../../../subscriptionGroups";
@@ -42,6 +43,7 @@ import {
   UserPropertyAssignments,
 } from "../../../userProperties";
 import { computePropertiesPeriod } from "./computeProperties";
+import { EMAIL_EVENTS_UP_DEFINITION } from "../../../integrations/subscriptions";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -162,6 +164,8 @@ describe("compute properties activities", () => {
   describe("computePropertiesPeriod", () => {
     interface TableTest {
       description: string;
+      skip?: boolean;
+      only?: boolean;
       currentTime?: number;
       segments?: TestSegmentData[];
       userProperties?: TestUserPropertyData[];
@@ -794,43 +798,94 @@ describe("compute properties activities", () => {
         description: "with a hubspot integration, it signals appropriately",
         userProperties: [
           {
-            name: "status",
-            definition: {
-              type: UserPropertyDefinitionType.Trait,
-              path: "status",
-            },
+            name: EMAIL_EVENTS_UP_NAME,
+            definition: EMAIL_EVENTS_UP_DEFINITION,
           },
         ],
         events: [
           {
             eventTimeOffset: -500,
             overrides: (defaults) =>
-              segmentIdentifyEvent({
+              segmentTrackEvent({
                 ...defaults,
-                traits: {
-                  status: "status1",
+                event: InternalEventType.MessageSent,
+                properties: {
+                  some: "property",
+                },
+              }),
+          },
+          {
+            eventTimeOffset: -400,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: InternalEventType.EmailClicked,
+                properties: {
+                  other: "property",
                 },
               }),
           },
         ],
+        integrations: [HUBSPOT_INTEGRATION],
         expectedUserProperties: {
           "user-id-1": {
-            status: "status1",
+            [EMAIL_EVENTS_UP_NAME]: [
+              {
+                event: InternalEventType.MessageSent,
+                properties: {
+                  some: "property",
+                },
+                timestamp: "2023-04-12T21:16:18",
+              },
+              {
+                event: InternalEventType.EmailClicked,
+                properties: {
+                  other: "property",
+                },
+                timestamp: "2023-04-12T21:16:18",
+              },
+            ],
           },
         },
         expectedSignals: [
           {
-            userPropertyName: "status",
-            userPropertyValue: "status1",
+            userPropertyName: EMAIL_EVENTS_UP_NAME,
+            // TODO remove double stringify
+            userPropertyValue: JSON.stringify(
+              JSON.stringify([
+                {
+                  event: InternalEventType.MessageSent,
+                  properties: JSON.stringify({
+                    some: "property",
+                  }),
+                  timestamp: "2023-04-12T21:16:18",
+                },
+                {
+                  event: InternalEventType.EmailClicked,
+                  properties: JSON.stringify({
+                    other: "property",
+                  }),
+                  timestamp: "2023-04-12T21:16:18",
+                },
+              ])
+            ),
           },
         ],
       },
     ];
 
     describe("table driven tests", () => {
-      test.each(tableTests)(
+      const only: null | string =
+        tableTests.find((t) => t.only === true)?.description ?? null;
+
+      test.each(
+        tableTests.filter(
+          (t) => t.skip !== true && (only === null || only === t.description)
+        )
+      )(
         "$description",
         async ({
+          description,
           segments: testSegments,
           events = [],
           currentTime = 1681334178956,
@@ -840,6 +895,10 @@ describe("compute properties activities", () => {
           expectedSegments,
           expectedSignals,
         }) => {
+          if (only !== null && only !== description) {
+            return;
+          }
+
           userId = "user-id-1";
 
           const eventPayloads: InsertValue[] = events.map(

@@ -6,10 +6,7 @@ import {
   HUBSPOT_OAUTH_TOKEN,
 } from "backend-lib/src/constants";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspotWorkflow/signalUtils";
-import {
-  EmailEventList,
-  UserPropertyDefinitionType,
-} from "isomorphic-lib/src/types";
+import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
 import { GetServerSideProps } from "next";
 
 import prisma from "../../../lib/prisma";
@@ -102,14 +99,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
             create: {
               workspaceId: dfContext.workspace.id,
               name: EMAIL_EVENTS_UP_NAME,
-              definition: {
-                type: UserPropertyDefinitionType.PerformedMany,
-                or: [
-                  EmailEventList.map((event) => ({
-                    event,
-                  })),
-                ],
-              },
+              definition: EMAIL_EVENTS_UP_DEFINITION,
             },
             update: {},
           }),
