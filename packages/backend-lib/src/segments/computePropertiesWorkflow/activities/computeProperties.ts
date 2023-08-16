@@ -40,10 +40,11 @@ async function signalJourney({
   segmentAssignment: ComputedAssignment;
   journey: EnrichedJourney;
 }) {
-  const segmentUpdate = {
+  const segmentUpdate: SegmentUpdate = {
     segmentId,
     currentlyInSegment: Boolean(segmentAssignment.latest_segment_value),
     segmentVersion: new Date(segmentAssignment.max_assigned_at).getTime(),
+    type: "segment",
   };
 
   if (!segmentUpdate.currentlyInSegment) {

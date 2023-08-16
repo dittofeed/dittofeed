@@ -1,5 +1,9 @@
 import axios from "axios";
-import { PerformedManyValue, SegmentUpdate } from "isomorphic-lib/src/types";
+import {
+  ParsedPerformedManyValueItem,
+  PerformedManyValue,
+  SegmentUpdate,
+} from "isomorphic-lib/src/types";
 import { groupBy } from "remeda";
 
 import { EMAIL_EVENTS_UP_NAME, HUBSPOT_INTEGRATION } from "../../constants";
@@ -64,8 +68,10 @@ export async function updateHubspotEmails({
 }: {
   workspaceId: string;
   userId: string;
-  events: PerformedManyValue;
+  events: ParsedPerformedManyValueItem[];
 }) {
+  // BOUNCED, FAILED, SCHEDULED, SENDING, or SENT.
+  // SENDING = sent, sent = delivered
   const filteredEvents = events.filter(
     (event) => event.properties.messageId !== undefined
   );

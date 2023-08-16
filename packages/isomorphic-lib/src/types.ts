@@ -81,20 +81,20 @@ export type SubscriptionGroupResource = Static<
 >;
 
 export interface SegmentUpdate {
+  type: "segment";
   segmentId: string;
   currentlyInSegment: boolean;
   segmentVersion: number;
 }
 
 export interface UserPropertyUpdate {
+  type: "user_property";
   userPropertyId: string;
   value: string;
   userPropertyVersion: number;
 }
 
-export type ComputedPropertyUpdate =
-  | (SegmentUpdate & { type: "segment" })
-  | (UserPropertyUpdate & { type: "user_property" });
+export type ComputedPropertyUpdate = SegmentUpdate | UserPropertyUpdate;
 
 export enum SegmentOperatorType {
   Within = "Within",

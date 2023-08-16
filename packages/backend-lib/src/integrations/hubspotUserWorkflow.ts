@@ -4,7 +4,6 @@ import * as wf from "@temporalio/workflow";
 import {
   ComputedPropertyUpdate,
   ParsedPerformedManyValueItem,
-  PerformedManyValue,
   SegmentUpdate,
   UserPropertyUpdate,
 } from "isomorphic-lib/src/types";
@@ -42,7 +41,7 @@ export function generateHubspotUserWorkflowId({
 interface HubspotUserWorkflowParams {
   workspaceId: string;
   userId: string;
-  maxPollingAttempts: number;
+  maxPollingAttempts?: number;
 }
 
 const TIMEOUT = 5 * 60 * 1000;

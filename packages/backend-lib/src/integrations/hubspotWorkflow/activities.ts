@@ -1,9 +1,9 @@
 import { OauthToken } from "@prisma/client";
 import axios, { AxiosError } from "axios";
-import { HUBSPOT_OAUTH_TOKEN } from "isomorphic-lib/src/constants";
 import { Overwrite } from "utility-types";
 
 import config from "../../config";
+import { HUBSPOT_OAUTH_TOKEN } from "../../constants";
 import logger from "../../logger";
 import prisma from "../../prisma";
 
