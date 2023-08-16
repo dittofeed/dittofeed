@@ -6,6 +6,7 @@ import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
 import { spawnWithEnv } from "./spawn";
+import { hubspotSync } from "./hubspot";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.
@@ -87,6 +88,20 @@ export async function cli() {
         const onboardUserResult = await onboardUser({ workspaceName, email });
         unwrap(onboardUserResult);
       }
+    )
+    .command(
+      "hubspot-sync",
+      "Syncs fake user info to hubspot.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            default: backendConfig().defaultWorkspaceId,
+            describe: "The workspace id to bootstrap.",
+          },
+        }),
+      ({ workspaceId }) => hubspotSync({ workspaceId })
     )
     .demandCommand(1, "# Please provide a valid command")
     .help()
