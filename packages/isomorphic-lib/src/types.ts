@@ -357,6 +357,16 @@ export type PerformedManyUserPropertyDefinition = Static<
   typeof PerformedManyUserPropertyDefinition
 >;
 
+export const ParsedPerformedManyValueItem = Type.Object({
+  event: Type.String(),
+  timestamp: Type.String(),
+  properties: Type.Record(Type.String(), Type.Any()),
+});
+
+export type ParsedPerformedManyValueItem = Static<
+  typeof ParsedPerformedManyValueItem
+>;
+
 export const PerformedManyValueItem = Type.Object({
   event: Type.String(),
   timestamp: Type.String(),

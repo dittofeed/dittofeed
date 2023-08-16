@@ -3,10 +3,14 @@ import { LoggerSinks, proxyActivities, proxySinks } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 import {
   ComputedPropertyUpdate,
+  ParsedPerformedManyValueItem,
+  PerformedManyValue,
   SegmentUpdate,
   UserPropertyUpdate,
 } from "isomorphic-lib/src/types";
+import { Overwrite } from "utility-types";
 
+import { parseUserProperty } from "../userProperties";
 // Only import the activity types
 import type * as activities from "./hubspotUserWorkflow/activities";
 
@@ -55,23 +59,45 @@ export async function hubspotUserWorkflow({
     logger.error("no email events user property found", { workspaceId });
     return;
   }
-  let pendinEmailsUpdate: UserPropertyUpdate | null = null;
+  let pendingEmailsUpdate: Overwrite<
+    UserPropertyUpdate,
+    {
+      value: ParsedPerformedManyValueItem[];
+    }
+  > | null = null;
   const pendingListsUpdates = new Map<string, SegmentUpdate>();
 
   wf.setHandler(hubspotUserComputedProperties, (signal) => {
     logger.info("hubspot computedProperties", { workspaceId });
     switch (signal.type) {
-      case "user_property":
+      case "user_property": {
         if (
           signal.userPropertyId !== emailEventsUserProperty.id ||
-          (pendinEmailsUpdate !== null &&
-            pendinEmailsUpdate.userPropertyVersion >=
+          (pendingEmailsUpdate !== null &&
+            pendingEmailsUpdate.userPropertyVersion >=
               signal.userPropertyVersion)
         ) {
           return;
         }
-        pendinEmailsUpdate = signal;
+        const parsed = parseUserProperty(
+          emailEventsUserProperty.definition,
+          signal.value
+        );
+        if (parsed.isErr()) {
+          logger.error("failed to parse user property", {
+            workspaceId,
+            err: parsed.error,
+          });
+          return;
+        }
+        const value = parsed.value as ParsedPerformedManyValueItem[];
+
+        pendingEmailsUpdate = {
+          ...signal,
+          value,
+        };
         break;
+      }
       case "segment": {
         const existing = pendingListsUpdates.get(signal.segmentId) ?? null;
         if (
@@ -88,7 +114,7 @@ export async function hubspotUserWorkflow({
 
   for (let i = 0; i < maxPollingAttempts; i++) {
     const timedOut = !(await wf.condition(
-      () => pendingListsUpdates.size > 0 || pendinEmailsUpdate !== null,
+      () => pendingListsUpdates.size > 0 || pendingEmailsUpdate !== null,
       TIMEOUT
     ));
     if (timedOut) {
@@ -99,12 +125,12 @@ export async function hubspotUserWorkflow({
     }
     const promises: Promise<unknown>[] = [];
 
-    if (pendinEmailsUpdate !== null) {
+    if (pendingEmailsUpdate !== null) {
       promises.push(
         updateHubspotEmails({
           workspaceId,
           userId,
-          events: pendinEmailsUpdate,
+          events: pendingEmailsUpdate,
         })
       );
     }
@@ -121,7 +147,7 @@ export async function hubspotUserWorkflow({
 
     await Promise.all([updateHubspotEmails, updateHubspotLists]);
 
-    pendinEmailsUpdate = null;
+    pendingEmailsUpdate = null;
     pendingListsUpdates.clear();
   }
 }

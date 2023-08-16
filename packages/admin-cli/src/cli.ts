@@ -1,12 +1,10 @@
 import bootstrap from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
 import { onboardUser } from "backend-lib/src/onboarding";
-import { prismaMigrate } from "backend-lib/src/prisma/migrate";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
-import { SDK_LANGUAGES, sdkBaseCodegen } from "./sdkBase";
 import { spawnWithEnv } from "./spawn";
 
 export async function cli() {
@@ -47,7 +45,6 @@ export async function cli() {
           workspaceDomain,
         })
     )
-    .command("migrate", "Runs 'prisma migrate deploy'.", prismaMigrate)
     .command(
       "spawn",
       "Spawns a shell command, with dittofeed's config exported as environment variables.",
@@ -64,21 +61,6 @@ export async function cli() {
             process.argv.slice(3)
           )
         )
-    )
-    .command(
-      "sdk-base-codegen",
-      "Generates an openapi client for a particular language's base sdk. Note that this requires:\n* swagger-codegen 3 to be installed (https://github.com/swagger-api/swagger-codegen).\n* The api server to be running.",
-      (cmd) =>
-        cmd.options({
-          lang: {
-            type: "string",
-            alias: "l",
-            choices: Object.keys(SDK_LANGUAGES),
-            default: backendConfig().defaultWorkspaceId,
-            describe: "The workspace id to bootstrap.",
-          },
-        }),
-      ({ lang }) => sdkBaseCodegen({ lang })
     )
     .command(
       "psql",

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { PerformedManyValue, SegmentUpdate } from "isomorphic-lib/src/types";
+import { groupBy } from "remeda";
 
 import { EMAIL_EVENTS_UP_NAME, HUBSPOT_INTEGRATION } from "../../constants";
 import logger from "../../logger";
@@ -65,10 +66,9 @@ export async function updateHubspotEmails({
   userId: string;
   events: PerformedManyValue;
 }) {
-  const upa = findAllUserPropertyAssignments({
-    workspaceId,
-    userId,
-  });
+  const filteredEvents = events.filter(
+    (event) => event.properties.messageId !== undefined
+  );
 }
 
 export async function updateHubspotLists({
