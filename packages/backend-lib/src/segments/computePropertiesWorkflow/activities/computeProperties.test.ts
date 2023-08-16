@@ -39,7 +39,7 @@ import {
   InsertValue,
 } from "../../../userEvents/clickhouse";
 import {
-  enrichedUserProperty,
+  enrichUserProperty,
   findAllUserPropertyAssignments,
   UserPropertyAssignments,
 } from "../../../userProperties";
@@ -1291,7 +1291,7 @@ describe("compute properties activities", () => {
             };
 
             userProperty = unwrap(
-              enrichedUserProperty(
+              enrichUserProperty(
                 await prisma().userProperty.create({
                   data: {
                     workspaceId: workspace.id,
@@ -1346,7 +1346,7 @@ describe("compute properties activities", () => {
             };
 
             userProperty = unwrap(
-              enrichedUserProperty(
+              enrichUserProperty(
                 await prisma().userProperty.create({
                   data: {
                     workspaceId: workspace.id,
@@ -1390,7 +1390,7 @@ describe("compute properties activities", () => {
             };
 
             userProperty = unwrap(
-              enrichedUserProperty(
+              enrichUserProperty(
                 await prisma().userProperty.create({
                   data: {
                     workspaceId: workspace.id,
@@ -2365,7 +2365,7 @@ describe("compute properties activities", () => {
           };
 
           userProperty = unwrap(
-            enrichedUserProperty(
+            enrichUserProperty(
               await prisma().userProperty.create({
                 data: {
                   workspaceId: workspace.id,

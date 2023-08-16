@@ -17,7 +17,7 @@ export async function startHubspotIntegrationWorkflow({
     {
       taskQueue: "default",
       workflowId: generateId(workspaceId),
-      args: [{ workspaceId }],
+      args: [{ workspaceId, shouldContinueAsNew: true }],
       signal: hubspotWorkflowInitialize,
       signalArgs: [],
     }

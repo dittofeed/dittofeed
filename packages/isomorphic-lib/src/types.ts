@@ -92,7 +92,7 @@ export interface UserPropertyUpdate {
   userPropertyVersion: number;
 }
 
-export type ComputedPropertyAssignment =
+export type ComputedPropertyUpdate =
   | (SegmentUpdate & { type: "segment" })
   | (UserPropertyUpdate & { type: "user_property" });
 

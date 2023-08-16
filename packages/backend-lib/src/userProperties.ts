@@ -17,7 +17,7 @@ import {
   UserPropertyResource,
 } from "./types";
 
-export function enrichedUserProperty(
+export function enrichUserProperty(
   userProperty: UserProperty
 ): Result<EnrichedUserProperty, ValueError[]> {
   const definitionResult = schemaValidate(
@@ -36,7 +36,7 @@ export function enrichedUserProperty(
 export function toUserPropertyResource(
   userProperty: UserProperty
 ): Result<UserPropertyResource, ValueError[]> {
-  return enrichedUserProperty(userProperty).map(
+  return enrichUserProperty(userProperty).map(
     ({ workspaceId, name, id, definition }) => ({
       workspaceId,
       name,
@@ -58,7 +58,7 @@ export async function findAllUserProperties({
   const enrichedUserProperties: EnrichedUserProperty[] = [];
 
   for (const userProperty of userProperties) {
-    const enrichedJourney = enrichedUserProperty(userProperty);
+    const enrichedJourney = enrichUserProperty(userProperty);
 
     if (enrichedJourney.isErr()) {
       logger().error({ err: enrichedJourney.error });

@@ -1,5 +1,5 @@
 import { WorkflowClient } from "@temporalio/client";
-import { ComputedPropertyAssignment } from "isomorphic-lib/src/types";
+import { ComputedPropertyUpdate } from "isomorphic-lib/src/types";
 
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
@@ -16,14 +16,14 @@ export async function startHubspotUserIntegrationWorkflow({
 }: {
   workspaceId: string;
   userId: string;
-  computedPropertyAssignment: ComputedPropertyAssignment;
+  computedPropertyAssignment: ComputedPropertyUpdate;
   workflowClient?: WorkflowClient;
 }) {
   const wc = workflowClient ?? (await connectWorkflowClient());
 
   await wc.signalWithStart<
     typeof hubspotUserWorkflow,
-    [ComputedPropertyAssignment]
+    [ComputedPropertyUpdate]
   >(hubspotUserWorkflow, {
     taskQueue: "default",
     workflowId: generateHubspotUserWorkflowId({ workspaceId, userId }),
