@@ -3,7 +3,11 @@ import config from "../config";
 import { NodeEnvEnum } from "../config/loader";
 import logger from "../logger";
 import prisma from "../prisma";
-import { ComputedPropertyUpdate, JSONValue } from "../types";
+import {
+  ComputedPropertyAssignment,
+  ComputedPropertyUpdate,
+  JSONValue,
+} from "../types";
 
 const userEventsColumns = `
   event_type Enum('identify' = 1, 'track' = 2, 'page' = 3, 'screen' = 4, 'group' = 5, 'alias' = 6) DEFAULT JSONExtract(message_raw, 'type', 'Enum(\\'identify\\' = 1, \\'track\\' = 2, \\'page\\' = 3, \\'screen\\' = 4, \\'group\\' = 5, \\'alias\\' = 6)'),
@@ -32,7 +36,7 @@ export function buildUserEventsTableName(tableVersion: string) {
 export async function insertProcessedComputedProperties({
   assignments,
 }: {
-  assignments: ComputedPropertyUpdate[];
+  assignments: ComputedPropertyAssignment[];
 }) {
   await clickhouseClient().insert({
     table:

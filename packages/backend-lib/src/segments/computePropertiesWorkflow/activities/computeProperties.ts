@@ -19,7 +19,7 @@ import { findAllEnrichedSegments } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
 import {
   ComputedAssignment,
-  ComputedPropertyUpdate,
+  ComputedPropertyAssignment,
   EnrichedJourney,
   EnrichedUserProperty,
   SegmentUpdate,
@@ -438,7 +438,7 @@ export async function computePropertiesPeriodSafe({
         }),
       ]);
 
-      const processedAssignments: ComputedPropertyUpdate[] =
+      const processedAssignments: ComputedPropertyAssignment[] =
         assignments.flatMap((assignment) => ({
           user_property_value: assignment.latest_user_property_value,
           segment_value: assignment.latest_segment_value,
