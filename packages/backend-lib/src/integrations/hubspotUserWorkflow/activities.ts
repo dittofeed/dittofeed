@@ -1,5 +1,7 @@
+import { Type } from "@sinclair/typebox";
 import axios from "axios";
 import {
+  InternalEventType,
   ParsedPerformedManyValueItem,
   PerformedManyValue,
   SegmentUpdate,
@@ -14,6 +16,15 @@ import {
   enrichUserProperty,
   findAllUserPropertyAssignments,
 } from "../../userProperties";
+
+const HUBSPOT_EMAIL = Type.Object({
+  id: Type.String(),
+  properties: Type.Object({
+    hs_email_to_email: Type.String(),
+    hs_email_from_email: Type.String(),
+    hubspot_owner_id: Type.Optional(Type.String()),
+  }),
+});
 
 export async function findEmailEventsUserProperty({
   workspaceId,
@@ -84,6 +95,13 @@ async function searchEmails(token: string, recipientEmail: string) {
   return response.data;
 }
 
+const RELEVANT_EMAIL_EVENTS = new Set([
+  InternalEventType.MessageSent,
+  InternalEventType.EmailDelivered,
+  InternalEventType.EmailBounced,
+  InternalEventType.MessageFailure,
+]);
+
 export async function updateHubspotEmails({
   workspaceId,
   userId,
@@ -113,6 +131,30 @@ export async function updateHubspotEmails({
   const grouped = groupBy(filteredEvents, (event) => event.key);
   const emails = await searchEmails(hubspotAccessToken, email);
   console.log("emails", emails);
+
+  for (const key in grouped) {
+    const groupedEvents = grouped[key];
+    if (!groupedEvents) {
+      continue;
+    }
+
+    const hsTimestamp = groupedEvents.find(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      (e) => e.event === InternalEventType.MessageSent
+    )?.timestamp;
+
+    if (!hsTimestamp) {
+      logger().error(
+        {
+          workspaceId,
+          userId,
+          events,
+        },
+        "no message sent event for user hubspot email"
+      );
+      continue;
+    }
+  }
 
   // workspaceId: string;
   // runId: string;
