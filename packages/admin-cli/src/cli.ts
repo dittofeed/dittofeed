@@ -5,8 +5,8 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
-import { spawnWithEnv } from "./spawn";
 import { hubspotSync } from "./hubspot";
+import { spawnWithEnv } from "./spawn";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.
@@ -100,8 +100,14 @@ export async function cli() {
             default: backendConfig().defaultWorkspaceId,
             describe: "The workspace id to bootstrap.",
           },
+          email: {
+            require: true,
+            type: "string",
+            alias: "e",
+            describe: "The email of the contact in hubspot",
+          },
         }),
-      ({ workspaceId }) => hubspotSync({ workspaceId })
+      ({ workspaceId, email }) => hubspotSync({ workspaceId, email })
     )
     .demandCommand(1, "# Please provide a valid command")
     .help()

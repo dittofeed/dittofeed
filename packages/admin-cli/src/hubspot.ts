@@ -10,15 +10,19 @@ import {
 } from "isomorphic-lib/src/types";
 
 export async function hubspotSync({
+  email,
   workspaceId,
 }: {
+  email: string;
   workspaceId: string;
 }): Promise<void> {
-  const token = await getOauthToken({ workspaceId });
+  console.log("hubspot sync getting token");
+  let token = await getOauthToken({ workspaceId });
   if (!token) {
     throw new Error("no token found");
   }
-  await refreshToken({ workspaceId, token: token.refreshToken });
+  console.log("hubspot sync refreshing token");
+  token = await refreshToken({ workspaceId, token: token.refreshToken });
 
   const userId = randomUUID();
   const events: ParsedPerformedManyValueItem[] = [
@@ -38,5 +42,12 @@ export async function hubspotSync({
       properties: {},
     },
   ];
-  await updateHubspotEmails({ workspaceId, userId, events });
+  console.log("hubspot sync updating emails");
+  await updateHubspotEmails({
+    workspaceId,
+    userId,
+    events,
+    email,
+    hubspotAccessToken: token.accessToken,
+  });
 }

@@ -1,4 +1,4 @@
-import { UserProperty } from "@prisma/client";
+import { Prisma, UserProperty } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
 import {
   jsonParseSafe,
@@ -161,12 +161,23 @@ export function parseUserProperty(
 export async function findAllUserPropertyAssignments({
   userId,
   workspaceId,
+  userProperties: userPropertiesFilter,
 }: {
   userId: string;
   workspaceId: string;
+  userProperties?: string[];
 }): Promise<UserPropertyAssignments> {
+  const where: Prisma.UserPropertyWhereInput = {
+    workspaceId,
+  };
+  if (userPropertiesFilter?.length) {
+    where.name = {
+      in: userPropertiesFilter,
+    };
+  }
+
   const userProperties = await prisma().userProperty.findMany({
-    where: { workspaceId },
+    where,
     include: {
       UserPropertyAssignment: {
         where: { userId },

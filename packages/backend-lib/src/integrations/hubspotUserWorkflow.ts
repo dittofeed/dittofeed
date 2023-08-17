@@ -125,13 +125,14 @@ export async function hubspotUserWorkflow({
     const promises: Promise<unknown>[] = [];
 
     if (pendingEmailsUpdate !== null) {
-      promises.push(
-        updateHubspotEmails({
-          workspaceId,
-          userId,
-          events: pendingEmailsUpdate,
-        })
-      );
+      // FIXME add email
+      // promises.push(
+      //   updateHubspotEmails({
+      //     workspaceId,
+      //     userId,
+      //     events: pendingEmailsUpdate,
+      //   })
+      // );
     }
 
     if (pendingListsUpdates.size > 0) {
