@@ -325,18 +325,25 @@ async function sendMobilePushWithPayload(
         );
       }
 
+      const { imageUrl } = messageTemplate.definition;
+      const token = identifier;
       const fcmMessageId = await sendNotification({
         key: channelConfig.fcmKey,
-        token: identifier,
+        token,
         notification: {
           title,
           body,
-          imageUrl: messageTemplate.definition.imageUrl,
+          imageUrl,
         },
         android: messageTemplate.definition.android,
       });
       return buildSendValue(true, InternalEventType.MessageSent, {
         fcmMessageId,
+        title,
+        body,
+        imageUrl,
+        token,
+        android: messageTemplate.definition.android,
       });
     },
   });
@@ -479,7 +486,13 @@ async function sendEmailWithPayload(
             });
           }
 
-          return buildSendValue(true, InternalEventType.MessageSent);
+          return buildSendValue(true, InternalEventType.MessageSent, {
+            from,
+            to: identifier,
+            body,
+            subject,
+            replyTo,
+          });
         }
         default: {
           return buildSendValue(
