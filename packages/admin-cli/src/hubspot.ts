@@ -1,4 +1,8 @@
 import { updateHubspotEmails } from "backend-lib/src/integrations/hubspotUserWorkflow/activities";
+import {
+  getOauthToken,
+  refreshToken,
+} from "backend-lib/src/integrations/hubspotWorkflow/activities";
 import { randomUUID } from "crypto";
 import {
   InternalEventType,
@@ -10,6 +14,12 @@ export async function hubspotSync({
 }: {
   workspaceId: string;
 }): Promise<void> {
+  const token = await getOauthToken({ workspaceId });
+  if (!token) {
+    throw new Error("no token found");
+  }
+  await refreshToken({ workspaceId, token: token.refreshToken });
+
   const userId = randomUUID();
   const events: ParsedPerformedManyValueItem[] = [
     {
