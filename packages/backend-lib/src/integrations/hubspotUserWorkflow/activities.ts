@@ -174,11 +174,11 @@ async function searchOwners(
   token: string,
   emails: string[]
 ): Promise<Result<HubspotOwnerSearchResult, Error>> {
-  const url = "https://api.hubapi.com/crm/v3/objects/owners/search";
+  const url = "https://api.hubapi.com/crm/v3/owners";
   const headers = {
     authorization: `Bearer ${token}`,
   };
-  const data = {
+  const params = {
     filterGroups: [
       {
         filters: [
@@ -191,7 +191,7 @@ async function searchOwners(
       },
     ],
   };
-  const response = await axios.post(url, data, { headers });
+  const response = await axios.get(url, { headers, params });
   return schemaValidateWithErr(response.data, HubspotOwnerSearchResult);
 }
 
@@ -452,6 +452,10 @@ export async function updateHubspotEmails({
     })),
   };
 
+  console.log({
+    updateEmailsBatch: JSON.stringify(updateEmailsBatch, null, 2),
+    createEmailsBatch: JSON.stringify(createEmailsBatch, null, 2),
+  });
   await Promise.all([
     updateHubspotEmailsRequest(hubspotAccessToken, updateEmailsBatch),
     createHubspotEmailsRequest(hubspotAccessToken, createEmailsBatch),
