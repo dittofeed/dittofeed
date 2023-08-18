@@ -1,12 +1,13 @@
-import { Type } from "@sinclair/typebox";
+import { Static, Type } from "@sinclair/typebox";
 import axios from "axios";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   InternalEventType,
   ParsedPerformedManyValueItem,
-  PerformedManyValue,
   SegmentUpdate,
 } from "isomorphic-lib/src/types";
-import { groupBy, pick } from "remeda";
+import { Result } from "neverthrow";
+import { groupBy, indexBy, pick } from "remeda";
 
 import { EMAIL_EVENTS_UP_NAME, HUBSPOT_INTEGRATION } from "../../constants";
 import logger from "../../logger";
@@ -17,14 +18,34 @@ import {
   findAllUserPropertyAssignments,
 } from "../../userProperties";
 
-const HUBSPOT_EMAIL = Type.Object({
+const HubspotEmail = Type.Object({
   id: Type.String(),
   properties: Type.Object({
     hs_email_to_email: Type.String(),
+    hs_timestamp: Type.String(),
     hs_email_from_email: Type.String(),
     hubspot_owner_id: Type.Optional(Type.String()),
   }),
 });
+
+type HubspotEmail = Static<typeof HubspotEmail>;
+
+const HubspotEmailSearchResult = Type.Object({
+  results: Type.Array(HubspotEmail),
+});
+
+type HubspotEmailSearchResult = Static<typeof HubspotEmailSearchResult>;
+
+const HubspotOwner = Type.Object({
+  id: Type.String(),
+  email: Type.String(),
+});
+
+const HubspotOwnerSearchResult = Type.Object({
+  results: Type.Array(HubspotOwner),
+});
+
+type HubspotOwnerSearchResult = Static<typeof HubspotOwnerSearchResult>;
 
 export async function findEmailEventsUserProperty({
   workspaceId,
@@ -72,7 +93,10 @@ export async function getIntegrationEnabled({
   );
 }
 
-async function searchEmails(token: string, recipientEmail: string) {
+async function searchEmails(
+  token: string,
+  recipientEmail: string
+): Promise<Result<HubspotEmailSearchResult, Error>> {
   const url = "https://api.hubapi.com/crm/v3/objects/emails/search";
   const headers = {
     authorization: `Bearer ${token}`,
@@ -92,15 +116,33 @@ async function searchEmails(token: string, recipientEmail: string) {
   };
 
   const response = await axios.post(url, data, { headers });
-  return response.data;
+  return schemaValidateWithErr(response.data, HubspotEmailSearchResult);
 }
 
-const RELEVANT_EMAIL_EVENTS = new Set([
-  InternalEventType.MessageSent,
-  InternalEventType.EmailDelivered,
-  InternalEventType.EmailBounced,
-  InternalEventType.MessageFailure,
-]);
+async function searchOwners(
+  token: string,
+  emails: string[]
+): Promise<Result<HubspotOwnerSearchResult, Error>> {
+  const url = "https://api.hubapi.com/crm/v3/objects/owners/search";
+  const headers = {
+    authorization: `Bearer ${token}`,
+  };
+  const data = {
+    filterGroups: [
+      {
+        filters: [
+          {
+            propertyName: "hs_email_to_email",
+            operator: "IN",
+            value: emails,
+          },
+        ],
+      },
+    ],
+  };
+  const response = await axios.post(url, data, { headers });
+  return schemaValidateWithErr(response.data, HubspotOwnerSearchResult);
+}
 
 export async function updateHubspotEmails({
   workspaceId,
@@ -129,8 +171,51 @@ export async function updateHubspotEmails({
     }));
 
   const grouped = groupBy(filteredEvents, (event) => event.key);
-  const emails = await searchEmails(hubspotAccessToken, email);
-  console.log("emails", emails);
+  const fromEmailAddresses = events.reduce<Set<string>>((memo, event) => {
+    const { from } = event.properties;
+    if (from) {
+      memo.add(from);
+    }
+    return memo;
+  }, new Set());
+
+  const [emailsResult, ownersResult] = await Promise.all([
+    searchEmails(hubspotAccessToken, email),
+    searchOwners(hubspotAccessToken, Array.from(fromEmailAddresses)),
+  ]);
+  const owners = indexBy(
+    ownersResult
+      .map((r) => r.results)
+      .mapErr((e) => {
+        logger().error(
+          { workspaceId, userId, err: e },
+          "error searching owners"
+        );
+        return e;
+      })
+      .unwrapOr([]),
+    (o) => o.email
+  );
+  if (emailsResult.isErr()) {
+    logger().error(
+      {
+        err: emailsResult.error,
+        workspaceId,
+        userId,
+      },
+      "error searching emails"
+    );
+    return;
+  }
+
+  const emailUpdates: { hubspotId: string; status: string }[] = [];
+  const newEmails: {
+    hs_timestamp: string;
+    hubspot_owner_id?: string;
+    hs_email_html?: string;
+    hs_email_subject?: string;
+    hs_email_status?: string;
+  }[] = [];
 
   for (const key in grouped) {
     const groupedEvents = grouped[key];
@@ -155,14 +240,6 @@ export async function updateHubspotEmails({
       continue;
     }
   }
-
-  // workspaceId: string;
-  // runId: string;
-  // nodeId: string;
-  // templateId: string;
-  // journeyId: string;
-  // messageId: string;
-  // subscriptionGroupId?: string;
 }
 
 export async function updateHubspotLists({
