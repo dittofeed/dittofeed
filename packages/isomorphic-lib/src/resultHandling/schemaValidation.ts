@@ -23,7 +23,13 @@ export function schemaValidateWithErr<S extends TSchema>(
     return ok(val);
   }
   const errors = Array.from(Value.Errors(schema, val));
-  return err(new Error(JSON.stringify(errors)));
+  return err(
+    new Error(
+      `original object:${JSON.stringify(
+        val
+      )}, parsing failure: ${JSON.stringify(errors)}`
+    )
+  );
 }
 
 export function jsonParseSafe(s: string): Result<JSONValue, Error> {

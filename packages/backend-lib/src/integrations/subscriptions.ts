@@ -1,6 +1,7 @@
 import { EMAIL_EVENTS_UP_NAME, HUBSPOT_INTEGRATION } from "../constants";
 import {
   EmailEventList,
+  InternalEventType,
   UserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "../types";
@@ -12,7 +13,12 @@ export const INTEGRATION_SUBSCRIBED_USER_PROPERTIES = new Map<
 
 export const EMAIL_EVENTS_UP_DEFINITION: UserPropertyDefinition = {
   type: UserPropertyDefinitionType.PerformedMany,
-  or: EmailEventList.map((event) => ({
-    event,
-  })),
+  or: [
+    {
+      event: InternalEventType.MessageFailure,
+    },
+    ...EmailEventList.map((event) => ({
+      event,
+    })),
+  ],
 };

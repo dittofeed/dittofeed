@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-loop-func */
 import { Static, Type } from "@sinclair/typebox";
 import axios from "axios";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -46,6 +47,19 @@ const HubspotOwnerSearchResult = Type.Object({
 });
 
 type HubspotOwnerSearchResult = Static<typeof HubspotOwnerSearchResult>;
+
+const HubspotContact = Type.Object({
+  id: Type.String(),
+  properties: Type.Object({
+    email: Type.String(),
+  }),
+});
+
+const HubspotContactSearchResult = Type.Object({
+  results: Type.Array(HubspotContact),
+});
+
+type HubspotContactSearchResult = Static<typeof HubspotContactSearchResult>;
 
 export async function findEmailEventsUserProperty({
   workspaceId,
@@ -132,7 +146,7 @@ async function searchOwners(
       {
         filters: [
           {
-            propertyName: "hs_email_to_email",
+            propertyName: "email",
             operator: "IN",
             value: emails,
           },
@@ -142,6 +156,31 @@ async function searchOwners(
   };
   const response = await axios.post(url, data, { headers });
   return schemaValidateWithErr(response.data, HubspotOwnerSearchResult);
+}
+
+async function searchContacts(
+  token: string,
+  email: string
+): Promise<Result<HubspotContactSearchResult, Error>> {
+  const url = "https://api.hubapi.com/crm/v3/objects/contact/search";
+  const headers = {
+    authorization: `Bearer ${token}`,
+  };
+  const data = {
+    filterGroups: [
+      {
+        filters: [
+          {
+            propertyName: "email",
+            operator: "EQ",
+            value: email,
+          },
+        ],
+      },
+    ],
+  };
+  const response = await axios.post(url, data, { headers });
+  return schemaValidateWithErr(response.data, HubspotContactSearchResult);
 }
 
 export async function updateHubspotEmails({
@@ -166,8 +205,7 @@ export async function updateHubspotEmails({
       key: Object.values(
         pick(e.properties, ["workspaceId", "journeyId", "nodeId", "runId"])
       ).join("-"),
-      event: e.event,
-      timestamp: e.timestamp,
+      ...e,
     }));
 
   const grouped = groupBy(filteredEvents, (event) => event.key);
@@ -179,10 +217,39 @@ export async function updateHubspotEmails({
     return memo;
   }, new Set());
 
-  const [emailsResult, ownersResult] = await Promise.all([
+  const [emailsResult, ownersResult, contactResult] = await Promise.all([
     searchEmails(hubspotAccessToken, email),
     searchOwners(hubspotAccessToken, Array.from(fromEmailAddresses)),
+    searchContacts(hubspotAccessToken, email),
   ]);
+
+  if (emailsResult.isErr()) {
+    logger().error(
+      {
+        err: emailsResult.error,
+        workspaceId,
+        userId,
+      },
+      "error searching emails"
+    );
+    return;
+  }
+  const contact = contactResult
+    .map(
+      (r) =>
+        r.results.find(
+          (contactItem) => contactItem.properties.email === email
+        ) ?? null
+    )
+    .mapErr((e) => {
+      logger().error(
+        { workspaceId, userId, err: e },
+        "error searching contacts"
+      );
+      return e;
+    })
+    .unwrapOr(null);
+
   const owners = indexBy(
     ownersResult
       .map((r) => r.results)
@@ -196,17 +263,6 @@ export async function updateHubspotEmails({
       .unwrapOr([]),
     (o) => o.email
   );
-  if (emailsResult.isErr()) {
-    logger().error(
-      {
-        err: emailsResult.error,
-        workspaceId,
-        userId,
-      },
-      "error searching emails"
-    );
-    return;
-  }
 
   const emailUpdates: { hubspotId: string; status: string }[] = [];
   const newEmails: {
@@ -222,11 +278,54 @@ export async function updateHubspotEmails({
     if (!groupedEvents) {
       continue;
     }
-
-    const hsTimestamp = groupedEvents.find(
+    const earliestMessageSent = groupedEvents.findLast(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       (e) => e.event === InternalEventType.MessageSent
-    )?.timestamp;
+    );
+
+    const hsTimestamp = earliestMessageSent?.timestamp;
+    let body: string | undefined;
+    let subject: string | undefined;
+    let from: string | undefined;
+    let status: string | undefined;
+    for (const { properties, event } of groupedEvents) {
+      if (properties.body && !body) {
+        body = properties.body;
+      }
+      if (properties.subject && !subject) {
+        subject = properties.subject;
+      }
+      if (properties.from && !from) {
+        from = properties.from;
+      }
+      switch (event) {
+        case InternalEventType.MessageSent:
+          status = "SENDING";
+          break;
+        case InternalEventType.EmailDelivered:
+          status = "SENT";
+          break;
+        case InternalEventType.EmailBounced:
+          status = "BOUNCED";
+          break;
+        case InternalEventType.MessageFailure:
+          status = "FAILED";
+          break;
+      }
+    }
+    if (!status) {
+      logger().error(
+        {
+          workspaceId,
+          userId,
+          events,
+        },
+        "no status for email event"
+      );
+      continue;
+    }
+
+    const hsOwnerId = from ? owners[from]?.id : undefined;
 
     if (!hsTimestamp) {
       logger().error(
@@ -238,6 +337,26 @@ export async function updateHubspotEmails({
         "no message sent event for user hubspot email"
       );
       continue;
+    }
+    const hsNumericTimestamp = new Date(hsTimestamp).getTime();
+    const existingEmail = emailsResult.value.results.find(
+      (e) =>
+        new Date(e.properties.hs_timestamp).getTime() === hsNumericTimestamp
+    );
+
+    if (existingEmail) {
+      emailUpdates.push({
+        hubspotId: existingEmail.id,
+        status,
+      });
+    } else {
+      newEmails.push({
+        hs_timestamp: hsTimestamp,
+        hubspot_owner_id: hsOwnerId,
+        hs_email_html: body,
+        hs_email_subject: subject,
+        hs_email_status: status,
+      });
     }
   }
 }
