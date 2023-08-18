@@ -22,14 +22,33 @@ import {
 const HubspotEmail = Type.Object({
   id: Type.String(),
   properties: Type.Object({
-    hs_email_to_email: Type.String(),
     hs_timestamp: Type.String(),
-    hs_email_from_email: Type.String(),
     hubspot_owner_id: Type.Optional(Type.String()),
+    hs_email_html: Type.String(),
+    hs_email_subject: Type.String(),
   }),
 });
 
 type HubspotEmail = Static<typeof HubspotEmail>;
+
+interface HubspotCreateEmail {
+  properties: {
+    hs_email_to_email: string;
+    hs_timestamp: string;
+    hs_email_from_email: string;
+    hs_email_direction: "EMAIL";
+    hubspot_owner_id?: string;
+  };
+  associations: {
+    to: {
+      id: string;
+    };
+    types: {
+      associationCategory: "HUBSPOT_DEFINED";
+      associationTypeId: 198;
+    };
+  };
+}
 
 const HubspotEmailSearchResult = Type.Object({
   results: Type.Array(HubspotEmail),
@@ -182,6 +201,12 @@ async function searchContacts(
   const response = await axios.post(url, data, { headers });
   return schemaValidateWithErr(response.data, HubspotContactSearchResult);
 }
+
+async function updateHubspotEmailsRequest() {}
+
+async function createHubspotEmailsRequest() {}
+
+// async function updateHubspotLists() {}
 
 export async function updateHubspotEmails({
   workspaceId,
