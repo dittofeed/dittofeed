@@ -13,10 +13,12 @@ export async function hubspotSync({
   email,
   from,
   workspaceId,
+  updateEmail = false,
 }: {
   email: string;
   from?: string;
   workspaceId: string;
+  updateEmail?: boolean;
 }): Promise<void> {
   let token = await getOauthToken({ workspaceId });
   if (!token) {
@@ -28,6 +30,9 @@ export async function hubspotSync({
   const journeyId = "0a956342-4af8-427c-87f0-e4b0bcafec99";
   const runId = "8f8fd3bf-7dee-4c7f-aaa3-6fd0a2553c67";
   const nodeId1 = "7b05a770-cd95-4ed5-90c0-243d3e48b56c";
+  const initialTimestamp = updateEmail
+    ? "2023-08-19T17:59:48.882Z"
+    : new Date().toISOString();
 
   const events: ParsedPerformedManyValueItem[] = [
     {
@@ -54,7 +59,7 @@ export async function hubspotSync({
     },
     {
       event: InternalEventType.MessageSent,
-      timestamp: new Date().toISOString(),
+      timestamp: initialTimestamp,
       properties: {
         workspaceId,
         journeyId,
@@ -64,7 +69,7 @@ export async function hubspotSync({
       },
     },
   ];
-  console.log("hubspot sync updating emails");
+
   await updateHubspotEmails({
     workspaceId,
     userId,

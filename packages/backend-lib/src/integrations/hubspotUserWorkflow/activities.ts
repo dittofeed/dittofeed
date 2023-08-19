@@ -4,6 +4,7 @@ import axios from "axios";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   InternalEventType,
+  Nullable,
   ParsedPerformedManyValueItem,
   SegmentUpdate,
 } from "isomorphic-lib/src/types";
@@ -23,9 +24,11 @@ const HubspotEmail = Type.Object({
   id: Type.String(),
   properties: Type.Object({
     hs_timestamp: Type.String(),
-    hubspot_owner_id: Type.Optional(Type.String()),
-    hs_email_html: Type.String(),
-    hs_email_subject: Type.String(),
+    hubspot_owner_id: Nullable(Type.String()),
+    hs_email_html: Nullable(Type.String()),
+    hs_email_subject: Nullable(Type.String()),
+    hs_email_to_email: Nullable(Type.String()),
+    hs_email_from_email: Nullable(Type.String()),
   }),
 });
 
@@ -37,6 +40,9 @@ interface HubspotCreateEmail {
     hs_email_direction: "EMAIL";
     hs_email_status: string;
     hubspot_owner_id?: string;
+    hs_email_subject?: string;
+    hs_email_html?: string;
+    hs_email_headers: string;
   };
   associations:
     | [
@@ -44,13 +50,14 @@ interface HubspotCreateEmail {
           to: {
             id: string;
           };
-          types: {
-            associationCategory: "HUBSPOT_DEFINED";
-            associationTypeId: 198;
-          };
+          types: [
+            {
+              associationCategory: "HUBSPOT_DEFINED";
+              associationTypeId: 198;
+            }
+          ];
         }
-      ]
-    | [];
+      ];
 }
 
 interface HubspotUpdateEmail {
@@ -164,6 +171,14 @@ async function searchEmails(
         ],
       },
     ],
+    properties: [
+      "hs_timestamp",
+      "hubspot_owner_id",
+      "hs_email_html",
+      "hs_email_subject",
+      "hs_email_to_email",
+      "hs_email_from_email",
+    ],
   };
 
   const response = await axios.post(url, data, { headers });
@@ -228,6 +243,23 @@ async function createHubspotEmailsRequest(
     authorization: `Bearer ${token}`,
   };
   const response = await axios.post(url, batch, { headers });
+  logger().debug(
+    {
+      response: response.data,
+    },
+    "createHubspotEmailsRequest response"
+  );
+}
+
+async function createHubspotEmailRequest(
+  token: string,
+  email: HubspotCreateEmail
+) {
+  const url = "https://api.hubapi.com/crm/v3/objects/emails";
+  const headers = {
+    authorization: `Bearer ${token}`,
+  };
+  const response = await axios.post(url, email, { headers });
   logger().debug(
     {
       response: response.data,
@@ -309,6 +341,11 @@ export async function updateHubspotEmails({
     })
     .unwrapOr(null);
 
+  if (!contact) {
+    logger().info({ workspaceId, userId, email }, "no contact found for email");
+    return;
+  }
+
   const owners = indexBy(
     ownersResult
       .map((r) => r.results)
@@ -330,6 +367,7 @@ export async function updateHubspotEmails({
     hs_email_html?: string;
     hs_email_subject?: string;
     hs_email_status: string;
+    from?: string;
   }[] = [];
 
   logger().debug(
@@ -424,6 +462,7 @@ export async function updateHubspotEmails({
         hs_email_html: body,
         hs_email_subject: subject,
         hs_email_status: status,
+        from,
       });
     }
   }
@@ -433,8 +472,8 @@ export async function updateHubspotEmails({
       properties: { hs_email_status: e.hs_email_status },
     })),
   };
-  const createEmailsBatch: HubspotCreateEmailBatch = {
-    items: newEmails.map((e) => ({
+  const createEmailsBatch = newEmails.flatMap((e) =>
+    createHubspotEmailRequest(hubspotAccessToken, {
       properties: {
         hs_timestamp: e.hs_timestamp,
         hs_email_direction: "EMAIL",
@@ -442,22 +481,30 @@ export async function updateHubspotEmails({
         hubspot_owner_id: e.hubspot_owner_id,
         hs_email_subject: e.hs_email_subject,
         hs_email_html: e.hs_email_html,
+        hs_email_headers: JSON.stringify({
+          from: {
+            email: e.from,
+          },
+          to: [{ email }],
+          cc: [],
+          bcc: [],
+        }),
       },
-      associations: contact
-        ? [
+      associations: [
+        {
+          to: {
+            id: contact.id,
+          },
+          types: [
             {
-              to: {
-                id: contact.id,
-              },
-              types: {
-                associationCategory: "HUBSPOT_DEFINED",
-                associationTypeId: 198,
-              },
+              associationCategory: "HUBSPOT_DEFINED",
+              associationTypeId: 198,
             },
-          ]
-        : [],
-    })),
-  };
+          ],
+        },
+      ],
+    })
+  );
 
   logger().debug({
     updateEmailsBatch,
@@ -469,7 +516,7 @@ export async function updateHubspotEmails({
   });
   await Promise.all([
     updateHubspotEmailsRequest(hubspotAccessToken, updateEmailsBatch),
-    createHubspotEmailsRequest(hubspotAccessToken, createEmailsBatch),
+    ...createEmailsBatch,
   ]);
 }
 

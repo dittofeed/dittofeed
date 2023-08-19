@@ -107,14 +107,19 @@ export async function cli() {
             describe: "The email of the contact in hubspot",
           },
           from: {
-            require: true,
             type: "string",
             alias: "f",
             describe: "The email of the owner in hubspot",
           },
+          "update-email": {
+            type: "boolean",
+            alias: "u",
+            describe:
+              "Whether to update the email record. Defaults to creating.",
+          },
         }),
-      ({ workspaceId, email, from }) =>
-        hubspotSync({ workspaceId, email, from })
+      ({ workspaceId, email, from, updateEmail }) =>
+        hubspotSync({ workspaceId, email, from, updateEmail })
     )
     .demandCommand(1, "# Please provide a valid command")
     .help()
