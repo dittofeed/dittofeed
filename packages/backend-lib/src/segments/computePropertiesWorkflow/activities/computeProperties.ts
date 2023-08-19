@@ -106,7 +106,7 @@ export async function computePropertiesPeriodSafe({
   });
 
   // Map<segment id, Set<journey id>>
-  const subscribedJourneyPairs = subscribedJourneys.reduce<
+  const subscribedJourneyMap = subscribedJourneys.reduce<
     Map<string, Set<string>>
   >((memo, j) => {
     const subscribedSegments = getSubscribedSegments(j.definition);
@@ -119,7 +119,8 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  const subscribedIntegrationPairs = integrations.reduce<
+  // Map<user property id, Set<integration name>>
+  const subscribedUserPropertyIntegrations = integrations.reduce<
     Map<string, Set<string>>
   >((memo, i) => {
     const sub = INTEGRATION_SUBSCRIBED_USER_PROPERTIES.get(i.name);
@@ -144,24 +145,23 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  // Map<user property id, Set<integration name>>
   const readChqb = new ClickHouseQueryBuilder();
 
-  const subscribedJourneyKeys: string[] = [];
-  const subscribedJourneyValues: string[][] = [];
+  const subscribedSegmentKeys: string[] = [];
+  const subscribedSegmentValues: string[][] = [];
 
-  for (const [segmentId, journeySet] of Array.from(subscribedJourneyPairs)) {
-    subscribedJourneyKeys.push(segmentId);
-    subscribedJourneyValues.push(Array.from(journeySet));
+  for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
+    subscribedSegmentKeys.push(segmentId);
+    subscribedSegmentValues.push(Array.from(journeySet));
   }
 
   const subscribedJourneyKeysQuery = readChqb.addQueryValue(
-    subscribedJourneyKeys,
+    subscribedSegmentKeys,
     "Array(String)"
   );
 
   const subscribedJourneyValuesQuery = readChqb.addQueryValue(
-    subscribedJourneyValues,
+    subscribedSegmentValues,
     "Array(Array(String))"
   );
 
@@ -169,18 +169,18 @@ export async function computePropertiesPeriodSafe({
   const subscribedUserPropertyValues: string[][] = [];
 
   for (const [userPropertyId, integrationNames] of Array.from(
-    subscribedIntegrationPairs
+    subscribedUserPropertyIntegrations
   )) {
     subscribedUserPropertyKeys.push(userPropertyId);
     subscribedUserPropertyValues.push(Array.from(integrationNames));
   }
 
-  const subscribedIntegrationsKeysQuery = readChqb.addQueryValue(
+  const subscribedUserPropertyKeysQuery = readChqb.addQueryValue(
     subscribedUserPropertyKeys,
     "Array(String)"
   );
 
-  const subscribedIntegrationsValuesQuery = readChqb.addQueryValue(
+  const subscribedUserPropertyValuesQuery = readChqb.addQueryValue(
     subscribedUserPropertyValues,
     "Array(Array(String))"
   );
@@ -201,7 +201,8 @@ export async function computePropertiesPeriodSafe({
       cpa.processed_for,
       cpa.processed_for_type
     FROM (
-      SELECT workspace_id,
+      SELECT
+          workspace_id,
           type,
           computed_property_id,
           user_id,
@@ -216,8 +217,8 @@ export async function computePropertiesPeriodSafe({
                       []
                   ),
                   if(
-                      type = 'user_property' AND indexOf(${subscribedIntegrationsKeysQuery}, computed_property_id) > 0,
-                      arrayMap(i -> ('integration', i), arrayElement(${subscribedIntegrationsValuesQuery}, indexOf(${subscribedIntegrationsKeysQuery}, computed_property_id))),
+                      type = 'user_property' AND indexOf(${subscribedUserPropertyKeysQuery}, computed_property_id) > 0,
+                      arrayMap(i -> ('integration', i), arrayElement(${subscribedUserPropertyValuesQuery}, indexOf(${subscribedUserPropertyKeysQuery}, computed_property_id))),
                       []
                   ),
                   [('pg', 'pg')]
@@ -227,6 +228,14 @@ export async function computePropertiesPeriodSafe({
           processed.2 as processed_for
       FROM computed_property_assignments FINAL
       WHERE workspace_id = ${workspaceIdParam}
+      AND processed_for_type = 'pg'
+      OR (
+        latest_segment_value = True
+        OR (
+          latest_user_property_value IS NOT NULL
+          AND latest_user_property_value != '""'
+        )
+      )
     ) cpa
     WHERE (
       workspace_id,

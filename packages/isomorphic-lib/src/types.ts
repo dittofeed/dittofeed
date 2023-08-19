@@ -1522,3 +1522,9 @@ export const CsvUploadValidationError = Type.Object({
 });
 
 export type CsvUploadValidationError = Static<typeof CsvUploadValidationError>;
+
+export const SyncIntegration = Type.Object({
+  subscribedSegments: Type.Array(Type.String()),
+  subscribedUserProperties: Type.Array(Type.String()),
+});
+export const IntegrationDefinition = Type.Union([SyncIntegration]);
