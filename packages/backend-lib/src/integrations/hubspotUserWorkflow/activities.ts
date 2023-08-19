@@ -178,20 +178,7 @@ async function searchOwners(
   const headers = {
     authorization: `Bearer ${token}`,
   };
-  const params = {
-    filterGroups: [
-      {
-        filters: [
-          {
-            propertyName: "email",
-            operator: "IN",
-            value: emails,
-          },
-        ],
-      },
-    ],
-  };
-  const response = await axios.get(url, { headers, params });
+  const response = await axios.get(url, { headers });
   return schemaValidateWithErr(response.data, HubspotOwnerSearchResult);
 }
 
@@ -216,6 +203,7 @@ async function searchContacts(
       },
     ],
   };
+  logger().debug({ data }, "searchContacts data");
   const response = await axios.post(url, data, { headers });
   return schemaValidateWithErr(response.data, HubspotContactSearchResult);
 }
@@ -239,7 +227,13 @@ async function createHubspotEmailsRequest(
   const headers = {
     authorization: `Bearer ${token}`,
   };
-  await axios.post(url, batch, { headers });
+  const response = await axios.post(url, batch, { headers });
+  logger().debug(
+    {
+      response: response.data,
+    },
+    "createHubspotEmailsRequest response"
+  );
 }
 
 // async function updateHubspotLists() {}
@@ -260,14 +254,18 @@ export async function updateHubspotEmails({
   console.log("updateHubspotEmails");
   // BOUNCED, FAILED, SCHEDULED, SENDING, or SENT.
   // SENDING = sent, sent = delivered
-  const filteredEvents = events
-    .filter((event) => event.properties.messageId !== undefined)
-    .map((e) => ({
-      key: Object.values(
-        pick(e.properties, ["workspaceId", "journeyId", "nodeId", "runId"])
-      ).join("-"),
+  const filteredEvents = events.flatMap((e) => {
+    const keyParts = Object.values(
+      pick(e.properties, ["workspaceId", "journeyId", "nodeId", "runId"])
+    );
+    if (!keyParts.length || keyParts.some((p) => !p)) {
+      return [];
+    }
+    return {
+      key: keyParts.join("-"),
       ...e,
-    }));
+    };
+  });
 
   const grouped = groupBy(filteredEvents, (event) => event.key);
   const fromEmailAddresses = events.reduce<Set<string>>((memo, event) => {
@@ -334,9 +332,18 @@ export async function updateHubspotEmails({
     hs_email_status: string;
   }[] = [];
 
+  logger().debug(
+    {
+      workspaceId,
+      userId,
+      grouped,
+    },
+    "hubspot email events"
+  );
   for (const key in grouped) {
     const groupedEvents = grouped[key];
     if (!groupedEvents) {
+      logger().error("no grouped events");
       continue;
     }
     const earliestMessageSent = groupedEvents.findLast(
@@ -452,9 +459,13 @@ export async function updateHubspotEmails({
     })),
   };
 
-  console.log({
-    updateEmailsBatch: JSON.stringify(updateEmailsBatch, null, 2),
-    createEmailsBatch: JSON.stringify(createEmailsBatch, null, 2),
+  logger().debug({
+    updateEmailsBatch,
+    createEmailsBatch,
+    emailsResult,
+    owners,
+    contacts: contactResult.unwrapOr(null),
+    contact,
   });
   await Promise.all([
     updateHubspotEmailsRequest(hubspotAccessToken, updateEmailsBatch),
