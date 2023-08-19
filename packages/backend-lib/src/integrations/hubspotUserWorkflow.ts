@@ -11,7 +11,7 @@ import { Overwrite } from "utility-types";
 
 import { parseUserProperty } from "../userProperties";
 // Only import the activity types
-import type * as activities from "./hubspotUserWorkflow/activities";
+import type * as activities from "./hubspot/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -125,14 +125,13 @@ export async function hubspotUserWorkflow({
     const promises: Promise<unknown>[] = [];
 
     if (pendingEmailsUpdate !== null) {
-      // FIXME add email
-      // promises.push(
-      //   updateHubspotEmails({
-      //     workspaceId,
-      //     userId,
-      //     events: pendingEmailsUpdate,
-      //   })
-      // );
+      promises.push(
+        updateHubspotEmails({
+          workspaceId,
+          userId,
+          events: pendingEmailsUpdate,
+        })
+      );
     }
 
     if (pendingListsUpdates.size > 0) {

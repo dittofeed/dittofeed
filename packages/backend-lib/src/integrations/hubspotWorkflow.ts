@@ -9,7 +9,7 @@ import {
 import * as wf from "@temporalio/workflow";
 
 // Only import the activity types
-import type * as activities from "./hubspotWorkflow/activities";
+import type * as activities from "./hubspot/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 

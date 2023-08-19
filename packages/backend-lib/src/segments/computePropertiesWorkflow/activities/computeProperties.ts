@@ -6,7 +6,7 @@ import { err, ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "../../../clickhouse";
 import { HUBSPOT_INTEGRATION } from "../../../constants";
-import { startHubspotUserIntegrationWorkflow } from "../../../integrations/hubspotUserWorkflow/signalUtils";
+import { startHubspotUserIntegrationWorkflow } from "../../../integrations/hubspot/signalUtils";
 import { INTEGRATION_SUBSCRIBED_USER_PROPERTIES } from "../../../integrations/subscriptions";
 import { getSubscribedSegments } from "../../../journeys";
 import {

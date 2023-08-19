@@ -5,7 +5,7 @@ import {
   HUBSPOT_INTEGRATION,
   HUBSPOT_OAUTH_TOKEN,
 } from "backend-lib/src/constants";
-import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspotWorkflow/signalUtils";
+import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
 import { GetServerSideProps } from "next";
 
