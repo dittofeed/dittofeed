@@ -3,6 +3,7 @@ import backendConfig from "backend-lib/src/config";
 import {
   EMAIL_EVENTS_UP_NAME,
   HUBSPOT_INTEGRATION,
+  HUBSPOT_INTEGRATION_DEFINITION,
   HUBSPOT_OAUTH_TOKEN,
 } from "backend-lib/src/constants";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
@@ -82,8 +83,8 @@ export const getServerSideProps: GetServerSideProps = requestContext(
               },
             },
             create: {
+              ...HUBSPOT_INTEGRATION_DEFINITION,
               workspaceId: dfContext.workspace.id,
-              name: HUBSPOT_INTEGRATION,
             },
             update: {
               enabled: true,

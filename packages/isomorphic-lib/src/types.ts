@@ -1527,4 +1527,9 @@ export const SyncIntegration = Type.Object({
   subscribedSegments: Type.Array(Type.String()),
   subscribedUserProperties: Type.Array(Type.String()),
 });
+
+export type SyncIntegration = Static<typeof SyncIntegration>;
+
 export const IntegrationDefinition = Type.Union([SyncIntegration]);
+
+export type IntegrationDefinition = Static<typeof IntegrationDefinition>;

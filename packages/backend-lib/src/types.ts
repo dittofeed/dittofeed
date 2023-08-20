@@ -1,12 +1,20 @@
-import { Journey, Segment, UserProperty } from "@prisma/client";
+import {
+  Integration,
+  Journey,
+  Prisma,
+  Segment,
+  UserProperty,
+} from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
 import {
   EventType,
+  IntegrationDefinition,
   JourneyDefinition,
   Nullable,
   SegmentDefinition,
   UserPropertyDefinition,
 } from "isomorphic-lib/src/types";
+import { Overwrite } from "utility-types";
 
 export * from "isomorphic-lib/src/types";
 
@@ -167,3 +175,18 @@ export const SendgridEvent = Type.Intersect([
 ]);
 
 export type SendgridEvent = Static<typeof SendgridEvent>;
+
+export type IntegrationCreateDefinition = Omit<
+  Overwrite<
+    Prisma.IntegrationUncheckedCreateInput,
+    {
+      definition: IntegrationDefinition;
+    }
+  >,
+  "workspaceId"
+>;
+
+export type EnrichedIntegration = Overwrite<
+  Integration,
+  { definition: IntegrationDefinition }
+>;

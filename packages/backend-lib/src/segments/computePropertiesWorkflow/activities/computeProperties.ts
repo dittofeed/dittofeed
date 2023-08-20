@@ -6,8 +6,8 @@ import { err, ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "../../../clickhouse";
 import { HUBSPOT_INTEGRATION } from "../../../constants";
+import { findAllEnrichedIntegrations } from "../../../integrations";
 import { startHubspotUserIntegrationWorkflow } from "../../../integrations/hubspot/signalUtils";
-import { INTEGRATION_SUBSCRIBED_USER_PROPERTIES } from "../../../integrations/subscriptions";
 import { getSubscribedSegments } from "../../../journeys";
 import {
   segmentUpdateSignal,
@@ -83,18 +83,17 @@ export async function computePropertiesPeriodSafe({
   workspaceId,
   userProperties,
 }: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
-  const [segmentResult, integrations] = await Promise.all([
+  const [segmentResult, integrationsResult] = await Promise.all([
     findAllEnrichedSegments(workspaceId),
-    prisma().integration.findMany({
-      where: {
-        workspaceId,
-        enabled: true,
-      },
-    }),
+    findAllEnrichedIntegrations(workspaceId),
   ]);
 
   if (segmentResult.isErr()) {
     return err(new Error(JSON.stringify(segmentResult.error)));
+  }
+
+  if (integrationsResult.isErr()) {
+    return err(integrationsResult.error);
   }
 
   await writeAssignments({
@@ -105,25 +104,11 @@ export async function computePropertiesPeriodSafe({
     workspaceId,
   });
 
-  // Map<segment id, Set<journey id>>
-  const subscribedJourneyMap = subscribedJourneys.reduce<
-    Map<string, Set<string>>
-  >((memo, j) => {
-    const subscribedSegments = getSubscribedSegments(j.definition);
-
-    subscribedSegments.forEach((segmentId) => {
-      const processFor = memo.get(segmentId) ?? new Set();
-      processFor.add(j.id);
-      memo.set(segmentId, processFor);
-    });
-    return memo;
-  }, new Map());
-
   // Map<user property id, Set<integration name>>
-  const subscribedUserPropertyIntegrations = integrations.reduce<
+  const subscribedUserPropertyIntegrations = integrationsResult.value.reduce<
     Map<string, Set<string>>
   >((memo, i) => {
-    const sub = INTEGRATION_SUBSCRIBED_USER_PROPERTIES.get(i.name);
+    const sub = i.definition.subscribedUserProperties;
     if (!sub) {
       return memo;
     }
@@ -149,24 +134,35 @@ export async function computePropertiesPeriodSafe({
 
   const subscribedSegmentKeys: string[] = [];
   const subscribedSegmentValues: string[][] = [];
-
-  for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
-    subscribedSegmentKeys.push(segmentId);
-    subscribedSegmentValues.push(Array.from(journeySet));
-  }
-
-  const subscribedJourneyKeysQuery = readChqb.addQueryValue(
-    subscribedSegmentKeys,
-    "Array(String)"
-  );
-
-  const subscribedJourneyValuesQuery = readChqb.addQueryValue(
-    subscribedSegmentValues,
-    "Array(Array(String))"
-  );
-
   const subscribedUserPropertyKeys: string[] = [];
   const subscribedUserPropertyValues: string[][] = [];
+
+  for (const integration of integrationsResult.value) {
+    for (const userPropertyName of integration.definition
+      .subscribedUserProperties) {
+      const userPropertyId = userProperties.find(
+        (up) => up.name === userPropertyName
+      )?.id;
+      if (!userPropertyId) {
+        logger().error(
+          { workspaceId, integration, userPropertyName },
+          "integration subscribed to user property that doesn't exist"
+        );
+        continue;
+      }
+      subscribedUserPropertyKeys.push(userPropertyId);
+      subscribedUserPropertyValues.push([integration.name]);
+    }
+
+    for (const segment of integration.definition.subscribedSegments) {
+      const segmentId = segments;
+    }
+  }
+
+  // for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
+  //   subscribedSegmentKeys.push(segmentId);
+  //   subscribedSegmentValues.push(Array.from(journeySet));
+  // }
 
   for (const [userPropertyId, integrationNames] of Array.from(
     subscribedUserPropertyIntegrations
@@ -174,6 +170,16 @@ export async function computePropertiesPeriodSafe({
     subscribedUserPropertyKeys.push(userPropertyId);
     subscribedUserPropertyValues.push(Array.from(integrationNames));
   }
+
+  const subscribedSegmentsKeysQuery = readChqb.addQueryValue(
+    subscribedSegmentKeys,
+    "Array(String)"
+  );
+
+  const subscribedSegmentsValuesQuery = readChqb.addQueryValue(
+    subscribedSegmentValues,
+    "Array(Array(String))"
+  );
 
   const subscribedUserPropertyKeysQuery = readChqb.addQueryValue(
     subscribedUserPropertyKeys,
@@ -212,8 +218,8 @@ export async function computePropertiesPeriodSafe({
           arrayJoin(
               arrayConcat(
                   if(
-                      type = 'segment' AND indexOf(${subscribedJourneyKeysQuery}, computed_property_id) > 0,
-                      arrayMap(i -> ('journey', i), arrayElement(${subscribedJourneyValuesQuery}, indexOf(${subscribedJourneyKeysQuery}, computed_property_id))),
+                      type = 'segment' AND indexOf(${subscribedSegmentsKeysQuery}, computed_property_id) > 0,
+                      arrayMap(i -> ('journey', i), arrayElement(${subscribedSegmentsValuesQuery}, indexOf(${subscribedSegmentsKeysQuery}, computed_property_id))),
                       []
                   ),
                   if(
