@@ -20,6 +20,7 @@ import { getContext } from "../../../temporal/activity";
 import {
   ComputedAssignment,
   ComputedPropertyAssignment,
+  ComputedPropertyUpdate,
   EnrichedJourney,
   EnrichedUserProperty,
   SegmentUpdate,
@@ -154,7 +155,7 @@ export async function computePropertiesPeriodSafe({
   const subscribedIntegrationSegmentMap = integrationsResult.value.reduce<
     Map<string, Set<string>>
   >((memo, integration) => {
-    integration.definition.subscribedUserProperties.forEach((segmentName) => {
+    integration.definition.subscribedSegments.forEach((segmentName) => {
       const segmentId = segmentResult.value.find(
         (s) => s.name === segmentName
       )?.id;
@@ -336,8 +337,7 @@ export async function computePropertiesPeriodSafe({
       const pgUserPropertyAssignments: ComputedAssignment[] = [];
       const pgSegmentAssignments: ComputedAssignment[] = [];
       const journeySegmentAssignments: ComputedAssignment[] = [];
-      const integrationSegmentAssignments: ComputedAssignment[] = [];
-      const integrationUserPropertyAssignments: ComputedAssignment[] = [];
+      const integrationAssignments: ComputedAssignment[] = [];
 
       for (const assignment of assignments) {
         hasRows = true;
@@ -353,7 +353,7 @@ export async function computePropertiesPeriodSafe({
               break;
           }
         } else if (assignment.processed_for_type === "integration") {
-          assignmentCategory = integrationUserPropertyAssignments;
+          assignmentCategory = integrationAssignments;
         } else {
           assignmentCategory = journeySegmentAssignments;
         }
@@ -367,8 +367,7 @@ export async function computePropertiesPeriodSafe({
           pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
           pgSegmentAssignmentsCount: pgSegmentAssignments.length,
           journeySegmentAssignmentsCount: journeySegmentAssignments.length,
-          integrationSegmentAssignmentsCount:
-            integrationSegmentAssignments.length,
+          integrationSegmentAssignmentsCount: integrationAssignments.length,
         },
         "processing computed assignments"
       );
@@ -464,23 +463,34 @@ export async function computePropertiesPeriodSafe({
             journey,
           });
         }),
-        ...integrationUserPropertyAssignments.flatMap(async (assignment) => {
+        ...integrationAssignments.flatMap(async (assignment) => {
           switch (assignment.processed_for) {
             case HUBSPOT_INTEGRATION: {
               const { workflowClient } = getContext();
+              const updateVersion = new Date(
+                assignment.max_assigned_at
+              ).getTime();
+
+              const update: ComputedPropertyUpdate =
+                assignment.type === "segment"
+                  ? {
+                      type: "segment",
+                      segmentId: assignment.computed_property_id,
+                      segmentVersion: updateVersion,
+                      currentlyInSegment: assignment.latest_segment_value,
+                    }
+                  : {
+                      type: "user_property",
+                      userPropertyId: assignment.computed_property_id,
+                      value: assignment.latest_user_property_value,
+                      userPropertyVersion: updateVersion,
+                    };
 
               return startHubspotUserIntegrationWorkflow({
                 workspaceId: assignment.workspace_id,
                 userId: assignment.user_id,
                 workflowClient,
-                computedPropertyAssignment: {
-                  type: "user_property",
-                  userPropertyId: assignment.computed_property_id,
-                  value: assignment.latest_user_property_value,
-                  userPropertyVersion: new Date(
-                    assignment.max_assigned_at
-                  ).getTime(),
-                },
+                update,
               });
             }
             default:

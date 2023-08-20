@@ -16,12 +16,12 @@ import {
 export async function startHubspotUserIntegrationWorkflow({
   workspaceId,
   userId,
-  computedPropertyAssignment,
+  update,
   workflowClient,
 }: {
   workspaceId: string;
   userId: string;
-  computedPropertyAssignment: ComputedPropertyUpdate;
+  update: ComputedPropertyUpdate;
   workflowClient?: WorkflowClient;
 }) {
   const wc = workflowClient ?? (await connectWorkflowClient());
@@ -34,7 +34,7 @@ export async function startHubspotUserIntegrationWorkflow({
     workflowId: generateHubspotUserWorkflowId({ workspaceId, userId }),
     args: [{ workspaceId, userId }],
     signal: hubspotUserComputedProperties,
-    signalArgs: [computedPropertyAssignment],
+    signalArgs: [update],
   });
 }
 
