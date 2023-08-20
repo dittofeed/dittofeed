@@ -830,8 +830,60 @@ describe("compute properties activities", () => {
                 },
               }),
           },
+          {
+            eventTimeOffset: -300,
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                traits: {
+                  status: "onboarding",
+                },
+              }),
+          },
         ],
-        integrations: [HUBSPOT_INTEGRATION_DEFINITION],
+        integrations: [
+          {
+            ...HUBSPOT_INTEGRATION_DEFINITION,
+            definition: {
+              ...HUBSPOT_INTEGRATION_DEFINITION.definition,
+              subscribedSegments: ["onboarding"],
+            },
+          },
+        ],
+        segments: [
+          {
+            name: "active",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "active",
+                },
+              },
+              nodes: [],
+            },
+          },
+          {
+            name: "onboarding",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "onboarding",
+                },
+              },
+              nodes: [],
+            },
+          },
+        ],
         expectedUserProperties: {
           "user-id-1": {
             [EMAIL_EVENTS_UP_NAME]: [
@@ -855,7 +907,6 @@ describe("compute properties activities", () => {
         expectedSignals: [
           {
             userPropertyName: EMAIL_EVENTS_UP_NAME,
-            // TODO remove double stringify
             userPropertyValue: JSON.stringify(
               JSON.stringify([
                 {
@@ -874,6 +925,9 @@ describe("compute properties activities", () => {
                 },
               ])
             ),
+          },
+          {
+            segmentName: "onboarding",
           },
         ],
       },
