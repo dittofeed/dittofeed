@@ -10,13 +10,18 @@ import {
   segmentTrackEvent,
 } from "../../../../test/factories/segment";
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
-import { EMAIL_EVENTS_UP_NAME, HUBSPOT_INTEGRATION } from "../../../constants";
+import {
+  EMAIL_EVENTS_UP_NAME,
+  HUBSPOT_INTEGRATION,
+  HUBSPOT_INTEGRATION_DEFINITION,
+} from "../../../constants";
 import { EMAIL_EVENTS_UP_DEFINITION } from "../../../integrations/subscriptions";
 import { enrichJourney } from "../../../journeys";
 import prisma, { Prisma } from "../../../prisma";
 import { buildSubscriptionChangeEventInner } from "../../../subscriptionGroups";
 import {
   ChannelType,
+  EnrichedIntegration,
   EnrichedJourney,
   EnrichedUserProperty,
   InternalEventType,
@@ -169,7 +174,7 @@ describe("compute properties activities", () => {
       currentTime?: number;
       segments?: TestSegmentData[];
       userProperties?: TestUserPropertyData[];
-      integrations?: string[];
+      integrations?: Pick<EnrichedIntegration, "definition" | "name">[];
       events?: {
         eventTimeOffset: number;
         overrides?: (
@@ -826,7 +831,7 @@ describe("compute properties activities", () => {
               }),
           },
         ],
-        integrations: [HUBSPOT_INTEGRATION],
+        integrations: [HUBSPOT_INTEGRATION_DEFINITION],
         expectedUserProperties: {
           "user-id-1": {
             [EMAIL_EVENTS_UP_NAME]: [
@@ -988,8 +993,8 @@ describe("compute properties activities", () => {
                 prisma().integration.create({
                   data: {
                     workspaceId: workspace.id,
-                    name: integration,
                     enabled: true,
+                    ...integration,
                   },
                 })
               );
