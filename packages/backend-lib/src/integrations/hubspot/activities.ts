@@ -591,14 +591,14 @@ export async function updateHubspotEmails({
 }
 
 const HubspotList = Type.Object({
-  id: Type.String(),
+  listId: Type.Number(),
   name: Type.String(),
 });
 
 type HubspotList = Static<typeof HubspotList>;
 
 const HubspotListSearchResult = Type.Object({
-  results: Type.Array(HubspotList),
+  lists: Type.Array(HubspotList),
   "has-more": Type.Boolean(),
   offset: Type.Number(),
 });
@@ -630,7 +630,7 @@ export async function paginateHubspotLists(
     if (result.isErr()) {
       throw new Error(result.error.message);
     }
-    lists = lists.concat(result.value.results);
+    lists = lists.concat(result.value.lists);
     if (!result.value["has-more"]) {
       break;
     }
@@ -644,6 +644,24 @@ export async function paginateHubspotLists(
   return lists;
 }
 
+async function createHubspotList({
+  token,
+  name,
+}: {
+  token: string;
+  name: string;
+}) {}
+
+async function addContactToList({
+  token,
+  name,
+}: {
+  token: string;
+  name: string;
+}) {}
+
+async function addListMembers() {}
+
 export async function updateHubspotLists({
   workspaceId,
   userId,
@@ -652,4 +670,14 @@ export async function updateHubspotLists({
   workspaceId: string;
   userId: string;
   segments: SegmentUpdate[];
-}) {}
+}) {
+  const hubspotAccessToken = await getOauthToken({ workspaceId });
+  if (!hubspotAccessToken) {
+    logger().info({ workspaceId, userId }, "no hubspot access token");
+    return;
+  }
+  const lists = await paginateHubspotLists(hubspotAccessToken.accessToken);
+  logger().debug({
+    lists,
+  });
+}

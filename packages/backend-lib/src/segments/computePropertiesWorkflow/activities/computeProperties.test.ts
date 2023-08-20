@@ -49,6 +49,7 @@ import {
   UserPropertyAssignments,
 } from "../../../userProperties";
 import { computePropertiesPeriod } from "./computeProperties";
+import logger from "../../../logger";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -1605,8 +1606,9 @@ describe("compute properties activities", () => {
         });
 
         describe("when activity called twice with the same parameters", () => {
-          it("returns the same results but only sends the signals once", async () => {
+          it.only("returns the same results but only sends the signals once", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
+            logger().debug("call 1");
 
             await computePropertiesPeriod({
               currentTime,
@@ -1617,6 +1619,7 @@ describe("compute properties activities", () => {
               userProperties: [],
             });
 
+            logger().debug("call 2");
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,

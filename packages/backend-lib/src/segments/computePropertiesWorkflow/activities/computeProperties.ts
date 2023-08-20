@@ -234,6 +234,8 @@ export async function computePropertiesPeriodSafe({
 
   // FIXME add segments integrations
   // FIXME refactor out
+  // FIXME only send effects for computed properties that have changed and are not empty. case where user was in segment, and now is not, should send signal to workflow to remove user from integration but currenlty does not
+  //  check not only if value is in processed, but if any value is in
   const readQuery = `
     SELECT
       cpa.workspace_id,
@@ -244,7 +246,8 @@ export async function computePropertiesPeriodSafe({
       cpa.latest_user_property_value,
       cpa.max_assigned_at,
       cpa.processed_for,
-      cpa.processed_for_type
+      cpa.processed_for_type,
+      pcp.workspace_id
     FROM (
       SELECT
           workspace_id,
@@ -287,23 +290,15 @@ export async function computePropertiesPeriodSafe({
         )
       )
     ) cpa
-    WHERE (
-      workspace_id,
-      computed_property_id,
-      user_id,
-      latest_segment_value,
-      latest_user_property_value,
-      processed_for
-    ) NOT IN (
-      SELECT
-        workspace_id,
-        computed_property_id,
-        user_id,
-        segment_value,
-        user_property_value,
-        processed_for
-      FROM processed_computed_properties FINAL
-    )
+    LEFT JOIN processed_computed_properties pcp FINAL
+    ON
+      cpa.workspace_id = pcp.workspace_id AND
+      cpa.computed_property_id = pcp.computed_property_id AND
+      cpa.user_id = pcp.user_id AND
+      cpa.latest_segment_value = pcp.segment_value AND
+      cpa.latest_user_property_value = pcp.user_property_value AND
+      cpa.processed_for = pcp.processed_for
+    WHERE pcp.workspace_id = ''
   `;
 
   let offset = 0;
@@ -322,6 +317,7 @@ export async function computePropertiesPeriodSafe({
       const assignments: ComputedAssignment[] = await Promise.all(
         rows.flatMap(async (row: Row) => {
           const json = await row.json();
+          logger().debug({ json }, "processing assignment json");
           const result = schemaValidate(json, ComputedAssignment);
           if (result.isErr()) {
             logger().error(

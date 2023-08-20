@@ -44,6 +44,7 @@ interface HubspotUserWorkflowParams {
   maxPollingAttempts?: number;
 }
 
+// 5 minutes
 const TIMEOUT = 5 * 60 * 1000;
 
 export async function hubspotUserWorkflow({

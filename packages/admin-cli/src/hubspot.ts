@@ -2,12 +2,16 @@ import {
   getOauthToken,
   refreshToken,
   updateHubspotEmails,
+  updateHubspotLists,
 } from "backend-lib/src/integrations/hubspot/activities";
 import prisma from "backend-lib/src/prisma";
 import { randomUUID } from "crypto";
 import {
   InternalEventType,
   ParsedPerformedManyValueItem,
+  SegmentDefinition,
+  SegmentNodeType,
+  SegmentOperatorType,
   TraitUserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "isomorphic-lib/src/types";
@@ -125,5 +129,39 @@ export async function hubspotSync({
     workspaceId,
     userId,
     events,
+  });
+
+  const segment = await prisma().segment.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: "integrationExampleSegment",
+      },
+    },
+    create: {
+      workspaceId,
+      name: "integrationExampleSegment",
+      definition: {
+        type: SegmentNodeType.Trait,
+        path: "status",
+        operator: {
+          type: SegmentOperatorType.Equals,
+        },
+      },
+    },
+    update: {},
+  });
+
+  await updateHubspotLists({
+    workspaceId,
+    userId,
+    segments: [
+      {
+        type: "segment",
+        segmentId: segment.id,
+        currentlyInSegment: true,
+        segmentVersion: new Date().getTime(),
+      },
+    ],
   });
 }
