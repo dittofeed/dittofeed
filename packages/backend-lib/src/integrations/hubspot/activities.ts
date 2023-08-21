@@ -681,3 +681,20 @@ export async function updateHubspotLists({
     lists,
   });
 }
+
+export async function isIntegrationEnabled({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<boolean> {
+  return prisma()
+    .integration.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: HUBSPOT_INTEGRATION,
+        },
+      },
+    })
+    .then((integration) => integration?.enabled === true);
+}
