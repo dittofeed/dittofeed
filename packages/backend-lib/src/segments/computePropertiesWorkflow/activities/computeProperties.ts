@@ -232,8 +232,18 @@ export async function computePropertiesPeriodSafe({
 
   const workspaceIdParam = readChqb.addQueryValue(workspaceId, "String");
 
-  // FIXME add segments integrations
-  // FIXME refactor out
+  /**
+   * This query is a bit complicated, so here's a breakdown of what it does:
+   *
+   * 1. It reads all the computed property assignments for the workspace.
+   * 2. It joins the computed property assignments with the processed computed
+   * properties table to filter out assignments that have already been
+   * processed.
+   * 3. It filters out "empty assignments" (assignments where the user property
+   * value is empty, or the segment value is false) if the property has not
+   * already been assigned.
+   * 4. It filters out false segment assignments to journeys.
+   */
   const readQuery = `
     SELECT
       cpa.workspace_id,
@@ -293,8 +303,7 @@ export async function computePropertiesPeriodSafe({
       )
       AND NOT (
         (
-          cpa.latest_user_property_value IS NULL
-          OR cpa.latest_user_property_value = '""'
+          cpa.latest_user_property_value = '""'
           OR cpa.latest_user_property_value = ''
         )
         AND cpa.latest_segment_value = False
