@@ -234,8 +234,6 @@ export async function computePropertiesPeriodSafe({
 
   // FIXME add segments integrations
   // FIXME refactor out
-  // FIXME only send effects for computed properties that have changed and are not empty. case where user was in segment, and now is not, should send signal to workflow to remove user from integration but currenlty does not
-  //  check not only if value is in processed, but if any value is in
   const readQuery = `
     SELECT
       cpa.workspace_id,
@@ -281,24 +279,30 @@ export async function computePropertiesPeriodSafe({
           processed.2 as processed_for
       FROM computed_property_assignments FINAL
       WHERE workspace_id = ${workspaceIdParam}
-      AND processed_for_type = 'pg'
-      OR (
-        latest_segment_value = True
-        OR (
-          latest_user_property_value IS NOT NULL
-          AND latest_user_property_value != '""'
-        )
-      )
     ) cpa
     LEFT JOIN processed_computed_properties pcp FINAL
     ON
       cpa.workspace_id = pcp.workspace_id AND
       cpa.computed_property_id = pcp.computed_property_id AND
       cpa.user_id = pcp.user_id AND
-      cpa.latest_segment_value = pcp.segment_value AND
-      cpa.latest_user_property_value = pcp.user_property_value AND
       cpa.processed_for = pcp.processed_for
-    WHERE pcp.workspace_id = ''
+    WHERE
+      (
+        cpa.latest_user_property_value != pcp.user_property_value
+        OR cpa.latest_segment_value != pcp.segment_value
+      )
+      AND NOT (
+        (
+          cpa.latest_user_property_value IS NULL
+          OR cpa.latest_user_property_value = '""'
+          OR cpa.latest_user_property_value = ''
+        )
+        AND cpa.latest_segment_value = False
+        AND (
+          pcp.workspace_id = ''
+          OR cpa.processed_for_type == 'journey'
+        )
+      )
   `;
 
   let offset = 0;

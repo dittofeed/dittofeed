@@ -588,7 +588,9 @@ describe("compute properties activities", () => {
           },
         ],
         events: [],
-        expectedSegments: {},
+        expectedSegments: {
+          "in opt in subscription group": false,
+        },
         expectedSignals: [],
       },
       {
@@ -1066,28 +1068,20 @@ describe("compute properties activities", () => {
             userProperties,
           });
 
-          const [createdSegments, createdSegmentAssignments] =
-            await Promise.all([
-              prisma().segment.findMany({
-                where: {
-                  workspaceId: workspace.id,
-                },
-              }),
-              prisma().segmentAssignment.findMany({
-                where: {
-                  workspaceId: workspace.id,
-                },
-                include: {
-                  segment: true,
-                },
-              }),
-            ]);
+          const createdSegments = await prisma().segment.findMany({
+            where: {
+              workspaceId: workspace.id,
+            },
+            include: {
+              SegmentAssignment: true,
+            },
+          });
 
           if (expectedSegments) {
-            const segmentsRecord = createdSegmentAssignments.reduce<
+            const segmentsRecord = createdSegments.reduce<
               Record<string, boolean>
-            >((memo, sa) => {
-              memo[sa.segment.name] = sa.inSegment;
+            >((memo, s) => {
+              memo[s.name] = s.SegmentAssignment[0]?.inSegment ?? false;
               return memo;
             }, {});
             expect(segmentsRecord).toEqual(expectedSegments);
@@ -1434,7 +1428,7 @@ describe("compute properties activities", () => {
               userId,
               workspaceId: workspace.id,
             });
-            expect(assignments.malformed).toBe("");
+            expect(assignments.malformed).toBeUndefined();
           });
         });
 
@@ -1606,7 +1600,7 @@ describe("compute properties activities", () => {
         });
 
         describe("when activity called twice with the same parameters", () => {
-          it.only("returns the same results but only sends the signals once", async () => {
+          it("returns the same results but only sends the signals once", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
             logger().debug("call 1");
 
