@@ -148,16 +148,17 @@ export async function hubspotSync({
     },
     nodes: [],
   };
+  const segmentName = "integrationExampleSegment-2";
   const segment = await prisma().segment.upsert({
     where: {
       workspaceId_name: {
         workspaceId,
-        name: "integrationExampleSegment",
+        name: segmentName,
       },
     },
     create: {
       workspaceId,
-      name: "integrationExampleSegment",
+      name: segmentName,
       definition: segmentDefinition,
     },
     update: {

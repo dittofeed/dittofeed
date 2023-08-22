@@ -13,7 +13,7 @@ import type * as activities from "./hubspot/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
-const { getOauthToken, refreshToken, isIntegrationEnabled } = proxyActivities<
+const { getOauthToken, refreshToken, getIntegrationEnabled } = proxyActivities<
   typeof activities
 >({
   startToCloseTimeout: "5 minutes",
@@ -107,7 +107,7 @@ export async function hubspotWorkflow({
       logger.info("refreshing hubspot oauth token", { workspaceId });
       token = await refreshToken({ workspaceId, token: token.refreshToken });
     }
-    if (!(await isIntegrationEnabled({ workspaceId }))) {
+    if (!(await getIntegrationEnabled({ workspaceId }))) {
       logger.info("hubspot integration disabled, exiting", { workspaceId });
       break;
     }

@@ -8,7 +8,7 @@ import {
   ParsedPerformedManyValueItem,
   SegmentUpdate,
 } from "isomorphic-lib/src/types";
-import { Result } from "neverthrow";
+import { Result, ok } from "neverthrow";
 import { groupBy, indexBy, pick } from "remeda";
 import { Overwrite } from "utility-types";
 
@@ -658,19 +658,20 @@ async function createHubspotList({
 }: {
   token: string;
   name: string;
-}) {
+}): Promise<Result<HubspotList | null, Error>> {
   logger().debug("creating hubspot list");
   const headers = {
     authorization: `Bearer ${token}`,
   };
   try {
-    await axios.post(
+    const response = await axios.post(
       "https://api.hubapi.com/contacts/v1/lists",
       {
         name,
       },
       { headers }
     );
+    return schemaValidateWithErr(response.data, HubspotList);
   } catch (e) {
     if (!(e instanceof AxiosError)) {
       throw e;
@@ -688,24 +689,51 @@ async function createHubspotList({
     }
 
     logger().info({ name }, "hubspot list already exists");
+    return ok(null);
   }
 }
 
 async function addContactToList({
   token,
-  contactId,
+  listId,
+  email,
 }: {
   token: string;
-  contactId: string;
-}) {}
+  listId: string;
+  email: string;
+}) {
+  const url = `https://api.hubapi.com/contacts/v1/lists/${listId}/add`;
+  const headers = {
+    authorization: `Bearer ${token}`,
+  };
+  const data = {
+    emails: [email],
+  };
+  await axios.post(url, data, { headers });
+}
 
 async function removeContactFromList({
   token,
-  contactId,
+  listId,
+  email,
 }: {
   token: string;
-  contactId: string;
-}) {}
+  listId: string;
+  email: string;
+}) {
+  const url = `https://api.hubapi.com/contacts/v1/lists/${listId}/remove`;
+  const headers = {
+    authorization: `Bearer ${token}`,
+  };
+  const data = {
+    emails: [email],
+  };
+  const response = await axios.post(url, data, { headers });
+  logger().debug(
+    { listId, data, email, response: response.data },
+    "removing contact from list"
+  );
+}
 
 function segmentToListName(segmentName: string) {
   return `Dittofeed - ${segmentName}`;
@@ -720,52 +748,88 @@ export async function updateHubspotLists({
   userId: string;
   segments: SegmentUpdate[];
 }) {
-  const hubspotAccessToken = await getOauthToken({ workspaceId });
+  const [hubspotAccessToken, segments, { email }] = await Promise.all([
+    getOauthToken({ workspaceId }),
+    findEnrichedSegments({
+      workspaceId,
+      ids: segmentUpdates.map((s) => s.segmentId),
+    }).then(unwrap),
+    findAllUserPropertyAssignments({
+      workspaceId,
+      userId,
+      userProperties: ["email"],
+    }),
+  ]);
   if (!hubspotAccessToken) {
     logger().info({ workspaceId, userId }, "no hubspot access token");
     return;
   }
-  const segments = unwrap(
-    await findEnrichedSegments({
-      workspaceId,
-      ids: segmentUpdates.map((s) => s.segmentId),
-    })
-  );
-  const lists = await paginateHubspotLists(hubspotAccessToken.accessToken);
+  if (typeof email !== "string") {
+    logger().info({ workspaceId, userId, email }, "invalid user email");
+    return;
+  }
+  let lists = await paginateHubspotLists(hubspotAccessToken.accessToken);
   const listsToCreate = new Set(segments.map((s) => segmentToListName(s.name)));
   for (const list of lists) {
     listsToCreate.delete(list.name);
   }
 
-  await Promise.all([
-    Array.from(listsToCreate).forEach((name) =>
+  const newLists = await Promise.all(
+    Array.from(listsToCreate).map((name) =>
       createHubspotList({
         token: hubspotAccessToken.accessToken,
         name,
       })
-    ),
-  ]);
+    )
+  );
+  for (const newList of newLists) {
+    const val = unwrap(newList);
+    if (val) {
+      lists.push(val);
+    }
+  }
+
+  await Promise.all(
+    segments.flatMap((s) => {
+      const update = segmentUpdates.find((su) => su.segmentId === s.id);
+      if (!update) {
+        logger().error(
+          {
+            segmentUpdates,
+            segment: s,
+          },
+          "no segment update found for segment"
+        );
+        return [];
+      }
+      const listId = lists
+        .find((l) => l.name === segmentToListName(s.name))
+        ?.listId.toString();
+
+      if (!listId) {
+        logger().error({ lists, segment: s }, "no list id found for segment");
+        return [];
+      }
+
+      if (update.currentlyInSegment) {
+        return addContactToList({
+          token: hubspotAccessToken.accessToken,
+          listId,
+          email,
+        });
+      } else {
+        return removeContactFromList({
+          token: hubspotAccessToken.accessToken,
+          listId,
+          email,
+        });
+      }
+    })
+  );
 
   logger().debug({
     lists: lists.map((l) => pick(l, ["name", "listId"])),
     listsToCreate: Array.from(listsToCreate),
     segments,
   });
-}
-
-export async function isIntegrationEnabled({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<boolean> {
-  return prisma()
-    .integration.findUnique({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: HUBSPOT_INTEGRATION,
-        },
-      },
-    })
-    .then((integration) => integration?.enabled === true);
 }

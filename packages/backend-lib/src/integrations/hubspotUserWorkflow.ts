@@ -38,6 +38,8 @@ export function generateHubspotUserWorkflowId({
   return `hubspot-${workspaceId}-${userId}`;
 }
 
+const BATCH_SIZE = 10;
+
 interface HubspotUserWorkflowParams {
   workspaceId: string;
   userId: string;
@@ -112,42 +114,34 @@ export async function hubspotUserWorkflow({
     }
   });
 
-  for (let i = 0; i < maxPollingAttempts; i++) {
-    const timedOut = !(await wf.condition(
-      () => pendingListsUpdates.size > 0 || pendingEmailsUpdate !== null,
-      TIMEOUT
-    ));
-    if (timedOut) {
-      break;
-    }
-    if (!(await getIntegrationEnabled({ workspaceId }))) {
-      logger.info("hubspot integration disabled, exiting", { workspaceId });
-    }
-    const promises: Promise<unknown>[] = [];
-
-    if (pendingEmailsUpdate !== null) {
-      promises.push(
-        updateHubspotEmails({
-          workspaceId,
-          userId,
-          events: pendingEmailsUpdate,
-        })
-      );
-    }
-
-    if (pendingListsUpdates.size > 0) {
-      promises.push(
-        updateHubspotLists({
-          workspaceId,
-          userId,
-          segments: Array.from(pendingListsUpdates.values()),
-        })
-      );
-    }
-
-    await Promise.all([updateHubspotEmails, updateHubspotLists]);
-
-    pendingEmailsUpdate = null;
-    pendingListsUpdates.clear();
+  await wf.condition(
+    () => pendingListsUpdates.size > BATCH_SIZE || pendingEmailsUpdate !== null,
+    TIMEOUT
+  );
+  if (!(await getIntegrationEnabled({ workspaceId }))) {
+    logger.info("hubspot integration disabled, exiting", { workspaceId });
   }
+  const promises: Promise<unknown>[] = [];
+
+  if (pendingEmailsUpdate !== null) {
+    promises.push(
+      updateHubspotEmails({
+        workspaceId,
+        userId,
+        events: pendingEmailsUpdate,
+      })
+    );
+  }
+
+  if (pendingListsUpdates.size > 0) {
+    promises.push(
+      updateHubspotLists({
+        workspaceId,
+        userId,
+        segments: Array.from(pendingListsUpdates.values()),
+      })
+    );
+  }
+
+  await Promise.all([updateHubspotEmails, updateHubspotLists]);
 }
