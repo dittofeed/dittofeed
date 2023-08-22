@@ -162,7 +162,7 @@ export async function computePropertiesPeriodSafe({
       if (!segmentId) {
         logger().info(
           { workspaceId, integration, segmentName },
-          "integration subscribed to user property that doesn't exist"
+          "integration subscribed to segment that doesn't exist"
         );
         return;
       }

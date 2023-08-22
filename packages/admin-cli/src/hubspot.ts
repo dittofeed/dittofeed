@@ -1,3 +1,4 @@
+import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import {
   getOauthToken,
   refreshToken,
@@ -7,11 +8,15 @@ import {
 import prisma from "backend-lib/src/prisma";
 import { randomUUID } from "crypto";
 import {
+  IntegrationDefinition,
+  IntegrationType,
   InternalEventType,
   ParsedPerformedManyValueItem,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
+  SyncIntegration,
+  TraitSegmentNode,
   TraitUserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "isomorphic-lib/src/types";
@@ -131,6 +136,18 @@ export async function hubspotSync({
     events,
   });
 
+  const segmentDefinition: SegmentDefinition = {
+    entryNode: {
+      id: randomUUID(),
+      type: SegmentNodeType.Trait,
+      path: "status",
+      operator: {
+        type: SegmentOperatorType.Equals,
+        value: "active",
+      },
+    },
+    nodes: [],
+  };
   const segment = await prisma().segment.upsert({
     where: {
       workspaceId_name: {
@@ -141,15 +158,37 @@ export async function hubspotSync({
     create: {
       workspaceId,
       name: "integrationExampleSegment",
-      definition: {
-        type: SegmentNodeType.Trait,
-        path: "status",
-        operator: {
-          type: SegmentOperatorType.Equals,
-        },
+      definition: segmentDefinition,
+    },
+    update: {
+      definition: segmentDefinition,
+    },
+  });
+  const integrationDefinition: SyncIntegration = {
+    type: IntegrationType.Sync,
+    subscribedSegments: [segment.name],
+    subscribedUserProperties: [],
+  };
+
+  await prisma().integration.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: HUBSPOT_INTEGRATION,
       },
     },
-    update: {},
+    create: {
+      workspaceId,
+      name: HUBSPOT_INTEGRATION,
+      enabled: true,
+      definition: integrationDefinition,
+    },
+    update: {
+      workspaceId,
+      name: HUBSPOT_INTEGRATION,
+      enabled: true,
+      definition: integrationDefinition,
+    },
   });
 
   await updateHubspotLists({

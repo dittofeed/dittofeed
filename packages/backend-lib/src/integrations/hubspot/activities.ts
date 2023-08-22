@@ -25,6 +25,8 @@ import {
   enrichUserProperty,
   findAllUserPropertyAssignments,
 } from "../../userProperties";
+import { findEnrichedSegment, findEnrichedSegments } from "../../segments";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 // prevents temporal from automatically serializing Dates to strings
 export type SerializableOauthToken = Overwrite<
@@ -644,28 +646,75 @@ export async function paginateHubspotLists(
   return lists;
 }
 
+const HubspotDuplicateListError = Type.Object({
+  status: Type.String(),
+  category: Type.Literal("VALIDATION_ERROR"),
+  subCategory: Type.Literal("ILS.DUPLICATE_LIST_NAMES"),
+});
+
 async function createHubspotList({
   token,
   name,
 }: {
   token: string;
   name: string;
-}) {}
+}) {
+  logger().debug("creating hubspot list");
+  const headers = {
+    authorization: `Bearer ${token}`,
+  };
+  try {
+    await axios.post(
+      "https://api.hubapi.com/contacts/v1/lists",
+      {
+        name,
+      },
+      { headers }
+    );
+  } catch (e) {
+    if (!(e instanceof AxiosError)) {
+      throw e;
+    }
+    if (e.response?.status !== 400) {
+      throw e;
+    }
+    const isDuplicateListError = schemaValidateWithErr(
+      e.response.data,
+      HubspotDuplicateListError
+    ).isOk();
+
+    if (!isDuplicateListError) {
+      throw e;
+    }
+
+    logger().info({ name }, "hubspot list already exists");
+  }
+}
 
 async function addContactToList({
   token,
-  name,
+  contactId,
 }: {
   token: string;
-  name: string;
+  contactId: string;
 }) {}
 
-async function addListMembers() {}
+async function removeContactFromList({
+  token,
+  contactId,
+}: {
+  token: string;
+  contactId: string;
+}) {}
+
+function segmentToListName(segmentName: string) {
+  return `Dittofeed - ${segmentName}`;
+}
 
 export async function updateHubspotLists({
   workspaceId,
   userId,
-  segments,
+  segments: segmentUpdates,
 }: {
   workspaceId: string;
   userId: string;
@@ -676,9 +725,31 @@ export async function updateHubspotLists({
     logger().info({ workspaceId, userId }, "no hubspot access token");
     return;
   }
+  const segments = unwrap(
+    await findEnrichedSegments({
+      workspaceId,
+      ids: segmentUpdates.map((s) => s.segmentId),
+    })
+  );
   const lists = await paginateHubspotLists(hubspotAccessToken.accessToken);
+  const listsToCreate = new Set(segments.map((s) => segmentToListName(s.name)));
+  for (const list of lists) {
+    listsToCreate.delete(list.name);
+  }
+
+  await Promise.all([
+    Array.from(listsToCreate).forEach((name) =>
+      createHubspotList({
+        token: hubspotAccessToken.accessToken,
+        name,
+      })
+    ),
+  ]);
+
   logger().debug({
-    lists,
+    lists: lists.map((l) => pick(l, ["name", "listId"])),
+    listsToCreate: Array.from(listsToCreate),
+    segments,
   });
 }
 

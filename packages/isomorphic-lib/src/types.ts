@@ -1523,7 +1523,12 @@ export const CsvUploadValidationError = Type.Object({
 
 export type CsvUploadValidationError = Static<typeof CsvUploadValidationError>;
 
+export enum IntegrationType {
+  Sync = "Sync",
+}
+
 export const SyncIntegration = Type.Object({
+  type: Type.Literal(IntegrationType.Sync),
   subscribedSegments: Type.Array(Type.String()),
   subscribedUserProperties: Type.Array(Type.String()),
 });
