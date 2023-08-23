@@ -4,6 +4,7 @@ import contentController from "../controllers/contentController";
 import debugController from "../controllers/debugController";
 import eventsController from "../controllers/eventsController";
 import indexController from "../controllers/indexController";
+import integrationsController from "../controllers/integrationsController";
 import journeysController from "../controllers/journeysController";
 import publicAppsController from "../controllers/publicAppsController";
 import secretsController from "../controllers/secretsController";
@@ -15,7 +16,6 @@ import userPropertiesController from "../controllers/userPropertiesController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
 import requestContext from "./requestContext";
-import integrationsController from "../controllers/integrationsController";
 
 export default async function router(fastify: FastifyInstance) {
   await fastify.register(indexController, { prefix: "/api" });
