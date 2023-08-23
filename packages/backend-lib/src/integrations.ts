@@ -37,19 +37,34 @@ export async function findAllEnrichedIntegrations(
 
   const enriched: EnrichedIntegration[] = [];
   for (const val of dbVals) {
-    const definitionResult = schemaValidateWithErr(
-      val.definition,
-      IntegrationDefinition
-    );
-    if (definitionResult.isErr()) {
-      return err(definitionResult.error);
+    const integrationResult = enrichIntegration(val);
+    if (integrationResult.isErr()) {
+      return err(integrationResult.error);
     }
-    enriched.push({
-      ...val,
-      definition: definitionResult.value,
-    });
+    enriched.push(integrationResult.value);
   }
   return ok(enriched);
+}
+
+export async function findEnrichedIntegration({
+  workspaceId,
+  name,
+}: {
+  workspaceId: string;
+  name: string;
+}): Promise<Result<EnrichedIntegration | null, Error>> {
+  const integration = await prisma().integration.findUnique({
+    where: {
+      workspaceId_name: {
+        name,
+        workspaceId,
+      },
+    },
+  });
+  if (!integration) {
+    return ok(null);
+  }
+  return enrichIntegration(integration);
 }
 
 export async function upsertIntegration({

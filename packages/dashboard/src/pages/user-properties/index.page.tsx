@@ -35,7 +35,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     const userPropertyResources: UserPropertyResource[] = (
       await prisma().userProperty.findMany({
-        where: { workspaceId },
+        where: { workspaceId, resourceType: "Declarative" },
       })
     ).flatMap((segment) => {
       const result = toUserPropertyResource(segment);

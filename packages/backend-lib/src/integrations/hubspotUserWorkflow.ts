@@ -45,8 +45,9 @@ interface HubspotUserWorkflowParams {
   userId: string;
 }
 
-// 5 minutes
-const TIMEOUT = 5 * 60 * 1000;
+// FIXE
+// const TIMEOUT = 30 * 1000;
+const TIMEOUT = 5 * 1000;
 
 export async function hubspotUserWorkflow({
   workspaceId,

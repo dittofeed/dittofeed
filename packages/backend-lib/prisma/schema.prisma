@@ -106,6 +106,7 @@ model UserProperty {
   workspace              Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId            String                   @db.Uuid
   name                   String
+  resourceType           DBResourceType           @default(Declarative)
   definition             Json
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
@@ -330,7 +331,7 @@ model OauthToken {
   accessToken  String
   expiresIn    Int
   createdAt    DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedAt    DateTime  @updatedAt
 
   @@unique([workspaceId, name])
 }

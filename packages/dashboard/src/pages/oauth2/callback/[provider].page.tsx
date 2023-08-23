@@ -6,8 +6,10 @@ import {
   HUBSPOT_INTEGRATION_DEFINITION,
   HUBSPOT_OAUTH_TOKEN,
 } from "backend-lib/src/constants";
+import { findEnrichedIntegration } from "backend-lib/src/integrations";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
 
 import prisma from "../../../lib/prisma";
@@ -44,12 +46,18 @@ export const getServerSideProps: GetServerSideProps = requestContext(
 
     switch (provider) {
       case "hubspot": {
-        const tokenResponse = await axios({
-          method: "post",
-          url: "https://api.hubapi.com/oauth/v1/token",
-          data: formData,
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        });
+        const [tokenResponse, integration] = await Promise.all([
+          axios({
+            method: "post",
+            url: "https://api.hubapi.com/oauth/v1/token",
+            data: formData,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          }),
+          findEnrichedIntegration({
+            workspaceId: dfContext.workspace.id,
+            name: HUBSPOT_INTEGRATION,
+          }).then(unwrap),
+        ]);
 
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { access_token, refresh_token, expires_in } = tokenResponse.data;
@@ -88,6 +96,14 @@ export const getServerSideProps: GetServerSideProps = requestContext(
             },
             update: {
               enabled: true,
+              definition: integration
+                ? {
+                    ...integration.definition,
+                    subscribedUserProperties:
+                      HUBSPOT_INTEGRATION_DEFINITION.definition
+                        .subscribedUserProperties,
+                  }
+                : undefined,
             },
           }),
           prisma().userProperty.upsert({
@@ -101,6 +117,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
               workspaceId: dfContext.workspace.id,
               name: EMAIL_EVENTS_UP_NAME,
               definition: EMAIL_EVENTS_UP_DEFINITION,
+              resourceType: "Internal",
             },
             update: {},
           }),

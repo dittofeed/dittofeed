@@ -634,6 +634,7 @@ function HubspotIntegration() {
   for (const integration of integrations) {
     if (
       integration.name === HUBSPOT_INTEGRATION &&
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       integration.definition.type === IntegrationType.Sync &&
       integration.enabled
     ) {
