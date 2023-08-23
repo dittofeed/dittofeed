@@ -42,7 +42,6 @@ import {
   EmailProviderResource,
   EmailProviderType,
   EphemeralRequestStatus,
-  IntegrationDefinition,
   IntegrationResource,
   IntegrationType,
   PersistedEmailProvider,
@@ -79,6 +78,7 @@ import { PreloadedState, PropsWithInitialState } from "../lib/types";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { toSegmentResource } from "backend-lib/src/segments";
+import { LoadingButton } from "@mui/lab";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -600,7 +600,7 @@ function WriteKeySettings() {
   );
 }
 
-function IntegrationSettings() {
+function HubspotIntegration() {
   const {
     integrations,
     dashboardUrl,
@@ -620,6 +620,9 @@ function IntegrationSettings() {
     segmentsRequest.type === CompletionStatus.Successful
       ? segmentsRequest.value
       : [];
+  const [inProgress, setInProgress] = useState<"segments" | "enabled" | null>(
+    null
+  );
 
   const { upsertIntegrationsRequest, updateUpsertIntegrationsRequest } =
     useSettingsStorePick([
@@ -660,7 +663,10 @@ function IntegrationSettings() {
       request: upsertIntegrationsRequest,
       setRequest: updateUpsertIntegrationsRequest,
       responseSchema: IntegrationResource,
-      setResponse: upsertIntegration,
+      setResponse: (integration) => {
+        setInProgress(null);
+        upsertIntegration(integration);
+      },
       onSuccessNotice: "Disabled Hubspot integration.",
       onFailureNoticeHandler: () =>
         `API Error: Failed disable Hubspot integration`,
@@ -686,7 +692,11 @@ function IntegrationSettings() {
       request: upsertIntegrationsRequest,
       setRequest: updateUpsertIntegrationsRequest,
       responseSchema: IntegrationResource,
-      setResponse: upsertIntegration,
+      setResponse: (integration) => {
+        upsertIntegration(integration);
+        console.log("saved segments", integration);
+        setInProgress(null);
+      },
       onSuccessNotice: "Updated synced hubspot integration segments.",
       onFailureNoticeHandler: () =>
         `API Error: Failed to updated synced hubspot integration segment.`,
@@ -717,14 +727,31 @@ function IntegrationSettings() {
           )}
         />
         <Box>
-          <Button variant="contained" onClick={saveSyncedSegments}>
+          <LoadingButton
+            variant="contained"
+            onClick={() => {
+              setInProgress("segments");
+              saveSyncedSegments();
+            }}
+            loading={inProgress === "segments"}
+            disabled={inProgress === "enabled"}
+          >
             Save Synced Segments
-          </Button>
+          </LoadingButton>
         </Box>
         <Box>
-          <Button variant="outlined" color="error" onClick={handleDisable}>
+          <LoadingButton
+            variant="outlined"
+            color="error"
+            onClick={() => {
+              setInProgress("enabled");
+              handleDisable();
+            }}
+            loading={inProgress === "enabled"}
+            disabled={inProgress === "segments"}
+          >
             Disable Hubspot
-          </Button>
+          </LoadingButton>
         </Box>
       </Stack>
     );
@@ -742,14 +769,22 @@ function IntegrationSettings() {
   }
 
   return (
-    <Stack sx={{ width: "100%", p: 1 }} spacing={2}>
-      <Typography variant="h2" sx={{ color: "black" }} id="integrations-title">
-        Integrations
-      </Typography>
+    <>
       <Typography variant="h3" sx={{ color: "black" }}>
         Hubspot
       </Typography>
       {hubspotContents}
+    </>
+  );
+}
+
+function IntegrationSettings() {
+  return (
+    <Stack sx={{ width: "100%", p: 1 }} spacing={2}>
+      <Typography variant="h2" sx={{ color: "black" }} id="integrations-title">
+        Integrations
+      </Typography>
+      <HubspotIntegration />
     </Stack>
   );
 }
