@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-loop-func */
 import { Static, Type } from "@sinclair/typebox";
 import axios, { AxiosError } from "axios";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   InternalEventType,
@@ -8,7 +9,7 @@ import {
   ParsedPerformedManyValueItem,
   SegmentUpdate,
 } from "isomorphic-lib/src/types";
-import { Result, err, ok } from "neverthrow";
+import { err, ok, Result } from "neverthrow";
 import { groupBy, indexBy, pick } from "remeda";
 import { Overwrite } from "utility-types";
 
@@ -20,13 +21,12 @@ import {
 } from "../../constants";
 import logger from "../../logger";
 import prisma from "../../prisma";
+import { findEnrichedSegments } from "../../segments";
 import { EnrichedUserProperty, OauthToken } from "../../types";
 import {
   enrichUserProperty,
   findAllUserPropertyAssignments,
 } from "../../userProperties";
-import { findEnrichedSegment, findEnrichedSegments } from "../../segments";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 // prevents temporal from automatically serializing Dates to strings
 export type SerializableOauthToken = Overwrite<
@@ -52,7 +52,7 @@ export async function getOauthToken({
   }
   return {
     ...token,
-    updatedAt: token.updatedAt.getTime() ?? null,
+    updatedAt: token.updatedAt.getTime(),
     createdAt: token.createdAt.getTime(),
   };
 }
@@ -91,8 +91,7 @@ export async function refreshToken({
     client_id: hubspotClientId,
     client_secret: hubspotClientSecret,
     redirect_uri: `${dashboardUrl}/dashboard/oauth2/callback/hubspot`,
-    // refresh_token: token,
-    refresh_token: "asdfasdfasdf",
+    refresh_token: token,
   };
 
   try {
@@ -129,7 +128,7 @@ export async function refreshToken({
     return ok({
       ...oauthToken,
       createdAt: oauthToken.createdAt.getTime(),
-      updatedAt: oauthToken.updatedAt.getTime() ?? null,
+      updatedAt: oauthToken.updatedAt.getTime(),
     });
   } catch (e) {
     if (!(e instanceof AxiosError)) {
@@ -800,7 +799,7 @@ export async function updateHubspotLists({
     logger().info({ workspaceId, userId, email }, "invalid user email");
     return;
   }
-  let lists = await paginateHubspotLists(hubspotAccessToken.accessToken);
+  const lists = await paginateHubspotLists(hubspotAccessToken.accessToken);
   const listsToCreate = new Set(segments.map((s) => segmentToListName(s.name)));
   for (const list of lists) {
     listsToCreate.delete(list.name);
@@ -849,13 +848,12 @@ export async function updateHubspotLists({
           listId,
           email,
         });
-      } else {
-        return removeContactFromList({
-          token: hubspotAccessToken.accessToken,
-          listId,
-          email,
-        });
       }
+      return removeContactFromList({
+        token: hubspotAccessToken.accessToken,
+        listId,
+        email,
+      });
     })
   );
 

@@ -259,7 +259,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         // settings page
         upsertIntegration: (integration) =>
           set((state) => {
-            let { integrations } = state;
+            const { integrations } = state;
             for (const existing of integrations) {
               if (integration.id === existing.id) {
                 Object.assign(existing, integration);

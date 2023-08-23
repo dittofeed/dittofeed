@@ -3,11 +3,7 @@ import config from "../config";
 import { NodeEnvEnum } from "../config/loader";
 import logger from "../logger";
 import prisma from "../prisma";
-import {
-  ComputedPropertyAssignment,
-  ComputedPropertyUpdate,
-  JSONValue,
-} from "../types";
+import { ComputedPropertyAssignment, JSONValue } from "../types";
 
 const userEventsColumns = `
   event_type Enum('identify' = 1, 'track' = 2, 'page' = 3, 'screen' = 4, 'group' = 5, 'alias' = 6) DEFAULT JSONExtract(message_raw, 'type', 'Enum(\\'identify\\' = 1, \\'track\\' = 2, \\'page\\' = 3, \\'screen\\' = 4, \\'group\\' = 5, \\'alias\\' = 6)'),

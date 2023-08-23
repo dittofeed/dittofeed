@@ -1,5 +1,7 @@
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+import { pick } from "remeda";
 
 import prisma from "./prisma";
 import {
@@ -9,8 +11,6 @@ import {
   IntegrationResource,
   UpsertIntegrationResource,
 } from "./types";
-import { pick } from "remeda";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 export function enrichIntegration(
   integration: Integration

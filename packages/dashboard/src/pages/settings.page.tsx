@@ -8,6 +8,7 @@ import {
   TurnedInOutlined,
 } from "@mui/icons-material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { LoadingButton } from "@mui/lab";
 import {
   Autocomplete,
   Box,
@@ -28,13 +29,15 @@ import {
   useTheme,
 } from "@mui/material";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
+import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
+import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { pick } from "remeda/dist/commonjs/pick";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { SENDGRID_WEBHOOK_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -58,10 +61,12 @@ import {
 } from "next";
 import { enqueueSnackbar } from "notistack";
 import { useMemo, useState } from "react";
+import { pick } from "remeda/dist/commonjs/pick";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { Collapaseable } from "../components/collapsable";
+import ExternalLink from "../components/externalLink";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
@@ -74,11 +79,6 @@ import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import SecretEditor from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
-import { toSegmentResource } from "backend-lib/src/segments";
-import { LoadingButton } from "@mui/lab";
-import ExternalLink from "../components/externalLink";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -124,8 +124,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       findAllEnrichedIntegrations(workspaceId),
       prisma()
         .segment.findMany({ where: { workspaceId } })
-        .then((segments) =>
-          segments.map((segment) => unwrap(toSegmentResource(segment)))
+        .then((dbSegments) =>
+          dbSegments.map((segment) => unwrap(toSegmentResource(segment)))
         ),
     ]);
 
@@ -729,9 +729,6 @@ function HubspotIntegration() {
           value={subscribedSegments}
           onChange={(_event, newValue) => {
             setSubscribedSegments(newValue);
-            if (!hubspotIntegration) {
-              return;
-            }
           }}
           getOptionLabel={(option) => option.name}
           renderInput={(params) => (
@@ -902,7 +899,6 @@ function SubscriptionManagementSettings() {
 const Settings: NextPage<
   InferGetServerSidePropsType<typeof getServerSideProps>
 > = function Settings() {
-  const { dashboardUrl } = useAppStorePick(["dashboardUrl"]);
   const [sendgridOpen, setSendgridOpen] = useState<boolean>(true);
   const [segmentIoOpen, setSegmentIoOpen] = useState<boolean>(true);
   const handleSendgridOpen = () => {
