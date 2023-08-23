@@ -123,7 +123,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       getWriteKeys({ workspaceId }).then((keys) => keys[0]),
       findAllEnrichedIntegrations(workspaceId),
       prisma()
-        .segment.findMany({ where: { workspaceId } })
+        .segment.findMany({
+          where: { workspaceId, resourceType: "Declarative" },
+        })
         .then((dbSegments) =>
           dbSegments.map((segment) => unwrap(toSegmentResource(segment)))
         ),
