@@ -1,4 +1,7 @@
-import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
+import {
+  EMAIL_EVENTS_UP_NAME,
+  HUBSPOT_INTEGRATION,
+} from "backend-lib/src/constants";
 import {
   getIntegrationEnabled,
   getOauthToken,
@@ -10,7 +13,6 @@ import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { randomUUID } from "crypto";
 import {
-  IntegrationDefinition,
   IntegrationType,
   InternalEventType,
   ParsedPerformedManyValueItem,
@@ -18,7 +20,6 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SyncIntegration,
-  TraitSegmentNode,
   TraitUserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "isomorphic-lib/src/types";
@@ -182,7 +183,7 @@ export async function hubspotSync({
   const integrationDefinition: SyncIntegration = {
     type: IntegrationType.Sync,
     subscribedSegments: [segment.name],
-    subscribedUserProperties: [],
+    subscribedUserProperties: [EMAIL_EVENTS_UP_NAME],
   };
 
   await prisma().integration.upsert({

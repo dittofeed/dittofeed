@@ -376,7 +376,7 @@ export async function computePropertiesPeriodSafe({
           pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
           pgSegmentAssignmentsCount: pgSegmentAssignments.length,
           journeySegmentAssignmentsCount: journeySegmentAssignments.length,
-          integrationSegmentAssignmentsCount: integrationAssignments.length,
+          integrationAssignmentsCount: integrationAssignments.length,
         },
         "processing computed assignments"
       );

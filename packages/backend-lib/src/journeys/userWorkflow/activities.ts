@@ -407,12 +407,13 @@ async function sendEmailWithPayload(
       nodeId,
       subscriptionSecret,
     }) {
-      const render = (template: string) =>
+      const render = (template: string, mjml?: boolean) =>
         template &&
         renderLiquid({
           userProperties: userPropertyAssignments,
           template,
           workspaceId,
+          mjml,
           identifierKey: CHANNEL_IDENTIFIERS[channel],
           subscriptionGroupId: params.subscriptionGroupId,
           secrets: {
@@ -436,7 +437,7 @@ async function sendEmailWithPayload(
       try {
         from = escapeHTML(render(messageTemplate.definition.from));
         subject = escapeHTML(render(messageTemplate.definition.subject));
-        body = render(messageTemplate.definition.body);
+        body = render(messageTemplate.definition.body, true);
         if (messageTemplate.definition.replyTo) {
           replyTo = render(messageTemplate.definition.replyTo);
         }

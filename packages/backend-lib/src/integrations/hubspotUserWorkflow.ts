@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-loop-func,no-await-in-loop, @typescript-eslint/no-unnecessary-condition */
+import { Type } from "@sinclair/typebox";
 import { LoggerSinks, proxyActivities, proxySinks } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   ComputedPropertyUpdate,
   ParsedPerformedManyValueItem,
@@ -94,7 +96,18 @@ export async function hubspotUserWorkflow({
           });
           return;
         }
-        const value = parsed.value as ParsedPerformedManyValueItem[];
+        const valueResult = schemaValidateWithErr(
+          parsed.value,
+          Type.Array(ParsedPerformedManyValueItem)
+        );
+        if (valueResult.isErr()) {
+          logger.error("failed to validate user property", {
+            workspaceId,
+            err: valueResult.error,
+          });
+          return;
+        }
+        const { value } = valueResult;
 
         pendingEmailsUpdate.update = {
           ...signal,
