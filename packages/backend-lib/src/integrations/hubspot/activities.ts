@@ -28,7 +28,7 @@ import {
   findAllUserPropertyAssignments,
 } from "../../userProperties";
 
-type FuncReturningPromise<T extends any[], U> = (...args: T) => Promise<U>;
+type FuncReturningPromise<T extends unknown[], U> = (...args: T) => Promise<U>;
 
 interface AuthError {
   type: "AuthError";
@@ -59,15 +59,19 @@ function handleAuthFailure<T extends any[], U>(
       // Call the original function and await its result
       return ok(await fn(...args));
     } catch (e) {
-      if (!(e instanceof AxiosError) || e.response?.status !== 401) {
+      if (!(e instanceof AxiosError)) {
         throw e;
       }
       logger().error(
         {
           err: e,
+          errBody: e.response?.data,
         },
-        "failed to authenticate against hupspot"
+        "failed to contact hubspot"
       );
+      if (e.response?.status !== 401) {
+        throw e;
+      }
       await disableIntegration({
         workspaceId,
       });
@@ -206,7 +210,6 @@ export async function refreshToken({
           enabled: false,
         },
       });
-      logger().debug("updating integration");
       return err(badRefreshTokenError.value);
     }
 
@@ -230,7 +233,7 @@ type HubspotEmail = Static<typeof HubspotEmail>;
 
 interface HubspotCreateEmail {
   properties: {
-    hs_timestamp: string;
+    hs_timestamp: number;
     hs_email_direction: "EMAIL";
     hs_email_status: string;
     hubspot_owner_id?: string;
@@ -430,8 +433,21 @@ async function createHubspotEmailRequest(
   const headers = {
     authorization: `Bearer ${token}`,
   };
-  const response = await axios.post(url, email, { headers });
-  return response.data;
+  try {
+    const response = await axios.post(url, email, { headers });
+    return response.data;
+  } catch (e) {
+    if (e instanceof AxiosError) {
+      logger().error(
+        {
+          err: e,
+          body: e.response?.data,
+        },
+        "error creating hubspot email"
+      );
+    }
+    throw e;
+  }
 }
 
 export async function updateHubspotEmails({
@@ -461,16 +477,21 @@ export async function updateHubspotEmails({
     return;
   }
   const filteredEvents = events.flatMap((e) => {
-    const keyParts = Object.values(
-      pick(e.properties, ["workspaceId", "journeyId", "nodeId", "runId"])
-    );
-    if (!keyParts.length || keyParts.some((p) => !p)) {
-      return [];
+    try {
+      const keyParts = Object.values(
+        pick(e.properties, ["workspaceId", "journeyId", "nodeId", "runId"])
+      );
+      if (!keyParts.length || keyParts.some((p) => !p)) {
+        return [];
+      }
+      return {
+        key: keyParts.join("-"),
+        ...e,
+      };
+    } catch (error) {
+      logger().error({ err: error }, "error filtering events");
+      throw error;
     }
-    return {
-      key: keyParts.join("-"),
-      ...e,
-    };
   });
 
   const grouped = groupBy(filteredEvents, (event) => event.key);
@@ -516,6 +537,7 @@ export async function updateHubspotEmails({
     );
     return;
   }
+
   const contact = contactResult.value
     .map(
       (r) =>
@@ -553,7 +575,7 @@ export async function updateHubspotEmails({
 
   const emailUpdates: { id: string; hs_email_status: string }[] = [];
   const newEmails: {
-    hs_timestamp: string;
+    hs_timestamp: number;
     hubspot_owner_id?: string;
     hs_email_html?: string;
     hs_email_subject?: string;
@@ -642,7 +664,7 @@ export async function updateHubspotEmails({
       });
     } else {
       newEmails.push({
-        hs_timestamp: hsTimestamp,
+        hs_timestamp: hsNumericTimestamp,
         hubspot_owner_id: hsOwnerId,
         hs_email_html: body,
         hs_email_subject: subject,
@@ -690,7 +712,6 @@ export async function updateHubspotEmails({
       ],
     })
   );
-
   await Promise.all([
     updateHubspotEmailsRequest(hubspotAccessToken, updateEmailsBatch),
     ...createEmailsBatch,
@@ -764,7 +785,6 @@ async function createHubspotList({
   token: string;
   name: string;
 }): Promise<Result<HubspotList | null, Error>> {
-  logger().debug("creating hubspot list");
   const headers = {
     authorization: `Bearer ${token}`,
   };
@@ -833,11 +853,7 @@ async function removeContactFromList({
   const data = {
     emails: [email],
   };
-  const response = await axios.post(url, data, { headers });
-  logger().debug(
-    { listId, data, email, response: response.data },
-    "removing contact from list"
-  );
+  await axios.post(url, data, { headers });
 }
 
 function segmentToListName(segmentName: string) {

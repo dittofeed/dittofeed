@@ -60,23 +60,25 @@ export async function hubspotUserWorkflow({
     logger.error("no email events user property found", { workspaceId });
     return;
   }
-  let pendingEmailsUpdate: Overwrite<
-    UserPropertyUpdate,
-    {
-      value: ParsedPerformedManyValueItem[];
-    }
-  > | null = null;
+  const pendingEmailsUpdate: {
+    update: Overwrite<
+      UserPropertyUpdate,
+      {
+        value: ParsedPerformedManyValueItem[];
+      }
+    > | null;
+  } = { update: null };
   const pendingListsUpdates = new Map<string, SegmentUpdate>();
 
   wf.setHandler(hubspotUserComputedProperties, (signal) => {
     logger.info("hubspot computedProperties", { workspaceId });
     switch (signal.type) {
       case "user_property": {
+        const { update } = pendingEmailsUpdate;
         if (
           signal.userPropertyId !== emailEventsUserProperty.id ||
-          (pendingEmailsUpdate !== null &&
-            pendingEmailsUpdate.userPropertyVersion >=
-              signal.userPropertyVersion)
+          (update !== null &&
+            update.userPropertyVersion >= signal.userPropertyVersion)
         ) {
           logger.error("invalid user property update", { workspaceId, signal });
           return;
@@ -94,7 +96,7 @@ export async function hubspotUserWorkflow({
         }
         const value = parsed.value as ParsedPerformedManyValueItem[];
 
-        pendingEmailsUpdate = {
+        pendingEmailsUpdate.update = {
           ...signal,
           value,
         };
@@ -117,7 +119,9 @@ export async function hubspotUserWorkflow({
 
   logger.info("waiting for hubspot user batch", { workspaceId, userId });
   const batchFull = await wf.condition(
-    () => pendingListsUpdates.size > BATCH_SIZE || pendingEmailsUpdate !== null,
+    () =>
+      pendingListsUpdates.size > BATCH_SIZE ||
+      pendingEmailsUpdate.update !== null,
     TIMEOUT
   );
   if (batchFull) {
@@ -142,12 +146,13 @@ export async function hubspotUserWorkflow({
   logger.info("syncing to hubspot", { workspaceId, userId });
   const promises: Promise<unknown>[] = [];
 
-  if (pendingEmailsUpdate !== null) {
+  const pendingEmailsValue = pendingEmailsUpdate.update?.value;
+  if (pendingEmailsValue) {
     promises.push(
       updateHubspotEmails({
         workspaceId,
         userId,
-        events: pendingEmailsUpdate,
+        events: pendingEmailsValue,
       })
     );
   }
