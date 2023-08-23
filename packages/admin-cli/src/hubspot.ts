@@ -1,10 +1,12 @@
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import {
+  getIntegrationEnabled,
   getOauthToken,
   refreshToken,
   updateHubspotEmails,
   updateHubspotLists,
 } from "backend-lib/src/integrations/hubspot/activities";
+import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { randomUUID } from "crypto";
 import {
@@ -32,11 +34,23 @@ export async function hubspotSync({
   workspaceId: string;
   updateEmail?: boolean;
 }): Promise<void> {
+  if (!(await getIntegrationEnabled({ workspaceId }))) {
+    logger().info({ workspaceId }, "integration disabled");
+    return;
+  }
   let token = await getOauthToken({ workspaceId });
   if (!token) {
     throw new Error("no token found");
   }
-  token = await refreshToken({ workspaceId, token: token.refreshToken });
+  const refreshedToken = await refreshToken({
+    workspaceId,
+    token: token.refreshToken,
+  });
+  if (refreshedToken.isErr()) {
+    logger().error({ workspaceId }, "error refreshing token");
+    return;
+  }
+  token = refreshedToken.value;
 
   const userId = randomUUID();
   const journeyId = "0a956342-4af8-427c-87f0-e4b0bcafec99";

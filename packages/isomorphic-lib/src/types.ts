@@ -1538,3 +1538,22 @@ export type SyncIntegration = Static<typeof SyncIntegration>;
 export const IntegrationDefinition = Type.Union([SyncIntegration]);
 
 export type IntegrationDefinition = Static<typeof IntegrationDefinition>;
+
+export const IntegrationResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  definition: IntegrationDefinition,
+  enabled: Type.Boolean(),
+});
+
+export type IntegrationResource = Static<typeof IntegrationResource>;
+
+export const UpsertIntegrationResource = Type.Composite([
+  Type.Partial(Type.Pick(IntegrationResource, ["enabled", "definition"])),
+  Type.Pick(IntegrationResource, ["workspaceId", "name"]),
+]);
+
+export type UpsertIntegrationResource = Static<
+  typeof UpsertIntegrationResource
+>;

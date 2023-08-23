@@ -2,8 +2,10 @@ import {
   ArrowBackIos,
   ContentCopyOutlined,
   East,
+  IntegrationInstructionsOutlined,
   Key,
   MailOutline,
+  TurnedInOutlined,
 } from "@mui/icons-material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
@@ -26,7 +28,9 @@ import {
 } from "@mui/material";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { generateSecureKey } from "backend-lib/src/crypto";
+import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { pick } from "remeda/dist/commonjs/pick";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { SENDGRID_WEBHOOK_SECRET_NAME } from "isomorphic-lib/src/constants";
@@ -37,7 +41,10 @@ import {
   EmailProviderResource,
   EmailProviderType,
   EphemeralRequestStatus,
+  IntegrationDefinition,
+  IntegrationType,
   PersistedEmailProvider,
+  SyncIntegration,
   UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
 } from "isomorphic-lib/src/types";
@@ -65,6 +72,8 @@ import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import SecretEditor from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -80,6 +89,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       defaultEmailProviderRecord,
       subscriptionGroups,
       writeKey,
+      integrations,
     ] = await Promise.all([
       (
         await prisma().emailProvider.findMany({
@@ -105,6 +115,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         },
       }),
       getWriteKeys({ workspaceId }).then((keys) => keys[0]),
+      findAllEnrichedIntegrations(workspaceId),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -116,6 +127,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         type: CompletionStatus.Successful,
         value: defaultEmailProviderRecord,
       },
+      integrations: unwrap(integrations).map((i) =>
+        pick(i, ["id", "name", "workspaceId", "definition", "enabled"])
+      ),
     };
 
     if (writeKey) {
@@ -193,6 +207,15 @@ const menuItems: MenuItemGroup[] = [
           "Configure email settings, including the email provider credentials.",
       },
       {
+        id: "subscription-management",
+        title: "Subscription Management",
+        type: "item",
+        url: "/settings#subscription-management",
+        icon: TurnedInOutlined,
+        description:
+          "Configure subscription management settings, with the ability to preview the subscription management page visible to users.",
+      },
+      {
         id: "write-keys",
         title: "Write Key",
         type: "item",
@@ -200,6 +223,14 @@ const menuItems: MenuItemGroup[] = [
         icon: Key,
         description:
           "Write key used to authenticate end user requests to the Dittofeed API.",
+      },
+      {
+        id: "integrations",
+        title: "Integrations",
+        type: "item",
+        url: "/settings#integrations-title",
+        icon: IntegrationInstructionsOutlined,
+        description: "Integrate Dittofeed with other platforms.",
       },
     ],
   },
@@ -353,17 +384,26 @@ function SegmentIoConfig() {
 
 function SendGridConfig() {
   const theme = useTheme();
-  const emailProviders = useAppStore((store) => store.emailProviders);
+  const {
+    emailProviders,
+    apiBase,
+    workspace: workspaceResult,
+    upsertEmailProvider,
+    integrations,
+  } = useAppStorePick([
+    "emailProviders",
+    "apiBase",
+    "workspace",
+    "upsertEmailProvider",
+    "integrations",
+  ]);
   const apiKey = useSettingsStore((store) => store.sendgridProviderApiKey);
-  const apiBase = useAppStore((store) => store.apiBase);
   const sendgridProviderRequest = useSettingsStore(
     (store) => store.sendgridProviderRequest
   );
   const updateSendgridProviderRequest = useSettingsStore(
     (store) => store.updateSendgridProviderRequest
   );
-  const workspaceResult = useAppStore((store) => store.workspace);
-  const upsertEmailProvider = useAppStore((store) => store.upsertEmailProvider);
   const updateSendgridProviderApiKey = useSettingsStore(
     (store) => store.updateSendgridProviderApiKey
   );
@@ -529,6 +569,61 @@ function WriteKeySettings() {
   );
 }
 
+function IntegrationSettings() {
+  const { integrations, dashboardUrl } = useAppStorePick([
+    "integrations",
+    "dashboardUrl",
+  ]);
+  const theme = useTheme();
+
+  let hubspotIntegration: SyncIntegration | null = null;
+  for (const integration of integrations) {
+    if (
+      integration.name === HUBSPOT_INTEGRATION &&
+      integration.definition.type === IntegrationType.Sync &&
+      integration.enabled
+    ) {
+      hubspotIntegration = integration.definition;
+    }
+  }
+
+  let hubspotContents;
+  if (hubspotIntegration) {
+    hubspotContents = (
+      <Stack spacing={1}>
+        <Box>
+          <Button variant="outlined" color="error">
+            Disable Hubspot
+          </Button>
+        </Box>
+      </Stack>
+    );
+  } else {
+    hubspotContents = (
+      <Box>
+        <Button
+          variant="contained"
+          href={`https://app.hubspot.com/oauth/authorize?client_id=9128468e-b771-4bab-b301-21b479213975&redirect_uri=${dashboardUrl}/dashboard/oauth2/callback/hubspot&scope=timeline%20sales-email-read%20crm.objects.contacts.read%20crm.objects.contacts.write%20crm.objects.companies.write%20crm.objects.companies.read%20crm.objects.owners.read%20crm.lists.write%20crm.lists.read`}
+        >
+          Connect Hubspot
+        </Button>
+      </Box>
+    );
+  }
+
+  return (
+    <Stack sx={{ width: "100%", p: 1 }} spacing={2}>
+      <Typography variant="h2" sx={{ color: "black" }} id="integrations-title">
+        Integrations
+      </Typography>
+      <Typography variant="h3" sx={{ color: "black" }}>
+        Hubspot
+      </Typography>
+      {hubspotContents}
+    </Stack>
+  );
+}
+
 function SubscriptionManagementSettings() {
   const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
   const [fromSubscriptionChange, setFromSubscriptionChange] =
@@ -560,7 +655,11 @@ function SubscriptionManagementSettings() {
   return (
     <Collapaseable
       header={
-        <Typography variant="h2" sx={{ color: "black" }}>
+        <Typography
+          variant="h2"
+          sx={{ color: "black" }}
+          id="subscription-management"
+        >
           Subscription Management
         </Typography>
       }
@@ -639,12 +738,6 @@ const Settings: NextPage<
   return (
     <SettingsLayout>
       <Stack spacing={1} sx={{ padding: 2, width: "100%" }}>
-        <ExternalLink
-          href={`https://app.hubspot.com/oauth/authorize?client_id=9128468e-b771-4bab-b301-21b479213975&redirect_uri=${dashboardUrl}/dashboard/oauth2/callback/hubspot&scope=timeline%20sales-email-read%20crm.objects.contacts.read%20crm.objects.contacts.write%20crm.objects.companies.write%20crm.objects.companies.read%20crm.objects.owners.read%20crm.lists.write%20crm.lists.read`}
-        >
-          hubspot
-        </ExternalLink>
-        {/* FIXME add link to remove hubspot */}
         <Typography
           id="data-sources-title"
           variant="h2"
@@ -700,6 +793,7 @@ const Settings: NextPage<
         </Collapse>
         <SubscriptionManagementSettings />
         <WriteKeySettings />
+        <IntegrationSettings />
       </Stack>
     </SettingsLayout>
   );

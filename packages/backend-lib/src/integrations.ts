@@ -2,9 +2,13 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { err, ok, Result } from "neverthrow";
 
 import prisma from "./prisma";
-import { EnrichedIntegration, IntegrationDefinition } from "./types";
+import {
+  EnrichedIntegration,
+  IntegrationDefinition,
+  IntegrationResource,
+  UpsertIntegrationResource,
+} from "./types";
 
-// TODO return list of results instead of result of list
 export async function findAllEnrichedIntegrations(
   workspaceId: string
 ): Promise<Result<EnrichedIntegration[], Error>> {
@@ -27,4 +31,10 @@ export async function findAllEnrichedIntegrations(
     });
   }
   return ok(enriched);
+}
+
+export async function upsertIntegration(
+  integration: UpsertIntegrationResource
+): Promise<IntegrationResource> {
+  throw new Error("Not implemented");
 }

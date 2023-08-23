@@ -230,6 +230,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         secrets: [],
         enableSourceControl: preloadedState.enableSourceControl ?? false,
         enableMobilePush: preloadedState.enableMobilePush ?? false,
+        integrations: [],
 
         // email message state
         emailMessageBody: "",

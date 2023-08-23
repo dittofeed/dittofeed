@@ -105,7 +105,13 @@ export async function hubspotWorkflow({
       }
     } else if (getTimeToWait(timeToWaitJitter) <= 0) {
       logger.info("refreshing hubspot oauth token", { workspaceId });
-      token = await refreshToken({ workspaceId, token: token.refreshToken });
+      const refreshedToken = await refreshToken({
+        workspaceId,
+        token: token.refreshToken,
+      });
+      if (refreshedToken.isOk()) {
+        token = refreshedToken.value;
+      }
     }
     if (!(await getIntegrationEnabled({ workspaceId }))) {
       logger.info("hubspot integration disabled, exiting", { workspaceId });

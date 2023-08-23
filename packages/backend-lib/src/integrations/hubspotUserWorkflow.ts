@@ -43,7 +43,6 @@ const BATCH_SIZE = 10;
 interface HubspotUserWorkflowParams {
   workspaceId: string;
   userId: string;
-  maxPollingAttempts?: number;
 }
 
 // 5 minutes
@@ -52,7 +51,6 @@ const TIMEOUT = 5 * 60 * 1000;
 export async function hubspotUserWorkflow({
   workspaceId,
   userId,
-  maxPollingAttempts = 500,
 }: HubspotUserWorkflowParams): Promise<void> {
   const emailEventsUserProperty = await findEmailEventsUserProperty({
     workspaceId,

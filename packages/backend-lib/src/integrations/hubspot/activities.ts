@@ -8,7 +8,7 @@ import {
   ParsedPerformedManyValueItem,
   SegmentUpdate,
 } from "isomorphic-lib/src/types";
-import { Result, ok } from "neverthrow";
+import { Result, err, ok } from "neverthrow";
 import { groupBy, indexBy, pick } from "remeda";
 import { Overwrite } from "utility-types";
 
@@ -65,13 +65,22 @@ interface RefreshForm {
   refresh_token: string;
 }
 
+const HubspotBadRefreshTokenError = Type.Object({
+  status: Type.Literal("BAD_REFRESH_TOKEN"),
+  message: Type.String(),
+});
+
+type HubspotBadRefreshTokenError = Static<typeof HubspotBadRefreshTokenError>;
+
 export async function refreshToken({
   workspaceId,
   token,
 }: {
   workspaceId: string;
   token: string;
-}): Promise<SerializableOauthToken> {
+}): Promise<
+  Result<SerializableOauthToken, AxiosError | HubspotBadRefreshTokenError>
+> {
   const { dashboardUrl, hubspotClientSecret, hubspotClientId } = config();
 
   if (!hubspotClientId || !hubspotClientSecret) {
@@ -82,7 +91,8 @@ export async function refreshToken({
     client_id: hubspotClientId,
     client_secret: hubspotClientSecret,
     redirect_uri: `${dashboardUrl}/dashboard/oauth2/callback/hubspot`,
-    refresh_token: token,
+    // refresh_token: token,
+    refresh_token: "asdfasdfasdf",
   };
 
   try {
@@ -116,21 +126,43 @@ export async function refreshToken({
         expiresIn: expires_in,
       },
     });
-    return {
+    return ok({
       ...oauthToken,
       createdAt: oauthToken.createdAt.getTime(),
       updatedAt: oauthToken.updatedAt.getTime() ?? null,
-    };
+    });
   } catch (e) {
-    const err = e as AxiosError;
+    if (!(e instanceof AxiosError)) {
+      throw e;
+    }
     logger().error(
       {
-        err,
-        errBody: err.response?.data,
+        err: e,
+        errBody: e.response?.data,
       },
       "Error refreshing Hubspot token"
     );
-    throw e;
+    const badRefreshTokenError = schemaValidateWithErr(
+      e.response?.data,
+      HubspotBadRefreshTokenError
+    );
+    if (badRefreshTokenError.isOk()) {
+      await prisma().integration.update({
+        where: {
+          workspaceId_name: {
+            workspaceId,
+            name: HUBSPOT_INTEGRATION,
+          },
+        },
+        data: {
+          enabled: false,
+        },
+      });
+      logger().debug("updating integration");
+      return err(badRefreshTokenError.value);
+    }
+
+    return err(e);
   }
 }
 

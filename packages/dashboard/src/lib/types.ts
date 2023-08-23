@@ -9,6 +9,7 @@ import {
   EntryNode,
   EphemeralRequestStatus,
   ExitNode,
+  IntegrationResource,
   JourneyNodeType,
   JourneyResource,
   MessageTemplateResource,
@@ -81,6 +82,7 @@ export type AppState = {
     DataSourceConfigurationResource[],
     Error
   >;
+  integrations: IntegrationResource[];
   sourceControlProvider?: SourceControlProviderEnum;
 } & PageStoreContents &
   Pick<
