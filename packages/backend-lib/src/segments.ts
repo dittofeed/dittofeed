@@ -23,8 +23,8 @@ import {
 
 export function enrichSegment(
   segment: Segment
-): Result<EnrichedSegment, ValueError[]> {
-  const definitionResult = schemaValidate(
+): Result<EnrichedSegment, Error> {
+  const definitionResult = schemaValidateWithErr(
     segment.definition,
     SegmentDefinition
   );
@@ -57,7 +57,7 @@ export async function createSegment({
 
 export function toSegmentResource(
   segment: Segment
-): Result<SegmentResource, ValueError[]> {
+): Result<SegmentResource, Error> {
   const result = enrichSegment(segment);
   if (result.isErr()) {
     return err(result.error);
@@ -75,7 +75,7 @@ export function toSegmentResource(
 
 export async function findEnrichedSegment(
   segmentId: string
-): Promise<Result<EnrichedSegment | null, ValueError[]>> {
+): Promise<Result<EnrichedSegment | null, Error>> {
   const segment = await prisma().segment.findFirst({
     where: { id: segmentId },
   });

@@ -9,6 +9,7 @@ import {
 } from "@mui/icons-material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -45,6 +46,7 @@ import {
   IntegrationResource,
   IntegrationType,
   PersistedEmailProvider,
+  SegmentResource,
   SyncIntegration,
   UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
@@ -76,6 +78,7 @@ import SecretEditor from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
+import { toSegmentResource } from "backend-lib/src/segments";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -92,6 +95,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       subscriptionGroups,
       writeKey,
       integrations,
+      segments,
     ] = await Promise.all([
       (
         await prisma().emailProvider.findMany({
@@ -118,6 +122,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
       getWriteKeys({ workspaceId }).then((keys) => keys[0]),
       findAllEnrichedIntegrations(workspaceId),
+      prisma()
+        .segment.findMany({ where: { workspaceId } })
+        .then((segments) =>
+          segments.map((segment) => unwrap(toSegmentResource(segment)))
+        ),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -132,6 +141,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       integrations: unwrap(integrations).map((i) =>
         pick(i, ["id", "name", "workspaceId", "definition", "enabled"])
       ),
+      segments: {
+        type: CompletionStatus.Successful,
+        value: segments,
+      },
     };
 
     if (writeKey) {
@@ -588,20 +601,31 @@ function WriteKeySettings() {
 }
 
 function IntegrationSettings() {
-  const { integrations, dashboardUrl, upsertIntegration, apiBase, workspace } =
-    useAppStorePick([
-      "integrations",
-      "dashboardUrl",
-      "upsertIntegration",
-      "apiBase",
-      "workspace",
-    ]);
+  const {
+    integrations,
+    dashboardUrl,
+    upsertIntegration,
+    apiBase,
+    workspace,
+    segments: segmentsRequest,
+  } = useAppStorePick([
+    "integrations",
+    "dashboardUrl",
+    "upsertIntegration",
+    "apiBase",
+    "workspace",
+    "segments",
+  ]);
+  const segments =
+    segmentsRequest.type === CompletionStatus.Successful
+      ? segmentsRequest.value
+      : [];
+
   const { upsertIntegrationsRequest, updateUpsertIntegrationsRequest } =
     useSettingsStorePick([
       "upsertIntegrationsRequest",
       "updateUpsertIntegrationsRequest",
     ]);
-  const theme = useTheme();
 
   let hubspotIntegration: SyncIntegration | null = null;
   for (const integration of integrations) {
@@ -613,6 +637,13 @@ function IntegrationSettings() {
       hubspotIntegration = integration.definition;
     }
   }
+
+  const [subscribedSegments, setSubscribedSegments] = useState<
+    SegmentResource[]
+  >(() => {
+    const subbed = new Set(hubspotIntegration?.subscribedSegments ?? []);
+    return segments.filter((segment) => subbed.has(segment.name));
+  });
 
   if (workspace.type !== CompletionStatus.Successful) {
     return null;
@@ -642,8 +673,54 @@ function IntegrationSettings() {
         },
       },
     });
+
+    const updateSubscribedSegmentsBody: UpsertIntegrationResource = {
+      workspaceId: workspace.value.id,
+      name: HUBSPOT_INTEGRATION,
+      definition: {
+        ...hubspotIntegration,
+        subscribedSegments: subscribedSegments.map((segment) => segment.name),
+      },
+    };
+    const saveSyncedSegments = apiRequestHandlerFactory({
+      request: upsertIntegrationsRequest,
+      setRequest: updateUpsertIntegrationsRequest,
+      responseSchema: IntegrationResource,
+      setResponse: upsertIntegration,
+      onSuccessNotice: "Updated synced hubspot integration segments.",
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to updated synced hubspot integration segment.`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/integrations`,
+        data: updateSubscribedSegmentsBody,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    });
     hubspotContents = (
       <Stack spacing={1}>
+        <Autocomplete
+          multiple
+          options={segments}
+          value={subscribedSegments}
+          onChange={(_event, newValue) => {
+            setSubscribedSegments(newValue);
+            if (!hubspotIntegration) {
+              return;
+            }
+          }}
+          getOptionLabel={(option) => option.name}
+          renderInput={(params) => (
+            <TextField {...params} variant="outlined" label="Synced Segments" />
+          )}
+        />
+        <Box>
+          <Button variant="contained" onClick={saveSyncedSegments}>
+            Save Synced Segments
+          </Button>
+        </Box>
         <Box>
           <Button variant="outlined" color="error" onClick={handleDisable}>
             Disable Hubspot
