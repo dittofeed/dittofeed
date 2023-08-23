@@ -324,6 +324,15 @@ export async function computePropertiesPeriodSafe({
       query_params: readChqb.getQueries(),
       format: "JSONEachRow",
     });
+    logger().info(
+      {
+        workspaceId,
+        queryId: resultSet.query_id,
+        READ_QUERY_PAGE_SIZE,
+        offset,
+      },
+      "read query page"
+    );
 
     let hasRows = false;
     for await (const rows of resultSet.stream()) {

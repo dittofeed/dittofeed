@@ -864,10 +864,14 @@ export default async function writeAssignments({
       ) sas
     `;
 
-    await clickhouseClient().query({
+    const queryResult = await clickhouseClient().query({
       query: writeQuery,
       query_params: writeReadChqb.getQueries(),
       format: "JSONEachRow",
     });
+    logger().info(
+      { workspaceId, queryId: queryResult.query_id },
+      "write assignments query"
+    );
   }
 }
