@@ -77,6 +77,7 @@ export async function hubspotUserWorkflow({
             pendingEmailsUpdate.userPropertyVersion >=
               signal.userPropertyVersion)
         ) {
+          logger.error("invalid user property update", { workspaceId, signal });
           return;
         }
         const parsed = parseUserProperty(
@@ -104,6 +105,7 @@ export async function hubspotUserWorkflow({
           existing !== null &&
           existing.segmentVersion >= signal.segmentVersion
         ) {
+          logger.error("invalid segment update", { workspaceId, signal });
           return;
         }
         pendingListsUpdates.set(signal.segmentId, signal);
@@ -112,13 +114,31 @@ export async function hubspotUserWorkflow({
     }
   });
 
-  await wf.condition(
+  logger.info("waiting for hubspot user batch", { workspaceId, userId });
+  const batchFull = await wf.condition(
     () => pendingListsUpdates.size > BATCH_SIZE || pendingEmailsUpdate !== null,
     TIMEOUT
   );
+  if (batchFull) {
+    logger.info("hubspot user batch ready", {
+      workspaceId,
+      userId,
+      segmentsSize: pendingListsUpdates.size,
+      emailsUpdate: pendingEmailsUpdate,
+    });
+  } else {
+    logger.info("hubspot user batch timed out", {
+      workspaceId,
+      userId,
+      segmentsSize: pendingListsUpdates.size,
+      emailsUpdate: pendingEmailsUpdate,
+    });
+  }
   if (!(await getIntegrationEnabled({ workspaceId }))) {
     logger.info("hubspot integration disabled, exiting", { workspaceId });
+    return;
   }
+  logger.info("syncing to hubspot", { workspaceId, userId });
   const promises: Promise<unknown>[] = [];
 
   if (pendingEmailsUpdate !== null) {
@@ -141,5 +161,5 @@ export async function hubspotUserWorkflow({
     );
   }
 
-  await Promise.all([updateHubspotEmails, updateHubspotLists]);
+  await Promise.all(promises);
 }

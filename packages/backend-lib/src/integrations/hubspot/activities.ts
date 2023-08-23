@@ -28,6 +28,55 @@ import {
   findAllUserPropertyAssignments,
 } from "../../userProperties";
 
+type FuncReturningPromise<T extends any[], U> = (...args: T) => Promise<U>;
+
+interface AuthError {
+  type: "AuthError";
+}
+
+async function disableIntegration({ workspaceId }: { workspaceId: string }) {
+  await prisma().integration.update({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: HUBSPOT_INTEGRATION,
+      },
+    },
+    data: {
+      enabled: false,
+    },
+  });
+}
+
+function handleAuthFailure<T extends any[], U>(
+  workspaceId: string,
+  fn: FuncReturningPromise<T, U>
+): FuncReturningPromise<T, Result<U, AuthError>> {
+  const newFn: FuncReturningPromise<T, Result<U, AuthError>> = async (
+    ...args: T
+  ) => {
+    try {
+      // Call the original function and await its result
+      return ok(await fn(...args));
+    } catch (e) {
+      if (!(e instanceof AxiosError) || e.response?.status !== 401) {
+        throw e;
+      }
+      logger().error(
+        {
+          err: e,
+        },
+        "failed to authenticate against hupspot"
+      );
+      await disableIntegration({
+        workspaceId,
+      });
+      return err({ type: "AuthError" });
+    }
+  };
+  return newFn;
+}
+
 // prevents temporal from automatically serializing Dates to strings
 export type SerializableOauthToken = Overwrite<
   OauthToken,
@@ -394,6 +443,7 @@ export async function updateHubspotEmails({
   userId: string;
   events: ParsedPerformedManyValueItem[];
 }) {
+  logger().info({ workspaceId, userId }, "updating hubspot emails");
   const [hubspotAccessToken, { email }] = await Promise.all([
     getOauthToken({ workspaceId }).then((token) => token?.accessToken),
     findAllUserPropertyAssignments({
@@ -424,12 +474,36 @@ export async function updateHubspotEmails({
   });
 
   const grouped = groupBy(filteredEvents, (event) => event.key);
+  const api = {
+    searchEmails: handleAuthFailure(workspaceId, searchEmails),
+    listOwners: handleAuthFailure(workspaceId, listOwners),
+    searchContacts: handleAuthFailure(workspaceId, searchContacts),
+    createHubspotEmailRequest: handleAuthFailure(
+      workspaceId,
+      createHubspotEmailRequest
+    ),
+    updateHubspotEmailsRequest: handleAuthFailure(
+      workspaceId,
+      updateHubspotEmailsRequest
+    ),
+  } as const;
 
-  const [emailsResult, ownersResult, contactResult] = await Promise.all([
-    searchEmails(hubspotAccessToken, email),
-    listOwners(hubspotAccessToken),
-    searchContacts(hubspotAccessToken, email),
-  ]);
+  const [emailsResultWithAuth, ownersResult, contactResult] = await Promise.all(
+    [
+      api.searchEmails(hubspotAccessToken, email),
+      api.listOwners(hubspotAccessToken),
+      api.searchContacts(hubspotAccessToken, email),
+    ]
+  );
+  if (
+    ownersResult.isErr() ||
+    contactResult.isErr() ||
+    emailsResultWithAuth.isErr()
+  ) {
+    return;
+  }
+
+  const emailsResult = emailsResultWithAuth.value;
 
   if (emailsResult.isErr()) {
     logger().error(
@@ -442,7 +516,7 @@ export async function updateHubspotEmails({
     );
     return;
   }
-  const contact = contactResult
+  const contact = contactResult.value
     .map(
       (r) =>
         r.results.find(
@@ -464,7 +538,7 @@ export async function updateHubspotEmails({
   }
 
   const owners = indexBy(
-    ownersResult
+    ownersResult.value
       .map((r) => r.results)
       .mapErr((e) => {
         logger().error(
@@ -779,6 +853,7 @@ export async function updateHubspotLists({
   userId: string;
   segments: SegmentUpdate[];
 }) {
+  logger().info({ workspaceId, userId }, "updating hubspot lists");
   const [hubspotAccessToken, segments, { email }] = await Promise.all([
     getOauthToken({ workspaceId }),
     findEnrichedSegments({
@@ -799,22 +874,42 @@ export async function updateHubspotLists({
     logger().info({ workspaceId, userId, email }, "invalid user email");
     return;
   }
-  const lists = await paginateHubspotLists(hubspotAccessToken.accessToken);
+  const api = {
+    paginateHubspotLists: handleAuthFailure(workspaceId, paginateHubspotLists),
+    createHubspotList: handleAuthFailure(workspaceId, createHubspotList),
+    addContactToList: handleAuthFailure(workspaceId, addContactToList),
+    removeContactFromList: handleAuthFailure(
+      workspaceId,
+      removeContactFromList
+    ),
+  } as const;
+  const authedLists = await api.paginateHubspotLists(
+    hubspotAccessToken.accessToken
+  );
+  if (authedLists.isErr()) {
+    logger().error("auth error paginating hubspot lists");
+    return;
+  }
+  const lists = authedLists.value;
   const listsToCreate = new Set(segments.map((s) => segmentToListName(s.name)));
   for (const list of lists) {
     listsToCreate.delete(list.name);
   }
 
-  const newLists = await Promise.all(
+  const newListsAuthed = await Promise.all(
     Array.from(listsToCreate).map((name) =>
-      createHubspotList({
+      api.createHubspotList({
         token: hubspotAccessToken.accessToken,
         name,
       })
     )
   );
-  for (const newList of newLists) {
-    const val = unwrap(newList);
+  for (const newList of newListsAuthed) {
+    if (newList.isErr()) {
+      logger().error("auth error creating hubspot list");
+      return;
+    }
+    const val = unwrap(newList.value);
     if (val) {
       lists.push(val);
     }
@@ -843,23 +938,17 @@ export async function updateHubspotLists({
       }
 
       if (update.currentlyInSegment) {
-        return addContactToList({
+        return api.addContactToList({
           token: hubspotAccessToken.accessToken,
           listId,
           email,
         });
       }
-      return removeContactFromList({
+      return api.removeContactFromList({
         token: hubspotAccessToken.accessToken,
         listId,
         email,
       });
     })
   );
-
-  logger().debug({
-    lists: lists.map((l) => pick(l, ["name", "listId"])),
-    listsToCreate: Array.from(listsToCreate),
-    segments,
-  });
 }

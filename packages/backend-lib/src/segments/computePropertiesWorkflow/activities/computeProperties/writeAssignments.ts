@@ -840,37 +840,29 @@ export default async function writeAssignments({
       .join(",\n");
 
     const writeQuery = `
-    INSERT INTO computed_property_assignments
-    SELECT
-      '${workspaceId}',
-      sas.user_id,
-      if(isNull(in_segment), 1, 2),
-      sas.computed_property_id,
-      coalesce(sas.in_segment, False),
-      coalesce(sas.user_property, ''),
-      now64(3)
-    FROM (
+      INSERT INTO computed_property_assignments
       SELECT
-        ${joinedWithClause},
-        user_id,
-        history_length,
-        in_segment,
-        user_property,
-        latest_processing_time
-      FROM user_events_${tableVersion}
-      WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
-      GROUP BY user_id
-      ORDER BY latest_processing_time DESC
-    ) sas
-  `;
-
-    logger().debug(
-      {
-        workspaceId,
-        query: writeQuery,
-      },
-      "compute properties write query"
-    );
+        '${workspaceId}',
+        sas.user_id,
+        if(isNull(in_segment), 1, 2),
+        sas.computed_property_id,
+        coalesce(sas.in_segment, False),
+        coalesce(sas.user_property, ''),
+        now64(3)
+      FROM (
+        SELECT
+          ${joinedWithClause},
+          user_id,
+          history_length,
+          in_segment,
+          user_property,
+          latest_processing_time
+        FROM user_events_${tableVersion}
+        WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
+        GROUP BY user_id
+        ORDER BY latest_processing_time DESC
+      ) sas
+    `;
 
     await clickhouseClient().query({
       query: writeQuery,
