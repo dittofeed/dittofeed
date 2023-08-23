@@ -697,7 +697,6 @@ function HubspotIntegration() {
       responseSchema: IntegrationResource,
       setResponse: (integration) => {
         upsertIntegration(integration);
-        console.log("saved segments", integration);
         setInProgress(null);
       },
       onSuccessNotice: "Updated synced hubspot integration segments.",

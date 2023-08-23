@@ -1,3 +1,5 @@
+import { Readable } from "node:stream";
+
 import { ClickHouseClient, createClient } from "@clickhouse/client";
 import { NodeClickHouseClientConfigOptions } from "@clickhouse/client/dist/client";
 import { v4 as uuid } from "uuid";
@@ -62,7 +64,7 @@ export async function createClickhouseDb() {
   await client.close();
 }
 
-let CLICKHOUSE_CLIENT: ClickHouseClient | null = null;
+let CLICKHOUSE_CLIENT: ClickHouseClient<Readable> | null = null;
 
 export function clickhouseClient() {
   if (CLICKHOUSE_CLIENT === null) {
