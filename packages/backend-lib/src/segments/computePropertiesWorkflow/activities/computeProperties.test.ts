@@ -10,11 +10,18 @@ import {
   segmentTrackEvent,
 } from "../../../../test/factories/segment";
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
+import {
+  EMAIL_EVENTS_UP_NAME,
+  HUBSPOT_INTEGRATION_DEFINITION,
+} from "../../../constants";
+import { EMAIL_EVENTS_UP_DEFINITION } from "../../../integrations/subscriptions";
 import { enrichJourney } from "../../../journeys";
+import logger from "../../../logger";
 import prisma, { Prisma } from "../../../prisma";
 import { buildSubscriptionChangeEventInner } from "../../../subscriptionGroups";
 import {
   ChannelType,
+  EnrichedIntegration,
   EnrichedJourney,
   EnrichedUserProperty,
   InternalEventType,
@@ -37,7 +44,7 @@ import {
   InsertValue,
 } from "../../../userEvents/clickhouse";
 import {
-  enrichedUserProperty,
+  enrichUserProperty,
   findAllUserPropertyAssignments,
   UserPropertyAssignments,
 } from "../../../userProperties";
@@ -162,9 +169,12 @@ describe("compute properties activities", () => {
   describe("computePropertiesPeriod", () => {
     interface TableTest {
       description: string;
+      skip?: boolean;
+      only?: boolean;
       currentTime?: number;
       segments?: TestSegmentData[];
       userProperties?: TestUserPropertyData[];
+      integrations?: Pick<EnrichedIntegration, "definition" | "name">[];
       events?: {
         eventTimeOffset: number;
         overrides?: (
@@ -172,7 +182,9 @@ describe("compute properties activities", () => {
         ) => Record<string, JSONValue>;
       }[];
       expectedSignals?: {
-        segmentName: string;
+        segmentName?: string;
+        userPropertyName?: string;
+        userPropertyValue?: string;
       }[];
       // map from segment name to value
       expectedSegments?: Record<string, boolean>;
@@ -575,7 +587,9 @@ describe("compute properties activities", () => {
           },
         ],
         events: [],
-        expectedSegments: {},
+        expectedSegments: {
+          "in opt in subscription group": false,
+        },
         expectedSignals: [],
       },
       {
@@ -787,20 +801,165 @@ describe("compute properties activities", () => {
           },
         },
       },
+      {
+        description: "with a hubspot integration, it signals appropriately",
+        userProperties: [
+          {
+            name: EMAIL_EVENTS_UP_NAME,
+            definition: EMAIL_EVENTS_UP_DEFINITION,
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -500,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: InternalEventType.MessageSent,
+                properties: {
+                  some: "property",
+                },
+              }),
+          },
+          {
+            eventTimeOffset: -400,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: InternalEventType.EmailClicked,
+                properties: {
+                  other: "property",
+                },
+              }),
+          },
+          {
+            eventTimeOffset: -300,
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                traits: {
+                  status: "onboarding",
+                },
+              }),
+          },
+        ],
+        integrations: [
+          {
+            ...HUBSPOT_INTEGRATION_DEFINITION,
+            definition: {
+              ...HUBSPOT_INTEGRATION_DEFINITION.definition,
+              subscribedSegments: ["onboarding"],
+            },
+          },
+        ],
+        segments: [
+          {
+            name: "active",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "active",
+                },
+              },
+              nodes: [],
+            },
+          },
+          {
+            name: "onboarding",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "onboarding",
+                },
+              },
+              nodes: [],
+            },
+          },
+        ],
+        expectedUserProperties: {
+          "user-id-1": {
+            [EMAIL_EVENTS_UP_NAME]: [
+              {
+                event: InternalEventType.MessageSent,
+                properties: {
+                  some: "property",
+                },
+                timestamp: "2023-04-12T21:16:18",
+              },
+              {
+                event: InternalEventType.EmailClicked,
+                properties: {
+                  other: "property",
+                },
+                timestamp: "2023-04-12T21:16:18",
+              },
+            ],
+          },
+        },
+        expectedSignals: [
+          {
+            userPropertyName: EMAIL_EVENTS_UP_NAME,
+            userPropertyValue: JSON.stringify(
+              JSON.stringify([
+                {
+                  event: InternalEventType.MessageSent,
+                  properties: JSON.stringify({
+                    some: "property",
+                  }),
+                  timestamp: "2023-04-12T21:16:18",
+                },
+                {
+                  event: InternalEventType.EmailClicked,
+                  properties: JSON.stringify({
+                    other: "property",
+                  }),
+                  timestamp: "2023-04-12T21:16:18",
+                },
+              ])
+            ),
+          },
+          {
+            segmentName: "onboarding",
+          },
+        ],
+      },
     ];
 
     describe("table driven tests", () => {
-      test.each(tableTests)(
+      const only: null | string =
+        tableTests.find((t) => t.only === true)?.description ?? null;
+
+      test.each(
+        tableTests.filter(
+          (t) => t.skip !== true && (only === null || only === t.description)
+        )
+      )(
         "$description",
         async ({
+          description,
           segments: testSegments,
           events = [],
           currentTime = 1681334178956,
           userProperties: testUserProperties,
+          integrations: testIntegrations,
           expectedUserProperties,
           expectedSegments,
           expectedSignals,
         }) => {
+          if (only !== null && only !== description) {
+            return;
+          }
+
           userId = "user-id-1";
 
           const eventPayloads: InsertValue[] = events.map(
@@ -884,6 +1043,20 @@ describe("compute properties activities", () => {
             );
           }
 
+          if (testIntegrations?.length) {
+            testIntegrations.forEach((integration) => {
+              promises.push(
+                prisma().integration.create({
+                  data: {
+                    workspaceId: workspace.id,
+                    enabled: true,
+                    ...integration,
+                  },
+                })
+              );
+            });
+          }
+
           await Promise.all(promises);
 
           await computePropertiesPeriod({
@@ -894,28 +1067,20 @@ describe("compute properties activities", () => {
             userProperties,
           });
 
-          const [createdSegments, createdSegmentAssignments] =
-            await Promise.all([
-              prisma().segment.findMany({
-                where: {
-                  workspaceId: workspace.id,
-                },
-              }),
-              prisma().segmentAssignment.findMany({
-                where: {
-                  workspaceId: workspace.id,
-                },
-                include: {
-                  segment: true,
-                },
-              }),
-            ]);
+          const createdSegments = await prisma().segment.findMany({
+            where: {
+              workspaceId: workspace.id,
+            },
+            include: {
+              SegmentAssignment: true,
+            },
+          });
 
           if (expectedSegments) {
-            const segmentsRecord = createdSegmentAssignments.reduce<
+            const segmentsRecord = createdSegments.reduce<
               Record<string, boolean>
-            >((memo, sa) => {
-              memo[sa.segment.name] = sa.inSegment;
+            >((memo, s) => {
+              memo[s.name] = s.SegmentAssignment[0]?.inSegment ?? false;
               return memo;
             }, {});
             expect(segmentsRecord).toEqual(expectedSegments);
@@ -938,24 +1103,52 @@ describe("compute properties activities", () => {
             );
           }
 
-          for (const { segmentName } of expectedSignals ?? []) {
-            const segmentId = createdSegments.find(
-              (s) => s.name === segmentName
-            )?.id;
-            if (!segmentId) {
-              throw new Error(`Unable to find segment ${segmentName}`);
+          for (const {
+            segmentName,
+            userPropertyName,
+            userPropertyValue,
+          } of expectedSignals ?? []) {
+            if (segmentName) {
+              const segmentId = createdSegments.find(
+                (s) => s.name === segmentName
+              )?.id;
+              if (!segmentId) {
+                throw new Error(`Unable to find segment ${segmentName}`);
+              }
+              expect(signalWithStart).toHaveBeenCalledWith(
+                expect.any(Function),
+                expect.objectContaining({
+                  signalArgs: [
+                    expect.objectContaining({
+                      segmentId,
+                      currentlyInSegment: true,
+                    }),
+                  ],
+                })
+              );
+            } else if (userPropertyName && userPropertyValue) {
+              const userPropertyId = userProperties.find(
+                (up) => up.name === userPropertyName
+              )?.id;
+
+              if (!userPropertyId) {
+                throw new Error(
+                  `Unable to find user property ${userPropertyName}`
+                );
+              }
+
+              expect(signalWithStart).toHaveBeenCalledWith(
+                expect.any(Function),
+                expect.objectContaining({
+                  signalArgs: [
+                    expect.objectContaining({
+                      userPropertyId,
+                      value: userPropertyValue,
+                    }),
+                  ],
+                })
+              );
             }
-            expect(signalWithStart).toHaveBeenCalledWith(
-              expect.any(Function),
-              expect.objectContaining({
-                signalArgs: [
-                  expect.objectContaining({
-                    segmentId,
-                    currentlyInSegment: true,
-                  }),
-                ],
-              })
-            );
           }
         }
       );
@@ -1151,7 +1344,7 @@ describe("compute properties activities", () => {
             };
 
             userProperty = unwrap(
-              enrichedUserProperty(
+              enrichUserProperty(
                 await prisma().userProperty.create({
                   data: {
                     workspaceId: workspace.id,
@@ -1206,7 +1399,7 @@ describe("compute properties activities", () => {
             };
 
             userProperty = unwrap(
-              enrichedUserProperty(
+              enrichUserProperty(
                 await prisma().userProperty.create({
                   data: {
                     workspaceId: workspace.id,
@@ -1234,7 +1427,7 @@ describe("compute properties activities", () => {
               userId,
               workspaceId: workspace.id,
             });
-            expect(assignments.malformed).toBe("");
+            expect(assignments.malformed).toBeUndefined();
           });
         });
 
@@ -1250,7 +1443,7 @@ describe("compute properties activities", () => {
             };
 
             userProperty = unwrap(
-              enrichedUserProperty(
+              enrichUserProperty(
                 await prisma().userProperty.create({
                   data: {
                     workspaceId: workspace.id,
@@ -1408,6 +1601,7 @@ describe("compute properties activities", () => {
         describe("when activity called twice with the same parameters", () => {
           it("returns the same results but only sends the signals once", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
+            logger().debug("call 1");
 
             await computePropertiesPeriod({
               currentTime,
@@ -1418,6 +1612,7 @@ describe("compute properties activities", () => {
               userProperties: [],
             });
 
+            logger().debug("call 2");
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
@@ -2225,7 +2420,7 @@ describe("compute properties activities", () => {
           };
 
           userProperty = unwrap(
-            enrichedUserProperty(
+            enrichUserProperty(
               await prisma().userProperty.create({
                 data: {
                   workspaceId: workspace.id,

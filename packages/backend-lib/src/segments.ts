@@ -2,7 +2,10 @@ import { writeToString } from "@fast-csv/format";
 import { ValueError } from "@sinclair/typebox/errors";
 import { format } from "date-fns";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  schemaValidate,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
 import prisma from "./prisma";
@@ -20,8 +23,8 @@ import {
 
 export function enrichSegment(
   segment: Segment
-): Result<EnrichedSegment, ValueError[]> {
-  const definitionResult = schemaValidate(
+): Result<EnrichedSegment, Error> {
+  const definitionResult = schemaValidateWithErr(
     segment.definition,
     SegmentDefinition
   );
@@ -54,7 +57,7 @@ export async function createSegment({
 
 export function toSegmentResource(
   segment: Segment
-): Result<SegmentResource, ValueError[]> {
+): Result<SegmentResource, Error> {
   const result = enrichSegment(segment);
   if (result.isErr()) {
     return err(result.error);
@@ -72,7 +75,7 @@ export function toSegmentResource(
 
 export async function findEnrichedSegment(
   segmentId: string
-): Promise<Result<EnrichedSegment | null, ValueError[]>> {
+): Promise<Result<EnrichedSegment | null, Error>> {
   const segment = await prisma().segment.findFirst({
     where: { id: segmentId },
   });
@@ -81,6 +84,42 @@ export async function findEnrichedSegment(
   }
 
   return enrichSegment(segment);
+}
+
+export async function findEnrichedSegments({
+  workspaceId,
+  ids,
+}: {
+  workspaceId: string;
+  ids?: string[];
+}): Promise<Result<EnrichedSegment[], Error>> {
+  const where: Prisma.SegmentWhereInput = {
+    workspaceId,
+  };
+  if (ids) {
+    where.id = {
+      in: ids,
+    };
+  }
+  const segments = await prisma().segment.findMany({
+    where,
+  });
+
+  const enrichedSegments: EnrichedSegment[] = [];
+  for (const segment of segments) {
+    const definitionResult = schemaValidateWithErr(
+      segment.definition,
+      SegmentDefinition
+    );
+    if (definitionResult.isErr()) {
+      return err(definitionResult.error);
+    }
+    enrichedSegments.push({
+      ...segment,
+      definition: definitionResult.value,
+    });
+  }
+  return ok(enrichedSegments);
 }
 
 export async function findAllEnrichedSegments(

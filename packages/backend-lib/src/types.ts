@@ -1,12 +1,20 @@
-import { Journey, Segment, UserProperty } from "@prisma/client";
+import {
+  Integration,
+  Journey,
+  Prisma,
+  Segment,
+  UserProperty,
+} from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
 import {
   EventType,
+  IntegrationDefinition,
   JourneyDefinition,
   Nullable,
   SegmentDefinition,
   UserPropertyDefinition,
 } from "isomorphic-lib/src/types";
+import { Overwrite } from "utility-types";
 
 export * from "isomorphic-lib/src/types";
 
@@ -45,6 +53,7 @@ export const ComputedAssignment = Type.Object({
   latest_user_property_value: Type.String(),
   max_assigned_at: Type.String(),
   processed_for: Type.String(),
+  processed_for_type: Type.String(),
 });
 
 export type ComputedAssignment = Static<typeof ComputedAssignment>;
@@ -166,3 +175,18 @@ export const SendgridEvent = Type.Intersect([
 ]);
 
 export type SendgridEvent = Static<typeof SendgridEvent>;
+
+export type IntegrationCreateDefinition = Omit<
+  Overwrite<
+    Prisma.IntegrationUncheckedCreateInput,
+    {
+      definition: IntegrationDefinition;
+    }
+  >,
+  "workspaceId"
+>;
+
+export type EnrichedIntegration = Overwrite<
+  Integration,
+  { definition: IntegrationDefinition }
+>;

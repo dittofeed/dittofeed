@@ -1,10 +1,12 @@
 export default function ExternalLink({
   children,
+  disableNewTab = false,
   enableLinkStyling,
   ...linkProps
 }: Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "children" | "href"> & {
   children: React.ReactNode;
   enableLinkStyling?: boolean;
+  disableNewTab?: boolean;
   href: string;
 }) {
   const style = enableLinkStyling
@@ -13,8 +15,11 @@ export default function ExternalLink({
         textDecoration: "none",
         color: "inherit",
       };
+  const newTabProps = disableNewTab
+    ? {}
+    : { target: "_blank", rel: "noopener noreferrer" };
   return (
-    <a target="_blank" rel="noopener noreferrer" style={style} {...linkProps}>
+    <a {...newTabProps} style={style} {...linkProps}>
       {children}
     </a>
   );

@@ -1,9 +1,7 @@
-import { UserProperty } from "@prisma/client";
+import { Prisma, UserProperty } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
-import {
-  jsonParseSafe,
-  schemaValidate,
-} from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { parseUserProperty } from "isomorphic-lib/src/userProperties";
 import { err, ok, Result } from "neverthrow";
 
 import logger from "./logger";
@@ -11,13 +9,11 @@ import prisma from "./prisma";
 import {
   EnrichedUserProperty,
   JSONValue,
-  PerformedManyValueItem,
   UserPropertyDefinition,
-  UserPropertyDefinitionType,
   UserPropertyResource,
 } from "./types";
 
-export function enrichedUserProperty(
+export function enrichUserProperty(
   userProperty: UserProperty
 ): Result<EnrichedUserProperty, ValueError[]> {
   const definitionResult = schemaValidate(
@@ -36,7 +32,7 @@ export function enrichedUserProperty(
 export function toUserPropertyResource(
   userProperty: UserProperty
 ): Result<UserPropertyResource, ValueError[]> {
-  return enrichedUserProperty(userProperty).map(
+  return enrichUserProperty(userProperty).map(
     ({ workspaceId, name, id, definition }) => ({
       workspaceId,
       name,
@@ -58,7 +54,7 @@ export async function findAllUserProperties({
   const enrichedUserProperties: EnrichedUserProperty[] = [];
 
   for (const userProperty of userProperties) {
-    const enrichedJourney = enrichedUserProperty(userProperty);
+    const enrichedJourney = enrichUserProperty(userProperty);
 
     if (enrichedJourney.isErr()) {
       logger().error({ err: enrichedJourney.error });
@@ -84,66 +80,26 @@ export function assignmentAsString(
   return assignment;
 }
 
-function processUserProperty(
-  definition: UserPropertyDefinition,
-  value: JSONValue
-): JSONValue | undefined {
-  switch (definition.type) {
-    case UserPropertyDefinitionType.PerformedMany: {
-      if (typeof value !== "string") {
-        return undefined;
-      }
-      const jsonParsedValue = jsonParseSafe(value);
-      if (jsonParsedValue.isErr()) {
-        logger().error(
-          {
-            err: jsonParsedValue.error,
-          },
-          "failed to json parse performed many value"
-        );
-        return undefined;
-      }
-      if (!(jsonParsedValue.value instanceof Array)) {
-        logger().error("performed many json parsed value is not an array");
-        return undefined;
-      }
-
-      return jsonParsedValue.value.flatMap((item) => {
-        const result = schemaValidate(item, PerformedManyValueItem);
-        if (result.isErr()) {
-          logger().error(
-            { err: result.error, item, definition },
-            "failed to parse performed many item"
-          );
-          return [];
-        }
-        const parsedProperties = jsonParseSafe(result.value.properties);
-        if (parsedProperties.isErr()) {
-          logger().error(
-            { err: parsedProperties.error, item, definition },
-            "failed to json parse performed many item properties"
-          );
-          return [];
-        }
-        return {
-          ...result.value,
-          properties: parsedProperties.value,
-        };
-      });
-    }
-  }
-  return value;
-}
-
 export async function findAllUserPropertyAssignments({
   userId,
   workspaceId,
+  userProperties: userPropertiesFilter,
 }: {
   userId: string;
   workspaceId: string;
+  userProperties?: string[];
 }): Promise<UserPropertyAssignments> {
+  const where: Prisma.UserPropertyWhereInput = {
+    workspaceId,
+  };
+  if (userPropertiesFilter?.length) {
+    where.name = {
+      in: userPropertiesFilter,
+    };
+  }
+
   const userProperties = await prisma().userProperty.findMany({
-    where: { workspaceId },
+    where,
     include: {
       UserPropertyAssignment: {
         where: { userId },
@@ -169,19 +125,11 @@ export async function findAllUserPropertyAssignments({
     const assignments = userProperty.UserPropertyAssignment;
 
     for (const assignment of assignments) {
-      const parsed = jsonParseSafe(assignment.value);
+      const parsed = parseUserProperty(definition, assignment.value);
       if (parsed.isErr()) {
-        logger().error(
-          { err: parsed.error },
-          "failed to parse user property assignment"
-        );
         continue;
       }
-      const processed = processUserProperty(definition, parsed.value);
-      if (processed === undefined) {
-        continue;
-      }
-      combinedAssignments[userProperty.name] = processed;
+      combinedAssignments[userProperty.name] = parsed.value;
     }
   }
 

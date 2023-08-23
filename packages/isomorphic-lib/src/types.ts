@@ -81,10 +81,20 @@ export type SubscriptionGroupResource = Static<
 >;
 
 export interface SegmentUpdate {
+  type: "segment";
   segmentId: string;
   currentlyInSegment: boolean;
   segmentVersion: number;
 }
+
+export interface UserPropertyUpdate {
+  type: "user_property";
+  userPropertyId: string;
+  value: string;
+  userPropertyVersion: number;
+}
+
+export type ComputedPropertyUpdate = SegmentUpdate | UserPropertyUpdate;
 
 export enum SegmentOperatorType {
   Within = "Within",
@@ -183,21 +193,20 @@ export const PerformedSegmentNode = Type.Object({
 
 export type PerformedSegmentNode = Static<typeof PerformedSegmentNode>;
 
-export const EmailEventList: string[] = [
-  InternalEventType.MessageSent,
-  InternalEventType.EmailDropped,
-  InternalEventType.EmailDelivered,
-  InternalEventType.EmailOpened,
-  InternalEventType.EmailClicked,
-  InternalEventType.EmailBounced,
-  InternalEventType.EmailMarkedSpam,
-];
-
-export const EmailEvent = Type.Union(
-  EmailEventList.map((s) => Type.Literal(s))
-);
+// Order of this union is important, as it determines the order of the listed events in the UI
+export const EmailEvent = Type.Union([
+  Type.Literal(InternalEventType.MessageSent),
+  Type.Literal(InternalEventType.EmailDropped),
+  Type.Literal(InternalEventType.EmailDelivered),
+  Type.Literal(InternalEventType.EmailOpened),
+  Type.Literal(InternalEventType.EmailClicked),
+  Type.Literal(InternalEventType.EmailBounced),
+  Type.Literal(InternalEventType.EmailMarkedSpam),
+]);
 
 export type EmailEvent = Static<typeof EmailEvent>;
+
+export const EmailEventList: string[] = EmailEvent.anyOf.map((e) => e.const);
 
 export const EmailSegmentNode = Type.Object({
   type: Type.Literal(SegmentNodeType.Email),
@@ -346,6 +355,16 @@ export const PerformedManyUserPropertyDefinition = Type.Object({
 
 export type PerformedManyUserPropertyDefinition = Static<
   typeof PerformedManyUserPropertyDefinition
+>;
+
+export const ParsedPerformedManyValueItem = Type.Object({
+  event: Type.String(),
+  timestamp: Type.String(),
+  properties: Type.Record(Type.String(), Type.Any()),
+});
+
+export type ParsedPerformedManyValueItem = Static<
+  typeof ParsedPerformedManyValueItem
 >;
 
 export const PerformedManyValueItem = Type.Object({
@@ -1503,3 +1522,38 @@ export const CsvUploadValidationError = Type.Object({
 });
 
 export type CsvUploadValidationError = Static<typeof CsvUploadValidationError>;
+
+export enum IntegrationType {
+  Sync = "Sync",
+}
+
+export const SyncIntegration = Type.Object({
+  type: Type.Literal(IntegrationType.Sync),
+  subscribedSegments: Type.Array(Type.String()),
+  subscribedUserProperties: Type.Array(Type.String()),
+});
+
+export type SyncIntegration = Static<typeof SyncIntegration>;
+
+export const IntegrationDefinition = Type.Union([SyncIntegration]);
+
+export type IntegrationDefinition = Static<typeof IntegrationDefinition>;
+
+export const IntegrationResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  definition: IntegrationDefinition,
+  enabled: Type.Boolean(),
+});
+
+export type IntegrationResource = Static<typeof IntegrationResource>;
+
+export const UpsertIntegrationResource = Type.Composite([
+  Type.Partial(Type.Pick(IntegrationResource, ["enabled", "definition"])),
+  Type.Pick(IntegrationResource, ["workspaceId", "name"]),
+]);
+
+export type UpsertIntegrationResource = Static<
+  typeof UpsertIntegrationResource
+>;

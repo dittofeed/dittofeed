@@ -1,12 +1,11 @@
 import bootstrap from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
 import { onboardUser } from "backend-lib/src/onboarding";
-import { prismaMigrate } from "backend-lib/src/prisma/migrate";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
-import { SDK_LANGUAGES, sdkBaseCodegen } from "./sdkBase";
+import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
 
 export async function cli() {
@@ -47,7 +46,6 @@ export async function cli() {
           workspaceDomain,
         })
     )
-    .command("migrate", "Runs 'prisma migrate deploy'.", prismaMigrate)
     .command(
       "spawn",
       "Spawns a shell command, with dittofeed's config exported as environment variables.",
@@ -64,21 +62,6 @@ export async function cli() {
             process.argv.slice(3)
           )
         )
-    )
-    .command(
-      "sdk-base-codegen",
-      "Generates an openapi client for a particular language's base sdk. Note that this requires:\n* swagger-codegen 3 to be installed (https://github.com/swagger-api/swagger-codegen).\n* The api server to be running.",
-      (cmd) =>
-        cmd.options({
-          lang: {
-            type: "string",
-            alias: "l",
-            choices: Object.keys(SDK_LANGUAGES),
-            default: backendConfig().defaultWorkspaceId,
-            describe: "The workspace id to bootstrap.",
-          },
-        }),
-      ({ lang }) => sdkBaseCodegen({ lang })
     )
     .command(
       "psql",
@@ -105,6 +88,38 @@ export async function cli() {
         const onboardUserResult = await onboardUser({ workspaceName, email });
         unwrap(onboardUserResult);
       }
+    )
+    .command(
+      "hubspot-sync",
+      "Syncs fake user info to hubspot.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            default: backendConfig().defaultWorkspaceId,
+            describe: "The workspace id to bootstrap.",
+          },
+          email: {
+            require: true,
+            type: "string",
+            alias: "e",
+            describe: "The email of the contact in hubspot",
+          },
+          from: {
+            type: "string",
+            alias: "f",
+            describe: "The email of the owner in hubspot",
+          },
+          "update-email": {
+            type: "boolean",
+            alias: "u",
+            describe:
+              "Whether to update the email record. Defaults to creating.",
+          },
+        }),
+      ({ workspaceId, email, from, updateEmail }) =>
+        hubspotSync({ workspaceId, email, from, updateEmail })
     )
     .demandCommand(1, "# Please provide a valid command")
     .help()

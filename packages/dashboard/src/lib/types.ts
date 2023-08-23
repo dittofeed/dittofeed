@@ -9,6 +9,7 @@ import {
   EntryNode,
   EphemeralRequestStatus,
   ExitNode,
+  IntegrationResource,
   JourneyNodeType,
   JourneyResource,
   MessageTemplateResource,
@@ -59,6 +60,7 @@ export type GetDFServerSideProps<
 // reason properties should not be nested in AppState.
 export type AppState = {
   apiBase: string;
+  dashboardUrl: string;
   workspace: RequestStatus<WorkspaceResource, Error>;
   member: WorkspaceMemberResource | null;
   drawerOpen: boolean;
@@ -80,6 +82,7 @@ export type AppState = {
     DataSourceConfigurationResource[],
     Error
   >;
+  integrations: IntegrationResource[];
   sourceControlProvider?: SourceControlProviderEnum;
 } & PageStoreContents &
   Pick<
@@ -113,6 +116,7 @@ export interface AppActions {
   deleteSubscriptionGroup: (id: string) => void;
   upsertUserProperty: (userProperty: UserPropertyResource) => void;
   deleteUserProperty: (userPropertyId: string) => void;
+  upsertIntegration: (integrations: IntegrationResource) => void;
 }
 
 export interface SegmentIndexContent {

@@ -26,10 +26,12 @@ export function addInitialStateToProps<
     trackDashboard,
     dashboardWriteKey,
     enableMobilePush,
+    dashboardUrl,
   } = backendConfig();
 
   const stateWithEnvVars: Partial<AppState> = clone({
     apiBase: apiBase(),
+    dashboardUrl,
     sourceControlProvider,
     enableSourceControl,
     ...serverInitialState,

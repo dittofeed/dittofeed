@@ -2,11 +2,15 @@ import {
   ArrowBackIos,
   ContentCopyOutlined,
   East,
+  IntegrationInstructionsOutlined,
   Key,
   MailOutline,
+  TurnedInOutlined,
 } from "@mui/icons-material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { LoadingButton } from "@mui/lab";
 import {
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -25,11 +29,15 @@ import {
   useTheme,
 } from "@mui/material";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
+import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
+import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
+import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { SENDGRID_WEBHOOK_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -37,9 +45,14 @@ import {
   EmailProviderResource,
   EmailProviderType,
   EphemeralRequestStatus,
+  IntegrationResource,
+  IntegrationType,
   PersistedEmailProvider,
+  SegmentResource,
+  SyncIntegration,
   UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
+  UpsertIntegrationResource,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -48,17 +61,19 @@ import {
 } from "next";
 import { enqueueSnackbar } from "notistack";
 import { useMemo, useState } from "react";
+import { pick } from "remeda/dist/commonjs/pick";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { Collapaseable } from "../components/collapsable";
+import ExternalLink from "../components/externalLink";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
 import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
+import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
@@ -79,6 +94,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       defaultEmailProviderRecord,
       subscriptionGroups,
       writeKey,
+      integrations,
+      segments,
     ] = await Promise.all([
       (
         await prisma().emailProvider.findMany({
@@ -104,6 +121,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         },
       }),
       getWriteKeys({ workspaceId }).then((keys) => keys[0]),
+      findAllEnrichedIntegrations(workspaceId),
+      prisma()
+        .segment.findMany({ where: { workspaceId } })
+        .then((dbSegments) =>
+          dbSegments.map((segment) => unwrap(toSegmentResource(segment)))
+        ),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -114,6 +137,13 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       defaultEmailProvider: {
         type: CompletionStatus.Successful,
         value: defaultEmailProviderRecord,
+      },
+      integrations: unwrap(integrations).map((i) =>
+        pick(i, ["id", "name", "workspaceId", "definition", "enabled"])
+      ),
+      segments: {
+        type: CompletionStatus.Successful,
+        value: segments,
       },
     };
 
@@ -192,6 +222,15 @@ const menuItems: MenuItemGroup[] = [
           "Configure email settings, including the email provider credentials.",
       },
       {
+        id: "subscription-management",
+        title: "Subscription Management",
+        type: "item",
+        url: "/settings#subscription-management",
+        icon: TurnedInOutlined,
+        description:
+          "Configure subscription management settings, with the ability to preview the subscription management page visible to users.",
+      },
+      {
         id: "write-keys",
         title: "Write Key",
         type: "item",
@@ -199,6 +238,14 @@ const menuItems: MenuItemGroup[] = [
         icon: Key,
         description:
           "Write key used to authenticate end user requests to the Dittofeed API.",
+      },
+      {
+        id: "integrations",
+        title: "Integrations",
+        type: "item",
+        url: "/settings#integrations-title",
+        icon: IntegrationInstructionsOutlined,
+        description: "Integrate Dittofeed with other platforms.",
       },
     ],
   },
@@ -217,6 +264,7 @@ interface SettingsState {
   sendgridWebhookVerificationKey: string;
   segmentIoRequest: EphemeralRequestStatus<Error>;
   segmentIoSharedSecret: string;
+  upsertIntegrationsRequest: EphemeralRequestStatus<Error>;
 }
 
 interface SettingsActions {
@@ -230,7 +278,12 @@ interface SettingsActions {
   updateSendgridWebhookVerificationRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
+  updateUpsertIntegrationsRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
 }
+
+type SettingsContent = SettingsState & SettingsActions;
 
 export const useSettingsStore = create(
   immer<SettingsActions & SettingsState>((set) => ({
@@ -246,6 +299,14 @@ export const useSettingsStore = create(
     sendgridWebhookVerificationKey: "",
     sendgridWebhookVerificationKeyRequest: {
       type: CompletionStatus.NotStarted,
+    },
+    upsertIntegrationsRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    updateUpsertIntegrationsRequest: (request) => {
+      set((state) => {
+        state.upsertIntegrationsRequest = request;
+      });
     },
     updateSendgridProviderApiKey: (key) => {
       set((state) => {
@@ -279,6 +340,10 @@ export const useSettingsStore = create(
     },
   }))
 );
+
+function useSettingsStorePick(params: (keyof SettingsContent)[]) {
+  return useSettingsStore((store) => pick(store, params));
+}
 
 function SegmentIoConfig() {
   const theme = useTheme();
@@ -352,17 +417,24 @@ function SegmentIoConfig() {
 
 function SendGridConfig() {
   const theme = useTheme();
-  const emailProviders = useAppStore((store) => store.emailProviders);
+  const {
+    emailProviders,
+    apiBase,
+    workspace: workspaceResult,
+    upsertEmailProvider,
+  } = useAppStorePick([
+    "emailProviders",
+    "apiBase",
+    "workspace",
+    "upsertEmailProvider",
+  ]);
   const apiKey = useSettingsStore((store) => store.sendgridProviderApiKey);
-  const apiBase = useAppStore((store) => store.apiBase);
   const sendgridProviderRequest = useSettingsStore(
     (store) => store.sendgridProviderRequest
   );
   const updateSendgridProviderRequest = useSettingsStore(
     (store) => store.updateSendgridProviderRequest
   );
-  const workspaceResult = useAppStore((store) => store.workspace);
-  const upsertEmailProvider = useAppStore((store) => store.upsertEmailProvider);
   const updateSendgridProviderApiKey = useSettingsStore(
     (store) => store.updateSendgridProviderApiKey
   );
@@ -528,6 +600,205 @@ function WriteKeySettings() {
   );
 }
 
+function HubspotIntegration() {
+  const {
+    integrations,
+    dashboardUrl,
+    upsertIntegration,
+    apiBase,
+    workspace,
+    segments: segmentsRequest,
+  } = useAppStorePick([
+    "integrations",
+    "dashboardUrl",
+    "upsertIntegration",
+    "apiBase",
+    "workspace",
+    "segments",
+  ]);
+  const segments =
+    segmentsRequest.type === CompletionStatus.Successful
+      ? segmentsRequest.value
+      : [];
+  const [inProgress, setInProgress] = useState<"segments" | "enabled" | null>(
+    null
+  );
+
+  const { upsertIntegrationsRequest, updateUpsertIntegrationsRequest } =
+    useSettingsStorePick([
+      "upsertIntegrationsRequest",
+      "updateUpsertIntegrationsRequest",
+    ]);
+
+  let hubspotIntegration: SyncIntegration | null = null;
+  for (const integration of integrations) {
+    if (
+      integration.name === HUBSPOT_INTEGRATION &&
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      integration.definition.type === IntegrationType.Sync &&
+      integration.enabled
+    ) {
+      hubspotIntegration = integration.definition;
+    }
+  }
+
+  const [subscribedSegments, setSubscribedSegments] = useState<
+    SegmentResource[]
+  >(() => {
+    const subbed = new Set(hubspotIntegration?.subscribedSegments ?? []);
+    return segments.filter((segment) => subbed.has(segment.name));
+  });
+
+  if (workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
+
+  let hubspotContents;
+  if (hubspotIntegration) {
+    const disableBody: UpsertIntegrationResource = {
+      workspaceId: workspace.value.id,
+      name: HUBSPOT_INTEGRATION,
+      enabled: false,
+    };
+    const handleDisable = apiRequestHandlerFactory({
+      request: upsertIntegrationsRequest,
+      setRequest: updateUpsertIntegrationsRequest,
+      responseSchema: IntegrationResource,
+      setResponse: (integration) => {
+        setInProgress(null);
+        upsertIntegration(integration);
+      },
+      onSuccessNotice: "Disabled Hubspot integration.",
+      onFailureNoticeHandler: () =>
+        `API Error: Failed disable Hubspot integration`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/integrations`,
+        data: disableBody,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    });
+
+    const updateSubscribedSegmentsBody: UpsertIntegrationResource = {
+      workspaceId: workspace.value.id,
+      name: HUBSPOT_INTEGRATION,
+      definition: {
+        ...hubspotIntegration,
+        subscribedSegments: subscribedSegments.map((segment) => segment.name),
+      },
+    };
+    const saveSyncedSegments = apiRequestHandlerFactory({
+      request: upsertIntegrationsRequest,
+      setRequest: updateUpsertIntegrationsRequest,
+      responseSchema: IntegrationResource,
+      setResponse: (integration) => {
+        upsertIntegration(integration);
+        console.log("saved segments", integration);
+        setInProgress(null);
+      },
+      onSuccessNotice: "Updated synced hubspot integration segments.",
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to updated synced hubspot integration segment.`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/integrations`,
+        data: updateSubscribedSegmentsBody,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    });
+    hubspotContents = (
+      <Stack spacing={1}>
+        <InfoBox>
+          Dittofeed can sync segments to Hubspot as lists. See{" "}
+          <ExternalLink
+            disableNewTab
+            enableLinkStyling
+            href="https://knowledge.hubspot.com/lists/create-active-or-static-lists"
+          >
+            the docs
+          </ExternalLink>{" "}
+          for more information.
+        </InfoBox>
+
+        <Autocomplete
+          multiple
+          options={segments}
+          value={subscribedSegments}
+          onChange={(_event, newValue) => {
+            setSubscribedSegments(newValue);
+          }}
+          getOptionLabel={(option) => option.name}
+          renderInput={(params) => (
+            <TextField {...params} variant="outlined" label="Synced Segments" />
+          )}
+        />
+        <Box>
+          <LoadingButton
+            variant="contained"
+            onClick={() => {
+              setInProgress("segments");
+              saveSyncedSegments();
+            }}
+            loading={inProgress === "segments"}
+            disabled={inProgress === "enabled"}
+          >
+            Save Synced Segments
+          </LoadingButton>
+        </Box>
+        <Box>
+          <LoadingButton
+            variant="outlined"
+            color="error"
+            onClick={() => {
+              setInProgress("enabled");
+              handleDisable();
+            }}
+            loading={inProgress === "enabled"}
+            disabled={inProgress === "segments"}
+          >
+            Disable Hubspot
+          </LoadingButton>
+        </Box>
+      </Stack>
+    );
+  } else {
+    hubspotContents = (
+      <Box>
+        <Button
+          variant="contained"
+          href={`https://app.hubspot.com/oauth/authorize?client_id=9128468e-b771-4bab-b301-21b479213975&redirect_uri=${dashboardUrl}/dashboard/oauth2/callback/hubspot&scope=timeline%20sales-email-read%20crm.objects.contacts.read%20crm.objects.contacts.write%20crm.objects.companies.write%20crm.objects.companies.read%20crm.objects.owners.read%20crm.lists.write%20crm.lists.read`}
+        >
+          Connect Hubspot
+        </Button>
+      </Box>
+    );
+  }
+
+  return (
+    <>
+      <Typography variant="h3" sx={{ color: "black" }}>
+        Hubspot
+      </Typography>
+      {hubspotContents}
+    </>
+  );
+}
+
+function IntegrationSettings() {
+  return (
+    <Stack sx={{ width: "100%", p: 1 }} spacing={2}>
+      <Typography variant="h2" sx={{ color: "black" }} id="integrations-title">
+        Integrations
+      </Typography>
+      <HubspotIntegration />
+    </Stack>
+  );
+}
+
 function SubscriptionManagementSettings() {
   const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
   const [fromSubscriptionChange, setFromSubscriptionChange] =
@@ -559,7 +830,11 @@ function SubscriptionManagementSettings() {
   return (
     <Collapaseable
       header={
-        <Typography variant="h2" sx={{ color: "black" }}>
+        <Typography
+          variant="h2"
+          sx={{ color: "black" }}
+          id="subscription-management"
+        >
           Subscription Management
         </Typography>
       }
@@ -692,6 +967,7 @@ const Settings: NextPage<
         </Collapse>
         <SubscriptionManagementSettings />
         <WriteKeySettings />
+        <IntegrationSettings />
       </Stack>
     </SettingsLayout>
   );

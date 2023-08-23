@@ -5,6 +5,9 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { err, ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "../../../clickhouse";
+import { HUBSPOT_INTEGRATION } from "../../../constants";
+import { findAllEnrichedIntegrations } from "../../../integrations";
+import { startHubspotUserIntegrationWorkflow } from "../../../integrations/hubspot/signalUtils";
 import { getSubscribedSegments } from "../../../journeys";
 import {
   segmentUpdateSignal,
@@ -17,6 +20,7 @@ import { getContext } from "../../../temporal/activity";
 import {
   ComputedAssignment,
   ComputedPropertyAssignment,
+  ComputedPropertyUpdate,
   EnrichedJourney,
   EnrichedUserProperty,
   SegmentUpdate,
@@ -37,10 +41,11 @@ async function signalJourney({
   segmentAssignment: ComputedAssignment;
   journey: EnrichedJourney;
 }) {
-  const segmentUpdate = {
+  const segmentUpdate: SegmentUpdate = {
     segmentId,
     currentlyInSegment: Boolean(segmentAssignment.latest_segment_value),
     segmentVersion: new Date(segmentAssignment.max_assigned_at).getTime(),
+    type: "segment",
   };
 
   if (!segmentUpdate.currentlyInSegment) {
@@ -70,6 +75,16 @@ async function signalJourney({
   });
 }
 
+interface ComputePropertiesPeriodParams {
+  currentTime: number;
+  newComputedIds?: Record<string, boolean>;
+  subscribedJourneys: EnrichedJourney[];
+  userProperties: EnrichedUserProperty[];
+  processingTimeLowerBound?: number;
+  workspaceId: string;
+  tableVersion: string;
+}
+
 // TODO distinguish between recoverable and non recoverable errors
 // TODO signal back to workflow with query id, so that query can be safely restarted part way through
 export async function computePropertiesPeriodSafe({
@@ -79,10 +94,17 @@ export async function computePropertiesPeriodSafe({
   workspaceId,
   userProperties,
 }: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
-  const segmentResult = await findAllEnrichedSegments(workspaceId);
+  const [segmentResult, integrationsResult] = await Promise.all([
+    findAllEnrichedSegments(workspaceId),
+    findAllEnrichedIntegrations(workspaceId),
+  ]);
 
   if (segmentResult.isErr()) {
     return err(new Error(JSON.stringify(segmentResult.error)));
+  }
+
+  if (integrationsResult.isErr()) {
+    return err(integrationsResult.error);
   }
 
   await writeAssignments({
@@ -94,7 +116,7 @@ export async function computePropertiesPeriodSafe({
   });
 
   // segment id / pg + journey id
-  const subscribedSegmentPairs = subscribedJourneys.reduce<
+  const subscribedJourneyMap = subscribedJourneys.reduce<
     Map<string, Set<string>>
   >((memo, j) => {
     const subscribedSegments = getSubscribedSegments(j.definition);
@@ -107,28 +129,121 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
+  const subscribedIntegrationUserPropertyMap = integrationsResult.value.reduce<
+    Map<string, Set<string>>
+  >((memo, integration) => {
+    integration.definition.subscribedUserProperties.forEach(
+      (userPropertyName) => {
+        const userPropertyId = userProperties.find(
+          (up) => up.name === userPropertyName
+        )?.id;
+        if (!userPropertyId) {
+          logger().info(
+            { workspaceId, integration, userPropertyName },
+            "integration subscribed to user property that doesn't exist"
+          );
+          return;
+        }
+        const processFor = memo.get(userPropertyId) ?? new Set();
+        processFor.add(integration.name);
+        memo.set(userPropertyId, processFor);
+      }
+    );
+    return memo;
+  }, new Map());
+
+  const subscribedIntegrationSegmentMap = integrationsResult.value.reduce<
+    Map<string, Set<string>>
+  >((memo, integration) => {
+    integration.definition.subscribedSegments.forEach((segmentName) => {
+      const segmentId = segmentResult.value.find(
+        (s) => s.name === segmentName
+      )?.id;
+      if (!segmentId) {
+        logger().info(
+          { workspaceId, integration, segmentName },
+          "integration subscribed to segment that doesn't exist"
+        );
+        return;
+      }
+      const processFor = memo.get(segmentId) ?? new Set();
+      processFor.add(integration.name);
+      memo.set(segmentId, processFor);
+    });
+    return memo;
+  }, new Map());
+
   const readChqb = new ClickHouseQueryBuilder();
+  const subscribedJourneyKeys: string[] = [];
+  const subscribedJourneyValues: string[][] = [];
+  const subscribedIntegrationUserPropertyKeys: string[] = [];
+  const subscribedIntegrationUserPropertyValues: string[][] = [];
+  const subscribedIntegrationSegmentKeys: string[] = [];
+  const subscribedIntegrationSegmentValues: string[][] = [];
 
-  const subscribedSegmentKeys: string[] = [];
-  const subscribedSegmentValues: string[][] = [];
-
-  for (const [segmentId, journeySet] of Array.from(subscribedSegmentPairs)) {
-    subscribedSegmentKeys.push(segmentId);
-    subscribedSegmentValues.push(Array.from(journeySet));
+  for (const [segmentId, journeySet] of Array.from(subscribedJourneyMap)) {
+    subscribedJourneyKeys.push(segmentId);
+    subscribedJourneyValues.push(Array.from(journeySet));
   }
 
-  const subscribedSegmentKeysQuery = readChqb.addQueryValue(
-    subscribedSegmentKeys,
+  for (const [segmentId, integrationSet] of Array.from(
+    subscribedIntegrationSegmentMap
+  )) {
+    subscribedIntegrationSegmentKeys.push(segmentId);
+    subscribedIntegrationSegmentValues.push(Array.from(integrationSet));
+  }
+
+  for (const [userPropertyId, integrationSet] of Array.from(
+    subscribedIntegrationUserPropertyMap
+  )) {
+    subscribedIntegrationUserPropertyKeys.push(userPropertyId);
+    subscribedIntegrationUserPropertyValues.push(Array.from(integrationSet));
+  }
+
+  const subscribedJourneysKeysQuery = readChqb.addQueryValue(
+    subscribedJourneyKeys,
     "Array(String)"
   );
 
-  const subscribedSegmentValuesQuery = readChqb.addQueryValue(
-    subscribedSegmentValues,
+  const subscribedJourneysValuesQuery = readChqb.addQueryValue(
+    subscribedJourneyValues,
+    "Array(Array(String))"
+  );
+
+  const subscribedIntegrationsUserPropertyKeysQuery = readChqb.addQueryValue(
+    subscribedIntegrationUserPropertyKeys,
+    "Array(String)"
+  );
+
+  const subscribedIntegrationsUserPropertyValuesQuery = readChqb.addQueryValue(
+    subscribedIntegrationUserPropertyValues,
+    "Array(Array(String))"
+  );
+
+  const subscribedIntegrationsSegmentKeysQuery = readChqb.addQueryValue(
+    subscribedIntegrationSegmentKeys,
+    "Array(String)"
+  );
+
+  const subscribedIntegrationsSegmentValuesQuery = readChqb.addQueryValue(
+    subscribedIntegrationSegmentValues,
     "Array(Array(String))"
   );
 
   const workspaceIdParam = readChqb.addQueryValue(workspaceId, "String");
 
+  /**
+   * This query is a bit complicated, so here's a breakdown of what it does:
+   *
+   * 1. It reads all the computed property assignments for the workspace.
+   * 2. It joins the computed property assignments with the processed computed
+   * properties table to filter out assignments that have already been
+   * processed.
+   * 3. It filters out "empty assignments" (assignments where the user property
+   * value is empty, or the segment value is false) if the property has not
+   * already been assigned.
+   * 4. It filters out false segment assignments to journeys.
+   */
   const readQuery = `
     SELECT
       cpa.workspace_id,
@@ -138,9 +253,12 @@ export async function computePropertiesPeriodSafe({
       cpa.latest_segment_value,
       cpa.latest_user_property_value,
       cpa.max_assigned_at,
-      cpa.processed_for
+      cpa.processed_for,
+      cpa.processed_for_type,
+      pcp.workspace_id
     FROM (
-      SELECT workspace_id,
+      SELECT
+          workspace_id,
           type,
           computed_property_id,
           user_id,
@@ -150,33 +268,50 @@ export async function computePropertiesPeriodSafe({
           arrayJoin(
               arrayConcat(
                   if(
-                      type = 'segment' AND indexOf(${subscribedSegmentKeysQuery}, computed_property_id) > 0,
-                      arrayElement(${subscribedSegmentValuesQuery}, indexOf(${subscribedSegmentKeysQuery}, computed_property_id)),
+                      type = 'segment' AND indexOf(${subscribedJourneysKeysQuery}, computed_property_id) > 0,
+                      arrayMap(i -> ('journey', i), arrayElement(${subscribedJourneysValuesQuery}, indexOf(${subscribedJourneysKeysQuery}, computed_property_id))),
                       []
                   ),
-                  ['pg']
+                  if(
+                      type = 'user_property' AND indexOf(${subscribedIntegrationsUserPropertyKeysQuery}, computed_property_id) > 0,
+                      arrayMap(i -> ('integration', i), arrayElement(${subscribedIntegrationsUserPropertyValuesQuery}, indexOf(${subscribedIntegrationsUserPropertyKeysQuery}, computed_property_id))),
+                      []
+                  ),
+                  if(
+                      type = 'segment' AND indexOf(${subscribedIntegrationsSegmentKeysQuery}, computed_property_id) > 0,
+                      arrayMap(i -> ('integration', i), arrayElement(${subscribedIntegrationsSegmentValuesQuery}, indexOf(${subscribedIntegrationsSegmentKeysQuery}, computed_property_id))),
+                      []
+                  ),
+                  [('pg', 'pg')]
               )
-          ) as processed_for
+          ) as processed,
+          processed.1 as processed_for_type,
+          processed.2 as processed_for
       FROM computed_property_assignments FINAL
       WHERE workspace_id = ${workspaceIdParam}
     ) cpa
-    WHERE (
-      workspace_id,
-      computed_property_id,
-      user_id,
-      latest_segment_value,
-      latest_user_property_value,
-      processed_for
-    ) NOT IN (
-      SELECT
-        workspace_id,
-        computed_property_id,
-        user_id,
-        segment_value,
-        user_property_value,
-        processed_for
-      FROM processed_computed_properties FINAL
-    )
+    LEFT JOIN processed_computed_properties pcp FINAL
+    ON
+      cpa.workspace_id = pcp.workspace_id AND
+      cpa.computed_property_id = pcp.computed_property_id AND
+      cpa.user_id = pcp.user_id AND
+      cpa.processed_for = pcp.processed_for
+    WHERE
+      (
+        cpa.latest_user_property_value != pcp.user_property_value
+        OR cpa.latest_segment_value != pcp.segment_value
+      )
+      AND NOT (
+        (
+          cpa.latest_user_property_value = '""'
+          OR cpa.latest_user_property_value = ''
+        )
+        AND cpa.latest_segment_value = False
+        AND (
+          pcp.workspace_id = ''
+          OR cpa.processed_for_type == 'journey'
+        )
+      )
   `;
 
   let offset = 0;
@@ -195,6 +330,7 @@ export async function computePropertiesPeriodSafe({
       const assignments: ComputedAssignment[] = await Promise.all(
         rows.flatMap(async (row: Row) => {
           const json = await row.json();
+          logger().debug({ json }, "processing assignment json");
           const result = schemaValidate(json, ComputedAssignment);
           if (result.isErr()) {
             logger().error(
@@ -209,13 +345,14 @@ export async function computePropertiesPeriodSafe({
 
       const pgUserPropertyAssignments: ComputedAssignment[] = [];
       const pgSegmentAssignments: ComputedAssignment[] = [];
-      const signalSegmentAssignments: ComputedAssignment[] = [];
+      const journeySegmentAssignments: ComputedAssignment[] = [];
+      const integrationAssignments: ComputedAssignment[] = [];
 
       for (const assignment of assignments) {
         hasRows = true;
 
         let assignmentCategory: ComputedAssignment[];
-        if (assignment.processed_for === "pg") {
+        if (assignment.processed_for_type === "pg") {
           switch (assignment.type) {
             case "segment":
               assignmentCategory = pgSegmentAssignments;
@@ -224,8 +361,10 @@ export async function computePropertiesPeriodSafe({
               assignmentCategory = pgUserPropertyAssignments;
               break;
           }
+        } else if (assignment.processed_for_type === "integration") {
+          assignmentCategory = integrationAssignments;
         } else {
-          assignmentCategory = signalSegmentAssignments;
+          assignmentCategory = journeySegmentAssignments;
         }
         assignmentCategory.push(assignment);
       }
@@ -236,7 +375,8 @@ export async function computePropertiesPeriodSafe({
           assignmentsCount: assignments.length,
           pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
           pgSegmentAssignmentsCount: pgSegmentAssignments.length,
-          signalSegmentAssignmentsCount: signalSegmentAssignments.length,
+          journeySegmentAssignmentsCount: journeySegmentAssignments.length,
+          integrationAssignmentsCount: integrationAssignments.length,
         },
         "processing computed assignments"
       );
@@ -309,8 +449,8 @@ export async function computePropertiesPeriodSafe({
         }),
       ]);
 
-      await Promise.all(
-        signalSegmentAssignments.flatMap((assignment) => {
+      await Promise.all([
+        ...journeySegmentAssignments.flatMap((assignment) => {
           const journey = subscribedJourneys.find(
             (j) => j.id === assignment.processed_for
           );
@@ -331,8 +471,49 @@ export async function computePropertiesPeriodSafe({
             segmentAssignment: assignment,
             journey,
           });
-        })
-      );
+        }),
+        ...integrationAssignments.flatMap(async (assignment) => {
+          switch (assignment.processed_for) {
+            case HUBSPOT_INTEGRATION: {
+              const { workflowClient } = getContext();
+              const updateVersion = new Date(
+                assignment.max_assigned_at
+              ).getTime();
+
+              const update: ComputedPropertyUpdate =
+                assignment.type === "segment"
+                  ? {
+                      type: "segment",
+                      segmentId: assignment.computed_property_id,
+                      segmentVersion: updateVersion,
+                      currentlyInSegment: assignment.latest_segment_value,
+                    }
+                  : {
+                      type: "user_property",
+                      userPropertyId: assignment.computed_property_id,
+                      value: assignment.latest_user_property_value,
+                      userPropertyVersion: updateVersion,
+                    };
+
+              return startHubspotUserIntegrationWorkflow({
+                workspaceId: assignment.workspace_id,
+                userId: assignment.user_id,
+                workflowClient,
+                update,
+              });
+            }
+            default:
+              logger().error(
+                {
+                  workspaceId,
+                  assignment,
+                },
+                "integration in assignment.processed_for missing from subscribed integrations"
+              );
+              return [];
+          }
+        }),
+      ]);
 
       const processedAssignments: ComputedPropertyAssignment[] =
         assignments.flatMap((assignment) => ({

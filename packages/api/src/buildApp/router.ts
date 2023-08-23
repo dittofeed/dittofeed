@@ -4,6 +4,7 @@ import contentController from "../controllers/contentController";
 import debugController from "../controllers/debugController";
 import eventsController from "../controllers/eventsController";
 import indexController from "../controllers/indexController";
+import integrationsController from "../controllers/integrationsController";
 import journeysController from "../controllers/journeysController";
 import publicAppsController from "../controllers/publicAppsController";
 import secretsController from "../controllers/secretsController";
@@ -31,6 +32,7 @@ export default async function router(fastify: FastifyInstance) {
         f.register(secretsController, { prefix: "/secrets" }),
         f.register(segmentsController, { prefix: "/segments" }),
         f.register(settingsController, { prefix: "/settings" }),
+        f.register(integrationsController, { prefix: "/integrations" }),
         f.register(subscriptionGroupsController, {
           prefix: "/subscription-groups",
         }),
