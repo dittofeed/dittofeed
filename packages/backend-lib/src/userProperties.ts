@@ -1,9 +1,7 @@
 import { Prisma, UserProperty } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
-import {
-  jsonParseSafe,
-  schemaValidate,
-} from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { parseUserProperty } from "isomorphic-lib/src/userProperties";
 import { err, ok, Result } from "neverthrow";
 
 import logger from "./logger";
@@ -11,9 +9,7 @@ import prisma from "./prisma";
 import {
   EnrichedUserProperty,
   JSONValue,
-  PerformedManyValueItem,
   UserPropertyDefinition,
-  UserPropertyDefinitionType,
   UserPropertyResource,
 } from "./types";
 
@@ -82,80 +78,6 @@ export function assignmentAsString(
     return null;
   }
   return assignment;
-}
-
-function processUserProperty(
-  definition: UserPropertyDefinition,
-  value: JSONValue
-): Result<JSONValue, Error> {
-  switch (definition.type) {
-    case UserPropertyDefinitionType.PerformedMany: {
-      if (typeof value !== "string") {
-        return err(new Error("performed many value is not a string"));
-      }
-      const jsonParsedValue = jsonParseSafe(value);
-      if (jsonParsedValue.isErr()) {
-        logger().error(
-          {
-            err: jsonParsedValue.error,
-          },
-          "failed to json parse performed many value"
-        );
-        return err(jsonParsedValue.error);
-      }
-      if (!(jsonParsedValue.value instanceof Array)) {
-        logger().error("performed many json parsed value is not an array");
-        return err(
-          new Error("performed many json parsed value is not an array")
-        );
-      }
-
-      return ok(
-        jsonParsedValue.value.flatMap((item) => {
-          const result = schemaValidate(item, PerformedManyValueItem);
-          if (result.isErr()) {
-            logger().error(
-              { err: result.error, item, definition },
-              "failed to parse performed many item"
-            );
-            return [];
-          }
-          const parsedProperties = jsonParseSafe(result.value.properties);
-          if (parsedProperties.isErr()) {
-            logger().error(
-              { err: parsedProperties.error, item, definition },
-              "failed to json parse performed many item properties"
-            );
-            return [];
-          }
-          return {
-            ...result.value,
-            properties: parsedProperties.value,
-          };
-        })
-      );
-    }
-  }
-  return ok(value);
-}
-
-export function parseUserProperty(
-  definition: UserPropertyDefinition,
-  value: string
-): Result<JSONValue, Error> {
-  const parsed = jsonParseSafe(value);
-  if (parsed.isErr()) {
-    logger().error(
-      { err: parsed.error },
-      "failed to parse user property assignment"
-    );
-    return err(parsed.error);
-  }
-  const processed = processUserProperty(definition, parsed.value);
-  if (processed.isErr()) {
-    return err(processed.error);
-  }
-  return ok(processed.value);
 }
 
 export async function findAllUserPropertyAssignments({

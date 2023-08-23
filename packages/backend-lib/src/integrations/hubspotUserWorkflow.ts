@@ -7,9 +7,9 @@ import {
   SegmentUpdate,
   UserPropertyUpdate,
 } from "isomorphic-lib/src/types";
+import { parseUserProperty } from "isomorphic-lib/src/userProperties";
 import { Overwrite } from "utility-types";
 
-import { parseUserProperty } from "../userProperties";
 // Only import the activity types
 import type * as activities from "./hubspot/activities";
 
