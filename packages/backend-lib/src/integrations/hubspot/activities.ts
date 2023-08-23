@@ -48,7 +48,7 @@ async function disableIntegration({ workspaceId }: { workspaceId: string }) {
   });
 }
 
-function handleAuthFailure<T extends any[], U>(
+function handleAuthFailure<T extends unknown[], U>(
   workspaceId: string,
   fn: FuncReturningPromise<T, U>
 ): FuncReturningPromise<T, Result<U, AuthError>> {
