@@ -1,8 +1,5 @@
-import {
-  ClickHouseClient,
-  ClickHouseClientConfigOptions,
-  createClient,
-} from "@clickhouse/client";
+import { ClickHouseClient, createClient } from "@clickhouse/client";
+import { NodeClickHouseClientConfigOptions } from "@clickhouse/client/dist/client";
 import { v4 as uuid } from "uuid";
 
 import config from "./config";
@@ -29,7 +26,7 @@ export class ClickHouseQueryBuilder {
   }
 }
 
-function getClientConfig(): ClickHouseClientConfigOptions {
+function getClientConfig(): NodeClickHouseClientConfigOptions {
   const {
     clickhouseHost: host,
     clickhouseDatabase: database,

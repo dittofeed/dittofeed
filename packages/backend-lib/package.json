@@ -14,7 +14,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
-    "@clickhouse/client": "^0.0.10",
+    "@clickhouse/client": "^0.2.1",
     "@fast-csv/format": "^4.3.5",
     "@opentelemetry/api": "^1.4.1",
     "@opentelemetry/auto-instrumentations-node": "^0.37.0",

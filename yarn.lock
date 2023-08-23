@@ -546,12 +546,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@clickhouse/client@npm:^0.0.10":
-  version: 0.0.10
-  resolution: "@clickhouse/client@npm:0.0.10"
+"@clickhouse/client-common@npm:0.2.1":
+  version: 0.2.1
+  resolution: "@clickhouse/client-common@npm:0.2.1"
+  checksum: f332f4559c2c9f86250ee929fd1f8162bce0906add76c7d445e59ef0f271ac4991b41af3500bd62666618f6aa67528f44649087276bec659ce1731fe2b100293
+  languageName: node
+  linkType: hard
+
+"@clickhouse/client@npm:^0.2.1":
+  version: 0.2.1
+  resolution: "@clickhouse/client@npm:0.2.1"
   dependencies:
-    node-abort-controller: ^3.0.1
-  checksum: f4af32ce73f29b720056f3803c26025535d0c1364323e8f292c1def5895d33467825638aafe5508066e5cfece3a5efb0f9eeb89b831e9a5ca367825e5453984c
+    "@clickhouse/client-common": 0.2.1
+  checksum: 6201304a9cbbb7d381a8cfdcafcffc9efafa40908a555ca8de6e328599e74f12542e3d6a8bb3decf2558e59f58b598d5de805de21d7c0b89208c55d821639a69
   languageName: node
   linkType: hard
 
@@ -6611,7 +6618,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "backend-lib@workspace:packages/backend-lib"
   dependencies:
-    "@clickhouse/client": ^0.0.10
+    "@clickhouse/client": ^0.2.1
     "@fast-csv/format": ^4.3.5
     "@opentelemetry/api": ^1.4.1
     "@opentelemetry/auto-instrumentations-node": ^0.37.0
@@ -13797,13 +13804,6 @@ __metadata:
     lower-case: ^2.0.2
     tslib: ^2.0.3
   checksum: 0b2ebc113dfcf737d48dde49cfebf3ad2d82a8c3188e7100c6f375e30eafbef9e9124aadc3becef237b042fd5eb0aad2fd78669c20972d045bbe7fea8ba0be5c
-  languageName: node
-  linkType: hard
-
-"node-abort-controller@npm:^3.0.1":
-  version: 3.0.1
-  resolution: "node-abort-controller@npm:3.0.1"
-  checksum: 2b3d75c65249fea99e8ba22da3a8bc553f034f44dd12f5f4b38b520f718b01c88718c978f0c24c2a460fc01de9a80b567028f547b94440cb47adeacfeb82c2ee
   languageName: node
   linkType: hard
 
