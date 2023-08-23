@@ -9,7 +9,7 @@ const welcomeBody = `<mjml>
     </mj-raw>
     <mj-section align="center">
       <mj-column>
-        <mj-image width="200px" src="/dashboard/logo.png" />
+        <mj-image width="200px" src="https://storage.googleapis.com/dittofeed-public/logo.png" />
       </mj-column>
     </mj-section>
     <mj-section background-color="#fff">
