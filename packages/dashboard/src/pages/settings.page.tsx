@@ -62,7 +62,6 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { Collapaseable } from "../components/collapsable";
-import ExternalLink from "../components/externalLink";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
@@ -79,6 +78,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { LoadingButton } from "@mui/lab";
+import ExternalLink from "../components/externalLink";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -711,6 +711,18 @@ function HubspotIntegration() {
     });
     hubspotContents = (
       <Stack spacing={1}>
+        <InfoBox>
+          Dittofeed can sync segments to Hubspot as lists. See{" "}
+          <ExternalLink
+            disableNewTab
+            enableLinkStyling
+            href="https://knowledge.hubspot.com/lists/create-active-or-static-lists"
+          >
+            the docs
+          </ExternalLink>{" "}
+          for more information.
+        </InfoBox>
+
         <Autocomplete
           multiple
           options={segments}
