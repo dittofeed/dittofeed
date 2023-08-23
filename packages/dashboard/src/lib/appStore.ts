@@ -256,6 +256,20 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
 
+        // settings page
+        upsertIntegration: (integration) =>
+          set((state) => {
+            let { integrations } = state;
+            for (const existing of integrations) {
+              if (integration.id === existing.id) {
+                Object.assign(existing, integration);
+                return state;
+              }
+            }
+            integrations.push(integration);
+            return state;
+          }),
+
         deleteMessage: (id) =>
           set((state) => {
             if (state.messages.type !== CompletionStatus.Successful) {

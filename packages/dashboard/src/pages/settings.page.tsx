@@ -42,11 +42,13 @@ import {
   EmailProviderType,
   EphemeralRequestStatus,
   IntegrationDefinition,
+  IntegrationResource,
   IntegrationType,
   PersistedEmailProvider,
   SyncIntegration,
   UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
+  UpsertIntegrationResource,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -249,6 +251,7 @@ interface SettingsState {
   sendgridWebhookVerificationKey: string;
   segmentIoRequest: EphemeralRequestStatus<Error>;
   segmentIoSharedSecret: string;
+  upsertIntegrationsRequest: EphemeralRequestStatus<Error>;
 }
 
 interface SettingsActions {
@@ -262,7 +265,12 @@ interface SettingsActions {
   updateSendgridWebhookVerificationRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
+  updateUpsertIntegrationsRequest: (
+    request: EphemeralRequestStatus<Error>
+  ) => void;
 }
+
+type SettingsContent = SettingsState & SettingsActions;
 
 export const useSettingsStore = create(
   immer<SettingsActions & SettingsState>((set) => ({
@@ -278,6 +286,14 @@ export const useSettingsStore = create(
     sendgridWebhookVerificationKey: "",
     sendgridWebhookVerificationKeyRequest: {
       type: CompletionStatus.NotStarted,
+    },
+    upsertIntegrationsRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    updateUpsertIntegrationsRequest: (request) => {
+      set((state) => {
+        state.upsertIntegrationsRequest = request;
+      });
     },
     updateSendgridProviderApiKey: (key) => {
       set((state) => {
@@ -311,6 +327,10 @@ export const useSettingsStore = create(
     },
   }))
 );
+
+function useSettingsStorePick(params: (keyof SettingsContent)[]) {
+  return useSettingsStore((store) => pick(store, params));
+}
 
 function SegmentIoConfig() {
   const theme = useTheme();
@@ -389,13 +409,11 @@ function SendGridConfig() {
     apiBase,
     workspace: workspaceResult,
     upsertEmailProvider,
-    integrations,
   } = useAppStorePick([
     "emailProviders",
     "apiBase",
     "workspace",
     "upsertEmailProvider",
-    "integrations",
   ]);
   const apiKey = useSettingsStore((store) => store.sendgridProviderApiKey);
   const sendgridProviderRequest = useSettingsStore(
@@ -570,10 +588,19 @@ function WriteKeySettings() {
 }
 
 function IntegrationSettings() {
-  const { integrations, dashboardUrl } = useAppStorePick([
-    "integrations",
-    "dashboardUrl",
-  ]);
+  const { integrations, dashboardUrl, upsertIntegration, apiBase, workspace } =
+    useAppStorePick([
+      "integrations",
+      "dashboardUrl",
+      "upsertIntegration",
+      "apiBase",
+      "workspace",
+    ]);
+  const { upsertIntegrationsRequest, updateUpsertIntegrationsRequest } =
+    useSettingsStorePick([
+      "upsertIntegrationsRequest",
+      "updateUpsertIntegrationsRequest",
+    ]);
   const theme = useTheme();
 
   let hubspotIntegration: SyncIntegration | null = null;
@@ -587,12 +614,38 @@ function IntegrationSettings() {
     }
   }
 
+  if (workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
+
   let hubspotContents;
   if (hubspotIntegration) {
+    const disableBody: UpsertIntegrationResource = {
+      workspaceId: workspace.value.id,
+      name: HUBSPOT_INTEGRATION,
+      enabled: false,
+    };
+    const handleDisable = apiRequestHandlerFactory({
+      request: upsertIntegrationsRequest,
+      setRequest: updateUpsertIntegrationsRequest,
+      responseSchema: IntegrationResource,
+      setResponse: upsertIntegration,
+      onSuccessNotice: "Disabled Hubspot integration.",
+      onFailureNoticeHandler: () =>
+        `API Error: Failed disable Hubspot integration`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/integrations`,
+        data: disableBody,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    });
     hubspotContents = (
       <Stack spacing={1}>
         <Box>
-          <Button variant="outlined" color="error">
+          <Button variant="outlined" color="error" onClick={handleDisable}>
             Disable Hubspot
           </Button>
         </Box>

@@ -116,6 +116,7 @@ export interface AppActions {
   deleteSubscriptionGroup: (id: string) => void;
   upsertUserProperty: (userProperty: UserPropertyResource) => void;
   deleteUserProperty: (userPropertyId: string) => void;
+  upsertIntegration: (integrations: IntegrationResource) => void;
 }
 
 export interface SegmentIndexContent {
