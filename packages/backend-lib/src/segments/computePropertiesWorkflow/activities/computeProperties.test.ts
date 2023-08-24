@@ -842,6 +842,17 @@ describe("compute properties activities", () => {
                 },
               }),
           },
+          {
+            eventTimeOffset: -200,
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                userId: "user-id-2",
+                traits: {
+                  unrelated: "value",
+                },
+              }),
+          },
         ],
         integrations: [
           {
@@ -905,6 +916,7 @@ describe("compute properties activities", () => {
               },
             ],
           },
+          "user-id-2": {},
         },
         expectedSignals: [
           {
