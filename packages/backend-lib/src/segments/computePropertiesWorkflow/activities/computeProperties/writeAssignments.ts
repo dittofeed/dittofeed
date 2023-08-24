@@ -671,15 +671,20 @@ function buildUserPropertyQueryExpression({
       const orFragments = userProperty.definition.or.map(
         ({ event }) => `m.5 = ${queryBuilder.addQueryValue(event, "String")}`
       );
+      const eventsName = getChCompatibleUuid();
       return `
-        toJSONString(
-          arrayMap(
-            m -> map('event', m.5, 'properties', m.1, 'timestamp', formatDateTime(m.2, '%Y-%m-%dT%H:%M:%S')),
-            arrayFilter(
-              m -> or(${orFragments.join(", ")}),
-              timed_messages
-            )
-          )
+        if(
+          empty(
+            arrayMap(
+              m -> map('event', m.5, 'properties', m.1, 'timestamp', formatDateTime(m.2, '%Y-%m-%dT%H:%M:%S')),
+              arrayFilter(
+                m -> or(${orFragments.join(", ")}),
+                timed_messages
+              )
+            ) as ${eventsName}
+          ),
+          '',
+          toJSONString(${eventsName})
         )
       `;
     }
