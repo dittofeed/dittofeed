@@ -861,7 +861,7 @@ export default async function writeAssignments({
           latest_processing_time
         FROM user_events_${tableVersion}
         WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
-        GROUP BY user_id
+        GROUP BY workspace_id, user_id
         ORDER BY latest_processing_time DESC
       ) sas
     `;
