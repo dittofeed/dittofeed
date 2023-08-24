@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import jp from "jsonpath";
 
 import {
@@ -864,14 +866,22 @@ export default async function writeAssignments({
       ) sas
     `;
 
-    const queryResult = await clickhouseClient().query({
-      query: writeQuery,
-      query_params: writeReadChqb.getQueries(),
-      format: "JSONEachRow",
-    });
-    logger().info(
-      { workspaceId, queryId: queryResult.query_id },
-      "write assignments query"
-    );
+    const queryId = randomUUID();
+
+    try {
+      await clickhouseClient().query({
+        query: writeQuery,
+        query_params: writeReadChqb.getQueries(),
+        query_id: queryId,
+        format: "JSONEachRow",
+      });
+    } catch (e) {
+      logger().error(
+        { workspaceId, queryId, err: e },
+        "failed write assignments query"
+      );
+      throw e;
+    }
+    logger().info({ workspaceId, queryId }, "write assignments query");
   }
 }
