@@ -1,4 +1,6 @@
 /* eslint-disable no-await-in-loop */
+import { randomUUID } from "node:crypto";
+
 import { Row } from "@clickhouse/client";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -319,15 +321,34 @@ export async function computePropertiesPeriodSafe({
   while (true) {
     const paginatedReadQuery = `${readQuery} LIMIT ${READ_QUERY_PAGE_SIZE} OFFSET ${offset}`;
 
-    const resultSet = await clickhouseClient().query({
-      query: paginatedReadQuery,
-      query_params: readChqb.getQueries(),
-      format: "JSONEachRow",
-    });
+    let resultSet: Awaited<
+      ReturnType<ReturnType<typeof clickhouseClient>["query"]>
+    >;
+    const queryId = randomUUID();
+    try {
+      resultSet = await clickhouseClient().query({
+        query: paginatedReadQuery,
+        query_params: readChqb.getQueries(),
+        query_id: queryId,
+        format: "JSONEachRow",
+      });
+    } catch (e) {
+      logger().error(
+        {
+          workspaceId,
+          queryId,
+          err: e,
+          READ_QUERY_PAGE_SIZE,
+          offset,
+        },
+        "failed read query page"
+      );
+      throw e;
+    }
     logger().info(
       {
         workspaceId,
-        queryId: resultSet.query_id,
+        queryId,
         READ_QUERY_PAGE_SIZE,
         offset,
       },
