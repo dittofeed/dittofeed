@@ -82,7 +82,7 @@ export async function hubspotUserWorkflow({
           (update !== null &&
             update.userPropertyVersion >= signal.userPropertyVersion)
         ) {
-          logger.error("invalid user property update", { workspaceId, signal });
+          logger.info("stale user property update", { workspaceId, signal });
           return;
         }
         const parsed = parseUserProperty(
@@ -121,7 +121,7 @@ export async function hubspotUserWorkflow({
           existing !== null &&
           existing.segmentVersion >= signal.segmentVersion
         ) {
-          logger.error("invalid segment update", { workspaceId, signal });
+          logger.info("stale segment update", { workspaceId, signal });
           return;
         }
         pendingListsUpdates.set(signal.segmentId, signal);
