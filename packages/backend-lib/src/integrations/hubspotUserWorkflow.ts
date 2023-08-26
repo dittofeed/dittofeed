@@ -82,7 +82,11 @@ export async function hubspotUserWorkflow({
           (update !== null &&
             update.userPropertyVersion >= signal.userPropertyVersion)
         ) {
-          logger.info("stale user property update", { workspaceId, signal });
+          logger.info("stale user property update", {
+            workspaceId,
+            signal,
+            userId,
+          });
           return;
         }
         const parsed = parseUserProperty(
@@ -93,6 +97,8 @@ export async function hubspotUserWorkflow({
           logger.error("failed to parse user property", {
             workspaceId,
             err: parsed.error,
+            userId,
+            signal,
           });
           return;
         }
@@ -103,6 +109,8 @@ export async function hubspotUserWorkflow({
         if (valueResult.isErr()) {
           logger.error("failed to validate user property", {
             workspaceId,
+            userId,
+            signal,
             err: valueResult.error,
           });
           return;
@@ -121,7 +129,7 @@ export async function hubspotUserWorkflow({
           existing !== null &&
           existing.segmentVersion >= signal.segmentVersion
         ) {
-          logger.info("stale segment update", { workspaceId, signal });
+          logger.info("stale segment update", { workspaceId, signal, userId });
           return;
         }
         pendingListsUpdates.set(signal.segmentId, signal);
