@@ -32,7 +32,7 @@ export async function findAllEnrichedIntegrations(
   workspaceId: string
 ): Promise<Result<EnrichedIntegration[], Error>> {
   const dbVals = await prisma().integration.findMany({
-    where: { workspaceId },
+    where: { workspaceId, enabled: true },
   });
 
   const enriched: EnrichedIntegration[] = [];

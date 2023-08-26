@@ -72,8 +72,7 @@ export async function hubspotWorkflow({
     if (!token) {
       throw new Error("no token to generate time to wait");
     }
-    logger.info("getTimeToWait", { workspaceId, token });
-    return Math.max(
+    const waitTime = Math.max(
       // time to wait until token expires
       token.expiresIn * 1000 -
         // time since token was created
@@ -84,6 +83,8 @@ export async function hubspotWorkflow({
         jitter * pollingJitterCoefficient,
       0
     );
+    logger.info("hubspot getTimeToWait", { workspaceId, token, waitTime });
+    return waitTime;
   }
 
   for (let i = 0; i < maxPollingAttempts; i++) {
