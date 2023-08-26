@@ -712,6 +712,15 @@ export async function updateHubspotEmails({
       ],
     })
   );
+  logger().info(
+    {
+      workspaceId,
+      userId,
+      createCount: createEmailsBatch.length,
+      updateCount: updateEmailsBatch.items.length,
+    },
+    "creating and updating hubspot emails"
+  );
   await Promise.all([
     updateHubspotEmailsRequest(hubspotAccessToken, updateEmailsBatch),
     ...createEmailsBatch,
