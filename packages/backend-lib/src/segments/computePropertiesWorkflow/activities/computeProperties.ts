@@ -27,7 +27,9 @@ import {
   ComputedAssignment,
   ComputedPropertyAssignment,
   ComputedPropertyUpdate,
+  EnrichedIntegration,
   EnrichedJourney,
+  EnrichedSegment,
   EnrichedUserProperty,
   SegmentUpdate,
 } from "../../../types";
@@ -91,36 +93,24 @@ interface ComputePropertiesPeriodParams {
   tableVersion: string;
 }
 
-// TODO distinguish between recoverable and non recoverable errors
-// TODO signal back to workflow with query id, so that query can be safely restarted part way through
-export async function computePropertiesPeriodSafe({
-  currentTime,
-  subscribedJourneys,
-  tableVersion,
+function buildReadQuery({
   workspaceId,
+  subscribedJourneys,
+  integrations,
   userProperties,
-}: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
-  const [segmentResult, integrationsResult] = await Promise.all([
-    findAllEnrichedSegments(workspaceId),
-    findAllEnrichedIntegrations(workspaceId),
-  ]);
-
-  if (segmentResult.isErr()) {
-    return err(new Error(JSON.stringify(segmentResult.error)));
-  }
-
-  if (integrationsResult.isErr()) {
-    return err(integrationsResult.error);
-  }
-
-  await writeAssignments({
-    currentTime,
-    segments: segmentResult.value,
-    tableVersion,
-    userProperties,
-    workspaceId,
-  });
-
+  segments,
+  queryBuilder: readChqb,
+}: {
+  queryBuilder: ClickHouseQueryBuilder;
+  workspaceId: string;
+  subscribedJourneys: EnrichedJourney[];
+  integrations: EnrichedIntegration[];
+  userProperties: EnrichedUserProperty[];
+  segments: EnrichedSegment[];
+}): {
+  query: string;
+  tmpTableName: string;
+} {
   // segment id / pg + journey id
   const subscribedJourneyMap = subscribedJourneys.reduce<
     Map<string, Set<string>>
@@ -135,7 +125,7 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  const subscribedIntegrationUserPropertyMap = integrationsResult.value.reduce<
+  const subscribedIntegrationUserPropertyMap = integrations.reduce<
     Map<string, Set<string>>
   >((memo, integration) => {
     integration.definition.subscribedUserProperties.forEach(
@@ -158,13 +148,11 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  const subscribedIntegrationSegmentMap = integrationsResult.value.reduce<
+  const subscribedIntegrationSegmentMap = integrations.reduce<
     Map<string, Set<string>>
   >((memo, integration) => {
     integration.definition.subscribedSegments.forEach((segmentName) => {
-      const segmentId = segmentResult.value.find(
-        (s) => s.name === segmentName
-      )?.id;
+      const segmentId = segments.find((s) => s.name === segmentName)?.id;
       if (!segmentId) {
         logger().info(
           { workspaceId, integration, segmentName },
@@ -179,7 +167,6 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  const readChqb = new ClickHouseQueryBuilder();
   const subscribedJourneyKeys: string[] = [];
   const subscribedJourneyValues: string[][] = [];
   const subscribedIntegrationUserPropertyKeys: string[] = [];
@@ -252,7 +239,7 @@ export async function computePropertiesPeriodSafe({
    * already been assigned.
    * 4. It filters out false segment assignments to journeys.
    */
-  const readQuery = `
+  const query = `
     CREATE TEMPORARY TABLE IF NOT EXISTS ${tmpTableName} AS
     SELECT
       cpa.workspace_id,
@@ -322,6 +309,52 @@ export async function computePropertiesPeriodSafe({
         )
       )
   `;
+
+  return {
+    query,
+    tmpTableName,
+  };
+}
+
+// TODO distinguish between recoverable and non recoverable errors
+// TODO signal back to workflow with query id, so that query can be safely restarted part way through
+export async function computePropertiesPeriodSafe({
+  currentTime,
+  subscribedJourneys,
+  tableVersion,
+  workspaceId,
+  userProperties,
+}: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
+  const [segmentResult, integrationsResult] = await Promise.all([
+    findAllEnrichedSegments(workspaceId),
+    findAllEnrichedIntegrations(workspaceId),
+  ]);
+
+  if (segmentResult.isErr()) {
+    return err(new Error(JSON.stringify(segmentResult.error)));
+  }
+
+  if (integrationsResult.isErr()) {
+    return err(integrationsResult.error);
+  }
+
+  await writeAssignments({
+    currentTime,
+    segments: segmentResult.value,
+    tableVersion,
+    userProperties,
+    workspaceId,
+  });
+
+  const readChqb = new ClickHouseQueryBuilder();
+  const { query: readQuery, tmpTableName } = buildReadQuery({
+    workspaceId,
+    subscribedJourneys,
+    integrations: integrationsResult.value,
+    userProperties,
+    segments: segmentResult.value,
+    queryBuilder: readChqb,
+  });
 
   const clickhouseClient = createClickhouseClient({
     enableSession: true,
