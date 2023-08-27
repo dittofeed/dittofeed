@@ -3,12 +3,9 @@ import { randomUUID } from "node:crypto";
 
 import { Row } from "@clickhouse/client";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import {
-  schemaValidate,
-  schemaValidateWithErr,
-} from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
-import PQueue from "p-queue";
+import type PQueue from "p-queue";
 
 import {
   ClickHouseQueryBuilder,
@@ -531,7 +528,16 @@ async function processRows({
   return hasRows;
 }
 
-const queue = new PQueue({ concurrency: 2 });
+let QUEUE: PQueue | null = null;
+
+// accomodates fact that p-queue is esm only now
+async function getQueue() {
+  if (!QUEUE) {
+    const PQueue = await import("p-queue").then((module) => module.default);
+    QUEUE = new PQueue({ concurrency: 2 });
+  }
+  return QUEUE;
+}
 
 // TODO distinguish between recoverable and non recoverable errors
 // TODO signal back to workflow with query id, so that query can be safely restarted part way through
@@ -655,6 +661,7 @@ export async function computePropertiesPeriodSafe({
 
           (async () => {
             unprocessedRowSets += 1;
+            const queue = await getQueue();
 
             try {
               hasRows =
