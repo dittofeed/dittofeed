@@ -36,7 +36,7 @@ export async function insertProcessedComputedProperties({
 }) {
   await clickhouseClient().insert({
     table:
-      "processed_computed_properties (workspace_id, user_id, type, computed_property_id, segment_value, user_property_value, processed_for)",
+      "processed_computed_properties (workspace_id, user_id, type, computed_property_id, segment_value, user_property_value, processed_for, processed_for_type)",
     values: assignments,
     format: "JSONEachRow",
   });
