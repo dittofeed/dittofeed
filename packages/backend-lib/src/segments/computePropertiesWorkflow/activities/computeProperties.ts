@@ -5,7 +5,7 @@ import { Row } from "@clickhouse/client";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
-import type PQueue from "p-queue";
+import pLimit from "p-limit";
 
 import {
   ClickHouseQueryBuilder,
@@ -528,16 +528,7 @@ async function processRows({
   return hasRows;
 }
 
-let QUEUE: PQueue | null = null;
-
-// accomodates fact that p-queue is esm only now
-async function getQueue() {
-  if (!QUEUE) {
-    const PQueue = await import("p-queue").then((module) => module.default);
-    QUEUE = new PQueue({ concurrency: 2 });
-  }
-  return QUEUE;
-}
+const limit = pLimit(2);
 
 // TODO distinguish between recoverable and non recoverable errors
 // TODO signal back to workflow with query id, so that query can be safely restarted part way through
@@ -647,8 +638,8 @@ export async function computePropertiesPeriodSafe({
         "read query page"
       );
 
-      let hasRows = false;
       let unprocessedRowSets = 0;
+      let receivedRows = 0;
       let hasEnded = false;
       let hasFailed = false;
       const stream = resultSet.stream();
@@ -658,16 +649,19 @@ export async function computePropertiesPeriodSafe({
           if (hasFailed) {
             return;
           }
+          receivedRows += rows.length;
 
           (async () => {
             unprocessedRowSets += 1;
-            const queue = await getQueue();
-
             try {
-              hasRows =
-                (await queue.add(() =>
-                  processRows({ rows, workspaceId, subscribedJourneys })
-                )) || hasRows;
+              logger().debug(
+                { workspaceId, rows },
+                "waiting on processing limit"
+              );
+
+              await limit(() =>
+                processRows({ rows, workspaceId, subscribedJourneys })
+              );
             } catch (e) {
               hasFailed = true;
               reject(e);
@@ -689,7 +683,7 @@ export async function computePropertiesPeriodSafe({
 
       // If no rows were fetched in this iteration, break out of the loop.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (!hasRows) {
+      if (receivedRows < READ_QUERY_PAGE_SIZE) {
         break;
       }
 
