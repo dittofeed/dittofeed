@@ -609,12 +609,21 @@ export async function computePropertiesPeriodSafe({
       let resultSet: Awaited<ReturnType<(typeof clickhouseClient)["query"]>>;
       const pageQueryId = randomUUID();
       try {
-        resultSet = await clickhouseClient.query({
-          query: paginatedReadQuery,
-          query_params: readChqb.getQueries(),
-          query_id: pageQueryId,
-          format: "JSONEachRow",
-        });
+        // FIXME test much slower now but not related to limit
+        resultSet = await limit(() =>
+          clickhouseClient.query({
+            query: paginatedReadQuery,
+            query_params: readChqb.getQueries(),
+            query_id: pageQueryId,
+            format: "JSONEachRow",
+          })
+        );
+        // resultSet = await clickhouseClient.query({
+        //   query: paginatedReadQuery,
+        //   query_params: readChqb.getQueries(),
+        //   query_id: pageQueryId,
+        //   format: "JSONEachRow",
+        // });
       } catch (e) {
         logger().error(
           {
@@ -654,14 +663,7 @@ export async function computePropertiesPeriodSafe({
           (async () => {
             unprocessedRowSets += 1;
             try {
-              logger().debug(
-                { workspaceId, rows },
-                "waiting on processing limit"
-              );
-
-              await limit(() =>
-                processRows({ rows, workspaceId, subscribedJourneys })
-              );
+              await processRows({ rows, workspaceId, subscribedJourneys });
             } catch (e) {
               hasFailed = true;
               reject(e);
