@@ -609,21 +609,13 @@ export async function computePropertiesPeriodSafe({
       let resultSet: Awaited<ReturnType<(typeof clickhouseClient)["query"]>>;
       const pageQueryId = randomUUID();
       try {
-        // FIXME test much slower now but not related to limit
         resultSet = await limit(() =>
           clickhouseClient.query({
             query: paginatedReadQuery,
-            query_params: readChqb.getQueries(),
             query_id: pageQueryId,
             format: "JSONEachRow",
           })
         );
-        // resultSet = await clickhouseClient.query({
-        //   query: paginatedReadQuery,
-        //   query_params: readChqb.getQueries(),
-        //   query_id: pageQueryId,
-        //   format: "JSONEachRow",
-        // });
       } catch (e) {
         logger().error(
           {
@@ -679,6 +671,9 @@ export async function computePropertiesPeriodSafe({
         });
 
         stream.on("end", () => {
+          if (!hasFailed && unprocessedRowSets === 0) {
+            resolve(0);
+          }
           hasEnded = true;
         });
       });
@@ -720,6 +715,7 @@ export async function computePropertiesPeriodSafe({
     );
   }
 
+  await clickhouseClient.close();
   return ok(null);
 }
 
