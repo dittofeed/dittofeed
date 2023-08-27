@@ -3,8 +3,9 @@ import { randomUUID } from "node:crypto";
 
 import { Row } from "@clickhouse/client";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+import pLimit from "p-limit";
 
 import {
   ClickHouseQueryBuilder,
@@ -27,7 +28,9 @@ import {
   ComputedAssignment,
   ComputedPropertyAssignment,
   ComputedPropertyUpdate,
+  EnrichedIntegration,
   EnrichedJourney,
+  EnrichedSegment,
   EnrichedUserProperty,
   SegmentUpdate,
 } from "../../../types";
@@ -91,36 +94,24 @@ interface ComputePropertiesPeriodParams {
   tableVersion: string;
 }
 
-// TODO distinguish between recoverable and non recoverable errors
-// TODO signal back to workflow with query id, so that query can be safely restarted part way through
-export async function computePropertiesPeriodSafe({
-  currentTime,
-  subscribedJourneys,
-  tableVersion,
+function buildReadQuery({
   workspaceId,
+  subscribedJourneys,
+  integrations,
   userProperties,
-}: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
-  const [segmentResult, integrationsResult] = await Promise.all([
-    findAllEnrichedSegments(workspaceId),
-    findAllEnrichedIntegrations(workspaceId),
-  ]);
-
-  if (segmentResult.isErr()) {
-    return err(new Error(JSON.stringify(segmentResult.error)));
-  }
-
-  if (integrationsResult.isErr()) {
-    return err(integrationsResult.error);
-  }
-
-  await writeAssignments({
-    currentTime,
-    segments: segmentResult.value,
-    tableVersion,
-    userProperties,
-    workspaceId,
-  });
-
+  segments,
+  queryBuilder: readChqb,
+}: {
+  queryBuilder: ClickHouseQueryBuilder;
+  workspaceId: string;
+  subscribedJourneys: EnrichedJourney[];
+  integrations: EnrichedIntegration[];
+  userProperties: EnrichedUserProperty[];
+  segments: EnrichedSegment[];
+}): {
+  query: string;
+  tmpTableName: string;
+} {
   // segment id / pg + journey id
   const subscribedJourneyMap = subscribedJourneys.reduce<
     Map<string, Set<string>>
@@ -135,7 +126,7 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  const subscribedIntegrationUserPropertyMap = integrationsResult.value.reduce<
+  const subscribedIntegrationUserPropertyMap = integrations.reduce<
     Map<string, Set<string>>
   >((memo, integration) => {
     integration.definition.subscribedUserProperties.forEach(
@@ -158,13 +149,11 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  const subscribedIntegrationSegmentMap = integrationsResult.value.reduce<
+  const subscribedIntegrationSegmentMap = integrations.reduce<
     Map<string, Set<string>>
   >((memo, integration) => {
     integration.definition.subscribedSegments.forEach((segmentName) => {
-      const segmentId = segmentResult.value.find(
-        (s) => s.name === segmentName
-      )?.id;
+      const segmentId = segments.find((s) => s.name === segmentName)?.id;
       if (!segmentId) {
         logger().info(
           { workspaceId, integration, segmentName },
@@ -179,7 +168,6 @@ export async function computePropertiesPeriodSafe({
     return memo;
   }, new Map());
 
-  const readChqb = new ClickHouseQueryBuilder();
   const subscribedJourneyKeys: string[] = [];
   const subscribedJourneyValues: string[][] = [];
   const subscribedIntegrationUserPropertyKeys: string[] = [];
@@ -252,7 +240,7 @@ export async function computePropertiesPeriodSafe({
    * already been assigned.
    * 4. It filters out false segment assignments to journeys.
    */
-  const readQuery = `
+  const query = `
     CREATE TEMPORARY TABLE IF NOT EXISTS ${tmpTableName} AS
     SELECT
       cpa.workspace_id,
@@ -323,6 +311,265 @@ export async function computePropertiesPeriodSafe({
       )
   `;
 
+  return {
+    query,
+    tmpTableName,
+  };
+}
+
+async function processRows({
+  rows,
+  workspaceId,
+  subscribedJourneys,
+}: {
+  rows: Row[];
+  workspaceId: string;
+  subscribedJourneys: EnrichedJourney[];
+}): Promise<boolean> {
+  let hasRows = false;
+  const assignments: ComputedAssignment[] = (
+    await Promise.all(
+      rows.map(async (row) => {
+        const json = await row.json();
+        const result = schemaValidateWithErr(json, ComputedAssignment);
+        if (result.isErr()) {
+          logger().error(
+            { err: result.error, json },
+            "failed to parse assignment json"
+          );
+          const emptyAssignments: ComputedAssignment[] = [];
+          return emptyAssignments;
+        }
+        return result.value;
+      })
+    )
+  ).flat();
+
+  const pgUserPropertyAssignments: ComputedAssignment[] = [];
+  const pgSegmentAssignments: ComputedAssignment[] = [];
+  const journeySegmentAssignments: ComputedAssignment[] = [];
+  const integrationAssignments: ComputedAssignment[] = [];
+
+  for (const assignment of assignments) {
+    hasRows = true;
+
+    let assignmentCategory: ComputedAssignment[];
+    if (assignment.processed_for_type === "pg") {
+      switch (assignment.type) {
+        case "segment":
+          assignmentCategory = pgSegmentAssignments;
+          break;
+        case "user_property":
+          assignmentCategory = pgUserPropertyAssignments;
+          break;
+      }
+    } else if (assignment.processed_for_type === "integration") {
+      assignmentCategory = integrationAssignments;
+    } else {
+      assignmentCategory = journeySegmentAssignments;
+    }
+    assignmentCategory.push(assignment);
+  }
+
+  logger().debug(
+    {
+      workspaceId,
+      assignmentsCount: assignments.length,
+      pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
+      pgSegmentAssignmentsCount: pgSegmentAssignments.length,
+      journeySegmentAssignmentsCount: journeySegmentAssignments.length,
+      integrationAssignmentsCount: integrationAssignments.length,
+    },
+    "processing computed assignments"
+  );
+
+  await Promise.all([
+    ...pgUserPropertyAssignments.map(async (a) => {
+      try {
+        await prisma().userPropertyAssignment.upsert({
+          where: {
+            workspaceId_userPropertyId_userId: {
+              workspaceId: a.workspace_id,
+              userId: a.user_id,
+              userPropertyId: a.computed_property_id,
+            },
+          },
+          update: {
+            value: a.latest_user_property_value,
+          },
+          create: {
+            workspaceId: a.workspace_id,
+            userId: a.user_id,
+            userPropertyId: a.computed_property_id,
+            value: a.latest_user_property_value,
+          },
+        });
+      } catch (e) {
+        // If reference error due to user assignment not existing anymore, swallow error and continue
+        if (
+          !(
+            e instanceof Prisma.PrismaClientKnownRequestError &&
+            e.code === "P2003"
+          )
+        ) {
+          throw e;
+        }
+      }
+    }),
+    ...pgSegmentAssignments.map(async (a) => {
+      const inSegment = Boolean(a.latest_segment_value);
+      try {
+        await prisma().segmentAssignment.upsert({
+          where: {
+            workspaceId_userId_segmentId: {
+              workspaceId: a.workspace_id,
+              userId: a.user_id,
+              segmentId: a.computed_property_id,
+            },
+          },
+          update: {
+            inSegment,
+          },
+          create: {
+            workspaceId: a.workspace_id,
+            userId: a.user_id,
+            segmentId: a.computed_property_id,
+            inSegment,
+          },
+        });
+      } catch (e) {
+        // If reference error due to segment not existing anymore, swallow error and continue
+        if (
+          !(
+            e instanceof Prisma.PrismaClientKnownRequestError &&
+            e.code === "P2003"
+          )
+        ) {
+          throw e;
+        }
+      }
+    }),
+  ]);
+
+  await Promise.all([
+    ...journeySegmentAssignments.flatMap((assignment) => {
+      const journey = subscribedJourneys.find(
+        (j) => j.id === assignment.processed_for
+      );
+      if (!journey) {
+        logger().error(
+          {
+            subscribedJourneys: subscribedJourneys.map((j) => j.id),
+            processed_for: assignment.processed_for,
+          },
+          "journey in assignment.processed_for missing from subscribed journeys"
+        );
+        return [];
+      }
+
+      return signalJourney({
+        workspaceId,
+        segmentId: assignment.computed_property_id,
+        segmentAssignment: assignment,
+        journey,
+      });
+    }),
+    ...integrationAssignments.flatMap(async (assignment) => {
+      switch (assignment.processed_for) {
+        case HUBSPOT_INTEGRATION: {
+          const { workflowClient } = getContext();
+          const updateVersion = new Date(assignment.max_assigned_at).getTime();
+
+          const update: ComputedPropertyUpdate =
+            assignment.type === "segment"
+              ? {
+                  type: "segment",
+                  segmentId: assignment.computed_property_id,
+                  segmentVersion: updateVersion,
+                  currentlyInSegment: assignment.latest_segment_value,
+                }
+              : {
+                  type: "user_property",
+                  userPropertyId: assignment.computed_property_id,
+                  value: assignment.latest_user_property_value,
+                  userPropertyVersion: updateVersion,
+                };
+
+          return startHubspotUserIntegrationWorkflow({
+            workspaceId: assignment.workspace_id,
+            userId: assignment.user_id,
+            workflowClient,
+            update,
+          });
+        }
+        default:
+          logger().error(
+            {
+              workspaceId,
+              assignment,
+            },
+            "integration in assignment.processed_for missing from subscribed integrations"
+          );
+          return [];
+      }
+    }),
+  ]);
+
+  const processedAssignments: ComputedPropertyAssignment[] =
+    assignments.flatMap((assignment) => ({
+      user_property_value: assignment.latest_user_property_value,
+      segment_value: assignment.latest_segment_value,
+      ...assignment,
+    }));
+
+  await insertProcessedComputedProperties({
+    assignments: processedAssignments,
+  });
+  return hasRows;
+}
+
+const limit = pLimit(2);
+
+// TODO distinguish between recoverable and non recoverable errors
+// TODO signal back to workflow with query id, so that query can be safely restarted part way through
+export async function computePropertiesPeriodSafe({
+  currentTime,
+  subscribedJourneys,
+  tableVersion,
+  workspaceId,
+  userProperties,
+}: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
+  const [segmentResult, integrationsResult] = await Promise.all([
+    findAllEnrichedSegments(workspaceId),
+    findAllEnrichedIntegrations(workspaceId),
+  ]);
+
+  if (segmentResult.isErr()) {
+    return err(new Error(JSON.stringify(segmentResult.error)));
+  }
+
+  if (integrationsResult.isErr()) {
+    return err(integrationsResult.error);
+  }
+
+  await writeAssignments({
+    currentTime,
+    segments: segmentResult.value,
+    tableVersion,
+    userProperties,
+    workspaceId,
+  });
+
+  const readChqb = new ClickHouseQueryBuilder();
+  const { query: readQuery, tmpTableName } = buildReadQuery({
+    workspaceId,
+    subscribedJourneys,
+    integrations: integrationsResult.value,
+    userProperties,
+    segments: segmentResult.value,
+    queryBuilder: readChqb,
+  });
+
   const clickhouseClient = createClickhouseClient({
     enableSession: true,
   });
@@ -362,12 +609,13 @@ export async function computePropertiesPeriodSafe({
       let resultSet: Awaited<ReturnType<(typeof clickhouseClient)["query"]>>;
       const pageQueryId = randomUUID();
       try {
-        resultSet = await clickhouseClient.query({
-          query: paginatedReadQuery,
-          query_params: readChqb.getQueries(),
-          query_id: pageQueryId,
-          format: "JSONEachRow",
-        });
+        resultSet = await limit(() =>
+          clickhouseClient.query({
+            query: paginatedReadQuery,
+            query_id: pageQueryId,
+            format: "JSONEachRow",
+          })
+        );
       } catch (e) {
         logger().error(
           {
@@ -391,210 +639,48 @@ export async function computePropertiesPeriodSafe({
         "read query page"
       );
 
-      let hasRows = false;
-      for await (const rows of resultSet.stream()) {
-        const assignments: ComputedAssignment[] = await Promise.all(
-          rows.flatMap(async (row: Row) => {
-            const json = await row.json();
-            logger().debug({ json }, "processing assignment json");
-            const result = schemaValidate(json, ComputedAssignment);
-            if (result.isErr()) {
-              logger().error(
-                { err: result.error, json },
-                "failed to parse assignment json"
-              );
-              return [];
-            }
-            return result.value;
-          })
-        );
+      let unprocessedRowSets = 0;
+      let receivedRows = 0;
+      let hasEnded = false;
+      let hasFailed = false;
+      const stream = resultSet.stream();
 
-        const pgUserPropertyAssignments: ComputedAssignment[] = [];
-        const pgSegmentAssignments: ComputedAssignment[] = [];
-        const journeySegmentAssignments: ComputedAssignment[] = [];
-        const integrationAssignments: ComputedAssignment[] = [];
-
-        for (const assignment of assignments) {
-          hasRows = true;
-
-          let assignmentCategory: ComputedAssignment[];
-          if (assignment.processed_for_type === "pg") {
-            switch (assignment.type) {
-              case "segment":
-                assignmentCategory = pgSegmentAssignments;
-                break;
-              case "user_property":
-                assignmentCategory = pgUserPropertyAssignments;
-                break;
-            }
-          } else if (assignment.processed_for_type === "integration") {
-            assignmentCategory = integrationAssignments;
-          } else {
-            assignmentCategory = journeySegmentAssignments;
+      await new Promise((resolve, reject) => {
+        stream.on("data", (rows: Row[]) => {
+          if (hasFailed) {
+            return;
           }
-          assignmentCategory.push(assignment);
-        }
+          receivedRows += rows.length;
 
-        logger().debug(
-          {
-            workspaceId,
-            assignmentsCount: assignments.length,
-            pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
-            pgSegmentAssignmentsCount: pgSegmentAssignments.length,
-            journeySegmentAssignmentsCount: journeySegmentAssignments.length,
-            integrationAssignmentsCount: integrationAssignments.length,
-          },
-          "processing computed assignments"
-        );
-
-        await Promise.all([
-          ...pgUserPropertyAssignments.map(async (a) => {
+          (async () => {
+            unprocessedRowSets += 1;
             try {
-              await prisma().userPropertyAssignment.upsert({
-                where: {
-                  workspaceId_userPropertyId_userId: {
-                    workspaceId: a.workspace_id,
-                    userId: a.user_id,
-                    userPropertyId: a.computed_property_id,
-                  },
-                },
-                update: {
-                  value: a.latest_user_property_value,
-                },
-                create: {
-                  workspaceId: a.workspace_id,
-                  userId: a.user_id,
-                  userPropertyId: a.computed_property_id,
-                  value: a.latest_user_property_value,
-                },
-              });
+              await processRows({ rows, workspaceId, subscribedJourneys });
             } catch (e) {
-              // If reference error due to user assignment not existing anymore, swallow error and continue
-              if (
-                !(
-                  e instanceof Prisma.PrismaClientKnownRequestError &&
-                  e.code === "P2003"
-                )
-              ) {
-                throw e;
-              }
-            }
-          }),
-          ...pgSegmentAssignments.map(async (a) => {
-            const inSegment = Boolean(a.latest_segment_value);
-            try {
-              await prisma().segmentAssignment.upsert({
-                where: {
-                  workspaceId_userId_segmentId: {
-                    workspaceId: a.workspace_id,
-                    userId: a.user_id,
-                    segmentId: a.computed_property_id,
-                  },
-                },
-                update: {
-                  inSegment,
-                },
-                create: {
-                  workspaceId: a.workspace_id,
-                  userId: a.user_id,
-                  segmentId: a.computed_property_id,
-                  inSegment,
-                },
-              });
-            } catch (e) {
-              // If reference error due to segment not existing anymore, swallow error and continue
-              if (
-                !(
-                  e instanceof Prisma.PrismaClientKnownRequestError &&
-                  e.code === "P2003"
-                )
-              ) {
-                throw e;
-              }
-            }
-          }),
-        ]);
-
-        await Promise.all([
-          ...journeySegmentAssignments.flatMap((assignment) => {
-            const journey = subscribedJourneys.find(
-              (j) => j.id === assignment.processed_for
-            );
-            if (!journey) {
-              logger().error(
-                {
-                  subscribedJourneys: subscribedJourneys.map((j) => j.id),
-                  processed_for: assignment.processed_for,
-                },
-                "journey in assignment.processed_for missing from subscribed journeys"
-              );
-              return [];
+              hasFailed = true;
+              reject(e);
+              return;
             }
 
-            return signalJourney({
-              workspaceId,
-              segmentId: assignment.computed_property_id,
-              segmentAssignment: assignment,
-              journey,
-            });
-          }),
-          ...integrationAssignments.flatMap(async (assignment) => {
-            switch (assignment.processed_for) {
-              case HUBSPOT_INTEGRATION: {
-                const { workflowClient } = getContext();
-                const updateVersion = new Date(
-                  assignment.max_assigned_at
-                ).getTime();
-
-                const update: ComputedPropertyUpdate =
-                  assignment.type === "segment"
-                    ? {
-                        type: "segment",
-                        segmentId: assignment.computed_property_id,
-                        segmentVersion: updateVersion,
-                        currentlyInSegment: assignment.latest_segment_value,
-                      }
-                    : {
-                        type: "user_property",
-                        userPropertyId: assignment.computed_property_id,
-                        value: assignment.latest_user_property_value,
-                        userPropertyVersion: updateVersion,
-                      };
-
-                return startHubspotUserIntegrationWorkflow({
-                  workspaceId: assignment.workspace_id,
-                  userId: assignment.user_id,
-                  workflowClient,
-                  update,
-                });
-              }
-              default:
-                logger().error(
-                  {
-                    workspaceId,
-                    assignment,
-                  },
-                  "integration in assignment.processed_for missing from subscribed integrations"
-                );
-                return [];
+            unprocessedRowSets -= 1;
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            if (!hasFailed && hasEnded && unprocessedRowSets === 0) {
+              resolve(0);
             }
-          }),
-        ]);
-
-        const processedAssignments: ComputedPropertyAssignment[] =
-          assignments.flatMap((assignment) => ({
-            user_property_value: assignment.latest_user_property_value,
-            segment_value: assignment.latest_segment_value,
-            ...assignment,
-          }));
-
-        await insertProcessedComputedProperties({
-          assignments: processedAssignments,
+          })();
         });
-      }
+
+        stream.on("end", () => {
+          if (!hasFailed && unprocessedRowSets === 0) {
+            resolve(0);
+          }
+          hasEnded = true;
+        });
+      });
 
       // If no rows were fetched in this iteration, break out of the loop.
-      if (!hasRows) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (receivedRows < READ_QUERY_PAGE_SIZE) {
         break;
       }
 
@@ -629,6 +715,7 @@ export async function computePropertiesPeriodSafe({
     );
   }
 
+  await clickhouseClient.close();
   return ok(null);
 }
 

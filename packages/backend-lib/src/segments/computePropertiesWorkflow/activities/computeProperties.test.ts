@@ -16,7 +16,6 @@ import {
 } from "../../../constants";
 import { EMAIL_EVENTS_UP_DEFINITION } from "../../../integrations/subscriptions";
 import { enrichJourney } from "../../../journeys";
-import logger from "../../../logger";
 import prisma, { Prisma } from "../../../prisma";
 import { buildSubscriptionChangeEventInner } from "../../../subscriptionGroups";
 import {
@@ -1613,7 +1612,6 @@ describe("compute properties activities", () => {
         describe("when activity called twice with the same parameters", () => {
           it("returns the same results but only sends the signals once", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
-            logger().debug("call 1");
 
             await computePropertiesPeriod({
               currentTime,
@@ -1624,7 +1622,6 @@ describe("compute properties activities", () => {
               userProperties: [],
             });
 
-            logger().debug("call 2");
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
