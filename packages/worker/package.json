@@ -10,7 +10,7 @@
     "start": "nodemon scripts/startWorker.ts"
   },
   "dependencies": {
-    "@sinclair/typebox": "^0.27.8",
+    "@sinclair/typebox": "^0.31.5",
     "@temporalio/interceptors-opentelemetry": "^1.7.4",
     "@temporalio/worker": "^1.7.4",
     "backend-lib": "0.0.3",
