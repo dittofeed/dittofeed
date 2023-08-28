@@ -169,7 +169,7 @@ export async function refreshToken({
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
-    const oauthToken = await prisma().oauthToken.upsert({
+    const newOauthToken = await prisma().oauthToken.upsert({
       where: {
         workspaceId_name: {
           workspaceId,
@@ -190,9 +190,9 @@ export async function refreshToken({
       },
     });
     return ok({
-      ...oauthToken,
-      createdAt: oauthToken.createdAt.getTime(),
-      updatedAt: oauthToken.updatedAt.getTime(),
+      ...newOauthToken,
+      createdAt: newOauthToken.createdAt.getTime(),
+      updatedAt: newOauthToken.updatedAt.getTime(),
     });
   } catch (e) {
     if (!(e instanceof AxiosError)) {
