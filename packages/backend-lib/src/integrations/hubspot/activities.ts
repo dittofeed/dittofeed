@@ -732,6 +732,7 @@ export async function updateHubspotEmails({
       userId,
       createCount: createEmailsBatch.length,
       updateCount: updateEmailsBatch.items.length,
+      email,
     },
     "creating and updating hubspot emails"
   );
