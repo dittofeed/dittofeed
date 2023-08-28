@@ -1,6 +1,7 @@
 import { WorkflowClient } from "@temporalio/client";
 import { ComputedPropertyUpdate } from "isomorphic-lib/src/types";
 
+import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
   generateHubspotUserWorkflowId,
@@ -44,6 +45,7 @@ export async function startHubspotIntegrationWorkflow({
   workspaceId: string;
 }) {
   const workflowClient = await connectWorkflowClient();
+  logger().info("starting hubspot integration workflow", { workspaceId });
 
   await workflowClient.signalWithStart<typeof hubspotWorkflow>(
     hubspotWorkflow,

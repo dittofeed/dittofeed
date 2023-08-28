@@ -4,7 +4,6 @@ import {
 } from "backend-lib/src/constants";
 import {
   getIntegrationEnabled,
-  getOauthToken,
   refreshToken,
   updateHubspotEmails,
   updateHubspotLists,
@@ -39,19 +38,13 @@ export async function hubspotSync({
     logger().info({ workspaceId }, "integration disabled");
     return;
   }
-  let token = await getOauthToken({ workspaceId });
-  if (!token) {
-    throw new Error("no token found");
-  }
   const refreshedToken = await refreshToken({
     workspaceId,
-    token: token.refreshToken,
   });
   if (refreshedToken.isErr()) {
     logger().error({ workspaceId }, "error refreshing token");
     return;
   }
-  token = refreshedToken.value;
 
   const userId = randomUUID();
   const journeyId = "0a956342-4af8-427c-87f0-e4b0bcafec99";

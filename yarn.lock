@@ -4182,10 +4182,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sinclair/typebox@npm:^0.27.8":
-  version: 0.27.8
-  resolution: "@sinclair/typebox@npm:0.27.8"
-  checksum: 00bd7362a3439021aa1ea51b0e0d0a0e8ca1351a3d54c606b115fdcc49b51b16db6e5f43b4fe7a28c38688523e22a94d49dd31168868b655f0d4d50f032d07a1
+"@sinclair/typebox@npm:^0.31.5":
+  version: 0.31.5
+  resolution: "@sinclair/typebox@npm:0.31.5"
+  checksum: bb5fd6d71bd3a025bd7176e3d73919bb07336d257f765a25ec22234e06424caea8bc8b467930f02c39a111125b7890f4bc6a12b4362e6a958ac15294a9dafce3
   languageName: node
   linkType: hard
 
@@ -6215,7 +6215,7 @@ __metadata:
     "@opentelemetry/sdk-trace-node": ^1.7.0
     "@opentelemetry/semantic-conventions": ^1.9.0
     "@sendgrid/mail": ^7.7.0
-    "@sinclair/typebox": ^0.27.8
+    "@sinclair/typebox": ^0.31.5
     "@temporalio/testing": ^1.7.4
     "@temporalio/worker": ^1.7.4
     "@types/analytics-node": ^3.1.9
@@ -6631,7 +6631,7 @@ __metadata:
     "@prisma/client": ^4.16.2
     "@sendgrid/helpers": ^7.7.0
     "@sendgrid/mail": ^7.7.0
-    "@sinclair/typebox": ^0.27.8
+    "@sinclair/typebox": ^0.31.5
     "@temporalio/activity": ^1.7.4
     "@temporalio/client": ^1.7.4
     "@temporalio/testing": ^1.7.4
@@ -7800,7 +7800,7 @@ __metadata:
     "@next/swc-linux-arm64-gnu": ^13.4.5
     "@next/swc-linux-arm64-musl": ^13.4.5
     "@prisma/client": ^4.16.2
-    "@sinclair/typebox": ^0.27.8
+    "@sinclair/typebox": ^0.31.5
     "@types/dagre": ^0.7.49
     "@types/escape-html": ^1.0.2
     "@types/file-saver": ^2.0.5
@@ -10948,7 +10948,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "isomorphic-lib@workspace:packages/isomorphic-lib"
   dependencies:
-    "@sinclair/typebox": ^0.27.8
+    "@sinclair/typebox": ^0.31.5
     "@types/jest": ^29.2.5
     "@typescript-eslint/eslint-plugin": ^5.60.0
     "@typescript-eslint/parser": ^5.60.0
@@ -17336,7 +17336,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "worker@workspace:packages/worker"
   dependencies:
-    "@sinclair/typebox": ^0.27.8
+    "@sinclair/typebox": ^0.31.5
     "@temporalio/interceptors-opentelemetry": ^1.7.4
     "@temporalio/worker": ^1.7.4
     "@types/node": ^18.8.5

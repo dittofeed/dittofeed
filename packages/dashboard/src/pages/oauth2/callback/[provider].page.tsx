@@ -9,6 +9,7 @@ import {
 import { findEnrichedIntegration } from "backend-lib/src/integrations";
 import { startHubspotIntegrationWorkflow } from "backend-lib/src/integrations/hubspot/signalUtils";
 import { EMAIL_EVENTS_UP_DEFINITION } from "backend-lib/src/integrations/subscriptions";
+import logger from "backend-lib/src/logger";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
 
@@ -19,7 +20,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
   async (ctx, dfContext) => {
     const { code, provider } = ctx.query;
     if (typeof code !== "string" || typeof provider !== "string") {
-      console.error("malformed callback url");
+      logger().error("malformed callback url");
 
       return {
         redirect: {
@@ -46,6 +47,12 @@ export const getServerSideProps: GetServerSideProps = requestContext(
 
     switch (provider) {
       case "hubspot": {
+        logger().info(
+          {
+            workspaceId: dfContext.workspace.id,
+          },
+          "handling hubspot callback"
+        );
         const [tokenResponse, integration] = await Promise.all([
           axios({
             method: "post",
@@ -128,7 +135,13 @@ export const getServerSideProps: GetServerSideProps = requestContext(
         break;
       }
       default:
-        console.error("unknown provider");
+        logger().error(
+          {
+            provider,
+          },
+          "unknown provider"
+        );
+
         return {
           redirect: {
             permanent: false,

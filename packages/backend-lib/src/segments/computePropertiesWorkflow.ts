@@ -8,6 +8,7 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
+import config from "../config";
 import { EnrichedJourney } from "../types";
 // Only import the activity types
 import type * as activities from "./computePropertiesWorkflow/activities";
@@ -32,10 +33,7 @@ export function generateComputePropertiesId(workspaceId: string) {
 
 type JourneyMap = Map<string, boolean>;
 
-export const BASE_POLLING_PERIOD = 10 * 1000;
 export const POLLING_JITTER_COEFFICIENT = 1000;
-export const MAX_POLLING_PERIOD =
-  BASE_POLLING_PERIOD + POLLING_JITTER_COEFFICIENT;
 
 export interface ComputedPropertiesWorkflowParams {
   workspaceId: string;
@@ -52,11 +50,18 @@ export async function computePropertiesWorkflow({
   workspaceId,
   shouldContinueAsNew = false,
   maxPollingAttempts = 1500,
-  basePollingPeriod = BASE_POLLING_PERIOD,
+  // useful primarily for testing
+  basePollingPeriod: basePollingPeriodOverride,
   pollingJitterCoefficient = POLLING_JITTER_COEFFICIENT,
   subscribedJourneys = [],
 }: ComputedPropertiesWorkflowParams): Promise<ComputedPropertiesWorkflowParams> {
   let journeys = subscribedJourneys;
+
+  // only use override if shouldContinueAsNew is false
+  const basePollingPeriod =
+    shouldContinueAsNew || !basePollingPeriodOverride
+      ? config().computePropertiesPeriod
+      : basePollingPeriodOverride;
 
   for (let i = 0; i < maxPollingAttempts; i++) {
     const currentTime = Date.now();

@@ -11,7 +11,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
-    "@sinclair/typebox": "^0.27.8",
+    "@sinclair/typebox": "^0.31.5",
     "neverthrow": "^6.0.0",
     "remeda": "^1.24.0"
   },

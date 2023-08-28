@@ -12,6 +12,7 @@ import {
   createClickhouseClient,
   getChCompatibleUuid,
 } from "../../../clickhouse";
+import config from "../../../config";
 import { HUBSPOT_INTEGRATION } from "../../../constants";
 import { findAllEnrichedIntegrations } from "../../../integrations";
 import { startHubspotUserIntegrationWorkflow } from "../../../integrations/hubspot/signalUtils";
@@ -36,8 +37,6 @@ import {
 } from "../../../types";
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
 import writeAssignments from "./computeProperties/writeAssignments";
-
-const READ_QUERY_PAGE_SIZE = 500;
 
 async function signalJourney({
   segmentId,
@@ -528,7 +527,14 @@ async function processRows({
   return hasRows;
 }
 
-const limit = pLimit(2);
+let LIMIT: pLimit.Limit | null = null;
+
+function limit() {
+  if (!LIMIT) {
+    LIMIT = pLimit(config().readQueryConcurrency);
+  }
+  return LIMIT;
+}
 
 // TODO distinguish between recoverable and non recoverable errors
 // TODO signal back to workflow with query id, so that query can be safely restarted part way through
@@ -574,6 +580,8 @@ export async function computePropertiesPeriodSafe({
     enableSession: true,
   });
 
+  const { readQueryPageSize } = config();
+
   try {
     const tmpTableQueryId = randomUUID();
     try {
@@ -604,12 +612,12 @@ export async function computePropertiesPeriodSafe({
     let offset = 0;
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
     while (true) {
-      const paginatedReadQuery = `SELECT * FROM ${tmpTableName} LIMIT ${READ_QUERY_PAGE_SIZE} OFFSET ${offset}`;
+      const paginatedReadQuery = `SELECT * FROM ${tmpTableName} LIMIT ${readQueryPageSize} OFFSET ${offset}`;
 
       let resultSet: Awaited<ReturnType<(typeof clickhouseClient)["query"]>>;
       const pageQueryId = randomUUID();
       try {
-        resultSet = await limit(() =>
+        resultSet = await limit()(() =>
           clickhouseClient.query({
             query: paginatedReadQuery,
             query_id: pageQueryId,
@@ -622,7 +630,7 @@ export async function computePropertiesPeriodSafe({
             workspaceId,
             queryId: pageQueryId,
             err: e,
-            READ_QUERY_PAGE_SIZE,
+            readQueryPageSize,
             offset,
           },
           "failed read query page"
@@ -633,7 +641,7 @@ export async function computePropertiesPeriodSafe({
         {
           workspaceId,
           queryId: pageQueryId,
-          READ_QUERY_PAGE_SIZE,
+          readQueryPageSize,
           offset,
         },
         "read query page"
@@ -680,12 +688,12 @@ export async function computePropertiesPeriodSafe({
 
       // If no rows were fetched in this iteration, break out of the loop.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (receivedRows < READ_QUERY_PAGE_SIZE) {
+      if (receivedRows < readQueryPageSize) {
         break;
       }
 
       // Increment the offset by PAGE_SIZE to fetch the next set of rows in the next iteration.
-      offset += READ_QUERY_PAGE_SIZE;
+      offset += readQueryPageSize;
     }
   } finally {
     const tmpTableQueryId = randomUUID();

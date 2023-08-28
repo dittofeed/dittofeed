@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y \
     vim \
     postgresql-client
 
+ENV PATH="$PATH:/root/.temporalio/bin"
+RUN curl -sSf https://temporal.download/cli.sh
+
 COPY *.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
 COPY ./packages/admin-cli/*.json ./packages/admin-cli/
