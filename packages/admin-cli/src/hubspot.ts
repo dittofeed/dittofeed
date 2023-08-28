@@ -4,7 +4,6 @@ import {
 } from "backend-lib/src/constants";
 import {
   getIntegrationEnabled,
-  getOauthToken,
   refreshToken,
   updateHubspotEmails,
   updateHubspotLists,
