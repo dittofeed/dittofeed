@@ -1,4 +1,5 @@
-import { Static, Type } from "@sinclair/typebox";
+import { FormatRegistry, Static, Type } from "@sinclair/typebox";
+import { isNaturalNumber } from "isomorphic-lib/src/strings";
 import { URL } from "url";
 import { Overwrite } from "utility-types";
 
@@ -12,6 +13,8 @@ import {
 } from "./types";
 
 const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
+
+FormatRegistry.Set("naturalNumber", isNaturalNumber);
 
 const BaseRawConfigProps = {
   databaseUrl: Type.Optional(Type.String()),
@@ -65,6 +68,8 @@ const BaseRawConfigProps = {
   enableMobilePush: Type.Optional(BoolStr),
   hubspotClientId: Type.Optional(Type.String()),
   hubspotClientSecret: Type.Optional(Type.String()),
+  readQueryPageSize: Type.Optional(Type.String({ format: "naturalNumber" })),
+  readQueryConcurrency: Type.Optional(Type.String({ format: "naturalNumber" })),
 };
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
@@ -122,6 +127,8 @@ export type Config = Overwrite<
     trackDashboard: boolean;
     dashboardUrl: string;
     enableMobilePush: boolean;
+    readQueryPageSize: number;
+    readQueryConcurrency: number;
   }
 > & {
   defaultWorkspaceId: string;
@@ -280,6 +287,12 @@ function parseRawConfig(rawConfig: RawConfig): Config {
         : "https://dittofeed.com"),
     trackDashboard: rawConfig.trackDashboard === "true",
     enableMobilePush: rawConfig.enableMobilePush === "true",
+    readQueryPageSize: rawConfig.readQueryPageSize
+      ? Number(rawConfig.readQueryPageSize)
+      : 200,
+    readQueryConcurrency: rawConfig.readQueryConcurrency
+      ? Number(rawConfig.readQueryConcurrency)
+      : 2,
   };
   return parsedConfig;
 }
