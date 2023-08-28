@@ -125,15 +125,26 @@ const HubspotBadRefreshTokenError = Type.Object({
 
 type HubspotBadRefreshTokenError = Static<typeof HubspotBadRefreshTokenError>;
 
+interface MissingTokenError {
+  type: "MissingTokenError";
+}
+
 export async function refreshToken({
   workspaceId,
-  token,
 }: {
   workspaceId: string;
-  token: string;
 }): Promise<
-  Result<SerializableOauthToken, AxiosError | HubspotBadRefreshTokenError>
+  Result<
+    SerializableOauthToken,
+    AxiosError | HubspotBadRefreshTokenError | MissingTokenError
+  >
 > {
+  const oauthToken = await getOauthToken({ workspaceId });
+  if (!oauthToken) {
+    return err({
+      type: "MissingTokenError",
+    });
+  }
   const { dashboardUrl, hubspotClientSecret, hubspotClientId } = config();
 
   if (!hubspotClientId || !hubspotClientSecret) {
@@ -144,7 +155,7 @@ export async function refreshToken({
     client_id: hubspotClientId,
     client_secret: hubspotClientSecret,
     redirect_uri: `${dashboardUrl}/dashboard/oauth2/callback/hubspot`,
-    refresh_token: token,
+    refresh_token: oauthToken.accessToken,
   };
 
   try {
@@ -568,7 +579,7 @@ export async function updateHubspotEmails({
       .mapErr((e) => {
         logger().error(
           { workspaceId, userId, err: e },
-          "error searching owners"
+          "error searching hubspot owners"
         );
         return e;
       })
@@ -589,7 +600,7 @@ export async function updateHubspotEmails({
   for (const key in grouped) {
     const groupedEvents = grouped[key];
     if (!groupedEvents) {
-      logger().error("no grouped events");
+      logger().error("no hubspot grouped events");
       continue;
     }
     const earliestMessageSent = groupedEvents.findLast(
@@ -636,7 +647,7 @@ export async function updateHubspotEmails({
           userId,
           events,
         },
-        "no status for email event"
+        "no hubspot status for email event"
       );
       continue;
     }

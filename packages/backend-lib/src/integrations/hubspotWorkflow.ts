@@ -117,7 +117,6 @@ export async function hubspotWorkflow({
       logger.info("refreshing hubspot oauth token", { workspaceId });
       const refreshedToken = await refreshToken({
         workspaceId,
-        token: token.refreshToken,
       });
       if (refreshedToken.isOk()) {
         token = refreshedToken.value;
