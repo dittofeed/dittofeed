@@ -47,6 +47,7 @@ export async function hubspotWorkflow({
   basePollingPeriod = REFRESH_WINDOW,
   pollingJitterCoefficient = HUBSPOT_POLLING_JITTER_COEFFICIENT,
 }: HubspotWorkflowParams): Promise<HubspotWorkflowParams> {
+  logger.info("hubspot workflow", { workspaceId });
   let token = await getOauthToken({ workspaceId });
   let tokenStale = false;
 
@@ -72,18 +73,26 @@ export async function hubspotWorkflow({
     if (!token) {
       throw new Error("no token to generate time to wait");
     }
+    const timeSinceTokenUpdate =
+      Date.now() - (token.updatedAt ?? token.createdAt);
     const waitTime = Math.max(
       // time to wait until token expires
       token.expiresIn * 1000 -
         // time since token was created
-        (Date.now() - (token.updatedAt ?? token.createdAt)) -
+        timeSinceTokenUpdate -
         // how much time to leave before token expires to refresh
         REFRESH_WINDOW -
         // add jitter to prevent thundering herd
         jitter * pollingJitterCoefficient,
       0
     );
-    logger.info("hubspot getTimeToWait", { workspaceId, token, waitTime });
+    logger.info("hubspot getTimeToWait", {
+      workspaceId,
+      waitTime,
+      expires: token.expiresIn * 1000,
+      timeSinceTokenUpdate,
+      jitter,
+    });
     return waitTime;
   }
 

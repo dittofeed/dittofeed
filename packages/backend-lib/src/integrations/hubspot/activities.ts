@@ -548,14 +548,17 @@ export async function updateHubspotEmails({
     .mapErr((e) => {
       logger().error(
         { workspaceId, userId, err: e },
-        "error searching contacts"
+        "error searching hubspot contacts"
       );
       return e;
     })
     .unwrapOr(null);
 
   if (!contact) {
-    logger().info({ workspaceId, userId, email }, "no contact found for email");
+    logger().info(
+      { workspaceId, userId, email },
+      "no hubspot contact found for email"
+    );
     return;
   }
 
