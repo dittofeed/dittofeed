@@ -158,7 +158,7 @@ export async function refreshToken({
     client_id: hubspotClientId,
     client_secret: hubspotClientSecret,
     redirect_uri: `${dashboardUrl}/dashboard/oauth2/callback/hubspot`,
-    refresh_token: oauthToken.accessToken,
+    refresh_token: oauthToken.refreshToken,
   };
 
   try {
@@ -204,16 +204,19 @@ export async function refreshToken({
     if (!(e instanceof AxiosError)) {
       throw e;
     }
+    const badRefreshTokenError = schemaValidateWithErr(
+      e.response?.data,
+      HubspotBadRefreshTokenError
+    );
+
     logger().error(
       {
         err: e,
         errBody: e.response?.data,
+        isRefreshError: badRefreshTokenError.isOk(),
+        workspaceId,
       },
       "Error refreshing Hubspot token"
-    );
-    const badRefreshTokenError = schemaValidateWithErr(
-      e.response?.data,
-      HubspotBadRefreshTokenError
     );
     if (badRefreshTokenError.isErr()) {
       throw e;
