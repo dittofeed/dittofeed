@@ -8,7 +8,6 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
-import config from "../config";
 import { EnrichedJourney } from "../types";
 // Only import the activity types
 import type * as activities from "./computePropertiesWorkflow/activities";
@@ -19,6 +18,7 @@ const {
   computePropertiesPeriod,
   findAllJourneysUnsafe,
   findAllUserProperties,
+  config,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
 });
@@ -56,11 +56,15 @@ export async function computePropertiesWorkflow({
   subscribedJourneys = [],
 }: ComputedPropertiesWorkflowParams): Promise<ComputedPropertiesWorkflowParams> {
   let journeys = subscribedJourneys;
+  const { computePropertiesInterval } = await config([
+    "computePropertiesInterval",
+  ]);
 
-  // only use override if shouldContinueAsNew is false
-  const basePollingPeriod =
+  // only use override if shouldContinueAsNew is false, in order to allow value
+  // to be reconfigured at deploy time
+  const basePollingInterval =
     shouldContinueAsNew || !basePollingPeriodOverride
-      ? config().computePropertiesPeriod
+      ? computePropertiesInterval
       : basePollingPeriodOverride;
 
   for (let i = 0; i < maxPollingAttempts; i++) {
@@ -117,11 +121,11 @@ export async function computePropertiesWorkflow({
     });
 
     // sleep for 10 seconds + up to 1 seconds of jitter for next polling period
-    await sleep(basePollingPeriod + Math.random() * pollingJitterCoefficient);
+    await sleep(basePollingInterval + Math.random() * pollingJitterCoefficient);
   }
 
   const params: ComputedPropertiesWorkflowParams = {
-    basePollingPeriod,
+    basePollingPeriod: basePollingInterval,
     maxPollingAttempts,
     pollingJitterCoefficient,
     shouldContinueAsNew,

@@ -70,7 +70,7 @@ const BaseRawConfigProps = {
   hubspotClientSecret: Type.Optional(Type.String()),
   readQueryPageSize: Type.Optional(Type.String({ format: "naturalNumber" })),
   readQueryConcurrency: Type.Optional(Type.String({ format: "naturalNumber" })),
-  computePropertiesPeriod: Type.Optional(
+  computePropertiesInterval: Type.Optional(
     Type.String({ format: "naturalNumber" })
   ),
 };
@@ -132,7 +132,7 @@ export type Config = Overwrite<
     enableMobilePush: boolean;
     readQueryPageSize: number;
     readQueryConcurrency: number;
-    computePropertiesPeriod: number;
+    computePropertiesInterval: number;
   }
 > & {
   defaultWorkspaceId: string;
@@ -298,8 +298,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       ? Number(rawConfig.readQueryConcurrency)
       : 2,
     // 30 seconds in ms
-    computePropertiesPeriod: rawConfig.computePropertiesPeriod
-      ? Number(rawConfig.computePropertiesPeriod)
+    computePropertiesInterval: rawConfig.computePropertiesInterval
+      ? Number(rawConfig.computePropertiesInterval)
       : 30 * 1000,
   };
   return parsedConfig;
