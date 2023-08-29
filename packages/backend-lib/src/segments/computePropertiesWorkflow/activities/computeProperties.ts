@@ -607,38 +607,49 @@ export async function computePropertiesPeriodSafe({
       let hasFailed = false;
       const stream = resultSet.stream();
 
-      await new Promise((resolve, reject) => {
-        stream.on("data", (rows: Row[]) => {
-          if (hasFailed) {
-            return;
-          }
-          receivedRows += rows.length;
-
-          (async () => {
-            unprocessedRowSets += 1;
-            try {
-              await processRows({ rows, workspaceId, subscribedJourneys });
-            } catch (e) {
-              hasFailed = true;
-              reject(e);
+      try {
+        await new Promise((resolve, reject) => {
+          stream.on("data", (rows: Row[]) => {
+            if (hasFailed) {
               return;
             }
+            receivedRows += rows.length;
 
-            unprocessedRowSets -= 1;
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (!hasFailed && hasEnded && unprocessedRowSets === 0) {
+            (async () => {
+              unprocessedRowSets += 1;
+              try {
+                await processRows({ rows, workspaceId, subscribedJourneys });
+              } catch (e) {
+                hasFailed = true;
+                reject(e);
+                return;
+              }
+
+              unprocessedRowSets -= 1;
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              if (!hasFailed && hasEnded && unprocessedRowSets === 0) {
+                resolve(0);
+              }
+            })();
+          });
+
+          stream.on("end", () => {
+            if (!hasFailed && unprocessedRowSets === 0) {
               resolve(0);
             }
-          })();
+            hasEnded = true;
+          });
         });
-
-        stream.on("end", () => {
-          if (!hasFailed && unprocessedRowSets === 0) {
-            resolve(0);
-          }
-          hasEnded = true;
-        });
-      });
+      } catch (e) {
+        logger().error(
+          {
+            err: e,
+            pageQueryId,
+          },
+          "failed to process rows"
+        );
+        throw e;
+      }
 
       // If no rows were fetched in this iteration, break out of the loop.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
