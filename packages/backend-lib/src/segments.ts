@@ -8,6 +8,7 @@ import {
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
+import logger from "./logger";
 import prisma from "./prisma";
 import {
   EnrichedSegment,
@@ -21,7 +22,6 @@ import {
   SegmentResource,
   UpsertSegmentResource,
 } from "./types";
-import logger from "./logger";
 
 export function enrichSegment(
   segment: Segment
