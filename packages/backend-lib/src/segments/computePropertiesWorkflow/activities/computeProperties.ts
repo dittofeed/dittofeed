@@ -36,6 +36,7 @@ import {
   SegmentUpdate,
 } from "../../../types";
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
+import { upsertBulkUserPropertyAssignments } from "../../../userProperties";
 import writeAssignments from "./computeProperties/writeAssignments";
 
 async function signalJourney({
@@ -383,37 +384,13 @@ async function processRows({
   );
 
   await Promise.all([
-    ...pgUserPropertyAssignments.map(async (a) => {
-      try {
-        await prisma().userPropertyAssignment.upsert({
-          where: {
-            workspaceId_userPropertyId_userId: {
-              workspaceId: a.workspace_id,
-              userId: a.user_id,
-              userPropertyId: a.computed_property_id,
-            },
-          },
-          update: {
-            value: a.latest_user_property_value,
-          },
-          create: {
-            workspaceId: a.workspace_id,
-            userId: a.user_id,
-            userPropertyId: a.computed_property_id,
-            value: a.latest_user_property_value,
-          },
-        });
-      } catch (e) {
-        // If reference error due to user assignment not existing anymore, swallow error and continue
-        if (
-          !(
-            e instanceof Prisma.PrismaClientKnownRequestError &&
-            e.code === "P2003"
-          )
-        ) {
-          throw e;
-        }
-      }
+    upsertBulkUserPropertyAssignments({
+      data: pgUserPropertyAssignments.map((a) => ({
+        workspaceId: a.workspace_id,
+        userId: a.user_id,
+        userPropertyId: a.computed_property_id,
+        value: a.latest_user_property_value,
+      })),
     }),
     ...pgSegmentAssignments.map(async (a) => {
       const inSegment = Boolean(a.latest_segment_value);

@@ -1,4 +1,4 @@
-import { Prisma, UserProperty } from "@prisma/client";
+import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { parseUserProperty } from "isomorphic-lib/src/userProperties";
@@ -78,6 +78,42 @@ export function assignmentAsString(
     return null;
   }
   return assignment;
+}
+
+export async function upsertBulkUserPropertyAssignments({
+  data,
+}: {
+  data: Pick<
+    UserPropertyAssignment,
+    "workspaceId" | "userId" | "userPropertyId" | "value"
+  >[];
+}) {
+  if (data.length === 0) {
+    return;
+  }
+  const insertValues = Prisma.join(
+    data.map(
+      (d) =>
+        Prisma.sql`(CAST(${d.workspaceId} AS UUID), '${d.userId}', CAST(${d.userPropertyId} AS UUID), '${d.value}')`
+    )
+  );
+
+  const query = Prisma.sql`
+    INSERT INTO "UserPropertyAssignment" ("workspaceId", "userId", "userPropertyId", "value")
+    VALUES ${insertValues}
+    ON CONFLICT ("workspaceId", "userId", "userPropertyId")
+    DO UPDATE SET
+      "value" = EXCLUDED."value"
+ `;
+  try {
+    await prisma().$executeRaw(query);
+  } catch (e) {
+    if (
+      !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
+    ) {
+      throw e;
+    }
+  }
 }
 
 export async function findAllUserPropertyAssignments({
