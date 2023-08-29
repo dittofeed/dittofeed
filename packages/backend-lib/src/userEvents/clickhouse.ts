@@ -128,7 +128,7 @@ export async function createUserEventsTables({
             processed_for_type LowCardinality(String),
             processed_at DateTime64(3) DEFAULT now64(3)
         ) Engine = ReplacingMergeTree()
-        ORDER BY (workspace_id, computed_property_id, user_id, processed_for);
+        ORDER BY (workspace_id, computed_property_id, processed_for_type, processed_for, user_id);
       `,
   ];
 
