@@ -14,6 +14,7 @@ import {
   InternalEventType,
   Prisma,
   Segment,
+  SegmentAssignment,
   SegmentDefinition,
   SegmentNode,
   SegmentNodeType,
@@ -291,4 +292,52 @@ export async function buildSegmentsFile({
     fileName,
     fileContent,
   };
+}
+
+export type SegmentBulkUpsertItem = Pick<
+  SegmentAssignment,
+  "workspaceId" | "userId" | "segmentId" | "inSegment"
+>;
+
+export async function upsertBulkSegmentAssignments({
+  data,
+}: {
+  data: SegmentBulkUpsertItem[];
+}) {
+  if (data.length === 0) {
+    return;
+  }
+  const workspaceIds: Prisma.Sql[] = [];
+  const userIds: string[] = [];
+  const segmentIds: Prisma.Sql[] = [];
+  const inSegment: boolean[] = [];
+
+  for (const item of data) {
+    workspaceIds.push(Prisma.sql`CAST(${item.workspaceId} AS UUID)`);
+    userIds.push(item.userId);
+    segmentIds.push(Prisma.sql`CAST(${item.segmentId} AS UUID)`);
+    inSegment.push(item.inSegment);
+  }
+
+  const query = Prisma.sql`
+    INSERT INTO "SegmentAssignment" ("workspaceId", "userId", "segmentId", "inSegment")
+    SELECT
+      unnest(array[${Prisma.join(workspaceIds)}]),
+      unnest(array[${Prisma.join(userIds)}]),
+      unnest(array[${Prisma.join(segmentIds)}]),
+      unnest(array[${Prisma.join(inSegment)}])
+    ON CONFLICT ("workspaceId", "userId", "segmentId")
+    DO UPDATE SET
+      "value" = EXCLUDED."value"
+  `;
+
+  try {
+    await prisma().$executeRaw(query);
+  } catch (e) {
+    if (
+      !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
+    ) {
+      throw e;
+    }
+  }
 }

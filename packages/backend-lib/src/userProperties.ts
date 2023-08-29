@@ -107,7 +107,7 @@ export async function upsertBulkUserPropertyAssignments({
 
   const query = Prisma.sql`
     INSERT INTO "UserPropertyAssignment" ("workspaceId", "userId", "userPropertyId", "value")
-    SELECT 
+    SELECT
       unnest(array[${Prisma.join(workspaceIds)}]),
       unnest(array[${Prisma.join(userIds)}]),
       unnest(array[${Prisma.join(userPropertyIds)}]),

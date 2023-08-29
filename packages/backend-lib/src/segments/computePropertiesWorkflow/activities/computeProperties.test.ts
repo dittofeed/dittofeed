@@ -48,7 +48,6 @@ import {
   UserPropertyAssignments,
 } from "../../../userProperties";
 import { computePropertiesPeriod } from "./computeProperties";
-import logger from "../../../logger";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -2442,9 +2441,8 @@ describe("compute properties activities", () => {
           );
         });
 
-        it.only("signals when paid, but not when becomes free", async () => {
+        it("signals when paid, but not when becomes free", async () => {
           let currentTime = Date.parse("2022-01-01 00:10:45 UTC");
-          logger().debug("test start");
           await computePropertiesPeriod({
             workspaceId: workspace.id,
             currentTime,
