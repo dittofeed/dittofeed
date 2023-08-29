@@ -1,4 +1,4 @@
-import { Prisma, UserProperty } from "@prisma/client";
+import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { parseUserProperty } from "isomorphic-lib/src/userProperties";
@@ -80,6 +80,54 @@ export function assignmentAsString(
   return assignment;
 }
 
+export type UserPropertyBulkUpsertItem = Pick<
+  UserPropertyAssignment,
+  "workspaceId" | "userId" | "userPropertyId" | "value"
+>;
+
+export async function upsertBulkUserPropertyAssignments({
+  data,
+}: {
+  data: UserPropertyBulkUpsertItem[];
+}) {
+  if (data.length === 0) {
+    return;
+  }
+  const workspaceIds: Prisma.Sql[] = [];
+  const userIds: string[] = [];
+  const userPropertyIds: Prisma.Sql[] = [];
+  const values: string[] = [];
+
+  for (const item of data) {
+    workspaceIds.push(Prisma.sql`CAST(${item.workspaceId} AS UUID)`);
+    userIds.push(item.userId);
+    userPropertyIds.push(Prisma.sql`CAST(${item.userPropertyId} AS UUID)`);
+    values.push(item.value);
+  }
+
+  const query = Prisma.sql`
+    INSERT INTO "UserPropertyAssignment" ("workspaceId", "userId", "userPropertyId", "value")
+    SELECT
+      unnest(array[${Prisma.join(workspaceIds)}]),
+      unnest(array[${Prisma.join(userIds)}]),
+      unnest(array[${Prisma.join(userPropertyIds)}]),
+      unnest(array[${Prisma.join(values)}])
+    ON CONFLICT ("workspaceId", "userId", "userPropertyId")
+    DO UPDATE SET
+      "value" = EXCLUDED."value"
+  `;
+
+  try {
+    await prisma().$executeRaw(query);
+  } catch (e) {
+    if (
+      !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
+    ) {
+      throw e;
+    }
+  }
+}
+
 export async function findAllUserPropertyAssignments({
   userId,
   workspaceId,
@@ -107,6 +155,12 @@ export async function findAllUserPropertyAssignments({
     },
   });
 
+  logger().debug(
+    {
+      userProperties,
+    },
+    "findAllUserPropertyAssignments"
+  );
   const combinedAssignments: UserPropertyAssignments = {};
 
   for (const userProperty of userProperties) {
@@ -127,6 +181,15 @@ export async function findAllUserPropertyAssignments({
     for (const assignment of assignments) {
       const parsed = parseUserProperty(definition, assignment.value);
       if (parsed.isErr()) {
+        logger().error(
+          {
+            err: parsed.error,
+            workspaceId,
+            userProperty,
+            assignment,
+          },
+          "failed to parse user property assignment"
+        );
         continue;
       }
       combinedAssignments[userProperty.name] = parsed.value;
