@@ -17,6 +17,7 @@ export const JsonErr = <E extends TSchema>(type: E) =>
     err: type,
   });
 
+// necessary because neverthrow's result is not json serializable
 export const JsonResult = <T extends TSchema, E extends TSchema>(
   resultType: T,
   errorType: E
@@ -1557,3 +1558,16 @@ export const UpsertIntegrationResource = Type.Composite([
 export type UpsertIntegrationResource = Static<
   typeof UpsertIntegrationResource
 >;
+
+export const OauthTokenResource = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  name: Type.String(),
+  accessToken: Type.String(),
+  refreshToken: Type.String(),
+  expiresIn: Type.Number(),
+  createdAt: Type.Number(),
+  updatedAt: Type.Optional(Type.Number()),
+});
+
+export type OauthTokenResource = Static<typeof OauthTokenResource>;

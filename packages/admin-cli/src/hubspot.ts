@@ -14,6 +14,7 @@ import { randomUUID } from "crypto";
 import {
   IntegrationType,
   InternalEventType,
+  JsonResultType,
   ParsedPerformedManyValueItem,
   SegmentDefinition,
   SegmentNodeType,
@@ -41,7 +42,7 @@ export async function hubspotSync({
   const refreshedToken = await refreshToken({
     workspaceId,
   });
-  if (refreshedToken.isErr()) {
+  if (refreshedToken.type === JsonResultType.Err) {
     logger().error({ workspaceId }, "error refreshing token");
     return;
   }

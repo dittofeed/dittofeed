@@ -8,6 +8,7 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
+import { JsonResultType } from "../types";
 // Only import the activity types
 import type * as activities from "./hubspot/activities";
 
@@ -118,7 +119,7 @@ export async function hubspotWorkflow({
       const refreshedToken = await refreshToken({
         workspaceId,
       });
-      if (refreshedToken.isOk()) {
+      if (refreshedToken.type === JsonResultType.Ok) {
         token = refreshedToken.value;
       }
     }
