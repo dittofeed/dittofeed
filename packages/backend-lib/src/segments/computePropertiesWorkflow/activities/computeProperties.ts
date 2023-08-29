@@ -22,8 +22,10 @@ import {
   userJourneyWorkflow,
 } from "../../../journeys/userWorkflow";
 import logger from "../../../logger";
-import prisma, { Prisma } from "../../../prisma";
-import { findAllEnrichedSegments } from "../../../segments";
+import {
+  findAllEnrichedSegments,
+  upsertBulkSegmentAssignments,
+} from "../../../segments";
 import { getContext } from "../../../temporal/activity";
 import {
   ComputedAssignment,
@@ -371,7 +373,7 @@ async function processRows({
     assignmentCategory.push(assignment);
   }
 
-  logger().debug(
+  logger().info(
     {
       workspaceId,
       assignmentsCount: assignments.length,
@@ -392,38 +394,13 @@ async function processRows({
         value: a.latest_user_property_value,
       })),
     }),
-    ...pgSegmentAssignments.map(async (a) => {
-      const inSegment = Boolean(a.latest_segment_value);
-      try {
-        await prisma().segmentAssignment.upsert({
-          where: {
-            workspaceId_userId_segmentId: {
-              workspaceId: a.workspace_id,
-              userId: a.user_id,
-              segmentId: a.computed_property_id,
-            },
-          },
-          update: {
-            inSegment,
-          },
-          create: {
-            workspaceId: a.workspace_id,
-            userId: a.user_id,
-            segmentId: a.computed_property_id,
-            inSegment,
-          },
-        });
-      } catch (e) {
-        // If reference error due to segment not existing anymore, swallow error and continue
-        if (
-          !(
-            e instanceof Prisma.PrismaClientKnownRequestError &&
-            e.code === "P2003"
-          )
-        ) {
-          throw e;
-        }
-      }
+    upsertBulkSegmentAssignments({
+      data: pgSegmentAssignments.map((a) => ({
+        workspaceId: a.workspace_id,
+        userId: a.user_id,
+        segmentId: a.computed_property_id,
+        inSegment: a.latest_segment_value,
+      })),
     }),
   ]);
 

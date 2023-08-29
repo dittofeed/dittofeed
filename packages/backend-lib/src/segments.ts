@@ -328,7 +328,7 @@ export async function upsertBulkSegmentAssignments({
       unnest(array[${Prisma.join(inSegment)}])
     ON CONFLICT ("workspaceId", "userId", "segmentId")
     DO UPDATE SET
-      "value" = EXCLUDED."value"
+      "inSegment" = EXCLUDED."inSegment"
   `;
 
   try {
