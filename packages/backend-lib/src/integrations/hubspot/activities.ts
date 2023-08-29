@@ -5,13 +5,15 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   InternalEventType,
+  JsonResult,
+  JsonResultType,
   Nullable,
+  OauthTokenResource,
   ParsedPerformedManyValueItem,
   SegmentUpdate,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 import { groupBy, indexBy, pick } from "remeda";
-import { Overwrite } from "utility-types";
 
 import config from "../../config";
 import {
@@ -22,7 +24,7 @@ import {
 import logger from "../../logger";
 import prisma from "../../prisma";
 import { findEnrichedSegments } from "../../segments";
-import { EnrichedUserProperty, OauthToken } from "../../types";
+import { EnrichedUserProperty } from "../../types";
 import {
   enrichUserProperty,
   findAllUserPropertyAssignments,
@@ -81,17 +83,11 @@ function handleAuthFailure<T extends unknown[], U>(
   return newFn;
 }
 
-// prevents temporal from automatically serializing Dates to strings
-export type SerializableOauthToken = Overwrite<
-  OauthToken,
-  { createdAt: number; updatedAt: number | null }
->;
-
 export async function getOauthToken({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<SerializableOauthToken | null> {
+}): Promise<OauthTokenResource | null> {
   const token = await prisma().oauthToken.findUnique({
     where: {
       workspaceId_name: {
@@ -125,25 +121,32 @@ const HubspotBadRefreshTokenError = Type.Object({
 
 type HubspotBadRefreshTokenError = Static<typeof HubspotBadRefreshTokenError>;
 
-interface MissingTokenError {
-  type: "MissingTokenError";
-}
+const MissingTokenError = Type.Object({
+  type: Type.Literal("MissingTokenError"),
+});
+
+type MissingTokenError = Static<typeof MissingTokenError>;
+
+const RefreshResult = JsonResult(
+  OauthTokenResource,
+  Type.Union([MissingTokenError, HubspotBadRefreshTokenError])
+);
+
+type RefreshResult = Static<typeof RefreshResult>;
 
 export async function refreshToken({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<
-  Result<
-    SerializableOauthToken,
-    AxiosError | HubspotBadRefreshTokenError | MissingTokenError
-  >
-> {
+}): Promise<RefreshResult> {
   const oauthToken = await getOauthToken({ workspaceId });
   if (!oauthToken) {
-    return err({
-      type: "MissingTokenError",
-    });
+    return {
+      type: JsonResultType.Err,
+      err: {
+        type: "MissingTokenError",
+      },
+    };
   }
   const { dashboardUrl, hubspotClientSecret, hubspotClientId } = config();
 
@@ -189,11 +192,14 @@ export async function refreshToken({
         expiresIn: expires_in,
       },
     });
-    return ok({
-      ...newOauthToken,
-      createdAt: newOauthToken.createdAt.getTime(),
-      updatedAt: newOauthToken.updatedAt.getTime(),
-    });
+    return {
+      type: JsonResultType.Ok,
+      value: {
+        ...newOauthToken,
+        createdAt: newOauthToken.createdAt.getTime(),
+        updatedAt: newOauthToken.updatedAt.getTime(),
+      },
+    };
   } catch (e) {
     if (!(e instanceof AxiosError)) {
       throw e;
@@ -209,22 +215,24 @@ export async function refreshToken({
       e.response?.data,
       HubspotBadRefreshTokenError
     );
-    if (badRefreshTokenError.isOk()) {
-      await prisma().integration.update({
-        where: {
-          workspaceId_name: {
-            workspaceId,
-            name: HUBSPOT_INTEGRATION,
-          },
-        },
-        data: {
-          enabled: false,
-        },
-      });
-      return err(badRefreshTokenError.value);
+    if (badRefreshTokenError.isErr()) {
+      throw e;
     }
-
-    return err(e);
+    await prisma().integration.update({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: HUBSPOT_INTEGRATION,
+        },
+      },
+      data: {
+        enabled: false,
+      },
+    });
+    return {
+      type: JsonResultType.Err,
+      err: badRefreshTokenError.value,
+    };
   }
 }
 
