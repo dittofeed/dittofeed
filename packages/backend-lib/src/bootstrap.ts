@@ -234,7 +234,11 @@ async function bootstrapClickhouse() {
   });
 }
 
-async function bootstrapWorker({ workspaceId }: { workspaceId: string }) {
+export async function bootstrapWorker({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
   const temporalClient = await connectWorkflowClient();
 
   try {

@@ -1,4 +1,4 @@
-import bootstrap from "backend-lib/src/bootstrap";
+import bootstrap, { bootstrapWorker } from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
 import { onboardUser } from "backend-lib/src/onboarding";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -45,6 +45,20 @@ export async function cli() {
           workspaceName,
           workspaceDomain,
         })
+    )
+    .command(
+      "bootstrap-worker",
+      "Bootstrap worker.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+            describe: "The workspace id to bootstrap.",
+          },
+        }),
+      ({ workspaceId }) => bootstrapWorker({ workspaceId })
     )
     .command(
       "spawn",
