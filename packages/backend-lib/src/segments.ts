@@ -21,6 +21,7 @@ import {
   SegmentResource,
   UpsertSegmentResource,
 } from "./types";
+import logger from "./logger";
 
 export function enrichSegment(
   segment: Segment
@@ -307,12 +308,29 @@ export async function upsertBulkSegmentAssignments({
   if (data.length === 0) {
     return;
   }
+  const existing = new Map<string, SegmentBulkUpsertItem>();
+  for (const item of data) {
+    const key = `${item.workspaceId}-${item.segmentId}-${item.userId}`;
+    if (existing.has(key)) {
+      logger().warn(
+        {
+          existing: existing.get(key),
+          new: item,
+          workspaceId: item.workspaceId,
+        },
+        "duplicate segment assignment in bulk upsert"
+      );
+      continue;
+    }
+    existing.set(key, item);
+  }
+  const deduped = Array.from(existing.values());
   const workspaceIds: Prisma.Sql[] = [];
   const userIds: string[] = [];
   const segmentIds: Prisma.Sql[] = [];
   const inSegment: boolean[] = [];
 
-  for (const item of data) {
+  for (const item of deduped) {
     workspaceIds.push(Prisma.sql`CAST(${item.workspaceId} AS UUID)`);
     userIds.push(item.userId);
     segmentIds.push(Prisma.sql`CAST(${item.segmentId} AS UUID)`);
