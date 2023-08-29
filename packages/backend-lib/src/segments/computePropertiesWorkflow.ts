@@ -111,7 +111,9 @@ export async function computePropertiesWorkflow({
         userProperties,
       });
     } catch (e) {
-      logger.error("computePropertiesPeriod failed", { err: e });
+      logger.error("computePropertiesWorkflow failed to re-compute", {
+        err: e,
+      });
     }
 
     const { computePropertiesInterval } = await config([
