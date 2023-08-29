@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client
 
 ENV PATH="$PATH:/root/.temporalio/bin"
-RUN curl -sSf https://temporal.download/cli.sh
+RUN curl -sSf https://temporal.download/cli.sh | sh
 
 COPY *.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
