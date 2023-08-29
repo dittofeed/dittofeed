@@ -80,40 +80,68 @@ export function assignmentAsString(
   return assignment;
 }
 
+export type UserPropertyBulkUpsertItem = Pick<
+  UserPropertyAssignment,
+  "workspaceId" | "userId" | "userPropertyId" | "value"
+>;
+
+function upsertItemSql(item: UserPropertyBulkUpsertItem): Prisma.Sql {
+  return Prisma.sql`(CAST(${item.workspaceId} AS UUID), '${item.userId}', CAST(${item.userPropertyId} AS UUID), '${item.value}')`;
+}
+
 export async function upsertBulkUserPropertyAssignments({
   data,
 }: {
-  data: Pick<
-    UserPropertyAssignment,
-    "workspaceId" | "userId" | "userPropertyId" | "value"
-  >[];
+  data: UserPropertyBulkUpsertItem[];
 }) {
+  logger().debug(
+    {
+      data,
+    },
+    "upsertBulkUserPropertyAssignments start"
+  );
   if (data.length === 0) {
     return;
   }
-  const insertValues = Prisma.join(
-    data.map(
-      (d) =>
-        Prisma.sql`(CAST(${d.workspaceId} AS UUID), '${d.userId}', CAST(${d.userPropertyId} AS UUID), '${d.value}')`
-    )
-  );
+  const insertValues: Prisma.Sql = Prisma.join(data.map(upsertItemSql));
 
+  const workspaceIds = data.map((item) => item.workspaceId);
+  const userIds = data.map((item) => item.userId);
+  const userPropertyIds = data.map((item) => item.userPropertyId);
+  const values = data.map((item) => item.value);
+
+  // https://github.com/prisma/prisma/discussions/4177
   const query = Prisma.sql`
     INSERT INTO "UserPropertyAssignment" ("workspaceId", "userId", "userPropertyId", "value")
-    VALUES ${insertValues}
+    SELECT unnest(array[${Prisma.join(
+      workspaceIds.map((id) => Prisma.sql`CAST(${id} AS UUID)`)
+    )}])::uuid,
+          unnest(array[${Prisma.join(userIds)}])::text,
+          unnest(array[${Prisma.join(
+            userPropertyIds.map((id) => Prisma.sql`CAST(${id} AS UUID)`)
+          )}])::uuid,
+          unnest(array[${Prisma.join(values)}])::text
     ON CONFLICT ("workspaceId", "userId", "userPropertyId")
     DO UPDATE SET
       "value" = EXCLUDED."value"
- `;
-  try {
-    await prisma().$executeRaw(query);
-  } catch (e) {
-    if (
-      !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
-    ) {
-      throw e;
-    }
-  }
+  `;
+
+  logger().debug(
+    {
+      query: query.toString(),
+    },
+    "upsertBulkUserPropertyAssignments"
+  );
+  // try {
+  await prisma().$executeRaw(query);
+  logger().debug("upsertBulkUserPropertyAssignments end");
+  // } catch (e) {
+  //   if (
+  //     !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
+  //   ) {
+  //     throw e;
+  //   }
+  // }
 }
 
 export async function findAllUserPropertyAssignments({
@@ -143,6 +171,12 @@ export async function findAllUserPropertyAssignments({
     },
   });
 
+  logger().debug(
+    {
+      userProperties,
+    },
+    "findAllUserPropertyAssignments"
+  );
   const combinedAssignments: UserPropertyAssignments = {};
 
   for (const userProperty of userProperties) {
@@ -163,6 +197,15 @@ export async function findAllUserPropertyAssignments({
     for (const assignment of assignments) {
       const parsed = parseUserProperty(definition, assignment.value);
       if (parsed.isErr()) {
+        logger().error(
+          {
+            err: parsed.error,
+            workspaceId,
+            userProperty,
+            assignment,
+          },
+          "failed to parse user property assignment"
+        );
         continue;
       }
       combinedAssignments[userProperty.name] = parsed.value;
