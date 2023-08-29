@@ -93,12 +93,31 @@ export async function upsertBulkUserPropertyAssignments({
   if (data.length === 0) {
     return;
   }
+  const existing = new Map<string, UserPropertyBulkUpsertItem>();
+
+  for (const item of data) {
+    const key = `${item.workspaceId}-${item.userPropertyId}-${item.userId}`;
+    if (existing.has(key)) {
+      logger().warn(
+        {
+          existing: existing.get(key),
+          new: item,
+          workspaceId: item.workspaceId,
+        },
+        "duplicate user property assignment in bulk upsert"
+      );
+      continue;
+    }
+    existing.set(key, item);
+  }
+  const deduped: UserPropertyBulkUpsertItem[] = Array.from(existing.values());
+
   const workspaceIds: Prisma.Sql[] = [];
   const userIds: string[] = [];
   const userPropertyIds: Prisma.Sql[] = [];
   const values: string[] = [];
 
-  for (const item of data) {
+  for (const item of deduped) {
     workspaceIds.push(Prisma.sql`CAST(${item.workspaceId} AS UUID)`);
     userIds.push(item.userId);
     userPropertyIds.push(Prisma.sql`CAST(${item.userPropertyId} AS UUID)`);
