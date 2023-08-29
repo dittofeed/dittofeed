@@ -85,63 +85,47 @@ export type UserPropertyBulkUpsertItem = Pick<
   "workspaceId" | "userId" | "userPropertyId" | "value"
 >;
 
-function upsertItemSql(item: UserPropertyBulkUpsertItem): Prisma.Sql {
-  return Prisma.sql`(CAST(${item.workspaceId} AS UUID), '${item.userId}', CAST(${item.userPropertyId} AS UUID), '${item.value}')`;
-}
-
 export async function upsertBulkUserPropertyAssignments({
   data,
 }: {
   data: UserPropertyBulkUpsertItem[];
 }) {
-  logger().debug(
-    {
-      data,
-    },
-    "upsertBulkUserPropertyAssignments start"
-  );
   if (data.length === 0) {
     return;
   }
-  const insertValues: Prisma.Sql = Prisma.join(data.map(upsertItemSql));
+  const workspaceIds: Prisma.Sql[] = [];
+  const userIds: string[] = [];
+  const userPropertyIds: Prisma.Sql[] = [];
+  const values: string[] = [];
 
-  const workspaceIds = data.map((item) => item.workspaceId);
-  const userIds = data.map((item) => item.userId);
-  const userPropertyIds = data.map((item) => item.userPropertyId);
-  const values = data.map((item) => item.value);
+  for (const item of data) {
+    workspaceIds.push(Prisma.sql`CAST(${item.workspaceId} AS UUID)`);
+    userIds.push(item.userId);
+    userPropertyIds.push(Prisma.sql`CAST(${item.userPropertyId} AS UUID)`);
+    values.push(item.value);
+  }
 
-  // https://github.com/prisma/prisma/discussions/4177
   const query = Prisma.sql`
     INSERT INTO "UserPropertyAssignment" ("workspaceId", "userId", "userPropertyId", "value")
-    SELECT unnest(array[${Prisma.join(
-      workspaceIds.map((id) => Prisma.sql`CAST(${id} AS UUID)`)
-    )}])::uuid,
-          unnest(array[${Prisma.join(userIds)}])::text,
-          unnest(array[${Prisma.join(
-            userPropertyIds.map((id) => Prisma.sql`CAST(${id} AS UUID)`)
-          )}])::uuid,
-          unnest(array[${Prisma.join(values)}])::text
+    SELECT 
+      unnest(array[${Prisma.join(workspaceIds)}])::uuid,
+      unnest(array[${Prisma.join(userIds)}])::text,
+      unnest(array[${Prisma.join(userPropertyIds)}])::uuid,
+      unnest(array[${Prisma.join(values)}])::text
     ON CONFLICT ("workspaceId", "userId", "userPropertyId")
     DO UPDATE SET
       "value" = EXCLUDED."value"
   `;
 
-  logger().debug(
-    {
-      query: query.toString(),
-    },
-    "upsertBulkUserPropertyAssignments"
-  );
-  // try {
-  await prisma().$executeRaw(query);
-  logger().debug("upsertBulkUserPropertyAssignments end");
-  // } catch (e) {
-  //   if (
-  //     !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
-  //   ) {
-  //     throw e;
-  //   }
-  // }
+  try {
+    await prisma().$executeRaw(query);
+  } catch (e) {
+    if (
+      !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
+    ) {
+      throw e;
+    }
+  }
 }
 
 export async function findAllUserPropertyAssignments({
