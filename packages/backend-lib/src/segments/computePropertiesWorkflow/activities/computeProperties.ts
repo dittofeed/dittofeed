@@ -645,6 +645,7 @@ export async function computePropertiesPeriodSafe({
           {
             err: e,
             pageQueryId,
+            tmpTableQueryId,
           },
           "failed to process rows"
         );
