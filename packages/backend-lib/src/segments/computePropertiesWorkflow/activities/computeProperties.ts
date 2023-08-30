@@ -294,7 +294,8 @@ function buildReadQuery({
       cpa.workspace_id = pcp.workspace_id AND
       cpa.computed_property_id = pcp.computed_property_id AND
       cpa.user_id = pcp.user_id AND
-      cpa.processed_for = pcp.processed_for
+      cpa.processed_for = pcp.processed_for AND
+      cpa.processed_for_type = pcp.processed_for_type
     WHERE
       (
         cpa.latest_user_property_value != pcp.user_property_value
