@@ -1,7 +1,6 @@
 import { randomUUID } from "crypto";
 
 import { calculateHubspotEmailChanges } from "./activities";
-import logger from "../../logger";
 
 describe("hubspot activities", () => {
   describe("calculateHubspotEmailChanges", () => {
@@ -72,9 +71,6 @@ describe("hubspot activities", () => {
           owners: {},
           userId: randomUUID(),
           pastEmails: [],
-        });
-        logger().debug({
-          changes,
         });
         expect(changes).toEqual({
           newEmails: [
