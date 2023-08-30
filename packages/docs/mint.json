@@ -80,6 +80,7 @@
         {
           "group": "Available SDK's",
           "pages": [
+            "integrations/sdks/web",
             "integrations/sdks/react-native"
           ]
         }
