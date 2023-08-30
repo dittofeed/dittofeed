@@ -81,6 +81,7 @@
           "group": "Available SDK's",
           "pages": [
             "integrations/sdks/web",
+            "integrations/sdks/node",
             "integrations/sdks/react-native"
           ]
         }
