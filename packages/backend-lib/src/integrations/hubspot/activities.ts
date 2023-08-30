@@ -301,6 +301,8 @@ const HubspotOwner = Type.Object({
   email: Type.String(),
 });
 
+type HubspotOwner = Static<typeof HubspotOwner>;
+
 const HubspotOwnerSearchResult = Type.Object({
   results: Type.Array(HubspotOwner),
 });
@@ -470,6 +472,154 @@ async function createHubspotEmailRequest(
     }
     throw e;
   }
+}
+
+export interface NewHubspotEmail {
+  hs_timestamp: number;
+  hubspot_owner_id?: string;
+  hs_email_html?: string;
+  hs_email_subject?: string;
+  hs_email_status: string;
+  from?: string;
+}
+
+export interface HubspotEmailUpdate {
+  id: string;
+  hs_email_status: string;
+}
+
+export function calculateHubspotEmailChanges({
+  events,
+  workspaceId,
+  userId,
+  pastEmails,
+  owners,
+}: {
+  events: ParsedPerformedManyValueItem[];
+  userId: string;
+  workspaceId: string;
+  pastEmails: HubspotEmail[];
+  owners: Record<string, HubspotOwner>;
+}): {
+  newEmails: NewHubspotEmail[];
+  emailUpdates: HubspotEmailUpdate[];
+} {
+  const filteredEvents = events.flatMap((e) => {
+    try {
+      const keyParts = Object.values(
+        pick(e.properties, ["workspaceId", "journeyId", "nodeId", "runId"])
+      );
+      if (!keyParts.length || keyParts.some((p) => !p)) {
+        return [];
+      }
+      return {
+        key: keyParts.join("-"),
+        ...e,
+      };
+    } catch (error) {
+      logger().error({ err: error }, "error filtering events");
+      throw error;
+    }
+  });
+
+  const grouped = groupBy(filteredEvents, (event) => event.key);
+  const newEmails: NewHubspotEmail[] = [];
+  const emailUpdates: HubspotEmailUpdate[] = [];
+
+  for (const key in grouped) {
+    const groupedEvents = grouped[key];
+    if (!groupedEvents) {
+      logger().error("no hubspot grouped events");
+      continue;
+    }
+    const earliestMessageSent = groupedEvents.findLast(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+      (e) => e.event === InternalEventType.MessageSent
+    );
+
+    const hsTimestamp = earliestMessageSent?.timestamp;
+    let body: string | undefined;
+    let subject: string | undefined;
+    let from: string | undefined;
+    let status: string | undefined;
+    for (const { properties, event } of groupedEvents) {
+      if (properties.body && !body) {
+        body = properties.body;
+      }
+      if (properties.subject && !subject) {
+        subject = properties.subject;
+      }
+      if (properties.from && !from) {
+        from = properties.from;
+      }
+      if (!status) {
+        switch (event) {
+          case InternalEventType.MessageSent:
+            status = "SENDING";
+            break;
+          case InternalEventType.EmailDelivered:
+            status = "SENT";
+            break;
+          case InternalEventType.EmailBounced:
+            status = "BOUNCED";
+            break;
+          case InternalEventType.MessageFailure:
+            status = "FAILED";
+            break;
+        }
+      }
+    }
+    if (!status) {
+      logger().error(
+        {
+          workspaceId,
+          userId,
+          events,
+        },
+        "no hubspot status for email event"
+      );
+      continue;
+    }
+
+    const hsOwnerId = from ? owners[from]?.id : undefined;
+
+    if (!hsTimestamp) {
+      logger().error(
+        {
+          workspaceId,
+          userId,
+          events,
+        },
+        "no message sent event for user hubspot email"
+      );
+      continue;
+    }
+    const hsNumericTimestamp = new Date(hsTimestamp).getTime();
+    const existingEmail = pastEmails.find(
+      (e) =>
+        new Date(e.properties.hs_timestamp).getTime() === hsNumericTimestamp
+    );
+
+    if (existingEmail) {
+      emailUpdates.push({
+        id: existingEmail.id,
+        hs_email_status: status,
+      });
+    } else {
+      newEmails.push({
+        hs_timestamp: hsNumericTimestamp,
+        hubspot_owner_id: hsOwnerId,
+        hs_email_html: body,
+        hs_email_subject: subject,
+        hs_email_status: status,
+        from,
+      });
+    }
+  }
+  return {
+    newEmails,
+    emailUpdates,
+  };
 }
 
 export async function updateHubspotEmails({
