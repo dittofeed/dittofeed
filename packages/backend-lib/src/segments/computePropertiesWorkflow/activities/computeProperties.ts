@@ -91,7 +91,6 @@ interface ComputePropertiesPeriodParams {
   newComputedIds?: Record<string, boolean>;
   subscribedJourneys: EnrichedJourney[];
   userProperties: EnrichedUserProperty[];
-  processingTimeLowerBound?: number;
   workspaceId: string;
   tableVersion: string;
 }
@@ -699,7 +698,6 @@ interface ComputePropertiesPeriodParams {
   newComputedIds?: Record<string, boolean>;
   subscribedJourneys: EnrichedJourney[];
   userProperties: EnrichedUserProperty[];
-  processingTimeLowerBound?: number;
   workspaceId: string;
   tableVersion: string;
 }
