@@ -507,7 +507,7 @@ export function calculateHubspotEmailChanges({
   const filteredEvents = events.flatMap((e) => {
     try {
       const keyParts = Object.values(
-        pick(e.properties, ["workspaceId", "journeyId", "nodeId", "runId"])
+        pick(e.properties, ["journeyId", "nodeId", "runId"])
       );
       if (!keyParts.length || keyParts.some((p) => !p)) {
         return [];
@@ -606,14 +606,17 @@ export function calculateHubspotEmailChanges({
         hs_email_status: status,
       });
     } else {
-      newEmails.push({
+      const newEmail: NewHubspotEmail = {
         hs_timestamp: hsNumericTimestamp,
-        hubspot_owner_id: hsOwnerId,
         hs_email_html: body,
         hs_email_subject: subject,
         hs_email_status: status,
         from,
-      });
+      };
+      if (hsOwnerId) {
+        newEmail.hubspot_owner_id = hsOwnerId;
+      }
+      newEmails.push(newEmail);
     }
   }
   return {
