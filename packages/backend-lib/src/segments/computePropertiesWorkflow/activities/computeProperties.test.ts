@@ -1624,7 +1624,7 @@ describe("compute properties activities", () => {
           });
         });
 
-        describe("when activity called twice with the same parameters and an integration", () => {
+        describe("when activity called multiple times with the same parameters and an integration", () => {
           let userProperty: EnrichedUserProperty;
 
           beforeEach(async () => {
@@ -1647,6 +1647,9 @@ describe("compute properties activities", () => {
                 })
               )
             );
+          });
+          it.only("only sends the signal once", async () => {
+            const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
             await insertUserEvents({
               tableVersion,
@@ -1670,6 +1673,23 @@ describe("compute properties activities", () => {
                     timestamp: "2022-01-01 00:25:15",
                   }),
                 },
+              ],
+            });
+
+            await computePropertiesPeriod({
+              currentTime,
+              workspaceId: workspace.id,
+              tableVersion,
+              subscribedJourneys: [],
+              userProperties: [userProperty],
+            });
+
+            expect(signalWithStart).toBeCalledTimes(1);
+
+            await insertUserEvents({
+              tableVersion,
+              workspaceId: workspace.id,
+              events: [
                 {
                   messageId: randomUUID(),
                   processingTime: "2022-01-01 00:15:45",
@@ -1681,9 +1701,6 @@ describe("compute properties activities", () => {
                 },
               ],
             });
-          });
-          it("only sends the signal once", async () => {
-            const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
             await computePropertiesPeriod({
               currentTime,
@@ -1693,6 +1710,8 @@ describe("compute properties activities", () => {
               userProperties: [userProperty],
             });
 
+            expect(signalWithStart).toBeCalledTimes(2);
+
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
@@ -1700,7 +1719,8 @@ describe("compute properties activities", () => {
               subscribedJourneys: [],
               userProperties: [userProperty],
             });
-            expect(signalWithStart).toBeCalledTimes(1);
+
+            expect(signalWithStart).toBeCalledTimes(2);
           });
         });
       });
