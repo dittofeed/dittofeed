@@ -243,7 +243,7 @@ function buildReadQuery({
    */
   const query = `
     CREATE TEMPORARY TABLE IF NOT EXISTS ${tmpTableName} AS
-    SELECT
+    SELECT DISTINCT
       cpa.workspace_id,
       cpa.type,
       cpa.computed_property_id,
@@ -253,7 +253,20 @@ function buildReadQuery({
       cpa.max_assigned_at,
       cpa.processed_for,
       cpa.processed_for_type,
-      pcp.workspace_id
+      pcp.workspace_id,
+      (
+          cpa.type = 'user_property'
+          AND cpa.latest_user_property_value != '""'
+          AND cpa.latest_user_property_value != ''
+      ) cond1,
+      (
+        cpa.type = 'segment'
+        AND cpa.latest_segment_value = true
+      ) cond2,
+      (
+          pcp.workspace_id != ''
+          AND cpa.processed_for_type != 'journey'
+      ) cond3
     FROM (
       SELECT
           workspace_id,
@@ -288,29 +301,48 @@ function buildReadQuery({
       FROM computed_property_assignments FINAL
       WHERE workspace_id = ${workspaceIdParam}
     ) cpa
-    LEFT JOIN processed_computed_properties pcp FINAL
+    LEFT JOIN (
+      SELECT
+        workspace_id,
+        computed_property_id,
+        user_id,
+        processed_for_type,
+        processed_for,
+        argMax(segment_value, processed_at) segment_value,
+        argMax(user_property_value, processed_at) user_property_value
+      FROM processed_computed_properties
+      GROUP BY
+        workspace_id,
+        computed_property_id,
+        user_id,
+        processed_for_type,
+        processed_for
+    ) pcp
     ON
       cpa.workspace_id = pcp.workspace_id AND
       cpa.computed_property_id = pcp.computed_property_id AND
       cpa.user_id = pcp.user_id AND
       cpa.processed_for = pcp.processed_for AND
       cpa.processed_for_type = pcp.processed_for_type
-    WHERE
-      (
-        cpa.latest_user_property_value != pcp.user_property_value
-        OR cpa.latest_segment_value != pcp.segment_value
-      )
-      AND NOT (
+    WHERE (
+      cpa.latest_user_property_value != pcp.user_property_value
+      OR cpa.latest_segment_value != pcp.segment_value
+    )
+    AND (
         (
-          cpa.latest_user_property_value = '""'
-          OR cpa.latest_user_property_value = ''
+            cpa.type = 'user_property'
+            AND cpa.latest_user_property_value != '""'
+            AND cpa.latest_user_property_value != ''
         )
-        AND cpa.latest_segment_value = False
-        AND (
-          pcp.workspace_id = ''
-          OR cpa.processed_for_type == 'journey'
+        OR (
+            cpa.type = 'segment'
+            AND cpa.latest_segment_value = true
         )
-      )
+        OR (
+            pcp.workspace_id != ''
+            AND cpa.processed_for_type != 'journey'
+        )
+    )
   `;
 
   return {
