@@ -1215,7 +1215,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -1265,7 +1264,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2021-12-31 12:15:00 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -1325,7 +1323,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -1373,7 +1370,6 @@ describe("compute properties activities", () => {
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
-              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
               tableVersion,
               subscribedJourneys: [journey],
               userProperties: [userProperty],
@@ -1428,7 +1424,6 @@ describe("compute properties activities", () => {
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
-              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
               tableVersion,
               subscribedJourneys: [journey],
               userProperties: [userProperty],
@@ -1495,7 +1490,6 @@ describe("compute properties activities", () => {
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
-              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
               tableVersion,
               subscribedJourneys: [journey],
               userProperties: [userProperty],
@@ -1537,7 +1531,6 @@ describe("compute properties activities", () => {
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
-              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
               tableVersion,
               subscribedJourneys: [journey],
               userProperties: [],
@@ -1592,7 +1585,6 @@ describe("compute properties activities", () => {
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
-              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
               tableVersion,
               subscribedJourneys: [journey],
               userProperties,
@@ -1610,13 +1602,12 @@ describe("compute properties activities", () => {
         });
 
         describe("when activity called twice with the same parameters", () => {
-          it("returns the same results but only sends the signals once", async () => {
+          it("only sends the signals once", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
-              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
               tableVersion,
               subscribedJourneys: [journey],
               userProperties: [],
@@ -1625,12 +1616,112 @@ describe("compute properties activities", () => {
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
-              processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
               tableVersion,
               subscribedJourneys: [journey],
               userProperties: [],
             });
             expect(signalWithStart).toBeCalledTimes(1);
+          });
+        });
+
+        describe("when activity called multiple times with the same parameters and an integration", () => {
+          let userProperty: EnrichedUserProperty;
+
+          beforeEach(async () => {
+            await prisma().integration.create({
+              data: {
+                ...HUBSPOT_INTEGRATION_DEFINITION,
+                enabled: true,
+                workspaceId: workspace.id,
+              },
+            });
+
+            userProperty = unwrap(
+              enrichUserProperty(
+                await prisma().userProperty.create({
+                  data: {
+                    workspaceId: workspace.id,
+                    name: EMAIL_EVENTS_UP_NAME,
+                    definition: EMAIL_EVENTS_UP_DEFINITION,
+                  },
+                })
+              )
+            );
+          });
+
+          it("only sends the signal once", async () => {
+            const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
+
+            await insertUserEvents({
+              tableVersion,
+              workspaceId: workspace.id,
+              events: [
+                {
+                  messageId: randomUUID(),
+                  processingTime: "2022-01-01 00:15:45",
+                  messageRaw: segmentTrackEvent({
+                    userId,
+                    event: InternalEventType.MessageSent,
+                    timestamp: "2022-01-01 00:15:15",
+                  }),
+                },
+                {
+                  messageId: randomUUID(),
+                  processingTime: "2022-01-01 00:15:45",
+                  messageRaw: segmentTrackEvent({
+                    userId,
+                    event: InternalEventType.EmailDelivered,
+                    timestamp: "2022-01-01 00:25:15",
+                  }),
+                },
+              ],
+            });
+
+            await computePropertiesPeriod({
+              currentTime,
+              workspaceId: workspace.id,
+              tableVersion,
+              subscribedJourneys: [],
+              userProperties: [userProperty],
+            });
+
+            expect(signalWithStart).toBeCalledTimes(1);
+
+            await insertUserEvents({
+              tableVersion,
+              workspaceId: workspace.id,
+              events: [
+                {
+                  messageId: randomUUID(),
+                  processingTime: "2022-01-01 00:15:45",
+                  messageRaw: segmentTrackEvent({
+                    userId,
+                    event: InternalEventType.EmailOpened,
+                    timestamp: "2022-01-01 00:35:15",
+                  }),
+                },
+              ],
+            });
+
+            await computePropertiesPeriod({
+              currentTime,
+              workspaceId: workspace.id,
+              tableVersion,
+              subscribedJourneys: [],
+              userProperties: [userProperty],
+            });
+
+            expect(signalWithStart).toBeCalledTimes(2);
+
+            await computePropertiesPeriod({
+              currentTime,
+              workspaceId: workspace.id,
+              tableVersion,
+              subscribedJourneys: [],
+              userProperties: [userProperty],
+            });
+
+            expect(signalWithStart).toBeCalledTimes(2);
           });
         });
       });
@@ -1663,7 +1754,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -1702,7 +1792,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -1750,7 +1839,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -1797,7 +1885,6 @@ describe("compute properties activities", () => {
             workspaceId: workspace.id,
             currentTime,
             // Fast forward polling period
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:45 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -1836,7 +1923,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -1890,7 +1976,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -2002,7 +2087,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -2049,7 +2133,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -2127,7 +2210,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -2175,7 +2257,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -2230,7 +2311,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -2256,7 +2336,6 @@ describe("compute properties activities", () => {
               workspaceId: workspace.id,
               currentTime,
               // Fast forward polling period
-              processingTimeLowerBound: Date.parse("2022-01-01 00:15:45 UTC"),
               tableVersion,
               subscribedJourneys: [journey],
               userProperties: [],
@@ -2313,7 +2392,6 @@ describe("compute properties activities", () => {
               workspaceId: workspace.id,
               currentTime,
               // Fast forward polling period
-              processingTimeLowerBound: Date.parse("2022-01-01 00:15:45 UTC"),
               tableVersion,
               newComputedIds: { [newlyCreatedJourney.id]: true },
               subscribedJourneys: [journey, newlyCreatedJourney],
@@ -2409,7 +2487,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             workspaceId: workspace.id,
             currentTime,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [],
@@ -2446,7 +2523,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             workspaceId: workspace.id,
             currentTime,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:10:15 UTC"),
             tableVersion,
             subscribedJourneys: [journey],
             userProperties: [userProperty],
@@ -2482,7 +2558,6 @@ describe("compute properties activities", () => {
           currentTime = Date.parse("2022-01-01 00:15:45 UTC");
           await computePropertiesPeriod({
             currentTime,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             workspaceId: workspace.id,
             subscribedJourneys: [journey],
@@ -2529,7 +2604,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:20:15 UTC"),
             tableVersion,
             userProperties: [userProperty],
             subscribedJourneys: [journey],
@@ -2607,7 +2681,6 @@ describe("compute properties activities", () => {
           await computePropertiesPeriod({
             currentTime,
             workspaceId: workspace.id,
-            processingTimeLowerBound: Date.parse("2022-01-01 00:15:15 UTC"),
             tableVersion,
             userProperties: [],
             subscribedJourneys: [journey],

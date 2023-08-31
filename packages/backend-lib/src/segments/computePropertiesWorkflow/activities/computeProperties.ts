@@ -91,7 +91,6 @@ interface ComputePropertiesPeriodParams {
   newComputedIds?: Record<string, boolean>;
   subscribedJourneys: EnrichedJourney[];
   userProperties: EnrichedUserProperty[];
-  processingTimeLowerBound?: number;
   workspaceId: string;
   tableVersion: string;
 }
@@ -253,17 +252,16 @@ function buildReadQuery({
       cpa.latest_user_property_value,
       cpa.max_assigned_at,
       cpa.processed_for,
-      cpa.processed_for_type,
-      pcp.workspace_id
+      cpa.processed_for_type
     FROM (
       SELECT
           workspace_id,
           type,
           computed_property_id,
           user_id,
-          segment_value latest_segment_value,
-          user_property_value latest_user_property_value,
-          assigned_at max_assigned_at,
+          argMax(segment_value, assigned_at) latest_segment_value,
+          argMax(user_property_value, assigned_at) latest_user_property_value,
+          max(assigned_at) max_assigned_at,
           arrayJoin(
               arrayConcat(
                   if(
@@ -286,31 +284,56 @@ function buildReadQuery({
           ) as processed,
           processed.1 as processed_for_type,
           processed.2 as processed_for
-      FROM computed_property_assignments FINAL
+      FROM computed_property_assignments
       WHERE workspace_id = ${workspaceIdParam}
+      GROUP BY
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id
     ) cpa
-    LEFT JOIN processed_computed_properties pcp FINAL
+    LEFT JOIN (
+      SELECT
+        workspace_id,
+        computed_property_id,
+        user_id,
+        processed_for_type,
+        processed_for,
+        argMax(segment_value, processed_at) segment_value,
+        argMax(user_property_value, processed_at) user_property_value
+      FROM processed_computed_properties
+      GROUP BY
+        workspace_id,
+        computed_property_id,
+        user_id,
+        processed_for_type,
+        processed_for
+    ) pcp
     ON
       cpa.workspace_id = pcp.workspace_id AND
       cpa.computed_property_id = pcp.computed_property_id AND
       cpa.user_id = pcp.user_id AND
-      cpa.processed_for = pcp.processed_for
-    WHERE
-      (
-        cpa.latest_user_property_value != pcp.user_property_value
-        OR cpa.latest_segment_value != pcp.segment_value
-      )
-      AND NOT (
+      cpa.processed_for = pcp.processed_for AND
+      cpa.processed_for_type = pcp.processed_for_type
+    WHERE (
+      cpa.latest_user_property_value != pcp.user_property_value
+      OR cpa.latest_segment_value != pcp.segment_value
+    )
+    AND (
         (
-          cpa.latest_user_property_value = '""'
-          OR cpa.latest_user_property_value = ''
+            cpa.type = 'user_property'
+            AND cpa.latest_user_property_value != '""'
+            AND cpa.latest_user_property_value != ''
         )
-        AND cpa.latest_segment_value = False
-        AND (
-          pcp.workspace_id = ''
-          OR cpa.processed_for_type == 'journey'
+        OR (
+            cpa.type = 'segment'
+            AND cpa.latest_segment_value = true
         )
-      )
+        OR (
+            pcp.workspace_id != ''
+            AND cpa.processed_for_type != 'journey'
+        )
+    )
   `;
 
   return {
@@ -698,7 +721,6 @@ interface ComputePropertiesPeriodParams {
   newComputedIds?: Record<string, boolean>;
   subscribedJourneys: EnrichedJourney[];
   userProperties: EnrichedUserProperty[];
-  processingTimeLowerBound?: number;
   workspaceId: string;
   tableVersion: string;
 }
