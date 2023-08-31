@@ -252,21 +252,7 @@ function buildReadQuery({
       cpa.latest_user_property_value,
       cpa.max_assigned_at,
       cpa.processed_for,
-      cpa.processed_for_type,
-      pcp.workspace_id,
-      (
-          cpa.type = 'user_property'
-          AND cpa.latest_user_property_value != '""'
-          AND cpa.latest_user_property_value != ''
-      ) cond1,
-      (
-        cpa.type = 'segment'
-        AND cpa.latest_segment_value = true
-      ) cond2,
-      (
-          pcp.workspace_id != ''
-          AND cpa.processed_for_type != 'journey'
-      ) cond3
+      cpa.processed_for_type
     FROM (
       SELECT
           workspace_id,
