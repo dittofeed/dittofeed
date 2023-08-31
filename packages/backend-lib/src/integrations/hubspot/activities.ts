@@ -248,6 +248,7 @@ const HubspotEmail = Type.Object({
     hs_email_subject: Nullable(Type.String()),
     hs_email_to_email: Nullable(Type.String()),
     hs_email_from_email: Nullable(Type.String()),
+    hs_email_status: Nullable(Type.String()),
   }),
 });
 
@@ -600,7 +601,7 @@ export function calculateHubspotEmailChanges({
         new Date(e.properties.hs_timestamp).getTime() === hsNumericTimestamp
     );
 
-    if (existingEmail) {
+    if (existingEmail && status !== existingEmail.properties.hs_email_status) {
       emailUpdates.push({
         id: existingEmail.id,
         hs_email_status: status,
