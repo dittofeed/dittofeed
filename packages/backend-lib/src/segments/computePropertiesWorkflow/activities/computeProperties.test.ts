@@ -1,4 +1,4 @@
-import { Segment, Workspace } from "@prisma/client";
+import { Segment, UserProperty, Workspace } from "@prisma/client";
 import { uuid4 } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -1625,6 +1625,63 @@ describe("compute properties activities", () => {
         });
 
         describe("when activity called twice with the same parameters and an integration", () => {
+          let userProperty: EnrichedUserProperty;
+
+          beforeEach(async () => {
+            await prisma().integration.create({
+              data: {
+                ...HUBSPOT_INTEGRATION_DEFINITION,
+                enabled: true,
+                workspaceId: workspace.id,
+              },
+            });
+
+            userProperty = unwrap(
+              enrichUserProperty(
+                await prisma().userProperty.create({
+                  data: {
+                    workspaceId: workspace.id,
+                    name: EMAIL_EVENTS_UP_NAME,
+                    definition: EMAIL_EVENTS_UP_DEFINITION,
+                  },
+                })
+              )
+            );
+
+            await insertUserEvents({
+              tableVersion,
+              workspaceId: workspace.id,
+              events: [
+                {
+                  messageId: randomUUID(),
+                  processingTime: "2022-01-01 00:15:45",
+                  messageRaw: segmentTrackEvent({
+                    userId,
+                    event: InternalEventType.MessageSent,
+                    timestamp: "2022-01-01 00:15:15",
+                  }),
+                },
+                {
+                  messageId: randomUUID(),
+                  processingTime: "2022-01-01 00:15:45",
+                  messageRaw: segmentTrackEvent({
+                    userId,
+                    event: InternalEventType.EmailDelivered,
+                    timestamp: "2022-01-01 00:25:15",
+                  }),
+                },
+                {
+                  messageId: randomUUID(),
+                  processingTime: "2022-01-01 00:15:45",
+                  messageRaw: segmentTrackEvent({
+                    userId,
+                    event: InternalEventType.EmailOpened,
+                    timestamp: "2022-01-01 00:35:15",
+                  }),
+                },
+              ],
+            });
+          });
           it("only sends the signal once", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
@@ -1632,16 +1689,16 @@ describe("compute properties activities", () => {
               currentTime,
               workspaceId: workspace.id,
               tableVersion,
-              subscribedJourneys: [journey],
-              userProperties: [],
+              subscribedJourneys: [],
+              userProperties: [userProperty],
             });
 
             await computePropertiesPeriod({
               currentTime,
               workspaceId: workspace.id,
               tableVersion,
-              subscribedJourneys: [journey],
-              userProperties: [],
+              subscribedJourneys: [],
+              userProperties: [userProperty],
             });
             expect(signalWithStart).toBeCalledTimes(1);
           });
