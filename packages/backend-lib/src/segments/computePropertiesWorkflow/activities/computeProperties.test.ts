@@ -1648,7 +1648,8 @@ describe("compute properties activities", () => {
               )
             );
           });
-          it.only("only sends the signal once", async () => {
+
+          it("only sends the signal once", async () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
             await insertUserEvents({

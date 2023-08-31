@@ -243,7 +243,7 @@ function buildReadQuery({
    */
   const query = `
     CREATE TEMPORARY TABLE IF NOT EXISTS ${tmpTableName} AS
-    SELECT DISTINCT
+    SELECT
       cpa.workspace_id,
       cpa.type,
       cpa.computed_property_id,
@@ -273,9 +273,9 @@ function buildReadQuery({
           type,
           computed_property_id,
           user_id,
-          segment_value latest_segment_value,
-          user_property_value latest_user_property_value,
-          assigned_at max_assigned_at,
+          argMax(segment_value, assigned_at) latest_segment_value,
+          argMax(user_property_value, assigned_at) latest_user_property_value,
+          max(assigned_at) max_assigned_at,
           arrayJoin(
               arrayConcat(
                   if(
@@ -298,8 +298,13 @@ function buildReadQuery({
           ) as processed,
           processed.1 as processed_for_type,
           processed.2 as processed_for
-      FROM computed_property_assignments FINAL
+      FROM computed_property_assignments
       WHERE workspace_id = ${workspaceIdParam}
+      GROUP BY
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id
     ) cpa
     LEFT JOIN (
       SELECT
