@@ -1,4 +1,4 @@
-import { Segment, UserProperty, Workspace } from "@prisma/client";
+import { Segment, Workspace } from "@prisma/client";
 import { uuid4 } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
