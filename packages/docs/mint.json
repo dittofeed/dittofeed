@@ -84,6 +84,13 @@
             "integrations/sdks/node",
             "integrations/sdks/react-native"
           ]
+        },
+        "integrations/destinations",
+        {
+          "group": "Data Destination Types",
+          "pages": [
+            "integrations/destinations/hubspot"
+          ]
         }
       ]
     },

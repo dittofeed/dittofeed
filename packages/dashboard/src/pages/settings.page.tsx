@@ -722,7 +722,7 @@ function HubspotIntegration() {
           >
             the docs
           </ExternalLink>{" "}
-          for more information.
+          for more information on hubspot lists.
         </InfoBox>
 
         <Autocomplete
