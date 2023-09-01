@@ -132,6 +132,7 @@
           "pages": [
             "resources/user-property-types/trait",
             "resources/user-property-types/performed",
+            "resources/user-property-types/any-of",
             "resources/user-property-types/id",
             "resources/user-property-types/anonymous-id"
           ]
