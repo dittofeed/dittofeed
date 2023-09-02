@@ -1576,3 +1576,25 @@ export const BoolStr = Type.Union([
   Type.Literal("true"),
   Type.Literal("false"),
 ]);
+
+export enum NodeStatsType {
+  MessageNodeStats = "MessageNodeStats",
+}
+
+const MessageNodeStats = Type.Object({
+  type: Type.Literal(NodeStatsType.MessageNodeStats),
+});
+
+export type MessageNodeStats = Static<typeof MessageNodeStats>;
+
+export const NodeStats = Type.Union([MessageNodeStats]);
+
+export type NodeStats = Static<typeof NodeStats>;
+
+export const JourneyStats = Type.Object({
+  journeyId: Type.String(),
+  workspaceId: Type.String(),
+  nodeStats: Type.Record(Type.String(), NodeStats),
+});
+
+export type JourneyStats = Static<typeof JourneyStats>;

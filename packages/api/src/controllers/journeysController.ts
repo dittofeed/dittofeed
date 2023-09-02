@@ -1,4 +1,4 @@
-import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
@@ -7,6 +7,7 @@ import {
   Journey,
   JourneyDefinition,
   JourneyResource,
+  JourneyStats,
   Prisma,
   UpsertJourneyResource,
 } from "backend-lib/src/types";
@@ -128,5 +129,21 @@ export default async function journeysController(fastify: FastifyInstance) {
 
       return reply.status(204).send();
     }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/journey-stats",
+    {
+      schema: {
+        description: "Retrieve stats regarding a journey's performance.",
+        params: {
+          workspaceId: Type.String(),
+        },
+        response: {
+          200: JourneyStats,
+        },
+      },
+    },
+    async (request, reply) => {}
   );
 }
