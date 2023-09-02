@@ -5,7 +5,12 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { err, ok, Result } from "neverthrow";
 
 import prisma from "./prisma";
-import { EnrichedJourney, JourneyDefinition, JourneyResource } from "./types";
+import {
+  EnrichedJourney,
+  JourneyDefinition,
+  JourneyResource,
+  JourneyStats,
+} from "./types";
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -70,4 +75,14 @@ export async function findManyJourneysUnsafe(
 ): Promise<EnrichedJourney[]> {
   const result = await findManyJourneys(params);
   return unwrap(result);
+}
+
+export async function getJourneyStats({
+  workspaceId,
+  journeyId,
+}: {
+  workspaceId: string;
+  journeyId: string;
+}): Promise<JourneyStats> {
+  throw new Error("Not implemented");
 }

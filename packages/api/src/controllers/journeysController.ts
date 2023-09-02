@@ -1,4 +1,5 @@
 import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { getJourneyStats } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
@@ -136,14 +137,21 @@ export default async function journeysController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Retrieve stats regarding a journey's performance.",
-        params: {
+        querystring: Type.Object({
           workspaceId: Type.String(),
-        },
+          journeyId: Type.String(),
+        }),
         response: {
           200: JourneyStats,
         },
       },
     },
-    async (request, reply) => {}
+    async (request, reply) => {
+      const stats = await getJourneyStats({
+        workspaceId: request.query.workspaceId,
+        journeyId: request.query.journeyId,
+      });
+      return reply.status(200).send(stats);
+    }
   );
 }
