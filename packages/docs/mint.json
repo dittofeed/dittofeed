@@ -89,7 +89,8 @@
         {
           "group": "Data Destination Types",
           "pages": [
-            "integrations/destinations/hubspot"
+            "integrations/destinations/hubspot",
+            "integrations/destinations/csv"
           ]
         }
       ]
