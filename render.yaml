@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: api
+    env: docker
+    dockerfilePath: ./packages/api/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
