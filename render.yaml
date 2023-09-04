@@ -1,3 +1,7 @@
+databases:
+  - name: dittofeed-db
+  - name: dittofeed-ch
+
 services:
   - type: web
     name: api
@@ -7,3 +11,29 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: TEMPORAL_ADDRESS
+        value: temporal:7233
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: dittofeed-db
+          property: host
+      - key: DATABASE_USER
+        fromDatabase:
+          name: dittofeed-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: dittofeed-db
+          property: password
+      - key: CLICKHOUSE_HOST
+        fromDatabase:
+          name: dittofeed-ch
+          property: host
+      - key: CLICKHOUSE_USER
+        fromDatabase:
+          name: dittofeed-ch
+          property: user
+      - key: CLICKHOUSE_PASSWORD
+        fromDatabase:
+          name: dittofeed-ch
+          property: password
