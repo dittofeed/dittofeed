@@ -19,7 +19,7 @@ import ReactFlow, {
 } from "reactflow";
 import { v4 as uuid } from "uuid";
 
-import { useAppStore } from "../../lib/appStore";
+import { useAppStorePick } from "../../lib/appStore";
 import {
   AppState,
   EdgeData,
@@ -162,14 +162,21 @@ function createConnections({
 }
 
 function JourneysBuilderInner() {
-  const setNodes = useAppStore((store) => store.setNodes);
-  const addNodes = useAppStore((store) => store.addNodes);
-  const setEdges = useAppStore((store) => store.setEdges);
-  const nodes = useAppStore((store) => store.journeyNodes);
-  const edges = useAppStore((store) => store.journeyEdges);
-  const draggedComponentType = useAppStore(
-    (store) => store.journeyDraggedComponentType
-  );
+  const {
+    setNodes,
+    addNodes,
+    setEdges,
+    journeyNodes: nodes,
+    journeyEdges: edges,
+    journeyDraggedComponentType: draggedComponentType,
+  } = useAppStorePick([
+    "setNodes",
+    "addNodes",
+    "setEdges",
+    "journeyNodes",
+    "journeyEdges",
+    "journeyDraggedComponentType",
+  ]);
 
   // this function is called once the node from the sidebar is dropped onto a node in the current graph
   const onDrop: DragEventHandler = (evt: DragEvent<HTMLDivElement>) => {
