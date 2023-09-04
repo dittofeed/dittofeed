@@ -17,7 +17,7 @@ import {
 import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import { Handle, NodeProps, Position } from "reactflow";
 
-import { useAppStore } from "../../../lib/appStore";
+import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import { AppState, JourneyNodeProps, NodeTypeProps } from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
@@ -196,11 +196,20 @@ const borderRadius = 2;
 
 export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
   const theme = useTheme();
-  const segments = useAppStore((store) => store.segments);
-  const messages = useAppStore((store) => store.messages);
+  const {
+    segments,
+    messages,
+    journeySelectedNodeId: selectedNodeId,
+    setSelectedNodeId,
+    journeyStatsRequest,
+  } = useAppStorePick([
+    "segments",
+    "messages",
+    "journeySelectedNodeId",
+    "setSelectedNodeId",
+    "journeyStatsRequest",
+  ]);
   const config = journNodeTypeToConfig(data.nodeTypeProps);
-  const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
-  const selectedNodeId = useAppStore((state) => state.journeySelectedNodeId);
   const isSelected = selectedNodeId === id;
 
   const clickInsideHandler = () => {
@@ -250,6 +259,11 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
     config.body
   );
 
+  const stats =
+    isSelected && journeyStatsRequest.type === CompletionStatus.Successful
+      ? journeyStatsRequest.value.nodeStats[id]
+      : undefined;
+
   const contents = (
     <Box
       onClick={clickInsideHandler}
@@ -293,6 +307,15 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
         </Stack>
         {body}
       </Stack>
+      {stats && (
+        <Stack direction="row" alignItems="center">
+          <Box>{stats.sendRate}</Box>
+          <Box>{stats.channelStats.clickRate}</Box>
+          <Box>{stats.channelStats.spamRate}</Box>
+          <Box>{stats.channelStats.openRate}</Box>
+          <Box>{stats.channelStats.deliveryRate}</Box>
+        </Stack>
+      )}
     </Box>
   );
 
