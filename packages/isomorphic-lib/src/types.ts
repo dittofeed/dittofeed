@@ -1581,8 +1581,24 @@ export enum NodeStatsType {
   MessageNodeStats = "MessageNodeStats",
 }
 
+export const EmailStats = Type.Object({
+  type: Type.Literal(ChannelType.Email),
+  deliveryRate: Type.Number(),
+  openRate: Type.Number(),
+  clickRate: Type.Number(),
+  spamRate: Type.Number(),
+});
+
+export type EmailStats = Static<typeof EmailStats>;
+
+export const MessageChannelStats = Type.Union([EmailStats]);
+
+export type MessageChannelStats = Static<typeof MessageChannelStats>;
+
 const MessageNodeStats = Type.Object({
   type: Type.Literal(NodeStatsType.MessageNodeStats),
+  sendRate: Type.Number(),
+  channelStats: MessageChannelStats,
 });
 
 export type MessageNodeStats = Static<typeof MessageNodeStats>;

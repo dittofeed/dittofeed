@@ -1,23 +1,31 @@
+import { Row } from "@clickhouse/client";
 import { Journey, PrismaClient } from "@prisma/client";
-import { ValueError } from "@sinclair/typebox/errors";
+import { Type } from "@sinclair/typebox";
+import { MapWithDefault } from "isomorphic-lib/src/maps";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
+import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
+import logger from "./logger";
 import prisma from "./prisma";
 import {
+  ChannelType,
   EnrichedJourney,
+  InternalEventType,
   JourneyDefinition,
+  JourneyNodeType,
   JourneyResource,
   JourneyStats,
+  NodeStatsType,
 } from "./types";
 
 export * from "isomorphic-lib/src/journeys";
 
 export function enrichJourney(
   journey: Journey
-): Result<EnrichedJourney, ValueError[]> {
-  const definitionResult = schemaValidate(
+): Result<EnrichedJourney, Error> {
+  const definitionResult = schemaValidateWithErr(
     journey.definition,
     JourneyDefinition
   );
@@ -34,7 +42,7 @@ type FindManyParams = Parameters<PrismaClient["journey"]["findMany"]>[0];
 
 export async function findManyJourneys(
   params: FindManyParams
-): Promise<Result<EnrichedJourney[], ValueError[]>> {
+): Promise<Result<EnrichedJourney[], Error>> {
   const journeys = await prisma().journey.findMany(params);
 
   const subscribedJourneys: EnrichedJourney[] = [];
@@ -54,7 +62,7 @@ export async function findManyJourneys(
 
 export function toJourneyResource(
   journey: Journey
-): Result<JourneyResource, ValueError[]> {
+): Result<JourneyResource, Error> {
   const result = enrichJourney(journey);
   if (result.isErr()) {
     return err(result.error);
@@ -77,12 +85,169 @@ export async function findManyJourneysUnsafe(
   return unwrap(result);
 }
 
+const JourneyMessageStatsRow = Type.Object({
+  event: Type.String(),
+  node_id: Type.String(),
+  count: Type.Number(),
+});
+
+const isValueInEnum = <T extends Record<string, string>>(
+  value: string,
+  enumObject: T
+): value is T[keyof T] =>
+  Object.values(enumObject).includes(value as T[keyof T]);
+
 export async function getJourneyStats({
   workspaceId,
   journeyId,
 }: {
   workspaceId: string;
   journeyId: string;
-}): Promise<JourneyStats> {
-  throw new Error("Not implemented");
+}): Promise<JourneyStats | null> {
+  const qb = new ClickHouseQueryBuilder();
+  const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
+  const journeyIdQuery = qb.addQueryValue(journeyId, "String");
+  const query = `
+    select
+        event,
+        node_id,
+        count() event_count
+    from (
+        select
+            JSON_VALUE(
+                message_raw,
+                '$.properties.journeyId'
+            ) journey_id,
+            JSON_VALUE(
+                message_raw,
+                '$.properties.nodeId'
+            ) node_id,
+            JSON_VALUE(
+                message_raw,
+                '$.properties.runId'
+            ) run_id,
+            event
+        from dittofeed.user_events_48221d18_bd04_4c6b_abf3_9d0a4f87f52f
+        where
+            workspace_id = ${workspaceIdQuery}
+            and journey_id = ${journeyIdQuery}
+            and event_type = 'track'
+            and (
+                event = 'DFInternalMessageSent'
+                or event = 'DFMessageFailure'
+                or event = 'DFMessageSkipped'
+                or event = 'DFEmailDropped'
+                or event = 'DFEmailDelivered'
+                or event = 'DFEmailOpened'
+                or event = 'DFEmailClicked'
+                or event = 'DFEmailBounced'
+                or event = 'DFEmailMarkedSpam'
+                or event = 'DFBadWorkspaceConfiguration'
+            )
+    )
+    group by event, node_id;`;
+
+  const [statsResultSet, journey] = await Promise.all([
+    clickhouseClient().query({
+      query,
+      query_params: qb.getQueries(),
+      format: "JSONEachRow",
+    }),
+    prisma().journey.findUnique({
+      where: {
+        id: journeyId,
+      },
+    }),
+  ]);
+  if (!journey) {
+    return null;
+  }
+
+  const stream = statsResultSet.stream();
+  const statsMap = new Map<string, MapWithDefault<InternalEventType, number>>();
+
+  stream.on("data", (rows: Row[]) => {
+    rows.forEach((row: Row) => {
+      const validated = schemaValidateWithErr(row, JourneyMessageStatsRow);
+      if (validated.isErr()) {
+        logger().error(
+          { row, workspaceId, journeyId },
+          "Failed to validate row from clickhouse for journey stats"
+        );
+        return;
+      }
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      const { event, node_id, count } = validated.value;
+      const eventMap = statsMap.get(node_id) ?? new MapWithDefault(0);
+
+      if (!isValueInEnum(event, InternalEventType)) {
+        logger().error(
+          {
+            event,
+            workspaceId,
+            journeyId,
+          },
+          "got unknown event type in journey stats"
+        );
+        return;
+      }
+
+      eventMap.set(event, count);
+      statsMap.set(node_id, eventMap);
+    });
+  });
+
+  await new Promise((resolve) => {
+    stream.on("end", () => {
+      resolve(0);
+    });
+  });
+
+  const { definition } = unwrap(enrichJourney(journey));
+
+  const stats: JourneyStats = {
+    workspaceId,
+    journeyId,
+    nodeStats: {},
+  };
+
+  for (const node of definition.nodes) {
+    if (
+      node.type !== JourneyNodeType.MessageNode ||
+      node.variant.type !== ChannelType.Email
+    ) {
+      continue;
+    }
+    const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
+
+    const sent = nodeStats.get(InternalEventType.MessageSent);
+    const badConfig = nodeStats.get(
+      InternalEventType.BadWorkspaceConfiguration
+    );
+    const messageFailure = nodeStats.get(InternalEventType.MessageFailure);
+    const delivered = nodeStats.get(InternalEventType.EmailDelivered);
+    const spam = nodeStats.get(InternalEventType.EmailMarkedSpam);
+    const opened = nodeStats.get(InternalEventType.EmailOpened);
+    const clicked = nodeStats.get(InternalEventType.EmailClicked);
+    const total = sent + badConfig + messageFailure;
+    const sendRate = sent / total;
+    const deliveryRate = delivered / total;
+    const openRate = opened / total;
+    const clickRate = clicked / total;
+    const spamRate = spam / total;
+
+    stats.nodeStats[node.id] = {
+      type: NodeStatsType.MessageNodeStats,
+      sendRate,
+      channelStats: {
+        type: ChannelType.Email,
+        deliveryRate,
+        openRate,
+        spamRate,
+        clickRate,
+      },
+    };
+  }
+
+  return stats;
 }

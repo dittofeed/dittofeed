@@ -151,6 +151,9 @@ export default async function journeysController(fastify: FastifyInstance) {
         workspaceId: request.query.workspaceId,
         journeyId: request.query.journeyId,
       });
+      if (!stats) {
+        return reply.status(404).send();
+      }
       return reply.status(200).send(stats);
     }
   );
