@@ -133,7 +133,7 @@ export default async function journeysController(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
-    "/journey-stats",
+    "/stats",
     {
       schema: {
         description: "Retrieve stats regarding a journey's performance.",

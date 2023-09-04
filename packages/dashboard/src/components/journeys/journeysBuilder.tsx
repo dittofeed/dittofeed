@@ -1,7 +1,14 @@
 import "reactflow/dist/style.css";
 
 import { Box } from "@mui/material";
-import { JourneyNodeType } from "isomorphic-lib/src/types";
+import axios from "axios";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  CompletionStatus,
+  JourneyNodeType,
+  JourneyStats,
+} from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
   Background,
@@ -161,7 +168,7 @@ function createConnections({
   addNodes({ nodes: newNodes, edges: newEdges, source, target });
 }
 
-function JourneysBuilderInner() {
+function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
   const {
     setNodes,
     addNodes,
@@ -169,14 +176,56 @@ function JourneysBuilderInner() {
     journeyNodes: nodes,
     journeyEdges: edges,
     journeyDraggedComponentType: draggedComponentType,
+    apiBase,
+    workspace,
+    setJourneyStatsRequest,
   } = useAppStorePick([
+    "apiBase",
     "setNodes",
     "addNodes",
     "setEdges",
     "journeyNodes",
     "journeyEdges",
     "journeyDraggedComponentType",
+    "workspace",
+    "setJourneyStatsRequest",
   ]);
+
+  React.useEffect(() => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return;
+    }
+    (async () => {
+      setJourneyStatsRequest({
+        type: CompletionStatus.InProgress,
+      });
+      try {
+        const response = await axios.get(`${apiBase}/journeys/stats`, {
+          params: {
+            workspaceId: workspace.value.id,
+            journeyId,
+          },
+        });
+        const value = unwrap(
+          schemaValidateWithErr(response.data, JourneyStats)
+        );
+
+        setJourneyStatsRequest({
+          type: CompletionStatus.Successful,
+          value,
+        });
+      } catch (e) {
+        const error = e as Error;
+
+        console.error(e);
+        setJourneyStatsRequest({
+          type: CompletionStatus.Failed,
+          error,
+        });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // this function is called once the node from the sidebar is dropped onto a node in the current graph
   const onDrop: DragEventHandler = (evt: DragEvent<HTMLDivElement>) => {
@@ -260,10 +309,10 @@ function JourneysBuilderInner() {
   );
 }
 
-export default function JourneysBuilder() {
+export default function JourneysBuilder({ journeyId }: { journeyId: string }) {
   return (
     <ReactFlowProvider>
-      <JourneysBuilderInner />
+      <JourneysBuilderInner journeyId={journeyId} />
     </ReactFlowProvider>
   );
 }

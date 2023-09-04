@@ -13,10 +13,13 @@ export const getServerSideProps: JourneyGetServerSideProps = (ctx) =>
 function Journey() {
   const path = useRouter();
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
+  if (!id) {
+    return null;
+  }
 
   return (
     <JourneyLayout journeyId={id}>
-      <JourneysBuilder />
+      <JourneysBuilder journeyId={id} />
     </JourneyLayout>
   );
 }
