@@ -1,6 +1,5 @@
 databases:
   - name: dittofeed-db
-  - name: dittofeed-ch
 
 services:
   - type: web
