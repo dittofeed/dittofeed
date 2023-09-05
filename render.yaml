@@ -118,6 +118,8 @@ services:
       fromDatabase:
         name: dittofeed-db
         property: host
+    - key: SKIP_VISIBILITY_DB_SETUP
+      value: false
 
   # - type: pserv
   #   name: temporal-frontend
