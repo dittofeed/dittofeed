@@ -12,10 +12,6 @@ envVarGroups:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: TEMPORAL_ADDRESS
-        value: "temporal:7233"
-      - key: CLICKHOUSE_PROTOCOL
-        value: "https"
 services:
   - type: web
     name: api
@@ -45,6 +41,11 @@ services:
         fromService:
           type: pserv
           name: dittofeed-ch
+          property: hostport
+      - key: TEMPORAL_ADDRESS
+        fromService:
+          type: pserv
+          name: temporal
           property: hostport
   - type: web
     name: dashboard
@@ -81,6 +82,11 @@ services:
           type: pserv
           name: dittofeed-ch
           property: hostport
+      - key: TEMPORAL_ADDRESS
+        fromService:
+          type: pserv
+          name: temporal
+          property: hostport
   - type: worker
     name: worker
     env: docker
@@ -111,6 +117,11 @@ services:
         fromService:
           type: pserv
           name: dittofeed-ch
+          property: hostport
+      - key: TEMPORAL_ADDRESS
+        fromService:
+          type: pserv
+          name: temporal
           property: hostport
   - type: worker
     name: admin-cli
@@ -143,6 +154,11 @@ services:
         fromService:
           type: pserv
           name: dittofeed-ch
+          property: hostport
+      - key: TEMPORAL_ADDRESS
+        fromService:
+          type: pserv
+          name: temporal
           property: hostport
   - type: pserv
     name: dittofeed-ch
