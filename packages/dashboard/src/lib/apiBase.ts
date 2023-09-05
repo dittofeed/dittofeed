@@ -1,3 +1,11 @@
+import { hasProtocol } from "isomorphic-lib/src/urls";
+
 export function apiBase(): string {
-  return process.env.DASHBOARD_API_BASE ?? "http://localhost:3001";
+  if (!process.env.DASHBOARD_API_BASE) {
+    return "http://localhost:3001";
+  }
+  if (!hasProtocol(process.env.DASHBOARD_API_BASE)) {
+    return `http://${process.env.DASHBOARD_API_BASE}`;
+  }
+  return process.env.DASHBOARD_API_BASE;
 }

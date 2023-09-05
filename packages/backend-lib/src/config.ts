@@ -1,5 +1,6 @@
 import { FormatRegistry, Static, Type } from "@sinclair/typebox";
 import { isNaturalNumber } from "isomorphic-lib/src/strings";
+import { hasProtocol } from "isomorphic-lib/src/urls";
 import { URL } from "url";
 import { Overwrite } from "utility-types";
 
@@ -94,7 +95,7 @@ function defaultChUrl(inputURL?: string, protocolOverride?: string): string {
   let urlToParse: string = inputURL;
 
   // Prepend a default protocol if the input doesn't seem to have one
-  if (!inputURL.match(/^[a-zA-Z]+:\/\//)) {
+  if (!hasProtocol(inputURL)) {
     const protocol = protocolOverride ?? "http";
     urlToParse = `${protocol}://${inputURL}`;
   }
