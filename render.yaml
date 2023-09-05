@@ -138,7 +138,7 @@ services:
     plan: Starter
     region: oregon
     env: docker
-    dockerfilePath: ./temporal-cluster/server/Dockerfile
+    dockerfilePath: ./render/temporal/server/Dockerfile
     scaling:
       minInstances: 1
       maxInstances: 3
@@ -185,7 +185,7 @@ services:
     plan: Starter
     region: oregon
     env: docker
-    dockerfilePath: ./temporal-cluster/server/Dockerfile
+    dockerfilePath: ./render/temporal/server/Dockerfile
     scaling:
       minInstances: 1
       maxInstances: 3
@@ -232,7 +232,7 @@ services:
     plan: Starter
     region: oregon
     env: docker
-    dockerfilePath: ./temporal-cluster/server/Dockerfile
+    dockerfilePath: ./render/temporal/server/Dockerfile
     scaling:
       minInstances: 1
       maxInstances: 3
