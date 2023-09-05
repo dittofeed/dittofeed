@@ -16,20 +16,11 @@ envVarGroups:
         value: temporal:7233
       - key: CLICKHOUSE_HOST
         value: dittofeed-ch
-  # - name: temporal-shared
-  #   envVars:
-  #   - key: ENABLE_ES
-  #     value: false
-  #   - key: DB
-  #     value: postgresql
-  #   - key: DYNAMIC_CONFIG_FILE_PATH
-  #     value: /etc/temporal/dynamicconfig.yaml
-    # - key: SKIP_VISIBILITY_DB_SETUP
-    #   value: true
 services:
   - type: web
     name: api
     env: docker
+    autoDeploy: false
     dockerfilePath: ./packages/api/Dockerfile
     dockerContext: .
     envVars:
@@ -53,11 +44,61 @@ services:
   - type: web
     name: dashboard
     env: docker
+    autoDeploy: false
     dockerfilePath: ./packages/dashboard/Dockerfile
     dockerContext: .
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: dittofeed-db
+          property: host
+      - key: DATABASE_USER
+        fromDatabase:
+          name: dittofeed-db
+          property: user
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: dittofeed-db
+          property: port
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: dittofeed-db
+          property: password
+  - type: background_worker
+    name: worker
+    env: docker
+    autoDeploy: false
+    dockerfilePath: ./packages/worker/Dockerfile
+    dockerContext: .
+    envVars:
+      - fromGroup: backend-app-env
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: dittofeed-db
+          property: host
+      - key: DATABASE_USER
+        fromDatabase:
+          name: dittofeed-db
+          property: user
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: dittofeed-db
+          property: port
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: dittofeed-db
+          property: password
+  - type: background_worker
+    name: admin-cli
+    env: docker
+    autoDeploy: false
+    dockerfilePath: ./packages/admin-cli/Dockerfile
+    dockerContext: .
+    command: "yarn admin bootstrap && sleep infinity"
+    envVars:
+      - fromGroup: backend-app-env
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
