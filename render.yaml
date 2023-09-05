@@ -16,6 +16,20 @@ envVarGroups:
         value: temporal:7233
       - key: CLICKHOUSE_HOST
         value: dittofeed-ch
+  - name: temporal-shared
+    envVars:
+    - key: ENABLE_ES
+      value: false
+    - key: DB
+      value: postgresql
+services:
+  - type: web
+    name: api
+    env: docker
+    dockerfilePath: ./packages/api/Dockerfile
+    dockerContext: .
+    envVars:
+      - fromeGroup: backend-app-env
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
@@ -32,20 +46,6 @@ envVarGroups:
         fromDatabase:
           name: dittofeed-db
           property: password
-  - name: temporal-shared
-    envVars:
-    - key: ENABLE_ES
-      value: false
-    - key: DB
-      value: postgresql
-services:
-  - type: web
-    name: api
-    env: docker
-    dockerfilePath: ./packages/api/Dockerfile
-    dockerContext: .
-    envVars:
-      - fromeGroup: backend-app-env
   - type: web
     name: dashboard
     env: docker
@@ -54,6 +54,22 @@ services:
     envVars:
       - fromeGroup: backend-app-env
       - fromeGroup: clickhouse-credentials
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: dittofeed-db
+          property: host
+      - key: DATABASE_USER
+        fromDatabase:
+          name: dittofeed-db
+          property: user
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: dittofeed-db
+          property: port
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: dittofeed-db
+          property: password
   - type: pserv
     name: dittofeed-ch
     env: docker
