@@ -32,22 +32,8 @@ envVarGroups:
         fromDatabase:
           name: dittofeed-db
           property: password
-      - fromGroup: clickhouse-credentials
 
 services:
-  - type: pserv
-    name: dittofeed-ch
-    env: docker
-    plan: standard
-    autoDeploy: false
-    dockerfilePath: ./render/clickhouse/Dockerfile
-    dockerContext: .
-    envVars:
-      - fromGroup: clickhouse-credentials
-    disk:
-      name: data
-      mountPath: /var/lib/clickhouse
-      sizeGB: 10
   - type: web
     name: api
     env: docker
@@ -62,3 +48,26 @@ services:
     dockerContext: .
     envVars:
       - fromeGroup: backend-app-env
+      - fromeGroup: clickhouse-credentials
+  - type: pserv
+    name: dittofeed-ch
+    env: docker
+    plan: standard
+    autoDeploy: false
+    dockerfilePath: ./render/clickhouse/Dockerfile
+    dockerContext: .
+    envVars:
+      - fromeGroup: backend-app-env
+      - fromeGroup: clickhouse-credentials
+    disk:
+      name: data
+      mountPath: /var/lib/clickhouse
+      sizeGB: 10
+  # - type: web
+  #   name: worker
+  #   env: docker
+  #   dockerfilePath: ./packages/worker/Dockerfile
+  #   dockerContext: .
+  #   envVars:
+      # - fromeGroup: backend-app-env
+      # - fromeGroup: clickhouse-credentials
