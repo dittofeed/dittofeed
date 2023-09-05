@@ -80,6 +80,7 @@ services:
     dockerContext: .
     envVars:
       - fromGroup: backend-app-env
+      - fromGroup: clickhouse-credentials
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
@@ -106,6 +107,7 @@ services:
     dockerCommand: "yarn admin bootstrap && sleep infinity"
     envVars:
       - fromGroup: backend-app-env
+      - fromGroup: clickhouse-credentials
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
