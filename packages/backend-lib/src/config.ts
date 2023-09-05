@@ -75,6 +75,35 @@ const BaseRawConfigProps = {
   ),
 };
 
+function defaultChUrl(inputURL?: string): string {
+  if (!inputURL) {
+    return "http://localhost:8123";
+  }
+  let urlToParse: string = inputURL;
+
+  // Prepend a default protocol if the input doesn't seem to have one
+  if (!inputURL.match(/^[a-zA-Z]+:\/\//)) {
+    urlToParse = `http://${inputURL}`;
+  }
+
+  const parsedURL = new URL(urlToParse);
+
+  // Check if the URL has a domain
+  if (!parsedURL.hostname) {
+    throw new Error("URL must have a domain");
+  }
+
+  // Default the port to '8123' if not present
+  if (!parsedURL.port) {
+    parsedURL.port = "8123";
+  }
+
+  // Convert the URL object back to a string
+  const newURL = parsedURL.toString();
+
+  return newURL;
+}
+
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
 
 // Structure of application config.
@@ -240,7 +269,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
     databaseUrl,
     clickhouseDatabase,
-    clickhouseHost: rawConfig.clickhouseHost ?? "http://localhost:8123",
+    clickhouseHost: defaultChUrl(rawConfig.clickhouseHost),
     clickhouseUser: rawConfig.clickhouseUser ?? "dittofeed",
     clickhousePassword: rawConfig.clickhousePassword ?? "password",
     kafkaBrokers: rawConfig.kafkaBrokers
