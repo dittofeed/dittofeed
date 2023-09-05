@@ -9,6 +9,7 @@ persistence:
     {{- if eq $es "true" }}
     advancedVisibilityStore: es-visibility
     {{- end }}
+    visibilityStore: visibility
     datastores:
         {{- $db := default .Env.DB "cassandra" | lower -}}
         {{- if eq $db "cassandra" }}

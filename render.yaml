@@ -102,6 +102,10 @@ services:
       fromDatabase:
         name: dittofeed-db
         property: database
+    - key: VISIBILITY_DBNAME
+      fromDatabase:
+        name: dittofeed-db
+        property: database
     - key: DB_PORT
       fromDatabase:
         name: dittofeed-db
