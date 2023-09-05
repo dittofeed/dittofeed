@@ -25,6 +25,7 @@ const BaseRawConfigProps = {
   writeMode: Type.Optional(WriteMode),
   temporalAddress: Type.Optional(Type.String()),
   clickhouseHost: Type.String(),
+  clickhouseProtocol: Type.Optional(Type.String()),
   clickhouseDatabase: Type.Optional(Type.String()),
   clickhouseUser: Type.String(),
   clickhousePassword: Type.String(),
@@ -75,7 +76,7 @@ const BaseRawConfigProps = {
   ),
 };
 
-function defaultChUrl(inputURL?: string): string {
+function defaultChUrl(inputURL?: string, protocolOverride?: string): string {
   if (!inputURL) {
     return "http://localhost:8123";
   }
@@ -83,7 +84,8 @@ function defaultChUrl(inputURL?: string): string {
 
   // Prepend a default protocol if the input doesn't seem to have one
   if (!inputURL.match(/^[a-zA-Z]+:\/\//)) {
-    urlToParse = `http://${inputURL}`;
+    const protocol = protocolOverride ?? "http";
+    urlToParse = `${protocol}://${inputURL}`;
   }
 
   const parsedURL = new URL(urlToParse);
@@ -269,7 +271,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
     databaseUrl,
     clickhouseDatabase,
-    clickhouseHost: defaultChUrl(rawConfig.clickhouseHost),
+    clickhouseHost: defaultChUrl(
+      rawConfig.clickhouseHost,
+      rawConfig.clickhouseProtocol
+    ),
     clickhouseUser: rawConfig.clickhouseUser ?? "dittofeed",
     clickhousePassword: rawConfig.clickhousePassword ?? "password",
     kafkaBrokers: rawConfig.kafkaBrokers

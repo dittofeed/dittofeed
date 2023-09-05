@@ -14,6 +14,8 @@ envVarGroups:
         value: production
       - key: TEMPORAL_ADDRESS
         value: "temporal:7233"
+      - key: CLICKHOUSE_PROTOCOL
+        value: "https"
 services:
   - type: web
     name: api
@@ -117,8 +119,7 @@ services:
     plan: standard
     dockerfilePath: ./packages/admin-cli/Dockerfile
     dockerContext: .
-    # dockerCommand: "yarn admin bootstrap && sleep infinity"
-    dockerCommand: "sleep infinity"
+    dockerCommand: "yarn admin bootstrap && sleep infinity"
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
