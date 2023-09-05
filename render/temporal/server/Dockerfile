@@ -1,3 +1,4 @@
+# FIXME delete file
 FROM temporalio/server:1.14.3
 
 COPY render/temporal/server/dynamicconfig.yaml /etc/temporal/dynamicconfig.yaml

@@ -181,6 +181,7 @@ services:
     env: docker
     dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
     dockerContext: .
+    dockerCommand: "sleep infinity"
     envVars:
     - key: DB
       value: postgresql
