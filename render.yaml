@@ -43,12 +43,12 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: user
-      - key: DATABASE_PASSWORD
-        fromDatabase:
-          name: dittofeed-db
-          property: password
       - key: DATABASE_PORT
         fromDatabase:
           name: dittofeed-db
           property: port
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: dittofeed-db
+          property: password
       - fromGroup: clickhouse-credentials
