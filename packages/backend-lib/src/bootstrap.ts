@@ -240,7 +240,6 @@ export async function bootstrapWorker({
   workspaceId: string;
 }) {
   const temporalClient = await connectWorkflowClient();
-
   try {
     await temporalClient.start(computePropertiesWorkflow, {
       taskQueue: "default",
