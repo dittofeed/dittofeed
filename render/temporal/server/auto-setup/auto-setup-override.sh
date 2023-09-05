@@ -317,5 +317,7 @@ if [ "${ENABLE_ES}" == true ]; then
     setup_es_index
 fi
 
+echo "Starting Temporal server: Dittofeed."
+
 # Run this func in parallel process. It will wait for server to start and then run required steps.
 setup_server &
