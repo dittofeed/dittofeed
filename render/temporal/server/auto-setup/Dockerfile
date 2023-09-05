@@ -8,8 +8,8 @@ COPY render/temporal/server/.bashrc /home/temporal/.bashrc
 USER root
 RUN apk update && apk add netcat-openbsd
 EXPOSE 8000
-CMD ["nc", "-l", "8000"]
-ENTRYPOINT ["nc", "-l", "8000"]
+CMD ["nc", "-l", "-p", "8000"]
+ENTRYPOINT ["nc", "-l", "-p", "8000"]
 
 # FIXME uncomment
 # CMD ["autosetup"]
