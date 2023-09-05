@@ -15,7 +15,7 @@ envVarGroups:
       - key: TEMPORAL_ADDRESS
         value: temporal:7233
       - key: CLICKHOUSE_HOST
-        value: dittofeed-ch
+        value: https://dittofeed-ch:8443
 services:
   - type: web
     name: api
