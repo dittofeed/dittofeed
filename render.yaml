@@ -16,7 +16,7 @@ envVarGroups:
         value: "temporal:7233"
 services:
   - type: web
-    name: api
+    name: "api"
     env: docker
     autoDeploy: false
     dockerfilePath: ./packages/api/Dockerfile
@@ -53,11 +53,12 @@ services:
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
+      # FIXME why is this not found
       - key: DASHBOARD_API_BASE
         fromService:
           type: pserv
+          name: "api"
           property: hostport
-          name: api
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
