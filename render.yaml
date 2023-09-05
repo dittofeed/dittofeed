@@ -14,8 +14,6 @@ envVarGroups:
         value: production
       - key: TEMPORAL_ADDRESS
         value: "temporal:7233"
-      - key: CLICKHOUSE_HOST
-        value: "http://dittofeed-ch:8443"
 services:
   - type: web
     name: api
@@ -41,6 +39,10 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: password
+      - key: CLICKHOUSE_HOST
+        fromService:
+          name: dittofeed-ch
+          property: hostport
   - type: web
     name: dashboard
     env: docker
@@ -71,6 +73,10 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: password
+      - key: CLICKHOUSE_HOST
+        fromService:
+          name: dittofeed-ch
+          property: hostport
   - type: worker
     name: worker
     env: docker
@@ -97,6 +103,10 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: password
+      - key: CLICKHOUSE_HOST
+        fromService:
+          name: dittofeed-ch
+          property: hostport
   - type: worker
     name: admin-cli
     env: docker
@@ -124,6 +134,10 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: password
+      - key: CLICKHOUSE_HOST
+        fromService:
+          name: dittofeed-ch
+          property: hostport
   - type: pserv
     name: dittofeed-ch
     env: docker
