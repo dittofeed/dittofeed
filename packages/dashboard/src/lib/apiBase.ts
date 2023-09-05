@@ -5,7 +5,7 @@ export function apiBase(): string {
     return "http://localhost:3001";
   }
   if (!hasProtocol(process.env.DASHBOARD_API_BASE)) {
-    return `http://${process.env.DASHBOARD_API_BASE}`;
+    return `https://${process.env.DASHBOARD_API_BASE}`;
   }
   return process.env.DASHBOARD_API_BASE;
 }
