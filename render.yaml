@@ -66,7 +66,7 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: password
-  - type: background_worker
+  - type: worker
     name: worker
     env: docker
     autoDeploy: false
@@ -90,7 +90,7 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: password
-  - type: background_worker
+  - type: worker
     name: admin-cli
     env: docker
     autoDeploy: false
