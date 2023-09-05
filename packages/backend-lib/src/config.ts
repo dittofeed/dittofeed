@@ -76,6 +76,17 @@ const BaseRawConfigProps = {
   ),
 };
 
+function defaultTemporalAddress(inputURL?: string): string {
+  if (!inputURL) {
+    return "localhost:7233";
+  }
+  const parts = inputURL.split(":");
+  if (parts.length === 1) {
+    return `${parts[0]}:7233`;
+  }
+  return inputURL;
+}
+
 function defaultChUrl(inputURL?: string, protocolOverride?: string): string {
   if (!inputURL) {
     return "http://localhost:8123";
@@ -268,7 +279,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     ...rawConfig,
     nodeEnv,
     writeMode,
-    temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
+    temporalAddress: defaultTemporalAddress(rawConfig.temporalAddress),
     databaseUrl,
     clickhouseDatabase,
     clickhouseHost: defaultChUrl(
