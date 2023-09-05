@@ -295,22 +295,22 @@ services:
     #     name: temporal-elasticsearch
     #     type: pserv
     #     envVarKey: ELASTIC_PASSWORD
-    - key: DBNAME
-      fromDatabase:
-        name: dittofeed-db
-        property: database
-    - key: POSTGRES_USER
-      fromDatabase:
-        name: dittofeed-db
-        property: user
-    - key: POSTGRES_PWD
-      fromDatabase:
-        name: dittofeed-db
-        property: password
-    - key: POSTGRES_SEEDS
-      fromDatabase:
-        name: dittofeed-db
-        property: host
+    # - key: DBNAME
+    #   fromDatabase:
+    #     name: dittofeed-db
+    #     property: database
+    # - key: POSTGRES_USER
+    #   fromDatabase:
+    #     name: dittofeed-db
+    #     property: user
+    # - key: POSTGRES_PWD
+    #   fromDatabase:
+    #     name: dittofeed-db
+    #     property: password
+    # - key: POSTGRES_SEEDS
+    #   fromDatabase:
+    #     name: dittofeed-db
+    #     property: host
 
   # - type: web
   #   name: worker
