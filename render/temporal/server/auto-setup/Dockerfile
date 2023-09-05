@@ -7,4 +7,5 @@ COPY render/temporal/server/.bashrc /home/temporal/.bashrc
 
 CMD ["autosetup"]
 
-ENTRYPOINT ["bash", "-c", "PUBLIC_FRONTEND_ADDRESS=$TEMPORAL_FRONTEND_HOST:7233 /etc/temporal/entrypoint.sh"]
+# FIXME uncomment
+# ENTRYPOINT ["bash", "-c", "PUBLIC_FRONTEND_ADDRESS=$TEMPORAL_FRONTEND_HOST:7233 /etc/temporal/entrypoint.sh"]
