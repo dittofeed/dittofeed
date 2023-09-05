@@ -1,7 +1,28 @@
 databases:
   - name: dittofeed-db
 
+envVarGroups:
+  - name: clickhouse-credentials
+    envVars:
+      - key: CLICKHOUSE_USER
+        value: dittofeed
+      - key: CLICKHOUSE_PASSWORD
+        generateValue: true
+
 services:
+  - type: pserv
+    name: dittofeed-ch
+    env: docker
+    plan: standard
+    autoDeploy: false
+    dockerfilePath: ./render/clickhouse/Dockerfile
+    dockerContext: .
+    envVars:
+      - fromGroup: clickhouse-credentials
+    disk:
+      name: data
+      mountPath: /var/lib/clickhouse
+      sizeGB: 10
   - type: web
     name: api
     env: docker
@@ -25,14 +46,5 @@ services:
           name: dittofeed-db
           property: password
       - key: CLICKHOUSE_HOST
-        fromDatabase:
-          name: dittofeed-ch
-          property: host
-      - key: CLICKHOUSE_USER
-        fromDatabase:
-          name: dittofeed-ch
-          property: user
-      - key: CLICKHOUSE_PASSWORD
-        fromDatabase:
-          name: dittofeed-ch
-          property: password
+        value: dittofeed-ch
+      - fromGroup: clickhouse-credentials
