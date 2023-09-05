@@ -306,6 +306,9 @@ if [ "${SKIP_SCHEMA_SETUP}" != true ]; then
     validate_db_env
     wait_for_db
     setup_schema
+else
+    echo "Skipping schema setup."
+    env
 fi
 
 if [ "${ENABLE_ES}" == true ]; then

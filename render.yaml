@@ -213,3 +213,5 @@ services:
         property: host
     - key: SKIP_VISIBILITY_DB_SETUP
       value: false
+    - key: SKIP_POSTGRES_DB_CREATION
+      value: false
