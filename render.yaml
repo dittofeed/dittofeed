@@ -13,9 +13,9 @@ envVarGroups:
       - key: NODE_ENV
         value: production
       - key: TEMPORAL_ADDRESS
-        value: temporal:7233
+        value: "temporal:7233"
       - key: CLICKHOUSE_HOST
-        value: http://dittofeed-ch:8443
+        value: "http://dittofeed-ch:8443"
 services:
   - type: web
     name: api
