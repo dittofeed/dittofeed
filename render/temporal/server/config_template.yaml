@@ -9,7 +9,6 @@ persistence:
     {{- if eq $es "true" }}
     advancedVisibilityStore: es-visibility
     {{- end }}
-    visibilityStore: visibility
     datastores:
         {{- $db := default .Env.DB "cassandra" | lower -}}
         {{- if eq $db "cassandra" }}
@@ -129,26 +128,7 @@ persistence:
                     keyFile: {{ default .Env.SQL_CERT_KEY "" }}
                     enableHostVerification: {{ default .Env.SQL_HOST_VERIFICATION "false" }}
                     serverName: {{ default .Env.SQL_HOST_NAME "" }}
-        # FIXME delete
-        # using the same configuration as default sql store because it's more convenient in render
-        # visibility:
-        #     sql:
-        #         pluginName: "postgres"
-        #         databaseName: "{{ default .Env.DBNAME "temporal" }}"
-        #         connectAddr: "{{ default .Env.POSTGRES_SEEDS "" }}:{{ default .Env.DB_PORT "5432" }}"
-        #         connectProtocol: "tcp"
-        #         user: "{{ default .Env.POSTGRES_USER "" }}"
-        #         password: "{{ default .Env.POSTGRES_PWD "" }}"
-        #         maxConns: {{ default .Env.SQL_MAX_CONNS "20" }}
-        #         maxIdleConns: {{ default .Env.SQL_MAX_IDLE_CONNS "20" }}
-        #         maxConnLifetime: {{ default .Env.SQL_MAX_CONN_TIME "1h" }}
-        #         tls:
-        #             enabled: {{ default .Env.SQL_TLS_ENABLED "false" }}
-        #             сaFile: {{ default .Env.SQL_CA "" }}
-        #             certFile: {{ default .Env.SQL_CERT "" }}
-        #             keyFile: {{ default .Env.SQL_CERT_KEY "" }}
-        #             enableHostVerification: {{ default .Env.SQL_HOST_VERIFICATION "false" }}
-        #             serverName: {{ default .Env.SQL_HOST_NAME "" }}
+            visibility:
         {{- end }}
         {{- if eq $es "true" }}
         es-visibility:
