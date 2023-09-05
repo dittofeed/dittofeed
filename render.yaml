@@ -114,7 +114,7 @@ services:
     #     envVarKey: ELASTIC_PASSWORD
     - key: DBNAME
       fromDatabase:
-        name: dittofeed-db-db
+        name: dittofeed-db
         property: database
     - key: DB_PORT
       fromDatabase:
