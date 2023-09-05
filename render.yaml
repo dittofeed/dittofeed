@@ -48,9 +48,13 @@ services:
     dockerfilePath: ./packages/dashboard/Dockerfile
     dockerContext: .
     envVars:
-    # FIXME add api base
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
+      - key: DASHBOARD_API_BASE
+        fromService:
+          type: pserv
+          property: host
+          name: api
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
@@ -71,6 +75,7 @@ services:
     name: worker
     env: docker
     autoDeploy: false
+    plan: standard
     dockerfilePath: ./packages/worker/Dockerfile
     dockerContext: .
     envVars:
@@ -95,6 +100,7 @@ services:
     name: admin-cli
     env: docker
     autoDeploy: false
+    plan: standard
     dockerfilePath: ./packages/admin-cli/Dockerfile
     dockerContext: .
     dockerCommand: "yarn admin bootstrap && sleep infinity"
