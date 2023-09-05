@@ -1,3 +1,3 @@
 export function hasProtocol(inputURL: string): boolean {
-  return !inputURL.match(/^[a-zA-Z]+:\/\//);
+  return Boolean(inputURL.match(/^[a-zA-Z]+:\/\//));
 }
