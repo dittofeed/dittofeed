@@ -22,6 +22,8 @@ envVarGroups:
       value: false
     - key: DB
       value: postgresql
+    - key: DYNAMIC_CONFIG_FILE_PATH
+      value: /etc/temporal/dynamicconfig.yaml
 services:
   - type: web
     name: api
