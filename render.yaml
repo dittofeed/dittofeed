@@ -29,7 +29,7 @@ services:
     dockerfilePath: ./packages/api/Dockerfile
     dockerContext: .
     envVars:
-      - fromeGroup: backend-app-env
+      - fromGroup: backend-app-env
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
@@ -52,8 +52,8 @@ services:
     dockerfilePath: ./packages/dashboard/Dockerfile
     dockerContext: .
     envVars:
-      - fromeGroup: backend-app-env
-      - fromeGroup: clickhouse-credentials
+      - fromGroup: backend-app-env
+      - fromGroup: clickhouse-credentials
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
@@ -78,8 +78,8 @@ services:
     dockerfilePath: ./render/clickhouse/Dockerfile
     dockerContext: .
     envVars:
-      - fromeGroup: backend-app-env
-      - fromeGroup: clickhouse-credentials
+      - fromGroup: backend-app-env
+      - fromGroup: clickhouse-credentials
     disk:
       name: data
       mountPath: /var/lib/clickhouse
@@ -287,5 +287,5 @@ services:
   #   dockerfilePath: ./packages/worker/Dockerfile
   #   dockerContext: .
   #   envVars:
-      # - fromeGroup: backend-app-env
-      # - fromeGroup: clickhouse-credentials
+      # - fromGroup: backend-app-env
+      # - fromGroup: clickhouse-credentials
