@@ -12,6 +12,8 @@ envVarGroups:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: CLICKHOUSE_PROTOCOL
+        value: http
 services:
   - type: web
     name: api
@@ -41,7 +43,7 @@ services:
         fromService:
           type: pserv
           name: dittofeed-ch
-          property: hostport
+          property: host
       - key: TEMPORAL_ADDRESS
         fromService:
           type: pserv
