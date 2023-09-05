@@ -220,10 +220,10 @@ services:
     name: temporal-2
     autoDeploy: false
     env: docker
-    dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
+    dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile.test
     dockerContext: .
     # dockerCommand: "apt-get install -y netcat && nc -l 8000"
-    dockerCommand: bash
+    # dockerCommand: bash
     envVars:
       - key: DB
         value: postgresql
