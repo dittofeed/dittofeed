@@ -48,6 +48,7 @@ services:
     dockerfilePath: ./packages/dashboard/Dockerfile
     dockerContext: .
     envVars:
+    # FIXME add api base
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
       - key: DATABASE_HOST
