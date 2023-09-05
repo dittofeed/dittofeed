@@ -184,35 +184,76 @@ services:
     # dockerCommand: "apt-get install -y netcat && nc -l 8000"
     # dockerCommand: bash
     envVars:
-    - key: DB
-      value: postgresql
-    - key: DYNAMIC_CONFIG_FILE_PATH
-      value: /etc/temporal/dynamicconfig.yaml
-    - key: DBNAME
-      fromDatabase:
-        name: dittofeed-db
-        property: database
-    - key: VISIBILITY_DBNAME
-      fromDatabase:
-        name: dittofeed-db
-        property: database
-    - key: DB_PORT
-      fromDatabase:
-        name: dittofeed-db
-        property: port
-    - key: POSTGRES_USER
-      fromDatabase:
-        name: dittofeed-db
-        property: user
-    - key: POSTGRES_PWD
-      fromDatabase:
-        name: dittofeed-db
-        property: password
-    - key: POSTGRES_SEEDS
-      fromDatabase:
-        name: dittofeed-db
-        property: host
-    - key: SKIP_VISIBILITY_DB_SETUP
-      value: false
-    - key: SKIP_POSTGRES_DB_CREATION
-      value: false
+      - key: DB
+        value: postgresql
+      - key: DYNAMIC_CONFIG_FILE_PATH
+        value: /etc/temporal/dynamicconfig.yaml
+      - key: DBNAME
+        fromDatabase:
+          name: dittofeed-db
+          property: database
+      - key: VISIBILITY_DBNAME
+        fromDatabase:
+          name: dittofeed-db
+          property: database
+      - key: DB_PORT
+        fromDatabase:
+          name: dittofeed-db
+          property: port
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: dittofeed-db
+          property: user
+      - key: POSTGRES_PWD
+        fromDatabase:
+          name: dittofeed-db
+          property: password
+      - key: POSTGRES_SEEDS
+        fromDatabase:
+          name: dittofeed-db
+          property: host
+      - key: SKIP_VISIBILITY_DB_SETUP
+        value: false
+      - key: SKIP_POSTGRES_DB_CREATION
+        value: false
+  - type: worker
+    name: temporal-2
+    autoDeploy: false
+    env: docker
+    dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
+    dockerContext: .
+    # dockerCommand: "apt-get install -y netcat && nc -l 8000"
+    dockerCommand: bash
+    envVars:
+      - key: DB
+        value: postgresql
+      - key: DYNAMIC_CONFIG_FILE_PATH
+        value: /etc/temporal/dynamicconfig.yaml
+      - key: DBNAME
+        fromDatabase:
+          name: dittofeed-db
+          property: database
+      - key: VISIBILITY_DBNAME
+        fromDatabase:
+          name: dittofeed-db
+          property: database
+      - key: DB_PORT
+        fromDatabase:
+          name: dittofeed-db
+          property: port
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: dittofeed-db
+          property: user
+      - key: POSTGRES_PWD
+        fromDatabase:
+          name: dittofeed-db
+          property: password
+      - key: POSTGRES_SEEDS
+        fromDatabase:
+          name: dittofeed-db
+          property: host
+      - key: SKIP_VISIBILITY_DB_SETUP
+        value: false
+      - key: SKIP_POSTGRES_DB_CREATION
+        value: false
