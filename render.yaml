@@ -96,7 +96,7 @@ services:
     autoDeploy: false
     dockerfilePath: ./packages/admin-cli/Dockerfile
     dockerContext: .
-    startCommand: "yarn admin bootstrap && sleep infinity"
+    dockerCommand: "yarn admin bootstrap && sleep infinity"
     envVars:
       - fromGroup: backend-app-env
       - key: DATABASE_HOST
