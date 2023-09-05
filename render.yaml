@@ -144,7 +144,7 @@ services:
     plan: standard
     dockerfilePath: ./packages/admin-cli/Dockerfile
     dockerContext: .
-    dockerCommand: "sleep infinity"
+    dockerCommand: "yarn admin bootstrap && sleep infinity"
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
