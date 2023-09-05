@@ -39,10 +39,6 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: host
-      - key: DATABASE_PORT
-        fromDatabase:
-          name: dittofeed-db
-          property: port
       - key: DATABASE_USER
         fromDatabase:
           name: dittofeed-db
@@ -51,4 +47,8 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: password
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: dittofeed-db
+          property: port
       - fromGroup: clickhouse-credentials
