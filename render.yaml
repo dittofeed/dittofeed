@@ -73,7 +73,6 @@ services:
   - type: pserv
     name: dittofeed-ch
     env: docker
-    plan: standard
     autoDeploy: false
     dockerfilePath: ./render/clickhouse/Dockerfile
     dockerContext: .
@@ -89,6 +88,7 @@ services:
     autoDeploy: false
     env: docker
     dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
+    dockerContext: .
     scaling:
       minInstances: 1
       maxInstances: 3
@@ -135,10 +135,9 @@ services:
   - type: pserv
     name: temporal-history
     autoDeploy: false
-    plan: Starter
-    region: oregon
     env: docker
     dockerfilePath: ./render/temporal/server/Dockerfile
+    dockerContext: .
     scaling:
       minInstances: 1
       maxInstances: 3
@@ -182,8 +181,6 @@ services:
   - type: pserv
     name: temporal-matching
     autoDeploy: false
-    plan: Starter
-    region: oregon
     env: docker
     dockerfilePath: ./render/temporal/server/Dockerfile
     scaling:
@@ -229,8 +226,6 @@ services:
   - type: pserv
     autoDeploy: false
     name: temporal-worker
-    plan: Starter
-    region: oregon
     env: docker
     dockerfilePath: ./render/temporal/server/Dockerfile
     scaling:
