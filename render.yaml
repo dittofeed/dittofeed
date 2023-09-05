@@ -33,6 +33,8 @@ services:
         value: production
       - key: TEMPORAL_ADDRESS
         value: temporal:7233
+      - key: CLICKHOUSE_HOST
+        value: dittofeed-ch
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
@@ -45,6 +47,4 @@ services:
         fromDatabase:
           name: dittofeed-db
           property: password
-      - key: CLICKHOUSE_HOST
-        value: dittofeed-ch
       - fromGroup: clickhouse-credentials
