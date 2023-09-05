@@ -25,5 +25,3 @@ history.defaultWorkflowRetryPolicy:
 system.advancedVisibilityWritingMode:
   - value: "off"
     constraints: {}
-persistence:
-  visibilityStore: "default"
