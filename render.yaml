@@ -56,7 +56,7 @@ services:
       - key: DASHBOARD_API_BASE
         fromService:
           type: pserv
-          property: host
+          property: hostport
           name: api
       - key: DATABASE_HOST
         fromDatabase:
