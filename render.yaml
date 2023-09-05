@@ -181,7 +181,7 @@ services:
     env: docker
     dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
     dockerContext: .
-    dockerCommand: "apt-get install -y netcat && nc -l 8000"
+    # dockerCommand: "apt-get install -y netcat && nc -l 8000"
     envVars:
     - key: DB
       value: postgresql
