@@ -100,8 +100,8 @@ services:
       value: frontend
     - key: SKIP_POSTGRES_DB_CREATION
       value: true
-    # - key: SKIP_VISIBILITY_DB_SETUP
-    #   value: true
+    - key: SKIP_VISIBILITY_DB_SETUP
+      value: false
     # - key: ES_SEEDS
     #   fromService:
     #     name: temporal-elasticsearch
