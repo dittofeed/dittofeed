@@ -60,7 +60,7 @@ services:
         fromService:
           type: pserv
           name: temporal-frontend
-          property: hostport
+          property: host
   - type: web
     name: dashboard
     env: docker
@@ -100,7 +100,7 @@ services:
         fromService:
           type: pserv
           name: temporal-frontend
-          property: hostport
+          property: host
   - type: worker
     name: worker
     env: docker
@@ -136,7 +136,7 @@ services:
         fromService:
           type: pserv
           name: temporal-frontend
-          property: hostport
+          property: host
   - type: worker
     name: admin-cli
     env: docker
@@ -173,7 +173,7 @@ services:
         fromService:
           type: pserv
           name: temporal-frontend
-          property: hostport
+          property: host
   - type: pserv
     name: dittofeed-ch
     env: docker
