@@ -111,7 +111,6 @@ services:
     name: worker
     env: docker
     autoDeploy: false
-    plan: standard
     dockerfilePath: ./packages/worker/Dockerfile
     dockerContext: .
     envVars:
@@ -147,7 +146,6 @@ services:
     name: admin-cli
     env: docker
     autoDeploy: false
-    plan: standard
     dockerfilePath: ./packages/admin-cli/Dockerfile
     dockerContext: .
     dockerCommand: "sleep infinity"
@@ -272,8 +270,6 @@ services:
   - type: pserv
     name: temporal-history
     autoDeploy: false
-    plan: Starter
-    region: oregon
     env: docker
     dockerfilePath: ./render/temporal/server/Dockerfile
     scaling:
