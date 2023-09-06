@@ -1,5 +1,6 @@
 import { FormatRegistry, Static, Type } from "@sinclair/typebox";
 import { isNaturalNumber } from "isomorphic-lib/src/strings";
+import { hasProtocol } from "isomorphic-lib/src/urls";
 import { URL } from "url";
 import { Overwrite } from "utility-types";
 
@@ -25,6 +26,7 @@ const BaseRawConfigProps = {
   writeMode: Type.Optional(WriteMode),
   temporalAddress: Type.Optional(Type.String()),
   clickhouseHost: Type.String(),
+  clickhouseProtocol: Type.Optional(Type.String()),
   clickhouseDatabase: Type.Optional(Type.String()),
   clickhouseUser: Type.String(),
   clickhousePassword: Type.String(),
@@ -65,6 +67,7 @@ const BaseRawConfigProps = {
   trackDashboard: Type.Optional(BoolStr),
   dashboardWriteKey: Type.Optional(Type.String()),
   dashboardUrl: Type.Optional(Type.String()),
+  dashboardUrlName: Type.Optional(Type.String()),
   enableMobilePush: Type.Optional(BoolStr),
   hubspotClientId: Type.Optional(Type.String()),
   hubspotClientSecret: Type.Optional(Type.String()),
@@ -74,6 +77,47 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" })
   ),
 };
+
+function defaultTemporalAddress(inputURL?: string): string {
+  if (!inputURL) {
+    return "localhost:7233";
+  }
+  const parts = inputURL.split(":");
+  if (parts.length === 1) {
+    return `${parts[0]}:7233`;
+  }
+  return inputURL;
+}
+
+function defaultChUrl(inputURL?: string, protocolOverride?: string): string {
+  if (!inputURL) {
+    return "http://localhost:8123";
+  }
+  let urlToParse: string = inputURL;
+
+  // Prepend a default protocol if the input doesn't seem to have one
+  if (!hasProtocol(inputURL)) {
+    const protocol = protocolOverride ?? "http";
+    urlToParse = `${protocol}://${inputURL}`;
+  }
+
+  const parsedURL = new URL(urlToParse);
+
+  // Check if the URL has a domain
+  if (!parsedURL.hostname) {
+    throw new Error("URL must have a domain");
+  }
+
+  // Default the port to '8123' if not present
+  if (!parsedURL.port) {
+    parsedURL.port = "8123";
+  }
+
+  // Convert the URL object back to a string
+  const newURL = parsedURL.toString();
+
+  return newURL;
+}
 
 const BaseRawConfig = Type.Object(BaseRawConfigProps);
 
@@ -207,6 +251,27 @@ function parseToNumber({
   return coerced;
 }
 
+function buildDashboardUrl({
+  nodeEnv,
+  dashboardUrl,
+  dashboardUrlName,
+}: {
+  nodeEnv: NodeEnvEnum;
+  dashboardUrl?: string;
+  dashboardUrlName?: string;
+}): string {
+  const specifiedDashboardUrl =
+    dashboardUrlName && process.env[dashboardUrlName]
+      ? process.env[dashboardUrlName]
+      : dashboardUrl;
+  if (specifiedDashboardUrl) {
+    return specifiedDashboardUrl;
+  }
+  return nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
+    ? "http://localhost:3000"
+    : "https://dittofeed.com";
+}
+
 function parseRawConfig(rawConfig: RawConfig): Config {
   const databaseUrl = parseDatabaseUrl(rawConfig);
   const clickhouseDatabase =
@@ -237,10 +302,13 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     ...rawConfig,
     nodeEnv,
     writeMode,
-    temporalAddress: rawConfig.temporalAddress ?? "localhost:7233",
+    temporalAddress: defaultTemporalAddress(rawConfig.temporalAddress),
     databaseUrl,
     clickhouseDatabase,
-    clickhouseHost: rawConfig.clickhouseHost ?? "http://localhost:8123",
+    clickhouseHost: defaultChUrl(
+      rawConfig.clickhouseHost,
+      rawConfig.clickhouseProtocol
+    ),
     clickhouseUser: rawConfig.clickhouseUser ?? "dittofeed",
     clickhousePassword: rawConfig.clickhousePassword ?? "password",
     kafkaBrokers: rawConfig.kafkaBrokers
@@ -284,11 +352,11 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     logLevel,
     enableSourceControl: rawConfig.enableSourceControl === "true",
     authMode: rawConfig.authMode ?? "anonymous",
-    dashboardUrl:
-      rawConfig.dashboardUrl ??
-      (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
-        ? "http://localhost:3000"
-        : "https://dittofeed.com"),
+    dashboardUrl: buildDashboardUrl({
+      nodeEnv,
+      dashboardUrl: rawConfig.dashboardUrl,
+      dashboardUrlName: rawConfig.dashboardUrlName,
+    }),
     trackDashboard: rawConfig.trackDashboard === "true",
     enableMobilePush: rawConfig.enableMobilePush === "true",
     readQueryPageSize: rawConfig.readQueryPageSize

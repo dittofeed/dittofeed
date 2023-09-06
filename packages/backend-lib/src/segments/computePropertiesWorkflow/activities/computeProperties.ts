@@ -228,6 +228,7 @@ function buildReadQuery({
   const workspaceIdParam = readChqb.addQueryValue(workspaceId, "String");
 
   const tmpTableName = `computed_properties_to_process_${getChCompatibleUuid()}`;
+  const { clickhouseDatabase } = config();
 
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
@@ -284,7 +285,7 @@ function buildReadQuery({
           ) as processed,
           processed.1 as processed_for_type,
           processed.2 as processed_for
-      FROM computed_property_assignments
+      FROM ${clickhouseDatabase}.computed_property_assignments
       WHERE workspace_id = ${workspaceIdParam}
       GROUP BY
           workspace_id,
@@ -301,7 +302,7 @@ function buildReadQuery({
         processed_for,
         argMax(segment_value, processed_at) segment_value,
         argMax(user_property_value, processed_at) user_property_value
-      FROM processed_computed_properties
+      FROM ${clickhouseDatabase}.processed_computed_properties
       GROUP BY
         workspace_id,
         computed_property_id,
@@ -562,11 +563,10 @@ export async function computePropertiesPeriodSafe({
   try {
     const tmpTableQueryId = randomUUID();
     try {
-      await clickhouseClient.query({
+      await clickhouseClient.command({
         query: readQuery,
         query_params: readChqb.getQueries(),
         query_id: tmpTableQueryId,
-        format: "JSONEachRow",
       });
     } catch (e) {
       logger().error(
