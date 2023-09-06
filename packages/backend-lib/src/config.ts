@@ -67,6 +67,7 @@ const BaseRawConfigProps = {
   trackDashboard: Type.Optional(BoolStr),
   dashboardWriteKey: Type.Optional(Type.String()),
   dashboardUrl: Type.Optional(Type.String()),
+  dashboardUrlName: Type.Optional(Type.String()),
   enableMobilePush: Type.Optional(BoolStr),
   hubspotClientId: Type.Optional(Type.String()),
   hubspotClientSecret: Type.Optional(Type.String()),
@@ -250,6 +251,27 @@ function parseToNumber({
   return coerced;
 }
 
+function buildDashboardUrl({
+  nodeEnv,
+  dashboardUrl,
+  dashboardUrlName,
+}: {
+  nodeEnv: NodeEnvEnum;
+  dashboardUrl?: string;
+  dashboardUrlName?: string;
+}): string {
+  const specifiedDashboardUrl =
+    dashboardUrlName && process.env[dashboardUrlName]
+      ? process.env[dashboardUrlName]
+      : dashboardUrl;
+  if (specifiedDashboardUrl) {
+    return specifiedDashboardUrl;
+  }
+  return nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
+    ? "http://localhost:3000"
+    : "https://dittofeed.com";
+}
+
 function parseRawConfig(rawConfig: RawConfig): Config {
   const databaseUrl = parseDatabaseUrl(rawConfig);
   const clickhouseDatabase =
@@ -330,11 +352,11 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     logLevel,
     enableSourceControl: rawConfig.enableSourceControl === "true",
     authMode: rawConfig.authMode ?? "anonymous",
-    dashboardUrl:
-      rawConfig.dashboardUrl ??
-      (nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test
-        ? "http://localhost:3000"
-        : "https://dittofeed.com"),
+    dashboardUrl: buildDashboardUrl({
+      nodeEnv,
+      dashboardUrl: rawConfig.dashboardUrl,
+      dashboardUrlName: rawConfig.dashboardUrlName,
+    }),
     trackDashboard: rawConfig.trackDashboard === "true",
     enableMobilePush: rawConfig.enableMobilePush === "true",
     readQueryPageSize: rawConfig.readQueryPageSize

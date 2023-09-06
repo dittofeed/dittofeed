@@ -14,6 +14,8 @@ envVarGroups:
         value: production
       - key: CLICKHOUSE_PROTOCOL
         value: http
+      - key: DASHBOARD_URL_NAME
+        value: RENDER_EXTERNAL_URL
   - name: temporal-shared
     envVars:
     - key: DYNAMIC_CONFIG_FILE_PATH
@@ -187,45 +189,6 @@ services:
       name: data
       mountPath: /var/lib/clickhouse
       sizeGB: 10
-  # - type: pserv
-  #   name: temporal
-  #   autoDeploy: false
-  #   env: docker
-  #   dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
-  #   dockerContext: .
-  #   envVars:
-  #     - key: DB
-  #       value: postgresql
-  #     - key: DYNAMIC_CONFIG_FILE_PATH
-  #       value: /etc/temporal/dynamicconfig.yaml
-  #     - key: DBNAME
-  #       fromDatabase:
-  #         name: dittofeed-db
-  #         property: database
-  #     - key: VISIBILITY_DBNAME
-  #       fromDatabase:
-  #         name: dittofeed-db
-  #         property: database
-  #     - key: DB_PORT
-  #       fromDatabase:
-  #         name: dittofeed-db
-  #         property: port
-  #     - key: POSTGRES_USER
-  #       fromDatabase:
-  #         name: dittofeed-db
-  #         property: user
-  #     - key: POSTGRES_PWD
-  #       fromDatabase:
-  #         name: dittofeed-db
-  #         property: password
-  #     - key: POSTGRES_SEEDS
-  #       fromDatabase:
-  #         name: dittofeed-db
-  #         property: host
-  #     - key: SKIP_VISIBILITY_DB_SETUP
-  #       value: false
-  #     - key: SKIP_POSTGRES_DB_CREATION
-  #       value: false
   - type: pserv
     name: temporal-elasticsearch
     autoDeploy: false
