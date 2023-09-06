@@ -182,7 +182,6 @@ services:
   - type: pserv
     name: dittofeed-ch
     env: docker
-    plan: standard
     autoDeploy: false
     dockerfilePath: ./render/clickhouse/Dockerfile
     dockerContext: .
@@ -233,6 +232,8 @@ services:
       targetCPUPercent: 80
     envVars:
     - fromGroup: temporal-shared
+    - key: PORT
+      value: 7233
     - key: SERVICES
       value: frontend
     - key: SKIP_POSTGRES_DB_CREATION
@@ -281,6 +282,8 @@ services:
       targetCPUPercent: 80
     envVars:
     - fromGroup: temporal-shared
+    - key: PORT
+      value: 7234
     - key: SERVICES
       value: history
     - key: TEMPORAL_FRONTEND_HOST
@@ -326,6 +329,8 @@ services:
       targetCPUPercent: 80
     envVars:
     - fromGroup: temporal-shared
+    - key: PORT
+      value: 7235
     - key: SERVICES
       value: matching
     - key: TEMPORAL_FRONTEND_HOST
@@ -371,6 +376,8 @@ services:
       targetCPUPercent: 80
     envVars:
     - fromGroup: temporal-shared
+    - key: PORT
+      value: 7239
     # The worker service needs to wait for the history service to be up first,
     # otherwise it will fail with "error starting scanner".
     - key: DEPENDS_ON_HISTORY
