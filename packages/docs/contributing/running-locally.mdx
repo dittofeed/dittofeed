@@ -36,39 +36,6 @@ From here, select the dittofeed repository, and create a codespace. We recommend
 ![Open Codespace](/images/open-codespace.png)
 </Frame>
 
-
-## Developing a Dittofeed Service
-
-Dittofeed has three services.
-
-1. Dashboard
-2. API
-3. Worker
-
-If you want to run a particular application while making changes to it, you will
-want to run that application in the foreground outside of docker compose.
-
-### Dashboard
-
-```bash
-docker compose --profile apps-dashboard up -d
-yarn workspace dashboard dev
-```
-
-### API
-
-```bash
-docker compose --profile apps-api up -d
-yarn workspace api dev
-```
-
-### Worker
-
-```bash
-docker compose --profile apps-worker up -d
-yarn workspace worker dev
-```
-
 ## Running Locally With OpenTelemetry
 
 In order to run Dittofeed locally with OpenTelemetry (OTEL), start the API or dashboard with the following environment variables.
