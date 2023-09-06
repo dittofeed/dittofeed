@@ -37,22 +37,22 @@ Like Braze, One-Signal, Customer.io, and Segment Engage. Create automated user j
 
 <br />
 
-Click Deploy to Render below and follow the prompts to deploy Dittofeed on Render.
+Click Deploy to Render below and follow the prompts to deploy Dittofeed on Render. See the "Self-Host with Render" [docs for more info](https://dittofeed.com/deployment/self-hosted/render).
+
 <!-- TODO add link to docs -->
 
 <a href="https://render.com/deploy?repo=https://github.com/dittofeed/dittofeed" target="_blank" rel="nofollow"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render"></a>
 
 ## Developer-centric
 
-
 Beyond having industry-standard GUI tools, we focus on developer happiness with first-in-class dev-focused features:
 
-* Branch-based git worflows that support marketing campaign version control.
-* Write email templates in your favorite editor, checked into git - not in an un-versioned web based IDE.
-* Testing SDK to test your marketing campaigns in CI. No more manually QAing them in production.
-* Self-hostable. Protect your sensitive PII inside of your own VPC. Avoid volume-based pricing.
-* Journey monitoring and alerting.
-* More to come.
+- Branch-based git worflows that support marketing campaign version control.
+- Write email templates in your favorite editor, checked into git - not in an un-versioned web based IDE.
+- Testing SDK to test your marketing campaigns in CI. No more manually QAing them in production.
+- Self-hostable. Protect your sensitive PII inside of your own VPC. Avoid volume-based pricing.
+- Journey monitoring and alerting.
+- More to come.
 
 <br />
   
@@ -66,8 +66,8 @@ Beyond having industry-standard GUI tools, we focus on developer happiness with 
 
 If you're interested in trying us out, please get in touch!
 
-* [Slack](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1rwjkx7w1-Jj8MeB1wN~hiM7uuErLj1A)
-* Email: [support@dittofeed.com](mailto:support@dittofeed.com)
+- [Slack](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1rwjkx7w1-Jj8MeB1wN~hiM7uuErLj1A)
+- Email: [support@dittofeed.com](mailto:support@dittofeed.com)
 
 ## Contributing
 
