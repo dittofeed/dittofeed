@@ -111,6 +111,7 @@ services:
     name: worker
     env: docker
     autoDeploy: false
+    plan: standard
     dockerfilePath: ./packages/worker/Dockerfile
     dockerContext: .
     envVars:
