@@ -10,7 +10,8 @@ export function apiBase(): string {
     }
     const domain = domainParts.join(".");
     const protocol = process.env.DASHBOARD_API_PROTOCOL ?? "https";
-    const base = `${protocol}://${domain}`;
+    const port = process.env.DASHBOARD_API_PORT ?? "3001";
+    const base = `${protocol}://${domain}:${port}`;
     return base;
   }
   return "http://localhost:3001";
