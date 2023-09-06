@@ -37,7 +37,13 @@ Like Braze, One-Signal, Customer.io, and Segment Engage. Create automated user j
 
 <br />
 
+Click Deploy to Render below and follow the prompts to deploy Dittofeed on Render.
+<!-- TODO add link to docs -->
+
+<a href="https://render.com/deploy?repo=https://github.com/dittofeed/dittofeed" target="_blank" rel="nofollow"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render"></a>
+
 ## Developer-centric
+
 
 Beyond having industry-standard GUI tools, we focus on developer happiness with first-in-class dev-focused features:
 
