@@ -874,11 +874,10 @@ export default async function writeAssignments({
     const queryId = randomUUID();
 
     try {
-      await clickhouseClient().query({
+      await clickhouseClient().command({
         query: writeQuery,
         query_params: writeReadChqb.getQueries(),
         query_id: queryId,
-        format: "JSONEachRow",
       });
     } catch (e) {
       logger().error(
