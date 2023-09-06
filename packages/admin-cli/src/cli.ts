@@ -1,5 +1,6 @@
 import bootstrap, { bootstrapWorker } from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
+import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { hideBin } from "yargs/helpers";
@@ -134,6 +135,14 @@ export async function cli() {
         }),
       ({ workspaceId, email, from, updateEmail }) =>
         hubspotSync({ workspaceId, email, from, updateEmail })
+    )
+    .command(
+      "config-print",
+      "Prints the backend config used by dittofeed aplications.",
+      () => {},
+      () => {
+        logger().info(backendConfig(), "Backend Config");
+      }
     )
     .demandCommand(1, "# Please provide a valid command")
     .help()
