@@ -1,7 +1,6 @@
 import { randomUUID } from "crypto";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 
-import config from "./config";
 import { renderLiquid } from "./liquid";
 
 const markdownTemplate = `
