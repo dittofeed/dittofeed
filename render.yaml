@@ -183,6 +183,7 @@ services:
   - type: pserv
     name: dittofeed-ch
     env: docker
+    plan: standard
     autoDeploy: false
     dockerfilePath: ./render/clickhouse/Dockerfile
     dockerContext: .
