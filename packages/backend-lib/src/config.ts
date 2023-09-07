@@ -114,27 +114,21 @@ function defaultChUrl(inputURL?: string, protocolOverride?: string): string {
   return newURL;
 }
 
-const BaseRawConfig = Type.Object(BaseRawConfigProps);
-
 // Structure of application config.
 const RawConfig = Type.Union([
-  Type.Intersect([
+  Type.Object({
+    nodeEnv: Type.Literal(NodeEnvEnum.Production),
+    ...BaseRawConfigProps,
+  }),
+  Type.Partial(
     Type.Object({
-      nodeEnv: Type.Literal(NodeEnvEnum.Production),
-    }),
-    BaseRawConfig,
-  ]),
-  Type.Intersect([
-    Type.Object({
-      nodeEnv: Type.Optional(
-        Type.Union([
-          Type.Literal(NodeEnvEnum.Development),
-          Type.Literal(NodeEnvEnum.Test),
-        ])
-      ),
-    }),
-    Type.Partial(BaseRawConfig),
-  ]),
+      nodeEnv: Type.Union([
+        Type.Literal(NodeEnvEnum.Development),
+        Type.Literal(NodeEnvEnum.Test),
+      ]),
+      ...BaseRawConfigProps,
+    })
+  ),
 ]);
 
 type RawConfig = Static<typeof RawConfig>;
