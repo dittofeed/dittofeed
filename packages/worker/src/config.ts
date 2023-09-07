@@ -44,7 +44,7 @@ export default function config(): Config {
     CONFIG = loadConfig({
       schema: RawConfig,
       transform: parseRawConfig,
-      keys: [],
+      keys: Object.keys(RawConfig.properties),
     });
     setConfigOnEnv(CONFIG);
   }
