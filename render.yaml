@@ -153,6 +153,7 @@ services:
     autoDeploy: false
     dockerfilePath: ./packages/admin-cli/Dockerfile
     dockerContext: .
+    plan: standard
     dockerCommand: "sleep infinity"
     envVars:
       - fromGroup: backend-app-env
