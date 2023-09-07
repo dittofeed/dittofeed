@@ -1,4 +1,4 @@
-import { Sql } from "@prisma/client/runtime";
+import { Sql } from "@prisma/client/runtime/library";
 import { Static, Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
