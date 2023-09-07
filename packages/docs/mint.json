@@ -126,11 +126,12 @@
         },
         "resources/templates",
         {
-          "group": "Templates",
+          "group": "Email Templates",
           "pages": [
-            "resources/templates/email",
+            "resources/templates/email-editor",
             "resources/templates/mjml",
-            "resources/templates/liquid-presets"
+            "resources/templates/liquid-presets",
+            "resources/templates/free-email-templates"
           ]
         },
         "resources/workspaces",
