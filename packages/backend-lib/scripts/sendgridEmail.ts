@@ -3,7 +3,6 @@ import { randomUUID } from "crypto";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import config from "../src/config";
 import { sendMail } from "../src/destinations/sendgrid";
 import logger from "../src/logger";
 import prisma from "../src/prisma";
@@ -13,13 +12,15 @@ async function sendgridEmail() {
     .options({
       to: { type: "string", demandOption: true },
       from: { type: "string", demandOption: true },
+      workspaceId: { type: "string", demandOption: true },
     })
     .strict()
     .parse();
 
+  const { workspaceId } = argv;
   const defaultEmailProvider = await prisma().defaultEmailProvider.findUnique({
     where: {
-      workspaceId: config().defaultWorkspaceId,
+      workspaceId,
     },
     include: { emailProvider: true },
   });
@@ -37,7 +38,7 @@ async function sendgridEmail() {
         runId: randomUUID(),
         messageId: randomUUID(),
         userId: randomUUID(),
-        workspaceId: config().defaultWorkspaceId,
+        workspaceId,
         templateId: randomUUID(),
         nodeId: randomUUID(),
       },
