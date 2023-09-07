@@ -23,13 +23,7 @@ envVarGroups:
   - name: temporal-shared
     envVars:
     - key: DYNAMIC_CONFIG_FILE_PATH
-      value: /etc/temporal/dynamicconfig_es.yaml
-    - key: ENABLE_ES
-      value: true
-    - key: ES_VERSION
-      value: v7
-    - key: ES_USER
-      value: elastic
+      value: /etc/temporal/dynamicconfig.yaml
     - key: DB
       value: postgresql
 services:
@@ -66,7 +60,7 @@ services:
       - key: TEMPORAL_ADDRESS
         fromService:
           type: pserv
-          name: temporal-frontend
+          name: temporal
           property: host
   - type: web
     name: dashboard
@@ -106,7 +100,7 @@ services:
       - key: TEMPORAL_ADDRESS
         fromService:
           type: pserv
-          name: temporal-frontend
+          name: temporal
           property: host
   - type: worker
     name: worker
@@ -145,7 +139,7 @@ services:
       - key: TEMPORAL_ADDRESS
         fromService:
           type: pserv
-          name: temporal-frontend
+          name: temporal
           property: host
   - type: worker
     name: admin-cli
@@ -182,7 +176,7 @@ services:
       - key: TEMPORAL_ADDRESS
         fromService:
           type: pserv
-          name: temporal-frontend
+          name: temporal
           property: host
   - type: pserv
     name: dittofeed-ch
@@ -199,63 +193,14 @@ services:
       mountPath: /var/lib/clickhouse
       sizeGB: 10
   - type: pserv
-    name: temporal-elasticsearch
-    autoDeploy: false
-    env: docker
-    dockerfilePath: ./render/temporal/elasticsearch/Dockerfile
-    disk:
-      name: esdata
-      mountPath: /usr/share/elasticsearch/data
-      sizeGB: 10
-    envVars:
-    - key: PORT
-      value: 9200
-    - key: ES_JAVA_OPTS
-      value: "-Xms100m -Xmx100m"
-    - key: xpack.security.enabled
-      value: true
-    - key: ELASTIC_PASSWORD
-      generateValue: true
-    - key: cluster.routing.allocation.disk.threshold_enabled
-      value: true
-    - key: cluster.routing.allocation.disk.watermark.low
-      value: 512mb
-    - key: cluster.routing.allocation.disk.watermark.high
-      value: 256mb
-    - key: cluster.routing.allocation.disk.watermark.flood_stage
-      value: 128mb
-    - key: discovery.type
-      value: single-node
-  - type: pserv
-    name: temporal-frontend
+    name: temporal
     autoDeploy: false
     env: docker
     dockerfilePath: ./render/temporal/server/auto-setup/Dockerfile
-    scaling:
-      minInstances: 1
-      maxInstances: 3
-      targetMemoryPercent: 80
-      targetCPUPercent: 80
     envVars:
     - fromGroup: temporal-shared
     - key: PORT
       value: 7233
-    - key: SERVICES
-      value: frontend
-    - key: SKIP_POSTGRES_DB_CREATION
-      value: true
-    - key: SKIP_VISIBILITY_DB_SETUP
-      value: true
-    - key: ES_SEEDS
-      fromService:
-        name: temporal-elasticsearch
-        type: pserv
-        property: host
-    - key: ES_PWD
-      fromService:
-        name: temporal-elasticsearch
-        type: pserv
-        envVarKey: ELASTIC_PASSWORD
     - key: DBNAME
       fromDatabase:
         name: dittofeed-db
@@ -276,165 +221,3 @@ services:
       fromDatabase:
         name: dittofeed-db
         property: host
-  - type: pserv
-    name: temporal-history
-    autoDeploy: false
-    env: docker
-    dockerfilePath: ./render/temporal/server/Dockerfile
-    scaling:
-      minInstances: 1
-      maxInstances: 3
-      targetMemoryPercent: 80
-      targetCPUPercent: 80
-    envVars:
-    - fromGroup: temporal-shared
-    - key: PORT
-      value: 7234
-    - key: SERVICES
-      value: history
-    - key: TEMPORAL_FRONTEND_HOST
-      fromService:
-        name: temporal-frontend
-        type: pserv
-        property: host
-    - key: ES_SEEDS
-      fromService:
-        name: temporal-elasticsearch
-        type: pserv
-        property: host
-    - key: ES_PWD
-      fromService:
-        name: temporal-elasticsearch
-        type: pserv
-        envVarKey: ELASTIC_PASSWORD
-    - key: DBNAME
-      fromDatabase:
-        name: dittofeed-db
-        property: database
-    - key: POSTGRES_USER
-      fromDatabase:
-        name: dittofeed-db
-        property: user
-    - key: POSTGRES_PWD
-      fromDatabase:
-        name: dittofeed-db
-        property: password
-    - key: POSTGRES_SEEDS
-      fromDatabase:
-        name: dittofeed-db
-        property: host
-  - type: pserv
-    name: temporal-matching
-    autoDeploy: false
-    env: docker
-    dockerfilePath: ./render/temporal/server/Dockerfile
-    scaling:
-      minInstances: 1
-      maxInstances: 3
-      targetMemoryPercent: 80
-      targetCPUPercent: 80
-    envVars:
-    - fromGroup: temporal-shared
-    - key: PORT
-      value: 7235
-    - key: SERVICES
-      value: matching
-    - key: TEMPORAL_FRONTEND_HOST
-      fromService:
-        name: temporal-frontend
-        type: pserv
-        property: host
-    - key: ES_SEEDS
-      fromService:
-        name: temporal-elasticsearch
-        type: pserv
-        property: host
-    - key: ES_PWD
-      fromService:
-        name: temporal-elasticsearch
-        type: pserv
-        envVarKey: ELASTIC_PASSWORD
-    - key: DBNAME
-      fromDatabase:
-        name: dittofeed-db
-        property: database
-    - key: POSTGRES_USER
-      fromDatabase:
-        name: dittofeed-db
-        property: user
-    - key: POSTGRES_PWD
-      fromDatabase:
-        name: dittofeed-db
-        property: password
-    - key: POSTGRES_SEEDS
-      fromDatabase:
-        name: dittofeed-db
-        property: host
-  - type: pserv
-    autoDeploy: false
-    name: temporal-worker
-    env: docker
-    dockerfilePath: ./render/temporal/server/Dockerfile
-    scaling:
-      minInstances: 1
-      maxInstances: 3
-      targetMemoryPercent: 80
-      targetCPUPercent: 80
-    envVars:
-    - fromGroup: temporal-shared
-    # The worker service needs to wait for the history service to be up first,
-    # otherwise it will fail with "error starting scanner".
-    - key: DEPENDS_ON_HISTORY
-      fromService:
-        name: temporal-history
-        type: pserv
-        property: host
-    - key: SERVICES
-      value: worker
-    - key: TEMPORAL_FRONTEND_HOST
-      fromService:
-        name: temporal-frontend
-        type: pserv
-        property: host
-    - key: ES_SEEDS
-      fromService:
-        name: temporal-elasticsearch
-        type: pserv
-        property: host
-    - key: ES_PWD
-      fromService:
-        name: temporal-elasticsearch
-        type: pserv
-        envVarKey: ELASTIC_PASSWORD
-    - key: DBNAME
-      fromDatabase:
-        name: dittofeed-db
-        property: database
-    - key: POSTGRES_USER
-      fromDatabase:
-        name: dittofeed-db
-        property: user
-    - key: POSTGRES_PWD
-      fromDatabase:
-        name: dittofeed-db
-        property: password
-    - key: POSTGRES_SEEDS
-      fromDatabase:
-        name: dittofeed-db
-        property: host
-  - type: pserv
-    name: temporal-ui
-    autoDeploy: false
-    env: docker
-    dockerfilePath: ./render/temporal/web/Dockerfile
-    envVars:
-    - key: PORT
-      value: 8088
-    - key: TEMPORAL_PERMIT_WRITE_API
-      value: true
-    - key: TEMPORAL_GRPC_HOST
-      fromService:
-        name: temporal-frontend
-        type: pserv
-        property: host
-
