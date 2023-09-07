@@ -115,6 +115,9 @@ services:
     plan: standard
     dockerfilePath: ./packages/worker/Dockerfile
     dockerContext: .
+    # Setting Node.js max-old-space-size to 1548 MB.
+    # This is calculated as follows: Total RAM (2048 MB) - Buffer (200 MB) - Memory for other processes (300 MB).
+    dockerCommand: node --max-old-space-size=1548 packages/worker/dist/scripts/startWorker.js
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
