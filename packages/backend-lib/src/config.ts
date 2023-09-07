@@ -42,7 +42,6 @@ const BaseRawConfigProps = {
   logConfig: Type.Optional(BoolStr),
   bootstrapEvents: Type.Optional(BoolStr),
   bootstrapWorker: Type.Optional(BoolStr),
-  defaultWorkspaceId: Type.Optional(Type.String()),
   defaultIdUserPropertyId: Type.Optional(Type.String()),
   defaultAnonymousIdIdUserPropertyId: Type.Optional(Type.String()),
   defaultEmailUserPropertyId: Type.Optional(Type.String()),
@@ -179,7 +178,6 @@ export type Config = Overwrite<
     computePropertiesInterval: number;
   }
 > & {
-  defaultWorkspaceId: string;
   defaultUserEventsTableVersion: string;
 };
 
@@ -331,8 +329,6 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     userEventsTopicName:
       rawConfig.userEventsTopicName ?? "dittofeed-user-events",
     temporalNamespace: rawConfig.temporalNamespace ?? "default",
-    defaultWorkspaceId:
-      rawConfig.defaultWorkspaceId ?? "024f3d0a-8eee-11ed-a1eb-0242ac120002",
     // UUID with _ instead of - for clickhouse compatibility
     defaultUserEventsTableVersion:
       rawConfig.defaultUserEventsTableVersion ??

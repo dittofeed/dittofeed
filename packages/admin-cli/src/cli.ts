@@ -1,5 +1,6 @@
 import bootstrap, { bootstrapWorker } from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
+import { NodeEnvEnum } from "backend-lib/src/config/loader";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -21,16 +22,9 @@ export async function cli() {
       "Initialize the dittofeed application and creates a workspace.",
       (cmd) =>
         cmd.options({
-          "workspace-id": {
-            type: "string",
-            alias: "w",
-            default: backendConfig().defaultWorkspaceId,
-            describe: "The workspace id to bootstrap.",
-          },
           "workspace-name": {
             type: "string",
             alias: "n",
-            default: "Default",
             describe: "The workspace name to bootstrap.",
           },
           "workspace-domain": {
@@ -40,12 +34,22 @@ export async function cli() {
               "The email domain to authorize. All users with the provided email domain will be able to access the workspace. Example: -d=example.com",
           },
         }),
-      ({ workspaceId, workspaceName, workspaceDomain }) =>
-        bootstrap({
-          workspaceId,
-          workspaceName,
+      async ({ workspaceName, workspaceDomain }) => {
+        const workspaceNameWithDefault =
+          backendConfig().nodeEnv === NodeEnvEnum.Development
+            ? "Default"
+            : workspaceName;
+        if (!workspaceNameWithDefault) {
+          throw new Error(
+            "Please provide a workspace name with --workspace-name"
+          );
+        }
+
+        await bootstrap({
+          workspaceName: workspaceNameWithDefault,
           workspaceDomain,
-        })
+        });
+      }
     )
     .command(
       "bootstrap-worker",
@@ -112,7 +116,7 @@ export async function cli() {
           "workspace-id": {
             type: "string",
             alias: "w",
-            default: backendConfig().defaultWorkspaceId,
+            require: true,
             describe: "The workspace id to bootstrap.",
           },
           email: {

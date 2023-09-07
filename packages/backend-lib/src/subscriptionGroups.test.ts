@@ -1,10 +1,11 @@
 import { SubscriptionGroup } from "@prisma/client";
+import { randomUUID } from "crypto";
 import {
   DEBUG_USER_ID1,
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 
-import config from "./config";
+import bootstrap from "./bootstrap";
 import prisma from "./prisma";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
@@ -13,16 +14,24 @@ describe("generateSubscriptionChangeUrl", () => {
   let userId: string;
   let email: string;
   let subscriptionGroup: SubscriptionGroup;
+  let workspaceId: string;
+  let workspaceName: string;
 
   beforeEach(async () => {
     userId = DEBUG_USER_ID1;
     email = "max@email.com";
+    workspaceName = randomUUID();
+
+    const bootstrapResult = await bootstrap({
+      workspaceName,
+    });
+    workspaceId = bootstrapResult.workspaceId;
 
     const results = await Promise.all([
       prisma().userProperty.findUniqueOrThrow({
         where: {
           workspaceId_name: {
-            workspaceId: config().defaultWorkspaceId,
+            workspaceId,
             name: "email",
           },
         },
@@ -30,8 +39,8 @@ describe("generateSubscriptionChangeUrl", () => {
       prisma().subscriptionGroup.findUniqueOrThrow({
         where: {
           workspaceId_name: {
-            workspaceId: config().defaultWorkspaceId,
-            name: "Default - Email",
+            workspaceId,
+            name: `${workspaceName} - Email`,
           },
         },
       }),
@@ -43,13 +52,13 @@ describe("generateSubscriptionChangeUrl", () => {
     await prisma().userPropertyAssignment.upsert({
       where: {
         workspaceId_userPropertyId_userId: {
-          workspaceId: config().defaultWorkspaceId,
+          workspaceId,
           userId,
           userPropertyId: up.id,
         },
       },
       create: {
-        workspaceId: config().defaultWorkspaceId,
+        workspaceId,
         value: JSON.stringify(email),
         userPropertyId: up.id,
         userId,
@@ -59,13 +68,13 @@ describe("generateSubscriptionChangeUrl", () => {
   });
   it("should generate a valid URL", async () => {
     const url = await generateSubscriptionChangeUrl({
-      workspaceId: config().defaultWorkspaceId,
+      workspaceId,
       userId,
       subscriptionSecret: (
         await prisma().secret.findUniqueOrThrow({
           where: {
             workspaceId_name: {
-              workspaceId: config().defaultWorkspaceId,
+              workspaceId,
               name: SUBSCRIPTION_SECRET_NAME,
             },
           },
@@ -80,7 +89,7 @@ describe("generateSubscriptionChangeUrl", () => {
     expect(url).toContain(
       "http://localhost:3000/dashboard/public/subscription-management"
     );
-    expect(parsed.searchParams.get("w")).toEqual(config().defaultWorkspaceId);
+    expect(parsed.searchParams.get("w")).toEqual(workspaceId);
     expect(parsed.searchParams.get("i")).toEqual(email);
     expect(parsed.searchParams.get("ik")).toEqual("email");
     expect(parsed.searchParams.get("sub")).toEqual("0");

@@ -34,32 +34,36 @@ import {
 } from "./userEvents/clickhouse";
 
 async function bootstrapPostgres({
-  workspaceId,
   workspaceName,
   workspaceDomain,
 }: {
-  workspaceId: string;
   workspaceName: string;
   workspaceDomain?: string;
-}) {
+}): Promise<{ workspaceId: string }> {
   const { defaultUserEventsTableVersion } = config();
 
   await prismaMigrate();
 
-  // TODO allow workspace name to be updated
-  await prisma().workspace.upsert({
+  logger().info(
+    {
+      workspaceName,
+      workspaceDomain,
+    },
+    "Upserting workspace."
+  );
+  const workspace = await prisma().workspace.upsert({
     where: {
-      id: workspaceId,
+      name: workspaceName,
     },
     update: {
       domain: workspaceDomain,
     },
     create: {
-      id: workspaceId,
       name: workspaceName,
       domain: workspaceDomain,
     },
   });
+  const workspaceId = workspace.id;
 
   await prisma().currentUserEventsTable.upsert({
     where: {
@@ -199,6 +203,7 @@ async function bootstrapPostgres({
       channel: ChannelType.MobilePush,
     }),
   ]);
+  return { workspaceId };
 }
 
 async function bootstrapKafka() {
@@ -303,18 +308,17 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
 }
 
 export default async function bootstrap({
-  workspaceId,
   workspaceName,
   workspaceDomain,
 }: {
-  workspaceId: string;
   workspaceName: string;
   workspaceDomain?: string;
-}) {
+}): Promise<{ workspaceId: string }> {
+  const { workspaceId } = await bootstrapPostgres({
+    workspaceName,
+    workspaceDomain,
+  });
   const initialBootstrap = [
-    bootstrapPostgres({ workspaceId, workspaceName, workspaceDomain }).catch(
-      (err) => logger().error({ err }, "failed to bootstrap postgres")
-    ),
     bootstrapClickhouse().catch((err) =>
       logger().error({ err }, "failed to bootstrap clickhouse")
     ),
@@ -335,4 +339,5 @@ export default async function bootstrap({
   if (config().bootstrapWorker) {
     await bootstrapWorker({ workspaceId });
   }
+  return { workspaceId };
 }
