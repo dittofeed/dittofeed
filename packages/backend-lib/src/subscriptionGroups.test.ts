@@ -15,16 +15,17 @@ describe("generateSubscriptionChangeUrl", () => {
   let email: string;
   let subscriptionGroup: SubscriptionGroup;
   let workspaceId: string;
+  let workspaceName: string;
 
   beforeEach(async () => {
     userId = DEBUG_USER_ID1;
     email = "max@email.com";
-    workspaceId = randomUUID();
+    workspaceName = randomUUID();
 
-    await bootstrap({
-      workspaceId,
-      workspaceName: workspaceId,
+    const bootstrapResult = await bootstrap({
+      workspaceName,
     });
+    workspaceId = bootstrapResult.workspaceId;
 
     const results = await Promise.all([
       prisma().userProperty.findUniqueOrThrow({
@@ -39,7 +40,7 @@ describe("generateSubscriptionChangeUrl", () => {
         where: {
           workspaceId_name: {
             workspaceId,
-            name: `${workspaceId} - Email`,
+            name: `${workspaceName} - Email`,
           },
         },
       }),
