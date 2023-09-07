@@ -237,17 +237,11 @@ export async function getRequestContext(
 ): Promise<Result<DFRequestContext, RequestContextError>> {
   const { authMode } = config();
   if (authMode === "anonymous") {
-    const workspaceId = config().defaultWorkspaceId;
-
-    const workspace = await prisma().workspace.findUnique({
-      where: {
-        id: workspaceId,
-      },
-    });
+    const workspace = await prisma().workspace.findFirst();
     if (!workspace) {
       return err({
         type: RequestContextErrorType.NotOnboarded,
-        message: `Workspace ${workspaceId} not found`,
+        message: `Workspace not found`,
       });
     }
     return ok({
