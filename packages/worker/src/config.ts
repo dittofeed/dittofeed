@@ -1,11 +1,14 @@
 import { Static, Type } from "@sinclair/typebox";
 import { loadConfig, setConfigOnEnv } from "backend-lib/src/config/loader";
+import { BoolStr } from "backend-lib/src/types";
 import { Overwrite } from "utility-types";
 
 // Structure of application config.
 const RawConfig = Type.Object(
   {
     workerServiceName: Type.Optional(Type.String()),
+    reuseContext: Type.Optional(BoolStr),
+    maxCachedWorkflows: Type.Optional(Type.String({ format: "naturalNumber" })),
   },
   { additionalProperties: false }
 );
@@ -16,6 +19,8 @@ type Config = Overwrite<
   RawConfig,
   {
     workerServiceName: string;
+    reuseContext: boolean;
+    maxCachedWorkflows?: number;
   }
 >;
 
@@ -23,7 +28,11 @@ type Config = Overwrite<
 function parseRawConfig(raw: RawConfig): Config {
   return {
     ...raw,
+    reuseContext: raw.reuseContext === "true",
     workerServiceName: raw.workerServiceName ?? "dittofeed-worker",
+    maxCachedWorkflows: raw.maxCachedWorkflows
+      ? parseInt(raw.maxCachedWorkflows, 10)
+      : undefined,
   };
 }
 

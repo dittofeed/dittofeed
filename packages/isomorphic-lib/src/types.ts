@@ -1571,3 +1571,8 @@ export const OauthTokenResource = Type.Object({
 });
 
 export type OauthTokenResource = Static<typeof OauthTokenResource>;
+
+export const BoolStr = Type.Union([
+  Type.Literal("true"),
+  Type.Literal("false"),
+]);
