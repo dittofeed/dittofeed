@@ -35,7 +35,6 @@ describe("generateSubscriptionChangeUrl", () => {
           },
         },
       }),
-      // FIXME failint
       prisma().subscriptionGroup.findUniqueOrThrow({
         where: {
           workspaceId_name: {

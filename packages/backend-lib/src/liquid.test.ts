@@ -145,7 +145,7 @@ describe("renderWithUserProperties", () => {
     it("can render an unsubscribe link", async () => {
       const rendered = renderLiquid({
         template: unsubscribeTemplate,
-        workspaceId: config().defaultWorkspaceId,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
         identifierKey: "email",
         subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
         secrets: {
@@ -172,7 +172,7 @@ describe("renderWithUserProperties", () => {
     it("can render an unsubscribe link", async () => {
       const rendered = renderLiquid({
         template: unsubscribeTemplate,
-        workspaceId: config().defaultWorkspaceId,
+        workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
         identifierKey: "email",
         subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
         secrets: {
