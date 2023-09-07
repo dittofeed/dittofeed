@@ -7,8 +7,6 @@ import {
 import { getUsers } from "backend-lib/src/users";
 import { FastifyInstance } from "fastify";
 
-import { getWorkspaceIdFromReq } from "../workspace";
-
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function usersController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -24,9 +22,8 @@ export default async function usersController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const workspaceId = getWorkspaceIdFromReq(request);
       const result = await getUsers({
-        workspaceId,
+        workspaceId: request.query.workspaceId,
         cursor: request.query.cursor,
         direction: request.query.direction,
         segmentId: request.query.segmentId,

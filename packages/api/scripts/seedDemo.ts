@@ -1,4 +1,4 @@
-import backendConfig from "backend-lib/src/config";
+import prisma from "backend-lib/src/prisma";
 import { insertUserEvents } from "backend-lib/src/userEvents/clickhouse";
 import { segmentIdentifyEvent } from "backend-lib/test/factories/segment";
 import { v4 as uuid } from "uuid";
@@ -7,8 +7,10 @@ async function seedDemo() {
   const now = Date.now();
   const messageId1 = uuid();
 
+  const workspace = await prisma().workspace.findFirstOrThrow();
+
   await insertUserEvents({
-    workspaceId: backendConfig().defaultWorkspaceId,
+    workspaceId: workspace.id,
     events: [
       {
         messageId: messageId1,

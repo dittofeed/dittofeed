@@ -16,9 +16,10 @@ const telemetryConfig: Parameters<
     requestHook: (span, info) => {
       const request = info.request as FastifyRequest;
       const workspaceId = getWorkspaceIdFromReq(request);
-
-      span.updateName("api-custom-request-hook");
-      span.setAttribute("workspaceId", workspaceId);
+      if (workspaceId) {
+        span.updateName("api-custom-request-hook");
+        span.setAttribute("workspaceId", workspaceId);
+      }
     },
   },
 };
