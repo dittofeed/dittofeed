@@ -71,10 +71,12 @@ export const requestContext: <T>(
     DittofeedSdk.identify({
       userId: dfContext.member.id,
       traits: {
+        workspaceId: dfContext.workspace.id,
         email: dfContext.member.email,
         firstName: dfContext.member.name,
         nickname: dfContext.member.nickname,
         createdAt: dfContext.member.createdAt,
+        emailVerified: dfContext.member.emailVerified,
       },
     });
 
