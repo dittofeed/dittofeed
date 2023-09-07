@@ -5,6 +5,8 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import path from "path";
 
+import { registerFormats } from "../formatRegistry";
+
 export enum NodeEnvEnum {
   Development = "development",
   Test = "test",
@@ -24,6 +26,8 @@ export function loadConfig<S extends TSchema, C = Static<S>>({
   keys: string[];
   transform: (parsed: Static<S>) => C;
 }): C {
+  registerFormats();
+
   dotenv.config();
   dotenv.config({ path: path.join("/dittofeed-mnt", ".env") });
 

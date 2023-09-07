@@ -1,5 +1,4 @@
-import { FormatRegistry, Static, Type } from "@sinclair/typebox";
-import { isNaturalNumber } from "isomorphic-lib/src/strings";
+import { Static, Type } from "@sinclair/typebox";
 import { hasProtocol } from "isomorphic-lib/src/urls";
 import { URL } from "url";
 import { Overwrite } from "utility-types";
@@ -7,15 +6,12 @@ import { Overwrite } from "utility-types";
 import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
 import {
   AuthMode,
+  BoolStr,
   KafkaSaslMechanism,
   LogLevel,
   SourceControlProvider,
   WriteMode,
 } from "./types";
-
-const BoolStr = Type.Union([Type.Literal("true"), Type.Literal("false")]);
-
-FormatRegistry.Set("naturalNumber", isNaturalNumber);
 
 const BaseRawConfigProps = {
   databaseUrl: Type.Optional(Type.String()),

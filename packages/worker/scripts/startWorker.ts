@@ -66,6 +66,8 @@ async function run() {
       },
       workerLogger
     ),
+    reuseV8Context: config().reuseContext,
+    maxCachedWorkflows: config().maxCachedWorkflows,
     enableSDKTracing: true,
   });
 
