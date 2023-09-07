@@ -24,7 +24,7 @@ export async function cli() {
           "workspace-id": {
             type: "string",
             alias: "w",
-            default: backendConfig().defaultWorkspaceId,
+            require: true,
             describe: "The workspace id to bootstrap.",
           },
           "workspace-name": {
@@ -40,9 +40,8 @@ export async function cli() {
               "The email domain to authorize. All users with the provided email domain will be able to access the workspace. Example: -d=example.com",
           },
         }),
-      ({ workspaceId, workspaceName, workspaceDomain }) =>
+      ({ workspaceName, workspaceDomain }) =>
         bootstrap({
-          workspaceId,
           workspaceName,
           workspaceDomain,
         })
@@ -112,7 +111,7 @@ export async function cli() {
           "workspace-id": {
             type: "string",
             alias: "w",
-            default: backendConfig().defaultWorkspaceId,
+            require: true,
             describe: "The workspace id to bootstrap.",
           },
           email: {
