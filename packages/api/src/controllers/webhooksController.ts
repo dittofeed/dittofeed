@@ -16,7 +16,7 @@ import {
 } from "isomorphic-lib/src/constants";
 import { WorkspaceId } from "isomorphic-lib/src/types";
 
-import { getWorkspaceIdFromReq } from "../workspace";
+import { getWorkspaceId } from "../workspace";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
@@ -120,7 +120,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const workspaceId = getWorkspaceIdFromReq(request);
+      const workspaceId = await getWorkspaceId(request);
       const config = await prisma().segmentIOConfiguration.findUnique({
         where: { workspaceId },
       });
