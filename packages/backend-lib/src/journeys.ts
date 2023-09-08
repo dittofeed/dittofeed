@@ -230,11 +230,19 @@ export async function getJourneyStats({
     const opened = nodeStats.get(InternalEventType.EmailOpened);
     const clicked = nodeStats.get(InternalEventType.EmailClicked);
     const total = sent + badConfig + messageFailure;
-    const sendRate = sent / total;
-    const deliveryRate = delivered / total;
-    const openRate = opened / total;
-    const clickRate = clicked / total;
-    const spamRate = spam / total;
+
+    let sendRate = 0;
+    let deliveryRate = 0;
+    let openRate = 0;
+    let clickRate = 0;
+    let spamRate = 0;
+    if (total > 0) {
+      sendRate = sent / total;
+      deliveryRate = delivered / total;
+      openRate = opened / total;
+      clickRate = clicked / total;
+      spamRate = spam / total;
+    }
 
     stats.nodeStats[node.id] = {
       type: NodeStatsType.MessageNodeStats,

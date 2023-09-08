@@ -200,7 +200,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
         type: CompletionStatus.InProgress,
       });
       try {
-        const response = await axios.get(`${apiBase}/journeys/stats`, {
+        const response = await axios.get(`${apiBase}/api/journeys/stats`, {
           params: {
             workspaceId: workspace.value.id,
             journeyId,
