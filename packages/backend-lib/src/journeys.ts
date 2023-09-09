@@ -7,6 +7,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { err, ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
+import config from "./config";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -111,12 +112,12 @@ export async function getJourneyStats({
 
   const currentTable = buildUserEventsTableName(
     (
-      await prisma().currentUserEventsTable.findUniqueOrThrow({
+      await prisma().currentUserEventsTable.findUnique({
         where: {
           workspaceId,
         },
       })
-    ).version
+    )?.version ?? config().defaultUserEventsTableVersion
   );
 
   const query = `
