@@ -140,6 +140,10 @@ export async function getJourneyStats({
                 message_raw,
                 '$.properties.runId'
             ) run_id,
+            JSON_VALUE(
+                message_raw,
+                '$.properties.messageId'
+            ) message_id,
             event
         from ${currentTable}
         where
@@ -158,6 +162,7 @@ export async function getJourneyStats({
                 or event = 'DFEmailMarkedSpam'
                 or event = 'DFBadWorkspaceConfiguration'
             )
+        group by journey_id, node_id, run_id, message_id, event
     )
     group by event, node_id;`;
 
