@@ -580,6 +580,9 @@ describe("journeyDefinitionFromState", () => {
       journeyUpdateRequest: {
         type: CompletionStatus.NotStarted,
       },
+      journeyStatsRequest: {
+        type: CompletionStatus.NotStarted,
+      },
       journeyNodes: [
         {
           id: JourneyNodeType.EntryNode,
