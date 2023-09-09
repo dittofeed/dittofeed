@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 
 import { submitTrack } from "./apps";
+import config from "./config";
 import { getJourneyStats } from "./journeys";
 import prisma from "./prisma";
 import {
@@ -26,6 +27,13 @@ describe("journeys", () => {
         });
         workspaceId = workspace.id;
         messageNodeId = randomUUID();
+
+        await prisma().currentUserEventsTable.create({
+          data: {
+            workspaceId,
+            version: config().defaultUserEventsTableVersion,
+          },
+        });
 
         const journeyDefinition: JourneyDefinition = {
           entryNode: {
