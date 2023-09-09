@@ -19,6 +19,7 @@ import {
   JourneyStats,
   NodeStatsType,
 } from "./types";
+import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -107,6 +108,17 @@ export async function getJourneyStats({
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
   const journeyIdQuery = qb.addQueryValue(journeyId, "String");
+
+  const currentTable = buildUserEventsTableName(
+    (
+      await prisma().currentUserEventsTable.findUniqueOrThrow({
+        where: {
+          workspaceId,
+        },
+      })
+    ).version
+  );
+
   const query = `
     select
         event,
@@ -127,7 +139,7 @@ export async function getJourneyStats({
                 '$.properties.runId'
             ) run_id,
             event
-        from dittofeed.user_events_48221d18_bd04_4c6b_abf3_9d0a4f87f52f
+        from ${currentTable}
         where
             workspace_id = ${workspaceIdQuery}
             and journey_id = ${journeyIdQuery}
