@@ -1576,3 +1576,41 @@ export const BoolStr = Type.Union([
   Type.Literal("true"),
   Type.Literal("false"),
 ]);
+
+export enum NodeStatsType {
+  MessageNodeStats = "MessageNodeStats",
+}
+
+export const EmailStats = Type.Object({
+  type: Type.Literal(ChannelType.Email),
+  deliveryRate: Type.Number(),
+  openRate: Type.Number(),
+  clickRate: Type.Number(),
+  spamRate: Type.Number(),
+});
+
+export type EmailStats = Static<typeof EmailStats>;
+
+export const MessageChannelStats = Type.Union([EmailStats]);
+
+export type MessageChannelStats = Static<typeof MessageChannelStats>;
+
+const MessageNodeStats = Type.Object({
+  type: Type.Literal(NodeStatsType.MessageNodeStats),
+  sendRate: Type.Number(),
+  channelStats: MessageChannelStats,
+});
+
+export type MessageNodeStats = Static<typeof MessageNodeStats>;
+
+export const NodeStats = Type.Union([MessageNodeStats]);
+
+export type NodeStats = Static<typeof NodeStats>;
+
+export const JourneyStats = Type.Object({
+  journeyId: Type.String(),
+  workspaceId: Type.String(),
+  nodeStats: Type.Record(Type.String(), NodeStats),
+});
+
+export type JourneyStats = Static<typeof JourneyStats>;

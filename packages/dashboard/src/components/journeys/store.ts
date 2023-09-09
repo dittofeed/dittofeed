@@ -863,6 +863,9 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
   journeyUpdateRequest: {
     type: CompletionStatus.NotStarted,
   },
+  journeyStatsRequest: {
+    type: CompletionStatus.NotStarted,
+  },
   setEdges: (changes: EdgeChange[]) =>
     set((state) => {
       state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);
@@ -945,6 +948,11 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
     set((state) => {
       state.journeyUpdateRequest = request;
     }),
+  setJourneyStatsRequest(request) {
+    set((state) => {
+      state.journeyStatsRequest = request;
+    });
+  },
   setJourneyName: (name) =>
     set((state) => {
       state.journeyName = name;

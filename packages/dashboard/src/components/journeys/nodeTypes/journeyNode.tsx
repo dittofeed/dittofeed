@@ -14,10 +14,11 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { round } from "isomorphic-lib/src/numbers";
 import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import { Handle, NodeProps, Position } from "reactflow";
 
-import { useAppStore } from "../../../lib/appStore";
+import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import { AppState, JourneyNodeProps, NodeTypeProps } from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
@@ -194,13 +195,37 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
 
 const borderRadius = 2;
 
+function StatCategory({ label, rate }: { label: string; rate: number }) {
+  return (
+    <Stack direction="column">
+      <Typography variant="subtitle2">{label}</Typography>
+      <Box
+        sx={{
+          fontFamily: "monospace",
+        }}
+      >
+        {round(rate * 100, 2)}%
+      </Box>
+    </Stack>
+  );
+}
+
 export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
   const theme = useTheme();
-  const segments = useAppStore((store) => store.segments);
-  const messages = useAppStore((store) => store.messages);
+  const {
+    segments,
+    messages,
+    journeySelectedNodeId: selectedNodeId,
+    setSelectedNodeId,
+    journeyStatsRequest,
+  } = useAppStorePick([
+    "segments",
+    "messages",
+    "journeySelectedNodeId",
+    "setSelectedNodeId",
+    "journeyStatsRequest",
+  ]);
   const config = journNodeTypeToConfig(data.nodeTypeProps);
-  const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
-  const selectedNodeId = useAppStore((state) => state.journeySelectedNodeId);
   const isSelected = selectedNodeId === id;
 
   const clickInsideHandler = () => {
@@ -250,50 +275,100 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
     config.body
   );
 
+  const stats =
+    isSelected && journeyStatsRequest.type === CompletionStatus.Successful
+      ? journeyStatsRequest.value.nodeStats[id]
+      : undefined;
+
   const contents = (
-    <Box
-      onClick={clickInsideHandler}
+    <Stack
+      direction="column"
+      justifyContent="top"
       sx={{
-        width: JOURNEY_NODE_WIDTH,
-        display: "flex",
-        flexDirection: "row",
-        backgroundColor: "white",
-        justifyItems: "stretch",
-        cursor: "pointer",
-        borderStyle: "solid",
-        borderRadius,
-        borderColor,
-        borderWidth: 2,
+        position: "relative",
       }}
     >
       <Box
+        onClick={clickInsideHandler}
         sx={{
-          backgroundColor: config.sidebarColor,
-          width: 5,
-          borderTopLeftRadius: borderRadius,
-          borderBottomLeftRadius: borderRadius,
-          borderWidth: "1px 0 1px 1px",
+          width: JOURNEY_NODE_WIDTH,
+          display: "flex",
+          flexDirection: "row",
+          backgroundColor: "white",
+          justifyItems: "stretch",
+          cursor: "pointer",
+          borderStyle: "solid",
+          borderRadius,
           borderColor,
+          borderWidth: 2,
         }}
-      />
-      <Stack direction="column" spacing={1} sx={{ padding: 2, width: "100%" }}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <config.icon />
-          <Typography
-            variant="h5"
-            sx={{
-              height: "1.5rem",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {config.title}
-          </Typography>
+      >
+        <Box
+          sx={{
+            backgroundColor: config.sidebarColor,
+            width: 5,
+            borderTopLeftRadius: borderRadius,
+            borderBottomLeftRadius: borderRadius,
+            borderWidth: "1px 0 1px 1px",
+            borderColor,
+          }}
+        />
+        <Stack
+          direction="column"
+          spacing={1}
+          sx={{ padding: 2, width: "100%" }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center">
+            <config.icon />
+            <Typography
+              variant="h5"
+              sx={{
+                height: "1.5rem",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {config.title}
+            </Typography>
+          </Stack>
+          {body}
         </Stack>
-        {body}
+      </Box>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{
+          padding: stats ? 1 : 0,
+          backgroundColor: "white",
+          borderStyle: "solid",
+          width: JOURNEY_NODE_WIDTH,
+          borderBottomLeftRadius: 8,
+          borderBottomRightRadius: 8,
+          borderColor,
+          borderWidth: "0 2px 2px 2px",
+          opacity: stats ? 1 : 0,
+          visibility: stats ? "visible" : "hidden",
+          transition:
+            "height .2s ease, padding-top .2s ease, padding-bottom .2s ease, opacity .2s ease",
+          height: stats ? undefined : 0,
+        }}
+      >
+        {stats ? (
+          <>
+            <StatCategory label="Sent" rate={stats.sendRate} />
+            <StatCategory
+              label="Delivered"
+              rate={stats.channelStats.deliveryRate}
+            />
+            <StatCategory label="Opened" rate={stats.channelStats.openRate} />
+            <StatCategory label="Clicked" rate={stats.channelStats.clickRate} />
+            <StatCategory label="Spam" rate={stats.channelStats.spamRate} />
+          </>
+        ) : null}
       </Stack>
-    </Box>
+    </Stack>
   );
 
   return (
