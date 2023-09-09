@@ -1,0 +1,35 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "jest"],
+    "outDir": "dist",
+    "allowJs": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "skipLibCheck": true,
+    "target": "es5"
+  },
+  "exclude": ["node_modules", "dist"],
+  "include": ["./src/**/*.ts", "./scripts/**/*.ts"],
+  "references": [
+    {
+      "path": "../backend-lib"
+    },
+    {
+      "path": "../isomorphic-lib"
+    },
+    {
+      "path": "../dashboard"
+    },
+    {
+      "path": "../worker"
+    },
+    {
+      "path": "../api"
+    },
+  ]
+}
