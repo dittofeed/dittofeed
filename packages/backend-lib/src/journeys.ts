@@ -2,11 +2,13 @@ import { Row } from "@clickhouse/client";
 import { Journey, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { MapWithDefault } from "isomorphic-lib/src/maps";
+import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
+import config from "./config";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -89,7 +91,7 @@ export async function findManyJourneysUnsafe(
 const JourneyMessageStatsRow = Type.Object({
   event: Type.String(),
   node_id: Type.String(),
-  count: Type.Number(),
+  count: Type.String(),
 });
 
 const isValueInEnum = <T extends Record<string, string>>(
@@ -111,19 +113,19 @@ export async function getJourneyStats({
 
   const currentTable = buildUserEventsTableName(
     (
-      await prisma().currentUserEventsTable.findUniqueOrThrow({
+      await prisma().currentUserEventsTable.findUnique({
         where: {
           workspaceId,
         },
       })
-    ).version
+    )?.version ?? config().defaultUserEventsTableVersion
   );
 
   const query = `
     select
         event,
         node_id,
-        count() event_count
+        count() count
     from (
         select
             JSON_VALUE(
@@ -178,42 +180,50 @@ export async function getJourneyStats({
   const stream = statsResultSet.stream();
   const statsMap = new Map<string, MapWithDefault<InternalEventType, number>>();
 
+  const rowPromises: Promise<unknown>[] = [];
   stream.on("data", (rows: Row[]) => {
     rows.forEach((row: Row) => {
-      const validated = schemaValidateWithErr(row, JourneyMessageStatsRow);
-      if (validated.isErr()) {
-        logger().error(
-          { row, workspaceId, journeyId },
-          "Failed to validate row from clickhouse for journey stats"
-        );
-        return;
-      }
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      const { event, node_id, count } = validated.value;
-      const eventMap = statsMap.get(node_id) ?? new MapWithDefault(0);
+      const promise = (async () => {
+        const json = await row.json();
+        const validated = schemaValidateWithErr(json, JourneyMessageStatsRow);
+        if (validated.isErr()) {
+          logger().error(
+            { workspaceId, journeyId, err: validated.error },
+            "Failed to validate row from clickhouse for journey stats"
+          );
+          return;
+        }
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        const { event, node_id, count } = validated.value;
+        const eventMap = statsMap.get(node_id) ?? new MapWithDefault(0);
 
-      if (!isValueInEnum(event, InternalEventType)) {
-        logger().error(
-          {
-            event,
-            workspaceId,
-            journeyId,
-          },
-          "got unknown event type in journey stats"
-        );
-        return;
-      }
+        if (!isValueInEnum(event, InternalEventType)) {
+          logger().error(
+            {
+              event,
+              workspaceId,
+              journeyId,
+            },
+            "got unknown event type in journey stats"
+          );
+          return;
+        }
 
-      eventMap.set(event, count);
-      statsMap.set(node_id, eventMap);
+        eventMap.set(event, parseInt(count));
+        statsMap.set(node_id, eventMap);
+      })();
+      rowPromises.push(promise);
     });
   });
 
-  await new Promise((resolve) => {
-    stream.on("end", () => {
-      resolve(0);
-    });
-  });
+  await Promise.all([
+    new Promise((resolve) => {
+      stream.on("end", () => {
+        resolve(0);
+      });
+    }),
+    ...rowPromises,
+  ]);
 
   const { definition } = unwrap(enrichJourney(journey));
 
