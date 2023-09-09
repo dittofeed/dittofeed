@@ -1,5 +1,5 @@
 export function apiBase(): string {
-  if (process.env.DASHBOARD_API_BASE) {
+  if (process.env.DASHBOARD_API_BASE !== undefined) {
     return process.env.DASHBOARD_API_BASE;
   }
   if (process.env.DASHBOARD_API_DOMAIN) {
