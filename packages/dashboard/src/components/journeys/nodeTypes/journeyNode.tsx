@@ -265,58 +265,87 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
       : undefined;
 
   const contents = (
-    <Box
-      onClick={clickInsideHandler}
+    <Stack
+      direction="column"
+      justifyContent="top"
       sx={{
-        width: JOURNEY_NODE_WIDTH,
-        display: "flex",
-        flexDirection: "row",
-        backgroundColor: "white",
-        justifyItems: "stretch",
-        cursor: "pointer",
-        borderStyle: "solid",
-        borderRadius,
-        borderColor,
-        borderWidth: 2,
+        position: "relative",
       }}
     >
       <Box
+        onClick={clickInsideHandler}
         sx={{
-          backgroundColor: config.sidebarColor,
-          width: 5,
-          borderTopLeftRadius: borderRadius,
-          borderBottomLeftRadius: borderRadius,
-          borderWidth: "1px 0 1px 1px",
+          width: JOURNEY_NODE_WIDTH,
+          display: "flex",
+          flexDirection: "row",
+          backgroundColor: "white",
+          justifyItems: "stretch",
+          cursor: "pointer",
+          borderStyle: "solid",
+          borderRadius,
           borderColor,
+          borderWidth: 2,
         }}
-      />
-      <Stack direction="column" spacing={1} sx={{ padding: 2, width: "100%" }}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <config.icon />
-          <Typography
-            variant="h5"
-            sx={{
-              height: "1.5rem",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {config.title}
-          </Typography>
+      >
+        <Box
+          sx={{
+            backgroundColor: config.sidebarColor,
+            width: 5,
+            borderTopLeftRadius: borderRadius,
+            borderBottomLeftRadius: borderRadius,
+            borderWidth: "1px 0 1px 1px",
+            borderColor,
+          }}
+        />
+        <Stack
+          direction="column"
+          spacing={1}
+          sx={{ padding: 2, width: "100%" }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center">
+            <config.icon />
+            <Typography
+              variant="h5"
+              sx={{
+                height: "1.5rem",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {config.title}
+            </Typography>
+          </Stack>
+          {body}
         </Stack>
-        {body}
+      </Box>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="center"
+        sx={{
+          backgroundColor: "white",
+          borderStyle: "solid",
+          borderBottomLeftRadius: 8,
+          borderBottomRightRadius: 8,
+          borderColor,
+          borderWidth: "0 2px 2px 2px",
+          opacity: stats ? 1 : 0,
+          transition: "maxHeight .5s ease, opacity .2s ease",
+          maxHeight: stats ? undefined : 0,
+        }}
+      >
+        {stats ? (
+          <>
+            <Box>{stats.sendRate}</Box>
+            <Box>{stats.channelStats.clickRate}</Box>
+            <Box>{stats.channelStats.spamRate}</Box>
+            <Box>{stats.channelStats.openRate}</Box>
+            <Box>{stats.channelStats.deliveryRate}</Box>
+          </>
+        ) : null}
       </Stack>
-      {stats && (
-        <Stack direction="row" alignItems="center">
-          <Box>{stats.sendRate}</Box>
-          <Box>{stats.channelStats.clickRate}</Box>
-          <Box>{stats.channelStats.spamRate}</Box>
-          <Box>{stats.channelStats.openRate}</Box>
-          <Box>{stats.channelStats.deliveryRate}</Box>
-        </Stack>
-      )}
-    </Box>
+    </Stack>
   );
 
   return (
