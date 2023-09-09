@@ -14,6 +14,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { round } from "isomorphic-lib/src/numbers";
 import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import { Handle, NodeProps, Position } from "reactflow";
 
@@ -194,6 +195,21 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
 
 const borderRadius = 2;
 
+function StatCategory({ label, rate }: { label: string; rate: number }) {
+  return (
+    <Stack direction="column">
+      <Typography variant="subtitle2">{label}</Typography>
+      <Box
+        sx={{
+          fontFamily: "monospace",
+        }}
+      >
+        {round(rate * 100, 2)}%
+      </Box>
+    </Stack>
+  );
+}
+
 export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
   const theme = useTheme();
   const {
@@ -322,26 +338,33 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
       <Stack
         direction="row"
         alignItems="center"
-        justifyContent="center"
+        justifyContent="space-between"
         sx={{
+          padding: stats ? 1 : 0,
           backgroundColor: "white",
           borderStyle: "solid",
+          width: JOURNEY_NODE_WIDTH,
           borderBottomLeftRadius: 8,
           borderBottomRightRadius: 8,
           borderColor,
           borderWidth: "0 2px 2px 2px",
           opacity: stats ? 1 : 0,
-          transition: "maxHeight .5s ease, opacity .2s ease",
-          maxHeight: stats ? undefined : 0,
+          visibility: stats ? "visible" : "hidden",
+          transition:
+            "height .2s ease, padding-top .2s ease, padding-bottom .2s ease, opacity .2s ease",
+          height: stats ? undefined : 0,
         }}
       >
         {stats ? (
           <>
-            <Box>{stats.sendRate}</Box>
-            <Box>{stats.channelStats.clickRate}</Box>
-            <Box>{stats.channelStats.spamRate}</Box>
-            <Box>{stats.channelStats.openRate}</Box>
-            <Box>{stats.channelStats.deliveryRate}</Box>
+            <StatCategory label="Sent" rate={stats.sendRate} />
+            <StatCategory
+              label="Delivered"
+              rate={stats.channelStats.deliveryRate}
+            />
+            <StatCategory label="Opened" rate={stats.channelStats.openRate} />
+            <StatCategory label="Clicked" rate={stats.channelStats.clickRate} />
+            <StatCategory label="Spam" rate={stats.channelStats.spamRate} />
           </>
         ) : null}
       </Stack>
