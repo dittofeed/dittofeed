@@ -54,6 +54,8 @@ export const requestContext: <T>(
           };
         case RequestContextErrorType.ApplicationError:
           throw new Error(rc.error.message);
+        case RequestContextErrorType.NotAuthenticated:
+          throw new Error("Not implemented: NotA");
       }
     }
 

@@ -10,6 +10,7 @@ export enum RequestContextErrorType {
   NotOnboarded = "NotOnboarded",
   EmailNotVerified = "EmailNotVerified",
   ApplicationError = "ApplicationError",
+  NotAuthenticated = "NotAuthenticated",
 }
 
 export interface UnauthorizedError {
@@ -31,11 +32,21 @@ export interface EmailNotVerifiedError {
   type: RequestContextErrorType.EmailNotVerified;
 }
 
+export interface NotAuthenticatedError {
+  type: RequestContextErrorType.NotAuthenticated;
+}
+
 export type RequestContextError =
   | UnauthorizedError
   | NotOnboardedError
   | ApplicationError
-  | EmailNotVerifiedError;
+  | EmailNotVerifiedError
+  | NotAuthenticatedError;
+
+export type RequestContextResult = Result<
+  DFRequestContext,
+  RequestContextError
+>;
 
 async function defaultRoleForDomain({
   email,
@@ -85,7 +96,7 @@ export async function getMultiTenantRequestContext({
 }: {
   authorizationToken: string | null;
   authProvider?: string;
-}): Promise<Result<DFRequestContext, RequestContextError>> {
+}): Promise<RequestContextResult> {
   if (!authProvider) {
     return err({
       type: RequestContextErrorType.ApplicationError,
@@ -232,41 +243,59 @@ export async function getMultiTenantRequestContext({
   });
 }
 
-export async function getRequestContext(
-  authorizationToken: string | null
-): Promise<Result<DFRequestContext, RequestContextError>> {
-  const { authMode } = config();
-  if (authMode === "anonymous") {
-    const workspace = await prisma().workspace.findFirst();
-    if (!workspace) {
-      return err({
-        type: RequestContextErrorType.NotOnboarded,
-        message: `Workspace not found`,
-      });
-    }
-    return ok({
-      workspace: {
-        id: workspace.id,
-        name: workspace.name,
-      },
-      member: {
-        id: "anonymous",
-        email: "anonymous@email.com",
-        emailVerified: true,
-        createdAt: new Date().toISOString(),
-      },
-      memberRoles: [
-        {
-          workspaceId: workspace.id,
-          workspaceMemberId: "anonymous",
-          role: "Admin",
-        },
-      ],
+export async function getSingleTenantRequestContext(
+  sessionString: string | null
+): Promise<RequestContextResult> {
+  if (!sessionString) {
+    return err({
+      type: RequestContextErrorType.NotAuthenticated,
     });
   }
+}
 
-  return getMultiTenantRequestContext({
-    authorizationToken,
-    authProvider: config().authProvider,
-  });
+// FIXME abstraction is a bit weird
+// means both caller and internal function will need know about authMode
+// ideally would be self contained within this fn
+// FIXME pull from cookie in calling site
+export async function getRequestContext(
+  authorizationToken: string | null
+): Promise<RequestContextResult> {
+  const { authMode } = config();
+  switch (authMode) {
+    case "anonymous": {
+      const workspace = await prisma().workspace.findFirst();
+      if (!workspace) {
+        return err({
+          type: RequestContextErrorType.NotOnboarded,
+          message: `Workspace not found`,
+        });
+      }
+      return ok({
+        workspace: {
+          id: workspace.id,
+          name: workspace.name,
+        },
+        member: {
+          id: "anonymous",
+          email: "anonymous@email.com",
+          emailVerified: true,
+          createdAt: new Date().toISOString(),
+        },
+        memberRoles: [
+          {
+            workspaceId: workspace.id,
+            workspaceMemberId: "anonymous",
+            role: "Admin",
+          },
+        ],
+      });
+    }
+    case "single-tenant":
+      return getSingleTenantRequestContext(authorizationToken);
+    case "multi-tenant":
+      return getMultiTenantRequestContext({
+        authorizationToken,
+        authProvider: config().authProvider,
+      });
+  }
 }

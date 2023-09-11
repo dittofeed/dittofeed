@@ -110,6 +110,7 @@ export type WriteMode = Static<typeof WriteMode>;
 export const AuthMode = Type.Union([
   Type.Literal("anonymous"),
   Type.Literal("multi-tenant"),
+  Type.Literal("single-tenant"),
 ]);
 
 export type AuthMode = Static<typeof AuthMode>;

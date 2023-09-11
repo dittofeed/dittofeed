@@ -71,6 +71,7 @@ const BaseRawConfigProps = {
   computePropertiesInterval: Type.Optional(
     Type.String({ format: "naturalNumber" })
   ),
+  encryptionKey: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
