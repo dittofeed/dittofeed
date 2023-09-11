@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@sinclair/typebox": "^0.31.5",
+    "@temporalio/worker": "^1.8.4",
     "api": "0.0.3",
     "backend-lib": "0.0.3",
     "dashboard": "0.1.0",

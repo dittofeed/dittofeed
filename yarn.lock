@@ -11691,6 +11691,7 @@ __metadata:
   resolution: "lite@workspace:packages/lite"
   dependencies:
     "@sinclair/typebox": ^0.31.5
+    "@temporalio/worker": ^1.8.4
     "@types/node": ^18.8.5
     "@typescript-eslint/eslint-plugin": ^5.60.0
     "@typescript-eslint/parser": ^5.60.0
