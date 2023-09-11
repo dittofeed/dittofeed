@@ -5729,7 +5729,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"admin-cli@workspace:packages/admin-cli":
+"admin-cli@0.0.1, admin-cli@workspace:packages/admin-cli":
   version: 0.0.0-use.local
   resolution: "admin-cli@workspace:packages/admin-cli"
   dependencies:
@@ -11693,8 +11693,10 @@ __metadata:
     "@sinclair/typebox": ^0.31.5
     "@temporalio/worker": ^1.8.4
     "@types/node": ^18.8.5
+    "@types/yargs": ^17.0.24
     "@typescript-eslint/eslint-plugin": ^5.60.0
     "@typescript-eslint/parser": ^5.60.0
+    admin-cli: 0.0.1
     api: 0.0.3
     backend-lib: 0.0.3
     dashboard: 0.1.0
@@ -11716,6 +11718,7 @@ __metadata:
     typescript: ^5.1.3
     utility-types: ^3.10.0
     worker: 0.0.3
+    yargs: ^17.7.2
   languageName: unknown
   linkType: soft
 

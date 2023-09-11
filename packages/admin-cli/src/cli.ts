@@ -1,12 +1,12 @@
-import bootstrap, { bootstrapWorker } from "backend-lib/src/bootstrap";
+import { bootstrapWorker } from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
-import { NodeEnvEnum } from "backend-lib/src/config/loader";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
+import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
 
@@ -20,36 +20,8 @@ export async function cli() {
     .command(
       "bootstrap",
       "Initialize the dittofeed application and creates a workspace.",
-      (cmd) =>
-        cmd.options({
-          "workspace-name": {
-            type: "string",
-            alias: "n",
-            describe: "The workspace name to bootstrap.",
-          },
-          "workspace-domain": {
-            type: "string",
-            alias: "d",
-            describe:
-              "The email domain to authorize. All users with the provided email domain will be able to access the workspace. Example: -d=example.com",
-          },
-        }),
-      async ({ workspaceName, workspaceDomain }) => {
-        const workspaceNameWithDefault =
-          backendConfig().nodeEnv === NodeEnvEnum.Development
-            ? "Default"
-            : workspaceName;
-        if (!workspaceNameWithDefault) {
-          throw new Error(
-            "Please provide a workspace name with --workspace-name"
-          );
-        }
-
-        await bootstrap({
-          workspaceName: workspaceNameWithDefault,
-          workspaceDomain,
-        });
-      }
+      boostrapOptions,
+      bootstrapHandler
     )
     .command(
       "bootstrap-worker",

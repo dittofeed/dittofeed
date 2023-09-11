@@ -23,6 +23,9 @@
       "path": "../isomorphic-lib"
     },
     {
+      "path": "../admin-cli"
+    },
+    {
       "path": "../dashboard"
     },
     {

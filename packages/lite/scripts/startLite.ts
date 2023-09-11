@@ -5,6 +5,7 @@ import {
   Runtime,
   Worker,
 } from "@temporalio/worker";
+import { BOOTSTRAP_OPTIONS, bootstrapHandler } from "admin-cli/src/bootstrap";
 import buildApp from "api/src/buildApp";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
@@ -15,6 +16,8 @@ import next from "next";
 import path from "path";
 import workerConfig from "worker/src/config";
 import workerLogger from "worker/src/workerLogger";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
 
 import liteConfig from "../src/config";
 
@@ -28,6 +31,11 @@ async function startLite() {
       "Initialized with config"
     );
   }
+  const args = await yargs(hideBin(process.argv)).options(BOOTSTRAP_OPTIONS)
+    .argv;
+
+  await bootstrapHandler(args);
+
   const app = await buildApp();
   const { port, host, nodeEnv } = liteConfig();
 
