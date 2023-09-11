@@ -9,9 +9,12 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@sinclair/typebox": "^0.31.5",
+    "api": "0.0.3",
     "backend-lib": "0.0.3",
     "dashboard": "0.1.0",
     "isomorphic-lib": "0.0.3",
+    "utility-types": "^3.10.0",
     "worker": "0.0.3"
   },
   "devDependencies": {

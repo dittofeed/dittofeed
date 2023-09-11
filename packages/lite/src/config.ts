@@ -8,14 +8,13 @@ import { Overwrite } from "utility-types";
 
 const RawConfigProps = {
   nodeEnv: Type.Optional(NodeEnv),
-  apiServiceName: Type.Optional(Type.String()),
-  apiPort: Type.Optional(
+  serviceName: Type.Optional(Type.String()),
+  port: Type.Optional(
     Type.String({
       format: "naturalNumber",
     })
   ),
-  apiHost: Type.Optional(Type.String()),
-  apiPrefix: Type.Optional(Type.String()),
+  host: Type.Optional(Type.String()),
 };
 
 // Structure of application config.
@@ -27,22 +26,21 @@ export type Config = Overwrite<
   RawConfig,
   {
     nodeEnv: string;
-    apiServiceName: string;
-    apiHost: string;
-    apiPort: number;
+    serviceName: string;
+    host: string;
+    port: number;
   }
 >;
 function parseRawConfig(raw: RawConfig): Config {
   const nodeEnv = raw.nodeEnv ?? "development";
-  const port = Number(raw.apiPort);
+  const port = Number(raw.port);
 
   return {
     ...raw,
-    apiServiceName: raw.apiServiceName ?? "dittofeed-api",
+    serviceName: raw.serviceName ?? "dittofeed-lite",
     nodeEnv,
-    apiHost:
-      raw.apiHost ?? (nodeEnv === "development" ? "localhost" : "0.0.0.0"),
-    apiPort: Number.isNaN(port) ? 3001 : port,
+    host: raw.host ?? (nodeEnv === "development" ? "localhost" : "0.0.0.0"),
+    port: Number.isNaN(port) ? 3000 : port,
   };
 }
 
