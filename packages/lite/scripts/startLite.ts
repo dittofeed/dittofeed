@@ -28,10 +28,15 @@ async function startLite() {
 
   await nextApp.prepare();
 
-  app.all("*", async (req, reply) => {
-    await nextHandler(req.raw, reply.raw);
-    // eslint-disable-next-line no-param-reassign
-    reply.sent = true;
+  app.route({
+    // Exclude 'OPTIONS to avoid conflict with cors plugin'
+    method: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"],
+    url: "*",
+    handler: async (req, reply) => {
+      await nextHandler(req.raw, reply.raw);
+      // eslint-disable-next-line no-param-reassign
+      reply.sent = true;
+    },
   });
 
   await app.listen({ port, host });
