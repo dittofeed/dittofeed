@@ -11708,6 +11708,7 @@ __metadata:
     eslint-plugin-react-hooks: ^4.6.0
     eslint-plugin-simple-import-sort: ^10.0.0
     isomorphic-lib: 0.0.3
+    next: 13.4.4
     prettier: ^2.8.3
     ts-node: ^10.9.1
     tsc-watch: ^6.0.0
