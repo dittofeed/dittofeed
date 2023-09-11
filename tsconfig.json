@@ -19,7 +19,7 @@
       "path": "./packages/admin-cli"
     },
     {
-      "path": "lite"
+      "path": "./packages/lite"
     }
   ]
 }
