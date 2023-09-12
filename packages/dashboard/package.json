@@ -9,6 +9,9 @@
     "check": "tsc --build",
     "lint": "next lint"
   },
+  "exports": {
+    "./*": "./dist/*.js"
+  },
   "license": "LicenseRef-LICENSE",
   "dependencies": {
     "@ant-design/icons": "^4.7.0",

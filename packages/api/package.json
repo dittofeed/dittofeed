@@ -9,6 +9,9 @@
     "lint": "eslint src/",
     "segment-test": "ts-node scripts/segmentTest.ts"
   },
+  "exports": {
+    "./*": "./dist/*.js"
+  },
   "dependencies": {
     "@fastify/cors": "^8.1.0",
     "@fastify/multipart": "^7.6.0",

@@ -5729,7 +5729,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"admin-cli@workspace:packages/admin-cli":
+"admin-cli@0.0.1, admin-cli@workspace:packages/admin-cli":
   version: 0.0.0-use.local
   resolution: "admin-cli@workspace:packages/admin-cli"
   dependencies:
@@ -5931,7 +5931,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"api@workspace:packages/api":
+"api@0.0.3, api@workspace:packages/api":
   version: 0.0.0-use.local
   resolution: "api@workspace:packages/api"
   dependencies:
@@ -7518,7 +7518,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dashboard@workspace:packages/dashboard":
+"dashboard@0.1.0, dashboard@workspace:packages/dashboard":
   version: 0.0.0-use.local
   resolution: "dashboard@workspace:packages/dashboard"
   dependencies:
@@ -11685,6 +11685,42 @@ __metadata:
   checksum: 6911d14ea869d1182a9594756c9cef864f1ef180e7d6acc9d4eb08526c93eb5895d77c6ab309de163ea338f92990da1ba88581b0fe4986c7211281d3f509babd
   languageName: node
   linkType: hard
+
+"lite@workspace:packages/lite":
+  version: 0.0.0-use.local
+  resolution: "lite@workspace:packages/lite"
+  dependencies:
+    "@sinclair/typebox": ^0.31.5
+    "@temporalio/worker": ^1.8.4
+    "@types/node": ^18.8.5
+    "@types/yargs": ^17.0.24
+    "@typescript-eslint/eslint-plugin": ^5.60.0
+    "@typescript-eslint/parser": ^5.60.0
+    admin-cli: 0.0.1
+    api: 0.0.3
+    backend-lib: 0.0.3
+    dashboard: 0.1.0
+    eslint: ^8.43.0
+    eslint-config-airbnb-base: ^15.0.0
+    eslint-config-airbnb-typescript: ^17.0.0
+    eslint-config-prettier: ^8.8.0
+    eslint-plugin-filenames: ^1.3.2
+    eslint-plugin-import: ^2.27.5
+    eslint-plugin-jsx-a11y: ^6.7.1
+    eslint-plugin-react: ^7.32.2
+    eslint-plugin-react-hooks: ^4.6.0
+    eslint-plugin-simple-import-sort: ^10.0.0
+    isomorphic-lib: 0.0.3
+    next: 13.4.4
+    prettier: ^2.8.3
+    ts-node: ^10.9.1
+    tsc-watch: ^6.0.0
+    typescript: ^5.1.3
+    utility-types: ^3.10.0
+    worker: 0.0.3
+    yargs: ^17.7.2
+  languageName: unknown
+  linkType: soft
 
 "loader-runner@npm:^4.2.0":
   version: 4.3.0
@@ -17072,7 +17108,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"worker@workspace:packages/worker":
+"worker@0.0.3, worker@workspace:packages/worker":
   version: 0.0.0-use.local
   resolution: "worker@workspace:packages/worker"
   dependencies:
