@@ -35,125 +35,16 @@ services:
     autoDeploy: false
     dockerfilePath: ./packages/lite/Dockerfile
     dockerContext: .
+    # Setting Node.js max-old-space-size to 312 MB.
+    # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) - Memory for other processes (100 MB).
+    dockerCommand: node --max-old-space-size=312 packages/worker/dist/scripts/startLite.js
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
-      - key: DATABASE_HOST
-        fromDatabase:
-          name: dittofeed-db
-          property: host
-      - key: DATABASE_USER
-        fromDatabase:
-          name: dittofeed-db
-          property: user
-      - key: DATABASE_PORT
-        fromDatabase:
-          name: dittofeed-db
-          property: port
-      - key: DATABASE_PASSWORD
-        fromDatabase:
-          name: dittofeed-db
-          property: password
-      - key: CLICKHOUSE_HOST
-        fromService:
-          type: pserv
-          name: dittofeed-ch
-          property: host
-      - key: TEMPORAL_ADDRESS
-        fromService:
-          type: pserv
-          name: temporal
-          property: host
-  - type: web
-    name: dashboard
-    env: docker
-    autoDeploy: false
-    dockerfilePath: ./packages/dashboard/Dockerfile
-    dockerContext: .
-    envVars:
-      - fromGroup: backend-app-env
-      - fromGroup: clickhouse-credentials
-      - key: DASHBOARD_API_SUBDOMAIN
-        fromService:
-          type: web
-          name: api
-          property: host
-      - key: DATABASE_HOST
-        fromDatabase:
-          name: dittofeed-db
-          property: host
-      - key: DATABASE_USER
-        fromDatabase:
-          name: dittofeed-db
-          property: user
-      - key: DATABASE_PORT
-        fromDatabase:
-          name: dittofeed-db
-          property: port
-      - key: DATABASE_PASSWORD
-        fromDatabase:
-          name: dittofeed-db
-          property: password
-      - key: CLICKHOUSE_HOST
-        fromService:
-          type: pserv
-          name: dittofeed-ch
-          property: host
-      - key: TEMPORAL_ADDRESS
-        fromService:
-          type: pserv
-          name: temporal
-          property: host
-  - type: worker
-    name: worker
-    env: docker
-    autoDeploy: false
-    plan: standard
-    dockerfilePath: ./packages/worker/Dockerfile
-    dockerContext: .
-    # Setting Node.js max-old-space-size to 1548 MB.
-    # This is calculated as follows: Total RAM (2048 MB) - Buffer (200 MB) - Memory for other processes (300 MB).
-    dockerCommand: node --max-old-space-size=1548 packages/worker/dist/scripts/startWorker.js
-    envVars:
-      - fromGroup: backend-app-env
-      - fromGroup: clickhouse-credentials
-      - key: DATABASE_HOST
-        fromDatabase:
-          name: dittofeed-db
-          property: host
-      - key: DATABASE_USER
-        fromDatabase:
-          name: dittofeed-db
-          property: user
-      - key: DATABASE_PORT
-        fromDatabase:
-          name: dittofeed-db
-          property: port
-      - key: DATABASE_PASSWORD
-        fromDatabase:
-          name: dittofeed-db
-          property: password
-      - key: CLICKHOUSE_HOST
-        fromService:
-          type: pserv
-          name: dittofeed-ch
-          property: host
-      - key: TEMPORAL_ADDRESS
-        fromService:
-          type: pserv
-          name: temporal
-          property: host
-  - type: worker
-    name: admin-cli
-    env: docker
-    autoDeploy: false
-    dockerfilePath: ./packages/admin-cli/Dockerfile
-    dockerContext: .
-    plan: standard
-    dockerCommand: "sleep infinity"
-    envVars:
-      - fromGroup: backend-app-env
-      - fromGroup: clickhouse-credentials
+      - name: REUSE_CONTEXT
+        value: "true"
+      - name: MAX_CACHED_WORKFLOWS
+        value: "25"
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
