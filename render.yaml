@@ -41,9 +41,9 @@ services:
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
-      - name: REUSE_CONTEXT
+      - key: REUSE_CONTEXT
         value: "true"
-      - name: MAX_CACHED_WORKFLOWS
+      - key: MAX_CACHED_WORKFLOWS
         value: "25"
       - key: DATABASE_HOST
         fromDatabase:
