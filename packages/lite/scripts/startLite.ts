@@ -62,9 +62,14 @@ async function startLite() {
   await bootstrapHandler(args);
 
   const app = await buildApp();
-  const { port, host, nodeEnv } = liteConfig();
+  const { port, host, nodeEnv, preBuilt } = liteConfig();
 
-  const dir = path.resolve(findPackagesDir(__dirname), "dashboard");
+  let relativeDir = "dashboard";
+  if (preBuilt) {
+    relativeDir = path.join(relativeDir, "dist");
+  }
+  const dir = path.resolve(findPackagesDir(__dirname), relativeDir);
+  logger().debug({ dir, dirname: __dirname }, "Next.js app directory");
 
   const nextApp = next({
     dev: nodeEnv === "development",

@@ -4,6 +4,7 @@ import {
   NodeEnv,
   setConfigOnEnv,
 } from "backend-lib/src/config/loader";
+import { BoolStr } from "isomorphic-lib/src/types";
 import { Overwrite } from "utility-types";
 
 const RawConfigProps = {
@@ -15,6 +16,7 @@ const RawConfigProps = {
     })
   ),
   host: Type.Optional(Type.String()),
+  preBuilt: Type.Optional(BoolStr),
 };
 
 // Structure of application config.
@@ -29,6 +31,7 @@ export type Config = Overwrite<
     serviceName: string;
     host: string;
     port: number;
+    preBuilt: boolean;
   }
 >;
 function parseRawConfig(raw: RawConfig): Config {
@@ -41,6 +44,7 @@ function parseRawConfig(raw: RawConfig): Config {
     nodeEnv,
     host: raw.host ?? (nodeEnv === "development" ? "localhost" : "0.0.0.0"),
     port: Number.isNaN(port) ? 3000 : port,
+    preBuilt: raw.preBuilt === "true",
   };
 }
 

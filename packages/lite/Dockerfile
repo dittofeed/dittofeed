@@ -65,6 +65,7 @@ COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
 ENV NODE_ENV=production \
-    NEXT_STANDALONE=false
+    NEXT_STANDALONE=false \
+    PRE_BUILT=true
 
 CMD ["node", "./packages/lite/dist/scripts/startLite.js"]
