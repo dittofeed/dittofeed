@@ -36,6 +36,8 @@ RUN yarn workspace backend-lib prisma generate && \
 # Production image
 FROM node:18.4.0 AS runner
 
+ARG WORKSPACE_NAME='Default'
+
 WORKDIR /service
 
 COPY --from=builder /service/production_node_modules ./node_modules
@@ -46,6 +48,7 @@ COPY --from=builder /service/packages/lite/dist ./packages/lite/dist
 COPY --from=builder /service/packages/lite/package.json ./packages/lite/package.json
 
 COPY --from=builder /service/packages/dashboard/dist ./packages/dashboard/dist
+COPY --from=builder /service/packages/dashboard/.next ./packages/dashboard/.next
 COPY --from=builder /service/packages/dashboard/package.json ./packages/dashboard/package.json
 
 COPY --from=builder /service/packages/api/dist ./packages/api/dist
@@ -66,6 +69,7 @@ COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/iso
 
 ENV NODE_ENV=production \
     NEXT_STANDALONE=false \
-    PRE_BUILT=true
+    PRE_BUILT=true \
+    WORKSPACE_NAME=${WORKSPACE_NAME}
 
-CMD ["node", "./packages/lite/dist/scripts/startLite.js"]
+CMD node ./packages/lite/dist/scripts/startLite.js --workspace-name=${WORKSPACE_NAME}

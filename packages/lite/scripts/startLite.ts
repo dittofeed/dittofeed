@@ -75,6 +75,10 @@ async function startLite() {
     dev: nodeEnv === "development",
     dir,
     customServer: true,
+    // conf: {
+    //   output:
+    //     process.env.NEXT_STANDALONE !== "false" ? "standalone" : undefined,
+    // },
   });
   const nextHandler = nextApp.getRequestHandler();
 
