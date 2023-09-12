@@ -18,21 +18,24 @@ RUN yarn workspaces focus lite
 
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
-COPY ./packages/lite/ ./packages/lite
 COPY ./packages/api/ ./packages/api
 COPY ./packages/dashboard/ ./packages/dashboard
 COPY ./packages/worker/ ./packages/worker
 COPY ./packages/admin-cli/ ./packages/admin-cli
 
 RUN yarn workspace backend-lib prisma generate && \
-    yarn workspace dashboard build-ts && \
     yarn workspace api build && \
     yarn workspace worker build && \
     yarn workspace admin-cli build && \
-    yarn workspace lite build
+    yarn workspace dashboard build
+
+COPY ./packages/lite/ ./packages/lite
+RUN yarn workspace lite build
 
 # Production image
 FROM node:18.4.0 AS runner
+
+ARG WORKSPACE_NAME='Default'
 
 WORKDIR /service
 
@@ -44,6 +47,8 @@ COPY --from=builder /service/packages/lite/dist ./packages/lite/dist
 COPY --from=builder /service/packages/lite/package.json ./packages/lite/package.json
 
 COPY --from=builder /service/packages/dashboard/dist ./packages/dashboard/dist
+COPY --from=builder /service/packages/dashboard/.next ./packages/dashboard/.next
+COPY --from=builder /service/packages/dashboard/next.config.js ./packages/dashboard/next.config.js
 COPY --from=builder /service/packages/dashboard/package.json ./packages/dashboard/package.json
 
 COPY --from=builder /service/packages/api/dist ./packages/api/dist
@@ -62,6 +67,10 @@ COPY --from=builder /service/packages/backend-lib/prisma ./packages/backend-lib/
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    PRE_BUILT=true \
+    WORKSPACE_NAME=${WORKSPACE_NAME}
 
-CMD ["node", "./packages/lite/dist/scripts/startLite.js"]
+EXPOSE 3000
+
+CMD node ./packages/lite/dist/scripts/startLite.js --workspace-name=${WORKSPACE_NAME}

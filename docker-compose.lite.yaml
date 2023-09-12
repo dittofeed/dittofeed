@@ -1,0 +1,87 @@
+
+version: "3.9"
+x-database-credentials: &database-credentials
+  DATABASE_USER: ${DATABASE_USER:-postgres}
+  DATABASE_PASSWORD: ${DATABASE_PASSWORD:-password}
+x-clickhouse-credentials: &clickhouse-credentials
+  CLICKHOUSE_USER: ${CLICKHOUSE_USER:-dittofeed}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-password}
+x-backend-app-env: &backend-app-env
+  <<: [*clickhouse-credentials, *database-credentials]
+  NODE_ENV: production
+  DATABASE_HOST: ${DATABASE_HOST:-postgres}
+  DATABASE_PORT: ${DATABASE_PORT:-5432}
+  CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-http://clickhouse-server:8123}
+  TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
+  WORKSPACE_NAME: ${WORKSPACE_NAME:-Default}
+services:
+  lite:
+    build:
+      context: .
+      dockerfile: ./packages/lite/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
+      LOG_LEVEL: debug
+    networks:
+      - dittofeed-network-lite
+  temporal:
+    container_name: temporal
+    depends_on:
+      - postgres
+    environment:
+      - DB=postgresql
+      - DB_PORT=${DATABASE_PORT:-5432}
+      - POSTGRES_USER=${DATABASE_USER:-postgres}
+      - POSTGRES_PWD=${DATABASE_PASSWORD:-password}
+      - POSTGRES_SEEDS=${DATABASE_HOST:-postgres}
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml
+    image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.18.5}
+    labels:
+      kompose.volume.type: configMap
+    networks:
+      - dittofeed-network-lite
+    ports:
+      - 7233:7233
+    volumes:
+      - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-15}
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-password}
+      - POSTGRES_USER=${DATABASE_USER:-postgres}
+      - POSTGRES_DB=dittofeed
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - dittofeed-network-lite
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:22.9.5.25-alpine
+    environment:
+      <<: *clickhouse-credentials
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "9009:9009"
+    volumes:
+      - clickhouse_lib:/var/lib/clickhouse
+      - clickhouse_log:/var/log/clickhouse-server
+    networks:
+      - dittofeed-network-lite
+volumes:
+  postgres:
+  clickhouse_lib:
+  clickhouse_log:
+
+networks:
+  dittofeed-network-lite:
+    driver: bridge
+    name: dittofeed-network-lite

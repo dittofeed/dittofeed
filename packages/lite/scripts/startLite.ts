@@ -21,6 +21,31 @@ import { hideBin } from "yargs/helpers";
 
 import liteConfig from "../src/config";
 
+function findPackagesDir(fullPath: string): string {
+  // Normalize the path to handle different path separators
+  const normalizedPath = path.normalize(fullPath);
+
+  // Split the path into segments based on the platform-specific delimiter
+  const segments = normalizedPath.split(path.sep);
+
+  // Find the rightmost index of "packages" in the array where "lite" follows immediately after
+  let lastPackagesIndex = -1;
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (segments[i] === "packages" && segments[i + 1] === "lite") {
+      lastPackagesIndex = i;
+      break;
+    }
+  }
+
+  if (lastPackagesIndex === -1) {
+    throw new Error("Could not find packages directory.");
+  }
+
+  // Return the path up to but not including "lite"
+  const slicedSegments = segments.slice(0, lastPackagesIndex + 1); // "+1" to include "packages" but not "lite"
+  return slicedSegments.join(path.sep);
+}
+
 async function startLite() {
   if (backendConfig().logConfig) {
     logger().info(
@@ -39,9 +64,18 @@ async function startLite() {
   const app = await buildApp();
   const { port, host, nodeEnv } = liteConfig();
 
+  const relativeDir = "dashboard";
+  const packagesDir = findPackagesDir(__dirname);
+  const dir = path.resolve(packagesDir, relativeDir);
+  logger().debug(
+    { dir, dirname: __dirname, packagesDir },
+    "Next.js app directory"
+  );
+
   const nextApp = next({
     dev: nodeEnv === "development",
-    dir: path.resolve(__dirname, path.join("..", "..", "dashboard")),
+    dir,
+    customServer: true,
   });
   const nextHandler = nextApp.getRequestHandler();
 
@@ -55,10 +89,10 @@ async function startLite() {
     nextApp.prepare(),
   ]);
 
-  app.route({
+  await app.route({
     // Exclude 'OPTIONS to avoid conflict with cors plugin'
     method: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"],
-    url: "*",
+    url: "/*",
     handler: async (req, reply) => {
       await nextHandler(req.raw, reply.raw);
       // eslint-disable-next-line no-param-reassign

@@ -3,11 +3,15 @@ const path = require("path");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   basePath: "/dashboard",
-  output: "standalone",
+  output: process.env.NEXT_STANDALONE !== "false" ? "standalone" : undefined,
   pageExtensions: ["page.tsx", "page.ts"],
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ["isomorphic-lib", "backend-lib"],
+  eslint: {
+    // already performed in CI, redundant
+    ignoreDuringBuilds: true,
+  },
   swcMinify: true,
   images: {
     domains: ["*"],
@@ -34,4 +38,5 @@ const nextConfig = {
   },
 };
 
+console.log("nextConfig", nextConfig);
 module.exports = nextConfig;

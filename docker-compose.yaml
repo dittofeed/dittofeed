@@ -62,6 +62,25 @@ services:
       <<: *backend-app-env
     networks:
       - dittofeed-network-dev
+  lite:
+    build:
+      context: .
+      dockerfile: ./packages/lite/Dockerfile
+    profiles: ["apps-lite"]
+    volumes:
+      - ./mnt:/dittofeed-mnt
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
+      DASHBOARD_URL: "http://localhost:3000"
+      DASHBOARD_API_BASE: "http://localhost:3000"
+    networks:
+      - dittofeed-network-dev
   admin-cli:
     build:
       context: .
