@@ -37,7 +37,7 @@ services:
     dockerContext: .
     # Setting Node.js max-old-space-size to 312 MB.
     # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) - Memory for other processes (100 MB).
-    dockerCommand: node --max-old-space-size=312 packages/worker/dist/scripts/startLite.js
+    dockerCommand: node --max-old-space-size=312 packages/lite/dist/scripts/startLite.js
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
