@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "check": "tsc --build",
+    "build-ts": "NODE_ENV=production tsc --build",
     "lint": "next lint"
   },
   "exports": {
