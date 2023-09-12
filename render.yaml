@@ -16,6 +16,8 @@ envVarGroups:
         value: http
       - key: DASHBOARD_URL_NAME
         value: RENDER_EXTERNAL_URL
+      - key: DASHBOARD_API_NAME
+        value: RENDER_EXTERNAL_URL
       - key: DASHBOARD_API_DOMAIN
         value: onrender.com
       - key: DASHBOARD_API_PORT
@@ -28,10 +30,10 @@ envVarGroups:
       value: postgresql
 services:
   - type: web
-    name: api
+    name: dittofeed-lite
     env: docker
     autoDeploy: false
-    dockerfilePath: ./packages/api/Dockerfile
+    dockerfilePath: ./packages/lite/Dockerfile
     dockerContext: .
     envVars:
       - fromGroup: backend-app-env
