@@ -42,6 +42,7 @@ async function startLite() {
   const nextApp = next({
     dev: nodeEnv === "development",
     dir: path.resolve(__dirname, path.join("..", "..", "dashboard")),
+    customServer: true,
   });
   const nextHandler = nextApp.getRequestHandler();
 
