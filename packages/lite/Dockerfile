@@ -64,6 +64,7 @@ COPY --from=builder /service/packages/backend-lib/prisma ./packages/backend-lib/
 COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-lib/dist
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    NEXT_STANDALONE=false
 
 CMD ["node", "./packages/lite/dist/scripts/startLite.js"]
