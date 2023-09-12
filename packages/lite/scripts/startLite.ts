@@ -62,23 +62,20 @@ async function startLite() {
   await bootstrapHandler(args);
 
   const app = await buildApp();
-  const { port, host, nodeEnv, preBuilt } = liteConfig();
+  const { port, host, nodeEnv } = liteConfig();
 
-  let relativeDir = "dashboard";
-  if (preBuilt) {
-    relativeDir = path.join(relativeDir, "dist");
-  }
-  const dir = path.resolve(findPackagesDir(__dirname), relativeDir);
-  logger().debug({ dir, dirname: __dirname }, "Next.js app directory");
+  const relativeDir = "dashboard";
+  const packagesDir = findPackagesDir(__dirname);
+  const dir = path.resolve(packagesDir, relativeDir);
+  logger().debug(
+    { dir, dirname: __dirname, packagesDir },
+    "Next.js app directory"
+  );
 
   const nextApp = next({
     dev: nodeEnv === "development",
     dir,
     customServer: true,
-    // conf: {
-    //   output:
-    //     process.env.NEXT_STANDALONE !== "false" ? "standalone" : undefined,
-    // },
   });
   const nextHandler = nextApp.getRequestHandler();
 
@@ -92,10 +89,10 @@ async function startLite() {
     nextApp.prepare(),
   ]);
 
-  app.route({
+  await app.route({
     // Exclude 'OPTIONS to avoid conflict with cors plugin'
     method: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"],
-    url: "*",
+    url: "/*",
     handler: async (req, reply) => {
       await nextHandler(req.raw, reply.raw);
       // eslint-disable-next-line no-param-reassign

@@ -18,20 +18,19 @@ RUN yarn workspaces focus lite
 
 COPY ./packages/backend-lib/ ./packages/backend-lib
 COPY ./packages/isomorphic-lib/ ./packages/isomorphic-lib
-COPY ./packages/lite/ ./packages/lite
 COPY ./packages/api/ ./packages/api
 COPY ./packages/dashboard/ ./packages/dashboard
 COPY ./packages/worker/ ./packages/worker
 COPY ./packages/admin-cli/ ./packages/admin-cli
 
-ENV NEXT_STANDALONE=false
-
 RUN yarn workspace backend-lib prisma generate && \
     yarn workspace api build && \
     yarn workspace worker build && \
     yarn workspace admin-cli build && \
-    yarn workspace dashboard build && \
-    yarn workspace lite build
+    yarn workspace dashboard build
+
+COPY ./packages/lite/ ./packages/lite
+RUN yarn workspace lite build
 
 # Production image
 FROM node:18.4.0 AS runner
@@ -68,8 +67,9 @@ COPY --from=builder /service/packages/isomorphic-lib/dist ./packages/isomorphic-
 COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/isomorphic-lib/package.json
 
 ENV NODE_ENV=production \
-    NEXT_STANDALONE=false \
     PRE_BUILT=true \
     WORKSPACE_NAME=${WORKSPACE_NAME}
+
+EXPOSE 3000
 
 CMD node ./packages/lite/dist/scripts/startLite.js --workspace-name=${WORKSPACE_NAME}
