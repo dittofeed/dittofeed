@@ -27,10 +27,10 @@ COPY ./packages/admin-cli/ ./packages/admin-cli
 ENV NEXT_STANDALONE=false
 
 RUN yarn workspace backend-lib prisma generate && \
-    yarn workspace dashboard build && \
     yarn workspace api build && \
     yarn workspace worker build && \
     yarn workspace admin-cli build && \
+    yarn workspace dashboard build && \
     yarn workspace lite build
 
 # Production image
