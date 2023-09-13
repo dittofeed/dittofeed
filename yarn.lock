@@ -11715,6 +11715,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "lite@workspace:packages/lite"
   dependencies:
+    "@fastify/secure-session": ^7.1.0
     "@sinclair/typebox": ^0.31.5
     "@temporalio/worker": ^1.8.4
     "@types/node": ^18.8.5

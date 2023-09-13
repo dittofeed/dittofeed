@@ -1,3 +1,6 @@
+// ensures types are imported to support single-tenant auth
+import "@fastify/secure-session";
+
 import {
   appendDefaultInterceptors,
   defaultSinks,
