@@ -4,6 +4,7 @@ import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import backendConfig from "backend-lib/src/config";
+import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
@@ -76,7 +77,7 @@ async function buildApp() {
     }
     fastifyPluginPromises.push(
       server.register(secureSession, {
-        key: secretKey,
+        key: trimTo32Bytes(secretKey),
         cookie: {
           path: "/",
           maxAge: 14 * 24 * 60 * 60,
