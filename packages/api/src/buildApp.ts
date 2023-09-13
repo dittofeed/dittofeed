@@ -1,7 +1,9 @@
 import { fastifyRequestContext } from "@fastify/request-context";
+import secureSession from "@fastify/secure-session";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUI from "@fastify/swagger-ui";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
@@ -61,10 +63,28 @@ async function buildApp() {
   });
 
   // needs to be registered before routes
-  await Promise.all([
+  const fastifyPluginPromises: PromiseLike<unknown>[] = [
     server.register(fastifyRawBody),
     server.register(fastifyRequestContext),
-  ]);
+  ];
+
+  const { authMode, secretKey } = backendConfig();
+
+  if (authMode === "single-tenant" && secretKey) {
+    fastifyPluginPromises.push(
+      server.register(secureSession, {
+        key: secretKey,
+        cookie: {
+          path: "/",
+          maxAge: 14 * 24 * 60 * 60,
+          httpOnly: true,
+          secure: config().nodeEnv === "production",
+        },
+      })
+    );
+  }
+
+  await Promise.all(fastifyPluginPromises);
 
   await Promise.all([
     server.register(router),

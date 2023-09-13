@@ -1009,6 +1009,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fastify/cookie@npm:^9.0.4":
+  version: 9.0.4
+  resolution: "@fastify/cookie@npm:9.0.4"
+  dependencies:
+    cookie: ^0.5.0
+    fastify-plugin: ^4.0.0
+  checksum: 55c19e58b138acc567595e9e307151acadca4d1ee88dc4f2d076fc48760d24767fc150835b715ee41b9b10d0204f9a8db341dc37eab322a0e6609536a747b951
+  languageName: node
+  linkType: hard
+
 "@fastify/cors@npm:^8.1.0":
   version: 8.2.0
   resolution: "@fastify/cors@npm:8.2.0"
@@ -1065,6 +1075,19 @@ __metadata:
     asynchronous-local-storage: ^1.0.2
     fastify-plugin: ^4.0.0
   checksum: 92f9ee90b7f01dc584b05dd0a8b4f83dfe726faa2f3c9290abefe77131b3c5e74693fdf6592418a7f1bb9d5ce1028063c3fbc9a0a144239cbca97da308446ad0
+  languageName: node
+  linkType: hard
+
+"@fastify/secure-session@npm:^7.1.0":
+  version: 7.1.0
+  resolution: "@fastify/secure-session@npm:7.1.0"
+  dependencies:
+    "@fastify/cookie": ^9.0.4
+    fastify-plugin: ^4.0.0
+    sodium-native: ^4.0.0
+  bin:
+    secure-session: genkey.js
+  checksum: 88b8997a7e0cd1209057202931e943c67133dff25da0855f456d10be9303aa3c65682efcc6455fb5dd03246e004d434e5ccff34adc92fb9cc55ee47a7b757055
   languageName: node
   linkType: hard
 
@@ -5939,6 +5962,7 @@ __metadata:
     "@fastify/cors": ^8.1.0
     "@fastify/multipart": ^7.6.0
     "@fastify/request-context": ^4.2.0
+    "@fastify/secure-session": ^7.1.0
     "@fastify/swagger": ^8.1.0
     "@fastify/swagger-ui": ^1.1.0
     "@fastify/type-provider-typebox": ^3.2.0
@@ -13653,6 +13677,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-gyp-build@npm:^4.6.0":
+  version: 4.6.1
+  resolution: "node-gyp-build@npm:4.6.1"
+  bin:
+    node-gyp-build: bin.js
+    node-gyp-build-optional: optional.js
+    node-gyp-build-test: build-test.js
+  checksum: c3676d337b36803bc7792e35bf7fdcda7cdcb7e289b8f9855a5535702a82498eb976842fefcf487258c58005ca32ce3d537fbed91280b04409161dcd7232a882
+  languageName: node
+  linkType: hard
+
 "node-gyp@npm:latest":
   version: 9.3.1
   resolution: "node-gyp@npm:9.3.1"
@@ -15655,6 +15690,16 @@ __metadata:
     ip: ^2.0.0
     smart-buffer: ^4.2.0
   checksum: 259d9e3e8e1c9809a7f5c32238c3d4d2a36b39b83851d0f573bfde5f21c4b1288417ce1af06af1452569cd1eb0841169afd4998f0e04ba04656f6b7f0e46d748
+  languageName: node
+  linkType: hard
+
+"sodium-native@npm:^4.0.0":
+  version: 4.0.4
+  resolution: "sodium-native@npm:4.0.4"
+  dependencies:
+    node-gyp: latest
+    node-gyp-build: ^4.6.0
+  checksum: 5697e7d8fa49b0ccde9b15beda2664c09ccc55450304b78287a6522e3e5db02c7fc3de415df5b2273bbc45e3f5e17966bf487c8a8bff7a84c8cbbee8fcd5e7b2
   languageName: node
   linkType: hard
 

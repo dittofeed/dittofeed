@@ -1,9 +1,13 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import { err, ok, Result } from "neverthrow";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
 import prisma from "./prisma";
 import { DFRequestContext, Workspace, WorkspaceMemberRole } from "./types";
+
+const sessionStorage = new AsyncLocalStorage();
 
 export enum RequestContextErrorType {
   Unauthorized = "Unauthorized",
@@ -243,55 +247,63 @@ export async function getMultiTenantRequestContext({
   });
 }
 
-export async function getSingleTenantRequestContext(
-  sessionString: string | null
-): Promise<RequestContextResult> {
-  if (!sessionString) {
-    return err({
-      type: RequestContextErrorType.NotAuthenticated,
-    });
-  }
+export function setSession(
+  val: boolean,
+  callback: Parameters<typeof sessionStorage.run>[1]
+) {
+  sessionStorage.run(val, callback);
 }
 
-// FIXME abstraction is a bit weird
-// means both caller and internal function will need know about authMode
-// ideally would be self contained within this fn
-// FIXME pull from cookie in calling site
+export function hasSession(): boolean {
+  return sessionStorage.getStore() === true;
+}
+
+async function getAnonymousRequestContext(): Promise<RequestContextResult> {
+  const workspace = await prisma().workspace.findFirst();
+  if (!workspace) {
+    return err({
+      type: RequestContextErrorType.NotOnboarded,
+      message: `Workspace not found`,
+    });
+  }
+  return ok({
+    workspace: {
+      id: workspace.id,
+      name: workspace.name,
+    },
+    member: {
+      id: "anonymous",
+      email: "anonymous@email.com",
+      emailVerified: true,
+      createdAt: new Date().toISOString(),
+    },
+    memberRoles: [
+      {
+        workspaceId: workspace.id,
+        workspaceMemberId: "anonymous",
+        role: "Admin",
+      },
+    ],
+  });
+}
+
 export async function getRequestContext(
   authorizationToken: string | null
 ): Promise<RequestContextResult> {
   const { authMode } = config();
   switch (authMode) {
     case "anonymous": {
-      const workspace = await prisma().workspace.findFirst();
-      if (!workspace) {
+      return getAnonymousRequestContext();
+    }
+    case "single-tenant": {
+      const hasSession = sessionStorage.getStore();
+      if (!hasSession) {
         return err({
-          type: RequestContextErrorType.NotOnboarded,
-          message: `Workspace not found`,
+          type: RequestContextErrorType.NotAuthenticated,
         });
       }
-      return ok({
-        workspace: {
-          id: workspace.id,
-          name: workspace.name,
-        },
-        member: {
-          id: "anonymous",
-          email: "anonymous@email.com",
-          emailVerified: true,
-          createdAt: new Date().toISOString(),
-        },
-        memberRoles: [
-          {
-            workspaceId: workspace.id,
-            workspaceMemberId: "anonymous",
-            role: "Admin",
-          },
-        ],
-      });
+      return getAnonymousRequestContext();
     }
-    case "single-tenant":
-      return getSingleTenantRequestContext(authorizationToken);
     case "multi-tenant":
       return getMultiTenantRequestContext({
         authorizationToken,
