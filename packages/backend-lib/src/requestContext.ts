@@ -296,8 +296,7 @@ export async function getRequestContext(
       return getAnonymousRequestContext();
     }
     case "single-tenant": {
-      const hasSession = sessionStorage.getStore();
-      if (!hasSession) {
+      if (!hasSession()) {
         return err({
           type: RequestContextErrorType.NotAuthenticated,
         });

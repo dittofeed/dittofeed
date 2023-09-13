@@ -14,6 +14,8 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
       switch (rc.error.type) {
         case RequestContextErrorType.ApplicationError:
           throw new Error(rc.error.message);
+        case RequestContextErrorType.NotAuthenticated:
+          return reply.status(401).send();
         default:
           return reply.status(403).send();
       }

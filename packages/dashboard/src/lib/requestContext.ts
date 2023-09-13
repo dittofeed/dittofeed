@@ -7,6 +7,7 @@ import {
 } from "backend-lib/src/requestContext";
 import {
   EMAIL_NOT_VERIFIED_PAGE,
+  SINGLE_TENANT_LOGIN_PAGE,
   UNAUTHORIZED_PAGE,
   WAITING_ROOM_PAGE,
 } from "isomorphic-lib/src/constants";
@@ -55,7 +56,20 @@ export const requestContext: <T>(
         case RequestContextErrorType.ApplicationError:
           throw new Error(rc.error.message);
         case RequestContextErrorType.NotAuthenticated:
-          throw new Error("Not implemented: NotA");
+          if (backendConfig().authMode === "single-tenant") {
+            return {
+              redirect: {
+                destination: SINGLE_TENANT_LOGIN_PAGE,
+                permanent: false,
+              },
+            };
+          }
+          return {
+            redirect: {
+              destination: UNAUTHORIZED_PAGE,
+              permanent: false,
+            },
+          };
       }
     }
 
