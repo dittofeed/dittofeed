@@ -62,12 +62,14 @@ async function startLite() {
       "Initialized with config"
     );
   }
+
+  const app = await buildApp();
+
   const args = await yargs(hideBin(process.argv)).options(BOOTSTRAP_OPTIONS)
     .argv;
 
   await bootstrapHandler(args);
 
-  const app = await buildApp();
   const { port, host, nodeEnv } = liteConfig();
 
   const relativeDir = "dashboard";

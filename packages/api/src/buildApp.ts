@@ -70,7 +70,10 @@ async function buildApp() {
 
   const { authMode, secretKey } = backendConfig();
 
-  if (authMode === "single-tenant" && secretKey) {
+  if (authMode === "single-tenant") {
+    if (!secretKey) {
+      throw new Error("SECRET_KEY must be set in single-tenant mode.");
+    }
     fastifyPluginPromises.push(
       server.register(secureSession, {
         key: secretKey,
