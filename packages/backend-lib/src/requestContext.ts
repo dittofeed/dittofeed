@@ -7,6 +7,8 @@ import config from "./config";
 import prisma from "./prisma";
 import { DFRequestContext, Workspace, WorkspaceMemberRole } from "./types";
 
+export const SESSION_KEY = "session-key";
+
 const sessionStorage = new AsyncLocalStorage();
 
 export enum RequestContextErrorType {

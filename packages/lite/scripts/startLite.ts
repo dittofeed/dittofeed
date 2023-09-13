@@ -12,7 +12,7 @@ import { BOOTSTRAP_OPTIONS, bootstrapHandler } from "admin-cli/src/bootstrap";
 import buildApp from "api/src/buildApp";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
-import { setSession } from "backend-lib/src/requestContext";
+import { SESSION_KEY, setSession } from "backend-lib/src/requestContext";
 import * as activities from "backend-lib/src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activityInboundInterceptor";
 import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
@@ -49,8 +49,6 @@ function findPackagesDir(fullPath: string): string {
   const slicedSegments = segments.slice(0, lastPackagesIndex + 1); // "+1" to include "packages" but not "lite"
   return slicedSegments.join(path.sep);
 }
-
-const SESSION_KEY = "session-key";
 
 async function startLite() {
   if (backendConfig().logConfig) {
@@ -97,7 +95,7 @@ async function startLite() {
     nextApp.prepare(),
   ]);
 
-  await app.route({
+  app.route({
     // Exclude 'OPTIONS to avoid conflict with cors plugin'
     method: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"],
     url: "/*",

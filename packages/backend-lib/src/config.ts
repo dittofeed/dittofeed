@@ -72,7 +72,7 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" })
   ),
   secretKey: Type.Optional(Type.String()),
-  dittofeedPassword: Type.Optional(Type.String()),
+  password: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
