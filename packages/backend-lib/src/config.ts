@@ -72,8 +72,6 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" })
   ),
   secretKey: Type.Optional(Type.String()),
-  secretKey1: Type.Optional(Type.String()),
-  secretKey2: Type.Optional(Type.String()),
   password: Type.Optional(Type.String()),
 };
 
@@ -137,7 +135,7 @@ const RawConfig = Type.Union([
 
 type RawConfig = Static<typeof RawConfig>;
 
-export type Config = Omit<
+export type Config =
   Overwrite<
     RawConfig,
     {
@@ -175,8 +173,6 @@ export type Config = Omit<
   > & {
     defaultUserEventsTableVersion: string;
   },
-  "secretKey1" | "secretKey2"
->;
 
 const defaultDbParams: Record<string, string> = {
   connect_timeout: "60",
@@ -295,12 +291,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   }
 
   const authMode = rawConfig.authMode ?? "anonymous";
-  // Some environments (e.g. render) don't allow generate secrets of sufficient
-  // length, and this is a workaround
-  const secretKey =
-    rawConfig.secretKey1 && rawConfig.secretKey2
-      ? `${rawConfig.secretKey1}${rawConfig.secretKey2}`
-      : rawConfig.secretKey;
+  const { secretKey } = rawConfig;
 
   if (authMode === "single-tenant" && (!secretKey || !rawConfig.password)) {
     throw new Error(
