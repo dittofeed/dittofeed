@@ -135,44 +135,43 @@ const RawConfig = Type.Union([
 
 type RawConfig = Static<typeof RawConfig>;
 
-export type Config =
-  Overwrite<
-    RawConfig,
-    {
-      kafkaBrokers: string[];
-      computedPropertiesTopicName: string;
-      userEventsTopicName: string;
-      temporalNamespace: string;
-      databaseUrl: string;
-      clickhouseHost: string;
-      clickhouseDatabase: string;
-      kafkaSsl: boolean;
-      nodeEnv: NodeEnvEnum;
-      temporalAddress: string;
-      logConfig: boolean;
-      bootstrapEvents: boolean;
-      kafkaUserEventsPartitions: number;
-      kafkaUserEventsReplicationFactor: number;
-      kafkaSaslMechanism: KafkaSaslMechanism;
-      bootstrapWorker: boolean;
-      writeMode: WriteMode;
-      otelCollector: string;
-      startOtel: boolean;
-      logLevel: LogLevel;
-      prettyLogs: boolean;
-      googleOps: boolean;
-      enableSourceControl: boolean;
-      authMode: AuthMode;
-      trackDashboard: boolean;
-      dashboardUrl: string;
-      enableMobilePush: boolean;
-      readQueryPageSize: number;
-      readQueryConcurrency: number;
-      computePropertiesInterval: number;
-    }
-  > & {
-    defaultUserEventsTableVersion: string;
-  },
+export type Config = Overwrite<
+  RawConfig,
+  {
+    kafkaBrokers: string[];
+    computedPropertiesTopicName: string;
+    userEventsTopicName: string;
+    temporalNamespace: string;
+    databaseUrl: string;
+    clickhouseHost: string;
+    clickhouseDatabase: string;
+    kafkaSsl: boolean;
+    nodeEnv: NodeEnvEnum;
+    temporalAddress: string;
+    logConfig: boolean;
+    bootstrapEvents: boolean;
+    kafkaUserEventsPartitions: number;
+    kafkaUserEventsReplicationFactor: number;
+    kafkaSaslMechanism: KafkaSaslMechanism;
+    bootstrapWorker: boolean;
+    writeMode: WriteMode;
+    otelCollector: string;
+    startOtel: boolean;
+    logLevel: LogLevel;
+    prettyLogs: boolean;
+    googleOps: boolean;
+    enableSourceControl: boolean;
+    authMode: AuthMode;
+    trackDashboard: boolean;
+    dashboardUrl: string;
+    enableMobilePush: boolean;
+    readQueryPageSize: number;
+    readQueryConcurrency: number;
+    computePropertiesInterval: number;
+  }
+> & {
+  defaultUserEventsTableVersion: string;
+};
 
 const defaultDbParams: Record<string, string> = {
   connect_timeout: "60",
