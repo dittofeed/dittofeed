@@ -40,7 +40,7 @@ services:
     # Memory for other processes (100 MB). Concatenating two random keys for
     # secret key because render's generated values are 24 bytes long, not 32 as
     # advertised.
-    dockerCommand: SECRET_KEY="$SECRET_KEY_1$$SECRET_KEY_2" node --max-old-space-size=312 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
+    dockerCommand: SECRET_KEY="$SECRET_KEY_1$SECRET_KEY_2" node --max-old-space-size=312 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
