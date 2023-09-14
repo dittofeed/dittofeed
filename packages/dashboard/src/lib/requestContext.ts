@@ -20,9 +20,7 @@ export const requestContext: <T>(
   gssp: GetDFServerSideProps<PropsWithInitialState<T>>
 ) => GetServerSideProps<PropsWithInitialState<T>> =
   (gssp) => async (context) => {
-    const rc = await getRequestContext(
-      context.req.headers.authorization ?? null
-    );
+    const rc = await getRequestContext(context.req.headers);
     if (rc.isErr()) {
       switch (rc.error.type) {
         case RequestContextErrorType.EmailNotVerified:

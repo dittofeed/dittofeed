@@ -22,7 +22,7 @@ interface WaitingRoomProps {
 export const getServerSideProps: GetServerSideProps<
   PropsWithInitialState<WaitingRoomProps>
 > = async (ctx) => {
-  const rc = await getRequestContext(ctx.req.headers.authorization ?? null);
+  const rc = await getRequestContext(ctx.req.headers);
   if (rc.isOk()) {
     return {
       redirect: {

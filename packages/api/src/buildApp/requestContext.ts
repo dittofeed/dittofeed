@@ -8,7 +8,7 @@ import fp from "fastify-plugin";
 // eslint-disable-next-line @typescript-eslint/require-await
 const requestContext = fp(async (fastify: FastifyInstance) => {
   fastify.addHook("preHandler", async (request, reply) => {
-    const rc = await getRequestContext(request.headers.authorization ?? null);
+    const rc = await getRequestContext(request.headers);
 
     if (rc.isErr()) {
       switch (rc.error.type) {

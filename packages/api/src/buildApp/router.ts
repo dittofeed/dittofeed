@@ -23,30 +23,32 @@ export default async function router(fastify: FastifyInstance) {
   await fastify.register(indexController, { prefix: "/api" });
 
   // endpoints with standard authorization
-  await fastify.register(async (f: FastifyInstance) => {
-    await fastify.register(requestContext);
+  await fastify.register(
+    async (f: FastifyInstance) => {
+      await fastify.register(requestContext);
 
-    await Promise.all([
-      f.register(contentController, { prefix: "/content" }),
-      f.register(eventsController, { prefix: "/events" }),
-      f.register(journeysController, { prefix: "/journeys" }),
-      f.register(secretsController, { prefix: "/secrets" }),
-      f.register(segmentsController, { prefix: "/segments" }),
-      f.register(settingsController, { prefix: "/settings" }),
-      f.register(integrationsController, { prefix: "/integrations" }),
-      f.register(subscriptionGroupsController, {
-        prefix: "/subscription-groups",
-      }),
-      f.register(userPropertiesController, { prefix: "/user-properties" }),
-      f.register(usersController, { prefix: "/users" }),
-      // mount redundant webhooks controller at root level for backwards
-      // compatibility. this is the one exception to this route namespace being auth'd.
-      f.register(webhooksController, { prefix: "/webhooks" }),
-      backendConfig().authMode === "single-tenant"
-        ? f.register(authController, { prefix: "/single-tenant" })
-        : null,
-    ]);
-  });
+      await Promise.all([
+        f.register(contentController, { prefix: "/content" }),
+        f.register(eventsController, { prefix: "/events" }),
+        f.register(journeysController, { prefix: "/journeys" }),
+        f.register(secretsController, { prefix: "/secrets" }),
+        f.register(segmentsController, { prefix: "/segments" }),
+        f.register(settingsController, { prefix: "/settings" }),
+        f.register(integrationsController, { prefix: "/integrations" }),
+        f.register(subscriptionGroupsController, {
+          prefix: "/subscription-groups",
+        }),
+        f.register(userPropertiesController, { prefix: "/user-properties" }),
+        f.register(usersController, { prefix: "/users" }),
+        // mount redundant webhooks controller at root level for backwards
+        // compatibility. this is the one exception to this route namespace being auth'd.
+        f.register(webhooksController, { prefix: "/webhooks" }),
+      ]);
+    },
+    {
+      prefix: "/api",
+    }
+  );
 
   // endpoints without standard authorization
   await fastify.register(
@@ -57,6 +59,9 @@ export default async function router(fastify: FastifyInstance) {
         }),
         f.register(publicAppsController, { prefix: "/apps" }),
         f.register(webhooksController, { prefix: "/webhooks" }),
+        backendConfig().authMode === "single-tenant"
+          ? f.register(authController, { prefix: "/single-tenant" })
+          : null,
       ]);
     },
     { prefix: "/api/public" }

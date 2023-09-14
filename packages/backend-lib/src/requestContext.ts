@@ -1,15 +1,13 @@
-import { AsyncLocalStorage } from "node:async_hooks";
-
+import { IncomingHttpHeaders } from "http";
 import { err, ok, Result } from "neverthrow";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
+import logger from "./logger";
 import prisma from "./prisma";
 import { DFRequestContext, Workspace, WorkspaceMemberRole } from "./types";
 
-export const SESSION_KEY = "session-key";
-
-const sessionStorage = new AsyncLocalStorage();
+export const SESSION_KEY = "df-session-key";
 
 export enum RequestContextErrorType {
   Unauthorized = "Unauthorized",
@@ -249,17 +247,6 @@ export async function getMultiTenantRequestContext({
   });
 }
 
-export function setSession(
-  val: boolean,
-  callback: Parameters<typeof sessionStorage.run>[1]
-) {
-  sessionStorage.run(val, callback);
-}
-
-export function hasSession(): boolean {
-  return sessionStorage.getStore() === true;
-}
-
 async function getAnonymousRequestContext(): Promise<RequestContextResult> {
   const workspace = await prisma().workspace.findFirst();
   if (!workspace) {
@@ -290,7 +277,7 @@ async function getAnonymousRequestContext(): Promise<RequestContextResult> {
 }
 
 export async function getRequestContext(
-  authorizationToken: string | null
+  headers: IncomingHttpHeaders
 ): Promise<RequestContextResult> {
   const { authMode } = config();
   switch (authMode) {
@@ -298,17 +285,28 @@ export async function getRequestContext(
       return getAnonymousRequestContext();
     }
     case "single-tenant": {
-      if (!hasSession()) {
+      logger().debug(
+        {
+          headers,
+        },
+        "request context: single-tenant auth mode"
+      );
+      if (headers[SESSION_KEY] !== "true") {
         return err({
           type: RequestContextErrorType.NotAuthenticated,
         });
       }
       return getAnonymousRequestContext();
     }
-    case "multi-tenant":
+    case "multi-tenant": {
+      const authorizationToken =
+        headers.authorization && typeof headers.authorization === "string"
+          ? headers.authorization
+          : null;
       return getMultiTenantRequestContext({
         authorizationToken,
         authProvider: config().authProvider,
       });
+    }
   }
 }

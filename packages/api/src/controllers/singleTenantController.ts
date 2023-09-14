@@ -1,5 +1,6 @@
 import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import backendConfig from "backend-lib/src/config";
+import logger from "backend-lib/src/logger";
 import { SESSION_KEY } from "backend-lib/src/requestContext";
 import { FastifyInstance } from "fastify";
 
@@ -21,7 +22,8 @@ export default async function authController(fastify: FastifyInstance) {
         return reply.status(404).send();
       }
 
-      if (!password) {
+      if (!password?.length) {
+        logger().error("No password configured in single tenant mode.");
         return reply.status(500).send({
           error: "Application is misconfigured, contact support.",
         });
@@ -34,6 +36,23 @@ export default async function authController(fastify: FastifyInstance) {
       }
       request.session.set(SESSION_KEY, true);
       return reply.status(200).send();
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/signout",
+    {
+      schema: {
+        description: "Signout in single-tenant auth mode.",
+      },
+    },
+    async (request, reply) => {
+      const { authMode } = backendConfig();
+      if (authMode !== "single-tenant") {
+        return reply.status(404).send();
+      }
+      request.session.delete();
+      return reply.redirect(302, "/dashboard/auth/single-tenant");
     }
   );
 }

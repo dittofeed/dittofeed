@@ -12,7 +12,7 @@ import { BOOTSTRAP_OPTIONS, bootstrapHandler } from "admin-cli/src/bootstrap";
 import buildApp from "api/src/buildApp";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
-import { SESSION_KEY, setSession } from "backend-lib/src/requestContext";
+import { SESSION_KEY } from "backend-lib/src/requestContext";
 import * as activities from "backend-lib/src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activityInboundInterceptor";
 import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
@@ -101,19 +101,13 @@ async function startLite() {
     url: "/*",
     handler: async (req, reply) => {
       const hasSession = req.session.get(SESSION_KEY) === true;
-      await new Promise((resolve, reject) => {
-        setSession(hasSession, async () => {
-          try {
-            await nextHandler(req.raw, reply.raw);
 
-            // eslint-disable-next-line no-param-reassign
-            reply.sent = true;
-            resolve(null);
-          } catch (err) {
-            reject(err);
-          }
-        });
-      });
+      // eslint-disable-next-line no-param-reassign
+      req.raw.headers[SESSION_KEY] = hasSession ? "true" : "false";
+      await nextHandler(req.raw, reply.raw);
+
+      // eslint-disable-next-line no-param-reassign
+      reply.sent = true;
     },
   });
 
