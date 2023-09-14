@@ -36,8 +36,11 @@ services:
     dockerfilePath: ./packages/lite/Dockerfile
     dockerContext: .
     # Setting Node.js max-old-space-size to 312 MB.
-    # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) - Memory for other processes (100 MB).
-    dockerCommand: node --max-old-space-size=312 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
+    # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
+    # Memory for other processes (100 MB). Concatenating two random keys for
+    # secret key because render's generated values are 24 bytes long, not 32 as
+    # advertised.
+    dockerCommand: SECRET_KEY="$SECRET_KEY_1$$SECRET_KEY_2" node --max-old-space-size=312 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
@@ -75,7 +78,9 @@ services:
           property: host
       - key: PASSWORD
         sync: false
-      - key: SECRET_KEY
+      - key: SECRET_KEY_1
+        generateValue: true
+      - key: SECRET_KEY_2
         generateValue: true
   - type: pserv
     name: dittofeed-ch
