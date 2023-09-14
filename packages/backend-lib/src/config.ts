@@ -288,7 +288,17 @@ function parseRawConfig(rawConfig: RawConfig): Config {
         logLevel = "error";
     }
   }
+
   const authMode = rawConfig.authMode ?? "anonymous";
+  if (
+    authMode === "single-tenant" &&
+    (!rawConfig.secretKey || !rawConfig.password)
+  ) {
+    throw new Error(
+      "In single-tenant mode must specify secretKey and password"
+    );
+  }
+
   const parsedConfig: Config = {
     ...rawConfig,
     nodeEnv,

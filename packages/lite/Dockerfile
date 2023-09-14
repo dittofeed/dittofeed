@@ -69,6 +69,7 @@ COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/iso
 
 ENV NODE_ENV=production \
     PRE_BUILT=true \
+    AUTH_MODE='single-tenant' \
     WORKSPACE_NAME=${WORKSPACE_NAME}
 
 EXPOSE 3000

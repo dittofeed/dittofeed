@@ -73,6 +73,10 @@ services:
           type: pserv
           name: temporal
           property: host
+      - key: PASSWORD
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
   - type: pserv
     name: dittofeed-ch
     env: docker
