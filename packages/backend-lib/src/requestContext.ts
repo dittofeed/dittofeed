@@ -1,15 +1,20 @@
+import { IncomingHttpHeaders } from "http";
 import { err, ok, Result } from "neverthrow";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
+import logger from "./logger";
 import prisma from "./prisma";
 import { DFRequestContext, Workspace, WorkspaceMemberRole } from "./types";
+
+export const SESSION_KEY = "df-session-key";
 
 export enum RequestContextErrorType {
   Unauthorized = "Unauthorized",
   NotOnboarded = "NotOnboarded",
   EmailNotVerified = "EmailNotVerified",
   ApplicationError = "ApplicationError",
+  NotAuthenticated = "NotAuthenticated",
 }
 
 export interface UnauthorizedError {
@@ -31,11 +36,21 @@ export interface EmailNotVerifiedError {
   type: RequestContextErrorType.EmailNotVerified;
 }
 
+export interface NotAuthenticatedError {
+  type: RequestContextErrorType.NotAuthenticated;
+}
+
 export type RequestContextError =
   | UnauthorizedError
   | NotOnboardedError
   | ApplicationError
-  | EmailNotVerifiedError;
+  | EmailNotVerifiedError
+  | NotAuthenticatedError;
+
+export type RequestContextResult = Result<
+  DFRequestContext,
+  RequestContextError
+>;
 
 async function defaultRoleForDomain({
   email,
@@ -85,7 +100,7 @@ export async function getMultiTenantRequestContext({
 }: {
   authorizationToken: string | null;
   authProvider?: string;
-}): Promise<Result<DFRequestContext, RequestContextError>> {
+}): Promise<RequestContextResult> {
   if (!authProvider) {
     return err({
       type: RequestContextErrorType.ApplicationError,
@@ -232,41 +247,66 @@ export async function getMultiTenantRequestContext({
   });
 }
 
-export async function getRequestContext(
-  authorizationToken: string | null
-): Promise<Result<DFRequestContext, RequestContextError>> {
-  const { authMode } = config();
-  if (authMode === "anonymous") {
-    const workspace = await prisma().workspace.findFirst();
-    if (!workspace) {
-      return err({
-        type: RequestContextErrorType.NotOnboarded,
-        message: `Workspace not found`,
-      });
-    }
-    return ok({
-      workspace: {
-        id: workspace.id,
-        name: workspace.name,
-      },
-      member: {
-        id: "anonymous",
-        email: "anonymous@email.com",
-        emailVerified: true,
-        createdAt: new Date().toISOString(),
-      },
-      memberRoles: [
-        {
-          workspaceId: workspace.id,
-          workspaceMemberId: "anonymous",
-          role: "Admin",
-        },
-      ],
+async function getAnonymousRequestContext(): Promise<RequestContextResult> {
+  const workspace = await prisma().workspace.findFirst();
+  if (!workspace) {
+    return err({
+      type: RequestContextErrorType.NotOnboarded,
+      message: `Workspace not found`,
     });
   }
-
-  return getMultiTenantRequestContext({
-    authorizationToken,
-    authProvider: config().authProvider,
+  return ok({
+    workspace: {
+      id: workspace.id,
+      name: workspace.name,
+    },
+    member: {
+      id: "anonymous",
+      email: "anonymous@email.com",
+      emailVerified: true,
+      createdAt: new Date().toISOString(),
+    },
+    memberRoles: [
+      {
+        workspaceId: workspace.id,
+        workspaceMemberId: "anonymous",
+        role: "Admin",
+      },
+    ],
   });
+}
+
+export async function getRequestContext(
+  headers: IncomingHttpHeaders
+): Promise<RequestContextResult> {
+  const { authMode } = config();
+  switch (authMode) {
+    case "anonymous": {
+      return getAnonymousRequestContext();
+    }
+    case "single-tenant": {
+      logger().debug(
+        {
+          headers,
+        },
+        "request context: single-tenant auth mode"
+      );
+      if (headers[SESSION_KEY] !== "true") {
+        return err({
+          type: RequestContextErrorType.NotAuthenticated,
+        });
+      }
+      return getAnonymousRequestContext();
+    }
+    case "multi-tenant": {
+      const authorizationToken =
+        headers.authorization && typeof headers.authorization === "string"
+          ? headers.authorization
+          : null;
+      return getMultiTenantRequestContext({
+        authorizationToken,
+        authProvider: config().authProvider,
+      });
+    }
+  }
 }

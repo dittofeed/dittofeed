@@ -1,3 +1,4 @@
+import backendConfig from "backend-lib/src/config";
 import { FastifyInstance } from "fastify";
 
 import contentController from "../controllers/contentController";
@@ -10,6 +11,7 @@ import publicAppsController from "../controllers/publicAppsController";
 import secretsController from "../controllers/secretsController";
 import segmentsController from "../controllers/segmentsController";
 import settingsController from "../controllers/settingsController";
+import authController from "../controllers/singleTenantController";
 import subscriptionGroupsController from "../controllers/subscriptionGroupsController";
 import subscriptionManagementController from "../controllers/subscriptionManagementController";
 import userPropertiesController from "../controllers/userPropertiesController";
@@ -43,7 +45,9 @@ export default async function router(fastify: FastifyInstance) {
         f.register(webhooksController, { prefix: "/webhooks" }),
       ]);
     },
-    { prefix: "/api" }
+    {
+      prefix: "/api",
+    }
   );
 
   // endpoints without standard authorization
@@ -55,6 +59,9 @@ export default async function router(fastify: FastifyInstance) {
         }),
         f.register(publicAppsController, { prefix: "/apps" }),
         f.register(webhooksController, { prefix: "/webhooks" }),
+        backendConfig().authMode === "single-tenant"
+          ? f.register(authController, { prefix: "/single-tenant" })
+          : null,
       ]);
     },
     { prefix: "/api/public" }

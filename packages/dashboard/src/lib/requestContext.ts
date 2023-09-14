@@ -7,6 +7,7 @@ import {
 } from "backend-lib/src/requestContext";
 import {
   EMAIL_NOT_VERIFIED_PAGE,
+  SINGLE_TENANT_LOGIN_PAGE,
   UNAUTHORIZED_PAGE,
   WAITING_ROOM_PAGE,
 } from "isomorphic-lib/src/constants";
@@ -19,9 +20,7 @@ export const requestContext: <T>(
   gssp: GetDFServerSideProps<PropsWithInitialState<T>>
 ) => GetServerSideProps<PropsWithInitialState<T>> =
   (gssp) => async (context) => {
-    const rc = await getRequestContext(
-      context.req.headers.authorization ?? null
-    );
+    const rc = await getRequestContext(context.req.headers);
     if (rc.isErr()) {
       switch (rc.error.type) {
         case RequestContextErrorType.EmailNotVerified:
@@ -54,6 +53,21 @@ export const requestContext: <T>(
           };
         case RequestContextErrorType.ApplicationError:
           throw new Error(rc.error.message);
+        case RequestContextErrorType.NotAuthenticated:
+          if (backendConfig().authMode === "single-tenant") {
+            return {
+              redirect: {
+                destination: SINGLE_TENANT_LOGIN_PAGE,
+                permanent: false,
+              },
+            };
+          }
+          return {
+            redirect: {
+              destination: UNAUTHORIZED_PAGE,
+              permanent: false,
+            },
+          };
       }
     }
 

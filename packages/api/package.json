@@ -16,6 +16,7 @@
     "@fastify/cors": "^8.1.0",
     "@fastify/multipart": "^7.6.0",
     "@fastify/request-context": "^4.2.0",
+    "@fastify/secure-session": "^7.1.0",
     "@fastify/swagger": "^8.1.0",
     "@fastify/swagger-ui": "^1.1.0",
     "@fastify/type-provider-typebox": "^3.2.0",

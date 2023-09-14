@@ -71,6 +71,8 @@ const BaseRawConfigProps = {
   computePropertiesInterval: Type.Optional(
     Type.String({ format: "naturalNumber" })
   ),
+  secretKey: Type.Optional(Type.String()),
+  password: Type.Optional(Type.String()),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -286,6 +288,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
         logLevel = "error";
     }
   }
+  const authMode = rawConfig.authMode ?? "anonymous";
   const parsedConfig: Config = {
     ...rawConfig,
     nodeEnv,
@@ -337,7 +340,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       (nodeEnv === NodeEnvEnum.Development && rawConfig.prettyLogs !== "false"),
     logLevel,
     enableSourceControl: rawConfig.enableSourceControl === "true",
-    authMode: rawConfig.authMode ?? "anonymous",
+    authMode,
     dashboardUrl: buildDashboardUrl({
       nodeEnv,
       dashboardUrl: rawConfig.dashboardUrl,
@@ -355,6 +358,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     computePropertiesInterval: rawConfig.computePropertiesInterval
       ? Number(rawConfig.computePropertiesInterval)
       : 30 * 1000,
+    signoutUrl:
+      authMode === "single-tenant"
+        ? "/api/public/single-tenant/signout"
+        : rawConfig.signoutUrl,
   };
   return parsedConfig;
 }

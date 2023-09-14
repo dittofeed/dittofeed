@@ -59,3 +59,28 @@ export function generateSecureHash({
 export function generateSecureKey(length = 32): string {
   return crypto.randomBytes(length).toString("hex");
 }
+
+export function encrypt({ text, key }: { text: string; key: string }) {
+  const cipher = crypto.createCipher("aes-256-cbc", key);
+  let encrypted = cipher.update(text, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  return encrypted;
+}
+
+export function trimTo32Bytes(base64String: string): string {
+  // Decode the base64 string back to a Buffer
+  const buffer = Buffer.from(base64String, "base64");
+
+  // Check if the buffer is already 32 bytes or less
+  if (buffer.length <= 32) {
+    return base64String; // or return buffer.toString('base64') if you want to ensure it's base64
+  }
+
+  // Slice the buffer to the first 32 bytes
+  const slicedBuffer = buffer.slice(0, 32);
+
+  // Re-encode to base64
+  const trimmedBase64 = slicedBuffer.toString("base64");
+
+  return trimmedBase64;
+}
