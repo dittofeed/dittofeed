@@ -23,6 +23,22 @@ Dittofeed's API uses Write Keys to authenticate requests. You can find your Writ
 Include write keys as an HTTP `Authorization: Basic ...` header in your requests. It's safe to include this write key in your
 client (e.g. your web client javascript payload).
 
+For example, you can use the following to submit an identify request to our demo workspace:
+
+```bash
+curl -H 'Content-Type:application/json' \
+     -H 'Authorization:Basic Y2M4MzBjOTItYTI5Mi00NjczLWI0ODUtY2E2YzNiNTkzOGNmOjQzN2ViMjFiNDQzZTQxNDY=' \
+     -X POST \
+     -d '{
+         "userId": "'$(uuidgen)'",
+         "messageId": "'$(uuidgen)'",
+         "traits": {
+             "email": "fake@email.com"
+         }
+     }' \
+    https://demo.dittofeed.com/api/public/apps/identify
+```
+
 ## SDK's
 
 Dittofeed's API's can be conveniently accessed with platform specific [SDK's](/integrations/sdks).
