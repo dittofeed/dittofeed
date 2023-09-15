@@ -1,3 +1,4 @@
+import backendConfig from "backend-lib/src/config";
 import {
   getRequestContext,
   RequestContextErrorType,
@@ -6,9 +7,15 @@ import {
 import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 
-export function requestToSessionValue(request: FastifyRequest): {
-  [SESSION_KEY]: "true" | "false";
-} {
+export function requestToSessionValue(request: FastifyRequest):
+  | {
+      [SESSION_KEY]: "true" | "false";
+    }
+  | undefined {
+  if (backendConfig().authMode !== "single-tenant") {
+    return undefined;
+  }
+
   const hasSession = request.session.get(SESSION_KEY) === true;
   return { [SESSION_KEY]: hasSession ? "true" : "false" };
 }

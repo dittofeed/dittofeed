@@ -109,8 +109,10 @@ export default async function subscriptionGroupsController(
                   csvStream.destroy(); // This will stop the parsing process
                 }
               })
-
-              .on("data", (row) => {
+              .on("data", (row: unknown) => {
+                if (row instanceof Object && Object.keys(row).length === 0) {
+                  return;
+                }
                 const parsed = schemaValidate(row, UserUploadRow);
                 const rowNumber = i;
                 i += 1;
