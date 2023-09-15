@@ -1,14 +1,26 @@
 import {
   getRequestContext,
   RequestContextErrorType,
+  SESSION_KEY,
 } from "backend-lib/src/requestContext";
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
+
+export function requestToSessionValue(request: FastifyRequest): {
+  [SESSION_KEY]: "true" | "false";
+} {
+  const hasSession = request.session.get(SESSION_KEY) === true;
+  return { [SESSION_KEY]: hasSession ? "true" : "false" };
+}
 
 // eslint-disable-next-line @typescript-eslint/require-await
 const requestContext = fp(async (fastify: FastifyInstance) => {
   fastify.addHook("preHandler", async (request, reply) => {
-    const rc = await getRequestContext(request.headers);
+    const headers = {
+      ...request.headers,
+      ...requestToSessionValue(request),
+    };
+    const rc = await getRequestContext(headers);
 
     if (rc.isErr()) {
       switch (rc.error.type) {

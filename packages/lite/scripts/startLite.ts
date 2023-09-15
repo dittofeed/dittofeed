@@ -10,9 +10,9 @@ import {
 } from "@temporalio/worker";
 import { BOOTSTRAP_OPTIONS, bootstrapHandler } from "admin-cli/src/bootstrap";
 import buildApp from "api/src/buildApp";
+import { requestToSessionValue } from "api/src/buildApp/requestContext";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
-import { SESSION_KEY } from "backend-lib/src/requestContext";
 import * as activities from "backend-lib/src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "backend-lib/src/temporal/activityInboundInterceptor";
 import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClient";
@@ -100,10 +100,11 @@ async function startLite() {
     method: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"],
     url: "/*",
     handler: async (req, reply) => {
-      const hasSession = req.session.get(SESSION_KEY) === true;
-
       // eslint-disable-next-line no-param-reassign
-      req.raw.headers[SESSION_KEY] = hasSession ? "true" : "false";
+      req.raw.headers = {
+        ...req.raw.headers,
+        ...requestToSessionValue(req),
+      };
       await nextHandler(req.raw, reply.raw);
 
       // eslint-disable-next-line no-param-reassign
@@ -111,7 +112,7 @@ async function startLite() {
     },
   });
 
-  await Worker.create({
+  const worker = await Worker.create({
     connection,
     namespace: backendConfig().temporalNamespace,
     workflowsPath: require.resolve("backend-lib/src/temporal/workflows"),
@@ -136,7 +137,7 @@ async function startLite() {
     enableSDKTracing: true,
   });
 
-  await app.listen({ port, host });
+  await Promise.all([app.listen({ port, host }), worker.run()]);
 }
 
 startLite()
