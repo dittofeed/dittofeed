@@ -72,8 +72,6 @@ const BaseRawConfigProps = {
     Type.String({ format: "naturalNumber" })
   ),
   secretKey: Type.Optional(Type.String()),
-  secretKey1: Type.Optional(Type.String()),
-  secretKey2: Type.Optional(Type.String()),
   password: Type.Optional(Type.String()),
 };
 
@@ -137,46 +135,43 @@ const RawConfig = Type.Union([
 
 type RawConfig = Static<typeof RawConfig>;
 
-export type Config = Omit<
-  Overwrite<
-    RawConfig,
-    {
-      kafkaBrokers: string[];
-      computedPropertiesTopicName: string;
-      userEventsTopicName: string;
-      temporalNamespace: string;
-      databaseUrl: string;
-      clickhouseHost: string;
-      clickhouseDatabase: string;
-      kafkaSsl: boolean;
-      nodeEnv: NodeEnvEnum;
-      temporalAddress: string;
-      logConfig: boolean;
-      bootstrapEvents: boolean;
-      kafkaUserEventsPartitions: number;
-      kafkaUserEventsReplicationFactor: number;
-      kafkaSaslMechanism: KafkaSaslMechanism;
-      bootstrapWorker: boolean;
-      writeMode: WriteMode;
-      otelCollector: string;
-      startOtel: boolean;
-      logLevel: LogLevel;
-      prettyLogs: boolean;
-      googleOps: boolean;
-      enableSourceControl: boolean;
-      authMode: AuthMode;
-      trackDashboard: boolean;
-      dashboardUrl: string;
-      enableMobilePush: boolean;
-      readQueryPageSize: number;
-      readQueryConcurrency: number;
-      computePropertiesInterval: number;
-    }
-  > & {
-    defaultUserEventsTableVersion: string;
-  },
-  "secretKey1" | "secretKey2"
->;
+export type Config = Overwrite<
+  RawConfig,
+  {
+    kafkaBrokers: string[];
+    computedPropertiesTopicName: string;
+    userEventsTopicName: string;
+    temporalNamespace: string;
+    databaseUrl: string;
+    clickhouseHost: string;
+    clickhouseDatabase: string;
+    kafkaSsl: boolean;
+    nodeEnv: NodeEnvEnum;
+    temporalAddress: string;
+    logConfig: boolean;
+    bootstrapEvents: boolean;
+    kafkaUserEventsPartitions: number;
+    kafkaUserEventsReplicationFactor: number;
+    kafkaSaslMechanism: KafkaSaslMechanism;
+    bootstrapWorker: boolean;
+    writeMode: WriteMode;
+    otelCollector: string;
+    startOtel: boolean;
+    logLevel: LogLevel;
+    prettyLogs: boolean;
+    googleOps: boolean;
+    enableSourceControl: boolean;
+    authMode: AuthMode;
+    trackDashboard: boolean;
+    dashboardUrl: string;
+    enableMobilePush: boolean;
+    readQueryPageSize: number;
+    readQueryConcurrency: number;
+    computePropertiesInterval: number;
+  }
+> & {
+  defaultUserEventsTableVersion: string;
+};
 
 const defaultDbParams: Record<string, string> = {
   connect_timeout: "60",
@@ -295,12 +290,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   }
 
   const authMode = rawConfig.authMode ?? "anonymous";
-  // Some environments (e.g. render) don't allow generate secrets of sufficient
-  // length, and this is a workaround
-  const secretKey =
-    rawConfig.secretKey1 && rawConfig.secretKey2
-      ? `${rawConfig.secretKey1}${rawConfig.secretKey2}`
-      : rawConfig.secretKey;
+  const { secretKey } = rawConfig;
 
   if (authMode === "single-tenant" && (!secretKey || !rawConfig.password)) {
     throw new Error(

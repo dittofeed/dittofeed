@@ -76,12 +76,7 @@ services:
           property: host
       - key: PASSWORD
         sync: false
-      # Concatenating two random keys for
-      # secret key because render's generated values are 24 bytes long, not 32 as
-      # advertised.
-      - key: SECRET_KEY1
-        generateValue: true
-      - key: SECRET_KEY2
+      - key: SECRET_KEY
         generateValue: true
   - type: pserv
     name: dittofeed-ch
