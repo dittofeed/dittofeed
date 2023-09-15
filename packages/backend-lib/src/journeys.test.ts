@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 
 import { submitTrack } from "./apps";
 import config from "./config";
-import { getJourneyStats } from "./journeys";
+import { getJourneysStats } from "./journeys";
 import prisma from "./prisma";
 import {
   ChannelType,
@@ -13,7 +13,7 @@ import {
 } from "./types";
 
 describe("journeys", () => {
-  describe("getJourneyStats", () => {
+  describe("getJourneysStats", () => {
     describe("when a journey node has associated message stats", () => {
       let workspaceId: string;
       let journeyId: string;
@@ -86,23 +86,25 @@ describe("journeys", () => {
         });
       });
       it("returns the stats", async () => {
-        const stats = await getJourneyStats({
+        const stats = await getJourneysStats({
           workspaceId,
-          journeyId,
+          journeyIds: [journeyId],
         });
-        expect(stats).toEqual({
-          workspaceId,
-          journeyId,
-          nodeStats: {
-            [messageNodeId]: expect.objectContaining({
-              type: NodeStatsType.MessageNodeStats,
-              sendRate: 1,
-              channelStats: expect.objectContaining({
-                type: ChannelType.Email,
+        expect(stats).toEqual([
+          {
+            workspaceId,
+            journeyId,
+            nodeStats: {
+              [messageNodeId]: expect.objectContaining({
+                type: NodeStatsType.MessageNodeStats,
+                sendRate: 1,
+                channelStats: expect.objectContaining({
+                  type: ChannelType.Email,
+                }),
               }),
-            }),
+            },
           },
-        });
+        ]);
       });
     });
   });

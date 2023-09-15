@@ -1614,3 +1614,7 @@ export const JourneyStats = Type.Object({
 });
 
 export type JourneyStats = Static<typeof JourneyStats>;
+
+export const JourneyStatsResponse = Type.Array(JourneyStats);
+
+export type JourneyStatsResponse = Static<typeof JourneyStatsResponse>;

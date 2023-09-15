@@ -8,6 +8,7 @@ import {
   CompletionStatus,
   JourneyNodeType,
   JourneyStats,
+  JourneyStatsResponse,
 } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
@@ -207,9 +208,13 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
           },
         });
         const value = unwrap(
-          schemaValidateWithErr(response.data, JourneyStats)
-        );
+          schemaValidateWithErr(response.data, JourneyStatsResponse)
+        )[0];
 
+        if (!value) {
+          console.log("No journey stats found");
+          return;
+        }
         setJourneyStatsRequest({
           type: CompletionStatus.Successful,
           value,
