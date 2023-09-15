@@ -7,7 +7,7 @@ import logger from "./logger";
 import prisma from "./prisma";
 import { DFRequestContext, Workspace, WorkspaceMemberRole } from "./types";
 
-export const SESSION_KEY = "df-session-key";
+export const SESSION_KEY = "df-session-key" as const;
 
 export enum RequestContextErrorType {
   Unauthorized = "Unauthorized",
@@ -285,12 +285,6 @@ export async function getRequestContext(
       return getAnonymousRequestContext();
     }
     case "single-tenant": {
-      logger().debug(
-        {
-          headers,
-        },
-        "request context: single-tenant auth mode"
-      );
       if (headers[SESSION_KEY] !== "true") {
         return err({
           type: RequestContextErrorType.NotAuthenticated,

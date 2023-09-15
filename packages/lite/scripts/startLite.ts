@@ -10,6 +10,7 @@ import {
 } from "@temporalio/worker";
 import { BOOTSTRAP_OPTIONS, bootstrapHandler } from "admin-cli/src/bootstrap";
 import buildApp from "api/src/buildApp";
+import { requestToSessionValue } from "api/src/buildApp/requestContext";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import { SESSION_KEY } from "backend-lib/src/requestContext";
@@ -100,10 +101,11 @@ async function startLite() {
     method: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"],
     url: "/*",
     handler: async (req, reply) => {
-      const hasSession = req.session.get(SESSION_KEY) === true;
-
       // eslint-disable-next-line no-param-reassign
-      req.raw.headers[SESSION_KEY] = hasSession ? "true" : "false";
+      req.raw.headers = {
+        ...req.raw.headers,
+        ...requestToSessionValue(req),
+      };
       await nextHandler(req.raw, reply.raw);
 
       // eslint-disable-next-line no-param-reassign
