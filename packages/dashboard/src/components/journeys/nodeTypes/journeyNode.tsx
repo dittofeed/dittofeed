@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { round } from "isomorphic-lib/src/numbers";
 import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
+import { useRouter } from "next/router";
 import { Handle, NodeProps, Position } from "reactflow";
 
 import { useAppStore, useAppStorePick } from "../../../lib/appStore";
@@ -211,20 +212,27 @@ function StatCategory({ label, rate }: { label: string; rate: number }) {
 }
 
 export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
+  const path = useRouter();
   const theme = useTheme();
   const {
     segments,
     messages,
     journeySelectedNodeId: selectedNodeId,
     setSelectedNodeId,
-    journeyStatsRequest,
+    journeyStats,
   } = useAppStorePick([
     "segments",
     "messages",
     "journeySelectedNodeId",
+    "journeyStats",
     "setSelectedNodeId",
-    "journeyStatsRequest",
   ]);
+
+  const { id: journeyId } = path.query;
+  if (!journeyId || typeof journeyId !== "string") {
+    return null;
+  }
+
   const config = journNodeTypeToConfig(data.nodeTypeProps);
   const isSelected = selectedNodeId === id;
 
@@ -275,10 +283,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
     config.body
   );
 
-  const stats =
-    isSelected && journeyStatsRequest.type === CompletionStatus.Successful
-      ? journeyStatsRequest.value.nodeStats[id]
-      : undefined;
+  const stats = isSelected && journeyStats[journeyId]?.nodeStats[id];
 
   const contents = (
     <Stack

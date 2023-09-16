@@ -179,6 +179,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     journeyDraggedComponentType: draggedComponentType,
     apiBase,
     workspace,
+    upsertJourneyStats,
     setJourneyStatsRequest,
   } = useAppStorePick([
     "apiBase",
@@ -190,6 +191,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "journeyDraggedComponentType",
     "workspace",
     "setJourneyStatsRequest",
+    "upsertJourneyStats",
   ]);
 
   React.useEffect(() => {
@@ -210,16 +212,12 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
         });
         const value = unwrap(
           schemaValidateWithErr(response.data, JourneyStatsResponse)
-        )[0];
+        );
 
-        if (!value) {
-          console.log("No journey stats found");
-          return;
-        }
         setJourneyStatsRequest({
-          type: CompletionStatus.Successful,
-          value,
+          type: CompletionStatus.NotStarted,
         });
+        upsertJourneyStats(value);
       } catch (e) {
         const error = e as Error;
 
