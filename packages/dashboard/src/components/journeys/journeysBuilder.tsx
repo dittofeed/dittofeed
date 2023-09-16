@@ -7,7 +7,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import {
   CompletionStatus,
   JourneyNodeType,
-  JourneyStats,
+  JourneyStatsRequest,
   JourneyStatsResponse,
 } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
@@ -201,11 +201,12 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
         type: CompletionStatus.InProgress,
       });
       try {
+        const params: JourneyStatsRequest = {
+          workspaceId: workspace.value.id,
+          journeyIds: [journeyId],
+        };
         const response = await axios.get(`${apiBase}/api/journeys/stats`, {
-          params: {
-            workspaceId: workspace.value.id,
-            journeyId,
-          },
+          params,
         });
         const value = unwrap(
           schemaValidateWithErr(response.data, JourneyStatsResponse)

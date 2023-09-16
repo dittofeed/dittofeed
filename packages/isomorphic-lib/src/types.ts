@@ -1618,3 +1618,10 @@ export type JourneyStats = Static<typeof JourneyStats>;
 export const JourneyStatsResponse = Type.Array(JourneyStats);
 
 export type JourneyStatsResponse = Static<typeof JourneyStatsResponse>;
+
+export const JourneyStatsRequest = Type.Object({
+  workspaceId: Type.String(),
+  journeyIds: Type.Optional(Type.Array(Type.String())),
+});
+
+export type JourneyStatsRequest = Static<typeof JourneyStatsRequest>;
