@@ -34,6 +34,7 @@ import {
   JourneyNodeProps,
   NodeData,
 } from "../../lib/types";
+import { useJourneyStats } from "../../lib/useJourneyStats";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
@@ -193,6 +194,17 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "setJourneyStatsRequest",
     "upsertJourneyStats",
   ]);
+
+  useJourneyStats({
+    journeyIds: [journeyId],
+    workspaceId:
+      workspace.type === CompletionStatus.Successful
+        ? workspace.value.id
+        : undefined,
+    apiBase,
+    setJourneyStatsRequest,
+    upsertJourneyStats,
+  });
 
   React.useEffect(() => {
     if (workspace.type !== CompletionStatus.Successful) {
