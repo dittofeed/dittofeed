@@ -170,6 +170,7 @@ export default function MessagesPage() {
         rows={rows}
         sx={{ width: "100%" }}
         getRowId={(row) => row.id}
+        autoHeight
         hideFooter
         columns={[
           {
