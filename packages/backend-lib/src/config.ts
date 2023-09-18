@@ -189,29 +189,19 @@ function parseDatabaseUrl(rawConfig: RawConfig) {
   }
 
   if (
-    rawConfig.databaseUser &&
-    rawConfig.databasePassword &&
-    rawConfig.databaseHost &&
-    rawConfig.databasePort
+    rawConfig.nodeEnv === NodeEnvEnum.Production &&
+    !(rawConfig.databaseUser && rawConfig.databasePassword)
   ) {
-    const url = new URL(
-      `postgresql://${rawConfig.databaseUser}:${rawConfig.databasePassword}@${rawConfig.databaseHost}:${rawConfig.databasePort}/dittofeed`
-    );
-    url.search = new URLSearchParams({
-      ...defaultDbParams,
-    }).toString();
-
-    return url.toString();
+    throw new Error("In production must provide database credentials");
   }
 
-  if (rawConfig.nodeEnv === NodeEnvEnum.Production) {
-    throw new Error(
-      "In production must either specify databaseUrl or all of databaseUser, databasePassword, databaseHost, databasePort"
-    );
-  }
+  const databaseUser = rawConfig.databaseUser ?? "postgres";
+  const databasePassword = rawConfig.databasePassword ?? "password";
+  const databaseHost = rawConfig.databaseHost ?? "localhost";
+  const databasePort = rawConfig.databasePort ?? "5432";
 
   const url = new URL(
-    "postgresql://postgres:password@localhost:5432/dittofeed"
+    `postgresql://${databaseUser}:${databasePassword}@${databaseHost}:${databasePort}/dittofeed`
   );
   url.search = new URLSearchParams({
     ...defaultDbParams,
