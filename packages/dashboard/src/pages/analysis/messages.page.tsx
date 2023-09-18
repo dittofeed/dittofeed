@@ -95,6 +95,22 @@ interface MessageRow {
   messageChannel: ChannelType;
   messageName: string;
   sendRate: number;
+  clickRate: number;
+  deliveryRate: number;
+  openRate: number;
+  spamRate: number;
+}
+
+function StatCell({ value }: { value: number }) {
+  return (
+    <Box
+      sx={{
+        fontFamily: "monospace",
+      }}
+    >
+      {round(value * 100, 2)}%
+    </Box>
+  );
 }
 
 export default function MessagesPage() {
@@ -127,7 +143,7 @@ export default function MessagesPage() {
   if (messages.type !== CompletionStatus.Successful) {
     return [];
   }
-  // FIXME 1 journey missing
+
   const rows: MessageRow[] =
     journeys.type === CompletionStatus.Successful
       ? journeys.value.flatMap((journey) => {
@@ -148,7 +164,7 @@ export default function MessagesPage() {
             }
             const nodeStats = stats?.nodeStats[node.id];
 
-            return {
+            const row: MessageRow = {
               id: `${journey.id}-${node.id}`,
               journeyName: journey.name,
               journeyId: journey.id,
@@ -156,7 +172,12 @@ export default function MessagesPage() {
               messageChannel: message.definition.type,
               messageName: message.name,
               sendRate: nodeStats?.sendRate ?? 0,
+              clickRate: nodeStats?.channelStats.clickRate ?? 0,
+              deliveryRate: nodeStats?.channelStats.deliveryRate ?? 0,
+              openRate: nodeStats?.channelStats.openRate ?? 0,
+              spamRate: nodeStats?.channelStats.spamRate ?? 0,
             };
+            return row;
           });
         })
       : [];
@@ -178,7 +199,7 @@ export default function MessagesPage() {
             flex: 1,
             renderHeader: () => (
               <Tooltip title="Journey">
-                <Typography>Journey</Typography>
+                <Typography variant="subtitle2">Journey</Typography>
               </Tooltip>
             ),
             renderCell: (params) => (
@@ -194,7 +215,7 @@ export default function MessagesPage() {
             flex: 1,
             renderHeader: () => (
               <Tooltip title="Message">
-                <Typography>Message</Typography>
+                <Typography variant="subtitle2">Message</Typography>
               </Tooltip>
             ),
             renderCell: (params) => (
@@ -212,16 +233,43 @@ export default function MessagesPage() {
           },
           {
             field: "sendRate",
-            flex: 0.5,
-            renderCell: (params) => (
-              <Box
-                sx={{
-                  fontFamily: "monospace",
-                }}
-              >
-                {round(params.row.sendRate * 100, 2)}%
-              </Box>
+            flex: 0.25,
+            renderHeader: () => (
+              <Typography variant="subtitle2">Send Rate</Typography>
             ),
+            renderCell: (params) => <StatCell value={params.row.sendRate} />,
+          },
+          {
+            field: "deliveryRate",
+            flex: 0.25,
+            renderHeader: () => (
+              <Typography variant="subtitle2">Delivery Rate</Typography>
+            ),
+            renderCell: (params) => <StatCell value={params.row.sendRate} />,
+          },
+          {
+            field: "openRate",
+            flex: 0.25,
+            renderHeader: () => (
+              <Typography variant="subtitle2">Open Rate</Typography>
+            ),
+            renderCell: (params) => <StatCell value={params.row.sendRate} />,
+          },
+          {
+            field: "clickRate",
+            flex: 0.25,
+            renderHeader: () => (
+              <Typography variant="subtitle2">Click Rate</Typography>
+            ),
+            renderCell: (params) => <StatCell value={params.row.sendRate} />,
+          },
+          {
+            field: "spamRate",
+            flex: 0.25,
+            renderHeader: () => (
+              <Typography variant="subtitle2">Spam Rate</Typography>
+            ),
+            renderCell: (params) => <StatCell value={params.row.sendRate} />,
           },
         ]}
       />
