@@ -1,9 +1,10 @@
-import { Delete } from "@mui/icons-material";
+import { CloseOutlined, Delete } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
   Button,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -482,6 +483,10 @@ function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
 }
 
 function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
+  const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId)
+  const closeNodeEditor = () => {
+    setSelectedNodeId(null)
+  }
   return (
     <Stack
       sx={{
@@ -489,14 +494,20 @@ function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
         height: "100%",
       }}
     >
-      <Typography
-        variant="h5"
-        sx={{
-          padding: 2,
-        }}
-      >
-        Edit {journeyNodeLabel(node.data.nodeTypeProps.type)}
-      </Typography>
+      <Stack sx={{
+            padding: 2,
+          }} alignItems="center" direction="row">
+        <Typography
+          variant="h5"
+          
+          flexGrow={1}
+        >
+          Edit {journeyNodeLabel(node.data.nodeTypeProps.type)}
+        </Typography>
+        <IconButton onClick={closeNodeEditor}>
+          <CloseOutlined />
+        </IconButton>
+      </Stack>
       <NodeFields node={node} />
     </Stack>
   );
@@ -522,15 +533,16 @@ export default function NodeEditor() {
     <Box
       id={journeyNodeEditorId}
       sx={{
-        width,
-        left: isOpen ? 0 : -width,
+        // uses full-width on mobile screens to avoid going off-screen
+        width: `min(100%, ${width}px)`,
+        right: isOpen ? 0 : -width,
         opacity: isOpen ? 1 : 0,
         visibility: isOpen ? "visible" : "hidden",
         height: "100%",
-        transition: `opacity ${transitionDuration} ease,visibility ${transitionDuration},left ${transitionDuration} cubic-bezier(0.820, 0.085, 0.395, 0.895)`,
+        transition: `opacity ${transitionDuration} ease,visibility ${transitionDuration},right ${transitionDuration} cubic-bezier(0.820, 0.085, 0.395, 0.895)`,
         border: `1px solid ${theme.palette.grey[200]}`,
         boxShadow: "0 4px 20px rgb(47 50 106 / 15%)",
-        position: "relative",
+        position: "absolute",
         zIndex: 20,
         backgroundColor: "white",
       }}
