@@ -1,5 +1,5 @@
 import { Box, Stack, Tabs, Tooltip, Typography } from "@mui/material";
-import { DataGrid, gridStringOrNumberComparator } from "@mui/x-data-grid";
+import { DataGrid } from "@mui/x-data-grid";
 import { findManyJourneys } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
