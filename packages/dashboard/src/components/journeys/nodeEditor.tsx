@@ -539,7 +539,7 @@ export default function NodeEditor() {
         opacity: isOpen ? 1 : 0,
         visibility: isOpen ? "visible" : "hidden",
         height: "100%",
-        transition: `opacity ${transitionDuration} ease,visibility ${transitionDuration},left ${transitionDuration} cubic-bezier(0.820, 0.085, 0.395, 0.895)`,
+        transition: `opacity ${transitionDuration} ease,visibility ${transitionDuration},right ${transitionDuration} cubic-bezier(0.820, 0.085, 0.395, 0.895)`,
         border: `1px solid ${theme.palette.grey[200]}`,
         boxShadow: "0 4px 20px rgb(47 50 106 / 15%)",
         position: "absolute",
