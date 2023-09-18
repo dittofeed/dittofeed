@@ -533,7 +533,8 @@ export default function NodeEditor() {
     <Box
       id={journeyNodeEditorId}
       sx={{
-        width,
+        // uses full-width on mobile screens to avoid going off-screen
+        width: `min(100%, ${width}px)`,
         right: isOpen ? 0 : -width,
         opacity: isOpen ? 1 : 0,
         visibility: isOpen ? "visible" : "hidden",
