@@ -1,7 +1,9 @@
-import { Box, Stack, Tabs } from "@mui/material";
+import { Box, Stack, Tabs, Typography } from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
 import { findManyJourneys } from "backend-lib/src/journeys";
+import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 
@@ -37,7 +39,7 @@ function AnalysisLayout({
       </Head>
       <main>
         <MainLayout>
-          <Stack direction="column" sx={{ width: "100%" }}>
+          <Stack direction="column" sx={{ width: "100%", p: 1 }} spacing={1}>
             <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
               <Tabs value={tabIndex}>
                 <TabLink label="Messages" href={basePath} index={0} />
@@ -55,14 +57,24 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const { workspace } = dfContext;
     const workspaceId = workspace.id;
-    const [] = await Promise.all([
+    const [journeys, messages] = await Promise.all([
       findManyJourneys({ where: { workspaceId } }).then(unwrap),
+      findMessageTemplates({ workspaceId }),
     ]);
 
     return {
       props: addInitialStateToProps({
         props: {},
-        serverInitialState: {},
+        serverInitialState: {
+          messages: {
+            type: CompletionStatus.Successful,
+            value: messages,
+          },
+          journeys: {
+            type: CompletionStatus.Successful,
+            value: journeys,
+          },
+        },
         dfContext,
       }),
     };
@@ -75,12 +87,14 @@ export default function MessagesPage() {
     journeys,
     upsertJourneyStats,
     setJourneyStatsRequest,
+    messages,
     workspace,
   } = useAppStorePick([
     "journeyStats",
     "journeys",
     "upsertJourneyStats",
     "setJourneyStatsRequest",
+    "messages",
     "workspace",
   ]);
   useJourneyStats({
@@ -93,9 +107,49 @@ export default function MessagesPage() {
     setJourneyStatsRequest,
   });
 
+  if (messages.type !== CompletionStatus.Successful) {
+    return [];
+  }
+  const rows =
+    journeys.type === CompletionStatus.Successful
+      ? journeys.value.flatMap((journey) =>
+          journey.definition.nodes.flatMap((node) => {
+            if (node.type !== JourneyNodeType.MessageNode) {
+              return [];
+            }
+            const messageId = node.variant.templateId;
+            const message = messages.value.find((m) => m.id === messageId);
+
+            if (!message) {
+              console.error(
+                `Message ${messageId} not found for journey ${journey.id}`
+              );
+              return [];
+            }
+
+            return {
+              id: `${journey.id}-${node.id}`,
+              journeyName: journey.name,
+              journeyId: journey.id,
+              messageId,
+              messageName: message.name,
+            };
+          })
+        )
+      : [];
   return (
     <AnalysisLayout tab="messages">
-      <h1>Messages</h1>
+      <Typography sx={{ padding: 1 }} variant="h5">
+        Journey Messages
+      </Typography>
+
+      <DataGrid
+        columns={[
+          { field: "journey" },
+          { field: "template" },
+          { field: "sendRate" },
+        ]}
+      />
       {journeys.type === CompletionStatus.Successful &&
         journeys.value.map((journey) => (
           <div key={journey.id}>
