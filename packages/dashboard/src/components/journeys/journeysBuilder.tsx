@@ -7,7 +7,8 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import {
   CompletionStatus,
   JourneyNodeType,
-  JourneyStats,
+  JourneyStatsRequest,
+  JourneyStatsResponse,
 } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
@@ -33,6 +34,7 @@ import {
   JourneyNodeProps,
   NodeData,
 } from "../../lib/types";
+import { useJourneyStats } from "../../lib/useJourneyStats";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
@@ -178,6 +180,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     journeyDraggedComponentType: draggedComponentType,
     apiBase,
     workspace,
+    upsertJourneyStats,
     setJourneyStatsRequest,
   } = useAppStorePick([
     "apiBase",
@@ -189,7 +192,19 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "journeyDraggedComponentType",
     "workspace",
     "setJourneyStatsRequest",
+    "upsertJourneyStats",
   ]);
+
+  useJourneyStats({
+    journeyIds: [journeyId],
+    workspaceId:
+      workspace.type === CompletionStatus.Successful
+        ? workspace.value.id
+        : undefined,
+    apiBase,
+    setJourneyStatsRequest,
+    upsertJourneyStats,
+  });
 
   React.useEffect(() => {
     if (workspace.type !== CompletionStatus.Successful) {
@@ -200,20 +215,21 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
         type: CompletionStatus.InProgress,
       });
       try {
+        const params: JourneyStatsRequest = {
+          workspaceId: workspace.value.id,
+          journeyIds: [journeyId],
+        };
         const response = await axios.get(`${apiBase}/api/journeys/stats`, {
-          params: {
-            workspaceId: workspace.value.id,
-            journeyId,
-          },
+          params,
         });
         const value = unwrap(
-          schemaValidateWithErr(response.data, JourneyStats)
+          schemaValidateWithErr(response.data, JourneyStatsResponse)
         );
 
         setJourneyStatsRequest({
-          type: CompletionStatus.Successful,
-          value,
+          type: CompletionStatus.NotStarted,
         });
+        upsertJourneyStats(value);
       } catch (e) {
         const error = e as Error;
 

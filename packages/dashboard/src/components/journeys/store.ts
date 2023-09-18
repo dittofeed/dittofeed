@@ -866,6 +866,13 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
   journeyStatsRequest: {
     type: CompletionStatus.NotStarted,
   },
+  journeyStats: {},
+  upsertJourneyStats: (stats) =>
+    set((state) => {
+      for (const journeyStats of stats) {
+        state.journeyStats[journeyStats.journeyId] = journeyStats;
+      }
+    }),
   setEdges: (changes: EdgeChange[]) =>
     set((state) => {
       state.journeyEdges = applyEdgeChanges(changes, state.journeyEdges);

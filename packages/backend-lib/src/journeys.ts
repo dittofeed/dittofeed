@@ -100,16 +100,16 @@ const isValueInEnum = <T extends Record<string, string>>(
 ): value is T[keyof T] =>
   Object.values(enumObject).includes(value as T[keyof T]);
 
-export async function getJourneyStats({
+export async function getJourneysStats({
   workspaceId,
-  journeyId,
+  journeyIds,
 }: {
   workspaceId: string;
-  journeyId: string;
-}): Promise<JourneyStats | null> {
+  journeyIds: string[];
+}): Promise<JourneyStats[]> {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
-  const journeyIdQuery = qb.addQueryValue(journeyId, "String");
+  const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
   const currentTable = buildUserEventsTableName(
     (
@@ -148,7 +148,7 @@ export async function getJourneyStats({
         from ${currentTable}
         where
             workspace_id = ${workspaceIdQuery}
-            and journey_id = ${journeyIdQuery}
+            and journey_id in ${journeyIdsQuery}
             and event_type = 'track'
             and (
                 event = 'DFInternalMessageSent'
@@ -166,21 +166,20 @@ export async function getJourneyStats({
     )
     group by event, node_id;`;
 
-  const [statsResultSet, journey] = await Promise.all([
+  const [statsResultSet, journeys] = await Promise.all([
     clickhouseClient().query({
       query,
       query_params: qb.getQueries(),
       format: "JSONEachRow",
     }),
-    prisma().journey.findUnique({
+    prisma().journey.findMany({
       where: {
-        id: journeyId,
+        id: {
+          in: journeyIds,
+        },
       },
     }),
   ]);
-  if (!journey) {
-    return null;
-  }
 
   const stream = statsResultSet.stream();
   const statsMap = new Map<string, MapWithDefault<InternalEventType, number>>();
@@ -193,7 +192,7 @@ export async function getJourneyStats({
         const validated = schemaValidateWithErr(json, JourneyMessageStatsRow);
         if (validated.isErr()) {
           logger().error(
-            { workspaceId, journeyId, err: validated.error },
+            { workspaceId, err: validated.error },
             "Failed to validate row from clickhouse for journey stats"
           );
           return;
@@ -207,7 +206,6 @@ export async function getJourneyStats({
             {
               event,
               workspaceId,
-              journeyId,
             },
             "got unknown event type in journey stats"
           );
@@ -230,59 +228,69 @@ export async function getJourneyStats({
     ...rowPromises,
   ]);
 
-  const { definition } = unwrap(enrichJourney(journey));
+  const enrichedJourneys = journeys.map((journey) =>
+    unwrap(enrichJourney(journey))
+  );
 
-  const stats: JourneyStats = {
-    workspaceId,
-    journeyId,
-    nodeStats: {},
-  };
+  const journeysStats: JourneyStats[] = [];
 
-  for (const node of definition.nodes) {
-    if (
-      node.type !== JourneyNodeType.MessageNode ||
-      node.variant.type !== ChannelType.Email
-    ) {
-      continue;
-    }
-    const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
+  for (const journey of enrichedJourneys) {
+    const journeyId = journey.id;
+    const { definition } = journey;
 
-    const sent = nodeStats.get(InternalEventType.MessageSent);
-    const badConfig = nodeStats.get(
-      InternalEventType.BadWorkspaceConfiguration
-    );
-    const messageFailure = nodeStats.get(InternalEventType.MessageFailure);
-    const delivered = nodeStats.get(InternalEventType.EmailDelivered);
-    const spam = nodeStats.get(InternalEventType.EmailMarkedSpam);
-    const opened = nodeStats.get(InternalEventType.EmailOpened);
-    const clicked = nodeStats.get(InternalEventType.EmailClicked);
-    const total = sent + badConfig + messageFailure;
-
-    let sendRate = 0;
-    let deliveryRate = 0;
-    let openRate = 0;
-    let clickRate = 0;
-    let spamRate = 0;
-    if (total > 0) {
-      sendRate = sent / total;
-      deliveryRate = delivered / total;
-      openRate = opened / total;
-      clickRate = clicked / total;
-      spamRate = spam / total;
-    }
-
-    stats.nodeStats[node.id] = {
-      type: NodeStatsType.MessageNodeStats,
-      sendRate,
-      channelStats: {
-        type: ChannelType.Email,
-        deliveryRate,
-        openRate,
-        spamRate,
-        clickRate,
-      },
+    const stats: JourneyStats = {
+      workspaceId,
+      journeyId,
+      nodeStats: {},
     };
+    journeysStats.push(stats);
+
+    for (const node of definition.nodes) {
+      if (
+        node.type !== JourneyNodeType.MessageNode ||
+        node.variant.type !== ChannelType.Email
+      ) {
+        continue;
+      }
+      const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
+
+      const sent = nodeStats.get(InternalEventType.MessageSent);
+      const badConfig = nodeStats.get(
+        InternalEventType.BadWorkspaceConfiguration
+      );
+      const messageFailure = nodeStats.get(InternalEventType.MessageFailure);
+      const delivered = nodeStats.get(InternalEventType.EmailDelivered);
+      const spam = nodeStats.get(InternalEventType.EmailMarkedSpam);
+      const opened = nodeStats.get(InternalEventType.EmailOpened);
+      const clicked = nodeStats.get(InternalEventType.EmailClicked);
+      const total = sent + badConfig + messageFailure;
+
+      let sendRate = 0;
+      let deliveryRate = 0;
+      let openRate = 0;
+      let clickRate = 0;
+      let spamRate = 0;
+      if (total > 0) {
+        sendRate = sent / total;
+        deliveryRate = delivered / total;
+        openRate = opened / total;
+        clickRate = clicked / total;
+        spamRate = spam / total;
+      }
+
+      stats.nodeStats[node.id] = {
+        type: NodeStatsType.MessageNodeStats,
+        sendRate,
+        channelStats: {
+          type: ChannelType.Email,
+          deliveryRate,
+          openRate,
+          spamRate,
+          clickRate,
+        },
+      };
+    }
   }
 
-  return stats;
+  return journeysStats;
 }

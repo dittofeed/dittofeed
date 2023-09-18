@@ -1,5 +1,5 @@
-import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { getJourneyStats } from "backend-lib/src/journeys";
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { getJourneysStats } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
@@ -8,7 +8,8 @@ import {
   Journey,
   JourneyDefinition,
   JourneyResource,
-  JourneyStats,
+  JourneyStatsRequest,
+  JourneyStatsResponse,
   Prisma,
   UpsertJourneyResource,
 } from "backend-lib/src/types";
@@ -136,24 +137,34 @@ export default async function journeysController(fastify: FastifyInstance) {
     "/stats",
     {
       schema: {
-        description: "Retrieve stats regarding a journey's performance.",
-        querystring: Type.Object({
-          workspaceId: Type.String(),
-          journeyId: Type.String(),
-        }),
+        description:
+          "Retrieve stats regarding one or more journey's performance.",
+        querystring: JourneyStatsRequest,
         response: {
-          200: JourneyStats,
+          200: JourneyStatsResponse,
         },
       },
     },
     async (request, reply) => {
-      const stats = await getJourneyStats({
-        workspaceId: request.query.workspaceId,
-        journeyId: request.query.journeyId,
-      });
-      if (!stats) {
-        return reply.status(404).send();
+      let journeyIds: string[];
+      if (request.query.journeyIds) {
+        journeyIds = request.query.journeyIds;
+      } else {
+        journeyIds = (
+          await prisma().journey.findMany({
+            where: {
+              workspaceId: request.query.workspaceId,
+            },
+            select: {
+              id: true,
+            },
+          })
+        ).map((journey) => journey.id);
       }
+      const stats = await getJourneysStats({
+        workspaceId: request.query.workspaceId,
+        journeyIds,
+      });
       return reply.status(200).send(stats);
     }
   );

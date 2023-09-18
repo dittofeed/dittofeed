@@ -13,6 +13,7 @@ import {
   JourneyNodeType,
   JourneyResource,
   JourneyStats,
+  JourneyStatsResponse,
   MessageTemplateResource,
   PersistedEmailProvider,
   RequestStatus,
@@ -259,7 +260,8 @@ export interface JourneyState {
   journeyNodesIndex: Record<string, number>;
   journeyEdges: Edge<EdgeData>[];
   journeyUpdateRequest: EphemeralRequestStatus<Error>;
-  journeyStatsRequest: RequestStatus<JourneyStats, Error>;
+  journeyStats: Record<string, JourneyStats>;
+  journeyStatsRequest: EphemeralRequestStatus<Error>;
 }
 
 export interface AddNodesParams {
@@ -283,7 +285,8 @@ export interface JourneyContent extends JourneyState {
   setJourneyUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   setJourneyName: (name: string) => void;
   updateLabelNode: (nodeId: string, title: string) => void;
-  setJourneyStatsRequest: (request: RequestStatus<JourneyStats, Error>) => void;
+  setJourneyStatsRequest: (request: EphemeralRequestStatus<Error>) => void;
+  upsertJourneyStats: (stats: JourneyStatsResponse) => void;
 }
 
 export type PageStoreContents = EmailMessageEditorContents &
