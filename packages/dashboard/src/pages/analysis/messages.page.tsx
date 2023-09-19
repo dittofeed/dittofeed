@@ -245,7 +245,9 @@ export default function MessagesPage() {
             renderHeader: () => (
               <Typography variant="subtitle2">Delivery Rate</Typography>
             ),
-            renderCell: (params) => <StatCell value={params.row.sendRate} />,
+            renderCell: (params) => (
+              <StatCell value={params.row.deliveryRate} />
+            ),
           },
           {
             field: "openRate",
@@ -253,7 +255,7 @@ export default function MessagesPage() {
             renderHeader: () => (
               <Typography variant="subtitle2">Open Rate</Typography>
             ),
-            renderCell: (params) => <StatCell value={params.row.sendRate} />,
+            renderCell: (params) => <StatCell value={params.row.openRate} />,
           },
           {
             field: "clickRate",
@@ -261,7 +263,7 @@ export default function MessagesPage() {
             renderHeader: () => (
               <Typography variant="subtitle2">Click Rate</Typography>
             ),
-            renderCell: (params) => <StatCell value={params.row.sendRate} />,
+            renderCell: (params) => <StatCell value={params.row.clickRate} />,
           },
           {
             field: "spamRate",
@@ -269,7 +271,7 @@ export default function MessagesPage() {
             renderHeader: () => (
               <Typography variant="subtitle2">Spam Rate</Typography>
             ),
-            renderCell: (params) => <StatCell value={params.row.sendRate} />,
+            renderCell: (params) => <StatCell value={params.row.spamRate} />,
           },
         ]}
       />
