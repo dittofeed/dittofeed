@@ -13,9 +13,9 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
-    "@sinclair/typebox": "^0.31.5",
-    "@temporalio/interceptors-opentelemetry": "^1.8.4",
-    "@temporalio/worker": "^1.8.4",
+    "@sinclair/typebox": "0.31.5",
+    "@temporalio/interceptors-opentelemetry": "1.8.4",
+    "@temporalio/worker": "1.8.4",
     "backend-lib": "0.0.3",
     "utility-types": "^3.10.0"
   },
