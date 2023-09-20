@@ -36,9 +36,9 @@ services:
     dockerfilePath: ./packages/lite/Dockerfile
     dockerContext: .
     # Setting Node.js max-old-space-size to 312 MB.
-    # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
+    # This is calculated as follows: Total RAM (512 MB) - Buffer (200 MB) -
     # Memory for other processes (100 MB).
-    dockerCommand: node --max-old-space-size=312 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
+    dockerCommand: node --max-old-space-size=212 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
@@ -47,7 +47,7 @@ services:
       - key: REUSE_CONTEXT
         value: "true"
       - key: MAX_CACHED_WORKFLOWS
-        value: "25"
+        value: "10"
       - key: DATABASE_HOST
         fromDatabase:
           name: dittofeed-db
