@@ -11,7 +11,7 @@
   "dependencies": {
     "@fastify/secure-session": "^7.1.0",
     "@sinclair/typebox": "^0.31.5",
-    "@temporalio/worker": "^1.8.4",
+    "@temporalio/worker": "1.8.4",
     "admin-cli": "0.0.1",
     "api": "0.0.3",
     "backend-lib": "0.0.3",
