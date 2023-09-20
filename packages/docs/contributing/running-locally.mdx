@@ -7,11 +7,8 @@ To run Dittofeed locally, start docker compose, build the dashboard, and then ru
 ```bash
 docker compose up -d
 # Builds all of the dashboard dependencies including those required by the
-# bootstrap script
+# bootstrap script, then runs bootstrap.
 ./dev-setup.sh
-# The bootstrap script will run migrations and seed data stores with default
-# resources.
-yarn admin bootstrap
 ```
 
 Then run the service components in separate terminal windows.
