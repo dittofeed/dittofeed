@@ -6,8 +6,5 @@
     "install": "mintlify install",
     "dev": "mintlify dev"
   },
-  "devDependencies": {
-    "mintlify": "^3.0.79"
-  },
   "license": "LicenseRef-LICENSE"
 }
