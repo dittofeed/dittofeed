@@ -6,9 +6,9 @@
     "light": "/logo/light.png"
   },
   "api": {
-    "baseUrl": "https://api.dittofeed.com",
+    "baseUrl": "https://demo.dittofeed.com",
     "playground": {
-      "mode": "hide"
+      "mode": "show"
     }
   },
   "favicon": "/favicon.png",
@@ -163,13 +163,13 @@
     {
       "group": "API Reference",
       "pages": [
-        "api-reference/endpoints/webhooks/segment",
         "api-reference/endpoints/apps/identify",
         "api-reference/endpoints/apps/track",
         "api-reference/endpoints/apps/page",
         "api-reference/endpoints/apps/screen",
         "api-reference/endpoints/apps/batch",
-        "api-reference/endpoints/subscription-management/user-subscriptions"
+        "api-reference/endpoints/subscription-management/user-subscriptions",
+        "api-reference/endpoints/webhooks/segment"
       ]
     },
     {
