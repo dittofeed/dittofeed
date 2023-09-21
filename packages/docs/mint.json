@@ -6,9 +6,9 @@
     "light": "/logo/light.png"
   },
   "api": {
-    "baseUrl": "https://api.dittofeed.com",
+    "baseUrl": "https://demo.dittofeed.com",
     "playground": {
-      "mode": "hide"
+      "mode": "show"
     }
   },
   "favicon": "/favicon.png",
