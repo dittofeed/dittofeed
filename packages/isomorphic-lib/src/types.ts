@@ -1434,10 +1434,37 @@ const BatchItem = Type.Union([
 
 export type BatchItem = Static<typeof BatchItem>;
 
-export const BatchAppData = Type.Object({
-  batch: Type.Array(BatchItem),
-  context: AppDataContext,
-});
+export const BatchAppData = Type.Object(
+  {
+    batch: Type.Array(BatchItem),
+    context: AppDataContext,
+  },
+  {
+    examples: [
+      {
+        batch: [
+          {
+            type: "track",
+            event: "Signed Up",
+            userId: "1043",
+            properties: {
+              plan: "Enterprise",
+            },
+            messageId: "1ff51c9c-4929-45de-8914-3bb878be8c4a",
+          },
+          {
+            type: "identify",
+            userId: "532",
+            traits: {
+              email: "john@email.com",
+            },
+            messageId: "6f5f436d-8534-4070-8023-d18f8b78ed39",
+          },
+        ],
+      },
+    ],
+  }
+);
 
 export type BatchAppData = Static<typeof BatchAppData>;
 
