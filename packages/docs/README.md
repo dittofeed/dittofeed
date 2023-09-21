@@ -4,6 +4,12 @@ Documentation Dittofeed, available at [https://dittofeed.mintlify.app/](https://
 
 ## Contributing
 
+Install mintlify
+
+```
+npm i -g mintlify
+```
+
 Run the mintlify dev server.
 
 ```bash

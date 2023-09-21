@@ -33,8 +33,5 @@
     "ts-node": "^10.9.1",
     "typescript": "^5.2.0-dev.20230606"
   },
-  "packageManager": "yarn@3.6.0",
-  "dependencies": {
-    "mintlify": "^3.0.79"
-  }
+  "packageManager": "yarn@3.6.0"
 }
