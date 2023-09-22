@@ -19,6 +19,7 @@ import {
   WaitForNode,
 } from "../types";
 import type * as activities from "./userWorkflow/activities";
+import { onNodeProcessedV2 } from "./userWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -286,12 +287,22 @@ export async function userJourneyWorkflow({
         break;
     }
 
-    await onNodeProcessed({
-      userId,
-      node: currentNode,
-      journeyStartedAt,
-      journeyId,
-    });
+    if (wf.patched("upgrade-on-node-processed")) {
+      await onNodeProcessedV2({
+        workspaceId,
+        userId,
+        node: currentNode,
+        journeyStartedAt,
+        journeyId,
+      });
+    } else {
+      await onNodeProcessed({
+        userId,
+        node: currentNode,
+        journeyStartedAt,
+        journeyId,
+      });
+    }
     currentNode = nextNode;
   }
 }
