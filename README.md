@@ -52,6 +52,12 @@
 
 <br />
 
+## Deployment
+
+Click Deploy to Render below and follow the prompts to deploy Dittofeed on Render. See the "Self-Host with Render" [docs for more info](https://dittofeed.com/deployment/self-hosted/render).
+
+<a href="https://render.com/deploy?repo=https://github.com/dittofeed/dittofeed" target="_blank" rel="nofollow"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy To Render"></a>
+
 ## Developer-centric
 
 Beyond having industry-standard GUI tools, we focus on developer happiness with first-in-class dev-focused features:
