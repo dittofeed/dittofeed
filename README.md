@@ -52,6 +52,21 @@
 
 <br />
 
+### Dashboard Views
+
+<details>
+  <summary><b>Journey Builder</b></summary>
+  <img alt="Customer Journeys" src="packages/docs/images/journeys_github.png">
+</details>
+<details>
+  <summary><b>Segmentation</b></summary>
+  <img alt="User Segmentation" src="packages/docs/images/segments_github.png">
+</details>
+<details>
+  <summary><b>Template Editor</b></summary>
+  <img alt="Messaging Templates" src="packages/docs/images/templates_github.png">
+</details>
+
 ## Deployment
 
 Click Deploy to Render below and follow the prompts to deploy Dittofeed on Render. See the "Self-Host with Render" [docs for more info](https://docs.dittofeed.com/deployment/self-hosted/render).
