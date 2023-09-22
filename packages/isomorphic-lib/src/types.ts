@@ -846,6 +846,7 @@ export type RequestStatus<V, E> =
 
 export enum EmailProviderType {
   Sendgrid = "SendGrid",
+  SES = "SES",
   Test = "Test",
 }
 

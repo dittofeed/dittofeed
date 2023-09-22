@@ -92,6 +92,7 @@ export default async function settingsController(fastify: FastifyInstance) {
       const { id, workspaceId, type, apiKey } = request.body;
       const canCreate = workspaceId && type && apiKey;
 
+      // FIXME may or may not need to update this endpoint and schema depending on ses spec
       if (workspaceId && type) {
         if (canCreate) {
           emailProvider = await prisma().emailProvider.upsert({

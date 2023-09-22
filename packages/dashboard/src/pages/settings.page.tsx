@@ -416,6 +416,7 @@ function SegmentIoConfig() {
     </Stack>
   );
 }
+// FIXME add SES config component
 
 function SendGridConfig() {
   const theme = useTheme();

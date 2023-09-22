@@ -453,6 +453,10 @@ async function sendEmailWithPayload(
       }
 
       switch (channelConfig.emailProvider.type) {
+        case EmailProviderType.SES: {
+          // FIXME
+          break;
+        }
         case EmailProviderType.Sendgrid: {
           const headers: Record<string, string> = {};
           const mailData: MailDataRequired = {

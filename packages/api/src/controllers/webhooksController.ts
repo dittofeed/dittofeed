@@ -18,6 +18,7 @@ import { WorkspaceId } from "isomorphic-lib/src/types";
 
 import { getWorkspaceId } from "../workspace";
 
+// FIXME add webhook support for SES tracking events
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
