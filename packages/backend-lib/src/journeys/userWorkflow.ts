@@ -19,7 +19,6 @@ import {
   WaitForNode,
 } from "../types";
 import type * as activities from "./userWorkflow/activities";
-import { onNodeProcessedV2 } from "./userWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -32,6 +31,7 @@ const {
   sendEmail,
   getSegmentAssignment,
   onNodeProcessed,
+  onNodeProcessedV2,
   isRunnable,
   sendMobilePush,
 } = proxyActivities<typeof activities>({
@@ -287,7 +287,7 @@ export async function userJourneyWorkflow({
         break;
     }
 
-    if (wf.patched("upgrade-on-node-processed")) {
+    if (wf.patched("on-node-processed-v2")) {
       await onNodeProcessedV2({
         workspaceId,
         userId,
