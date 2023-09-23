@@ -2,9 +2,5 @@
   "name": "docs",
   "version": "0.0.3",
   "private": true,
-  "scripts": {
-    "install": "mintlify install",
-    "dev": "mintlify dev"
-  },
   "license": "LicenseRef-LICENSE"
 }
