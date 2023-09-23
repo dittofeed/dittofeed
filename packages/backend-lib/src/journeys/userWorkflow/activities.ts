@@ -13,6 +13,7 @@ import {
 import { getNodeId } from "isomorphic-lib/src/journeys";
 import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
+import { v5 as uuidv5 } from "uuid";
 
 import { submitTrack } from "../../apps";
 import { sendNotification } from "../../destinations/fcm";
@@ -571,6 +572,65 @@ export async function onNodeProcessed({
       nodeId,
     },
   });
+}
+
+export async function onNodeProcessedV2({
+  journeyStartedAt,
+  userId,
+  node,
+  journeyId,
+  workspaceId,
+}: {
+  journeyStartedAt: number;
+  journeyId: string;
+  userId: string;
+  node: JourneyNode;
+  workspaceId: string;
+}) {
+  const journeyStartedAtDate = new Date(journeyStartedAt);
+  const nodeId = getNodeId(node);
+  const messageIdName = [
+    journeyStartedAt,
+    journeyId,
+    userId,
+    node.type,
+    nodeId,
+  ].join("-");
+  await Promise.all([
+    prisma().userJourneyEvent.upsert({
+      where: {
+        journeyId_userId_type_journeyStartedAt_nodeId: {
+          journeyStartedAt: journeyStartedAtDate,
+          journeyId,
+          userId,
+          type: node.type,
+          nodeId,
+        },
+      },
+      update: {},
+      create: {
+        journeyStartedAt: journeyStartedAtDate,
+        journeyId,
+        userId,
+        type: node.type,
+        nodeId,
+      },
+    }),
+    submitTrack({
+      workspaceId,
+      data: {
+        userId,
+        event: InternalEventType.JourneyNodeProcessed,
+        messageId: uuidv5(messageIdName, workspaceId),
+        properties: {
+          journeyId,
+          journeyStartedAt,
+          type: node.type,
+          nodeId,
+        },
+      },
+    }),
+  ]);
 }
 
 export type OnNodeProcessed = typeof onNodeProcessed;

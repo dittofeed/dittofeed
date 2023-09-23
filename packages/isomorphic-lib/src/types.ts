@@ -56,6 +56,7 @@ export enum InternalEventType {
   EmailClicked = "DFEmailClicked",
   EmailBounced = "DFEmailBounced",
   EmailMarkedSpam = "DFEmailMarkedSpam",
+  JourneyNodeProcessed = "DFJourneyNodeProcessed",
 }
 
 export enum SubscriptionGroupType {

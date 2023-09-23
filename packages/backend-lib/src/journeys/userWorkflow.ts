@@ -31,6 +31,7 @@ const {
   sendEmail,
   getSegmentAssignment,
   onNodeProcessed,
+  onNodeProcessedV2,
   isRunnable,
   sendMobilePush,
 } = proxyActivities<typeof activities>({
@@ -286,12 +287,22 @@ export async function userJourneyWorkflow({
         break;
     }
 
-    await onNodeProcessed({
-      userId,
-      node: currentNode,
-      journeyStartedAt,
-      journeyId,
-    });
+    if (wf.patched("on-node-processed-v2")) {
+      await onNodeProcessedV2({
+        workspaceId,
+        userId,
+        node: currentNode,
+        journeyStartedAt,
+        journeyId,
+      });
+    } else {
+      await onNodeProcessed({
+        userId,
+        node: currentNode,
+        journeyStartedAt,
+        journeyId,
+      });
+    }
     currentNode = nextNode;
   }
 }
