@@ -70,7 +70,15 @@ COPY --from=builder /service/packages/isomorphic-lib/package.json ./packages/iso
 ENV NODE_ENV=production \
     PRE_BUILT=true \
     AUTH_MODE='single-tenant' \
-    WORKSPACE_NAME=${WORKSPACE_NAME}
+    WORKSPACE_NAME=${WORKSPACE_NAME} \
+    PATH="$PATH:/root/.temporalio/bin"
+
+# provide admin-cli scripts entrypoint
+COPY ./packages/admin-cli/scripts/install-deps.sh ./
+COPY ./packages/admin-cli/scripts/admin.sh ./
+RUN chmod +x ./install-deps.sh && \
+    chmod +x ./admin.sh && \
+    ./install-deps.sh
 
 EXPOSE 3000
 
