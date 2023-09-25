@@ -705,6 +705,8 @@ export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
   offset: Type.Number(),
   limit: Type.Number(),
+  startDate: Type.Optional(Type.Number()),
+  endDate: Type.Optional(Type.Number()),
 });
 
 export type GetEventsRequest = Static<typeof GetEventsRequest>;

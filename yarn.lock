@@ -5702,7 +5702,7 @@ __metadata:
     prettier: ^2.8.3
     remeda: ^1.12.0
     ts-node: ^10.9.1
-    typescript: ^5.1.3
+    typescript: ^5.2.2
     yargs: ^17.7.2
   languageName: unknown
   linkType: soft
@@ -5917,7 +5917,7 @@ __metadata:
     remeda: ^1.12.0
     ts-node: ^10.9.1
     tsc-watch: ^6.0.0
-    typescript: ^5.2.0-dev.20230606
+    typescript: ^5.2.2
     utility-types: ^3.10.0
     uuid: ^9.0.0
     yargs: ^17.7.2
@@ -6351,7 +6351,7 @@ __metadata:
     prisma: ^5.2.0
     remeda: ^1.24.0
     ts-node: ^10.9.1
-    typescript: ^5.2.0-dev.20230606
+    typescript: ^5.2.2
     utility-types: ^3.10.0
     uuid: ^9.0.0
     yargs: ^17.7.2
@@ -7377,7 +7377,7 @@ __metadata:
     slate: ^0.87.0
     slate-history: ^0.86.0
     slate-react: ^0.88.0
-    typescript: ^5.2.0-dev.20230606
+    typescript: ^5.2.2
     unidiff: ^1.0.2
     use-debounce: ^9.0.2
     utility-types: ^3.10.0
@@ -7628,7 +7628,7 @@ __metadata:
     prettier: ^2.8.3
     ts-jest: ^29.0.5
     ts-node: ^10.9.1
-    typescript: ^5.2.0-dev.20230606
+    typescript: ^5.2.2
   languageName: unknown
   linkType: soft
 
@@ -10222,7 +10222,7 @@ __metadata:
     neverthrow: ^6.0.0
     prettier: ^2.8.3
     remeda: ^1.24.0
-    typescript: ^5.1.3
+    typescript: ^5.2.2
   languageName: unknown
   linkType: soft
 
@@ -11191,7 +11191,7 @@ __metadata:
     prettier: ^2.8.3
     ts-node: ^10.9.1
     tsc-watch: ^6.0.0
-    typescript: ^5.1.3
+    typescript: ^5.2.2
     utility-types: ^3.10.0
     worker: 0.0.3
     yargs: ^17.7.2
@@ -15053,43 +15053,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.1.3":
-  version: 5.1.3
-  resolution: "typescript@npm:5.1.3"
+"typescript@npm:^5.2.2":
+  version: 5.2.2
+  resolution: "typescript@npm:5.2.2"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: d9d51862d98efa46534f2800a1071a613751b1585dc78884807d0c179bcd93d6e9d4012a508e276742f5f33c480adefc52ffcafaf9e0e00ab641a14cde9a31c7
+  checksum: 7912821dac4d962d315c36800fe387cdc0a6298dba7ec171b350b4a6e988b51d7b8f051317786db1094bd7431d526b648aba7da8236607febb26cf5b871d2d3c
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.2.0-dev.20230606":
-  version: 5.2.0-dev.20230623
-  resolution: "typescript@npm:5.2.0-dev.20230623"
+"typescript@patch:typescript@^5.2.2#~builtin<compat/typescript>":
+  version: 5.2.2
+  resolution: "typescript@patch:typescript@npm%3A5.2.2#~builtin<compat/typescript>::version=5.2.2&hash=5da071"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: fe3863cc7b53c81c2ca38cee64ed331f8f3b4f9007f8f11d0b3137b2c9f2aa9940b468279ad7b301a5a44530c15e8b6e72851d5c821d343a4c78cf8a890bfba0
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@^5.1.3#~builtin<compat/typescript>":
-  version: 5.1.3
-  resolution: "typescript@patch:typescript@npm%3A5.1.3#~builtin<compat/typescript>::version=5.1.3&hash=5da071"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 6f0a9dca6bf4ce9dcaf4e282aade55ef4c56ecb5fb98d0a4a5c0113398815aea66d871b5611e83353e5953a19ed9ef103cf5a76ac0f276d550d1e7cd5344f61e
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@^5.2.0-dev.20230606#~builtin<compat/typescript>":
-  version: 5.2.0-dev.20230623
-  resolution: "typescript@patch:typescript@npm%3A5.2.0-dev.20230623#~builtin<compat/typescript>::version=5.2.0-dev.20230623&hash=5da071"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: af8d42ab310490473d037fe031c23e98641e42286b6e22aef8778269fdd63c07e896b38d69893edfe01988ced6b83fdf318ed654e711144839ec28b3608ad0a8
+  checksum: 07106822b4305de3f22835cbba949a2b35451cad50888759b6818421290ff95d522b38ef7919e70fb381c5fe9c1c643d7dea22c8b31652a717ddbd57b7f4d554
   languageName: node
   linkType: hard
 
@@ -15533,7 +15513,7 @@ __metadata:
     prettier: ^2.8.3
     ts-node: ^10.9.1
     tsc-watch: ^6.0.0
-    typescript: ^5.1.3
+    typescript: ^5.2.2
     utility-types: ^3.10.0
   languageName: unknown
   linkType: soft
