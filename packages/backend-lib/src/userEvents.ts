@@ -137,6 +137,7 @@ export async function findManyEvents({
   tableVersion?: string;
   limit?: number;
   offset?: number;
+  // unix timestamp units ms
   startDate?: number;
   endDate?: number;
 }): Promise<UserEventsWithTraits[]> {
@@ -155,6 +156,14 @@ export async function findManyEvents({
       )}`
     : "";
 
+  const startDateClause = startDate
+    ? `AND event_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
+    : "";
+
+  const endDateClause = endDate
+    ? `AND event_time <= ${qb.addQueryValue(endDate, "DateTime64(3)")}`
+    : "";
+
   const query = `SELECT
     workspace_id,
     event_type,
@@ -169,6 +178,8 @@ export async function findManyEvents({
     JSONExtractRaw(message_raw, 'properties') AS properties
   FROM ${buildUserEventsTableName(tableVersion)}
   WHERE workspace_id = ${workspaceIdParam}
+  ${startDateClause}
+  ${endDateClause}
   ORDER BY event_time DESC, message_id
   ${paginationClause}`;
 

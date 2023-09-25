@@ -336,7 +336,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     otelCollector: rawConfig.otelCollector ?? "http://localhost:4317",
     prettyLogs:
       rawConfig.prettyLogs === "true" ||
-      (nodeEnv === NodeEnvEnum.Development && rawConfig.prettyLogs !== "false"),
+      ((nodeEnv === NodeEnvEnum.Development || nodeEnv === NodeEnvEnum.Test) &&
+        rawConfig.prettyLogs !== "false"),
     logLevel,
     enableSourceControl: rawConfig.enableSourceControl === "true",
     authMode,
