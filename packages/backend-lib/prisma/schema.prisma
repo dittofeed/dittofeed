@@ -234,6 +234,7 @@ enum DBSubscriptionGroupType {
 enum DBChannelType {
   Email
   MobilePush
+  Sms
 }
 
 model SubscriptionGroup {
