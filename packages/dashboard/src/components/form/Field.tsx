@@ -8,14 +8,14 @@ import {
 } from "@mui/material"
 import React from "react"
 
-import BootstrapInput from "./BootstrapInput"
-import IOSSwitch from "./IosSwitch"
+import SimpleTextField from "./SimpleTextField"
+import SimpleToggle from "./SimpleToggle"
 import { ButtonField as ButtonFieldProps, FieldComponents, TextField as TextFieldProps } from "./types"
 
 
 const fieldComponents = {
   text: (fieldProps: TextFieldProps["fieldProps"]) => (
-    <BootstrapInput {...fieldProps} InputLabelProps={{ shrink: true }} />
+    <SimpleTextField {...fieldProps} InputLabelProps={{ shrink: true }} />
   ),
   dropdown: Select,
   toggle: ({
@@ -30,7 +30,7 @@ const fieldComponents = {
       sx={{
         fontSize: 12
       }}
-      control={<IOSSwitch {...switchProps} />}
+      control={<SimpleToggle {...switchProps} />}
     />
   ),
   button: (props: ButtonFieldProps["fieldProps"]) => (
@@ -39,9 +39,17 @@ const fieldComponents = {
 } as const
 
 function Field({ type, fieldProps }: FieldComponents) {
-  const Component = fieldComponents[type]
+  if (type === "button") {
+    return <fieldComponents.button {...fieldProps} />
+  }
+  if (type === "text") {
+    return <fieldComponents.text {...fieldProps} />
+  }
+  if (type === "toggle") {
+    return <fieldComponents.toggle {...fieldProps} />
+  }
 
-  return <Component {...fieldProps} />
+  return null
 }
 
 export default Field

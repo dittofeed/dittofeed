@@ -1,6 +1,7 @@
+import { StyledComponent } from "@emotion/styled";
 import { styled, Switch, SwitchProps } from "@mui/material";
 
-const IOSSwitch = styled((props: SwitchProps) => (
+const SimpleToggle: StyledComponent<SwitchProps, object, object> = styled((props: SwitchProps) => (
   <Switch focusVisibleClassName=".Mui-focusVisible" disableRipple {...props} />
 ))(({ theme }) => ({
   width: 42,
@@ -53,4 +54,4 @@ const IOSSwitch = styled((props: SwitchProps) => (
   },
 }));
 
-export default IOSSwitch
+export default SimpleToggle

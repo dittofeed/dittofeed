@@ -1,6 +1,7 @@
-import { styled, TextField } from "@mui/material";
+import { StyledComponent } from "@emotion/styled";
+import { styled, TextField, TextFieldProps } from "@mui/material";
 
-const BootstrapInput = styled(TextField)(({ theme }) => ({
+const SimpleTextField: StyledComponent<TextFieldProps, object, object> = styled(TextField)(({ theme }) => ({
   'fieldset': {
     display: 'none'
   },
@@ -22,4 +23,4 @@ const BootstrapInput = styled(TextField)(({ theme }) => ({
   }
 }));
 
-export default BootstrapInput
+export default SimpleTextField

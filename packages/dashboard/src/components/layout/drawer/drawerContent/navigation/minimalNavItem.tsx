@@ -1,3 +1,4 @@
+import { SvgIconComponent } from "@mui/icons-material";
 import {
   ListItemButton,
   ListItemIcon,
@@ -16,7 +17,7 @@ import { MenuItem } from "../../../../menuItems/types";
 // ==============================|| NAVIGATION - LIST ITEM ||============================== //
 
 function MinimalNavItem({ item, level }: { level: number; item: MenuItem }) {
-  const Icon = item.icon;
+  const Icon = item.icon as SvgIconComponent;
   const path = useRouter();
   const isSelected = item.url === path.asPath;
   const drawerOpen = useAppStore((state) => state.drawerOpen);

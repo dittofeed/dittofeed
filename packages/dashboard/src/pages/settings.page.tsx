@@ -235,7 +235,7 @@ const menuItems: MenuItemGroup[] = [
 function SettingsLayout(
   props: Omit<React.ComponentProps<typeof Layout>, "items">
 ) {
-  return <Layout pageTitle="Settings" backLink={{ href: "/", children: "Back to home", sx: { textDecoration: "none", color: "inherit" } }} navigationRenderer="minimal" items={menuItems} {...props} />;
+  return <Layout pageTitle="Settings" backLink={{ href: "/", children: "Back to home" }} navigationRenderer="minimal" items={menuItems} {...props} />;
 }
 
 interface SettingsState {

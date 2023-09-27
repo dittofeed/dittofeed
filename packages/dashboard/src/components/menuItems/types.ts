@@ -1,5 +1,3 @@
-import { SvgIconComponent } from "@mui/icons-material"
-
 export interface MenuItemGroup {
   id: string
   title: string
@@ -13,7 +11,7 @@ export interface MenuItem {
   title: string
   type: "item"
   url: string
-  icon: SvgIconComponent // React.FC;
+  icon: React.FC
   external?: boolean
   breadcrumbs?: boolean
   description: string
