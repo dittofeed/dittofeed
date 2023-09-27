@@ -1673,3 +1673,20 @@ export const JourneyStatsRequest = Type.Object({
 });
 
 export type JourneyStatsRequest = Static<typeof JourneyStatsRequest>;
+
+export enum SmsProvider {
+  Twilio = "Twilio",
+}
+
+export const TwilioSmsProvider = Type.Object({
+  type: Type.Literal(SmsProvider.Twilio),
+  accountSid: Type.String(),
+  messagingServiceSid: Type.String(),
+  authToken: Type.String(),
+});
+
+export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
+
+export const SmsProviderConfig = Type.Union([TwilioSmsProvider]);
+
+export type SmsProviderConfig = Static<typeof SmsProviderConfig>;

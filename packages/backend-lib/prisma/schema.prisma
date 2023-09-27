@@ -219,8 +219,9 @@ model SmsProvider {
   id                 String               @id() @default(uuid()) @db.Uuid
   workspace          Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId        String               @db.Uuid
+  secretId           String               @db.Uuid
+  secret             Secret               @relation(fields: [secretId], references: [id], onDelete: Cascade)
   type               String
-  config             Json
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   DefaultSmsProvider DefaultSmsProvider[]
@@ -328,14 +329,16 @@ model WorkspaceMemberRole {
 }
 
 model Secret {
-  id          String     @id() @default(uuid()) @db.Uuid
-  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId String     @db.Uuid
+  id          String        @id() @default(uuid()) @db.Uuid
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String        @db.Uuid
   name        String
   value       String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  configValue Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   WriteKey    WriteKey[]
+  SmsProvider SmsProvider[]
 
   @@unique([workspaceId, name])
 }

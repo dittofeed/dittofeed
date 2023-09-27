@@ -1,6 +1,9 @@
 -- AlterEnum
 ALTER TYPE "DBChannelType" ADD VALUE 'Sms';
 
+-- AlterTable
+ALTER TABLE "Secret" ADD COLUMN     "configValue" JSONB;
+
 -- CreateTable
 CREATE TABLE "DefaultSmsProvider" (
     "workspaceId" UUID NOT NULL,
@@ -13,8 +16,8 @@ CREATE TABLE "DefaultSmsProvider" (
 CREATE TABLE "SmsProvider" (
     "id" UUID NOT NULL,
     "workspaceId" UUID NOT NULL,
+    "secretId" UUID NOT NULL,
     "type" TEXT NOT NULL,
-    "config" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -35,3 +38,6 @@ ALTER TABLE "DefaultSmsProvider" ADD CONSTRAINT "DefaultSmsProvider_smsProviderI
 
 -- AddForeignKey
 ALTER TABLE "SmsProvider" ADD CONSTRAINT "SmsProvider_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SmsProvider" ADD CONSTRAINT "SmsProvider_secretId_fkey" FOREIGN KEY ("secretId") REFERENCES "Secret"("id") ON DELETE CASCADE ON UPDATE CASCADE;

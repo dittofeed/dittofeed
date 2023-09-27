@@ -11,6 +11,7 @@ import {
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 import { getNodeId } from "isomorphic-lib/src/journeys";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
 import { v5 as uuidv5 } from "uuid";
@@ -18,6 +19,7 @@ import { v5 as uuidv5 } from "uuid";
 import { submitTrack } from "../../apps";
 import { sendNotification } from "../../destinations/fcm";
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
+import { sendSms as sendSmsTwilio } from "../../destinations/twilio";
 import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
 import { findMessageTemplate } from "../../messageTemplates";
@@ -31,6 +33,7 @@ import {
   JourneyNodeType,
   KnownTrackData,
   MessageTemplateResource,
+  SmsProviderConfig,
   SubscriptionGroupType,
   TrackData,
 } from "../../types";
@@ -54,7 +57,7 @@ interface BaseSendParams {
   subscriptionGroupId?: string;
   channel: ChannelType;
 }
-interface SendParams<C> extends BaseSendParams {
+interface SendWithTrackingParams<C> extends BaseSendParams {
   getChannelConfig: ({
     workspaceId,
   }: {
@@ -103,7 +106,7 @@ function buildSendValueFactory(trackingProperties: TrackingProperties) {
 }
 
 async function sendWithTracking<C>(
-  params: SendParams<C>
+  params: SendWithTrackingParams<C>
 ): Promise<SendWithTrackingValue> {
   const {
     journeyId,
@@ -258,26 +261,41 @@ async function sendSmsWithPayload(
 ): Promise<SendWithTrackingValue> {
   const buildSendValue = buildSendValueFactory(params);
 
-  return sendWithTracking<MobilePushChannelConfig>({
+  return sendWithTracking<SmsProviderConfig>({
     ...params,
     async getChannelConfig({ workspaceId }) {
-      const fcmKey = await prisma().secret.findUnique({
+      const smsProvider = await prisma().defaultSmsProvider.findUnique({
         where: {
-          workspaceId_name: {
-            workspaceId,
-            name: FCM_SECRET_NAME,
+          workspaceId,
+        },
+        include: {
+          smsProvider: {
+            include: {
+              secret: true,
+            },
           },
         },
       });
-
-      if (!fcmKey) {
+      const smsConfig = smsProvider?.smsProvider?.secret.configValue;
+      if (!smsConfig) {
         return err(
           buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
-            message: "FCM key not found",
+            message: "SMS provider not found",
           })
         );
       }
-      return ok({ fcmKey: fcmKey.value });
+      const parsedConfigResult = schemaValidateWithErr(
+        smsConfig,
+        SmsProviderConfig
+      );
+      if (parsedConfigResult.isErr()) {
+        return err(
+          buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
+            message: `SMS provider config is invalid: ${parsedConfigResult.error.message}`,
+          })
+        );
+      }
+      return ok(parsedConfigResult.value);
     },
     async channelSend({
       workspaceId,
@@ -301,19 +319,17 @@ async function sendSmsWithPayload(
           },
         });
 
-      if (messageTemplate.definition.type !== ChannelType.MobilePush) {
+      if (messageTemplate.definition.type !== ChannelType.Sms) {
         return buildSendValue(
           false,
           InternalEventType.BadWorkspaceConfiguration,
           {
-            message: "Message template is not a mobile push template",
+            message: "Message template is not a sms template",
           }
         );
       }
-      let title: string | undefined;
       let body: string | undefined;
       try {
-        title = render(messageTemplate.definition.title);
         body = render(messageTemplate.definition.body);
       } catch (e) {
         const error = e as Error;
@@ -326,33 +342,50 @@ async function sendSmsWithPayload(
         );
       }
 
-      const { imageUrl } = messageTemplate.definition;
-      const token = identifier;
-      const fcmMessageId = await sendNotification({
-        key: channelConfig.fcmKey,
-        token,
-        notification: {
-          title,
-          body,
-          imageUrl,
-        },
-        android: messageTemplate.definition.android,
-      });
-      return buildSendValue(true, InternalEventType.MessageSent, {
-        fcmMessageId,
-        title,
+      if (!body) {
+        return buildSendValue(false, InternalEventType.MessageSkipped, {
+          message: "SMS body is empty",
+        });
+      }
+
+      await sendSmsTwilio({
         body,
-        imageUrl,
-        token,
-        android: messageTemplate.definition.android,
+        to: identifier,
+        accountSid: channelConfig.accountSid,
+        messagingServiceSid: channelConfig.messagingServiceSid,
+        authToken: channelConfig.authToken,
       });
+      // const twilioClient = TwilioClient(
+      //   channelConfig.accountSid,
+      //   channelConfig.authToken
+      // );
+      //   const { imageUrl } = messageTemplate.definition;
+      //   const token = identifier;
+      //   const fcmMessageId = await sendNotification({
+      //     key: channelConfig.fcmKey,
+      //     token,
+      //     notification: {
+      //       title,
+      //       body,
+      //       imageUrl,
+      //     },
+      //     android: messageTemplate.definition.android,
+      //   });
+      //   return buildSendValue(true, InternalEventType.MessageSent, {
+      //     fcmMessageId,
+      //     title,
+      //     body,
+      //     imageUrl,
+      //     token,
+      //     android: messageTemplate.definition.android,
+      //   });
     },
   });
 }
 
-export async function sendSms(
-  params: Omit<BaseSendParams, "channel">
-): Promise<boolean> {
+export type SendParams = Omit<BaseSendParams, "channel">;
+
+export async function sendSms(params: SendParams): Promise<boolean> {
   const [sent, trackData] = await sendSmsWithPayload({
     ...params,
     channel: ChannelType.Sms,
@@ -460,9 +493,7 @@ async function sendMobilePushWithPayload(
   });
 }
 
-export async function sendMobilePush(
-  params: Omit<BaseSendParams, "channel">
-): Promise<boolean> {
+export async function sendMobilePush(params: SendParams): Promise<boolean> {
   const [sent, trackData] = await sendMobilePushWithPayload({
     ...params,
     channel: ChannelType.MobilePush,
@@ -620,9 +651,7 @@ async function sendEmailWithPayload(
   });
 }
 
-export async function sendEmail(
-  params: Omit<BaseSendParams, "channel">
-): Promise<boolean> {
+export async function sendEmail(params: SendParams): Promise<boolean> {
   const [sent, trackData] = await sendEmailWithPayload({
     ...params,
     channel: ChannelType.Email,
