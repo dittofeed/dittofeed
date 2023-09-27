@@ -354,7 +354,7 @@ function SegmentIoConfig() {
       sharedSecret,
     },
   };
-  const handleSubmit = apiRequestHandlerFactory({
+  const apiHandler = apiRequestHandlerFactory({
     request: segmentIoRequest,
     setRequest: updateSegmentIoRequest,
     responseSchema: DataSourceConfigurationResource,
@@ -370,7 +370,11 @@ function SegmentIoConfig() {
         "Content-Type": "application/json",
       },
     },
-  });
+  })
+  const handleSubmit = () => {
+    if (!isEnabled) updateSegmentIoSharedSecret("")
+    apiHandler()
+  }
 
   const requestInProgress =
     segmentIoRequest.type === CompletionStatus.InProgress;
