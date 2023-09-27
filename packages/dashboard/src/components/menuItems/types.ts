@@ -1,3 +1,4 @@
+import { SvgIconComponent } from "@mui/icons-material";
 import React from "react";
 
 export interface MenuItemGroup {
@@ -5,15 +6,18 @@ export interface MenuItemGroup {
   title: string;
   type: "group";
   children: MenuItem[];
+  url?: string;
+  external?: string
 }
 export interface MenuItem {
   id: string;
   title: string;
   type: "item";
   url: string;
-  icon: React.FC;
+  icon: SvgIconComponent; // React.FC;
   external?: boolean;
   breadcrumbs?: boolean;
   description: string;
   disabled?: true;
+  // children?: MenuItem[]
 }
