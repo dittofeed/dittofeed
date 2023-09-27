@@ -220,7 +220,7 @@ model SmsProvider {
   workspace          Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId        String               @db.Uuid
   type               String
-  apiKey             String
+  config             Json
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   DefaultSmsProvider DefaultSmsProvider[]

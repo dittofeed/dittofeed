@@ -1,3 +1,6 @@
+-- AlterEnum
+ALTER TYPE "DBChannelType" ADD VALUE 'Sms';
+
 -- CreateTable
 CREATE TABLE "DefaultSmsProvider" (
     "workspaceId" UUID NOT NULL,
@@ -11,7 +14,7 @@ CREATE TABLE "SmsProvider" (
     "id" UUID NOT NULL,
     "workspaceId" UUID NOT NULL,
     "type" TEXT NOT NULL,
-    "apiKey" TEXT NOT NULL,
+    "config" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
