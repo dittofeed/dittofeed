@@ -1,31 +1,25 @@
 import {
-  ArrowBackIos,
   ContentCopyOutlined,
-  East,
-  IntegrationInstructionsOutlined,
-  Key,
-  MailOutline,
-  TurnedInOutlined,
+  Mail,
+  SimCardDownload,
+  Visibility,
+  VisibilityOff,
 } from "@mui/icons-material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { LoadingButton } from "@mui/lab";
 import {
   Autocomplete,
   Box,
   Button,
   Checkbox,
-  Collapse,
-  Divider,
+  Dialog,
   FormControlLabel,
   FormGroup,
   IconButton,
-  IconButtonProps,
+  InputAdornment,
   Paper,
   Stack,
-  styled,
   Switch,
   TextField,
-  Typography,
   useTheme,
 } from "@mui/material";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
@@ -65,8 +59,9 @@ import { pick } from "remeda/dist/commonjs/pick";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import { Collapaseable } from "../components/collapsable";
 import ExternalLink from "../components/externalLink";
+import Fields from "../components/form/Fields";
+import { FieldComponents } from "../components/form/types";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
@@ -77,12 +72,8 @@ import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
-import SecretEditor from "../lib/secretEditor";
+import { useSecretsEditor } from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
-
-interface ExpandMoreProps extends IconButtonProps {
-  expand: boolean;
-}
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
@@ -179,84 +170,73 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
   });
 
-const ExpandMore = styled((props: ExpandMoreProps) => {
-  const iconProps: Partial<ExpandMoreProps> = { ...props };
-  delete iconProps.expand;
-  return <IconButton {...iconProps} />;
-})(({ theme, expand }) => ({
-  transform: !expand ? "rotate(0deg)" : "rotate(180deg)",
-  marginLeft: "auto",
-  transition: theme.transitions.create("transform", {
-    duration: theme.transitions.duration.shortest,
-  }),
-}));
+const settingsSectionIds = {
+  dataSources: "settings-data-sources",
+  messageChannels: "settings-message-channels",
+  subscription: "settings-subscriptions",
+  authentication: "settings-authentication",
+  integrations: "settings-integrations",
+}
 
 const menuItems: MenuItemGroup[] = [
   {
-    id: "reporting",
-    title: "Settings",
+    id: "data-sources",
+    title: "Data Sources",
     type: "group",
     children: [
       {
-        id: "dashboard",
-        title: "Return Home",
+        id: "data-sources-segment-io",
+        title: "Segment",
         type: "item",
-        url: "/",
-        icon: ArrowBackIos,
-        description: "Exit settings, and return to the home page.",
+        url: `/settings#${settingsSectionIds.dataSources}`,
+        icon: SimCardDownload,
+        description: ""
       },
-      {
-        id: "data-sources",
-        title: "Data Sources",
-        type: "item",
-        url: "/settings#data-sources-title",
-        icon: East,
-        description:
-          "Configure data source settings to send user data to Dittofeed.",
-      },
+    ],
+  },
+  {
+    id: "message-channels",
+    title: "Messaging Channels",
+    type: "group",
+    children: [
       {
         id: "email",
         title: "Email",
         type: "item",
-        url: "/settings#email-title",
-        icon: MailOutline,
+        url: `/settings#${settingsSectionIds.messageChannels}`,
+        icon: Mail,
         description:
           "Configure email settings, including the email provider credentials.",
       },
-      {
-        id: "subscription-management",
-        title: "Subscription Management",
-        type: "item",
-        url: "/settings#subscription-management",
-        icon: TurnedInOutlined,
-        description:
-          "Configure subscription management settings, with the ability to preview the subscription management page visible to users.",
-      },
-      {
-        id: "write-keys",
-        title: "Write Key",
-        type: "item",
-        url: "/settings#write-key-title",
-        icon: Key,
-        description:
-          "Write key used to authenticate end user requests to the Dittofeed API.",
-      },
-      {
-        id: "integrations",
-        title: "Integrations",
-        type: "item",
-        url: "/settings#integrations-title",
-        icon: IntegrationInstructionsOutlined,
-        description: "Integrate Dittofeed with other platforms.",
-      },
-    ],
+    ]
+  },
+  {
+    id: "subscription-management",
+    title: "Subscription",
+    type: "group",
+    children: [],
+    url: `/settings#${settingsSectionIds.subscription}`
+  },
+  {
+    id: "authentication",
+    title: "Authentication",
+    type: "group",
+    children: [],
+    url: `/settings#${settingsSectionIds.authentication}`
+  },
+  {
+    id: "integrations",
+    title: "Integrations",
+    type: "group",
+    children: [],
+    url: `/settings#${settingsSectionIds.integrations}`
   },
 ];
 
 function SettingsLayout(
   props: Omit<React.ComponentProps<typeof Layout>, "items">
 ) {
-  return <Layout items={menuItems} {...props} />;
+  return <Layout pageTitle="Settings" backLink={{ href: "/", children: "Back to home", sx: { textDecoration: "none", color: "inherit" } }} navigationRenderer="minimal" items={menuItems} {...props} />;
 }
 
 interface SettingsState {
@@ -350,6 +330,7 @@ function useSettingsStorePick(params: (keyof SettingsContent)[]) {
 function SegmentIoConfig() {
   const theme = useTheme();
   const sharedSecret = useSettingsStore((store) => store.segmentIoSharedSecret);
+  const [isEnabled, setIsEnabled] = useState(!!sharedSecret.trim())
   const segmentIoRequest = useSettingsStore((store) => store.segmentIoRequest);
   const apiBase = useAppStore((store) => store.apiBase);
   const updateSegmentIoRequest = useSettingsStore(
@@ -397,24 +378,73 @@ function SegmentIoConfig() {
     segmentIoRequest.type === CompletionStatus.InProgress;
 
   return (
-    <Stack sx={{ padding: 1, width: theme.spacing(65) }} spacing={1}>
-      <TextField
-        label="Shared Secret"
-        variant="outlined"
-        onChange={(e) => {
-          updateSegmentIoSharedSecret(e.target.value);
-        }}
-        value={sharedSecret}
-      />
-      <Button
-        onClick={handleSubmit}
-        variant="contained"
-        disabled={requestInProgress}
+    <Stack>
+      <Fields
+        id={settingsSectionIds.dataSources}
+        title="Data Sources"
+        description="In order to use Dittofeed, at least 1 source of user data must be configured."
+        sections={[
+          {
+            id: "data-sources-section-1",
+            fieldGroups: [
+              {
+                id: "segment-io-fields",
+                name: "Segment.io",
+                fields: [
+                  {
+                    id: "enable-segment-io",
+                    type: "toggle",
+                    fieldProps: {
+                      labelProps: {
+                        label: "Enable",
+                      },
+                      switchProps: {
+                        value: isEnabled,
+                        onChange: (_, checked) => {
+                          setIsEnabled(checked)
+                        },
+                      },
+                    },
+                  },
+                  ...(isEnabled
+                    ? ([
+                      {
+                        id: "shared-secret",
+                        type: "text",
+                        fieldProps: {
+                          label: "Shared Secret",
+                          helperText:
+                            "Secret for signing request body with an HMAC in the “X-Signature” request header",
+                          onChange: (e) => {
+                            updateSegmentIoSharedSecret(e.target.value)
+                          },
+                          value: sharedSecret,
+                        },
+                      },
+                    ] as FieldComponents[])
+                    : []),
+                ],
+              },
+            ],
+          },
+        ]}
       >
-        Save
-      </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={requestInProgress}
+          sx={{
+            alignSelf: {
+              xs: "start",
+              sm: "end"
+            }
+          }}
+        >
+          Save
+        </Button>
+      </Fields>
     </Stack>
-  );
+  )
 }
 
 function SendGridConfig() {
@@ -460,8 +490,10 @@ function SendGridConfig() {
     }
     return null;
   }, [emailProviders, workspace]);
+  const secretName = SENDGRID_WEBHOOK_SECRET_NAME
+  const secretsEditor = useSecretsEditor({ secretName })
 
-  if (!workspace) {
+  if (!workspace || !secretsEditor) {
     return null;
   }
 
@@ -471,7 +503,7 @@ function SendGridConfig() {
     type: EmailProviderType.Sendgrid,
     workspaceId: workspace.id,
   };
-  const handleSubmit = apiRequestHandlerFactory({
+  const submitApiKey = apiRequestHandlerFactory({
     request: sendgridProviderRequest,
     setRequest: updateSendgridProviderRequest,
     responseSchema: PersistedEmailProvider,
@@ -489,49 +521,101 @@ function SendGridConfig() {
     },
   });
 
+  const { showPassword, secretValue, setSecretValue, apiHandler, handleClickShowPassword, handleMouseDownPassword, upsertSecretRequest } = secretsEditor
   const requestInProgress =
-    sendgridProviderRequest.type === CompletionStatus.InProgress;
+    sendgridProviderRequest.type === CompletionStatus.InProgress || upsertSecretRequest.type === CompletionStatus.InProgress;
+
+  const onSubmit = () => {
+    apiHandler()
+    submitApiKey()
+  }
 
   return (
-    <Stack
-      sx={{ padding: 1, width: theme.spacing(65) }}
-      spacing={2}
-      divider={<Divider />}
-    >
-      <Stack spacing={1}>
-        <InfoBox>
-          API key, used internally by Dittofeed to send emails via sendgrid.
-        </InfoBox>
-        <TextField
-          label="API Key"
-          variant="outlined"
-          onChange={(e) => {
-            updateSendgridProviderApiKey(e.target.value);
-          }}
-          value={apiKey}
-        />
+    <Stack>
+      <Fields
+        id={settingsSectionIds.messageChannels}
+        title="Message Channels"
+        description="In order to use email, at least 1 email provider must be configured."
+        sections={[
+          {
+            id: "message-channels-section-1",
+            fieldGroups: [
+              {
+                id: "sendgrid-fields",
+                name: "SendGrid",
+                fields: [
+                  {
+                    id: "sendgrid-api-key",
+                    type: "text",
+                    fieldProps: {
+                      label: "API Key",
+                      helperText:
+                        "API key, used internally by Dittofeed to send emails via sendgrid.",
+                      onChange: (e) => {
+                        updateSendgridProviderApiKey(e.target.value)
+                      },
+                      value: apiKey,
+                    },
+                  },
+                  {
+                    id: "sendgrid-webhook-key",
+                    type: "text",
+                    fieldProps: {
+                      label: "Webhook Key",
+                      helperText:
+                        "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
+                      // label: secretName,
+                      variant: "outlined",
+                      type: showPassword ? "text" : "password",
+                      placeholder: showPassword ? undefined : "**********",
+                      onChange: (e) => setSecretValue(e.target.value),
+                      sx: { flex: 1 },
+                      value: secretValue,
+                      InputProps: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              aria-label="toggle password visibility"
+                              onClick={handleClickShowPassword}
+                              onMouseDown={handleMouseDownPassword}
+                            >
+                              {showPassword ? (
+                                <Visibility />
+                              ) : (
+                                <VisibilityOff />
+                              )}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ]}
+      >
         <Button
-          onClick={handleSubmit}
+          onClick={onSubmit}
           variant="contained"
           disabled={requestInProgress}
+          sx={{
+            alignSelf: {
+              xs: "start",
+              sm: "end"
+            }
+          }}
         >
           Save
         </Button>
-      </Stack>
-      <Stack spacing={1}>
-        <InfoBox>
-          Sendgrid webhook verification key, used to authenticate sendgrid
-          webhook requests.
-        </InfoBox>
-        <SecretEditor secretName={SENDGRID_WEBHOOK_SECRET_NAME} />
-      </Stack>
+      </Fields>
     </Stack>
-  );
+  )
 }
 
 function WriteKeySettings() {
   const writeKey = useAppStore((store) => store.writeKeys)[0];
-  const theme = useTheme();
   const keyHeader = useMemo(
     () => (writeKey ? writeKeyToHeader(writeKey) : null),
     [writeKey]
@@ -559,45 +643,41 @@ function WriteKeySettings() {
   };
 
   return (
-    <Stack sx={{ width: "100%", p: 1 }} spacing={2}>
-      <Typography variant="h2" sx={{ color: "black" }} id="write-key-title">
-        Write Key
-      </Typography>
-      <Stack spacing={2}>
-        <InfoBox
-          sx={{
-            display: "inline",
-            maxWidth: theme.spacing(80),
-          }}
-        >
-          Include this write key as an HTTP &quot;
-          <Typography sx={{ fontFamily: "monospace" }} display="inline">
-            Authorization: Basic ...
-          </Typography>
-          &quot; header in your requests. This write key can be included in your
-          client, and does not need to be kept secret.
-        </InfoBox>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-          <Typography
-            variant="body1"
-            sx={{
-              maxWidth: theme.spacing(80),
-              overflow: "hidden",
-              fontFamily: "monospace",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {keyHeader}
-          </Typography>
-          <IconButton
-            color="primary"
-            onClick={() => copyToClipboard(keyHeader)}
-          >
-            <ContentCopyOutlined />
-          </IconButton>
-        </Stack>
-      </Stack>
+    <Stack>
+      <Fields id={settingsSectionIds.authentication} title="Authentication" description="" sections={[
+        {
+          id: "authorization-section-1",
+          fieldGroups: [
+            {
+              id: "sendgrid-fields",
+              name: "Write key",
+              fields: [
+                {
+                  id: "sendgrid-api-key",
+                  type: "text",
+                  fieldProps: {
+                    label: "",
+                    helperText: "Include this key as an HTTP \"Authorization: Basic ...\" header in your requests. This authorization key can be included in your client, and does not need to be kept secret.",
+                    value: keyHeader, // "Basic Y2M4MzBjOTItYTI5Mi00NjczLWI0ODUtY2E2YzNiNTkzOGNmOjQzN2ViMjFiNDQzZTQxNDY=",
+                    children: "abcd",
+                    onChange: () => { },
+                    InputProps: {
+                      endAdornment: <InputAdornment position="end">
+                        <IconButton
+                          color="primary"
+                          onClick={() => copyToClipboard(keyHeader)}
+                        >
+                          <ContentCopyOutlined />
+                        </IconButton>
+                      </InputAdornment>
+                    },
+                  }
+                },
+              ]
+            }
+          ]
+        }
+      ]} />
     </Stack>
   );
 }
@@ -768,22 +848,23 @@ function HubspotIntegration() {
     );
   } else {
     hubspotContents = (
-      <Box>
-        <Button
-          variant="contained"
-          href={`https://app.hubspot.com/oauth/authorize?client_id=9128468e-b771-4bab-b301-21b479213975&redirect_uri=${dashboardUrl}/dashboard/oauth2/callback/hubspot&scope=timeline%20sales-email-read%20crm.objects.contacts.read%20crm.objects.contacts.write%20crm.objects.companies.write%20crm.objects.companies.read%20crm.objects.owners.read%20crm.lists.write%20crm.lists.read`}
-        >
-          Connect Hubspot
-        </Button>
-      </Box>
+      <Button
+        variant="contained"
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end"
+          }
+        }}
+        href={`https://app.hubspot.com/oauth/authorize?client_id=9128468e-b771-4bab-b301-21b479213975&redirect_uri=${dashboardUrl}/dashboard/oauth2/callback/hubspot&scope=timeline%20sales-email-read%20crm.objects.contacts.read%20crm.objects.contacts.write%20crm.objects.companies.write%20crm.objects.companies.read%20crm.objects.owners.read%20crm.lists.write%20crm.lists.read`}
+      >
+        Connect Hubspot
+      </Button>
     );
   }
 
   return (
     <>
-      <Typography variant="h3" sx={{ color: "black" }}>
-        Hubspot
-      </Typography>
       {hubspotContents}
     </>
   );
@@ -791,11 +872,22 @@ function HubspotIntegration() {
 
 function IntegrationSettings() {
   return (
-    <Stack sx={{ width: "100%", p: 1 }} spacing={2}>
-      <Typography variant="h2" sx={{ color: "black" }} id="integrations-title">
-        Integrations
-      </Typography>
-      <HubspotIntegration />
+    <Stack>
+      <Fields id={settingsSectionIds.integrations} title="Integrations" description="" sections={[
+        {
+          id: "integration-section-1",
+          fieldGroups: [
+            {
+              id: "sendgrid-fields",
+              name: "Hubspot",
+              fields: [
+              ],
+              children: <HubspotIntegration />
+            }
+          ]
+        }
+      ]} />
+
     </Stack>
   );
 }
@@ -805,6 +897,7 @@ function SubscriptionManagementSettings() {
   const [fromSubscriptionChange, setFromSubscriptionChange] =
     useState<boolean>(true);
   const [fromSubscribe, setFromSubscribe] = useState<boolean>(false);
+  const [showPreview, setShowPreview] = useState<boolean>(false)
 
   const workspaceResult = useAppStore((store) => store.workspace);
   const workspace =
@@ -815,10 +908,10 @@ function SubscriptionManagementSettings() {
   const subscriptions =
     subscriptionGroups.type === CompletionStatus.Successful
       ? subscriptionGroups.value.map((sg, i) => ({
-          name: sg.name,
-          id: sg.id,
-          isSubscribed: !(i === 0 && fromSubscriptionChange && !fromSubscribe),
-        }))
+        name: sg.name,
+        id: sg.id,
+        isSubscribed: !(i === 0 && fromSubscriptionChange && !fromSubscribe),
+      }))
       : [];
 
   if (!workspace) {
@@ -829,148 +922,103 @@ function SubscriptionManagementSettings() {
     : undefined;
 
   return (
-    <Collapaseable
-      header={
-        <Typography
-          variant="h2"
-          sx={{ color: "black" }}
-          id="subscription-management"
-        >
-          Subscription Management
-        </Typography>
-      }
-    >
-      <Stack spacing={1}>
-        <Box>
+    <Stack>
+      <Dialog open={showPreview} onClose={() => setShowPreview(false)}>
+        <Stack sx={{ p: 4 }}>
           <Box>
-            Preview of the subscription management page, that will be shown to
-            users.
+            <Box>
+              Preview of the subscription management page, that will be shown to
+              users.
+            </Box>
+            <FormGroup>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={fromSubscriptionChange}
+                    onChange={(e) => setFromSubscriptionChange(e.target.checked)}
+                  />
+                }
+                label="User clicked subscription change link."
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={fromSubscribe}
+                    onChange={(e) => setFromSubscribe(e.target.checked)}
+                  />
+                }
+                label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
+              />
+            </FormGroup>
           </Box>
-          <FormGroup>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={fromSubscriptionChange}
-                  onChange={(e) => setFromSubscriptionChange(e.target.checked)}
-                />
+          <Paper
+            elevation={1}
+            sx={{
+              p: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <SubscriptionManagement
+              key={`${fromSubscribe}-${fromSubscriptionChange}`}
+              subscriptions={subscriptions}
+              workspaceName={workspace.name}
+              onSubscriptionUpdate={async () => { }}
+              subscriptionChange={
+                fromSubscribe
+                  ? SubscriptionChange.Subscribe
+                  : SubscriptionChange.Unsubscribe
               }
-              label="User clicked subscription change link."
+              changedSubscription={changedSubscription}
+              workspaceId={workspace.id}
+              hash="example-hash"
+              identifier="example@email.com"
+              identifierKey="email"
             />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={fromSubscribe}
-                  onChange={(e) => setFromSubscribe(e.target.checked)}
-                />
-              }
-              label={`${fromSubscribe ? "Subscribe" : "Unsubscribe"} link.`}
-            />
-          </FormGroup>
-        </Box>
-        <Paper
-          elevation={1}
-          sx={{
-            p: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <SubscriptionManagement
-            key={`${fromSubscribe}-${fromSubscriptionChange}`}
-            subscriptions={subscriptions}
-            workspaceName={workspace.name}
-            onSubscriptionUpdate={async () => {}}
-            subscriptionChange={
-              fromSubscribe
-                ? SubscriptionChange.Subscribe
-                : SubscriptionChange.Unsubscribe
+          </Paper>
+        </Stack>
+      </Dialog>
+      <Fields id={settingsSectionIds.subscription} title="Subscription" description="" sections={[
+        {
+          id: "subscription-section-1",
+          fieldGroups: [
+            {
+              id: "subscription-preview",
+              name: "User subscription page",
+              fields: [{
+                id: "subscription-preview-button",
+                type: "button",
+                fieldProps: {
+                  children: "Preview",
+                  onClick: () => { setShowPreview(true) },
+                  variant: "outlined"
+                }
+              }]
             }
-            changedSubscription={changedSubscription}
-            workspaceId={workspace.id}
-            hash="example-hash"
-            identifier="example@email.com"
-            identifierKey="email"
-          />
-        </Paper>
-      </Stack>
-    </Collapaseable>
+          ]
+        }
+      ]} />
+    </Stack>
   );
 }
 
 const Settings: NextPage<
   InferGetServerSidePropsType<typeof getServerSideProps>
 > = function Settings() {
-  const [sendgridOpen, setSendgridOpen] = useState<boolean>(true);
-  const [segmentIoOpen, setSegmentIoOpen] = useState<boolean>(true);
-  const handleSendgridOpen = () => {
-    setSendgridOpen((open) => !open);
-  };
-  const handleSegmentIoOpen = () => {
-    setSegmentIoOpen((open) => !open);
-  };
 
   return (
     <SettingsLayout>
-      <Stack spacing={1} sx={{ padding: 2, width: "100%" }}>
-        <Typography
-          id="data-sources-title"
-          variant="h2"
-          sx={{ paddingLeft: 1 }}
-        >
-          Data Sources
-        </Typography>
-        <Box sx={{ paddingLeft: 1 }}>
-          In order to use Dittofeed, one must configure at least 1 source of
-          user data.
-        </Box>
-        <Box sx={{ width: "100%" }}>
-          <Button variant="text" onClick={handleSegmentIoOpen}>
-            <Typography variant="h4" sx={{ color: "black" }}>
-              Using Segment.io
-            </Typography>
-          </Button>
-          <ExpandMore
-            expand={segmentIoOpen}
-            onClick={handleSegmentIoOpen}
-            aria-expanded={segmentIoOpen}
-            aria-label="show more"
-          >
-            <ExpandMoreIcon />
-          </ExpandMore>
-        </Box>
-        <Collapse in={segmentIoOpen} unmountOnExit>
-          <SegmentIoConfig />
-        </Collapse>
-        <Typography id="email-title" variant="h2" sx={{ paddingLeft: 1 }}>
-          Email Providers
-        </Typography>
-        <Box sx={{ paddingLeft: 1 }}>
-          In order to use email, one must configure at least 1 email provider.
-        </Box>
-        <Box sx={{ width: "100%" }}>
-          <Button variant="text" onClick={handleSendgridOpen}>
-            <Typography variant="h4" sx={{ color: "black" }}>
-              Using SendGrid
-            </Typography>
-          </Button>
-          <ExpandMore
-            expand={sendgridOpen}
-            onClick={handleSendgridOpen}
-            aria-expanded={sendgridOpen}
-            aria-label="show more"
-          >
-            <ExpandMoreIcon />
-          </ExpandMore>
-        </Box>
-        <Collapse in={sendgridOpen} unmountOnExit>
-          <SendGridConfig />
-        </Collapse>
-        <SubscriptionManagementSettings />
+      <Stack spacing={8} sx={{ padding: 2, paddingY: 8, maxWidth: "lg", marginX: "auto", width: "100%" }}>
+        <SegmentIoConfig />
+        <SendGridConfig />
         <WriteKeySettings />
+        <SubscriptionManagementSettings />
         <IntegrationSettings />
       </Stack>
     </SettingsLayout>
+
+
   );
 };
 export default Settings;

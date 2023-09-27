@@ -30,7 +30,7 @@ export const secretEditorStore = create(
   }))
 );
 
-export default function SecretEditor({ secretName }: { secretName: string }) {
+export const useSecretsEditor = ({ secretName }: { secretName: string }) => {
   const [showPassword, setShowPassword] = useState(false);
   const secrets = useAppStore((state) => state.secrets);
   const apiBase = useAppStore((state) => state.apiBase);
@@ -80,6 +80,23 @@ export default function SecretEditor({ secretName }: { secretName: string }) {
       },
     },
   });
+
+  return {
+    apiHandler,
+    upsertSecretRequest,
+    secretValue,
+    setSecretValue,
+    handleClickShowPassword,
+    handleMouseDownPassword,
+    showPassword,
+  }
+}
+
+export default function SecretEditor({ secretName }: { secretName: string }) {
+  const secretsEditor = useSecretsEditor({ secretName })
+  if (!secretsEditor) return null
+
+  const { apiHandler, upsertSecretRequest, secretValue, showPassword, setSecretValue, handleClickShowPassword, handleMouseDownPassword } = secretsEditor
 
   return (
     <Stack direction="row" spacing={1}>
