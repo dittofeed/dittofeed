@@ -44,18 +44,3 @@ function MinimalNavGroup({ item }: { item: MenuItemGroup }) {
 }
 
 export default MinimalNavGroup;
-
-
-{/* <List
-  subheader={
-    item.title &&
-    drawerOpen && (
-      <Box sx={{}}>
-        <Typography variant="body1">
-          {item.title}
-        </Typography>
-      </Box>
-    )
-  }
-  sx={{ mb: drawerOpen ? 1.5 : 0, py: 0, zIndex: 0 }}
-></List> */}

@@ -34,11 +34,6 @@ function Navigation() {
 
   return (
     <Box sx={{ pt: 2, px: isMinimal ? 3 : undefined }}>
-      {/* {backLink ?
-        <Link {...backLink} style={{ textDecoration: "none", color: "inherit", opacity: 0.6, display: "flex", alignItems: "center", margin: "4px 0 20px" }}>
-          <ArrowBackIos fontSize="inherit" />
-          {backLink.children}
-        </Link> : null} */}
       {title ?
         (
           <Stack direction="row" sx={{ ml: -1 }}>
