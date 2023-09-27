@@ -8,7 +8,6 @@ import { useAppStore } from "../../../../../lib/appStore";
 import { MenuItemGroup } from "../../../../menuItems/types";
 import MinimalNavItem from "./minimalNavItem";
 // project import
-import NavItem from "./navItem";
 
 // ==============================|| NAVIGATION - LIST GROUP ||============================== //
 

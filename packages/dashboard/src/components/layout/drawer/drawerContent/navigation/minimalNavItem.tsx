@@ -6,7 +6,6 @@ import {
   Typography,
 } from "@mui/material";
 // material-ui
-import { useTheme } from "@mui/material/styles";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
@@ -17,13 +16,10 @@ import { MenuItem } from "../../../../menuItems/types";
 // ==============================|| NAVIGATION - LIST ITEM ||============================== //
 
 function MinimalNavItem({ item, level }: { level: number; item: MenuItem }) {
-  const theme = useTheme();
   const Icon = item.icon;
   const path = useRouter();
   const isSelected = item.url === path.asPath;
   const drawerOpen = useAppStore((state) => state.drawerOpen);
-  const textColor = "text.primary";
-  const iconSelectedColor = "primary.main";
   const description = item.disabled
     ? `Coming Soon: ${item.description}`
     : item.description;

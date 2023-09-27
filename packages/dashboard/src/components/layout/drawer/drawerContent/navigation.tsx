@@ -1,6 +1,6 @@
 // material-ui
 import { ArrowBackIos } from "@mui/icons-material";
-import { Box, List, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import Link from "next/link";
 import { useContext } from "react";
 

@@ -20,7 +20,6 @@ import {
   Stack,
   Switch,
   TextField,
-  useTheme,
 } from "@mui/material";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
@@ -328,7 +327,6 @@ function useSettingsStorePick(params: (keyof SettingsContent)[]) {
 }
 
 function SegmentIoConfig() {
-  const theme = useTheme();
   const sharedSecret = useSettingsStore((store) => store.segmentIoSharedSecret);
   const [isEnabled, setIsEnabled] = useState(!!sharedSecret.trim())
   const segmentIoRequest = useSettingsStore((store) => store.segmentIoRequest);
@@ -448,7 +446,6 @@ function SegmentIoConfig() {
 }
 
 function SendGridConfig() {
-  const theme = useTheme();
   const {
     emailProviders,
     apiBase,
