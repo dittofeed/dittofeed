@@ -11,7 +11,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import apiRequestHandlerFactory from "./apiRequestHandlerFactory";
-import { useAppStore } from "./appStore";
+import { useAppStorePick } from "./appStore";
 
 export const secretEditorStore = create(
   immer<{
@@ -32,10 +32,12 @@ export const secretEditorStore = create(
 
 export const useSecretsEditor = ({ secretName }: { secretName: string }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const secrets = useAppStore((state) => state.secrets);
-  const apiBase = useAppStore((state) => state.apiBase);
-  const workspace = useAppStore((state) => state.workspace);
-  const upsertSecrets = useAppStore((state) => state.upsertSecrets);
+  const { secrets, apiBase, workspace, upsertSecrets } = useAppStorePick([
+    "secrets",
+    "apiBase",
+    "workspace",
+    "upsertSecrets",
+  ]);
   const upsertSecretRequest = secretEditorStore(
     (state) => state.upsertSecretRequest
   );
@@ -54,7 +56,7 @@ export const useSecretsEditor = ({ secretName }: { secretName: string }) => {
     return null;
   }
 
-  const apiHandler = apiRequestHandlerFactory({
+  const secretApiHandler = apiRequestHandlerFactory({
     request: upsertSecretRequest,
     setRequest: setUpsertSecretRequest,
     responseSchema: EmptyResponse,
@@ -82,21 +84,29 @@ export const useSecretsEditor = ({ secretName }: { secretName: string }) => {
   });
 
   return {
-    apiHandler,
+    secretApiHandler,
     upsertSecretRequest,
     secretValue,
     setSecretValue,
     handleClickShowPassword,
     handleMouseDownPassword,
     showPassword,
-  }
-}
+  };
+};
 
 export default function SecretEditor({ secretName }: { secretName: string }) {
-  const secretsEditor = useSecretsEditor({ secretName })
-  if (!secretsEditor) return null
+  const secretsEditor = useSecretsEditor({ secretName });
+  if (!secretsEditor) return null;
 
-  const { apiHandler, upsertSecretRequest, secretValue, showPassword, setSecretValue, handleClickShowPassword, handleMouseDownPassword } = secretsEditor
+  const {
+    secretApiHandler,
+    upsertSecretRequest,
+    secretValue,
+    showPassword,
+    setSecretValue,
+    handleClickShowPassword,
+    handleMouseDownPassword,
+  } = secretsEditor;
 
   return (
     <Stack direction="row" spacing={1}>
@@ -126,7 +136,7 @@ export default function SecretEditor({ secretName }: { secretName: string }) {
         variant="contained"
         disabled={secretValue === ""}
         loading={upsertSecretRequest.type === CompletionStatus.InProgress}
-        onClick={apiHandler}
+        onClick={secretApiHandler}
       >
         Save Change
       </LoadingButton>
