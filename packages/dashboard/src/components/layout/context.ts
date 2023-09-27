@@ -1,8 +1,12 @@
-import { createContext } from "react";
+import { LinkProps } from "next/link"
+import { createContext, PropsWithChildren } from "react"
 
-import { MenuItemGroup } from "../menuItems/types";
+import { MenuItemGroup } from "../menuItems/types"
 
 export interface LayoutContextValues {
-  items: MenuItemGroup[];
+  pageTitle?: string
+  backLink?: PropsWithChildren<LinkProps>
+  items: MenuItemGroup[]
+  navigationRenderer?: "default" | "minimal"
 }
-export const LayoutContext = createContext<LayoutContextValues | null>(null);
+export const LayoutContext = createContext<LayoutContextValues | null>(null)

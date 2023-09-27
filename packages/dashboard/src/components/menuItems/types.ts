@@ -1,10 +1,10 @@
-import React from "react";
-
 export interface MenuItemGroup {
   id: string;
   title: string;
   type: "group";
   children: MenuItem[];
+  url?: string;
+  external?: string;
 }
 export interface MenuItem {
   id: string;

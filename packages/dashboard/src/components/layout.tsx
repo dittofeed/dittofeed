@@ -3,22 +3,26 @@ import { Box, Toolbar } from "@mui/material";
 import React, { useMemo } from "react";
 
 import { useAppStore } from "../lib/appStore";
-import { LayoutContext } from "./layout/context";
+import { LayoutContext, LayoutContextValues } from "./layout/context";
 // project import
 import Drawer from "./layout/drawer";
 import Header from "./layout/header";
-import { MenuItemGroup } from "./menuItems/types";
 
 function Layout({
   items,
   children,
+  navigationRenderer,
+  backLink,
+  pageTitle
 }: {
   children?: React.ReactElement | null;
-  items: MenuItemGroup[];
-}) {
+} & LayoutContextValues) {
   const drawerOpen = useAppStore((state) => state.drawerOpen);
   const toggleDrawer = useAppStore((state) => state.toggleDrawer);
-  const layoutProps = useMemo(() => ({ items }), [items]);
+  const layoutProps = useMemo(() => ({
+    items, navigationRenderer, backLink,
+    pageTitle
+  }), [items, navigationRenderer, backLink, pageTitle]);
 
   return (
     <LayoutContext.Provider value={layoutProps}>
