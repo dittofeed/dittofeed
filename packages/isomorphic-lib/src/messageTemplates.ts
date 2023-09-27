@@ -15,6 +15,9 @@ export function messageTemplatePath({
     case ChannelType.MobilePush:
       channelSubPath = "mobile-push";
       break;
+    case ChannelType.Sms:
+      channelSubPath = "sms";
+      break;
   }
   return `/templates/${channelSubPath}/${id}`;
 }

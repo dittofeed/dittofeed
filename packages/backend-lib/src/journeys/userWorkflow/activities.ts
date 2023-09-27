@@ -253,6 +253,116 @@ interface MobilePushChannelConfig {
   fcmKey: string;
 }
 
+async function sendSmsWithPayload(
+  params: BaseSendParams
+): Promise<SendWithTrackingValue> {
+  const buildSendValue = buildSendValueFactory(params);
+
+  return sendWithTracking<MobilePushChannelConfig>({
+    ...params,
+    async getChannelConfig({ workspaceId }) {
+      const fcmKey = await prisma().secret.findUnique({
+        where: {
+          workspaceId_name: {
+            workspaceId,
+            name: FCM_SECRET_NAME,
+          },
+        },
+      });
+
+      if (!fcmKey) {
+        return err(
+          buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
+            message: "FCM key not found",
+          })
+        );
+      }
+      return ok({ fcmKey: fcmKey.value });
+    },
+    async channelSend({
+      workspaceId,
+      channel,
+      messageTemplate,
+      userPropertyAssignments,
+      channelConfig,
+      identifier,
+      subscriptionSecret,
+    }) {
+      const render = (template?: string) =>
+        template &&
+        renderLiquid({
+          userProperties: userPropertyAssignments,
+          template,
+          workspaceId,
+          identifierKey: CHANNEL_IDENTIFIERS[channel],
+          subscriptionGroupId: params.subscriptionGroupId,
+          secrets: {
+            [SUBSCRIPTION_SECRET_NAME]: subscriptionSecret,
+          },
+        });
+
+      if (messageTemplate.definition.type !== ChannelType.MobilePush) {
+        return buildSendValue(
+          false,
+          InternalEventType.BadWorkspaceConfiguration,
+          {
+            message: "Message template is not a mobile push template",
+          }
+        );
+      }
+      let title: string | undefined;
+      let body: string | undefined;
+      try {
+        title = render(messageTemplate.definition.title);
+        body = render(messageTemplate.definition.body);
+      } catch (e) {
+        const error = e as Error;
+        return buildSendValue(
+          false,
+          InternalEventType.BadWorkspaceConfiguration,
+          {
+            message: `render failure: ${error.message}`,
+          }
+        );
+      }
+
+      const { imageUrl } = messageTemplate.definition;
+      const token = identifier;
+      const fcmMessageId = await sendNotification({
+        key: channelConfig.fcmKey,
+        token,
+        notification: {
+          title,
+          body,
+          imageUrl,
+        },
+        android: messageTemplate.definition.android,
+      });
+      return buildSendValue(true, InternalEventType.MessageSent, {
+        fcmMessageId,
+        title,
+        body,
+        imageUrl,
+        token,
+        android: messageTemplate.definition.android,
+      });
+    },
+  });
+}
+
+export async function sendSms(
+  params: Omit<BaseSendParams, "channel">
+): Promise<boolean> {
+  const [sent, trackData] = await sendSmsWithPayload({
+    ...params,
+    channel: ChannelType.Sms,
+  });
+  if (trackData) {
+    await submitTrack({ workspaceId: params.workspaceId, data: trackData });
+  }
+  return sent;
+}
+
 async function sendMobilePushWithPayload(
   params: BaseSendParams
 ): Promise<SendWithTrackingValue> {

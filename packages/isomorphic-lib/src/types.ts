@@ -67,6 +67,7 @@ export enum SubscriptionGroupType {
 export enum ChannelType {
   Email = "Email",
   MobilePush = "MobilePush",
+  Sms = "Sms",
 }
 
 export const SubscriptionGroupResource = Type.Object({
@@ -546,9 +547,17 @@ export const MobilePushMessageVariant = Type.Object({
 
 export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
 
+export const SmsMessageVariant = Type.Object({
+  type: Type.Literal(ChannelType.Sms),
+  templateId: Type.String(),
+});
+
+export type SmsMessageVariant = Static<typeof SmsMessageVariant>;
+
 export const MessageVariant = Type.Union([
   EmailMessageVariant,
   MobilePushMessageVariant,
+  SmsMessageVariant,
 ]);
 
 export type MessageVariants = Static<typeof MessageVariant>;
@@ -763,9 +772,18 @@ export type MobilePushTemplateResource = Static<
   typeof MobilePushTemplateResource
 >;
 
+export const SmsTemplateResource = Type.Object({
+  type: Type.Literal(ChannelType.Sms),
+  body: Type.String(),
+  from: Type.String(),
+});
+
+export type SmsTemplateResource = Static<typeof SmsTemplateResource>;
+
 export const MessageTemplateResourceDefinition = Type.Union([
   MobilePushTemplateResource,
   EmailTemplateResource,
+  SmsTemplateResource,
 ]);
 
 export type MessageTemplateResourceDefinition = Static<

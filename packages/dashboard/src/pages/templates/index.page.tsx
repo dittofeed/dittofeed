@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
@@ -23,6 +24,7 @@ import {
   MessageTemplateResource,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
+  SmsTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -153,6 +155,9 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
             case ChannelType.MobilePush:
               messageType = "mobile-push";
               break;
+            case ChannelType.Sms:
+              messageType = "sms";
+              break;
           }
           path.push(`/templates/${messageType}/${template.id}`);
         }}
@@ -181,6 +186,7 @@ function TemplateListContents() {
     return messages.reduce<{
       emailTemplates: NarrowedMessageTemplateResource<EmailTemplateResource>[];
       mobilePushTemplates: NarrowedMessageTemplateResource<MobilePushTemplateResource>[];
+      smsTemplates: NarrowedMessageTemplateResource<SmsTemplateResource>[];
     }>(
       (acc, template) => {
         switch (template.definition.type) {
@@ -196,10 +202,20 @@ function TemplateListContents() {
               definition: template.definition,
             });
             break;
+          case ChannelType.Sms:
+            acc.smsTemplates.push({
+              ...template,
+              definition: template.definition,
+            });
+            break;
+          default: {
+            const { type } = template.definition;
+            assertUnreachable(type);
+          }
         }
         return acc;
       },
-      { emailTemplates: [], mobilePushTemplates: [] }
+      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] }
     );
   }, [messagesResult]);
 
