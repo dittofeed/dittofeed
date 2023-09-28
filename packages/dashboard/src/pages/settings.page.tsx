@@ -2,6 +2,7 @@ import {
   ContentCopyOutlined,
   Mail,
   SimCardDownload,
+  SmsOutlined,
   Visibility,
   VisibilityOff,
 } from "@mui/icons-material";
@@ -20,6 +21,7 @@ import {
   Stack,
   Switch,
   TextField,
+  Typography,
 } from "@mui/material";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
@@ -73,6 +75,56 @@ import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { useSecretsEditor } from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
+
+function SectionHeader({
+  id,
+  title,
+  description,
+}: {
+  id?: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <Box id={id}>
+      <Typography
+        variant="h2"
+        fontWeight={300}
+        sx={{ fontSize: 20, marginBottom: 0.5 }}
+      >
+        {title}
+      </Typography>
+      <Typography variant="subtitle1" fontWeight="normal" sx={{ opacity: 0.6 }}>
+        {description}
+      </Typography>
+    </Box>
+  );
+}
+
+function SectionSubHeader({
+  id,
+  title,
+  description,
+}: {
+  id?: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <Box id={id}>
+      <Typography
+        fontWeight={300}
+        variant="h2"
+        sx={{ fontSize: 16, marginBottom: 0.5 }}
+      >
+        {title}
+      </Typography>
+      <Typography variant="subtitle1" fontWeight="normal" sx={{ opacity: 0.6 }}>
+        {description}
+      </Typography>
+    </Box>
+  );
+}
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
@@ -170,12 +222,13 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 const settingsSectionIds = {
-  dataSources: "settings-data-sources",
-  messageChannels: "settings-message-channels",
-  subscription: "settings-subscriptions",
-  authentication: "settings-authentication",
-  integrations: "settings-integrations",
-};
+  dataSources: "data-sources",
+  emailChannel: "email-channel",
+  smsChannel: "sms-channel",
+  subscription: "subscriptions",
+  authentication: "authentication",
+  integrations: "integrations",
+} as const;
 
 const menuItems: MenuItemGroup[] = [
   {
@@ -202,8 +255,17 @@ const menuItems: MenuItemGroup[] = [
         id: "email",
         title: "Email",
         type: "item",
-        url: `/settings#${settingsSectionIds.messageChannels}`,
+        url: `/settings#${settingsSectionIds.emailChannel}`,
         icon: Mail,
+        description:
+          "Configure email settings, including the email provider credentials.",
+      },
+      {
+        id: "sms",
+        title: "SMS",
+        type: "item",
+        url: `/settings#${settingsSectionIds.smsChannel}`,
+        icon: SmsOutlined,
         description:
           "Configure email settings, including the email provider credentials.",
       },
@@ -211,7 +273,7 @@ const menuItems: MenuItemGroup[] = [
   },
   {
     id: "subscription-management",
-    title: "Subscription",
+    title: "Subscription Management",
     type: "group",
     children: [],
     url: `/settings#${settingsSectionIds.subscription}`,
@@ -378,21 +440,23 @@ function SegmentIoConfig() {
         "Content-Type": "application/json",
       },
     },
-  })
+  });
   const handleSubmit = () => {
-    if (!isEnabled) updateSegmentIoSharedSecret("")
-    apiHandler()
-  }
+    if (!isEnabled) updateSegmentIoSharedSecret("");
+    apiHandler();
+  };
 
   const requestInProgress =
     segmentIoRequest.type === CompletionStatus.InProgress;
 
   return (
-    <Stack>
-      <Fields
+    <Stack spacing={3}>
+      <SectionHeader
         id={settingsSectionIds.dataSources}
         title="Data Sources"
         description="In order to use Dittofeed, at least 1 source of user data must be configured."
+      />
+      <Fields
         sections={[
           {
             id: "data-sources-section-1",
@@ -554,85 +618,113 @@ function SendGridConfig() {
   };
 
   return (
-    <Stack>
-      <Fields
-        id={settingsSectionIds.messageChannels}
-        title="Message Channels"
-        description="In order to use email, at least 1 email provider must be configured."
-        sections={[
-          {
-            id: "message-channels-section-1",
-            fieldGroups: [
-              {
-                id: "sendgrid-fields",
-                name: "SendGrid",
-                fields: [
-                  {
-                    id: "sendgrid-api-key",
-                    type: "text",
-                    fieldProps: {
-                      label: "API Key",
-                      type: showWebhookKey ? "text" : "password",
-                      helperText:
-                        "API key, used internally by Dittofeed to send emails via sendgrid.",
-                      onChange: (e) => {
-                        updateSendgridProviderApiKey(e.target.value);
-                      },
-                      value: apiKey,
+    <Fields
+      sections={[
+        {
+          id: "message-channels-section-1",
+          fieldGroups: [
+            {
+              id: "sendgrid-fields",
+              name: "SendGrid",
+              fields: [
+                {
+                  id: "sendgrid-api-key",
+                  type: "text",
+                  fieldProps: {
+                    label: "API Key",
+                    type: showWebhookKey ? "text" : "password",
+                    helperText:
+                      "API key, used internally by Dittofeed to send emails via sendgrid.",
+                    onChange: (e) => {
+                      updateSendgridProviderApiKey(e.target.value);
+                    },
+                    value: apiKey,
+                  },
+                },
+                {
+                  id: "sendgrid-webhook-key",
+                  type: "text",
+                  fieldProps: {
+                    label: "Webhook Key",
+                    helperText:
+                      "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
+                    variant: "outlined",
+                    type: showWebhookKey ? "text" : "password",
+                    placeholder: showWebhookKey ? undefined : "**********",
+                    onChange: (e) => setWebhookKey(e.target.value),
+                    sx: { flex: 1 },
+                    value: webhookKey,
+                    InputProps: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={handleClickShowPassword}
+                            onMouseDown={handleMouseDownPassword}
+                          >
+                            {showWebhookKey ? (
+                              <Visibility />
+                            ) : (
+                              <VisibilityOff />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
                     },
                   },
-                  {
-                    id: "sendgrid-webhook-key",
-                    type: "text",
-                    fieldProps: {
-                      label: "Webhook Key",
-                      helperText:
-                        "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
-                      variant: "outlined",
-                      type: showWebhookKey ? "text" : "password",
-                      placeholder: showWebhookKey ? undefined : "**********",
-                      onChange: (e) => setWebhookKey(e.target.value),
-                      sx: { flex: 1 },
-                      value: webhookKey,
-                      InputProps: {
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              aria-label="toggle password visibility"
-                              onClick={handleClickShowPassword}
-                              onMouseDown={handleMouseDownPassword}
-                            >
-                              {showWebhookKey ? (
-                                <Visibility />
-                              ) : (
-                                <VisibilityOff />
-                              )}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-        ]}
-      >
-        <Button
-          onClick={onSubmit}
-          variant="contained"
-          disabled={requestInProgress}
-          sx={{
-            alignSelf: {
-              xs: "start",
-              sm: "end",
+                },
+              ],
             },
-          }}
-        >
-          Save
-        </Button>
-      </Fields>
+          ],
+        },
+      ]}
+    >
+      <Button
+        onClick={onSubmit}
+        variant="contained"
+        disabled={requestInProgress}
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end",
+          },
+        }}
+      >
+        Save
+      </Button>
+    </Fields>
+  );
+}
+
+function EmailChannelConfig() {
+  return (
+    <>
+      <SectionSubHeader
+        id={settingsSectionIds.emailChannel}
+        title="Email"
+        description="In order to use email, at least 1 email provider must be configured."
+      />
+      <SendGridConfig />
+    </>
+  );
+}
+
+function SmsChannelConfig() {
+  return (
+    <SectionSubHeader
+      id={settingsSectionIds.smsChannel}
+      title="SMS"
+      description="In order to use SMS messaging, at least 1 SMS provider must be configured."
+    />
+  );
+}
+
+function MessageChannelsConfig() {
+  return (
+    <Stack spacing={3}>
+      <SectionHeader title="Message Channels" />
+      <EmailChannelConfig />
+      <SmsChannelConfig />
     </Stack>
   );
 }
@@ -666,11 +758,13 @@ function WriteKeySettings() {
   };
 
   return (
-    <Stack>
-      <Fields
+    <Stack spacing={3}>
+      <SectionHeader
         id={settingsSectionIds.authentication}
         title="Authentication"
         description=""
+      />
+      <Fields
         sections={[
           {
             id: "authorization-section-1",
@@ -899,11 +993,13 @@ function HubspotIntegration() {
 
 function IntegrationSettings() {
   return (
-    <Stack>
-      <Fields
+    <Stack spacing={3}>
+      <SectionHeader
         id={settingsSectionIds.integrations}
         title="Integrations"
         description=""
+      />
+      <Fields
         sections={[
           {
             id: "integration-section-1",
@@ -1011,35 +1107,39 @@ function SubscriptionManagementSettings() {
           </Paper>
         </Stack>
       </Dialog>
-      <Fields
-        id={settingsSectionIds.subscription}
-        title="Subscription"
-        description=""
-        sections={[
-          {
-            id: "subscription-section-1",
-            fieldGroups: [
-              {
-                id: "subscription-preview",
-                name: "User subscription page",
-                fields: [
-                  {
-                    id: "subscription-preview-button",
-                    type: "button",
-                    fieldProps: {
-                      children: "Preview",
-                      onClick: () => {
-                        setShowPreview(true);
+      <Stack spacing={3}>
+        <SectionHeader
+          id={settingsSectionIds.subscription}
+          title="Subscription Management"
+          description=""
+        />
+        <Fields
+          sections={[
+            {
+              id: "subscription-section-1",
+              fieldGroups: [
+                {
+                  id: "subscription-preview",
+                  name: "User subscription page",
+                  fields: [
+                    {
+                      id: "subscription-preview-button",
+                      type: "button",
+                      fieldProps: {
+                        children: "Preview",
+                        onClick: () => {
+                          setShowPreview(true);
+                        },
+                        variant: "outlined",
                       },
-                      variant: "outlined",
                     },
-                  },
-                ],
-              },
-            ],
-          },
-        ]}
-      />
+                  ],
+                },
+              ],
+            },
+          ]}
+        />
+      </Stack>
     </Stack>
   );
 }
@@ -1060,7 +1160,7 @@ const Settings: NextPage<
         }}
       >
         <SegmentIoConfig />
-        <SendGridConfig />
+        <MessageChannelsConfig />
         <WriteKeySettings />
         <SubscriptionManagementSettings />
         <IntegrationSettings />
