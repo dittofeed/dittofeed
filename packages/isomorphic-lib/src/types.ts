@@ -1690,3 +1690,11 @@ export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
 export const SmsProviderConfig = Type.Union([TwilioSmsProvider]);
 
 export type SmsProviderConfig = Static<typeof SmsProviderConfig>;
+
+export const UpsertSmsProviderRequest = Type.Object({
+  workspaceId: Type.String(),
+  setDefault: Type.Optional(Type.Boolean()),
+  smsProvider: SmsProviderConfig,
+});
+
+export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;

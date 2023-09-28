@@ -2,7 +2,8 @@
 ALTER TYPE "DBChannelType" ADD VALUE 'Sms';
 
 -- AlterTable
-ALTER TABLE "Secret" ADD COLUMN     "configValue" JSONB;
+ALTER TABLE "Secret" ADD COLUMN     "configValue" JSONB,
+ALTER COLUMN "value" DROP NOT NULL;
 
 -- CreateTable
 CREATE TABLE "DefaultSmsProvider" (

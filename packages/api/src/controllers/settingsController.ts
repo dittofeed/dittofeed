@@ -3,6 +3,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import prisma from "backend-lib/src/prisma";
+import { upsertSmsProvider } from "backend-lib/src/smsProviders";
 import { EmailProvider, Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import {
@@ -14,8 +15,10 @@ import {
   EmptyResponse,
   ListWriteKeyRequest,
   ListWriteKeyResource,
+  SmsProviderConfig,
   UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
+  UpsertSmsProviderRequest,
   UpsertWriteKeyResource,
   WriteKeyResource,
 } from "isomorphic-lib/src/types";
@@ -72,6 +75,23 @@ export default async function settingsController(fastify: FastifyInstance) {
         }
       }
 
+      return reply.status(200).send(resource);
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/sms-providers",
+    {
+      schema: {
+        description: "Create or update sms provider settings",
+        body: UpsertSmsProviderRequest,
+        response: {
+          200: SmsProviderConfig,
+        },
+      },
+    },
+    async (request, reply) => {
+      const resource = await upsertSmsProvider(request.body);
       return reply.status(200).send(resource);
     }
   );
