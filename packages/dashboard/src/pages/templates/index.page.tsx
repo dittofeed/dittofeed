@@ -248,6 +248,9 @@ function TemplateListContents() {
           <MenuItem component={Link} href={`/templates/email/${newItemId}`}>
             Email
           </MenuItem>
+          <MenuItem component={Link} href={`/templates/sms/${newItemId}`}>
+            SMS
+          </MenuItem>
           <MenuItem
             component={Link}
             disabled={!enableMobilePush}
@@ -265,6 +268,7 @@ function TemplateListContents() {
           aria-label="basic tabs example"
         >
           <Tab label="Email" />
+          <Tab label="SMS" />
           <Tab disabled={!enableMobilePush} label="Mobile Push" />
         </Tabs>
       </Box>
