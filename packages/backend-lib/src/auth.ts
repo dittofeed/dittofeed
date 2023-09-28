@@ -144,10 +144,15 @@ export async function getWriteKeys({
       },
     },
   });
-  return writeKeys.map((writeKey) => ({
-    writeKeyName: writeKey.secret.name,
-    writeKeyValue: writeKey.secret.value,
-    secretId: writeKey.secret.id,
-    workspaceId,
-  }));
+  return writeKeys.flatMap((writeKey) => {
+    if (!writeKey.secret.value) {
+      return [];
+    }
+    return {
+      writeKeyName: writeKey.secret.name,
+      writeKeyValue: writeKey.secret.value,
+      secretId: writeKey.secret.id,
+      workspaceId,
+    };
+  });
 }

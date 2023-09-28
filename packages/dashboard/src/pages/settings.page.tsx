@@ -46,13 +46,14 @@ import {
   IntegrationType,
   PersistedEmailProvider,
   SegmentResource,
-  SmsProvider,
   SmsProviderConfig,
+  SmsProviderType,
   SyncIntegration,
   TwilioSmsProvider,
   UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
   UpsertIntegrationResource,
+  UpsertSmsProviderRequest,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -364,6 +365,7 @@ interface SettingsActions {
   updateUpsertIntegrationsRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
+  updateSmsProviderRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
 type SettingsContent = SettingsState & SettingsActions;
@@ -422,6 +424,11 @@ export const useSettingsStore = create(
     updateSegmentIoRequest: (request) => {
       set((state) => {
         state.segmentIoRequest = request;
+      });
+    },
+    updateSmsProviderRequest: (request) => {
+      set((state) => {
+        state.upsertSmsProviderRequest = request;
       });
     },
   }))
@@ -745,16 +752,24 @@ function EmailChannelConfig() {
 }
 
 function TwilioConfig() {
-  const { smsProviders } = useAppStorePick([
-    "apiBase",
-    "workspace",
-    "smsProviders",
-  ]);
+  const { smsProviders, upsertSmsProvider, apiBase, workspace } =
+    useAppStorePick([
+      "apiBase",
+      "workspace",
+      "smsProviders",
+      "upsertSmsProvider",
+    ]);
+  const upsertSmsProviderRequest = useSettingsStore(
+    (store) => store.upsertSmsProviderRequest
+  );
+  const updateSmsProviderRequest = useSettingsStore(
+    (store) => store.updateSmsProviderRequest
+  );
 
   const twilioProvider: TwilioSmsProvider | null = useMemo(() => {
     for (const provider of smsProviders) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (provider.type === SmsProvider.Twilio) {
+      if (provider.type === SmsProviderType.Twilio) {
         return provider;
       }
     }
@@ -769,6 +784,38 @@ function TwilioConfig() {
   const [accountSid, setAccountSid] = useState(
     twilioProvider?.accountSid ?? ""
   );
+  if (workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
+
+  const body: UpsertSmsProviderRequest = {
+    workspaceId: workspace.value.id,
+    setDefault: true,
+    smsProvider: {
+      type: SmsProviderType.Twilio,
+      accountSid,
+      authToken,
+      messagingServiceSid,
+    },
+  };
+
+  const apiHandler = apiRequestHandlerFactory({
+    request: upsertSmsProviderRequest,
+    setRequest: updateSmsProviderRequest,
+    responseSchema: SmsProviderConfig,
+    setResponse: upsertSmsProvider,
+    onSuccessNotice: "Updated Twilio configuration.",
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to update Twilio configuration.`,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/settings/sms-providers`,
+      data: body,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
 
   return (
     <Fields
@@ -841,6 +888,7 @@ function TwilioConfig() {
             sm: "end",
           },
         }}
+        onClick={apiHandler}
       >
         Save
       </Button>

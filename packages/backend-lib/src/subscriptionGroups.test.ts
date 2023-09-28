@@ -67,19 +67,21 @@ describe("generateSubscriptionChangeUrl", () => {
     });
   });
   it("should generate a valid URL", async () => {
+    const secret = await prisma().secret.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: SUBSCRIPTION_SECRET_NAME,
+        },
+      },
+    });
+    if (!secret?.value) {
+      throw new Error("No secret found");
+    }
     const url = await generateSubscriptionChangeUrl({
       workspaceId,
       userId,
-      subscriptionSecret: (
-        await prisma().secret.findUniqueOrThrow({
-          where: {
-            workspaceId_name: {
-              workspaceId,
-              name: SUBSCRIPTION_SECRET_NAME,
-            },
-          },
-        })
-      ).value,
+      subscriptionSecret: secret.value,
       identifier: email,
       identifierKey: "email",
       changedSubscription: subscriptionGroup.id,

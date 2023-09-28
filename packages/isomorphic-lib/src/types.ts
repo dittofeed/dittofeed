@@ -1674,12 +1674,12 @@ export const JourneyStatsRequest = Type.Object({
 
 export type JourneyStatsRequest = Static<typeof JourneyStatsRequest>;
 
-export enum SmsProvider {
+export enum SmsProviderType {
   Twilio = "Twilio",
 }
 
 export const TwilioSmsProvider = Type.Object({
-  type: Type.Literal(SmsProvider.Twilio),
+  type: Type.Literal(SmsProviderType.Twilio),
   accountSid: Type.Optional(Type.String()),
   messagingServiceSid: Type.Optional(Type.String()),
   authToken: Type.Optional(Type.String()),

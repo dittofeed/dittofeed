@@ -34,7 +34,7 @@ import {
   JourneyNodeType,
   KnownTrackData,
   MessageTemplateResource,
-  SmsProvider,
+  SmsProviderType,
   SmsProviderConfig,
   SubscriptionGroupType,
   TrackData,
@@ -278,7 +278,7 @@ async function sendSmsWithPayload(
           },
         },
       });
-      const smsConfig = smsProvider?.smsProvider?.secret.configValue;
+      const smsConfig = smsProvider?.smsProvider.secret.configValue;
       if (!smsConfig) {
         return err(
           buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
@@ -351,7 +351,7 @@ async function sendSmsWithPayload(
       }
 
       switch (channelConfig.type) {
-        case SmsProvider.Twilio: {
+        case SmsProviderType.Twilio: {
           if (
             !channelConfig.accountSid ||
             !channelConfig.messagingServiceSid ||
