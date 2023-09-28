@@ -1,4 +1,5 @@
 import { TWILIO_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { pickBy } from "remeda";
 
 import prisma from "./prisma";
 import { SmsProviderConfig, UpsertSmsProviderRequest } from "./types";
@@ -9,7 +10,20 @@ export async function upsertSmsProvider(
   const setDefault = request.setDefault ?? false;
 
   await prisma().$transaction(async (tx) => {
-    const secret = await tx.secret.upsert({
+    let secret = await tx.secret.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId: request.workspaceId,
+          name: TWILIO_SECRET_NAME,
+        },
+      },
+    });
+
+    const updatedConfig = {
+      ...(typeof secret?.configValue === "object" ? secret.configValue : {}),
+      ...pickBy(request.smsProvider, (v) => v !== undefined),
+    };
+    secret = await tx.secret.upsert({
       where: {
         workspaceId_name: {
           workspaceId: request.workspaceId,
@@ -19,10 +33,10 @@ export async function upsertSmsProvider(
       create: {
         workspaceId: request.workspaceId,
         name: TWILIO_SECRET_NAME,
-        configValue: request.smsProvider,
+        configValue: updatedConfig,
       },
       update: {
-        configValue: request.smsProvider,
+        configValue: updatedConfig,
       },
     });
     const smsProvider = await tx.smsProvider.upsert({

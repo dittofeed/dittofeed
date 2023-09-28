@@ -1680,9 +1680,9 @@ export enum SmsProvider {
 
 export const TwilioSmsProvider = Type.Object({
   type: Type.Literal(SmsProvider.Twilio),
-  accountSid: Type.String(),
-  messagingServiceSid: Type.String(),
-  authToken: Type.String(),
+  accountSid: Type.Optional(Type.String()),
+  messagingServiceSid: Type.Optional(Type.String()),
+  authToken: Type.Optional(Type.String()),
 });
 
 export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;

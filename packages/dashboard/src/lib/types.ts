@@ -21,6 +21,7 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
+  SmsProviderConfig,
   SourceControlProviderEnum,
   SubscriptionGroupResource,
   UserPropertyDefinition,
@@ -80,6 +81,7 @@ export type AppState = {
     Error
   >;
   emailProviders: RequestStatus<PersistedEmailProvider[], Error>;
+  smsProviders: SmsProviderConfig[];
   dataSourceConfigurations: RequestStatus<
     DataSourceConfigurationResource[],
     Error
@@ -100,6 +102,7 @@ export type AppState = {
 export interface AppActions {
   toggleDrawer: () => void;
   upsertEmailProvider: (emailProvider: PersistedEmailProvider) => void;
+  upsertSmsProvider: (smsProvider: SmsProviderConfig) => void;
   upsertDataSourceConfiguration: (
     dataSource: DataSourceConfigurationResource
   ) => void;

@@ -211,6 +211,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         emailProviders: {
           type: CompletionStatus.NotStarted,
         },
+        smsProviders: [],
         traits: {
           type: CompletionStatus.NotStarted,
         },
@@ -608,6 +609,19 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               }
             }
             emailProviders.value.push(emailProvider);
+            return state;
+          }),
+
+        upsertSmsProvider: (provider) =>
+          set((state) => {
+            for (const smsProvider of state.smsProviders) {
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              if (smsProvider.type === provider.type) {
+                Object.assign(smsProvider, provider);
+                return state;
+              }
+            }
+            state.smsProviders.push(provider);
             return state;
           }),
         upsertDataSourceConfiguration: (dataSourceConfiguration) =>

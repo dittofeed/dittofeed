@@ -239,7 +239,7 @@ async function sendWithTracking<C>(
     return channelConfig.error;
   }
 
-  if (!subscriptionSecret) {
+  if (!subscriptionSecret?.value) {
     logger().error("subscription secret not found");
     return [false, null];
   }
@@ -352,6 +352,19 @@ async function sendSmsWithPayload(
 
       switch (channelConfig.type) {
         case SmsProvider.Twilio: {
+          if (
+            !channelConfig.accountSid ||
+            !channelConfig.messagingServiceSid ||
+            !channelConfig.authToken
+          ) {
+            return buildSendValue(
+              false,
+              InternalEventType.BadWorkspaceConfiguration,
+              {
+                message: "Twilio config is invalid",
+              }
+            );
+          }
           const smsResult = await sendSmsTwilio({
             body,
             to: identifier,
@@ -411,7 +424,7 @@ async function sendMobilePushWithPayload(
         },
       });
 
-      if (!fcmKey) {
+      if (!fcmKey?.value) {
         return err(
           buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
             message: "FCM key not found",
