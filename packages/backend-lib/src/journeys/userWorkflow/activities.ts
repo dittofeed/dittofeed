@@ -12,6 +12,7 @@ import {
 } from "isomorphic-lib/src/constants";
 import { getNodeId } from "isomorphic-lib/src/journeys";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
 import { v5 as uuidv5 } from "uuid";
@@ -33,6 +34,7 @@ import {
   JourneyNodeType,
   KnownTrackData,
   MessageTemplateResource,
+  SmsProvider,
   SmsProviderConfig,
   SubscriptionGroupType,
   TrackData,
@@ -348,37 +350,33 @@ async function sendSmsWithPayload(
         });
       }
 
-      await sendSmsTwilio({
+      switch (channelConfig.type) {
+        case SmsProvider.Twilio: {
+          const smsResult = await sendSmsTwilio({
+            body,
+            to: identifier,
+            accountSid: channelConfig.accountSid,
+            messagingServiceSid: channelConfig.messagingServiceSid,
+            authToken: channelConfig.authToken,
+          });
+
+          if (smsResult.isErr()) {
+            logger().error({ err: smsResult.error }, "failed to send sms");
+            return buildSendValue(false, InternalEventType.MessageFailure, {
+              message: `Failed to send sms: ${smsResult.error.message}`,
+            });
+          }
+          break;
+        }
+        default: {
+          const smsType: never = channelConfig.type;
+          assertUnreachable(smsType, `unknown sms provider type ${smsType}`);
+        }
+      }
+
+      return buildSendValue(true, InternalEventType.MessageSent, {
         body,
-        to: identifier,
-        accountSid: channelConfig.accountSid,
-        messagingServiceSid: channelConfig.messagingServiceSid,
-        authToken: channelConfig.authToken,
       });
-      // const twilioClient = TwilioClient(
-      //   channelConfig.accountSid,
-      //   channelConfig.authToken
-      // );
-      //   const { imageUrl } = messageTemplate.definition;
-      //   const token = identifier;
-      //   const fcmMessageId = await sendNotification({
-      //     key: channelConfig.fcmKey,
-      //     token,
-      //     notification: {
-      //       title,
-      //       body,
-      //       imageUrl,
-      //     },
-      //     android: messageTemplate.definition.android,
-      //   });
-      //   return buildSendValue(true, InternalEventType.MessageSent, {
-      //     fcmMessageId,
-      //     title,
-      //     body,
-      //     imageUrl,
-      //     token,
-      //     android: messageTemplate.definition.android,
-      //   });
     },
   });
 }
