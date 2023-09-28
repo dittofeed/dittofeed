@@ -27,12 +27,14 @@ import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
+import logger from "backend-lib/src/logger";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { SENDGRID_WEBHOOK_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -44,7 +46,10 @@ import {
   IntegrationType,
   PersistedEmailProvider,
   SegmentResource,
+  SmsProvider,
+  SmsProviderConfig,
   SyncIntegration,
+  TwilioSmsProvider,
   UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
   UpsertIntegrationResource,
@@ -138,6 +143,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       writeKey,
       integrations,
       segments,
+      smsProviders,
     ] = await Promise.all([
       (
         await prisma().emailProvider.findMany({
@@ -171,6 +177,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         .then((dbSegments) =>
           dbSegments.map((segment) => unwrap(toSegmentResource(segment)))
         ),
+      prisma().smsProvider.findMany({
+        where: {
+          workspaceId,
+        },
+        include: {
+          secret: true,
+        },
+      }),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -211,6 +225,23 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       type: CompletionStatus.Successful,
       value: subscriptionGroupResources,
     };
+    serverInitialState.smsProviders = smsProviders.flatMap((provider) => {
+      const configResult = schemaValidateWithErr(
+        provider.secret.configValue,
+        SmsProviderConfig
+      );
+      if (configResult.isErr()) {
+        logger().error(
+          {
+            err: configResult.error,
+          },
+          "failed to validate sms provider config"
+        );
+        return [];
+      }
+
+      return configResult.value;
+    });
 
     return {
       props: addInitialStateToProps({
@@ -313,6 +344,7 @@ interface SettingsState {
   sendgridProviderApiKey: string;
   sendgridWebhookVerificationKeyRequest: EphemeralRequestStatus<Error>;
   sendgridWebhookVerificationKey: string;
+  upsertSmsProviderRequest: EphemeralRequestStatus<Error>;
   segmentIoRequest: EphemeralRequestStatus<Error>;
   segmentIoSharedSecret: string;
   upsertIntegrationsRequest: EphemeralRequestStatus<Error>;
@@ -352,6 +384,9 @@ export const useSettingsStore = create(
       type: CompletionStatus.NotStarted,
     },
     upsertIntegrationsRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    upsertSmsProviderRequest: {
       type: CompletionStatus.NotStarted,
     },
     updateUpsertIntegrationsRequest: (request) => {
@@ -621,7 +656,7 @@ function SendGridConfig() {
     <Fields
       sections={[
         {
-          id: "message-channels-section-1",
+          id: "sendgrid-section",
           fieldGroups: [
             {
               id: "sendgrid-fields",
@@ -632,7 +667,6 @@ function SendGridConfig() {
                   type: "text",
                   fieldProps: {
                     label: "API Key",
-                    type: showWebhookKey ? "text" : "password",
                     helperText:
                       "API key, used internally by Dittofeed to send emails via sendgrid.",
                     onChange: (e) => {
@@ -679,6 +713,7 @@ function SendGridConfig() {
         },
       ]}
     >
+      {/* TODO make loading button */}
       <Button
         onClick={onSubmit}
         variant="contained"
@@ -709,13 +744,120 @@ function EmailChannelConfig() {
   );
 }
 
+function TwilioConfig() {
+  const { smsProviders } = useAppStorePick([
+    "apiBase",
+    "workspace",
+    "smsProviders",
+  ]);
+
+  const twilioProvider: TwilioSmsProvider | null = useMemo(() => {
+    for (const provider of smsProviders) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (provider.type === SmsProvider.Twilio) {
+        return provider;
+      }
+    }
+    return null;
+  }, [smsProviders]);
+
+  const [showAuthToken, setShowAuthKey] = useState(false);
+  const [authToken, setAuthToken] = useState(twilioProvider?.authToken ?? "");
+  const [messagingServiceSid, setMessagingServiceSid] = useState(
+    twilioProvider?.messagingServiceSid
+  );
+  const [accountSid, setAccountSid] = useState(
+    twilioProvider?.accountSid ?? ""
+  );
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "twilio-section",
+          fieldGroups: [
+            {
+              id: "twilio-fields",
+              name: "Twilio",
+              fields: [
+                {
+                  id: "twilio-account-sid",
+                  type: "text",
+                  fieldProps: {
+                    label: "Account sid",
+                    helperText: "Twilio account sid.",
+                    onChange: (e) => setAccountSid(e.target.value),
+                    value: accountSid,
+                  },
+                },
+                {
+                  id: "twilio-messaging-service-sid",
+                  type: "text",
+                  fieldProps: {
+                    label: "Messaging service sid",
+                    helperText: "Twilio messaging service sid.",
+                    onChange: (e) => setMessagingServiceSid(e.target.value),
+                    value: messagingServiceSid,
+                  },
+                },
+                {
+                  id: "twilio-auth-token",
+                  type: "text",
+                  fieldProps: {
+                    label: "Twilio auth token",
+                    helperText:
+                      "Twilio auth token used to authenticate requests.",
+                    variant: "outlined",
+                    type: showAuthToken ? "text" : "password",
+                    placeholder: showAuthToken ? undefined : "**********",
+                    onChange: (e) => setAuthToken(e.target.value),
+                    sx: { flex: 1 },
+                    value: authToken,
+                    InputProps: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={() => setShowAuthKey(!showAuthToken)}
+                          >
+                            {showAuthToken ? <Visibility /> : <VisibilityOff />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    >
+      <Button
+        variant="contained"
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end",
+          },
+        }}
+      >
+        Save
+      </Button>
+    </Fields>
+  );
+}
+
 function SmsChannelConfig() {
   return (
-    <SectionSubHeader
-      id={settingsSectionIds.smsChannel}
-      title="SMS"
-      description="In order to use SMS messaging, at least 1 SMS provider must be configured."
-    />
+    <>
+      <SectionSubHeader
+        id={settingsSectionIds.smsChannel}
+        title="SMS"
+        description="In order to use SMS messaging, at least 1 SMS provider must be configured."
+      />
+      <TwilioConfig />
+    </>
   );
 }
 
@@ -770,7 +912,7 @@ function WriteKeySettings() {
             id: "authorization-section-1",
             fieldGroups: [
               {
-                id: "sendgrid-fields",
+                id: "authorization-fields",
                 name: "Write key",
                 fields: [
                   {
@@ -780,7 +922,7 @@ function WriteKeySettings() {
                       label: "",
                       helperText:
                         'Include this key as an HTTP "Authorization: Basic ..." header in your requests. This authorization key can be included in your client, and does not need to be kept secret.',
-                      value: keyHeader, // "Basic Y2M4MzBjOTItYTI5Mi00NjczLWI0ODUtY2E2YzNiNTkzOGNmOjQzN2ViMjFiNDQzZTQxNDY=",
+                      value: keyHeader,
                       children: "abcd",
                       onChange: () => {},
                       InputProps: {

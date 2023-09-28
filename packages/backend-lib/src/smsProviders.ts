@@ -21,7 +21,7 @@ export async function upsertSmsProvider(
 
     const updatedConfig = {
       ...(typeof secret?.configValue === "object" ? secret.configValue : {}),
-      ...pickBy(request.smsProvider, (v) => v !== undefined),
+      ...pickBy(request.smsProvider, (v) => v !== undefined && v.length > 0),
     };
     secret = await tx.secret.upsert({
       where: {
