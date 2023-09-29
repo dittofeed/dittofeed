@@ -1,6 +1,8 @@
 import { findMessageTemplate } from "backend-lib/src/messageTemplates";
+import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { ChannelType } from "isomorphic-lib/src/types";
+import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
+import { LoremIpsum } from "lorem-ipsum";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -13,6 +15,7 @@ import SmsEditor, {
   defaultSmsMessageState,
 } from "../../../components/messages/smsEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
+import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
 
@@ -29,14 +32,34 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       };
     }
 
-    const smsMessage = unwrap(
-      await findMessageTemplate({
+    const [smsMessage, userProperties] = await Promise.all([
+      findMessageTemplate({
         id,
         channel: ChannelType.Sms,
-      })
-    );
+      }).then(unwrap),
+      prisma().userProperty.findMany({
+        where: {
+          workspaceId: dfContext.workspace.id,
+        },
+      }),
+    ]);
+
+    const lorem = new LoremIpsum({
+      sentencesPerParagraph: {
+        max: 8,
+        min: 4,
+      },
+      wordsPerSentence: {
+        max: 16,
+        min: 4,
+      },
+    });
 
     const smsMessageUserProperties = {
+      ...userProperties.reduce<Record<string, string>>((memo, up) => {
+        memo[up.name] = lorem.generateWords(1);
+        return memo;
+      }, {}),
       ...defaultInitialUserProperties,
     };
     const smsMessageUserPropertiesJSON = JSON.stringify(
@@ -49,6 +72,13 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       ...defaultSmsMessageState(id),
       smsMessageUserProperties,
       smsMessageUserPropertiesJSON,
+    };
+
+    serverInitialState.userProperties = {
+      type: CompletionStatus.Successful,
+      value: userProperties.flatMap((up) =>
+        toUserPropertyResource(up).unwrapOr([])
+      ),
     };
 
     if (
