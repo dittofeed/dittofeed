@@ -1,5 +1,5 @@
 import { PlusCircleFilled } from "@ant-design/icons";
-import { Delete, Segment } from "@mui/icons-material";
+import { Delete } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
