@@ -379,17 +379,18 @@ async function sendSmsWithPayload(
               message: `Failed to send sms: ${smsResult.error.message}`,
             });
           }
-          break;
+
+          return buildSendValue(true, InternalEventType.MessageSent, {
+            body,
+            to: identifier,
+            sid: smsResult.value.sid,
+          });
         }
         default: {
           const smsType: never = channelConfig.type;
           assertUnreachable(smsType, `unknown sms provider type ${smsType}`);
         }
       }
-
-      return buildSendValue(true, InternalEventType.MessageSent, {
-        body,
-      });
     },
   });
 }

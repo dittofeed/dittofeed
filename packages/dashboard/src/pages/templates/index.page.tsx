@@ -178,7 +178,7 @@ function TemplateListContents() {
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
   };
-  const { emailTemplates, mobilePushTemplates } = useMemo(() => {
+  const { emailTemplates, mobilePushTemplates, smsTemplates } = useMemo(() => {
     const messages =
       messagesResult.type === CompletionStatus.Successful
         ? messagesResult.value
@@ -298,6 +298,30 @@ function TemplateListContents() {
         </List>
       </TabPanel>
       <TabPanel value={tab} index={1}>
+        <List
+          sx={{
+            width: "100%",
+            bgcolor: "background.paper",
+            borderRadius: 1,
+          }}
+        >
+          {smsTemplates.map((template) => (
+            <TemplateListItem template={template} key={template.id} />
+          ))}
+          {smsTemplates.length === 0 && (
+            <Typography
+              component="span"
+              textAlign="center"
+              sx={{
+                padding: "20px 16px",
+              }}
+            >
+              You haven&apos;t created any SMS templates.
+            </Typography>
+          )}
+        </List>
+      </TabPanel>
+      <TabPanel value={tab} index={2}>
         <List
           sx={{
             width: "100%",

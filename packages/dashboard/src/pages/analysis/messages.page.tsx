@@ -125,6 +125,7 @@ export default function MessagesPage() {
   } = useAppStorePick([
     "journeyStats",
     "journeys",
+    "apiBase",
     "upsertJourneyStats",
     "setJourneyStatsRequest",
     "messages",

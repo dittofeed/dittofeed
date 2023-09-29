@@ -254,7 +254,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 const settingsSectionIds = {
-  dataSources: "data-sources",
+  segmentSource: "segment-source",
   emailChannel: "email-channel",
   smsChannel: "sms-channel",
   subscription: "subscriptions",
@@ -272,7 +272,7 @@ const menuItems: MenuItemGroup[] = [
         id: "data-sources-segment-io",
         title: "Segment",
         type: "item",
-        url: `/settings#${settingsSectionIds.dataSources}`,
+        url: `/settings#${settingsSectionIds.segmentSource}`,
         icon: SimCardDownload,
         description: "",
       },
@@ -494,7 +494,7 @@ function SegmentIoConfig() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        id={settingsSectionIds.dataSources}
+        id={settingsSectionIds.segmentSource}
         title="Data Sources"
         description="In order to use Dittofeed, at least 1 source of user data must be configured."
       />
@@ -530,7 +530,7 @@ function SegmentIoConfig() {
                           fieldProps: {
                             label: "Shared Secret",
                             helperText:
-                              "Secret for signing request body with an HMAC in the “X-Signature” request header",
+                              "Secret for validating signed request bodies from segment.",
                             onChange: (e) => {
                               updateSegmentIoSharedSecret(e.target.value);
                             },
