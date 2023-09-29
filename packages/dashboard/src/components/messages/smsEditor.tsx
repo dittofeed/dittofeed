@@ -119,7 +119,7 @@ export default function SmsEditor() {
   const theme = useTheme();
   const router = useRouter();
   const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
-  const [previewBodyHtml, setRenderedBody] = useState<string>("");
+  const [previewBody, setRenderedBody] = useState<string>("");
 
   const [fullscreen, setFullscreen] = useState<Fullscreen>(null);
   const {
@@ -476,14 +476,17 @@ export default function SmsEditor() {
         >
           <Box
             sx={{
+              width: "60%",
               marginTop: 10,
               backgroundColor: "#f7f8fa",
               border: "1px solid #ebecf2",
               padding: 1,
               borderRadius: 1,
+              whiteSpace: "normal", // Ensures text wraps onto the next line
+              wordWrap: "break-word", // Breaks the word at the end of the line
             }}
           >
-            {previewBodyHtml}
+            {previewBody}
           </Box>
         </Stack>
       </BodyBox>
