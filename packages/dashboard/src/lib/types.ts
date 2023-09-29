@@ -235,6 +235,22 @@ export interface EmailMessageEditorContents extends EmailMessageEditorState {
   ) => void;
 }
 
+export interface SmsMessageEditorState {
+  smsMessageTitle: string;
+  smsMessageBody: string;
+  smsMessageUserProperties: Record<string, string>;
+  smsMessageUserPropertiesJSON: string;
+  smsMessageUpdateRequest: EphemeralRequestStatus<Error>;
+}
+
+export interface SmsMessageEditorContents extends SmsMessageEditorState {
+  setSmsMessageTitle: (title: string) => void;
+  setSmsMessageBody: (body: string) => void;
+  setSmsUserProperties: (properties: Record<string, string>) => void;
+  setSmsMessagePropsJSON: (jsonString: string) => void;
+  setSmsMessageUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
+}
+
 export interface MobilePushMessageEditorState {
   mobilePushMessageTitle: string;
   mobilePushMessageBody: string;
@@ -294,6 +310,7 @@ export interface JourneyContent extends JourneyState {
 
 export type PageStoreContents = EmailMessageEditorContents &
   MobilePushMessageEditorContents &
+  SmsMessageEditorContents &
   SegmentEditorContents &
   SegmentIndexContent &
   UserPropertyIndexContent &

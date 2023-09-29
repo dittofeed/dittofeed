@@ -34,8 +34,8 @@ import {
   JourneyNodeType,
   KnownTrackData,
   MessageTemplateResource,
-  SmsProviderType,
   SmsProviderConfig,
+  SmsProviderType,
   SubscriptionGroupType,
   TrackData,
 } from "../../types";

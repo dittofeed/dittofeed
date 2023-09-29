@@ -240,17 +240,38 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         emailMessageFrom: "",
         emailMessageUserProperties: {},
         emailMessageUserPropertiesJSON: "",
-        mobilePushMessageTitle: "",
-        mobilePushMessageBody: "",
         emailMessageReplyTo: "",
-        mobilePushMesssageImageUrl: "",
-        mobilePushMessageUserProperties: {},
-        mobilePushMessageUserPropertiesJSON: "",
+
         emailMessageUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
+
+        // mobile push message state
+        mobilePushMessageTitle: "",
+        mobilePushMessageBody: "",
+        mobilePushMesssageImageUrl: "",
+        mobilePushMessageUserProperties: {},
+        mobilePushMessageUserPropertiesJSON: "",
         mobilePushMessageUpdateRequest: {
           type: CompletionStatus.NotStarted,
+        },
+
+        // sms message state
+        smsMessageBody: "",
+        smsMessageUpdateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+        smsMessageUserPropertiesJSON: "",
+        smsMessageUserProperties: {},
+        smsMessageTitle: "",
+        setSmsMessageTitle: (title) =>
+          set((state) => {
+            state.smsMessageTitle = title;
+          }),
+        setSmsUserProperties(properties) {
+          set((state) => {
+            state.smsMessageUserProperties = properties;
+          });
         },
 
         messageTemplateDeleteRequest: {
@@ -715,6 +736,19 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setMobilePushMessageUpdateRequest: (request) =>
           set((state) => {
             state.mobilePushMessageUpdateRequest = request;
+          }),
+
+        setSmsMessageBody: (body) =>
+          set((state) => {
+            state.smsMessageBody = body;
+          }),
+        setSmsMessagePropsJSON: (jsonString) =>
+          set((state) => {
+            state.smsMessageUserPropertiesJSON = jsonString;
+          }),
+        setSmsMessageUpdateRequest: (request) =>
+          set((state) => {
+            state.smsMessageUpdateRequest = request;
           }),
         addEditableSegmentChild: (parentId) =>
           set((state) => {

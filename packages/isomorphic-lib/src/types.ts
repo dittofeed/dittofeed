@@ -775,7 +775,6 @@ export type MobilePushTemplateResource = Static<
 export const SmsTemplateResource = Type.Object({
   type: Type.Literal(ChannelType.Sms),
   body: Type.String(),
-  from: Type.String(),
 });
 
 export type SmsTemplateResource = Static<typeof SmsTemplateResource>;
