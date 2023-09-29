@@ -69,6 +69,7 @@ import { immer } from "zustand/middleware/immer";
 import ExternalLink from "../components/externalLink";
 import Fields from "../components/form/Fields";
 import { FieldComponents } from "../components/form/types";
+import { HubspotIcon } from "../components/icons/hubspotIcon";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
@@ -259,7 +260,7 @@ const settingsSectionIds = {
   smsChannel: "sms-channel",
   subscription: "subscriptions",
   authentication: "authentication",
-  integrations: "integrations",
+  hubspotIntegration: "hubspot-integration",
 } as const;
 
 const menuItems: MenuItemGroup[] = [
@@ -321,8 +322,17 @@ const menuItems: MenuItemGroup[] = [
     id: "integrations",
     title: "Integrations",
     type: "group",
-    children: [],
-    url: `/settings#${settingsSectionIds.integrations}`,
+    children: [
+      {
+        id: "hubspot",
+        title: "Hubspot",
+        type: "item",
+        url: `/settings#${settingsSectionIds.hubspotIntegration}`,
+        icon: HubspotIcon,
+        description: "Configure Hubspot integration.",
+      },
+    ],
+    url: `/settings#${settingsSectionIds.hubspotIntegration}`,
   },
 ];
 
@@ -1185,7 +1195,7 @@ function IntegrationSettings() {
   return (
     <Stack spacing={3}>
       <SectionHeader
-        id={settingsSectionIds.integrations}
+        id={settingsSectionIds.hubspotIntegration}
         title="Integrations"
         description=""
       />
