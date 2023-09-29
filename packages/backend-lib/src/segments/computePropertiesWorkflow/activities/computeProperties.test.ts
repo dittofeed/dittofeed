@@ -944,6 +944,78 @@ describe("compute properties activities", () => {
           },
         ],
       },
+      {
+        description:
+          "with the exists trait operator confirms that user has trait",
+        events: [
+          {
+            eventTimeOffset: -500,
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                traits: {
+                  phone: "1234567890",
+                },
+              }),
+          },
+        ],
+        segments: [
+          {
+            name: "hasPhoneNumber",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "phone",
+                operator: {
+                  type: SegmentOperatorType.Exists,
+                },
+              },
+              nodes: [],
+            },
+          },
+        ],
+        expectedSegments: {
+          hasPhoneNumber: true,
+        },
+      },
+      {
+        description:
+          "with the exists trait operator confirms that user does not have trait",
+        events: [
+          {
+            eventTimeOffset: -500,
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                traits: {
+                  notPhone: "abc",
+                },
+              }),
+          },
+        ],
+        segments: [
+          {
+            name: "hasPhoneNumber",
+            id: randomUUID(),
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.Trait,
+                path: "phone",
+                operator: {
+                  type: SegmentOperatorType.Exists,
+                },
+              },
+              nodes: [],
+            },
+          },
+        ],
+        expectedSegments: {
+          hasPhoneNumber: false,
+        },
+      },
     ];
 
     describe("table driven tests", () => {
