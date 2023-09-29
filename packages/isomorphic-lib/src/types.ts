@@ -67,6 +67,7 @@ export enum SubscriptionGroupType {
 export enum ChannelType {
   Email = "Email",
   MobilePush = "MobilePush",
+  Sms = "Sms",
 }
 
 export const SubscriptionGroupResource = Type.Object({
@@ -546,9 +547,17 @@ export const MobilePushMessageVariant = Type.Object({
 
 export type MobilePushMessageVariant = Static<typeof MobilePushMessageVariant>;
 
+export const SmsMessageVariant = Type.Object({
+  type: Type.Literal(ChannelType.Sms),
+  templateId: Type.String(),
+});
+
+export type SmsMessageVariant = Static<typeof SmsMessageVariant>;
+
 export const MessageVariant = Type.Union([
   EmailMessageVariant,
   MobilePushMessageVariant,
+  SmsMessageVariant,
 ]);
 
 export type MessageVariants = Static<typeof MessageVariant>;
@@ -763,9 +772,17 @@ export type MobilePushTemplateResource = Static<
   typeof MobilePushTemplateResource
 >;
 
+export const SmsTemplateResource = Type.Object({
+  type: Type.Literal(ChannelType.Sms),
+  body: Type.String(),
+});
+
+export type SmsTemplateResource = Static<typeof SmsTemplateResource>;
+
 export const MessageTemplateResourceDefinition = Type.Union([
   MobilePushTemplateResource,
   EmailTemplateResource,
+  SmsTemplateResource,
 ]);
 
 export type MessageTemplateResourceDefinition = Static<
@@ -1655,3 +1672,28 @@ export const JourneyStatsRequest = Type.Object({
 });
 
 export type JourneyStatsRequest = Static<typeof JourneyStatsRequest>;
+
+export enum SmsProviderType {
+  Twilio = "Twilio",
+}
+
+export const TwilioSmsProvider = Type.Object({
+  type: Type.Literal(SmsProviderType.Twilio),
+  accountSid: Type.Optional(Type.String()),
+  messagingServiceSid: Type.Optional(Type.String()),
+  authToken: Type.Optional(Type.String()),
+});
+
+export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
+
+export const SmsProviderConfig = Type.Union([TwilioSmsProvider]);
+
+export type SmsProviderConfig = Static<typeof SmsProviderConfig>;
+
+export const UpsertSmsProviderRequest = Type.Object({
+  workspaceId: Type.String(),
+  setDefault: Type.Optional(Type.Boolean()),
+  smsProvider: SmsProviderConfig,
+});
+
+export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;

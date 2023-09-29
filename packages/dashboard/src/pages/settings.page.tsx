@@ -2,6 +2,7 @@ import {
   ContentCopyOutlined,
   Mail,
   SimCardDownload,
+  SmsOutlined,
   Visibility,
   VisibilityOff,
 } from "@mui/icons-material";
@@ -20,17 +21,20 @@ import {
   Stack,
   Switch,
   TextField,
+  Typography,
 } from "@mui/material";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
+import logger from "backend-lib/src/logger";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { SENDGRID_WEBHOOK_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
@@ -42,10 +46,14 @@ import {
   IntegrationType,
   PersistedEmailProvider,
   SegmentResource,
+  SmsProviderConfig,
+  SmsProviderType,
   SyncIntegration,
+  TwilioSmsProvider,
   UpsertDataSourceConfigurationResource,
   UpsertEmailProviderResource,
   UpsertIntegrationResource,
+  UpsertSmsProviderRequest,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -61,6 +69,7 @@ import { immer } from "zustand/middleware/immer";
 import ExternalLink from "../components/externalLink";
 import Fields from "../components/form/Fields";
 import { FieldComponents } from "../components/form/types";
+import { HubspotIcon } from "../components/icons/hubspotIcon";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
@@ -74,6 +83,56 @@ import { requestContext } from "../lib/requestContext";
 import { useSecretsEditor } from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
 
+function SectionHeader({
+  id,
+  title,
+  description,
+}: {
+  id?: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <Box id={id}>
+      <Typography
+        variant="h2"
+        fontWeight={300}
+        sx={{ fontSize: 20, marginBottom: 0.5 }}
+      >
+        {title}
+      </Typography>
+      <Typography variant="subtitle1" fontWeight="normal" sx={{ opacity: 0.6 }}>
+        {description}
+      </Typography>
+    </Box>
+  );
+}
+
+function SectionSubHeader({
+  id,
+  title,
+  description,
+}: {
+  id?: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <Box id={id}>
+      <Typography
+        fontWeight={300}
+        variant="h2"
+        sx={{ fontSize: 16, marginBottom: 0.5 }}
+      >
+        {title}
+      </Typography>
+      <Typography variant="subtitle1" fontWeight="normal" sx={{ opacity: 0.6 }}>
+        {description}
+      </Typography>
+    </Box>
+  );
+}
+
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const { workspace } = dfContext;
@@ -86,6 +145,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       writeKey,
       integrations,
       segments,
+      smsProviders,
     ] = await Promise.all([
       (
         await prisma().emailProvider.findMany({
@@ -119,6 +179,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         .then((dbSegments) =>
           dbSegments.map((segment) => unwrap(toSegmentResource(segment)))
         ),
+      prisma().smsProvider.findMany({
+        where: {
+          workspaceId,
+        },
+        include: {
+          secret: true,
+        },
+      }),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -159,6 +227,23 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       type: CompletionStatus.Successful,
       value: subscriptionGroupResources,
     };
+    serverInitialState.smsProviders = smsProviders.flatMap((provider) => {
+      const configResult = schemaValidateWithErr(
+        provider.secret.configValue,
+        SmsProviderConfig
+      );
+      if (configResult.isErr()) {
+        logger().error(
+          {
+            err: configResult.error,
+          },
+          "failed to validate sms provider config"
+        );
+        return [];
+      }
+
+      return configResult.value;
+    });
 
     return {
       props: addInitialStateToProps({
@@ -170,12 +255,13 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 const settingsSectionIds = {
-  dataSources: "settings-data-sources",
-  messageChannels: "settings-message-channels",
-  subscription: "settings-subscriptions",
-  authentication: "settings-authentication",
-  integrations: "settings-integrations",
-};
+  segmentSource: "segment-source",
+  emailChannel: "email-channel",
+  smsChannel: "sms-channel",
+  subscription: "subscriptions",
+  authentication: "authentication",
+  hubspotIntegration: "hubspot-integration",
+} as const;
 
 const menuItems: MenuItemGroup[] = [
   {
@@ -187,7 +273,7 @@ const menuItems: MenuItemGroup[] = [
         id: "data-sources-segment-io",
         title: "Segment",
         type: "item",
-        url: `/settings#${settingsSectionIds.dataSources}`,
+        url: `/settings#${settingsSectionIds.segmentSource}`,
         icon: SimCardDownload,
         description: "",
       },
@@ -202,8 +288,17 @@ const menuItems: MenuItemGroup[] = [
         id: "email",
         title: "Email",
         type: "item",
-        url: `/settings#${settingsSectionIds.messageChannels}`,
+        url: `/settings#${settingsSectionIds.emailChannel}`,
         icon: Mail,
+        description:
+          "Configure email settings, including the email provider credentials.",
+      },
+      {
+        id: "sms",
+        title: "SMS",
+        type: "item",
+        url: `/settings#${settingsSectionIds.smsChannel}`,
+        icon: SmsOutlined,
         description:
           "Configure email settings, including the email provider credentials.",
       },
@@ -211,7 +306,7 @@ const menuItems: MenuItemGroup[] = [
   },
   {
     id: "subscription-management",
-    title: "Subscription",
+    title: "Subscription Management",
     type: "group",
     children: [],
     url: `/settings#${settingsSectionIds.subscription}`,
@@ -227,8 +322,17 @@ const menuItems: MenuItemGroup[] = [
     id: "integrations",
     title: "Integrations",
     type: "group",
-    children: [],
-    url: `/settings#${settingsSectionIds.integrations}`,
+    children: [
+      {
+        id: "hubspot",
+        title: "Hubspot",
+        type: "item",
+        url: `/settings#${settingsSectionIds.hubspotIntegration}`,
+        icon: HubspotIcon,
+        description: "Configure Hubspot integration.",
+      },
+    ],
+    url: `/settings#${settingsSectionIds.hubspotIntegration}`,
   },
 ];
 
@@ -251,6 +355,7 @@ interface SettingsState {
   sendgridProviderApiKey: string;
   sendgridWebhookVerificationKeyRequest: EphemeralRequestStatus<Error>;
   sendgridWebhookVerificationKey: string;
+  upsertSmsProviderRequest: EphemeralRequestStatus<Error>;
   segmentIoRequest: EphemeralRequestStatus<Error>;
   segmentIoSharedSecret: string;
   upsertIntegrationsRequest: EphemeralRequestStatus<Error>;
@@ -270,6 +375,7 @@ interface SettingsActions {
   updateUpsertIntegrationsRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
+  updateSmsProviderRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
 type SettingsContent = SettingsState & SettingsActions;
@@ -290,6 +396,9 @@ export const useSettingsStore = create(
       type: CompletionStatus.NotStarted,
     },
     upsertIntegrationsRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    upsertSmsProviderRequest: {
       type: CompletionStatus.NotStarted,
     },
     updateUpsertIntegrationsRequest: (request) => {
@@ -325,6 +434,11 @@ export const useSettingsStore = create(
     updateSegmentIoRequest: (request) => {
       set((state) => {
         state.segmentIoRequest = request;
+      });
+    },
+    updateSmsProviderRequest: (request) => {
+      set((state) => {
+        state.upsertSmsProviderRequest = request;
       });
     },
   }))
@@ -378,21 +492,23 @@ function SegmentIoConfig() {
         "Content-Type": "application/json",
       },
     },
-  })
+  });
   const handleSubmit = () => {
-    if (!isEnabled) updateSegmentIoSharedSecret("")
-    apiHandler()
-  }
+    if (!isEnabled) updateSegmentIoSharedSecret("");
+    apiHandler();
+  };
 
   const requestInProgress =
     segmentIoRequest.type === CompletionStatus.InProgress;
 
   return (
-    <Stack>
-      <Fields
-        id={settingsSectionIds.dataSources}
+    <Stack spacing={3}>
+      <SectionHeader
+        id={settingsSectionIds.segmentSource}
         title="Data Sources"
         description="In order to use Dittofeed, at least 1 source of user data must be configured."
+      />
+      <Fields
         sections={[
           {
             id: "data-sources-section-1",
@@ -424,7 +540,7 @@ function SegmentIoConfig() {
                           fieldProps: {
                             label: "Shared Secret",
                             helperText:
-                              "Secret for signing request body with an HMAC in the “X-Signature” request header",
+                              "Secret for validating signed request bodies from segment.",
                             onChange: (e) => {
                               updateSegmentIoSharedSecret(e.target.value);
                             },
@@ -554,85 +670,261 @@ function SendGridConfig() {
   };
 
   return (
-    <Stack>
-      <Fields
-        id={settingsSectionIds.messageChannels}
-        title="Message Channels"
-        description="In order to use email, at least 1 email provider must be configured."
-        sections={[
-          {
-            id: "message-channels-section-1",
-            fieldGroups: [
-              {
-                id: "sendgrid-fields",
-                name: "SendGrid",
-                fields: [
-                  {
-                    id: "sendgrid-api-key",
-                    type: "text",
-                    fieldProps: {
-                      label: "API Key",
-                      type: showWebhookKey ? "text" : "password",
-                      helperText:
-                        "API key, used internally by Dittofeed to send emails via sendgrid.",
-                      onChange: (e) => {
-                        updateSendgridProviderApiKey(e.target.value);
-                      },
-                      value: apiKey,
+    <Fields
+      sections={[
+        {
+          id: "sendgrid-section",
+          fieldGroups: [
+            {
+              id: "sendgrid-fields",
+              name: "SendGrid",
+              fields: [
+                {
+                  id: "sendgrid-api-key",
+                  type: "text",
+                  fieldProps: {
+                    label: "API Key",
+                    helperText:
+                      "API key, used internally by Dittofeed to send emails via sendgrid.",
+                    onChange: (e) => {
+                      updateSendgridProviderApiKey(e.target.value);
+                    },
+                    value: apiKey,
+                  },
+                },
+                {
+                  id: "sendgrid-webhook-key",
+                  type: "text",
+                  fieldProps: {
+                    label: "Webhook Key",
+                    helperText:
+                      "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
+                    variant: "outlined",
+                    type: showWebhookKey ? "text" : "password",
+                    placeholder: showWebhookKey ? undefined : "**********",
+                    onChange: (e) => setWebhookKey(e.target.value),
+                    sx: { flex: 1 },
+                    value: webhookKey,
+                    InputProps: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={handleClickShowPassword}
+                            onMouseDown={handleMouseDownPassword}
+                          >
+                            {showWebhookKey ? (
+                              <Visibility />
+                            ) : (
+                              <VisibilityOff />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
                     },
                   },
-                  {
-                    id: "sendgrid-webhook-key",
-                    type: "text",
-                    fieldProps: {
-                      label: "Webhook Key",
-                      helperText:
-                        "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
-                      variant: "outlined",
-                      type: showWebhookKey ? "text" : "password",
-                      placeholder: showWebhookKey ? undefined : "**********",
-                      onChange: (e) => setWebhookKey(e.target.value),
-                      sx: { flex: 1 },
-                      value: webhookKey,
-                      InputProps: {
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              aria-label="toggle password visibility"
-                              onClick={handleClickShowPassword}
-                              onMouseDown={handleMouseDownPassword}
-                            >
-                              {showWebhookKey ? (
-                                <Visibility />
-                              ) : (
-                                <VisibilityOff />
-                              )}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      },
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-        ]}
-      >
-        <Button
-          onClick={onSubmit}
-          variant="contained"
-          disabled={requestInProgress}
-          sx={{
-            alignSelf: {
-              xs: "start",
-              sm: "end",
+                },
+              ],
             },
-          }}
-        >
-          Save
-        </Button>
-      </Fields>
+          ],
+        },
+      ]}
+    >
+      {/* TODO make loading button */}
+      <Button
+        onClick={onSubmit}
+        variant="contained"
+        disabled={requestInProgress}
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end",
+          },
+        }}
+      >
+        Save
+      </Button>
+    </Fields>
+  );
+}
+
+function EmailChannelConfig() {
+  return (
+    <>
+      <SectionSubHeader
+        id={settingsSectionIds.emailChannel}
+        title="Email"
+        description="In order to use email, at least 1 email provider must be configured."
+      />
+      <SendGridConfig />
+    </>
+  );
+}
+
+function TwilioConfig() {
+  const { smsProviders, upsertSmsProvider, apiBase, workspace } =
+    useAppStorePick([
+      "apiBase",
+      "workspace",
+      "smsProviders",
+      "upsertSmsProvider",
+    ]);
+  const upsertSmsProviderRequest = useSettingsStore(
+    (store) => store.upsertSmsProviderRequest
+  );
+  const updateSmsProviderRequest = useSettingsStore(
+    (store) => store.updateSmsProviderRequest
+  );
+
+  const twilioProvider: TwilioSmsProvider | null = useMemo(() => {
+    for (const provider of smsProviders) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (provider.type === SmsProviderType.Twilio) {
+        return provider;
+      }
+    }
+    return null;
+  }, [smsProviders]);
+
+  const [showAuthToken, setShowAuthKey] = useState(false);
+  const [authToken, setAuthToken] = useState(twilioProvider?.authToken ?? "");
+  const [messagingServiceSid, setMessagingServiceSid] = useState(
+    twilioProvider?.messagingServiceSid
+  );
+  const [accountSid, setAccountSid] = useState(
+    twilioProvider?.accountSid ?? ""
+  );
+  if (workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
+
+  const body: UpsertSmsProviderRequest = {
+    workspaceId: workspace.value.id,
+    setDefault: true,
+    smsProvider: {
+      type: SmsProviderType.Twilio,
+      accountSid,
+      authToken,
+      messagingServiceSid,
+    },
+  };
+
+  const apiHandler = apiRequestHandlerFactory({
+    request: upsertSmsProviderRequest,
+    setRequest: updateSmsProviderRequest,
+    responseSchema: SmsProviderConfig,
+    setResponse: upsertSmsProvider,
+    onSuccessNotice: "Updated Twilio configuration.",
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to update Twilio configuration.`,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/settings/sms-providers`,
+      data: body,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "twilio-section",
+          fieldGroups: [
+            {
+              id: "twilio-fields",
+              name: "Twilio",
+              fields: [
+                {
+                  id: "twilio-account-sid",
+                  type: "text",
+                  fieldProps: {
+                    label: "Account sid",
+                    helperText: "Twilio account sid.",
+                    onChange: (e) => setAccountSid(e.target.value),
+                    value: accountSid,
+                  },
+                },
+                {
+                  id: "twilio-messaging-service-sid",
+                  type: "text",
+                  fieldProps: {
+                    label: "Messaging service sid",
+                    helperText: "Twilio messaging service sid.",
+                    onChange: (e) => setMessagingServiceSid(e.target.value),
+                    value: messagingServiceSid,
+                  },
+                },
+                {
+                  id: "twilio-auth-token",
+                  type: "text",
+                  fieldProps: {
+                    label: "Twilio auth token",
+                    helperText:
+                      "Twilio auth token used to authenticate requests.",
+                    variant: "outlined",
+                    type: showAuthToken ? "text" : "password",
+                    placeholder: showAuthToken ? undefined : "**********",
+                    onChange: (e) => setAuthToken(e.target.value),
+                    sx: { flex: 1 },
+                    value: authToken,
+                    InputProps: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={() => setShowAuthKey(!showAuthToken)}
+                          >
+                            {showAuthToken ? <Visibility /> : <VisibilityOff />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    >
+      <Button
+        variant="contained"
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end",
+          },
+        }}
+        onClick={apiHandler}
+      >
+        Save
+      </Button>
+    </Fields>
+  );
+}
+
+function SmsChannelConfig() {
+  return (
+    <>
+      <SectionSubHeader
+        id={settingsSectionIds.smsChannel}
+        title="SMS"
+        description="In order to use SMS messaging, at least 1 SMS provider must be configured."
+      />
+      <TwilioConfig />
+    </>
+  );
+}
+
+function MessageChannelsConfig() {
+  return (
+    <Stack spacing={3}>
+      <SectionHeader title="Message Channels" />
+      <EmailChannelConfig />
+      <SmsChannelConfig />
     </Stack>
   );
 }
@@ -666,17 +958,19 @@ function WriteKeySettings() {
   };
 
   return (
-    <Stack>
-      <Fields
+    <Stack spacing={3}>
+      <SectionHeader
         id={settingsSectionIds.authentication}
         title="Authentication"
         description=""
+      />
+      <Fields
         sections={[
           {
             id: "authorization-section-1",
             fieldGroups: [
               {
-                id: "sendgrid-fields",
+                id: "authorization-fields",
                 name: "Write key",
                 fields: [
                   {
@@ -686,7 +980,7 @@ function WriteKeySettings() {
                       label: "",
                       helperText:
                         'Include this key as an HTTP "Authorization: Basic ..." header in your requests. This authorization key can be included in your client, and does not need to be kept secret.',
-                      value: keyHeader, // "Basic Y2M4MzBjOTItYTI5Mi00NjczLWI0ODUtY2E2YzNiNTkzOGNmOjQzN2ViMjFiNDQzZTQxNDY=",
+                      value: keyHeader,
                       children: "abcd",
                       onChange: () => {},
                       InputProps: {
@@ -899,11 +1193,13 @@ function HubspotIntegration() {
 
 function IntegrationSettings() {
   return (
-    <Stack>
-      <Fields
-        id={settingsSectionIds.integrations}
+    <Stack spacing={3}>
+      <SectionHeader
+        id={settingsSectionIds.hubspotIntegration}
         title="Integrations"
         description=""
+      />
+      <Fields
         sections={[
           {
             id: "integration-section-1",
@@ -1011,35 +1307,39 @@ function SubscriptionManagementSettings() {
           </Paper>
         </Stack>
       </Dialog>
-      <Fields
-        id={settingsSectionIds.subscription}
-        title="Subscription"
-        description=""
-        sections={[
-          {
-            id: "subscription-section-1",
-            fieldGroups: [
-              {
-                id: "subscription-preview",
-                name: "User subscription page",
-                fields: [
-                  {
-                    id: "subscription-preview-button",
-                    type: "button",
-                    fieldProps: {
-                      children: "Preview",
-                      onClick: () => {
-                        setShowPreview(true);
+      <Stack spacing={3}>
+        <SectionHeader
+          id={settingsSectionIds.subscription}
+          title="Subscription Management"
+          description=""
+        />
+        <Fields
+          sections={[
+            {
+              id: "subscription-section-1",
+              fieldGroups: [
+                {
+                  id: "subscription-preview",
+                  name: "User subscription page",
+                  fields: [
+                    {
+                      id: "subscription-preview-button",
+                      type: "button",
+                      fieldProps: {
+                        children: "Preview",
+                        onClick: () => {
+                          setShowPreview(true);
+                        },
+                        variant: "outlined",
                       },
-                      variant: "outlined",
                     },
-                  },
-                ],
-              },
-            ],
-          },
-        ]}
-      />
+                  ],
+                },
+              ],
+            },
+          ]}
+        />
+      </Stack>
     </Stack>
   );
 }
@@ -1060,7 +1360,7 @@ const Settings: NextPage<
         }}
       >
         <SegmentIoConfig />
-        <SendGridConfig />
+        <MessageChannelsConfig />
         <WriteKeySettings />
         <SubscriptionManagementSettings />
         <IntegrationSettings />

@@ -1,7 +1,14 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Box, Button,Stack, TextField, Typography, useTheme } from "@mui/material";
+import {
+  Box,
+  Button,
+  Stack,
+  TextField,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
@@ -9,7 +16,7 @@ import {
   MessageTemplateResource,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
-import Image from 'next/image';
+import Image from "next/image";
 import { useRouter } from "next/router";
 import { useState } from "react";
 
@@ -26,13 +33,15 @@ const USER_PROPERTIES_TOOLTIP =
 enum NotifyKey {
   RenderBodyError = "RenderBodyError",
   RenderTitleError = "RenderTitleError",
-  RenderImageError = "RenderImageError"
+  RenderImageError = "RenderImageError",
 }
 
 export default function MobilePushEditor() {
   const theme = useTheme();
   const router = useRouter();
-  const [templateTitle, setTemplateTitle] = useState<string>('Default Message Title');
+  const [templateTitle, setTemplateTitle] = useState<string>(
+    "Default Message Title"
+  );
   const userPropertiesJSON = useAppStore(
     (state) => state.mobilePushMessageUserPropertiesJSON
   );
@@ -58,7 +67,9 @@ export default function MobilePushEditor() {
 
   const setTitle = useAppStore((state) => state.setMobilePushMessageTitle);
   const setBody = useAppStore((state) => state.setMobilePushMessageBody);
-  const setImageUrl = useAppStore((state) => state.setMobilePushMessageImageUrl);
+  const setImageUrl = useAppStore(
+    (state) => state.setMobilePushMessageImageUrl
+  );
 
   const messageId =
     typeof router.query.id === "string" ? router.query.id : null;
@@ -70,15 +81,14 @@ export default function MobilePushEditor() {
   const isValidUrl = (value: string) => {
     try {
       return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(value);
-    }
-    catch (e) {
+    } catch (e) {
       return false;
     }
-  }
+  };
 
   if (!workspace || !messageId) {
     return null;
-  }  
+  }
 
   const updateData: UpsertMessageTemplateResource = {
     id: messageId,
@@ -88,7 +98,7 @@ export default function MobilePushEditor() {
       type: ChannelType.MobilePush,
       title,
       body,
-      imageUrl
+      imageUrl,
     },
   };
 
@@ -111,7 +121,7 @@ export default function MobilePushEditor() {
         props[key] = parsedVal;
       }
       // eslint-disable-next-line no-empty
-    } catch (e) { }
+    } catch (e) {}
   };
 
   const editor = (
@@ -155,48 +165,55 @@ export default function MobilePushEditor() {
   );
 
   const preview = (
-    <Stack sx={{
-      position: 'relative',
-      height: '660px',
-      width: '450px',
-      margin: '0px auto',
-      backgroundImage: `url(${MobilePreviewImage.src})`
-    }}>
-      <Box sx={{
-        top: '150px',
-        position: 'relative',
-        width: '404px',
-        margin: 'auto'
-      }}>
-        <Box sx={{
-          backgroundColor: '#fff',
-          borderRadius: '28px',
-          padding: '20px 16px'
-        }}>
-          <Typography
-            variant="h5"
-          >
-            {title}
-          </Typography>
-          <Typography
-            variant="body1"
-          >
-            {body}
-          </Typography>
-          {isValidUrl(imageUrl) && <Box sx={{
-            position: 'relative',
-            maxHeight: '160px', height: '160px',
-            marginTop: '16px',
-            borderRadius: '16px'
-          }}>
-            <Image
-              src={imageUrl} alt='push icon' fill style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                borderRadius: '16px'
-              }} />
-          </Box>}
+    <Stack
+      sx={{
+        position: "relative",
+        height: "660px",
+        width: "450px",
+        margin: "0px auto",
+        backgroundImage: `url(${MobilePreviewImage.src})`,
+      }}
+    >
+      <Box
+        sx={{
+          top: "150px",
+          position: "relative",
+          width: "404px",
+          margin: "auto",
+        }}
+      >
+        <Box
+          sx={{
+            backgroundColor: "#fff",
+            borderRadius: "28px",
+            padding: "20px 16px",
+          }}
+        >
+          <Typography variant="h5">{title}</Typography>
+          <Typography variant="body1">{body}</Typography>
+          {isValidUrl(imageUrl) && (
+            <Box
+              sx={{
+                position: "relative",
+                maxHeight: "160px",
+                height: "160px",
+                marginTop: "16px",
+                borderRadius: "16px",
+              }}
+            >
+              <Image
+                src={imageUrl}
+                alt="push icon"
+                fill
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "16px",
+                }}
+              />
+            </Box>
+          )}
         </Box>
       </Box>
     </Stack>
@@ -210,88 +227,90 @@ export default function MobilePushEditor() {
     onSuccessNotice: `Saved template ${title}.`,
     onFailureNoticeHandler: () =>
       `API Error: Failed to save template ${title}.`,
-      requestConfig: {
-        method: "PUT",
-        url: `${apiBase}/api/content/templates`,
-        data: updateData,
-        headers: {
-          "Content-Type": "application/json",
-        },
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/content/templates`,
+      data: updateData,
+      headers: {
+        "Content-Type": "application/json",
       },
+    },
   });
 
-  return <Stack
-    direction="row"
-    sx={{
-      width: "100%",
-      paddingRight: 2,
-      paddingTop: 2,
-    }}
-    spacing={1}
-  >
+  return (
     <Stack
-      direction="column"
-      spacing={2}
+      direction="row"
       sx={{
-        borderTopRightRadius: 1,
-        width: "25%",
-        padding: 1,
-        border: `1px solid ${theme.palette.grey[200]}`,
-        boxShadow: theme.shadows[2],
+        width: "100%",
+        paddingRight: 2,
+        paddingTop: 2,
       }}
+      spacing={1}
     >
-      <EditableName
-        name={templateTitle}
-        variant="h4"
-        onChange={(e) => {
-          setTemplateTitle(e.target.value);
-        }}
-      />
-      <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
-        <Typography variant="h5">User Properties</Typography>
-      </InfoTooltip>
-      <ReactCodeMirror
-        value={userPropertiesJSON}
-        onChange={jsonCodeMirrorHandleChange}
-        extensions={[
-          codeMirrorJson(),
-          linter(jsonParseLinter()),
-          EditorView.lineWrapping,
-          EditorView.theme({
-            "&": {
-              fontFamily: theme.typography.fontFamily,
-            },
-          }),
-          lintGutter(),
-        ]}
-      />
-      <Button
-        variant="contained"
-        onClick={handleSave}
-        disabled={errors.size > 0}
-      >
-        Save
-      </Button>
-    </Stack>
-    <Stack direction="row" sx={{ flex: 1 }}>
-      <Box
+      <Stack
+        direction="column"
+        spacing={2}
         sx={{
-          width: "100%",
+          borderTopRightRadius: 1,
+          width: "25%",
+          padding: 1,
+          border: `1px solid ${theme.palette.grey[200]}`,
+          boxShadow: theme.shadows[2],
         }}
       >
-        {editor}
-      </Box>
+        <EditableName
+          name={templateTitle}
+          variant="h4"
+          onChange={(e) => {
+            setTemplateTitle(e.target.value);
+          }}
+        />
+        <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
+          <Typography variant="h5">User Properties</Typography>
+        </InfoTooltip>
+        <ReactCodeMirror
+          value={userPropertiesJSON}
+          onChange={jsonCodeMirrorHandleChange}
+          extensions={[
+            codeMirrorJson(),
+            linter(jsonParseLinter()),
+            EditorView.lineWrapping,
+            EditorView.theme({
+              "&": {
+                fontFamily: theme.typography.fontFamily,
+              },
+            }),
+            lintGutter(),
+          ]}
+        />
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={errors.size > 0}
+        >
+          Save
+        </Button>
+      </Stack>
+      <Stack direction="row" sx={{ flex: 1 }}>
+        <Box
+          sx={{
+            width: "100%",
+          }}
+        >
+          {editor}
+        </Box>
+      </Stack>
+      <Stack direction="row" sx={{ flex: 1 }}>
+        <Box
+          sx={{
+            width: "100%",
+          }}
+        >
+          {preview}
+        </Box>
+      </Stack>
     </Stack>
-    <Stack direction="row" sx={{ flex: 1 }}>
-      <Box
-        sx={{
-          width: "100%",
-        }}
-      >
-        {preview}
-      </Box>
-    </Stack>
-  </Stack>
+  );
 }
 
 export const defaultInitialUserProperties = {
@@ -309,9 +328,9 @@ export function defaultMobilePushMessageState(
   "mobilePushMessageUserPropertiesJSON" | "mobilePushMessageUserProperties"
 > {
   return {
-    mobilePushMessageTitle: `Hello world - ${id}`,
-    mobilePushMessageBody: 'This is the default body',
-    mobilePushMesssageImageUrl: '',
+    mobilePushMessageTitle: `Mobile push message - ${id}`,
+    mobilePushMessageBody: "This is the default body",
+    mobilePushMesssageImageUrl: "",
     mobilePushMessageUpdateRequest: {
       type: CompletionStatus.NotStarted,
     },

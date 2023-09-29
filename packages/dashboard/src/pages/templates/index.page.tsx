@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
@@ -23,6 +24,7 @@ import {
   MessageTemplateResource,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
+  SmsTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -153,6 +155,9 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
             case ChannelType.MobilePush:
               messageType = "mobile-push";
               break;
+            case ChannelType.Sms:
+              messageType = "sms";
+              break;
           }
           path.push(`/templates/${messageType}/${template.id}`);
         }}
@@ -173,7 +178,7 @@ function TemplateListContents() {
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
   };
-  const { emailTemplates, mobilePushTemplates } = useMemo(() => {
+  const { emailTemplates, mobilePushTemplates, smsTemplates } = useMemo(() => {
     const messages =
       messagesResult.type === CompletionStatus.Successful
         ? messagesResult.value
@@ -181,6 +186,7 @@ function TemplateListContents() {
     return messages.reduce<{
       emailTemplates: NarrowedMessageTemplateResource<EmailTemplateResource>[];
       mobilePushTemplates: NarrowedMessageTemplateResource<MobilePushTemplateResource>[];
+      smsTemplates: NarrowedMessageTemplateResource<SmsTemplateResource>[];
     }>(
       (acc, template) => {
         switch (template.definition.type) {
@@ -196,10 +202,20 @@ function TemplateListContents() {
               definition: template.definition,
             });
             break;
+          case ChannelType.Sms:
+            acc.smsTemplates.push({
+              ...template,
+              definition: template.definition,
+            });
+            break;
+          default: {
+            const { type } = template.definition;
+            assertUnreachable(type);
+          }
         }
         return acc;
       },
-      { emailTemplates: [], mobilePushTemplates: [] }
+      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] }
     );
   }, [messagesResult]);
 
@@ -232,6 +248,9 @@ function TemplateListContents() {
           <MenuItem component={Link} href={`/templates/email/${newItemId}`}>
             Email
           </MenuItem>
+          <MenuItem component={Link} href={`/templates/sms/${newItemId}`}>
+            SMS
+          </MenuItem>
           <MenuItem
             component={Link}
             disabled={!enableMobilePush}
@@ -249,6 +268,7 @@ function TemplateListContents() {
           aria-label="basic tabs example"
         >
           <Tab label="Email" />
+          <Tab label="SMS" />
           <Tab disabled={!enableMobilePush} label="Mobile Push" />
         </Tabs>
       </Box>
@@ -278,6 +298,30 @@ function TemplateListContents() {
         </List>
       </TabPanel>
       <TabPanel value={tab} index={1}>
+        <List
+          sx={{
+            width: "100%",
+            bgcolor: "background.paper",
+            borderRadius: 1,
+          }}
+        >
+          {smsTemplates.map((template) => (
+            <TemplateListItem template={template} key={template.id} />
+          ))}
+          {smsTemplates.length === 0 && (
+            <Typography
+              component="span"
+              textAlign="center"
+              sx={{
+                padding: "20px 16px",
+              }}
+            >
+              You haven&apos;t created any SMS templates.
+            </Typography>
+          )}
+        </List>
+      </TabPanel>
+      <TabPanel value={tab} index={2}>
         <List
           sx={{
             width: "100%",

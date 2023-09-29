@@ -23,7 +23,9 @@ import { AppContents, AppState, PreloadedState } from "./types";
 const zustandContext = createContext<UseStoreState>();
 export const { Provider } = zustandContext;
 export const useAppStore = zustandContext.useStore;
-export function useAppStorePick(params: (keyof AppContents)[]) {
+export function useAppStorePick<K extends keyof AppContents>(
+  params: K[]
+): Pick<AppContents, K> {
   return useAppStore((store) => pick(store, params));
 }
 
@@ -211,6 +213,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         emailProviders: {
           type: CompletionStatus.NotStarted,
         },
+        smsProviders: [],
         traits: {
           type: CompletionStatus.NotStarted,
         },
@@ -239,17 +242,38 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         emailMessageFrom: "",
         emailMessageUserProperties: {},
         emailMessageUserPropertiesJSON: "",
-        mobilePushMessageTitle: "",
-        mobilePushMessageBody: "",
         emailMessageReplyTo: "",
-        mobilePushMesssageImageUrl: "",
-        mobilePushMessageUserProperties: {},
-        mobilePushMessageUserPropertiesJSON: "",
+
         emailMessageUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
+
+        // mobile push message state
+        mobilePushMessageTitle: "",
+        mobilePushMessageBody: "",
+        mobilePushMesssageImageUrl: "",
+        mobilePushMessageUserProperties: {},
+        mobilePushMessageUserPropertiesJSON: "",
         mobilePushMessageUpdateRequest: {
           type: CompletionStatus.NotStarted,
+        },
+
+        // sms message state
+        smsMessageBody: "",
+        smsMessageUpdateRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+        smsMessageUserPropertiesJSON: "",
+        smsMessageUserProperties: {},
+        smsMessageTitle: "",
+        setSmsMessageTitle: (title) =>
+          set((state) => {
+            state.smsMessageTitle = title;
+          }),
+        setSmsUserProperties(properties) {
+          set((state) => {
+            state.smsMessageUserProperties = properties;
+          });
         },
 
         messageTemplateDeleteRequest: {
@@ -610,6 +634,19 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             emailProviders.value.push(emailProvider);
             return state;
           }),
+
+        upsertSmsProvider: (provider) =>
+          set((state) => {
+            for (const smsProvider of state.smsProviders) {
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              if (smsProvider.type === provider.type) {
+                Object.assign(smsProvider, provider);
+                return state;
+              }
+            }
+            state.smsProviders.push(provider);
+            return state;
+          }),
         upsertDataSourceConfiguration: (dataSourceConfiguration) =>
           set((state) => {
             let { dataSourceConfigurations } = state;
@@ -701,6 +738,19 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setMobilePushMessageUpdateRequest: (request) =>
           set((state) => {
             state.mobilePushMessageUpdateRequest = request;
+          }),
+
+        setSmsMessageBody: (body) =>
+          set((state) => {
+            state.smsMessageBody = body;
+          }),
+        setSmsMessagePropsJSON: (jsonString) =>
+          set((state) => {
+            state.smsMessageUserPropertiesJSON = jsonString;
+          }),
+        setSmsMessageUpdateRequest: (request) =>
+          set((state) => {
+            state.smsMessageUpdateRequest = request;
           }),
         addEditableSegmentChild: (parentId) =>
           set((state) => {

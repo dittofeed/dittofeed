@@ -8,6 +8,7 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import {
   ChannelType,
@@ -34,6 +35,7 @@ const {
   onNodeProcessedV2,
   isRunnable,
   sendMobilePush,
+  sendSms,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
 });
@@ -226,32 +228,32 @@ export async function userJourneyWorkflow({
       case JourneyNodeType.MessageNode: {
         let shouldContinue: boolean;
         const messageId = uuid4();
+        const messagePayload: activities.SendParams = {
+          userId,
+          workspaceId,
+          journeyId,
+          subscriptionGroupId: currentNode.subscriptionGroupId,
+          runId,
+          nodeId: currentNode.id,
+          templateId: currentNode.variant.templateId,
+          messageId,
+        };
         switch (currentNode.variant.type) {
           case ChannelType.Email: {
-            shouldContinue = await sendEmail({
-              userId,
-              workspaceId,
-              journeyId,
-              subscriptionGroupId: currentNode.subscriptionGroupId,
-              runId,
-              nodeId: currentNode.id,
-              templateId: currentNode.variant.templateId,
-              messageId,
-            });
+            shouldContinue = await sendEmail(messagePayload);
             break;
           }
           case ChannelType.MobilePush: {
-            shouldContinue = await sendMobilePush({
-              userId,
-              workspaceId,
-              journeyId,
-              subscriptionGroupId: currentNode.subscriptionGroupId,
-              runId,
-              nodeId: currentNode.id,
-              templateId: currentNode.variant.templateId,
-              messageId,
-            });
+            shouldContinue = await sendMobilePush(messagePayload);
             break;
+          }
+          case ChannelType.Sms: {
+            shouldContinue = await sendSms(messagePayload);
+            break;
+          }
+          default: {
+            const { type }: never = currentNode.variant;
+            assertUnreachable(type, `unknown channel type ${type}`);
           }
         }
 

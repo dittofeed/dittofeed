@@ -368,7 +368,7 @@ export async function lookupUserForSubscriptions({
   }
 
   // This is a programmatic error, should never happen
-  if (!subscriptionSecret) {
+  if (!subscriptionSecret?.value) {
     throw new Error("Subscription secret not found");
   }
 

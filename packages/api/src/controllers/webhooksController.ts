@@ -54,7 +54,7 @@ export default async function webhookController(fastify: FastifyInstance) {
         },
       });
 
-      if (!secret) {
+      if (!secret?.value) {
         logger().error(
           {
             workspaceId,

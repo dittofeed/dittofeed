@@ -86,7 +86,6 @@ describe("userEvents", () => {
         messageId2 = randomUUID();
         messageId3 = randomUUID();
 
-        // FIXME create events table
         await submitBatch({
           workspaceId: workspace.id,
           data: {

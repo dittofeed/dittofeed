@@ -34,6 +34,8 @@ model Workspace {
   MessageTemplate        MessageTemplate[]
   OauthToken             OauthToken[]
   Integration            Integration[]
+  DefaultSmsProvider     DefaultSmsProvider?
+  SmsProvider            SmsProvider[]
 
   @@unique([name])
 }
@@ -178,6 +180,18 @@ model DefaultEmailProvider {
   @@unique([workspaceId])
 }
 
+model DefaultSmsProvider {
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String    @db.Uuid
+
+  smsProvider   SmsProvider @relation(fields: [smsProviderId], references: [id], onDelete: Cascade)
+  smsProviderId String      @db.Uuid
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([workspaceId])
+}
+
 model CurrentUserEventsTable {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId String    @db.Uuid
@@ -197,6 +211,20 @@ model EmailProvider {
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
   DefaultEmailProvider DefaultEmailProvider[]
+
+  @@unique([workspaceId, type])
+}
+
+model SmsProvider {
+  id                 String               @id() @default(uuid()) @db.Uuid
+  workspace          Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId        String               @db.Uuid
+  secretId           String               @db.Uuid
+  secret             Secret               @relation(fields: [secretId], references: [id], onDelete: Cascade)
+  type               String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  DefaultSmsProvider DefaultSmsProvider[]
 
   @@unique([workspaceId, type])
 }
@@ -234,6 +262,7 @@ enum DBSubscriptionGroupType {
 enum DBChannelType {
   Email
   MobilePush
+  Sms
 }
 
 model SubscriptionGroup {
@@ -300,14 +329,16 @@ model WorkspaceMemberRole {
 }
 
 model Secret {
-  id          String     @id() @default(uuid()) @db.Uuid
-  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId String     @db.Uuid
+  id          String        @id() @default(uuid()) @db.Uuid
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String        @db.Uuid
   name        String
-  value       String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  value       String?
+  configValue Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   WriteKey    WriteKey[]
+  SmsProvider SmsProvider[]
 
   @@unique([workspaceId, name])
 }

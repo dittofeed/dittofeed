@@ -250,6 +250,7 @@ function MessageNodeFields({
           value={nodeProps.channel}
         >
           <MenuItem value={ChannelType.Email}>Email</MenuItem>
+          <MenuItem value={ChannelType.Sms}>SMS</MenuItem>
           <MenuItem disabled={!enableMobilePush} value={ChannelType.MobilePush}>
             Mobile Push
           </MenuItem>
@@ -483,10 +484,10 @@ function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
 }
 
 function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
-  const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId)
+  const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
   const closeNodeEditor = () => {
-    setSelectedNodeId(null)
-  }
+    setSelectedNodeId(null);
+  };
   return (
     <Stack
       sx={{
@@ -494,14 +495,14 @@ function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
         height: "100%",
       }}
     >
-      <Stack sx={{
-            padding: 2,
-          }} alignItems="center" direction="row">
-        <Typography
-          variant="h5"
-          
-          flexGrow={1}
-        >
+      <Stack
+        sx={{
+          padding: 2,
+        }}
+        alignItems="center"
+        direction="row"
+      >
+        <Typography variant="h5" flexGrow={1}>
           Edit {journeyNodeLabel(node.data.nodeTypeProps.type)}
         </Typography>
         <IconButton onClick={closeNodeEditor}>

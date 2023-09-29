@@ -50,10 +50,13 @@ export default async function contentController(fastify: FastifyInstance) {
         },
       });
 
-      const templateSecrets = R.mapToObj(secrets, (secret) => [
-        secret.name,
-        secret.value,
-      ]);
+      const templateSecrets: Record<string, string> = {};
+      for (const secret of secrets) {
+        if (!secret.value) {
+          continue;
+        }
+        templateSecrets[secret.name] = secret.value;
+      }
 
       const identifierKey = CHANNEL_IDENTIFIERS[channel];
 

@@ -35,12 +35,17 @@ export default async function secretsController(fastify: FastifyInstance) {
         };
       }
 
-      const secrets = (await prisma().secret.findMany({ where })).map(
-        (secret) => ({
-          workspaceId: secret.workspaceId,
-          name: secret.name,
-          value: secret.value,
-        })
+      const secrets = (await prisma().secret.findMany({ where })).flatMap(
+        (secret) => {
+          if (!secret.value) {
+            return [];
+          }
+          return {
+            workspaceId: secret.workspaceId,
+            name: secret.name,
+            value: secret.value,
+          };
+        }
       );
       return reply.status(200).send(secrets);
     }

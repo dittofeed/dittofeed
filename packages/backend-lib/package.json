@@ -53,6 +53,7 @@
     "pino-pretty": "^10.0.0",
     "prisma": "^5.2.0",
     "remeda": "^1.24.0",
+    "twilio": "^4.18.0",
     "utility-types": "^3.10.0",
     "uuid": "^9.0.0"
   },
