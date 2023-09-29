@@ -1,5 +1,5 @@
 import { PlusCircleFilled } from "@ant-design/icons";
-import { Delete } from "@mui/icons-material";
+import { Delete, Segment } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
@@ -130,6 +130,11 @@ const withinOperatorOption = {
   label: "Within",
 };
 
+const existsOperatorOption = {
+  id: SegmentOperatorType.Exists,
+  label: "Exists",
+};
+
 const hasBeenOperatorOption = {
   id: SegmentOperatorType.HasBeen,
   label: "Has Been",
@@ -139,12 +144,14 @@ const operatorOptions: Option[] = [
   equalsOperatorOption,
   withinOperatorOption,
   hasBeenOperatorOption,
+  existsOperatorOption,
 ];
 
 const keyedOperatorOptions = new Map<SegmentOperatorType, Option>([
   [SegmentOperatorType.Equals, equalsOperatorOption],
   [SegmentOperatorType.Within, withinOperatorOption],
   [SegmentOperatorType.HasBeen, hasBeenOperatorOption],
+  [SegmentOperatorType.Exists, existsOperatorOption],
 ]);
 
 type Group = SegmentNodeType.And | SegmentNodeType.Or;
@@ -478,7 +485,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
     throw new Error(`Unsupported operator type: ${node.operator.type}`);
   }
 
-  let valueSelect: React.ReactElement;
+  let valueSelect: React.ReactElement | null;
   switch (node.operator.type) {
     case SegmentOperatorType.Within:
       valueSelect = (
@@ -496,8 +503,16 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
         </>
       );
       break;
-    default:
-      throw new Error(`Unsupported operator type: ${node.operator.type}`);
+    case SegmentOperatorType.NotEquals: {
+      throw new Error("Not implemented");
+    }
+    case SegmentOperatorType.Exists: {
+      valueSelect = null;
+      break;
+    }
+    default: {
+      assertUnreachable(node.operator);
+    }
   }
 
   const traitOnChange = (newValue: string) => {
@@ -568,8 +583,18 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                     };
                     break;
                   }
-                  default:
-                    throw new Error("Unhandled operator type");
+                  case SegmentOperatorType.Exists: {
+                    nodeOperator = {
+                      type: SegmentOperatorType.Exists,
+                    };
+                    break;
+                  }
+                  case SegmentOperatorType.NotEquals: {
+                    throw new Error("Not implemented");
+                  }
+                  default: {
+                    assertUnreachable(newValue.id);
+                  }
                 }
                 segmentNode.operator = nodeOperator;
               }
