@@ -23,7 +23,9 @@ import { AppContents, AppState, PreloadedState } from "./types";
 const zustandContext = createContext<UseStoreState>();
 export const { Provider } = zustandContext;
 export const useAppStore = zustandContext.useStore;
-export function useAppStorePick(params: (keyof AppContents)[]) {
+export function useAppStorePick<K extends keyof AppContents>(
+  params: K[]
+): Pick<AppContents, K> {
   return useAppStore((store) => pick(store, params));
 }
 

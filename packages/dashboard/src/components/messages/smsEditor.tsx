@@ -35,10 +35,9 @@ import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import React, { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
-import { shallow } from "zustand/shallow";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { useAppStore, useAppStorePick } from "../../lib/appStore";
+import { useAppStorePick } from "../../lib/appStore";
 import {
   noticeAnchorOrigin as anchorOrigin,
   noticeAnchorOrigin,
@@ -126,49 +125,35 @@ export default function SmsEditor() {
   const [fullscreen, setFullscreen] = useState<Fullscreen>(null);
   const {
     apiBase,
+    setSmsMessageBody: setSmsBody,
+    setSmsMessagePropsJSON: setUserPropertiesJSON,
+    setSmsMessageTitle,
+    setSmsMessageUpdateRequest,
+    setSmsUserProperties: replaceUserProperties,
     smsMessageBody: smsBody,
     smsMessageTitle,
     smsMessageUpdateRequest,
     smsMessageUserProperties: mockUserProperties,
     smsMessageUserPropertiesJSON: userPropertiesJSON,
-    setSmsUserProperties: replaceUserProperties,
-    setSmsMessageBody: setSmsBody,
-    setSmsMessageTitle,
-    setSmsMessagePropsJSON: setUserPropertiesJSON,
-    setSmsMessageUpdateRequest,
     upsertMessage,
     userProperties,
     workspace: workspaceRequest,
   } = useAppStorePick([
     "apiBase",
-    "workspace",
+    "setSmsMessageBody",
+    "setSmsMessagePropsJSON",
+    "setSmsMessageTitle",
+    "setSmsMessageUpdateRequest",
+    "setSmsUserProperties",
     "smsMessageBody",
     "smsMessageTitle",
+    "smsMessageUpdateRequest",
     "smsMessageUserProperties",
     "smsMessageUserPropertiesJSON",
-    "smsMessageUpdateRequest",
-    "setSmsMessagePropsJSON",
-    "setSmsUserProperties",
+    "upsertMessage",
+    "userProperties",
+    "workspace",
   ]);
-
-  useAppStore(
-    (state) => ({
-      apiBase: state.apiBase,
-      smsMessageBody: state.smsMessageBody,
-      smsMessageTitle: state.smsMessageTitle,
-      smsMessageUpdateRequest: state.smsMessageUpdateRequest,
-      smsMessageUserProperties: state.smsMessageUserProperties,
-      smsMessageUserPropertiesJSON: state.smsMessageUserPropertiesJSON,
-      setSmsMessageBody: state.setSmsMessageBody,
-      setSmsMessageTitle: state.setSmsMessageTitle,
-      setSmsMessagePropsJSON: state.setSmsMessagePropsJSON,
-      setSmsMessageUpdateRequest: state.setSmsMessageUpdateRequest,
-      upsertMessage: state.upsertMessage,
-      userProperties: state.userProperties,
-      workspace: state.workspace,
-    }),
-    shallow
-  );
 
   const userPropertySet: Set<string> = useMemo(
     () =>
