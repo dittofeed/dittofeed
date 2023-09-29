@@ -87,9 +87,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       smsMessage.workspaceId === dfContext.workspace.id
     ) {
       const { body } = smsMessage.definition;
-      Object.assign(serverInitialState, {
-        smsMessageBody: body,
-      });
+      serverInitialState.smsMessageBody = body;
+      serverInitialState.smsMessageTitle = smsMessage.name;
     }
 
     return {
