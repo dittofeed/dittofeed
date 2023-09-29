@@ -1,4 +1,3 @@
-import { html } from "@codemirror/lang-html";
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
@@ -371,7 +370,7 @@ export default function SmsEditor() {
     },
   });
 
-  const htmlCodeMirrorHandleChange = (val: string) => {
+  const handleCodeMirrorHandleChange = (val: string) => {
     setSmsBody(val);
   };
 
@@ -422,9 +421,8 @@ export default function SmsEditor() {
       <BodyBox sx={{ padding: 1, fontFamily: "monospace" }} direction="left">
         <ReactCodeMirror
           value={smsBody}
-          onChange={htmlCodeMirrorHandleChange}
+          onChange={handleCodeMirrorHandleChange}
           extensions={[
-            html(),
             EditorView.theme({
               "&": {
                 fontFamily: theme.typography.fontFamily,
@@ -458,18 +456,36 @@ export default function SmsEditor() {
           </IconButton>
         )}
       </Stack>
-      <BodyBox direction="right">
-        {/* TODO use window postmessage to re-render */}
-        <iframe
-          srcDoc={`<!DOCTYPE html>${previewBodyHtml}`}
-          title="sms-body-preview"
-          style={{
-            border: "none",
+      <BodyBox
+        direction="right"
+        sx={{
+          padding: 1,
+        }}
+      >
+        <Stack
+          sx={{
             height: "100%",
-            width: "100%",
-            padding: theme.spacing(1),
+            backgroundImage:
+              "url(https://storage.googleapis.com/dittofeed-public/sms-box.svg)",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "contain",
+            backgroundPosition: "center",
+            justifyContent: "start",
+            alignItems: "center",
           }}
-        />
+        >
+          <Box
+            sx={{
+              marginTop: 10,
+              backgroundColor: "#f7f8fa",
+              border: "1px solid #ebecf2",
+              padding: 1,
+              borderRadius: 1,
+            }}
+          >
+            {previewBodyHtml}
+          </Box>
+        </Stack>
       </BodyBox>
     </Stack>
   );
@@ -566,272 +582,3 @@ export default function SmsEditor() {
     </>
   );
 }
-
-// import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
-// import { linter, lintGutter } from "@codemirror/lint";
-// import { EditorView } from "@codemirror/view";
-// import {
-//   Box,
-//   Button,
-//   Stack,
-//   TextField,
-//   Typography,
-//   useTheme,
-// } from "@mui/material";
-// import ReactCodeMirror from "@uiw/react-codemirror";
-// import {
-//   ChannelType,
-//   CompletionStatus,
-//   MessageTemplateResource,
-//   UpsertMessageTemplateResource,
-// } from "isomorphic-lib/src/types";
-// import { useRouter } from "next/router";
-// import { useState } from "react";
-
-// import MobilePreviewImage from "../../../public/mobile-mock.svg";
-// import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-// import { useAppStore, useAppStorePick } from "../../lib/appStore";
-// import { SmsMessageEditorState } from "../../lib/types";
-// import EditableName from "../editableName";
-// import InfoTooltip from "../infoTooltip";
-
-// const USER_PROPERTIES_TOOLTIP =
-//   "Edit an example user's properties to see the edits reflected in the rendered template. Properties are computed from user Identify traits and Track events.";
-
-// enum NotifyKey {
-//   RenderBodyError = "RenderBodyError",
-// }
-
-// export default function SmsEditor() {
-//   const theme = useTheme();
-//   const router = useRouter();
-//   const {
-//     smsMessageBody: body,
-//     setSmsMessageBody: setBody,
-//     smsMessageUpdateRequest: updateRequest,
-//     smsMessageUserPropertiesJSON: userJson,
-//     smsMessageTitle: title,
-//     setSmsMessageTitle: setTitle,
-//     workspace: workspaceRequest,
-//     apiBase,
-//     upsertMessage,
-//     setSmsMessagePropsJSON: setUserJson,
-//   } = useAppStorePick([
-//     "workspace",
-//     "apiBase",
-//     "smsMessageBody",
-//     "smsMessageUpdateRequest",
-//     "smsMessageTitle",
-//     "setSmsMessageTitle",
-//     "smsMessageUserPropertiesJSON",
-//     "setSmsMessageBody",
-//     "setSmsMessagePropsJSON",
-//     "setSmsMessageUpdateRequest",
-//     "upsertMessage",
-//   ]);
-//   const [errors] = useState<Map<NotifyKey, string>>(new Map());
-//   const setSmsMessageUpdateRequest = useAppStore(
-//     (state) => state.setSmsMessageUpdateRequest
-//   );
-
-//   const messageId =
-//     typeof router.query.id === "string" ? router.query.id : null;
-//   const workspace =
-//     workspaceRequest.type === CompletionStatus.Successful
-//       ? workspaceRequest.value
-//       : null;
-
-//   if (!workspace || !messageId) {
-//     return null;
-//   }
-
-//   const updateData: UpsertMessageTemplateResource = {
-//     id: messageId,
-//     workspaceId: workspace.id,
-//     name: title,
-//     definition: {
-//       type: ChannelType.Sms,
-//       body,
-//     },
-//   };
-
-//   const jsonCodeMirrorHandleChange = (val: string) => {
-//     setUserJson(val);
-//     try {
-//       const parsed = JSON.parse(val);
-//       if (!(typeof parsed === "object" && parsed !== null)) {
-//         return;
-//       }
-//       const parsedObj: Record<string, unknown> = parsed;
-//       const props: Record<string, string> = {};
-
-//       // eslint-disable-next-line guard-for-in
-//       for (const key in parsedObj) {
-//         const parsedVal = parsed[key];
-//         if (typeof parsedVal !== "string") {
-//           continue;
-//         }
-//         props[key] = parsedVal;
-//       }
-//       // eslint-disable-next-line no-empty
-//     } catch (e) {}
-//   };
-
-//   const editor = (
-//     <TextField
-//       label="Message"
-//       variant="filled"
-//       sx={{ width: "100%" }}
-//       InputProps={{
-//         sx: {
-//           borderTopRightRadius: 0,
-//         },
-//       }}
-//       multiline
-//       value={body}
-//       onChange={(e) => setBody(e.target.value)}
-//     />
-//   );
-
-//   const preview = (
-//     <Stack
-//       sx={{
-//         position: "relative",
-//         height: "660px",
-//         width: "450px",
-//         margin: "0px auto",
-//         backgroundImage: `url(${MobilePreviewImage.src})`,
-//       }}
-//     >
-//       <Box
-//         sx={{
-//           top: "150px",
-//           position: "relative",
-//           width: "404px",
-//           margin: "auto",
-//         }}
-//       >
-//         <Box
-//           sx={{
-//             backgroundColor: "#fff",
-//             borderRadius: "28px",
-//             padding: "20px 16px",
-//             width: "100%",
-//           }}
-//         >
-//           <Typography variant="body1">{body}</Typography>
-//         </Box>
-//       </Box>
-//     </Stack>
-//   );
-
-//   const handleSave = apiRequestHandlerFactory({
-//     request: updateRequest,
-//     setRequest: setSmsMessageUpdateRequest,
-//     responseSchema: MessageTemplateResource,
-//     setResponse: upsertMessage,
-//     onSuccessNotice: `Saved template ${title}.`,
-//     onFailureNoticeHandler: () =>
-//       `API Error: Failed to save template ${title}.`,
-//     requestConfig: {
-//       method: "PUT",
-//       url: `${apiBase}/api/content/templates`,
-//       data: updateData,
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//     },
-//   });
-
-//   return (
-//     <Stack
-//       direction="row"
-//       sx={{
-//         width: "100%",
-//         paddingRight: 2,
-//         paddingTop: 2,
-//       }}
-//       spacing={1}
-//     >
-//       <Stack
-//         direction="column"
-//         spacing={2}
-//         sx={{
-//           borderTopRightRadius: 1,
-//           width: "25%",
-//           padding: 1,
-//           border: `1px solid ${theme.palette.grey[200]}`,
-//           boxShadow: theme.shadows[2],
-//         }}
-//       >
-//         <EditableName
-//           name={title}
-//           variant="h4"
-//           onChange={(e) => {
-//             setTitle(e.target.value);
-//           }}
-//         />
-//         <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
-//           <Typography variant="h5">User Properties</Typography>
-//         </InfoTooltip>
-//         <ReactCodeMirror
-//           value={userJson}
-//           onChange={jsonCodeMirrorHandleChange}
-//           extensions={[
-//             codeMirrorJson(),
-//             linter(jsonParseLinter()),
-//             EditorView.lineWrapping,
-//             EditorView.theme({
-//               "&": {
-//                 fontFamily: theme.typography.fontFamily,
-//               },
-//             }),
-//             lintGutter(),
-//           ]}
-//         />
-//         <Button
-//           variant="contained"
-//           onClick={handleSave}
-//           disabled={errors.size > 0}
-//         >
-//           Save
-//         </Button>
-//       </Stack>
-//       <Stack direction="row" sx={{ flex: 1 }}>
-//         {editor}
-//       </Stack>
-//       <Stack direction="row" sx={{ flex: 1 }}>
-//         <Box
-//           sx={{
-//             width: "100%",
-//           }}
-//         >
-//           {preview}
-//         </Box>
-//       </Stack>
-//     </Stack>
-//   );
-// }
-
-// export const defaultInitialUserProperties = {
-//   email: "test@email.com",
-//   id: "ad44fb62-91a4-4ec7-be24-7f9364e331b1",
-//   phone: "2025550161",
-//   language: "en-US",
-//   anonymousId: "0b0d3a71-0a86-4e60-892a-d27f0b290c81",
-// };
-
-// export function defaultSmsMessageState(
-//   id: string
-// ): Omit<
-//   SmsMessageEditorState,
-//   "smsMessageUserPropertiesJSON" | "smsMessageUserProperties"
-// > {
-//   return {
-//     smsMessageTitle: `SMS Message - ${id}`,
-//     smsMessageBody: "This is the default SMS message body. {{user.phone}}",
-//     smsMessageUpdateRequest: {
-//       type: CompletionStatus.NotStarted,
-//     },
-//   };
-// }
