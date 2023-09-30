@@ -82,10 +82,10 @@ export function defaultSmsMessageState(
   };
 }
 
-const BodyBox = styled(Box, {
+const BodyBox = styled(Stack, {
   shouldForwardProp: (prop) => prop !== "direction",
-})<{ direction: "left" | "right" } & React.ComponentProps<typeof Box>>(
-  ({ theme, direction }) => ({
+})<{ borderDirection: "left" | "right" } & React.ComponentProps<typeof Box>>(
+  ({ theme, borderDirection: direction }) => ({
     flex: 1,
     flexBasis: 0,
     overflow: "scroll",
@@ -418,7 +418,10 @@ export default function SmsEditor() {
         )}
       </Stack>
 
-      <BodyBox sx={{ padding: 1, fontFamily: "monospace" }} direction="left">
+      <BodyBox
+        sx={{ padding: 1, fontFamily: "monospace" }}
+        borderDirection="left"
+      >
         <ReactCodeMirror
           value={smsBody}
           onChange={handleCodeMirrorHandleChange}
@@ -456,38 +459,41 @@ export default function SmsEditor() {
           </IconButton>
         )}
       </Stack>
-      <BodyBox
-        direction="right"
-        sx={{
-          padding: 1,
-        }}
-      >
+      <BodyBox borderDirection="right" sx={{}}>
         <Stack
-          sx={{
-            height: "100%",
-            backgroundImage:
-              "url(https://storage.googleapis.com/dittofeed-public/sms-box.svg)",
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "contain",
-            backgroundPosition: "center",
-            justifyContent: "start",
-            alignItems: "center",
-          }}
+          sx={{ width: "100%", height: "100%", padding: 1 }}
+          direction="row"
+          justifyContent="center"
+          alignContent="center"
         >
-          <Box
+          <Stack
             sx={{
-              width: "60%",
-              marginTop: 10,
-              backgroundColor: "#f7f8fa",
-              border: "1px solid #ebecf2",
-              padding: 1,
-              borderRadius: 1,
-              whiteSpace: "normal", // Ensures text wraps onto the next line
-              wordWrap: "break-word", // Breaks the word at the end of the line
+              height: "100%",
+              backgroundImage:
+                "url(https://storage.googleapis.com/dittofeed-public/sms-box.svg)",
+              backgroundRepeat: "no-repeat",
+              backgroundSize: "contain",
+              width: theme.spacing(43),
+              backgroundPosition: "center",
+              justifyContent: "start",
+              alignItems: "center",
             }}
           >
-            {previewBody}
-          </Box>
+            <Box
+              sx={{
+                width: "80%",
+                marginTop: 10,
+                backgroundColor: "#f7f8fa",
+                border: "1px solid #ebecf2",
+                padding: 1,
+                borderRadius: 1,
+                whiteSpace: "normal", // Ensures text wraps onto the next line
+                wordWrap: "break-word", // Breaks the word at the end of the line
+              }}
+            >
+              {previewBody}
+            </Box>
+          </Stack>
         </Stack>
       </BodyBox>
     </Stack>
