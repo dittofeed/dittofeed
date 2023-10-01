@@ -66,7 +66,9 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
       },
     };
 
-    const journeyResourceResult = journey && toJourneyResource(journey);
+    const journeyResourceResult =
+      journey?.workspaceId === workspaceId ? toJourneyResource(journey) : null;
+
     if (journeyResourceResult?.isOk()) {
       const journeyResource = journeyResourceResult.value;
       serverInitialState.journeys = {
