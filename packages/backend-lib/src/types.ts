@@ -192,3 +192,25 @@ export type EnrichedIntegration = Overwrite<
   Integration,
   { definition: IntegrationDefinition }
 >;
+
+export const TwilioStatusCallbackBody = Type.Object({
+  AccountSid: Type.String(),
+  From: Type.String(),
+  MessageSid: Type.String(),
+  MessageStatus: Type.String(),
+  SmsSid: Type.String(),
+});
+
+export type TwilioStatusCallbackBody = Static<typeof TwilioStatusCallbackBody>;
+
+export const TwilioStatusCallbackQuery = Type.Object({
+  workspaceId: Type.String(),
+  journeyId: Type.String(),
+  userId: Type.String(),
+  journeyStartedAt: Type.Number(),
+  nodeId: Type.String(),
+});
+
+export type TwilioStatusCallbackQuery = Static<
+  typeof TwilioStatusCallbackQuery
+>;
