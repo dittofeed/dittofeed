@@ -3,6 +3,7 @@ import TwilioClient from "twilio";
 import RestException from "twilio/lib/base/RestException";
 
 import logger from "../logger";
+import { TwilioStatusCallbackBody, TwilioStatusCallbackQuery } from "../types";
 
 export async function sendSms({
   body,
@@ -44,3 +45,7 @@ export async function sendSms({
     return err(error);
   }
 }
+
+export async function handleStatusCallback(
+  params: TwilioStatusCallbackBody & TwilioStatusCallbackQuery
+) {}

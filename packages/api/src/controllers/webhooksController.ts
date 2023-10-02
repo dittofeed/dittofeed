@@ -5,9 +5,14 @@ import {
   verifyTimestampedSignature,
 } from "backend-lib/src/crypto";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
+import { handleStatusCallback } from "backend-lib/src/destinations/twilio";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
-import { SendgridEvent } from "backend-lib/src/types";
+import {
+  SendgridEvent,
+  TwilioStatusCallbackBody,
+  TwilioStatusCallbackQuery,
+} from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import {
@@ -20,6 +25,24 @@ import { getWorkspaceId } from "../workspace";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/twilio/status-callback",
+    {
+      schema: {
+        description: "Used to consume twilio status callback payloads.",
+        body: TwilioStatusCallbackBody,
+        querystring: TwilioStatusCallbackQuery,
+      },
+    },
+    async (request, reply) => {
+      await handleStatusCallback({
+        ...request.body,
+        ...request.query,
+      });
+      return reply.status(200).send();
+    }
+  );
+
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/sendgrid",
     {

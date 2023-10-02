@@ -56,6 +56,18 @@ export enum InternalEventType {
   EmailClicked = "DFEmailClicked",
   EmailBounced = "DFEmailBounced",
   EmailMarkedSpam = "DFEmailMarkedSpam",
+  // In the process of sending to sms carrier
+  SmsCarrierSending = "DFSmsCarrierSending",
+  // Sent to sms carrier
+  SmsCarrierSent = "DFSmsCarrierSent",
+  // Delivered by sms carrier
+  SmsDelivered = "DFSmsDelivered",
+  // Failed to be delivered by sms carrier
+  SmsUndelivered = "DFSmsUndelivered",
+  // Messge was canceled by the client before it could be delivered.
+  SmsCanceled = "DFSmsCanceled",
+  // Unknown status received for sms
+  SmsUnknown = "DFSmsUnknown",
   JourneyNodeProcessed = "DFJourneyNodeProcessed",
 }
 

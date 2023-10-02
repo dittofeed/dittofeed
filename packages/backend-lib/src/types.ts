@@ -203,12 +203,14 @@ export const TwilioStatusCallbackBody = Type.Object({
 
 export type TwilioStatusCallbackBody = Static<typeof TwilioStatusCallbackBody>;
 
+// All values should always be present, but don't want to through away webhook
+// data if they aren't.
 export const TwilioStatusCallbackQuery = Type.Object({
-  workspaceId: Type.String(),
-  journeyId: Type.String(),
-  userId: Type.String(),
-  journeyStartedAt: Type.Number(),
-  nodeId: Type.String(),
+  workspaceId: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  userId: Type.Optional(Type.String()),
+  journeyStartedAt: Type.Optional(Type.Number()),
+  nodeId: Type.Optional(Type.String()),
 });
 
 export type TwilioStatusCallbackQuery = Static<
