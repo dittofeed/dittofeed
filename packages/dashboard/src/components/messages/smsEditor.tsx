@@ -482,7 +482,7 @@ export default function SmsEditor() {
             <Box
               sx={{
                 width: "80%",
-                marginTop: 10,
+                marginTop: 14,
                 backgroundColor: "#f7f8fa",
                 border: "1px solid #ebecf2",
                 padding: 1,
