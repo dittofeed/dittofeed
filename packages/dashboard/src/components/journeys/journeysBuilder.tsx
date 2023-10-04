@@ -1,15 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { Box } from "@mui/material";
-import axios from "axios";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import {
-  CompletionStatus,
-  JourneyNodeType,
-  JourneyStatsRequest,
-  JourneyStatsResponse,
-} from "isomorphic-lib/src/types";
+import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
   Background,
@@ -205,43 +197,6 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     setJourneyStatsRequest,
     upsertJourneyStats,
   });
-
-  React.useEffect(() => {
-    if (workspace.type !== CompletionStatus.Successful) {
-      return;
-    }
-    (async () => {
-      setJourneyStatsRequest({
-        type: CompletionStatus.InProgress,
-      });
-      try {
-        const params: JourneyStatsRequest = {
-          workspaceId: workspace.value.id,
-          journeyIds: [journeyId],
-        };
-        const response = await axios.get(`${apiBase}/api/journeys/stats`, {
-          params,
-        });
-        const value = unwrap(
-          schemaValidateWithErr(response.data, JourneyStatsResponse)
-        );
-
-        setJourneyStatsRequest({
-          type: CompletionStatus.NotStarted,
-        });
-        upsertJourneyStats(value);
-      } catch (e) {
-        const error = e as Error;
-
-        console.error(e);
-        setJourneyStatsRequest({
-          type: CompletionStatus.Failed,
-          error,
-        });
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // this function is called once the node from the sidebar is dropped onto a node in the current graph
   const onDrop: DragEventHandler = (evt: DragEvent<HTMLDivElement>) => {

@@ -137,6 +137,10 @@ export default function MessagesPage() {
         ? workspace.value.id
         : undefined,
     upsertJourneyStats,
+    journeyIds:
+      journeys.type === CompletionStatus.Successful
+        ? journeys.value.map((j) => j.id)
+        : [],
     apiBase,
     setJourneyStatsRequest,
   });
