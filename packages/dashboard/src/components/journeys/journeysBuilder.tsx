@@ -1,15 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { Box } from "@mui/material";
-import axios from "axios";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import {
-  CompletionStatus,
-  JourneyNodeType,
-  JourneyStatsRequest,
-  JourneyStatsResponse,
-} from "isomorphic-lib/src/types";
+import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
   Background,
