@@ -74,7 +74,9 @@
           "group": "Message Channel Types",
           "pages": [
             "integrations/channels/email",
-            "integrations/channels/sendgrid"
+            "integrations/channels/sendgrid",
+            "integrations/channels/sms",
+            "integrations/channels/twilio"
           ]
         },
         "integrations/sdks",

@@ -1,0 +1,37 @@
+---
+title: Send SMS with Twilio
+---
+
+Dittofeed can integrate with Twilio send SMS.
+
+## Integration Instructions
+
+Once you've created a twilio account there are a few necessary pieces of information you'll need to provide to Dittofeed:
+
+1. Your Twilio Account SID
+2. Your Twilio Auth Token
+3. Your Twilio Messaging Service SID
+
+These can be input in the settings page [dashboard/settings#sms-channel](https://dittofeed.com/dashboard/settings#sms-channel)
+
+<Frame>
+![Twilio Settings](/images/twilio-settings.png)
+</Frame>
+
+### Acquiring an Account SID and Auth Token
+
+Go to the Twilio API keys page [https://console.twilio.com/console/account/keys-credentials/api-keys](https://console.twilio.com/console/account/keys-credentials/api-keys) and create a new API key.
+
+<Frame>
+![Twilio API Keys](/images/twilio-api-keys.png)
+</Frame>
+
+This will give you an Account SID and Auth Token.
+
+### Acquiring a Messaging Service SID
+
+Go to the Twilio Messaging Services page [https://www.twilio.com/console/sms/services](https://www.twilio.com/console/sms/services) and create a new Messaging Service. This will provide you with a Sid.
+
+<Frame>
+![Twilio Messaging Service](/images/twilio-messaging-service.png)
+</Frame>
