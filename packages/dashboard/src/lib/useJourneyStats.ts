@@ -19,7 +19,7 @@ export function useJourneyStats(
 ) {
   React.useEffect(() => {
     (async () => {
-      if (!args.workspaceId || !args.journeyIds) {
+      if (!args.workspaceId) {
         return;
       }
       args.setJourneyStatsRequest({
