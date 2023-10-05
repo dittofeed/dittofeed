@@ -24,7 +24,7 @@
     "@opentelemetry/sdk-metrics": "1.12.0",
     "@opentelemetry/sdk-node": "0.38.0",
     "@opentelemetry/semantic-conventions": "1.12.0",
-    "@prisma/client": "^5.2.0",
+    "@prisma/client": "^5.4.1",
     "@sendgrid/helpers": "^7.7.0",
     "@sendgrid/mail": "^7.7.0",
     "@sinclair/typebox": "^0.31.5",

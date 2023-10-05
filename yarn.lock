@@ -3675,24 +3675,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@prisma/client@npm:^5.2.0":
-  version: 5.2.0
-  resolution: "@prisma/client@npm:5.2.0"
+"@prisma/client@npm:^5.4.1":
+  version: 5.4.1
+  resolution: "@prisma/client@npm:5.4.1"
   dependencies:
-    "@prisma/engines-version": 5.2.0-25.2804dc98259d2ea960602aca6b8e7fdc03c1758f
+    "@prisma/engines-version": 5.4.1-1.2f302df92bd8945e20ad4595a73def5b96afa54f
   peerDependencies:
     prisma: "*"
   peerDependenciesMeta:
     prisma:
       optional: true
-  checksum: ad523b7a54e31d365ecac7bdb89f5a89f62e616f5f567f5dd5060e86b122253a4652ea778c0ccbab31906e2170110e808839fbae7ee91a4fd16a8282ee86f5f1
+  checksum: 4341c1ae488ae77794b319d6f27297aff31c33ef02cad0f6848f37717048169daacd8686c1911c420d1a2b78e239e00eec76abef3e38eb4278ee082431ec20ee
   languageName: node
   linkType: hard
 
-"@prisma/engines-version@npm:5.2.0-25.2804dc98259d2ea960602aca6b8e7fdc03c1758f":
-  version: 5.2.0-25.2804dc98259d2ea960602aca6b8e7fdc03c1758f
-  resolution: "@prisma/engines-version@npm:5.2.0-25.2804dc98259d2ea960602aca6b8e7fdc03c1758f"
-  checksum: 7a0fde44dad7902aef0035a30073c8e3178bccbaf65f688583cf3db94e36d160fd0a52cae8b6422b670facdbd4201861e1d6e2c7371d57ef27b58a2e1c524213
+"@prisma/engines-version@npm:5.4.1-1.2f302df92bd8945e20ad4595a73def5b96afa54f":
+  version: 5.4.1-1.2f302df92bd8945e20ad4595a73def5b96afa54f
+  resolution: "@prisma/engines-version@npm:5.4.1-1.2f302df92bd8945e20ad4595a73def5b96afa54f"
+  checksum: 9b4454681df60d48a5984a4e6dde08498c8ff1cacbefc5266926cb74a818a3f3a987d1e55b82d84cd1965f625cc09f7f86f5777ff4e942e961a9bdd773ead2d8
   languageName: node
   linkType: hard
 
@@ -6296,7 +6296,7 @@ __metadata:
     "@opentelemetry/sdk-metrics": 1.12.0
     "@opentelemetry/sdk-node": 0.38.0
     "@opentelemetry/semantic-conventions": 1.12.0
-    "@prisma/client": ^5.2.0
+    "@prisma/client": ^5.4.1
     "@sendgrid/helpers": ^7.7.0
     "@sendgrid/mail": ^7.7.0
     "@sinclair/typebox": ^0.31.5
@@ -7327,7 +7327,7 @@ __metadata:
     "@mui/x-data-grid": ^6.0.0
     "@next/swc-linux-arm64-gnu": ^13.4.5
     "@next/swc-linux-arm64-musl": ^13.4.5
-    "@prisma/client": ^5.2.0
+    "@prisma/client": ^5.4.1
     "@sinclair/typebox": ^0.31.5
     "@types/dagre": ^0.7.49
     "@types/escape-html": ^1.0.2
