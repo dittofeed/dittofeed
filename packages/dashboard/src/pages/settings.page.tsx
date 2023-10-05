@@ -1194,18 +1194,18 @@ function HubspotIntegration() {
 function IntegrationSettings() {
   return (
     <Stack spacing={3}>
-      <SectionHeader
+      <SectionHeader title="Integrations" description="" />
+      <SectionSubHeader
         id={settingsSectionIds.hubspotIntegration}
-        title="Integrations"
-        description=""
+        title="Hubspot"
       />
       <Fields
         sections={[
           {
-            id: "integration-section-1",
+            id: "hubspot-section",
             fieldGroups: [
               {
-                id: "sendgrid-fields",
+                id: "hubspot-fields",
                 name: "Hubspot",
                 fields: [],
                 children: <HubspotIntegration />,
