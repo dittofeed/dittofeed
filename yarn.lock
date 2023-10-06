@@ -3696,10 +3696,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@prisma/engines@npm:5.2.0":
-  version: 5.2.0
-  resolution: "@prisma/engines@npm:5.2.0"
-  checksum: c4d0a424b211ab5f02c977bd87e03a151a7d297d8448b08ef9de931a0dcebbbea76cdefc15a17fd06dacac692b164fd88b32c23eb84f7822dbaf3d0885b700a7
+"@prisma/engines@npm:5.4.1":
+  version: 5.4.1
+  resolution: "@prisma/engines@npm:5.4.1"
+  checksum: 9c0b736ed7265979ffa919099eed86feecca1e0ee867ffd2b38cd30e469f4a341ac484ce793d6cddde9c9d0793ca291a6f9198432396db933b82133cebf1799d
   languageName: node
   linkType: hard
 
@@ -6348,7 +6348,7 @@ __metadata:
     pino: ^8.11.0
     pino-pretty: ^10.0.0
     prettier: ^2.8.3
-    prisma: ^5.2.0
+    prisma: ^5.4.1
     remeda: ^1.24.0
     ts-node: ^10.9.1
     twilio: ^4.18.0
@@ -7367,7 +7367,7 @@ __metadata:
     next: 13.4.4
     notistack: ^3.0.1
     prettier: ^2.8.3
-    prisma: ^5.2.0
+    prisma: ^5.4.1
     react: 18.2.0
     react-device-detect: ^2.2.2
     react-diff-view: ^3.0.3
@@ -13144,14 +13144,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prisma@npm:^5.2.0":
-  version: 5.2.0
-  resolution: "prisma@npm:5.2.0"
+"prisma@npm:^5.4.1":
+  version: 5.4.1
+  resolution: "prisma@npm:5.4.1"
   dependencies:
-    "@prisma/engines": 5.2.0
+    "@prisma/engines": 5.4.1
   bin:
     prisma: build/index.js
-  checksum: 8b99ab5a5f801c72b2eb1809db980bd104dfd699cb14c5d5db5b675566c89e46501267399bb2f02bc3ea8fb86fc2f029cccd7178768109dc4d198bc93552b1da
+  checksum: 0d8c3af6815fc65b5d2b79329efaa84b3fea41a05f80898cc680404a28fb3d7fa55bb3cb3b69d9108a35e85c23f4f8b708d70c7e4cf42de93142872090f95ed4
   languageName: node
   linkType: hard
 
