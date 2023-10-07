@@ -8,6 +8,9 @@ import {
   Select,
   SelectChangeEvent,
   Stack,
+  Step,
+  StepButton,
+  Stepper,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -36,7 +39,7 @@ import EditableName from "../../components/editableName";
 import InfoBox from "../../components/infoBox";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../../lib/appStore";
+import { useAppStore, useAppStorePick } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
@@ -124,7 +127,66 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
   });
 
+const steps = [
+  "Configure",
+  "Select a Segment",
+  "Select a Message Template",
+  "Review",
+];
+
 export default function Broadcast() {
+  // FIXME put this into query state
+  const [activeStep, setActiveStep] = React.useState(0);
+  // FIXME
+  const wasBroadcastCreated = false;
+
+  const { editedBroadcast, updateEditedBroadcast } = useAppStorePick([
+    "editedBroadcast",
+    "updateEditedBroadcast",
+  ]);
+  const theme = useTheme();
+
+  if (!editedBroadcast) {
+    return null;
+  }
+
+  const handleStep = (step: number) => () => {
+    setActiveStep(step);
+  };
+
+  return (
+    <DashboardContent>
+      <Stack
+        direction="column"
+        sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
+        spacing={3}
+      >
+        <Stack direction="row" spacing={2}>
+          <Stepper nonLinear activeStep={activeStep}>
+            {steps.map((label, index) => (
+              <Step key={label} completed={false}>
+                <StepButton color="inherit" onClick={handleStep(index)}>
+                  {label}
+                </StepButton>
+              </Step>
+            ))}
+          </Stepper>
+          <EditableName
+            variant="h6"
+            sx={{
+              minWidth: theme.spacing(52),
+            }}
+            name={editedBroadcast.name}
+            disabled={wasBroadcastCreated}
+            onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
+          />
+        </Stack>
+      </Stack>
+    </DashboardContent>
+  );
+}
+
+export function BroadcastV2() {
   const segmentsResult = useAppStore((store) => store.segments);
   const journeysResult = useAppStore((store) => store.journeys);
   const theme = useTheme();
