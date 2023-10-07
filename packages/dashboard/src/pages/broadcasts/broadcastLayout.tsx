@@ -1,37 +1,39 @@
-import { Stack, Step, StepButton, Stepper, useTheme } from "@mui/material";
+import { Stack, Step, StepButton, Stepper } from "@mui/material";
 import Link from "next/link";
 import React from "react";
+import { sortBy } from "remeda/dist/commonjs/sortBy";
+import { toPairs } from "remeda/dist/commonjs/toPairs";
 
 import DashboardContent from "../../components/dashboardContent";
-import EditableName from "../../components/editableName";
-import { useAppStorePick } from "../../lib/appStore";
 
-const steps: { name: string; path: string }[] = [
-  { name: "Configure", path: "configure" },
-  { name: "Select a Segment", path: "segment" },
-  { name: "Select a Message Template", path: "template" },
-  { name: "Review", path: "review" },
-];
+const steps = {
+  configure: "Configure",
+  segment: "Select a Segment",
+  template: "Select a Message Template",
+  review: "Review",
+} as const;
+
+const order: Record<keyof typeof steps, number> = {
+  configure: 0,
+  template: 1,
+  segment: 2,
+  review: 3,
+};
 
 export function BroadcastLayout({
   activeStep,
   id,
+  children,
 }: {
-  activeStep: number;
+  activeStep: keyof typeof steps;
+  children: React.ReactNode;
   id: string;
 }) {
-  // FIXM
-  const wasBroadcastCreated = false;
-
-  const { editedBroadcast, updateEditedBroadcast } = useAppStorePick([
-    "editedBroadcast",
-    "updateEditedBroadcast",
-  ]);
-  const theme = useTheme();
-
-  if (!editedBroadcast) {
-    return null;
-  }
+  const stepIndex = order[activeStep];
+  const sortedSteps = sortBy(
+    toPairs(steps),
+    ([path]) => order[path as keyof typeof steps]
+  );
 
   return (
     <DashboardContent>
@@ -40,28 +42,20 @@ export function BroadcastLayout({
         sx={{ width: "100%", height: "100%", padding: 2, alignItems: "start" }}
         spacing={3}
       >
-        <Stack direction="row" spacing={2}>
-          <Stepper nonLinear activeStep={activeStep}>
-            {steps.map(({ name, path }) => (
-              <Step key={name} completed={false}>
-                <StepButton
-                  color="inherit"
-                  href={`/broadcasts/${path}/${id}`}
-                  LinkComponent={Link}
-                />
-              </Step>
-            ))}
-          </Stepper>
-          <EditableName
-            variant="h6"
-            sx={{
-              minWidth: theme.spacing(52),
-            }}
-            name={editedBroadcast.name}
-            disabled={wasBroadcastCreated}
-            onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
-          />
-        </Stack>
+        <Stepper nonLinear activeStep={stepIndex}>
+          {sortedSteps.map(([path, name]) => (
+            <Step key={path} completed={false}>
+              <StepButton
+                color="inherit"
+                href={`/broadcasts/${path}/${id}`}
+                LinkComponent={Link}
+              >
+                {name}
+              </StepButton>
+            </Step>
+          ))}
+        </Stepper>
+        {children}
       </Stack>
     </DashboardContent>
   );

@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
@@ -267,9 +268,9 @@ function TemplateListContents() {
           onChange={handleChange}
           aria-label="basic tabs example"
         >
-          <Tab label="Email" />
-          <Tab label="SMS" />
-          <Tab disabled={!enableMobilePush} label="Mobile Push" />
+          <Tab label={CHANNEL_NAMES[ChannelType.Email]} />
+          <Tab label={CHANNEL_NAMES[ChannelType.Sms]} />
+          <Tab label={CHANNEL_NAMES[ChannelType.MobilePush]} />
         </Tabs>
       </Box>
       <TabPanel value={tab} index={0}>
