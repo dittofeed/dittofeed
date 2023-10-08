@@ -3,6 +3,7 @@ import { GetServerSidePropsContext } from "next";
 import { validate } from "uuid";
 
 import { AppState } from "../../lib/types";
+import { SegmentDefinition, SegmentNodeType } from "isomorphic-lib/src/types";
 
 export async function getBroadcastAppState({
   ctx,
@@ -26,17 +27,28 @@ export async function getBroadcastAppState({
   });
 
   if (!broadcast) {
-    broadcast = await prisma().broadcast.upsert({
-      where: {
-        id,
+    const segmentDefinition: SegmentDefinition = {
+      entryNode: {
+        type: SegmentNodeType.Broadcast,
+        id: "segment-broadcast-entry",
       },
-      create: {
-        id,
-        workspaceId,
-        name: `Broadcast - ${id}`,
-      },
-      update: {},
-    });
+      nodes: [],
+    };
+
+    // TODO create segment and template
+    [broadcast] = await Promise.all([
+      prisma().broadcast.upsert({
+        where: {
+          id,
+        },
+        create: {
+          id,
+          workspaceId,
+          name: `Broadcast - ${id}`,
+        },
+        update: {},
+      }),
+    ]);
   }
 
   if (broadcast.workspaceId !== workspaceId) {

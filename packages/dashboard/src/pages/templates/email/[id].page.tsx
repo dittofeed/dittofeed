@@ -23,7 +23,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const workspaceId = dfContext.workspace.id;
 
     const serverInitialState = await getEmailEditorState({
-      templateId,
+      where: {
+        id: templateId,
+      },
       workspaceId,
     });
     return {
