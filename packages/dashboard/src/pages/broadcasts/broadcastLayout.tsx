@@ -6,14 +6,14 @@ import { toPairs } from "remeda/dist/commonjs/toPairs";
 
 import DashboardContent from "../../components/dashboardContent";
 
-const steps = {
+export const steps = {
   configure: "Configure",
   segment: "Select a Segment",
   template: "Select a Message Template",
   review: "Review",
 } as const;
 
-const order: Record<keyof typeof steps, number> = {
+export const order: Record<keyof typeof steps, number> = {
   configure: 0,
   template: 1,
   segment: 2,

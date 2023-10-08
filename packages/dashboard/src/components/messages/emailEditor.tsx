@@ -129,7 +129,7 @@ function errorHash(key: NotifyKey, message: string) {
 
 const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 
-export default function EmailEditor() {
+export default function EmailEditor({ sx }: { sx?: SxProps<Theme> }) {
   const theme = useTheme();
   const router = useRouter();
   const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
@@ -691,6 +691,7 @@ export default function EmailEditor() {
       <Stack
         direction="row"
         sx={{
+          ...sx,
           width: "100%",
           paddingRight: 2,
           paddingTop: 2,

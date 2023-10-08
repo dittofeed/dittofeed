@@ -19,31 +19,38 @@ export async function getBroadcastAppState({
     return null;
   }
 
-  const broadcast = await prisma().broadcast.findUnique({
+  let broadcast = await prisma().broadcast.findUnique({
     where: {
       id,
     },
   });
 
-  if (
-    broadcast &&
-    broadcast.workspaceId === workspaceId &&
-    broadcast.segmentId
-  ) {
-    appState.editedBroadcast = {
-      workspaceId,
-      id,
-      name: broadcast.name,
-      segmentId: broadcast.segmentId,
-      createdAt: broadcast.createdAt.getTime(),
-      triggeredAt: broadcast.triggeredAt?.getTime(),
-    };
-  } else {
-    appState.editedBroadcast = {
-      workspaceId,
-      id,
-      name: `Broadcast - ${id}`,
-    };
+  if (!broadcast) {
+    broadcast = await prisma().broadcast.upsert({
+      where: {
+        id,
+      },
+      create: {
+        id,
+        workspaceId,
+        name: `Broadcast - ${id}`,
+      },
+      update: {},
+    });
   }
+
+  if (broadcast.workspaceId !== workspaceId) {
+    return null;
+  }
+
+  appState.editedBroadcast = {
+    id,
+    name: broadcast.name,
+    workspaceId,
+    segmentId: broadcast.segmentId ?? undefined,
+    createdAt: broadcast.createdAt.getTime(),
+    triggeredAt: broadcast.triggeredAt?.getTime(),
+  };
+
   return appState;
 }

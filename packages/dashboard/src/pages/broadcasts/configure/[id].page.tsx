@@ -1,17 +1,7 @@
-import {
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Typography,
-  useTheme,
-} from "@mui/material";
-import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
-import { ChannelType } from "isomorphic-lib/src/types";
+import { Button, Stack, Typography, useTheme } from "@mui/material";
 import { GetServerSideProps } from "next";
+import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
 
 import EditableName from "../../../components/editableName";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
@@ -45,7 +35,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 export default function BroadcastConfigure() {
   const router = useRouter();
   const { id } = router.query;
-  const [channel, setChannel] = useState<ChannelType>(ChannelType.Email);
 
   const { editedBroadcast, updateEditedBroadcast } = useAppStorePick([
     "editedBroadcast",
@@ -58,15 +47,25 @@ export default function BroadcastConfigure() {
     return null;
   }
   return (
-    <BroadcastLayout activeStep="configure" editable={false} id={id}>
-      <Typography
-        fontWeight={400}
-        variant="h2"
-        sx={{ fontSize: 16, marginBottom: 0.5 }}
+    <BroadcastLayout activeStep="configure" id={id}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: "center",
+        }}
       >
-        Configure Broadcast
-      </Typography>
-
+        <Typography
+          fontWeight={400}
+          variant="h2"
+          sx={{ fontSize: 16, marginBottom: 0.5 }}
+        >
+          Configure Broadcast
+        </Typography>
+        <Button LinkComponent={Link} href={`/broadcasts/template/${id}`}>
+          Next
+        </Button>
+      </Stack>
       <EditableName
         variant="h6"
         sx={{
@@ -76,31 +75,6 @@ export default function BroadcastConfigure() {
         disabled={!editable}
         onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
       />
-      <FormControl>
-        <InputLabel id="broadcast-channel-label">Channel</InputLabel>
-        <Select
-          label="Channel"
-          labelId="broadcast-channel-label"
-          sx={{
-            minWidth: theme.spacing(10),
-          }}
-          onChange={(e) => {
-            setChannel(e.target.value as ChannelType);
-          }}
-          value={channel}
-        >
-          <MenuItem value={ChannelType.Email}>
-            {CHANNEL_NAMES[ChannelType.Email]}
-          </MenuItem>
-          <MenuItem value={ChannelType.Sms}>
-            {CHANNEL_NAMES[ChannelType.Sms]}
-          </MenuItem>
-          <MenuItem disabled value={ChannelType.MobilePush}>
-            {CHANNEL_NAMES[ChannelType.MobilePush]}
-          </MenuItem>
-        </Select>
-      </FormControl>
-      <Button>Next</Button>
     </BroadcastLayout>
   );
 }
