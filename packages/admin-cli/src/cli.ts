@@ -2,7 +2,9 @@ import { bootstrapWorker } from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
+import prisma from "backend-lib/src/prisma";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { ChannelType, EmailTemplateResource } from "isomorphic-lib/src/types";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
@@ -127,6 +129,42 @@ export async function cli() {
       () => {},
       () => {
         logger().info(backendConfig(), "Backend Config");
+      }
+    )
+    .command(
+      "migrations email-templates",
+      "Runs migrations for email templates converting them to generic template model.",
+      () => {},
+      async () => {
+        const emailTemplates = await prisma().emailTemplate.findMany();
+        await Promise.all(
+          emailTemplates.map((emailTemplate) => {
+            const definition: EmailTemplateResource = {
+              type: ChannelType.Email,
+              from: emailTemplate.from,
+              subject: emailTemplate.subject,
+              replyTo: emailTemplate.replyTo ?? undefined,
+              body: emailTemplate.body,
+            };
+
+            return prisma().messageTemplate.upsert({
+              where: {
+                id: emailTemplate.id,
+              },
+              update: {
+                name: emailTemplate.name,
+                definition,
+                workspaceId: emailTemplate.workspaceId,
+              },
+              create: {
+                workspaceId: emailTemplate.workspaceId,
+                id: emailTemplate.id,
+                name: emailTemplate.name,
+                definition,
+              },
+            });
+          })
+        );
       }
     )
     .demandCommand(1, "# Please provide a valid command")

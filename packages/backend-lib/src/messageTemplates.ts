@@ -64,18 +64,6 @@ export async function findMessageTemplate({
   id: string;
   channel: ChannelType;
 }): Promise<Result<MessageTemplateResource | null, Error>> {
-  // TODO delete post consolidation
-  if (channel === ChannelType.Email) {
-    const emailTemplate = await prisma().emailTemplate.findUnique({
-      where: {
-        id,
-      },
-    });
-    if (!emailTemplate) {
-      return ok(null);
-    }
-    return ok(enrichEmailTemplate(emailTemplate));
-  }
   const template = await prisma().messageTemplate.findUnique({
     where: {
       id,
@@ -93,51 +81,6 @@ export async function findMessageTemplate({
 export async function upsertMessageTemplate(
   data: UpsertMessageTemplateResource
 ): Promise<MessageTemplateResource> {
-  if (data.definition.type === ChannelType.Email) {
-    let emailTemplate: EmailTemplate;
-    if (data.workspaceId && data.name) {
-      emailTemplate = await prisma().emailTemplate.upsert({
-        where: {
-          id: data.id,
-        },
-        create: {
-          workspaceId: data.workspaceId,
-          name: data.name,
-          id: data.id,
-          from: data.definition.from,
-          subject: data.definition.subject,
-          body: data.definition.body,
-          replyTo: data.definition.replyTo,
-        },
-        update: {
-          workspaceId: data.workspaceId,
-          name: data.name,
-          id: data.id,
-          from: data.definition.from,
-          subject: data.definition.subject,
-          body: data.definition.body,
-          replyTo: data.definition.replyTo,
-        },
-      });
-    } else {
-      emailTemplate = await prisma().emailTemplate.update({
-        where: {
-          id: data.id,
-        },
-        data: {
-          workspaceId: data.workspaceId,
-          name: data.name,
-          id: data.id,
-          from: data.definition.from,
-          subject: data.definition.subject,
-          body: data.definition.body,
-          replyTo: data.definition.replyTo,
-        },
-      });
-    }
-
-    return enrichEmailTemplate(emailTemplate);
-  }
   let messageTemplate: MessageTemplate;
   if (data.name && data.workspaceId) {
     messageTemplate = await prisma().messageTemplate.upsert({
@@ -178,24 +121,11 @@ export async function findMessageTemplates({
 }: {
   workspaceId: string;
 }): Promise<MessageTemplateResource[]> {
-  // TODO consolidate template models
-  const [messageTemplates, emailTemplates] = await Promise.all([
-    prisma().messageTemplate.findMany({
+  return (
+    await prisma().messageTemplate.findMany({
       where: {
         workspaceId,
       },
-    }),
-    prisma().emailTemplate.findMany({
-      where: {
-        workspaceId,
-      },
-    }),
-  ]);
-  const genericMessageTemplates: MessageTemplateResource[] =
-    messageTemplates.map((mt) => unwrap(enrichMessageTemplate(mt)));
-
-  const emailMessageTemplates: MessageTemplateResource[] = emailTemplates.map(
-    (et) => enrichEmailTemplate(et)
-  );
-  return genericMessageTemplates.concat(emailMessageTemplates);
+    })
+  ).map((mt) => unwrap(enrichMessageTemplate(mt)));
 }
