@@ -7,7 +7,6 @@ import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
-  ChannelType,
   DeleteMessageTemplateRequest,
   EmptyResponse,
   JsonResultType,
@@ -123,27 +122,14 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id, type } = request.body;
+      const { id } = request.body;
 
       try {
-        switch (type) {
-          case ChannelType.Email: {
-            await prisma().emailTemplate.delete({
-              where: {
-                id,
-              },
-            });
-            break;
-          }
-          default: {
-            await prisma().messageTemplate.delete({
-              where: {
-                id,
-              },
-            });
-            break;
-          }
-        }
+        await prisma().messageTemplate.delete({
+          where: {
+            id,
+          },
+        });
       } catch (e) {
         if (e instanceof Prisma.PrismaClientKnownRequestError) {
           switch (e.code) {

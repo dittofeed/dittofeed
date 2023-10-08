@@ -1,5 +1,9 @@
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  CompletionStatus,
+  EmailTemplateResource,
+} from "isomorphic-lib/src/types";
 import { LoremIpsum } from "lorem-ipsum";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -31,7 +35,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
     const workspaceId = dfContext.workspace.id;
     const [emailMessage, userProperties] = await Promise.all([
-      prisma().emailTemplate.findUnique({
+      prisma().messageTemplate.findUnique({
         where: {
           id,
         },
@@ -79,10 +83,21 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       ),
     };
 
-    if (emailMessage && emailMessage.workspaceId === workspaceId) {
-      const { from, subject, body, name, replyTo } = emailMessage;
+    if (emailMessage && emailMessage.workspaceId !== workspaceId) {
+      return {
+        notFound: true,
+      };
+    }
+
+    const definitionResult = schemaValidateWithErr(
+      emailMessage?.definition,
+      EmailTemplateResource
+    );
+    if (emailMessage && definitionResult.isOk()) {
+      const { from, subject, body, replyTo } = definitionResult.value;
+
       Object.assign(serverInitialState, {
-        emailMessageTitle: name,
+        emailMessageTitle: emailMessage.name,
         emailMessageFrom: from,
         emailMessageSubject: subject,
         emailMessageBody: body,
