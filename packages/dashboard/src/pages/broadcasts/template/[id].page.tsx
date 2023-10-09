@@ -9,26 +9,26 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
+import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { isChannelType } from "isomorphic-lib/src/channels";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { ChannelType, MessageTemplateResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { validate } from "uuid";
 
 import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { getEmailEditorState } from "../../../lib/email";
+import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
-import prisma from "../../../lib/prisma";
-import { toUserPropertyResource } from "backend-lib/src/userProperties";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { validate } from "uuid";
-import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 
 function getChannel(routeChannel: unknown): ChannelType {
   return typeof routeChannel === "string" && isChannelType(routeChannel)
@@ -124,10 +124,11 @@ export default function BroadcastConfigure() {
     case ChannelType.Email:
       templateEditor = (
         <EmailEditor
+          hideSaveButton
+          hideTitle
           sx={{
             height: "100%",
           }}
-          key={id}
         />
       );
       break;
@@ -141,6 +142,7 @@ export default function BroadcastConfigure() {
       assertUnreachable(channel);
   }
 
+  // FIXME allow user to select subscription group id
   return (
     <BroadcastLayout activeStep="template" id={id}>
       <Stack

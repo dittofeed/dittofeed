@@ -3,7 +3,6 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BroadcastResource,
   ChannelType,
-  EmailTemplateResource,
   JourneyDefinition,
   JourneyNodeType,
   JourneyResource,
@@ -13,6 +12,7 @@ import {
   SegmentResource,
 } from "isomorphic-lib/src/types";
 
+import { WELCOME_TEMPLATE } from "./bootstrap/messageTemplates";
 import { toJourneyResource } from "./journeys";
 import { enrichMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
@@ -137,12 +137,6 @@ export async function upsertBroadcast({
     },
     nodes: [],
   };
-  const templateDefinition: EmailTemplateResource = {
-    type: ChannelType.Email,
-    subject: "",
-    from: "",
-    body: "",
-  };
 
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
@@ -185,7 +179,7 @@ export async function upsertBroadcast({
         workspaceId,
         resourceType: "Internal",
         name: broadcastTemplateName,
-        definition: templateDefinition,
+        definition: WELCOME_TEMPLATE,
       },
       update: {},
     }),
@@ -235,7 +229,7 @@ export async function upsertBroadcast({
     journey: unwrap(toJourneyResource(journey)),
     messageTemplate: {
       ...messageTemplate,
-      definition: templateDefinition,
+      definition: WELCOME_TEMPLATE,
     },
     segment: unwrap(toSegmentResource(segment)),
   };

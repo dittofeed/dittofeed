@@ -1,6 +1,11 @@
 import { v5 as uuidv5 } from "uuid";
 
-import { ChannelType, UpsertMessageTemplateResource } from "../types";
+import {
+  ChannelType,
+  EmailMessageVariant,
+  EmailTemplateResource,
+  UpsertMessageTemplateResource,
+} from "../types";
 
 const welcomeBody = `<mjml>
   <mj-body background-color="#F7F8FA">
@@ -50,6 +55,13 @@ const welcomeBody = `<mjml>
   </mj-body>
 </mjml>`;
 
+export const WELCOME_TEMPLATE: EmailTemplateResource = {
+  type: ChannelType.Email,
+  from: "hello@mycompany.com",
+  subject: 'Hi {{ user.firstName | default: "there"}}!',
+  body: welcomeBody,
+};
+
 export function getDefaultMessageTemplates({
   workspaceId,
 }: {
@@ -60,12 +72,7 @@ export function getDefaultMessageTemplates({
       workspaceId,
       name: "Welcome Email",
       id: uuidv5("118318ca-ba56-44ad-856c-a9a625113f5e", workspaceId),
-      definition: {
-        type: ChannelType.Email,
-        from: "hello@mycompany.com",
-        subject: 'Hi {{ user.firstName | default: "there"}}!',
-        body: welcomeBody,
-      },
+      definition: WELCOME_TEMPLATE,
     },
   ];
 }

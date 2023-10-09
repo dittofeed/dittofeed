@@ -698,9 +698,9 @@ export const BroadcastResource = Type.Object({
 
 export type BroadcastResource = Static<typeof BroadcastResource>;
 
-export const UpsertBroadcastResource = Type.Omit(BroadcastResource, [
-  "createdAt",
-  "triggeredAt",
+export const UpsertBroadcastResource = Type.Composite([
+  Type.Omit(BroadcastResource, ["createdAt", "segmentId", "triggeredAt"]),
+  Type.Required(Type.Pick(BroadcastResource, ["segmentId"])),
 ]);
 
 export type UpsertBroadcastResource = Static<typeof UpsertBroadcastResource>;

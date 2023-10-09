@@ -129,7 +129,15 @@ function errorHash(key: NotifyKey, message: string) {
 
 const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 
-export default function EmailEditor({ sx }: { sx?: SxProps<Theme> }) {
+export default function EmailEditor({
+  hideSaveButton,
+  hideTitle,
+  sx,
+}: {
+  hideSaveButton?: boolean;
+  hideTitle?: boolean;
+  sx?: SxProps<Theme>;
+}) {
   const theme = useTheme();
   const router = useRouter();
   const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
@@ -709,13 +717,15 @@ export default function EmailEditor({ sx }: { sx?: SxProps<Theme> }) {
             boxShadow: theme.shadows[2],
           }}
         >
-          <EditableName
-            name={emailMessageTitle}
-            variant="h4"
-            onChange={(e) => {
-              setEmailMessageTitle(e.target.value);
-            }}
-          />
+          {!hideTitle && (
+            <EditableName
+              name={emailMessageTitle}
+              variant="h4"
+              onChange={(e) => {
+                setEmailMessageTitle(e.target.value);
+              }}
+            />
+          )}
           <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
             <Typography variant="h5">User Properties</Typography>
           </InfoTooltip>
@@ -734,13 +744,15 @@ export default function EmailEditor({ sx }: { sx?: SxProps<Theme> }) {
               lintGutter(),
             ]}
           />
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={errors.size > 0}
-          >
-            Save
-          </Button>
+          {!hideSaveButton && (
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={errors.size > 0}
+            >
+              Save
+            </Button>
+          )}
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box
