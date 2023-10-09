@@ -23,11 +23,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const workspaceId = dfContext.workspace.id;
 
     const serverInitialState = await getEmailEditorState({
-      where: {
-        id: templateId,
-      },
+      templateId,
       workspaceId,
     });
+    if (!serverInitialState) {
+      return {
+        notFound: true,
+      };
+    }
     return {
       props: addInitialStateToProps({
         dfContext,

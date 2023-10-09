@@ -1,11 +1,11 @@
 import prisma from "backend-lib/src/prisma";
+import { SegmentDefinition, SegmentNodeType } from "isomorphic-lib/src/types";
 import { GetServerSidePropsContext } from "next";
 import { validate } from "uuid";
 
 import { AppState } from "../../lib/types";
-import { SegmentDefinition, SegmentNodeType } from "isomorphic-lib/src/types";
 
-export async function getBroadcastAppState({
+export async function getOrCreateBroadcastAppState({
   ctx,
   workspaceId,
 }: {

@@ -9,11 +9,11 @@ import { useAppStorePick } from "../../../lib/appStore";
 import { requestContext } from "../../../lib/requestContext";
 import { PropsWithInitialState } from "../../../lib/types";
 import { BroadcastLayout } from "../broadcastLayout";
-import { getBroadcastAppState } from "../getBroadcastAppState";
+import { getOrCreateBroadcastAppState } from "../getBroadcastAppState";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
-    const appState = await getBroadcastAppState({
+    const appState = await getOrCreateBroadcastAppState({
       ctx,
       workspaceId: dfContext.workspace.id,
     });

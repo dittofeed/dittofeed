@@ -1,5 +1,9 @@
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  CompletionStatus,
+  EmailTemplateResource,
+} from "isomorphic-lib/src/types";
 import { LoremIpsum } from "lorem-ipsum";
 
 import {
@@ -15,7 +19,7 @@ export async function getEmailEditorState({
 }: {
   templateId: string;
   workspaceId: string;
-}): Promise<Partial<AppState>> {
+}): Promise<Partial<AppState> | null> {
   const [emailMessage, userProperties] = await Promise.all([
     prisma().messageTemplate.findUnique({
       where: {
@@ -65,10 +69,19 @@ export async function getEmailEditorState({
     ),
   };
 
-  if (emailMessage && emailMessage.workspaceId === workspaceId) {
-    const { from, subject, body, name, replyTo } = emailMessage;
+  if (emailMessage && emailMessage.workspaceId !== workspaceId) {
+    return null;
+  }
+
+  const definitionResult = schemaValidateWithErr(
+    emailMessage?.definition,
+    EmailTemplateResource
+  );
+  if (emailMessage && definitionResult.isOk()) {
+    const { from, subject, body, replyTo } = definitionResult.value;
+
     Object.assign(serverInitialState, {
-      emailMessageTitle: name,
+      emailMessageTitle: emailMessage.name,
       emailMessageFrom: from,
       emailMessageSubject: subject,
       emailMessageBody: body,

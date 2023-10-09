@@ -23,7 +23,7 @@ import { getEmailEditorState } from "../../../lib/email";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { BroadcastLayout } from "../broadcastLayout";
-import { getBroadcastAppState } from "../getBroadcastAppState";
+import { getOrCreateBroadcastAppState } from "../getBroadcastAppState";
 
 function getChannel(routeChannel: unknown): ChannelType {
   return typeof routeChannel === "string" && isChannelType(routeChannel)
@@ -39,7 +39,7 @@ async function getChannelState({
   templateId: string;
   workspaceId: string;
   channel: ChannelType;
-}): Promise<Partial<AppState>> {
+}): Promise<Partial<AppState> | null> {
   switch (channel) {
     case ChannelType.Email: {
       const state = await getEmailEditorState({
@@ -63,7 +63,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const channel = getChannel(ctx.query.channel);
 
     const [baseAppState, channelState] = await Promise.all([
-      getBroadcastAppState({
+      getOrCreateBroadcastAppState({
         ctx,
         workspaceId: dfContext.workspace.id,
       }),
@@ -75,7 +75,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         workspaceId: dfContext.workspace.id,
       }),
     ]);
-    if (!baseAppState) {
+    if (!baseAppState || !channelState) {
       return {
         notFound: true,
       };
