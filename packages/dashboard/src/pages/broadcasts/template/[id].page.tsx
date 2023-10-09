@@ -12,7 +12,7 @@ import {
 import { isChannelType } from "isomorphic-lib/src/channels";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { ChannelType } from "isomorphic-lib/src/types";
+import { ChannelType, MessageTemplateResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -24,6 +24,11 @@ import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
+import prisma from "../../../lib/prisma";
+import { toUserPropertyResource } from "backend-lib/src/userProperties";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { validate } from "uuid";
+import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 
 function getChannel(routeChannel: unknown): ChannelType {
   return typeof routeChannel === "string" && isChannelType(routeChannel)
@@ -32,22 +37,29 @@ function getChannel(routeChannel: unknown): ChannelType {
 }
 
 async function getChannelState({
-  templateId,
   workspaceId,
   channel,
+  template,
 }: {
-  templateId: string;
+  template: MessageTemplateResource;
   workspaceId: string;
   channel: ChannelType;
 }): Promise<Partial<AppState> | null> {
+  const userProperties = (
+    await prisma().userProperty.findMany({
+      where: {
+        workspaceId,
+      },
+    })
+  ).flatMap((up) => unwrap(toUserPropertyResource(up)));
+
   switch (channel) {
     case ChannelType.Email: {
-      return null;
-      // const state = await getEmailEditorState({
-      //   templateId,
-      //   workspaceId,
-      // });
-      // return state;
+      const state = await getEmailEditorState({
+        emailTemplate: template,
+        userProperties,
+      });
+      return state;
     }
     case ChannelType.Sms:
       throw new Error("Sms not implemented");
@@ -61,32 +73,33 @@ async function getChannelState({
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
-    const channel = getChannel(ctx.query.channel);
+    const id = ctx.params?.id;
 
-    const [baseAppState, channelState] = await Promise.all([
-      getBroadcastAppState({
-        ctx,
-        workspaceId: dfContext.workspace.id,
-      }),
-      getChannelState({
-        channel,
-        // FIXME not right,
-        // pass name of template
-        templateId: ctx.query.id as string,
-        workspaceId: dfContext.workspace.id,
-      }),
-    ]);
-    if (!baseAppState || !channelState) {
+    if (typeof id !== "string" || !validate(id)) {
       return {
         notFound: true,
       };
     }
+
+    const { broadcast, messageTemplate } = await getOrCreateBroadcast({
+      workspaceId: dfContext.workspace.id,
+      broadcastId: id,
+    });
+
+    const channel = getChannel(ctx.query.channel);
+
+    const baseAppState = getBroadcastAppState({ broadcast });
+    const channelState = await getChannelState({
+      channel,
+      template: messageTemplate,
+      workspaceId: dfContext.workspace.id,
+    });
+
     const appState: Partial<AppState> = {
       ...baseAppState,
       ...channelState,
     };
 
-    console.log("appState", appState);
     return {
       props: addInitialStateToProps({
         serverInitialState: appState,
