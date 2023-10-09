@@ -23,7 +23,7 @@ import { getEmailEditorState } from "../../../lib/email";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { BroadcastLayout } from "../broadcastLayout";
-import { getOrCreateBroadcastAppState } from "../getBroadcastAppState";
+import { getBroadcastAppState } from "../getBroadcastAppState";
 
 function getChannel(routeChannel: unknown): ChannelType {
   return typeof routeChannel === "string" && isChannelType(routeChannel)
@@ -42,11 +42,12 @@ async function getChannelState({
 }): Promise<Partial<AppState> | null> {
   switch (channel) {
     case ChannelType.Email: {
-      const state = await getEmailEditorState({
-        templateId,
-        workspaceId,
-      });
-      return state;
+      return null;
+      // const state = await getEmailEditorState({
+      //   templateId,
+      //   workspaceId,
+      // });
+      // return state;
     }
     case ChannelType.Sms:
       throw new Error("Sms not implemented");
@@ -63,7 +64,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const channel = getChannel(ctx.query.channel);
 
     const [baseAppState, channelState] = await Promise.all([
-      getOrCreateBroadcastAppState({
+      getBroadcastAppState({
         ctx,
         workspaceId: dfContext.workspace.id,
       }),

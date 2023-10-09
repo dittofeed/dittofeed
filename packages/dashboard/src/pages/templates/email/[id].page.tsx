@@ -1,3 +1,9 @@
+import {
+  enrichEmailTemplate,
+  enrichMessageTemplate,
+} from "backend-lib/src/messageTemplates";
+import { enrichUserProperty } from "backend-lib/src/userProperties";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -8,6 +14,7 @@ import MainLayout from "../../../components/mainLayout";
 import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { getEmailEditorState } from "../../../lib/email";
+import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { PropsWithInitialState } from "../../../lib/types";
 
@@ -22,9 +29,26 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
     const workspaceId = dfContext.workspace.id;
 
+    const [emailTemplate, userProperties] = await Promise.all([
+      prisma().messageTemplate.findUnique({
+        where: {
+          id: templateId,
+        },
+      }),
+      prisma().userProperty.findMany({
+        where: {
+          workspaceId,
+        },
+      }),
+    ]);
+
     const serverInitialState = await getEmailEditorState({
-      templateId,
-      workspaceId,
+      emailTemplate: emailTemplate
+        ? unwrap(enrichMessageTemplate(emailTemplate))
+        : null,
+      userProperties: userProperties.flatMap((p) =>
+        unwrap(enrichUserProperty(p))
+      ),
     });
     if (!serverInitialState) {
       return {

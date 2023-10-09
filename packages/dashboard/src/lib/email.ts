@@ -1,8 +1,8 @@
-import { toUserPropertyResource } from "backend-lib/src/userProperties";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  ChannelType,
   CompletionStatus,
-  EmailTemplateResource,
+  MessageTemplateResource,
+  UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { LoremIpsum } from "lorem-ipsum";
 
@@ -10,28 +10,15 @@ import {
   defaultEmailMessageState,
   defaultInitialUserProperties,
 } from "../components/messages/emailEditor";
-import prisma from "./prisma";
 import { AppState } from "./types";
 
 export async function getEmailEditorState({
-  templateId: id,
-  workspaceId,
+  emailTemplate,
+  userProperties,
 }: {
-  templateId: string;
-  workspaceId: string;
+  emailTemplate: MessageTemplateResource | null;
+  userProperties: UserPropertyResource[];
 }): Promise<Partial<AppState> | null> {
-  const [emailMessage, userProperties] = await Promise.all([
-    prisma().messageTemplate.findUnique({
-      where: {
-        id,
-      },
-    }),
-    prisma().userProperty.findMany({
-      where: {
-        workspaceId,
-      },
-    }),
-  ]);
   const lorem = new LoremIpsum({
     sentencesPerParagraph: {
       max: 8,
@@ -57,38 +44,31 @@ export async function getEmailEditorState({
   );
 
   const serverInitialState: Partial<AppState> = {
-    ...defaultEmailMessageState(id),
     emailMessageUserProperties,
     emailMessageUserPropertiesJSON,
   };
 
   serverInitialState.userProperties = {
     type: CompletionStatus.Successful,
-    value: userProperties.flatMap((up) =>
-      toUserPropertyResource(up).unwrapOr([])
-    ),
+    value: userProperties,
   };
 
-  if (emailMessage && emailMessage.workspaceId !== workspaceId) {
-    return null;
-  }
+  if (emailTemplate && emailTemplate.definition.type === ChannelType.Email) {
+    const { from, subject, body, replyTo } = emailTemplate.definition;
+    serverInitialState.emailMessageTitle = emailTemplate.name;
+    serverInitialState.emailMessageFrom = from;
+    serverInitialState.emailMessageSubject = subject;
+    serverInitialState.emailMessageBody = body;
 
-  const definitionResult = schemaValidateWithErr(
-    emailMessage?.definition,
-    EmailTemplateResource
-  );
-  if (emailMessage && definitionResult.isOk()) {
-    const { from, subject, body, replyTo } = definitionResult.value;
-
-    Object.assign(serverInitialState, {
-      emailMessageTitle: emailMessage.name,
-      emailMessageFrom: from,
-      emailMessageSubject: subject,
-      emailMessageBody: body,
-    });
     if (replyTo) {
       serverInitialState.emailMessageReplyTo = replyTo;
     }
+  } else if (emailTemplate) {
+    Object.assign(
+      serverInitialState,
+      defaultEmailMessageState(emailTemplate.id)
+    );
   }
+
   return serverInitialState;
 }

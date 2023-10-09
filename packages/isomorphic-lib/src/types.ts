@@ -691,7 +691,7 @@ export const BroadcastResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
-  segmentId: Type.String(),
+  segmentId: Type.Optional(Type.String()),
   createdAt: Type.Number(),
   triggeredAt: Type.Optional(Type.Number()),
 });

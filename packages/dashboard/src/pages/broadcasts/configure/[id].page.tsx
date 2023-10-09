@@ -1,7 +1,9 @@
 import { Button, Stack, Typography, useTheme } from "@mui/material";
+import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { validate } from "uuid";
 
 import EditableName from "../../../components/editableName";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
@@ -9,19 +11,24 @@ import { useAppStorePick } from "../../../lib/appStore";
 import { requestContext } from "../../../lib/requestContext";
 import { PropsWithInitialState } from "../../../lib/types";
 import { BroadcastLayout } from "../broadcastLayout";
-import { getOrCreateBroadcastAppState } from "../getBroadcastAppState";
+import { getBroadcastAppState } from "../getBroadcastAppState";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
-    const appState = await getOrCreateBroadcastAppState({
-      ctx,
-      workspaceId: dfContext.workspace.id,
-    });
-    if (!appState) {
+    const id = ctx.params?.id;
+
+    if (typeof id !== "string" || !validate(id)) {
       return {
         notFound: true,
       };
     }
+
+    const { broadcast } = await getOrCreateBroadcast({
+      workspaceId: dfContext.workspace.id,
+      broadcastId: id,
+    });
+
+    const appState = getBroadcastAppState({ broadcast });
 
     return {
       props: addInitialStateToProps({

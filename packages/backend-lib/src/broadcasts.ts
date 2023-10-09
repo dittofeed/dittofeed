@@ -1,16 +1,22 @@
+import { Broadcast } from "@prisma/client";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   BroadcastResource,
   ChannelType,
   EmailTemplateResource,
   JourneyDefinition,
   JourneyNodeType,
+  JourneyResource,
   MessageTemplateResource,
   SegmentDefinition,
   SegmentNodeType,
   SegmentResource,
 } from "isomorphic-lib/src/types";
 
+import { toJourneyResource } from "./journeys";
+import { enrichMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
+import { toSegmentResource } from "./segments";
 
 export function getBroadcastSegmentName({
   broadcastId,
@@ -36,14 +42,88 @@ export function getBroadcastJourneyName({
   return `Broadcast - ${broadcastId}`;
 }
 
-export async function createBroadcast({
+export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
+  const resource: BroadcastResource = {
+    workspaceId: broadcast.workspaceId,
+    id: broadcast.id,
+    name: broadcast.name,
+    segmentId: broadcast.segmentId ?? undefined,
+    triggeredAt: broadcast.triggeredAt
+      ? broadcast.triggeredAt.getTime()
+      : undefined,
+    createdAt: broadcast.createdAt.getTime(),
+  };
+  return resource;
+}
+
+export interface BroadcastResources {
+  broadcast: BroadcastResource;
+  segment: SegmentResource;
+  messageTemplate: MessageTemplateResource;
+  journey: JourneyResource;
+}
+
+export async function getBroadcast({
+  workspaceId,
+  broadcastId: id,
+}: {
+  broadcastId: string;
+  workspaceId: string;
+}): Promise<BroadcastResources | null> {
+  const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
+  const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
+  const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
+  const [broadcast, segment, messageTemplate] = await Promise.all([
+    prisma().broadcast.findUnique({
+      where: {
+        id,
+      },
+    }),
+    prisma().segment.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: broadcastSegmentName,
+        },
+      },
+    }),
+    prisma().messageTemplate.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: broadcastTemplateName,
+        },
+      },
+    }),
+  ]);
+
+  const journey = await prisma().journey.findUnique({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: broadcastJourneyName,
+      },
+    },
+  });
+  if (!broadcast || !segment || !messageTemplate || !journey) {
+    return null;
+  }
+  return {
+    broadcast: toBroadcastResource(broadcast),
+    journey: unwrap(toJourneyResource(journey)),
+    messageTemplate: unwrap(enrichMessageTemplate(messageTemplate)),
+    segment: unwrap(toSegmentResource(segment)),
+  };
+}
+
+export async function upsertBroadcast({
   workspaceId,
   broadcastId: id,
   subscriptionGroupId,
 }: {
   broadcastId: string;
   workspaceId: string;
-  subscriptionGroupId: string;
+  subscriptionGroupId?: string;
 }): Promise<{
   broadcast: BroadcastResource;
   segment: SegmentResource;
@@ -135,7 +215,7 @@ export async function createBroadcast({
     },
   };
 
-  await prisma().journey.upsert({
+  const journey = await prisma().journey.upsert({
     where: {
       workspaceId_name: {
         workspaceId,
@@ -150,4 +230,24 @@ export async function createBroadcast({
     },
     update: {},
   });
+  return {
+    broadcast: toBroadcastResource(broadcast),
+    journey: unwrap(toJourneyResource(journey)),
+    messageTemplate: {
+      ...messageTemplate,
+      definition: templateDefinition,
+    },
+    segment: unwrap(toSegmentResource(segment)),
+  };
+}
+
+export async function getOrCreateBroadcast(params: {
+  broadcastId: string;
+  workspaceId: string;
+}): Promise<BroadcastResources> {
+  const broadcastResources = await getBroadcast(params);
+  if (broadcastResources) {
+    return broadcastResources;
+  }
+  return upsertBroadcast(params);
 }
