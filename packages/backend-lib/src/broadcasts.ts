@@ -137,7 +137,10 @@ export async function upsertBroadcast({
     entryNode: {
       type: SegmentNodeType.And,
       id: "segment-and-entry",
-      children: [SEGMENT_BROADCAST_NODE_ID],
+      children: [
+        SEGMENT_BROADCAST_NODE_ID,
+        DEFAULT_SEGMENT_DEFINITION.entryNode.id,
+      ],
     },
     nodes: [
       {
