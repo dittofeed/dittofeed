@@ -73,6 +73,10 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 <a href="https://render.com/deploy?repo=https://github.com/dittofeed/dittofeed" target="_blank" rel="nofollow"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy To Render"></a>
 
+Click Deploy on Elestio and follow the instruction to deploy Dittofeed on Elestio as fully managed instance.
+
+<a href="https://elest.io/open-source/dittofeed" target="_blank" rel="nofollow"><img src="https://pub-da36157c854648669813f3f76c526c2b.r2.dev/deploy-on-elestio-black.png" alt="Deploy To Elestio"></a>
+
 ## Developer-centric
 
 Beyond having industry-standard GUI tools, we focus on developer happiness with first-in-class dev-focused features:
