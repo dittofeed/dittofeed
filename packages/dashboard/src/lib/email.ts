@@ -12,13 +12,13 @@ import {
 } from "../components/messages/emailEditor";
 import { AppState } from "./types";
 
-export async function getEmailEditorState({
+export function getEmailEditorState({
   emailTemplate,
   userProperties,
 }: {
   emailTemplate: MessageTemplateResource | null;
   userProperties: UserPropertyResource[];
-}): Promise<Partial<AppState> | null> {
+}): Partial<AppState> | null {
   const lorem = new LoremIpsum({
     sentencesPerParagraph: {
       max: 8,

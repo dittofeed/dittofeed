@@ -55,7 +55,7 @@ async function getChannelState({
 
   switch (channel) {
     case ChannelType.Email: {
-      const state = await getEmailEditorState({
+      const state = getEmailEditorState({
         emailTemplate: template,
         userProperties,
       });
@@ -91,7 +91,6 @@ export const getServerSideProps: GetServerSideProps<
     broadcastId: id,
   });
 
-  console.log("loc2", messageTemplate);
   const channel = getChannel(ctx.query.channel);
 
   const baseAppState = getBroadcastAppState({ broadcast });

@@ -42,7 +42,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     ]);
 
-    const serverInitialState = await getEmailEditorState({
+    const serverInitialState = getEmailEditorState({
       emailTemplate: emailTemplate
         ? unwrap(enrichMessageTemplate(emailTemplate))
         : null,
