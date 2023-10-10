@@ -166,7 +166,6 @@ export async function upsertSegment(
         "name" = COALESCE(excluded."name", "Segment"."name"),
         "definition" = COALESCE(excluded."definition", "Segment"."definition"),
         "updatedAt" = NOW()
-    WHERE "Segment"."resourceType" <> 'Internal'
     RETURNING *`;
   const [result] = (await prisma().$queryRaw(query)) as [Segment];
   const updatedDefinition = result.definition as SegmentDefinition;

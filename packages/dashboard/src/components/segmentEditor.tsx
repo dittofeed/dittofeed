@@ -10,6 +10,7 @@ import {
   Select,
   SelectProps,
   Stack,
+  SxProps,
   TextField,
   Tooltip,
   Typography,
@@ -791,7 +792,7 @@ function SegmentNodeComponent({
   return <>{el}</>;
 }
 
-export default function SegmentConfig() {
+export default function SegmentConfig({ sx }: { sx?: SxProps }) {
   const editedSegment = useAppStore((state) => state.editedSegment);
   const theme = useTheme();
 
@@ -808,6 +809,7 @@ export default function SegmentConfig() {
         paddingBottom: 3,
         borderRadius: 1,
         border: `1px solid ${theme.palette.grey[200]}`,
+        ...sx,
       }}
     >
       <SegmentNodeComponent node={entryNode} />

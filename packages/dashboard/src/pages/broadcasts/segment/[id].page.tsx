@@ -1,94 +1,160 @@
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Button, Stack, Typography } from "@mui/material";
 import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
-import { GetServerSideProps, NextPage } from "next";
+import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import prisma from "backend-lib/src/prisma";
+import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { findAllUserTraits } from "backend-lib/src/userEvents";
+import { SegmentResource } from "isomorphic-lib/src/types";
+import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useEffect } from "react";
+import { useDebounce } from "use-debounce";
 import { validate } from "uuid";
 
+import SegmentEditor from "../../../components/segmentEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
+import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
+import { useAppStorePick } from "../../../lib/appStore";
 import { requestContext } from "../../../lib/requestContext";
 import { getSegmentConfigState } from "../../../lib/segments";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
 
-interface BroadcastSegmentProps {
-  segmentId: string;
-}
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (ctx, dfContext) => {
+    const id = ctx.params?.id;
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState<BroadcastSegmentProps>
-> = requestContext(async (ctx, dfContext) => {
-  const id = ctx.params?.id;
+    if (typeof id !== "string" || !validate(id)) {
+      return {
+        notFound: true,
+      };
+    }
 
-  if (typeof id !== "string" || !validate(id)) {
-    return {
-      notFound: true,
+    const workspaceId = dfContext.workspace.id;
+    const [
+      { broadcast, segment },
+      traits,
+      subscriptionGroups,
+      messageTemplates,
+    ] = await Promise.all([
+      getOrCreateBroadcast({
+        workspaceId: dfContext.workspace.id,
+        broadcastId: id,
+      }),
+      findAllUserTraits({
+        workspaceId,
+      }),
+      prisma().subscriptionGroup.findMany({
+        where: {
+          workspaceId,
+        },
+      }),
+      findMessageTemplates({
+        workspaceId,
+      }),
+    ]);
+
+    const baseAppState = getBroadcastAppState({ broadcast });
+    const segmentAppState = getSegmentConfigState({
+      segment,
+      traits,
+      segmentId: id,
+      workspaceId,
+      subscriptionGroups: subscriptionGroups.map((sg) =>
+        subscriptionGroupToResource(sg)
+      ),
+      messageTemplates,
+    });
+
+    const appState: Partial<AppState> = {
+      ...baseAppState,
+      ...segmentAppState,
     };
-  }
 
-  const { broadcast, segment } = await getOrCreateBroadcast({
-    workspaceId: dfContext.workspace.id,
-    broadcastId: id,
+    return {
+      props: addInitialStateToProps({
+        serverInitialState: appState,
+        props: {},
+        dfContext,
+      }),
+    };
   });
 
-  const baseAppState = getBroadcastAppState({ broadcast });
-  // const segmentAppState = getSegmentConfigState({ segment });
+export default function BroadcastConfigure() {
+  const router = useRouter();
+  const {
+    segmentUpdateRequest,
+    setSegmentUpdateRequest,
+    upsertSegment,
+    editedSegment,
+    apiBase,
+  } = useAppStorePick([
+    "segmentUpdateRequest",
+    "setSegmentUpdateRequest",
+    "upsertSegment",
+    "editedSegment",
+    "apiBase",
+  ]);
+  const { id } = router.query;
+  const [debouncedSegment] = useDebounce(editedSegment, 1000);
 
-  const appState: Partial<AppState> = {
-    ...baseAppState,
-  };
-
-  return {
-    props: addInitialStateToProps({
-      serverInitialState: appState,
-      props: {
-        segmentId: segment.id,
-      },
-      dfContext,
-    }),
-  };
-});
-
-const BroadcastConfigure: NextPage<BroadcastSegmentProps> =
-  function BroadcastConfigure({ segmentId }) {
-    const router = useRouter();
-    const { id } = router.query;
-
-    if (typeof id !== "string") {
-      return null;
+  useEffect(() => {
+    if (!debouncedSegment) {
+      return;
     }
-    let templateEditor;
+    apiRequestHandlerFactory({
+      request: segmentUpdateRequest,
+      setRequest: setSegmentUpdateRequest,
+      responseSchema: SegmentResource,
+      setResponse: upsertSegment,
+      onSuccessNotice: `Saved segment ${debouncedSegment.name}`,
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to save segment ${debouncedSegment.name}`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/segments`,
+        data: debouncedSegment,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    // Don't want to re-render on segmentUpdateRequest updating.
+    apiBase,
+    debouncedSegment,
+    setSegmentUpdateRequest,
+    upsertSegment,
+  ]);
 
-    // FIXME allow user to select subscription group id
-    return (
-      <BroadcastLayout activeStep="template" id={id}>
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{
-            alignItems: "center",
-          }}
+  if (typeof id !== "string") {
+    return null;
+  }
+
+  // FIXME allow user to select subscription group id
+  return (
+    <BroadcastLayout activeStep="segment" id={id}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: "center",
+        }}
+      >
+        <Typography fontWeight={400} variant="h2" sx={{ fontSize: 16 }}>
+          Broadcast Segment
+        </Typography>
+        <Button
+          LinkComponent={Link}
+          href={`/dashboard/broadcasts/segment/${id}`}
         >
-          <Typography fontWeight={400} variant="h2" sx={{ fontSize: 16 }}>
-            Broadcast Segment
-          </Typography>
-          <Button
-            LinkComponent={Link}
-            href={`/dashboard/broadcasts/segment/${id}`}
-          >
-            Next
-          </Button>
-        </Stack>
-        <Box
-          sx={{
-            flex: 1,
-            width: "100%",
-          }}
-        >
-          {templateEditor}
-        </Box>
-      </BroadcastLayout>
-    );
-  };
-export default BroadcastConfigure;
+          Next
+        </Button>
+      </Stack>
+      <SegmentEditor sx={{ width: "100%" }} />
+    </BroadcastLayout>
+  );
+}
