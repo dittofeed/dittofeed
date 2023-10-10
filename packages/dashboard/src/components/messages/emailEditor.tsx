@@ -37,7 +37,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { shallow } from "zustand/shallow";
 
@@ -47,7 +47,7 @@ import {
   noticeAnchorOrigin as anchorOrigin,
   noticeAnchorOrigin,
 } from "../../lib/notices";
-import { EmailMessageEditorState } from "../../lib/types";
+import { AppContents, EmailMessageEditorState } from "../../lib/types";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 import defaultEmailBody from "./defaultEmailBody";
@@ -113,6 +113,71 @@ const BodyBox = styled(Box, {
   })
 );
 
+function upsert({
+  workspaceId,
+  messageId,
+  emailFrom,
+  emailBody,
+  emailSubject,
+  emailMessageReplyTo,
+  apiBase,
+  emailMessageUpdateRequest,
+  setEmailMessageUpdateRequest,
+  emailMessageTitle,
+  upsertMessage,
+}: {
+  workspaceId?: string;
+  messageId: string | null;
+  emailMessageTitle: string;
+  emailFrom: string;
+  emailBody: string;
+  emailSubject: string;
+  emailMessageReplyTo: string;
+  apiBase: string;
+  upsertMessage: AppContents["upsertMessage"];
+  emailMessageUpdateRequest: AppContents["emailMessageUpdateRequest"];
+  setEmailMessageUpdateRequest: AppContents["setEmailMessageUpdateRequest"];
+}) {
+  if (!workspaceId || !messageId) {
+    return;
+  }
+  const upsertEmailDefinition: EmailTemplateResource = {
+    type: ChannelType.Email,
+    from: emailFrom,
+    body: emailBody,
+    subject: emailSubject,
+  };
+
+  const updateData: UpsertMessageTemplateResource = {
+    id: messageId,
+    workspaceId,
+    name: emailMessageTitle,
+    definition: upsertEmailDefinition,
+  };
+
+  if (emailMessageReplyTo.length) {
+    upsertEmailDefinition.replyTo = emailMessageReplyTo;
+  }
+  console.log("update data loc1", updateData);
+  apiRequestHandlerFactory({
+    request: emailMessageUpdateRequest,
+    setRequest: setEmailMessageUpdateRequest,
+    responseSchema: MessageTemplateResource,
+    setResponse: upsertMessage,
+    onSuccessNotice: `Saved template ${emailMessageTitle}.`,
+    onFailureNoticeHandler: () =>
+      `API Error: Failed to save template ${emailMessageTitle}.`,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/content/templates`,
+      data: updateData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  })();
+}
+
 type Fullscreen = "editor" | "preview" | null;
 
 enum NotifyKey {
@@ -132,10 +197,14 @@ const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 export default function EmailEditor({
   hideSaveButton,
   hideTitle,
+  templateId: messageId,
+  saveOnUpdate,
   sx,
 }: {
+  templateId: string;
   hideSaveButton?: boolean;
   hideTitle?: boolean;
+  saveOnUpdate?: boolean;
   sx?: SxProps<Theme>;
 }) {
   const theme = useTheme();
@@ -203,9 +272,6 @@ export default function EmailEditor({
       ),
     [userProperties]
   );
-
-  const messageId =
-    typeof router.query.id === "string" ? router.query.id : null;
 
   const workspace =
     workspaceRequest.type === CompletionStatus.Successful
@@ -434,44 +500,45 @@ export default function EmailEditor({
     setRenderedBody(errorBodyHtml);
   }, [errors, mockUserProperties, userPropertySet]);
 
+  const handleSave = useCallback(() => {
+    upsert({
+      workspaceId: workspace?.id,
+      messageId,
+      emailBody: debouncedEmailBody,
+      emailFrom: debouncedEmailFrom,
+      emailSubject: debouncedEmailSubject,
+      emailMessageReplyTo: debouncedReplyTo,
+      emailMessageUpdateRequest,
+      setEmailMessageUpdateRequest,
+      upsertMessage,
+      apiBase,
+      emailMessageTitle,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    // README don't update on emailMessageUpdateRequest change
+    apiBase,
+    debouncedEmailBody,
+    debouncedEmailFrom,
+    debouncedEmailSubject,
+    debouncedReplyTo,
+    emailMessageTitle,
+    messageId,
+    setEmailMessageUpdateRequest,
+    upsertMessage,
+    workspace?.id,
+  ]);
+
+  useEffect(() => {
+    if (!saveOnUpdate) {
+      return;
+    }
+    handleSave();
+  }, [handleSave, saveOnUpdate]);
+
   if (!workspace || !messageId) {
     return null;
   }
-
-  const upsertEmailDefinition: EmailTemplateResource = {
-    type: ChannelType.Email,
-    from: emailFrom,
-    body: emailBody,
-    subject: emailSubject,
-  };
-  const updateData: UpsertMessageTemplateResource = {
-    id: messageId,
-    workspaceId: workspace.id,
-    name: emailMessageTitle,
-    definition: upsertEmailDefinition,
-  };
-
-  if (emailMessageReplyTo.length) {
-    upsertEmailDefinition.replyTo = emailMessageReplyTo;
-  }
-
-  const handleSave = apiRequestHandlerFactory({
-    request: emailMessageUpdateRequest,
-    setRequest: setEmailMessageUpdateRequest,
-    responseSchema: MessageTemplateResource,
-    setResponse: upsertMessage,
-    onSuccessNotice: `Saved template ${emailMessageTitle}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to save template ${emailMessageTitle}.`,
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/content/templates`,
-      data: updateData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
 
   const htmlCodeMirrorHandleChange = (val: string) => {
     setEmailBody(val);
