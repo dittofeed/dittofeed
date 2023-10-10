@@ -1,31 +1,13 @@
-import {
-  Box,
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
-import { toUserPropertyResource } from "backend-lib/src/userProperties";
-import { isChannelType } from "isomorphic-lib/src/channels";
-import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { ChannelType, MessageTemplateResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { validate } from "uuid";
 
-import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
-import { getEmailEditorState } from "../../../lib/email";
-import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
+import { getSegmentConfigState } from "../../../lib/segments";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
@@ -51,6 +33,7 @@ export const getServerSideProps: GetServerSideProps<
   });
 
   const baseAppState = getBroadcastAppState({ broadcast });
+  // const segmentAppState = getSegmentConfigState({ segment });
 
   const appState: Partial<AppState> = {
     ...baseAppState,
