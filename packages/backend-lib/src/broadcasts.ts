@@ -13,6 +13,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import { WELCOME_TEMPLATE } from "./bootstrap/messageTemplates";
+import { DEFAULT_SEGMENT_DEFINITION } from "./constants";
 import { toJourneyResource } from "./journeys";
 import { enrichMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
@@ -116,6 +117,8 @@ export async function getBroadcast({
   };
 }
 
+const SEGMENT_BROADCAST_NODE_ID = "segment-broadcast";
+
 export async function upsertBroadcast({
   workspaceId,
   broadcastId: id,
@@ -132,10 +135,18 @@ export async function upsertBroadcast({
 }> {
   const segmentDefinition: SegmentDefinition = {
     entryNode: {
-      type: SegmentNodeType.Broadcast,
-      id: "segment-broadcast-entry",
+      type: SegmentNodeType.And,
+      id: "segment-and-entry",
+      children: [SEGMENT_BROADCAST_NODE_ID],
     },
-    nodes: [],
+    nodes: [
+      {
+        type: SegmentNodeType.Broadcast,
+        id: SEGMENT_BROADCAST_NODE_ID,
+      },
+      DEFAULT_SEGMENT_DEFINITION.entryNode,
+      ...DEFAULT_SEGMENT_DEFINITION.nodes,
+    ],
   };
 
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });

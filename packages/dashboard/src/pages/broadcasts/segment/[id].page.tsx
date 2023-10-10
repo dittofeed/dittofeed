@@ -4,15 +4,20 @@ import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { findAllUserTraits } from "backend-lib/src/userEvents";
-import { SegmentResource } from "isomorphic-lib/src/types";
+import {
+  SegmentDefinition,
+  SegmentNode,
+  SegmentNodeType,
+  SegmentResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { validate } from "uuid";
 
-import SegmentEditor from "../../../components/segmentEditor";
+import { SegmentEditorInner } from "../../../components/segmentEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../../lib/appStore";
@@ -98,6 +103,40 @@ export default function BroadcastConfigure() {
     "apiBase",
   ]);
   const { id } = router.query;
+  const unwrappedSegment: SegmentResource | null = useMemo(() => {
+    if (!editedSegment) {
+      return null;
+    }
+    const { definition, ...rest } = editedSegment;
+    const { entryNode } = definition;
+    if (entryNode.type !== SegmentNodeType.And) {
+      console.error(
+        "malformed broadcast segment missing top level And",
+        editedSegment
+      );
+      return null;
+    }
+    const newEntry: SegmentNode | undefined = definition.nodes.find(
+      (n) => n.id === entryNode.children[1]
+    );
+    if (entryNode.children.length !== 2 || !newEntry) {
+      console.error(
+        "malformed broadcast segment And too many children",
+        editedSegment
+      );
+      return null;
+    }
+    const newDefinition: SegmentDefinition = {
+      entryNode: newEntry,
+      nodes: definition.nodes.filter((n) => n.id !== newEntry.id),
+    };
+
+    return {
+      ...rest,
+      definition: newDefinition,
+    };
+  }, [editedSegment]);
+
   const [debouncedSegment] = useDebounce(editedSegment, 1000);
 
   useEffect(() => {
@@ -109,9 +148,9 @@ export default function BroadcastConfigure() {
       setRequest: setSegmentUpdateRequest,
       responseSchema: SegmentResource,
       setResponse: upsertSegment,
-      onSuccessNotice: `Saved segment ${debouncedSegment.name}`,
+      onSuccessNotice: `Saved broadcast segment`,
       onFailureNoticeHandler: () =>
-        `API Error: Failed to save segment ${debouncedSegment.name}`,
+        `API Error: Failed to save broadcast segment`,
       requestConfig: {
         method: "PUT",
         url: `${apiBase}/api/segments`,
@@ -130,11 +169,10 @@ export default function BroadcastConfigure() {
     upsertSegment,
   ]);
 
-  if (typeof id !== "string") {
+  if (typeof id !== "string" || !unwrappedSegment) {
     return null;
   }
 
-  // FIXME allow user to select subscription group id
   return (
     <BroadcastLayout activeStep="segment" id={id}>
       <Stack
@@ -154,7 +192,10 @@ export default function BroadcastConfigure() {
           Next
         </Button>
       </Stack>
-      <SegmentEditor sx={{ width: "100%" }} />
+      <SegmentEditorInner
+        sx={{ width: "100%" }}
+        editedSegment={unwrappedSegment}
+      />
     </BroadcastLayout>
   );
 }

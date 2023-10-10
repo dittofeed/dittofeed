@@ -31,6 +31,7 @@ import {
   SegmentNodeType,
   SegmentOperator,
   SegmentOperatorType,
+  SegmentResource,
   SegmentWithinOperator,
   SubscriptionGroupSegmentNode,
   TraitSegmentNode,
@@ -39,7 +40,7 @@ import React, { useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
-import { GroupedOption } from "../lib/types";
+import { AppState, GroupedOption } from "../lib/types";
 import DurationSelect from "./durationSelect";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
@@ -792,15 +793,16 @@ function SegmentNodeComponent({
   return <>{el}</>;
 }
 
-export default function SegmentConfig({ sx }: { sx?: SxProps }) {
-  const editedSegment = useAppStore((state) => state.editedSegment);
+export function SegmentEditorInner({
+  sx,
+  editedSegment,
+}: {
+  sx?: SxProps;
+  editedSegment: SegmentResource;
+}) {
   const theme = useTheme();
 
-  if (!editedSegment) {
-    return null;
-  }
   const { entryNode } = editedSegment.definition;
-
   return (
     <Box
       sx={{
@@ -815,4 +817,14 @@ export default function SegmentConfig({ sx }: { sx?: SxProps }) {
       <SegmentNodeComponent node={entryNode} />
     </Box>
   );
+}
+
+export default function SegmentEditor() {
+  const editedSegment = useAppStore((state) => state.editedSegment);
+
+  if (!editedSegment) {
+    return null;
+  }
+
+  return <SegmentEditorInner editedSegment={editedSegment} />;
 }

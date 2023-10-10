@@ -1,19 +1,15 @@
+import { DEFAULT_SEGMENT_DEFINITION } from "backend-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   MessageTemplateResource,
   SegmentDefinition,
-  SegmentNodeType,
-  SegmentOperatorType,
   SegmentResource,
   SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 
 import { AppState } from "./types";
-
-const ENTRY_ID = "entry";
-const INIT_TRAIT_ID = "initTraitId";
 
 export function getSegmentConfigState({
   workspaceId,
@@ -58,24 +54,7 @@ export function getSegmentConfigState({
       name: `My Segment - ${id}`,
       id,
       workspaceId,
-      definition: {
-        entryNode: {
-          type: SegmentNodeType.And,
-          children: [INIT_TRAIT_ID],
-          id: ENTRY_ID,
-        },
-        nodes: [
-          {
-            type: SegmentNodeType.Trait,
-            id: INIT_TRAIT_ID,
-            path: "",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: "",
-            },
-          },
-        ],
-      },
+      definition: DEFAULT_SEGMENT_DEFINITION,
     };
   }
   serverInitialState.editedSegment = segmentResource;
