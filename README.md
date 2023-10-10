@@ -10,7 +10,7 @@
 
 ## Open-source customer engagement
 
-[Dittofeed](https://dittofeed.com) is an omni-channel customer engagement platform. Create automated user journeys to message users along any channel: email, mobile push notifications, SMS, and custom webhooks. We're an open source, dev-friendly alternative to platforms like OneSignal, Customer.io, and Segment Engage.
+[Dittofeed](https://dittofeed.com) is an omni-channel customer engagement platform. Create automated user journeys to message users along any channel: email, mobile push notifications, SMS, custom webhooks, Slack, and more. We're an open source, dev-friendly alternative to platforms like OneSignal, Customer.io, and Segment Engage.
 
 <br />
 
