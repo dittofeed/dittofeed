@@ -8,7 +8,6 @@ import {
   JourneyResource,
   MessageTemplateResource,
   SegmentDefinition,
-  SegmentNodeType,
   SegmentResource,
 } from "isomorphic-lib/src/types";
 
@@ -133,25 +132,7 @@ export async function upsertBroadcast({
   messageTemplate: MessageTemplateResource;
   journey: JourneyResource;
 }> {
-  const segmentDefinition: SegmentDefinition = {
-    entryNode: {
-      type: SegmentNodeType.And,
-      id: "segment-and-entry",
-      children: [
-        SEGMENT_BROADCAST_NODE_ID,
-        DEFAULT_SEGMENT_DEFINITION.entryNode.id,
-      ],
-    },
-    nodes: [
-      {
-        type: SegmentNodeType.Broadcast,
-        id: SEGMENT_BROADCAST_NODE_ID,
-      },
-      DEFAULT_SEGMENT_DEFINITION.entryNode,
-      ...DEFAULT_SEGMENT_DEFINITION.nodes,
-    ],
-  };
-
+  const segmentDefinition: SegmentDefinition = DEFAULT_SEGMENT_DEFINITION;
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
