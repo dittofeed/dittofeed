@@ -116,8 +116,6 @@ export async function getBroadcast({
   };
 }
 
-const SEGMENT_BROADCAST_NODE_ID = "segment-broadcast";
-
 export async function upsertBroadcast({
   workspaceId,
   broadcastId: id,

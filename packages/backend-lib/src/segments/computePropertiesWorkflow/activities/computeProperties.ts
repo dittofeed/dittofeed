@@ -23,7 +23,7 @@ import {
 } from "../../../journeys/userWorkflow";
 import logger from "../../../logger";
 import {
-  findAllEnrichedSegments,
+  findManyEnrichedSegments,
   upsertBulkSegmentAssignments,
 } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
@@ -88,7 +88,6 @@ async function signalJourney({
 
 interface ComputePropertiesPeriodParams {
   currentTime: number;
-  newComputedIds?: Record<string, boolean>;
   subscribedJourneys: EnrichedJourney[];
   userProperties: EnrichedUserProperty[];
   workspaceId: string;
@@ -522,9 +521,10 @@ export async function computePropertiesPeriodSafe({
   tableVersion,
   workspaceId,
   userProperties,
+  segmentIds,
 }: ComputePropertiesPeriodParams): Promise<Result<null, Error>> {
   const [segmentResult, integrationsResult] = await Promise.all([
-    findAllEnrichedSegments(workspaceId),
+    findManyEnrichedSegments({ workspaceId, segmentIds }),
     findAllEnrichedIntegrations(workspaceId),
   ]);
 
@@ -718,11 +718,11 @@ export async function computePropertiesPeriodSafe({
 
 interface ComputePropertiesPeriodParams {
   currentTime: number;
-  newComputedIds?: Record<string, boolean>;
   subscribedJourneys: EnrichedJourney[];
   userProperties: EnrichedUserProperty[];
   workspaceId: string;
   tableVersion: string;
+  segmentIds?: string[];
 }
 
 export async function computePropertiesPeriod(

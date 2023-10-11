@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { findManyJourneys } from "backend-lib/src/journeys";
 import {
-  findAllEnrichedSegments,
+  findManyEnrichedSegments,
   segmentHasBroadcast,
   toSegmentResource,
 } from "backend-lib/src/segments";
@@ -64,7 +64,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           id,
         },
       }),
-      findAllEnrichedSegments(workspaceId),
+      findManyEnrichedSegments({ workspaceId }),
       findManyJourneys({ where: { workspaceId } }),
     ]);
 
