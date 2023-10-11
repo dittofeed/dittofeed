@@ -60,8 +60,7 @@ model Segment {
   definition          Json
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
-  // FIXME undelete
-  // status              SegmentStatus       @default(Running)
+  status              SegmentStatus       @default(Running)
   subscriptionGroupId String?             @db.Uuid
   subscriptionGroup   SubscriptionGroup?  @relation(fields: [subscriptionGroupId], references: [id], onDelete: SetNull)
   SegmentAssignment   SegmentAssignment[]

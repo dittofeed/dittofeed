@@ -87,7 +87,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
   });
 
-export default function BroadcastConfigure() {
+export default function BroadcastSegment() {
   const router = useRouter();
   const {
     segmentUpdateRequest,

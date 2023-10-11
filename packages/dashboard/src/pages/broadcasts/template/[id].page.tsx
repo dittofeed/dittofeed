@@ -116,8 +116,8 @@ export const getServerSideProps: GetServerSideProps<
   };
 });
 
-const BroadcastConfigure: NextPage<BroadcastTemplateProps> =
-  function BroadcastConfigure({ templateId }) {
+const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
+  function BroadcastTemplate({ templateId }) {
     const router = useRouter();
     const { id, channel: routeChannel } = router.query;
     const channel = getChannel(routeChannel);
@@ -212,4 +212,4 @@ const BroadcastConfigure: NextPage<BroadcastTemplateProps> =
       </BroadcastLayout>
     );
   };
-export default BroadcastConfigure;
+export default BroadcastTemplate;
