@@ -138,7 +138,7 @@ function upsert({
   emailMessageUpdateRequest: AppContents["emailMessageUpdateRequest"];
   setEmailMessageUpdateRequest: AppContents["setEmailMessageUpdateRequest"];
 }) {
-  if (!workspaceId || !messageId) {
+  if (!workspaceId || !messageId || emailMessageTitle.length === 0) {
     return;
   }
   const upsertEmailDefinition: EmailTemplateResource = {
@@ -158,15 +158,18 @@ function upsert({
   if (emailMessageReplyTo.length) {
     upsertEmailDefinition.replyTo = emailMessageReplyTo;
   }
-  console.log("update data loc1", updateData);
+
+  // component is changing an uncontrolled input to be controlled. This is likely caused by the value changing from undefined to a defined value, which should not happen. Decide between using a controlled or uncontrolled input element for the lifetime of the component. More info
+  // to reproduce, go to segment page, then template page
+  // FIXME erroring when transitioning to and from template broadcast page
+  console.log("updateData", updateData);
   apiRequestHandlerFactory({
     request: emailMessageUpdateRequest,
     setRequest: setEmailMessageUpdateRequest,
     responseSchema: MessageTemplateResource,
     setResponse: upsertMessage,
-    onSuccessNotice: `Saved template ${emailMessageTitle}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to save template ${emailMessageTitle}.`,
+    onSuccessNotice: `Saved template.`,
+    onFailureNoticeHandler: () => `API Error: Failed to save template.`,
     requestConfig: {
       method: "PUT",
       url: `${apiBase}/api/content/templates`,
