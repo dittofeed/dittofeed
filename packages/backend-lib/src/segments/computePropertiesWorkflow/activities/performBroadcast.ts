@@ -31,20 +31,30 @@ export async function performBroadcast({
     return null;
   }
   const { broadcast, segment, journey } = broadcastResources;
+
+  if (broadcast.triggeredAt) {
+    logger().info(
+      {
+        broadcast,
+      },
+      "broadcast already triggered"
+    );
+    return null;
+  }
   logger().info(
     {
       broadcast,
     },
     "performing broadcast"
   );
-  const triggereAt = new Date();
+  const triggeredAt = new Date();
 
   await computePropertiesPeriod({
     workspaceId,
     subscribedJourneys: [journey],
     segmentIds: [segment.id],
     tableVersion: userEventsTable,
-    currentTime: triggereAt.getTime(),
+    currentTime: triggeredAt.getTime(),
     userProperties: [],
   });
 
@@ -53,7 +63,7 @@ export async function performBroadcast({
       id: broadcast.id,
     },
     data: {
-      triggeredAt: triggereAt,
+      triggeredAt,
     },
   });
 
