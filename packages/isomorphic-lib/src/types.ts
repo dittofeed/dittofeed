@@ -1705,3 +1705,11 @@ export const UpsertSmsProviderRequest = Type.Object({
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
+
+// Compatible as both a subset of EnrichedJourney and JourneyResource
+export interface CompatibleJourney {
+  workspaceId: string;
+  id: string;
+  name: string;
+  definition: JourneyDefinition;
+}

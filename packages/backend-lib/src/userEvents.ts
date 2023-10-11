@@ -19,6 +19,19 @@ export interface InsertUserEventsParams {
   userEvents: InsertUserEvent[];
 }
 
+export async function getCurrentUserEventsTable({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<string> {
+  const currentTable = await prisma().currentUserEventsTable.findUnique({
+    where: {
+      workspaceId,
+    },
+  });
+  return currentTable?.version ?? config().defaultUserEventsTableVersion;
+}
+
 async function insertUserEventsDirect({
   workspaceId,
   userEvents,

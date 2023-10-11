@@ -28,11 +28,11 @@ import {
 } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
 import {
+  CompatibleJourney,
   ComputedAssignment,
   ComputedPropertyAssignment,
   ComputedPropertyUpdate,
   EnrichedIntegration,
-  EnrichedJourney,
   EnrichedSegment,
   EnrichedUserProperty,
   SegmentUpdate,
@@ -50,7 +50,7 @@ async function signalJourney({
   segmentId: string;
   workspaceId: string;
   segmentAssignment: ComputedAssignment;
-  journey: EnrichedJourney;
+  journey: CompatibleJourney;
 }) {
   const segmentUpdate: SegmentUpdate = {
     segmentId,
@@ -88,7 +88,7 @@ async function signalJourney({
 
 interface ComputePropertiesPeriodParams {
   currentTime: number;
-  subscribedJourneys: EnrichedJourney[];
+  subscribedJourneys: CompatibleJourney[];
   userProperties: EnrichedUserProperty[];
   workspaceId: string;
   tableVersion: string;
@@ -104,7 +104,7 @@ function buildReadQuery({
 }: {
   queryBuilder: ClickHouseQueryBuilder;
   workspaceId: string;
-  subscribedJourneys: EnrichedJourney[];
+  subscribedJourneys: CompatibleJourney[];
   integrations: EnrichedIntegration[];
   userProperties: EnrichedUserProperty[];
   segments: EnrichedSegment[];
@@ -349,7 +349,7 @@ async function processRows({
 }: {
   rows: Row[];
   workspaceId: string;
-  subscribedJourneys: EnrichedJourney[];
+  subscribedJourneys: CompatibleJourney[];
 }): Promise<boolean> {
   let hasRows = false;
   const assignments: ComputedAssignment[] = (
@@ -718,7 +718,7 @@ export async function computePropertiesPeriodSafe({
 
 interface ComputePropertiesPeriodParams {
   currentTime: number;
-  subscribedJourneys: EnrichedJourney[];
+  subscribedJourneys: CompatibleJourney[];
   userProperties: EnrichedUserProperty[];
   workspaceId: string;
   tableVersion: string;
