@@ -25,7 +25,7 @@ import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
 import {
   BroadcastResource,
   CompletionStatus,
-  UpsertBroadcastResource,
+  UpsertBroadcastResourceV0,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
@@ -218,7 +218,7 @@ export function BroadcastV2() {
     ) {
       return;
     }
-    const broadcastResource: UpsertBroadcastResource = {
+    const broadcastResource: UpsertBroadcastResourceV0 = {
       workspaceId: workspace.value.id,
       name: editedBroadcast.name,
       id,

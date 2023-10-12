@@ -103,6 +103,7 @@ model Broadcast {
   workspace   Workspace          @relation(fields: [workspaceId], references: [id])
   workspaceId String             @db.Uuid
   segment     Segment?           @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  // TODO create remaining fields for messageTemplate and journey
   segmentId   String?            @db.Uuid
   name        String
   status      DBCompletionStatus @default(NotStarted)

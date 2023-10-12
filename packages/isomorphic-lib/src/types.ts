@@ -698,12 +698,29 @@ export const BroadcastResource = Type.Object({
 
 export type BroadcastResource = Static<typeof BroadcastResource>;
 
-export const UpsertBroadcastResource = Type.Composite([
+export const UpsertBroadcastResourceV0 = Type.Composite([
   Type.Omit(BroadcastResource, ["createdAt", "segmentId", "triggeredAt"]),
   Type.Required(Type.Pick(BroadcastResource, ["segmentId"])),
 ]);
 
-export type UpsertBroadcastResource = Static<typeof UpsertBroadcastResource>;
+export type UpsertBroadcastResourceV0 = Static<
+  typeof UpsertBroadcastResourceV0
+>;
+
+export const UpdateBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+  name: Type.Optional(Type.String()),
+});
+
+export type UpdateBroadcastRequest = Static<typeof UpdateBroadcastRequest>;
+
+export const TriggerBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+});
+
+export type TriggerBroadcastRequest = Static<typeof TriggerBroadcastRequest>;
 
 export const UpsertSegmentResource = Type.Intersect([
   Type.Omit(Type.Partial(SegmentResource), ["id"]),
