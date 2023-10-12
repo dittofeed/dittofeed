@@ -22,7 +22,7 @@ export interface BroadcastWorkflowParams {
   broadcastId: string;
 }
 
-export async function computePropertiesWorkflow({
+export async function broadcastWorkflow({
   workspaceId,
   broadcastId,
 }: BroadcastWorkflowParams): Promise<void> {
