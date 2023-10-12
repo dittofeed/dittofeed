@@ -147,3 +147,5 @@ mnt/*
 
 .tmp/*
 !.tmp/.gitkeep
+
+.editorconfig
