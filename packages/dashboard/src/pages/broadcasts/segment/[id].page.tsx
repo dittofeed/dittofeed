@@ -8,7 +8,6 @@ import { SegmentResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
 import { useDebounce } from "use-debounce";
 import { validate } from "uuid";
 
@@ -19,6 +18,7 @@ import { useAppStorePick } from "../../../lib/appStore";
 import { requestContext } from "../../../lib/requestContext";
 import { getSegmentConfigState } from "../../../lib/segments";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
+import { useUpdateEffect } from "../../../lib/useUpdateEffect";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
 
@@ -100,7 +100,7 @@ export default function BroadcastSegment() {
   const { id } = router.query;
   const [debouncedSegment] = useDebounce(editedSegment, 1000);
 
-  useEffect(() => {
+  useUpdateEffect(() => {
     if (!debouncedSegment) {
       return;
     }

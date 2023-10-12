@@ -48,6 +48,7 @@ import {
   noticeAnchorOrigin,
 } from "../../lib/notices";
 import { AppContents, EmailMessageEditorState } from "../../lib/types";
+import { useUpdateEffect } from "../../lib/useUpdateEffect";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 import defaultEmailBody from "./defaultEmailBody";
@@ -532,7 +533,7 @@ export default function EmailEditor({
     workspace?.id,
   ]);
 
-  useEffect(() => {
+  useUpdateEffect(() => {
     if (!saveOnUpdate) {
       return;
     }

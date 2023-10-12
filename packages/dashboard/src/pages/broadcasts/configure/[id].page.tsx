@@ -54,34 +54,34 @@ export default function BroadcastConfigure() {
     return null;
   }
   return (
-    <BroadcastLayout activeStep="configure" id={id}>
-      <Stack
-        direction="row"
-        spacing={2}
-        sx={{
-          alignItems: "center",
-        }}
-      >
-        <Typography
-          fontWeight={400}
-          variant="h2"
-          sx={{ fontSize: 16, marginBottom: 0.5 }}
-        >
-          Configure Broadcast
-        </Typography>
-        <Button LinkComponent={Link} href={`/broadcasts/template/${id}`}>
-          Next
-        </Button>
-      </Stack>
-      <EditableName
-        variant="h6"
-        sx={{
-          minWidth: theme.spacing(52),
-        }}
-        name={editedBroadcast.name}
-        disabled={!editable}
-        onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
-      />
-    </BroadcastLayout>
+    // <BroadcastLayout activeStep="configure" id={id}>
+    //   <Stack
+    //     direction="row"
+    //     spacing={2}
+    //     sx={{
+    //       alignItems: "center",
+    //     }}
+    //   >
+    //     <Typography
+    //       fontWeight={400}
+    //       variant="h2"
+    //       sx={{ fontSize: 16, marginBottom: 0.5 }}
+    //     >
+    //       Configure Broadcast
+    //     </Typography>
+    //     <Button LinkComponent={Link} href={`/broadcasts/template/${id}`}>
+    //       Next
+    //     </Button>
+    //   </Stack>
+    //   <EditableName
+    //     variant="h6"
+    //     sx={{
+    //       minWidth: theme.spacing(52),
+    //     }}
+    //     name={editedBroadcast.name}
+    //     disabled={!editable}
+    //     onChange={(e) => updateEditedBroadcast({ name: e.target.value })}
+    //   />
+    // </BroadcastLayout>
   );
 }
