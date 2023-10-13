@@ -194,10 +194,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
               </MenuItem>
             </Select>
           </FormControl>
-          <Button
-            LinkComponent={Link}
-            href={`/dashboard/broadcasts/segment/${id}`}
-          >
+          <Button LinkComponent={Link} href={`/broadcasts/review/${id}`}>
             Next
           </Button>
         </Stack>

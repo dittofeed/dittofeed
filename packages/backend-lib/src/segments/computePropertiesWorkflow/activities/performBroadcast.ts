@@ -11,6 +11,13 @@ export async function performBroadcast({
   workspaceId: string;
   broadcastId: string;
 }) {
+  logger().info(
+    {
+      workspaceId,
+      broadcastId,
+    },
+    "performing broadcast"
+  );
   const [broadcastResources, userEventsTable] = await Promise.all([
     getBroadcast({
       workspaceId,

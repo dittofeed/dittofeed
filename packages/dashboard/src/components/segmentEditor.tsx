@@ -40,7 +40,7 @@ import React, { useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
-import { AppState, GroupedOption } from "../lib/types";
+import { GroupedOption } from "../lib/types";
 import DurationSelect from "./durationSelect";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;

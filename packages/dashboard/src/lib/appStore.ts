@@ -435,6 +435,9 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         broadcastUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
+        broadcastTriggerRequest: {
+          type: CompletionStatus.NotStarted,
+        },
         editedBroadcast: null,
         updateEditedBroadcast: (updatedBroadcast) =>
           set((state) => {
@@ -452,6 +455,11 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           set((state) => {
             state.broadcastUpdateRequest = request;
           }),
+        setBroadcastTriggerRequest(request) {
+          set((state) => {
+            state.broadcastTriggerRequest = request;
+          });
+        },
         upsertBroadcast: (broadcast) =>
           set((state) => {
             let { broadcasts } = state;

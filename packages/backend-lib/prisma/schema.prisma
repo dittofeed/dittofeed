@@ -74,6 +74,7 @@ enum JourneyStatus {
   NotStarted
   Running
   Paused
+  Broadcast
 }
 
 model Journey {

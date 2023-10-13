@@ -172,7 +172,9 @@ export type EditedBroadcast = Optional<
 export interface BroadcastEditorContents {
   editedBroadcast: EditedBroadcast | null;
   broadcastUpdateRequest: EphemeralRequestStatus<Error>;
+  broadcastTriggerRequest: EphemeralRequestStatus<Error>;
   setBroadcastUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
+  setBroadcastTriggerRequest: (request: EphemeralRequestStatus<Error>) => void;
   updateEditedBroadcast: (broadcast: Partial<BroadcastResource>) => void;
 }
 

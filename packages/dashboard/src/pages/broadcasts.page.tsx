@@ -1,4 +1,5 @@
 import { ListItem, ListItemText } from "@mui/material";
+import { toBroadcastResource } from "backend-lib/src/broadcasts";
 import { BroadcastResource, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 
@@ -27,18 +28,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     appState.broadcasts = {
       type: CompletionStatus.Successful,
-      value: broadcasts.flatMap((b) =>
-        b.segmentId
-          ? {
-              id: b.id,
-              name: b.name,
-              workspaceId: b.workspaceId,
-              triggeredAt: b.triggeredAt?.getTime(),
-              createdAt: b.createdAt.getTime(),
-              segmentId: b.segmentId,
-            }
-          : []
-      ),
+      value: broadcasts.map(toBroadcastResource),
     };
     return {
       props: addInitialStateToProps({
@@ -70,7 +60,7 @@ export default function Broadcasts() {
     <DashboardContent>
       <ResourceListContainer
         title="Broadcasts"
-        newItemHref={(newItemId) => `/broadcasts/${newItemId}`}
+        newItemHref={(newItemId) => `/broadcasts/segment/${newItemId}`}
       >
         {broadcasts.length ? (
           <ResourceList>

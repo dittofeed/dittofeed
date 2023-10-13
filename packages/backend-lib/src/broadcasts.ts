@@ -214,6 +214,7 @@ export async function upsertBroadcast({
       name: broadcastJourneyName,
       definition: journeyDefinition,
       resourceType: "Internal",
+      status: "Broadcast",
     },
     update: {},
   });

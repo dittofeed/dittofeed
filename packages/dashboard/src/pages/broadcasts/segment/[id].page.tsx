@@ -146,10 +146,7 @@ export default function BroadcastSegment() {
         <Typography fontWeight={400} variant="h2" sx={{ fontSize: 16 }}>
           Broadcast Segment
         </Typography>
-        <Button
-          LinkComponent={Link}
-          href={`/dashboard/broadcasts/segment/${id}`}
-        >
+        <Button LinkComponent={Link} href={`/broadcasts/template/${id}`}>
           Next
         </Button>
       </Stack>

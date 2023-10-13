@@ -6,9 +6,9 @@ import {
   generateBroadcastWorkflowId,
 } from "backend-lib/src/segments/broadcastWorkflow";
 import connectWorkflowClient from "backend-lib/src/temporal/connectWorkflowClient";
+import { isAlreadyStartedError } from "backend-lib/src/temporal/workflow";
 import {
   BroadcastResource,
-  EmptyResponse,
   TriggerBroadcastRequest,
   UpdateBroadcastRequest,
 } from "backend-lib/src/types";
@@ -47,7 +47,7 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         description: "Trigger a broadcast.",
         body: TriggerBroadcastRequest,
         response: {
-          201: EmptyResponse,
+          200: BroadcastResource,
         },
       },
     },
@@ -55,20 +55,32 @@ export default async function broadcastsController(fastify: FastifyInstance) {
       const temporalClient = await connectWorkflowClient();
       const { workspaceId, id: broadcastId } = request.body;
 
-      await temporalClient.start(broadcastWorkflow, {
-        taskQueue: "default",
-        workflowId: generateBroadcastWorkflowId({
-          workspaceId,
-          broadcastId,
-        }),
-        args: [
-          {
+      try {
+        await temporalClient.start(broadcastWorkflow, {
+          taskQueue: "default",
+          workflowId: generateBroadcastWorkflowId({
             workspaceId,
             broadcastId,
-          },
-        ],
+          }),
+          args: [
+            {
+              workspaceId,
+              broadcastId,
+            },
+          ],
+        });
+      } catch (e) {
+        if (!isAlreadyStartedError(e)) {
+          throw e;
+        }
+      }
+
+      const broadcast = await prisma().broadcast.findUniqueOrThrow({
+        where: {
+          id: broadcastId,
+        },
       });
-      return reply.status(201).send();
+      return reply.status(200).send(toBroadcastResource(broadcast));
     }
   );
 }
