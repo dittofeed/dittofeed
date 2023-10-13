@@ -10,6 +10,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
+import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { isChannelType } from "isomorphic-lib/src/channels";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
@@ -86,10 +87,18 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  const { broadcast, messageTemplate } = await getOrCreateBroadcast({
-    workspaceId: dfContext.workspace.id,
-    broadcastId: id,
-  });
+  const [{ broadcast, messageTemplate }, subscriptionGroups] =
+    await Promise.all([
+      getOrCreateBroadcast({
+        workspaceId: dfContext.workspace.id,
+        broadcastId: id,
+      }),
+      prisma().subscriptionGroup.findMany({
+        where: {
+          workspaceId: dfContext.workspace.id,
+        },
+      }),
+    ]);
 
   const channel = getChannel(ctx.query.channel);
 
@@ -103,6 +112,7 @@ export const getServerSideProps: GetServerSideProps<
   const appState: Partial<AppState> = {
     ...baseAppState,
     ...channelState,
+    subscriptionGroups: subscriptionGroups.map(subscriptionGroupToResource),
   };
 
   return {
