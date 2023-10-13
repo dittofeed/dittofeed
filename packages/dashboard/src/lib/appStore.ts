@@ -429,9 +429,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           }),
 
         // broadcast update view
-        broadcasts: {
-          type: CompletionStatus.NotStarted,
-        },
+        broadcasts: [],
         broadcastUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
@@ -462,21 +460,14 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         },
         upsertBroadcast: (broadcast) =>
           set((state) => {
-            let { broadcasts } = state;
-            if (broadcasts.type !== CompletionStatus.Successful) {
-              broadcasts = {
-                type: CompletionStatus.Successful,
-                value: [],
-              };
-              state.broadcasts = broadcasts;
-            }
-            for (const existing of broadcasts.value) {
+            const { broadcasts } = state;
+            for (const existing of broadcasts) {
               if (broadcast.id === existing.id) {
                 Object.assign(existing, broadcast);
                 return state;
               }
             }
-            broadcasts.value.push(broadcast);
+            broadcasts.push(broadcast);
             return state;
           }),
 

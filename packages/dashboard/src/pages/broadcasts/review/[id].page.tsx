@@ -91,16 +91,19 @@ export default function BroadcastReview() {
     broadcastTriggerRequest,
     setBroadcastTriggerRequest,
     apiBase,
+    broadcasts,
     upsertBroadcast,
   } = useAppStorePick([
     "apiBase",
     "editedBroadcast",
+    "broadcasts",
     "broadcastTriggerRequest",
     "setBroadcastTriggerRequest",
     "upsertBroadcast",
   ]);
 
-  const editable = editedBroadcast?.triggeredAt === undefined;
+  const persistedBroadcast = broadcasts.find((b) => b.id === id);
+  const editable = persistedBroadcast?.status === "NotStarted";
   const triggerDisabled =
     !editable || broadcastTriggerRequest.type === CompletionStatus.InProgress;
 
@@ -112,7 +115,6 @@ export default function BroadcastReview() {
     id: editedBroadcast.id,
   };
 
-  // FIXME not updating broadcast
   const handleTrigger = apiRequestHandlerFactory({
     request: broadcastTriggerRequest,
     setRequest: setBroadcastTriggerRequest,

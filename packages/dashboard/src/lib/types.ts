@@ -68,7 +68,7 @@ export type AppState = {
   member: WorkspaceMemberResource | null;
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
-  broadcasts: RequestStatus<BroadcastResource[], Error>;
+  broadcasts: BroadcastResource[];
   subscriptionGroups: RequestStatus<SubscriptionGroupResource[], Error>;
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
