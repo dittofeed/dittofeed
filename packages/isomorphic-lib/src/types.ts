@@ -692,6 +692,11 @@ export const BroadcastResource = Type.Object({
   workspaceId: Type.String(),
   name: Type.String(),
   segmentId: Type.Optional(Type.String()),
+  status: Type.Union([
+    Type.Literal("NotStarted"),
+    Type.Literal("InProgress"),
+    Type.Literal("Triggered"),
+  ]),
   createdAt: Type.Number(),
   triggeredAt: Type.Optional(Type.Number()),
 });
@@ -991,6 +996,7 @@ export const JourneyResourceStatus = Type.Union([
   Type.Literal("NotStarted"),
   Type.Literal("Running"),
   Type.Literal("Paused"),
+  Type.Literal("Broadcast"),
 ]);
 
 export type JourneyResourceStatus = Static<typeof JourneyResourceStatus>;

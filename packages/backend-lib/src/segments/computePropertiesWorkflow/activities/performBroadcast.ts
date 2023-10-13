@@ -48,12 +48,6 @@ export async function performBroadcast({
     );
     return null;
   }
-  logger().info(
-    {
-      broadcast,
-    },
-    "performing broadcast"
-  );
   const triggeredAt = new Date();
 
   await computePropertiesPeriod({
@@ -71,6 +65,7 @@ export async function performBroadcast({
     },
     data: {
       triggeredAt,
+      status: "Triggered",
     },
   });
 

@@ -99,6 +99,12 @@ enum DBCompletionStatus {
   Failed
 }
 
+enum DBBroadcastStatus {
+  NotStarted
+  InProgress
+  Triggered
+}
+
 model Broadcast {
   id          String             @id() @default(uuid()) @db.Uuid
   workspace   Workspace          @relation(fields: [workspaceId], references: [id])
@@ -107,7 +113,7 @@ model Broadcast {
   // TODO create remaining fields for messageTemplate and journey
   segmentId   String?            @db.Uuid
   name        String
-  status      DBCompletionStatus @default(NotStarted)
+  status      DBBroadcastStatus @default(NotStarted)
   draft       Json?
   triggeredAt DateTime?
   createdAt   DateTime           @default(now())

@@ -51,6 +51,7 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
     triggeredAt: broadcast.triggeredAt
       ? broadcast.triggeredAt.getTime()
       : undefined,
+    status: broadcast.status,
     createdAt: broadcast.createdAt.getTime(),
   };
   return resource;

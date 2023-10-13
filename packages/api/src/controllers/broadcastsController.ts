@@ -75,9 +75,12 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         }
       }
 
-      const broadcast = await prisma().broadcast.findUniqueOrThrow({
+      const broadcast = await prisma().broadcast.update({
         where: {
           id: broadcastId,
+        },
+        data: {
+          status: "InProgress",
         },
       });
       return reply.status(200).send(toBroadcastResource(broadcast));

@@ -31,7 +31,8 @@ interface StatusCopy {
   nextStatus?: JourneyResourceStatus;
   disabled?: true;
 }
-const statusValues: Record<JourneyResourceStatus, StatusCopy> = {
+
+const statusValues: Record<"NotStarted" | "Running" | "Paused", StatusCopy> = {
   NotStarted: {
     label: "Not Started",
     nextStatus: "Running",
@@ -102,6 +103,9 @@ function JourneyConfigure() {
       : null;
 
   const theme = useTheme();
+  if (journey?.status === "Broadcast") {
+    throw new Error("Broadcast journeys cannot be configured.");
+  }
   const statusValue: StatusCopy = !journey
     ? {
         label: "Unsaved",
