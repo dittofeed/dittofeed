@@ -69,7 +69,7 @@ export type AppState = {
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
   broadcasts: BroadcastResource[];
-  subscriptionGroups: RequestStatus<SubscriptionGroupResource[], Error>;
+  subscriptionGroups: SubscriptionGroupResource[];
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   journeys: RequestStatus<JourneyResource[], Error>;

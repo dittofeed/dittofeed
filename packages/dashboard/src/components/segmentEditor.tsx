@@ -421,12 +421,10 @@ function SubscriptionGroupSelect({
   const subscriptionGroups = useAppStore((state) => state.subscriptionGroups);
   const subscriptionGroupOptions = useMemo(
     () =>
-      subscriptionGroups.type === CompletionStatus.Successful
-        ? subscriptionGroups.value.map((sg) => ({
-            label: sg.name,
-            id: sg.id,
-          }))
-        : [],
+      subscriptionGroups.map((sg) => ({
+        label: sg.name,
+        id: sg.id,
+      })),
     [subscriptionGroups]
   );
 

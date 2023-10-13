@@ -471,9 +471,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             return state;
           }),
 
-        subscriptionGroups: {
-          type: CompletionStatus.NotStarted,
-        },
+        subscriptionGroups: [],
         subscriptionGroupUpdateRequest: {
           type: CompletionStatus.NotStarted,
         },
@@ -503,30 +501,21 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           }),
         upsertSubscriptionGroup: (subscriptionGroup) =>
           set((state) => {
-            let { subscriptionGroups } = state;
-            if (subscriptionGroups.type !== CompletionStatus.Successful) {
-              subscriptionGroups = {
-                type: CompletionStatus.Successful,
-                value: [],
-              };
-              state.subscriptionGroups = subscriptionGroups;
-            }
-            for (const existing of subscriptionGroups.value) {
+            const { subscriptionGroups } = state;
+            for (const existing of subscriptionGroups) {
               if (subscriptionGroup.id === existing.id) {
                 Object.assign(existing, subscriptionGroup);
                 return state;
               }
             }
-            subscriptionGroups.value.push(subscriptionGroup);
+            subscriptionGroups.push(subscriptionGroup);
             return state;
           }),
         deleteSubscriptionGroup: (id) =>
           set((state) => {
-            if (state.subscriptionGroups.type !== CompletionStatus.Successful) {
-              return state;
-            }
-            state.subscriptionGroups.value =
-              state.subscriptionGroups.value.filter((m) => m.id !== id);
+            state.subscriptionGroups = state.subscriptionGroups.filter(
+              (m) => m.id !== id
+            );
             return state;
           }),
         upsertSecrets(secrets) {

@@ -210,12 +210,9 @@ function MessageNodeFields({
 
   const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;
 
-  const subscriptionGroupItems =
-    subscriptionGroups.type === CompletionStatus.Successful
-      ? subscriptionGroups.value.filter(
-          (sg) => sg.channel === nodeProps.channel
-        )
-      : [];
+  const subscriptionGroupItems = subscriptionGroups.filter(
+    (sg) => sg.channel === nodeProps.channel
+  );
   const subscriptionGroup =
     subscriptionGroupItems.find(
       (s) => s.id === nodeProps.subscriptionGroupId

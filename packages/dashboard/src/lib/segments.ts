@@ -58,11 +58,7 @@ export function getSegmentConfigState({
     };
   }
   serverInitialState.editedSegment = segmentResource;
-
-  serverInitialState.subscriptionGroups = {
-    type: CompletionStatus.Successful,
-    value: subscriptionGroups,
-  };
+  serverInitialState.subscriptionGroups = subscriptionGroups;
 
   serverInitialState.traits = {
     type: CompletionStatus.Successful,

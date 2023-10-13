@@ -1,6 +1,6 @@
 import { ListItem, ListItemText } from "@mui/material";
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
-import { BroadcastResource, CompletionStatus } from "isomorphic-lib/src/types";
+import { BroadcastResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 
 import DashboardContent from "../components/dashboardContent";
@@ -29,10 +29,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       },
     });
 
-    appState.broadcasts = {
-      type: CompletionStatus.Successful,
-      value: broadcasts.map(toBroadcastResource),
-    };
+    appState.broadcasts = broadcasts.map(toBroadcastResource);
+
     return {
       props: addInitialStateToProps({
         props: {},
@@ -55,11 +53,7 @@ function BroadcastItem({ broadcast }: { broadcast: BroadcastResource }) {
 }
 
 export default function Broadcasts() {
-  const broadcastsResult = useAppStore((store) => store.broadcasts);
-  const broadcasts =
-    broadcastsResult.type === CompletionStatus.Successful
-      ? broadcastsResult.value
-      : [];
+  const broadcasts = useAppStore((store) => store.broadcasts);
 
   return (
     <DashboardContent>

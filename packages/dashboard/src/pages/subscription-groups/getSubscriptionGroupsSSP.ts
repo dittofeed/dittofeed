@@ -37,10 +37,7 @@ const getSubscriptionGroupsSSP: GetServerSideProps<PropsWithInitialState> =
     if (subscriptionGroup) {
       const resource = subscriptionGroupToResource(subscriptionGroup);
 
-      serverInitialState.subscriptionGroups = {
-        type: CompletionStatus.Successful,
-        value: [resource],
-      };
+      serverInitialState.subscriptionGroups = [resource];
       serverInitialState.editedSubscriptionGroup = resource;
 
       const segment = subscriptionGroup.Segment[0];

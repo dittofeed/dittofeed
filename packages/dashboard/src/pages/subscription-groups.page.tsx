@@ -2,7 +2,6 @@ import { Delete } from "@mui/icons-material";
 import { IconButton, ListItem, ListItemText } from "@mui/material";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import {
-  CompletionStatus,
   DeleteSubscriptionGroupRequest,
   EmptyResponse,
   SubscriptionGroupResource,
@@ -34,10 +33,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       },
     });
 
-    serverInitialState.subscriptionGroups = {
-      type: CompletionStatus.Successful,
-      value: subscriptionGroup.map(subscriptionGroupToResource),
-    };
+    serverInitialState.subscriptionGroups = subscriptionGroup.map(
+      subscriptionGroupToResource
+    );
     return {
       props: addInitialStateToProps({
         serverInitialState,
@@ -106,13 +104,7 @@ function Item({ item }: { item: SubscriptionGroupResource }) {
 }
 
 export default function SubscriptionGroups() {
-  const subscriptionGroupsResult = useAppStore(
-    (store) => store.subscriptionGroups
-  );
-  const subscriptionGroups =
-    subscriptionGroupsResult.type === CompletionStatus.Successful
-      ? subscriptionGroupsResult.value
-      : [];
+  const subscriptionGroups = useAppStore((store) => store.subscriptionGroups);
 
   return (
     <DashboardContent>
