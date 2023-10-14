@@ -16,10 +16,10 @@ export type SubscriptionGroupChangeHandler = (
 
 export default function SubscriptionGroupAutocomplete({
   channel,
-  value,
+  subscriptionGroupId,
   handler,
 }: {
-  value: SubscriptionGroupResource;
+  subscriptionGroupId?: string;
   channel: ChannelType;
   handler: SubscriptionGroupChangeHandler;
 }) {
@@ -27,9 +27,12 @@ export default function SubscriptionGroupAutocomplete({
   const subscriptionGroupItems = subscriptionGroups.filter(
     (sg) => sg.channel === channel
   );
+  const subscriptionGroup =
+    subscriptionGroupItems.find((sg) => sg.id === subscriptionGroupId) ?? null;
+
   return (
     <Autocomplete
-      value={value}
+      value={subscriptionGroup}
       options={subscriptionGroupItems}
       getOptionLabel={getSubscriptionGroupLabel}
       onChange={(_event, sg) => {

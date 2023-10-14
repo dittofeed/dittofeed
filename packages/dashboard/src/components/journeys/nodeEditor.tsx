@@ -20,7 +20,6 @@ import {
   JourneyNodeType,
   MessageTemplateResource,
   SegmentResource,
-  SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
@@ -36,6 +35,7 @@ import {
   WaitForNodeProps,
 } from "../../lib/types";
 import DurationSelect from "../durationSelect";
+import SubscriptionGroupAutocomplete from "../subscriptionGroupAutocomplete";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { waitForTimeoutLabel } from "./store";
@@ -141,10 +141,6 @@ function getTemplateLabel(tr: MessageTemplateResource) {
   return tr.name;
 }
 
-function getSubscriptionGroupLabel(sg: SubscriptionGroupResource) {
-  return sg.name;
-}
-
 function MessageNodeFields({
   nodeId,
   nodeProps,
@@ -152,18 +148,12 @@ function MessageNodeFields({
   nodeId: string;
   nodeProps: MessageNodeProps;
 }) {
-  const {
-    enableMobilePush,
-    updateJourneyNodeData,
-    messages,
-    subscriptionGroups,
-  } = useAppStore(
+  const { enableMobilePush, updateJourneyNodeData, messages } = useAppStore(
     (store) => ({
       enableMobilePush: store.enableMobilePush,
       updateJourneyNodeData: store.updateJourneyNodeData,
       templates: store.messages,
       messages: store.messages,
-      subscriptionGroups: store.subscriptionGroups,
     }),
     shallow
   );
@@ -191,32 +181,12 @@ function MessageNodeFields({
     });
   };
 
-  const onSubscriptionGroupChangeHandler = (
-    _event: unknown,
-    subscriptionGroup: SubscriptionGroupResource | null
-  ) => {
-    updateJourneyNodeData(nodeId, (node) => {
-      const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.MessageNode) {
-        props.subscriptionGroupId = subscriptionGroup?.id;
-      }
-    });
-  };
-
   const templates =
     messages.type === CompletionStatus.Successful
       ? messages.value.filter((t) => t.definition.type === nodeProps.channel)
       : [];
 
   const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;
-
-  const subscriptionGroupItems = subscriptionGroups.filter(
-    (sg) => sg.channel === nodeProps.channel
-  );
-  const subscriptionGroup =
-    subscriptionGroupItems.find(
-      (s) => s.id === nodeProps.subscriptionGroupId
-    ) ?? null;
 
   const onChannelChangeHandler: SelectInputProps<ChannelType>["onChange"] = (
     e
@@ -262,18 +232,17 @@ function MessageNodeFields({
           <TextField {...params} label="Template" variant="outlined" />
         )}
       />
-      <Autocomplete
-        value={subscriptionGroup}
-        options={subscriptionGroupItems}
-        getOptionLabel={getSubscriptionGroupLabel}
-        onChange={onSubscriptionGroupChangeHandler}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Subscription Group"
-            variant="outlined"
-          />
-        )}
+      <SubscriptionGroupAutocomplete
+        subscriptionGroupId={nodeProps.subscriptionGroupId ?? null}
+        channel={nodeProps.channel}
+        handler={(subscriptionGroup) => {
+          updateJourneyNodeData(nodeId, (node) => {
+            const props = node.data.nodeTypeProps;
+            if (props.type === JourneyNodeType.MessageNode) {
+              props.subscriptionGroupId = subscriptionGroup?.id;
+            }
+          });
+        }}
       />
     </>
   );
