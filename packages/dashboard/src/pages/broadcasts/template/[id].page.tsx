@@ -16,13 +16,20 @@ import { isChannelType } from "isomorphic-lib/src/channels";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { ChannelType, MessageTemplateResource } from "isomorphic-lib/src/types";
+import {
+  ChannelType,
+  CompletionStatus,
+  JourneyNodeType,
+  MessageNode,
+  MessageTemplateResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { validate } from "uuid";
 
 import EmailEditor from "../../../components/messages/emailEditor";
+import SubscriptionGroupAutocomplete from "../../../components/subscriptionGroupAutocomplete";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import { getEmailEditorState } from "../../../lib/email";
 import prisma from "../../../lib/prisma";
@@ -30,6 +37,8 @@ import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
+import { useAppStorePick } from "../../../lib/appStore";
+import { useState } from "react";
 
 function getChannel(routeChannel: unknown): ChannelType {
   return typeof routeChannel === "string" && isChannelType(routeChannel)
@@ -74,6 +83,7 @@ async function getChannelState({
 
 interface BroadcastTemplateProps {
   templateId: string;
+  journeyId: string;
 }
 
 export const getServerSideProps: GetServerSideProps<
@@ -87,7 +97,7 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  const [{ broadcast, messageTemplate }, subscriptionGroups] =
+  const [{ broadcast, messageTemplate, journey }, subscriptionGroups] =
     await Promise.all([
       getOrCreateBroadcast({
         workspaceId: dfContext.workspace.id,
@@ -113,6 +123,10 @@ export const getServerSideProps: GetServerSideProps<
     ...baseAppState,
     ...channelState,
     subscriptionGroups: subscriptionGroups.map(subscriptionGroupToResource),
+    journeys: {
+      type: CompletionStatus.Successful,
+      value: [journey],
+    },
   };
 
   return {
@@ -120,17 +134,44 @@ export const getServerSideProps: GetServerSideProps<
       serverInitialState: appState,
       props: {
         templateId: messageTemplate.id,
+        journeyId: journey.id,
       },
       dfContext,
     }),
   };
 });
 
+function getBroadcastMessageNode(
+  journeyId: string,
+  journeys: AppState["journeys"]
+): MessageNode | null {
+  if (journeys.type !== CompletionStatus.Successful) {
+    return null;
+  }
+  const journey = journeys.value.find((j) => j.id === journeyId);
+  if (!journey) {
+    return null;
+  }
+  let messageNode: MessageNode | null = null;
+  for (const node of journey.definition.nodes) {
+    if (node.type === JourneyNodeType.MessageNode) {
+      messageNode = node;
+      break;
+    }
+  }
+  return messageNode;
+}
+
 const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
-  function BroadcastTemplate({ templateId }) {
+  function BroadcastTemplate({ templateId, journeyId }) {
     const router = useRouter();
     const { id, channel: routeChannel } = router.query;
     const channel = getChannel(routeChannel);
+    const { journeys } = useAppStorePick(["journeys"]);
+    const messageNode = getBroadcastMessageNode(journeyId, journeys);
+    const [subscriptionGroupId, setSubscriptionGroupId] = useState<
+      string | null
+    >(messageNode?.subscriptionGroupId ?? null);
 
     const theme = useTheme();
 
@@ -162,7 +203,6 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         assertUnreachable(channel);
     }
 
-    // FIXME allow user to select subscription group id
     return (
       <BroadcastLayout activeStep="template" id={id}>
         <Stack
@@ -175,6 +215,9 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
           <Typography fontWeight={400} variant="h2" sx={{ fontSize: 16 }}>
             Broadcast Message Template
           </Typography>
+          <Button LinkComponent={Link} href={`/broadcasts/review/${id}`}>
+            Next
+          </Button>
           <FormControl>
             <InputLabel id="broadcast-channel-label">Channel</InputLabel>
             <Select
@@ -204,9 +247,15 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
               </MenuItem>
             </Select>
           </FormControl>
-          <Button LinkComponent={Link} href={`/broadcasts/review/${id}`}>
-            Next
-          </Button>
+          <Box sx={{ minWidth: "12rem" }}>
+            <SubscriptionGroupAutocomplete
+              subscriptionGroupId={subscriptionGroupId ?? undefined}
+              channel={channel}
+              handler={(sg) => {
+                setSubscriptionGroupId(sg?.id ?? null);
+              }}
+            />
+          </Box>
         </Stack>
         <Box
           sx={{

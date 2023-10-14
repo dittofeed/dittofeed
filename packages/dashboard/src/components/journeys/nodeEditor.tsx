@@ -233,7 +233,7 @@ function MessageNodeFields({
         )}
       />
       <SubscriptionGroupAutocomplete
-        subscriptionGroupId={nodeProps.subscriptionGroupId ?? null}
+        subscriptionGroupId={nodeProps.subscriptionGroupId}
         channel={nodeProps.channel}
         handler={(subscriptionGroup) => {
           updateJourneyNodeData(nodeId, (node) => {

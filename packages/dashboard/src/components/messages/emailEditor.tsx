@@ -139,7 +139,13 @@ function upsert({
   emailMessageUpdateRequest: AppContents["emailMessageUpdateRequest"];
   setEmailMessageUpdateRequest: AppContents["setEmailMessageUpdateRequest"];
 }) {
-  if (!workspaceId || !messageId || emailMessageTitle.length === 0) {
+  if (
+    !workspaceId ||
+    !messageId ||
+    emailMessageTitle.length === 0 ||
+    emailBody.length === 0 ||
+    emailSubject.length === 0
+  ) {
     return;
   }
   const upsertEmailDefinition: EmailTemplateResource = {
