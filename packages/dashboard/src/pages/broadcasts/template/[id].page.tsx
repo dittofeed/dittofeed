@@ -33,6 +33,7 @@ import { useMemo, useState } from "react";
 import { validate } from "uuid";
 
 import EmailEditor from "../../../components/messages/emailEditor";
+import SmsEditor from "../../../components/messages/smsEditor";
 import SubscriptionGroupAutocomplete from "../../../components/subscriptionGroupAutocomplete";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
@@ -263,8 +264,14 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         );
         break;
       case ChannelType.Sms:
-        // FIXME
-        throw new Error("Sms not implemented");
+        templateEditor = (
+          <SmsEditor
+            templateId={templateId}
+            hideSaveButton
+            hideTitle
+            saveOnUpdate
+          />
+        );
         break;
       case ChannelType.MobilePush:
         throw new Error("MobilePush not implemented");

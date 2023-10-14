@@ -104,6 +104,9 @@ export default function MessageEditor() {
   const router = useRouter();
   const messageId =
     typeof router.query.id === "string" ? router.query.id : null;
+  if (!messageId) {
+    return null;
+  }
   return (
     <>
       <Head>
@@ -112,7 +115,7 @@ export default function MessageEditor() {
       </Head>
       <main>
         <MainLayout>
-          <SmsEditor key={messageId} />
+          <SmsEditor key={messageId} templateId={messageId} />
         </MainLayout>
       </main>
     </>

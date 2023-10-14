@@ -115,7 +115,17 @@ function errorHash(key: NotifyKey, message: string) {
 
 const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 
-export default function SmsEditor() {
+export default function SmsEditor({
+  templateId: messageId,
+  hideTitle,
+  hideSaveButton,
+  saveOnUpdate,
+}: {
+  templateId: string;
+  hideTitle?: boolean;
+  hideSaveButton?: boolean;
+  saveOnUpdate?: boolean;
+}) {
   const theme = useTheme();
   const router = useRouter();
   const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
@@ -163,9 +173,6 @@ export default function SmsEditor() {
       ),
     [userProperties]
   );
-
-  const messageId =
-    typeof router.query.id === "string" ? router.query.id : null;
 
   const workspace =
     workspaceRequest.type === CompletionStatus.Successful
@@ -521,13 +528,15 @@ export default function SmsEditor() {
             boxShadow: theme.shadows[2],
           }}
         >
-          <EditableName
-            name={smsMessageTitle}
-            variant="h4"
-            onChange={(e) => {
-              setSmsMessageTitle(e.target.value);
-            }}
-          />
+          {!hideTitle && (
+            <EditableName
+              name={smsMessageTitle}
+              variant="h4"
+              onChange={(e) => {
+                setSmsMessageTitle(e.target.value);
+              }}
+            />
+          )}
           <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
             <Typography variant="h5">User Properties</Typography>
           </InfoTooltip>
@@ -546,13 +555,15 @@ export default function SmsEditor() {
               lintGutter(),
             ]}
           />
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={errors.size > 0}
-          >
-            Save
-          </Button>
+          {!hideSaveButton && (
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={errors.size > 0}
+            >
+              Save
+            </Button>
+          )}
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box
