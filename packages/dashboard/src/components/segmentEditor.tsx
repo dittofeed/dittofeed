@@ -36,7 +36,7 @@ import {
   SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { useMemo } from "react";
+import React, { useContext, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
@@ -46,6 +46,10 @@ import DurationSelect from "./durationSelect";
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
 const selectorWidth = "192px";
+
+const DisabledContext = React.createContext<{ disabled?: boolean }>({
+  disabled: false,
+});
 
 const traitGroupedOption = {
   id: SegmentNodeType.Trait,
@@ -165,6 +169,7 @@ function ValueSelect({
   operator: SegmentEqualsOperator | SegmentHasBeenOperator;
 }) {
   const { value } = operator;
+  const { disabled } = useContext(DisabledContext);
 
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData
@@ -185,7 +190,12 @@ function ValueSelect({
   return (
     <Stack direction="row" spacing={1}>
       <Box sx={{ width: selectorWidth }}>
-        <TextField label="Value" value={value} onChange={handleChange} />
+        <TextField
+          disabled={disabled}
+          label="Value"
+          value={value}
+          onChange={handleChange}
+        />
       </Box>
     </Stack>
   );
@@ -227,6 +237,8 @@ function DurationValueSelect({
 
 // TODO allow for segmenting on Track properties
 function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
+  const { disabled } = useContext(DisabledContext);
+
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData
   );
@@ -266,6 +278,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
       <Box sx={{ width: selectorWidth }}>
         <TextField
+          disabled={disabled}
           label="Event Name"
           value={node.event}
           onChange={handleEventNameChange}
@@ -273,6 +286,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
       </Box>
       <Select
         onChange={handleTimesOperatorChange}
+        disabled={disabled}
         value={node.timesOperator ?? RelationalOperators.Equals}
       >
         {operators.map(([operator, label]) => (
@@ -282,6 +296,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         ))}
       </Select>
       <TextField
+        disabled={disabled}
         label="Times Performed"
         InputProps={{
           type: "number",
@@ -333,6 +348,8 @@ const EMAIL_EVENT_UI_LIST: [InternalEventType, { label: string }][] = [
 ];
 
 function EmailSelect({ node }: { node: EmailSegmentNode }) {
+  const { disabled } = useContext(DisabledContext);
+
   const { updateEditableSegmentNodeData, messages } = useAppStore(
     (store) => ({
       updateEditableSegmentNodeData: store.updateEditableSegmentNodeData,
@@ -372,6 +389,7 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
       <FormControl>
         <InputLabel id={eventLabelId}>Email Event</InputLabel>
         <Select
+          disabled={disabled}
           label="Email Event"
           labelId={eventLabelId}
           onChange={onEmailEventChangeHandler}
@@ -388,6 +406,7 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
         <Tooltip placement="right" arrow title={message?.label}>
           <Autocomplete
             value={message}
+            disabled={disabled}
             onChange={(_event, newValue) => {
               updateEditableSegmentNodeData(node.id, (segmentNode) => {
                 if (newValue && segmentNode.type === SegmentNodeType.Email) {
@@ -415,6 +434,7 @@ function SubscriptionGroupSelect({
 }: {
   node: SubscriptionGroupSegmentNode;
 }) {
+  const { disabled } = useContext(DisabledContext);
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData
   );
@@ -439,6 +459,7 @@ function SubscriptionGroupSelect({
   return (
     <Box sx={{ width: selectorWidth }}>
       <Autocomplete
+        disabled={disabled}
         value={subscriptionGroup}
         onChange={(_event, newValue) => {
           updateSegmentNodeData(node.id, (segmentNode) => {
@@ -468,6 +489,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const updateSegmentNodeData = useAppStore(
     (state) => state.updateEditableSegmentNodeData
   );
+  const { disabled } = useContext(DisabledContext);
 
   const traits = useAppStore((store) => store.traits);
   const traitOptions =
@@ -528,6 +550,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
           renderInput={(params) => (
             <TextField
               {...params}
+              disabled={disabled}
               label="Trait"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 const newValue = event.target.value;
@@ -544,6 +567,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       <Box sx={{ width: selectorWidth }}>
         <Autocomplete
           value={operator}
+          disabled={disabled}
           onChange={(_event: unknown, newValue: Option) => {
             updateSegmentNodeData(node.id, (segmentNode) => {
               if (
@@ -624,6 +648,7 @@ function SegmentNodeComponent({
   const addChild = useAppStore((state) => state.addEditableSegmentChild);
   const removeChild = useAppStore((state) => state.removeEditableSegmentChild);
   const editedSegment = useAppStore((state) => state.editedSegment);
+  const { disabled } = useContext(DisabledContext);
   const nodeById = useMemo(
     () =>
       editedSegment?.definition.nodes.reduce<Record<string, SegmentNode>>(
@@ -655,6 +680,7 @@ function SegmentNodeComponent({
         }}
         disableClearable
         options={segmentOptions}
+        disabled={disabled}
         renderInput={(params) => (
           <TextField
             label="Condition or Group"
@@ -671,6 +697,7 @@ function SegmentNodeComponent({
       <IconButton
         color="error"
         size="large"
+        disabled={disabled}
         onClick={() => removeChild(parentId, node.id)}
       >
         <Delete />
@@ -726,6 +753,7 @@ function SegmentNodeComponent({
           {conditionSelect}
           <IconButton
             color="primary"
+            disabled={disabled}
             size="large"
             onClick={() => addChild(node.id)}
           >
@@ -793,36 +821,44 @@ function SegmentNodeComponent({
 
 export function SegmentEditorInner({
   sx,
+  disabled,
   editedSegment,
 }: {
   sx?: SxProps;
+  disabled?: boolean;
   editedSegment: SegmentResource;
 }) {
   const theme = useTheme();
 
   const { entryNode } = editedSegment.definition;
+  const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
+
   return (
-    <Box
-      sx={{
-        backgroundColor: "white",
-        paddingTop: 3,
-        paddingBottom: 3,
-        borderRadius: 1,
-        border: `1px solid ${theme.palette.grey[200]}`,
-        ...sx,
-      }}
-    >
-      <SegmentNodeComponent node={entryNode} />
-    </Box>
+    <DisabledContext.Provider value={memoizedDisabled}>
+      <Box
+        sx={{
+          backgroundColor: "white",
+          paddingTop: 3,
+          paddingBottom: 3,
+          borderRadius: 1,
+          border: `1px solid ${theme.palette.grey[200]}`,
+          ...sx,
+        }}
+      >
+        <SegmentNodeComponent node={entryNode} />
+      </Box>
+    </DisabledContext.Provider>
   );
 }
 
-export default function SegmentEditor() {
+export default function SegmentEditor({ disabled }: { disabled?: boolean }) {
   const editedSegment = useAppStore((state) => state.editedSegment);
 
   if (!editedSegment) {
     return null;
   }
 
-  return <SegmentEditorInner editedSegment={editedSegment} />;
+  return (
+    <SegmentEditorInner editedSegment={editedSegment} disabled={disabled} />
+  );
 }

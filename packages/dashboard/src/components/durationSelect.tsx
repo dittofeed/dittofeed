@@ -14,9 +14,11 @@ export default function DurationSelect({
   value,
   inputLabel,
   description,
+  disabled,
   onChange,
 }: {
   value: number | undefined;
+  disabled?: boolean;
   inputLabel: string;
   description?: string;
   onChange: OnChange;
@@ -48,13 +50,18 @@ export default function DurationSelect({
     <>
       <TextField
         label={inputLabel}
+        disabled={disabled}
         InputProps={{
           type: "number",
         }}
         value={String(timeNonSeconds)}
         onChange={handleTimeChange}
       />
-      <TimeUnitSelect value={timeUnit} onChange={handleTimeUnitChange} />
+      <TimeUnitSelect
+        value={timeUnit}
+        onChange={handleTimeUnitChange}
+        disabled={disabled}
+      />
       {description ? (
         <Stack direction="row" spacing={1}>
           <Box>{description}</Box>

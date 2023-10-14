@@ -21,6 +21,7 @@ import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { useUpdateEffect } from "../../../lib/useUpdateEffect";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
+import { useMemo } from "react";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -90,7 +91,9 @@ export default function BroadcastSegment() {
     upsertSegment,
     editedSegment,
     apiBase,
+    broadcasts,
   } = useAppStorePick([
+    "broadcasts",
     "segmentUpdateRequest",
     "setSegmentUpdateRequest",
     "upsertSegment",
@@ -99,9 +102,14 @@ export default function BroadcastSegment() {
   ]);
   const { id } = router.query;
   const [debouncedSegment] = useDebounce(editedSegment, 1000);
+  const broadcast = useMemo(
+    () => broadcasts.find((b) => b.id === id) ?? null,
+    [broadcasts, id]
+  );
+  const started = broadcast?.status !== "NotStarted";
 
   useUpdateEffect(() => {
-    if (!debouncedSegment) {
+    if (!debouncedSegment || !broadcast || started) {
       return;
     }
     apiRequestHandlerFactory({
@@ -152,6 +160,7 @@ export default function BroadcastSegment() {
       </Stack>
       <SegmentEditorInner
         sx={{ width: "100%" }}
+        disabled={started}
         editedSegment={editedSegment}
       />
     </BroadcastLayout>
