@@ -19,26 +19,31 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
+  JourneyBodyNode,
   JourneyNodeType,
+  JourneyResource,
   MessageNode,
   MessageTemplateResource,
+  UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { validate } from "uuid";
 
 import EmailEditor from "../../../components/messages/emailEditor";
 import SubscriptionGroupAutocomplete from "../../../components/subscriptionGroupAutocomplete";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
+import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
+import { useAppStorePick } from "../../../lib/appStore";
 import { getEmailEditorState } from "../../../lib/email";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
+import { useUpdateEffect } from "../../../lib/useUpdateEffect";
 import { BroadcastLayout } from "../broadcastLayout";
 import { getBroadcastAppState } from "../getBroadcastAppState";
-import { useAppStorePick } from "../../../lib/appStore";
-import { useState } from "react";
 
 function getChannel(routeChannel: unknown): ChannelType {
   return typeof routeChannel === "string" && isChannelType(routeChannel)
@@ -167,13 +172,68 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
     const router = useRouter();
     const { id, channel: routeChannel } = router.query;
     const channel = getChannel(routeChannel);
-    const { journeys } = useAppStorePick(["journeys"]);
+    const {
+      apiBase,
+      journeys,
+      journeyUpdateRequest,
+      setJourneyUpdateRequest,
+      upsertJourney,
+    } = useAppStorePick([
+      "apiBase",
+      "journeys",
+      "upsertJourney",
+      "journeyUpdateRequest",
+      "setJourneyUpdateRequest",
+    ]);
     const messageNode = getBroadcastMessageNode(journeyId, journeys);
     const [subscriptionGroupId, setSubscriptionGroupId] = useState<
       string | null
     >(messageNode?.subscriptionGroupId ?? null);
 
     const theme = useTheme();
+    useUpdateEffect(() => {
+      if (journeys.type !== CompletionStatus.Successful) {
+        return;
+      }
+      const journey = journeys.value.find((j) => j.id === journeyId);
+      if (!journey) {
+        return;
+      }
+      const nodes: JourneyBodyNode[] = journey.definition.nodes.map((node) => {
+        if (node.type === JourneyNodeType.MessageNode) {
+          const mn: MessageNode = {
+            ...node,
+            subscriptionGroupId: subscriptionGroupId ?? undefined,
+          };
+          return mn;
+        }
+        return node;
+      });
+      const body: UpsertJourneyResource = {
+        id: journeyId,
+        definition: {
+          ...journey.definition,
+          nodes,
+        },
+      };
+      apiRequestHandlerFactory({
+        request: journeyUpdateRequest,
+        setRequest: setJourneyUpdateRequest,
+        setResponse: upsertJourney,
+        responseSchema: JourneyResource,
+        onSuccessNotice: `Updated subscription group.`,
+        onFailureNoticeHandler: () =>
+          `API Error: Failed to update subscription group.`,
+        requestConfig: {
+          method: "PUT",
+          url: `${apiBase}/api/journeys`,
+          data: body,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      })();
+    }, [subscriptionGroupId]);
 
     if (typeof id !== "string") {
       return null;

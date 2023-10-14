@@ -166,10 +166,6 @@ function upsert({
     upsertEmailDefinition.replyTo = emailMessageReplyTo;
   }
 
-  // component is changing an uncontrolled input to be controlled. This is likely caused by the value changing from undefined to a defined value, which should not happen. Decide between using a controlled or uncontrolled input element for the lifetime of the component. More info
-  // to reproduce, go to segment page, then template page
-  // FIXME erroring when transitioning to and from template broadcast page
-  console.log("updateData", updateData);
   apiRequestHandlerFactory({
     request: emailMessageUpdateRequest,
     setRequest: setEmailMessageUpdateRequest,
