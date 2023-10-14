@@ -14,9 +14,11 @@ import { AppState } from "./types";
 
 export function getEmailEditorState({
   emailTemplate,
+  templateId,
   userProperties,
 }: {
   emailTemplate: MessageTemplateResource | null;
+  templateId: string;
   userProperties: UserPropertyResource[];
 }): Partial<AppState> | null {
   const lorem = new LoremIpsum({
@@ -63,11 +65,8 @@ export function getEmailEditorState({
     if (replyTo) {
       serverInitialState.emailMessageReplyTo = replyTo;
     }
-  } else if (emailTemplate) {
-    Object.assign(
-      serverInitialState,
-      defaultEmailMessageState(emailTemplate.id)
-    );
+  } else {
+    Object.assign(serverInitialState, defaultEmailMessageState(templateId));
   }
 
   return serverInitialState;

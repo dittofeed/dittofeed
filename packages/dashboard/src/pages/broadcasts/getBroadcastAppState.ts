@@ -9,5 +9,6 @@ export function getBroadcastAppState({
 }): Partial<AppState> {
   const appState: Partial<AppState> = {};
   appState.editedBroadcast = broadcast;
+  appState.broadcasts = [broadcast];
   return appState;
 }

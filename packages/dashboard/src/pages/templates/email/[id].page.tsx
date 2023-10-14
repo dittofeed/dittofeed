@@ -1,7 +1,4 @@
-import {
-  enrichEmailTemplate,
-  enrichMessageTemplate,
-} from "backend-lib/src/messageTemplates";
+import { enrichMessageTemplate } from "backend-lib/src/messageTemplates";
 import { enrichUserProperty } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
@@ -49,6 +46,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       userProperties: userProperties.flatMap((p) =>
         unwrap(enrichUserProperty(p))
       ),
+      templateId,
     });
     if (!serverInitialState) {
       return {

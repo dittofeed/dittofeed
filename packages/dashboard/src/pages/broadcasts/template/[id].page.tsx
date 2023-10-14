@@ -41,6 +41,7 @@ import { useAppStorePick } from "../../../lib/appStore";
 import { getEmailEditorState } from "../../../lib/email";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
+import { getSmsEditorState } from "../../../lib/sms";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { useUpdateEffect } from "../../../lib/useUpdateEffect";
 import { BroadcastLayout } from "../broadcastLayout";
@@ -74,12 +75,18 @@ async function getChannelState({
       const state = getEmailEditorState({
         emailTemplate: template,
         userProperties,
+        templateId: template.id,
       });
       return state;
     }
-    case ChannelType.Sms:
-      throw new Error("Sms not implemented");
-      break;
+    case ChannelType.Sms: {
+      const state = await getSmsEditorState({
+        smsTemplate: template,
+        userProperties,
+        templateId: template.id,
+      });
+      return state;
+    }
     case ChannelType.MobilePush:
       throw new Error("MobilePush not implemented");
     default:
@@ -119,6 +126,11 @@ export const getServerSideProps: GetServerSideProps<
   const channel = getChannel(ctx.query.channel);
 
   const baseAppState = getBroadcastAppState({ broadcast });
+  if (broadcast.workspaceId !== dfContext.workspace.id) {
+    return {
+      notFound: true,
+    };
+  }
   const channelState = await getChannelState({
     channel,
     template: messageTemplate,

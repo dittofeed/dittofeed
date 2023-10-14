@@ -205,14 +205,12 @@ export default function EmailEditor({
   hideTitle,
   templateId: messageId,
   saveOnUpdate,
-  sx,
   disabled,
 }: {
   templateId: string;
   hideSaveButton?: boolean;
   hideTitle?: boolean;
   saveOnUpdate?: boolean;
-  sx?: SxProps<Theme>;
   disabled?: boolean;
 }) {
   const theme = useTheme();

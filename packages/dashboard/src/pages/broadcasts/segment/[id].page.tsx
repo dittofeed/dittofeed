@@ -56,6 +56,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         workspaceId,
       }),
     ]);
+    if (broadcast.workspaceId !== workspaceId) {
+      return {
+        notFound: true,
+      };
+    }
 
     const baseAppState = getBroadcastAppState({ broadcast });
     const segmentAppState = getSegmentConfigState({
