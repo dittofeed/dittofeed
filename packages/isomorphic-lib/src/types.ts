@@ -1705,3 +1705,24 @@ export const UpsertSmsProviderRequest = Type.Object({
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
+
+export const SesEmailProviderConfig = Type.Object({
+  accessKeyId: Type.String(),
+});
+
+export type SesEmailProviderConfig = Static<typeof SesEmailProviderConfig>;
+
+export const SendgridEmailProviderConfig = Type.Object({
+  apiKey: Type.String(),
+});
+
+export type SendgridEmailProviderConfig = Static<
+  typeof SendgridEmailProviderConfig
+>;
+
+export const EmailProviderConfig = Type.Union([
+  SesEmailProviderConfig,
+  SendgridEmailProviderConfig,
+]);
+
+export type EmailProviderConfig = Static<typeof EmailProviderConfig>;
