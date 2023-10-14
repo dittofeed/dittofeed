@@ -29,7 +29,7 @@ import {
 import { GetServerSideProps, NextPage } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { validate } from "uuid";
 
 import EmailEditor from "../../../components/messages/emailEditor";
@@ -178,12 +178,14 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       journeyUpdateRequest,
       setJourneyUpdateRequest,
       upsertJourney,
+      broadcasts,
     } = useAppStorePick([
       "apiBase",
       "journeys",
       "upsertJourney",
       "journeyUpdateRequest",
       "setJourneyUpdateRequest",
+      "broadcasts",
     ]);
     const messageNode = getBroadcastMessageNode(journeyId, journeys);
     const [subscriptionGroupId, setSubscriptionGroupId] = useState<
@@ -191,6 +193,12 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
     >(messageNode?.subscriptionGroupId ?? null);
 
     const theme = useTheme();
+    const broadcast = useMemo(
+      () => broadcasts.find((b) => b.id === id) ?? null,
+      [broadcasts, id]
+    );
+    const started = broadcast?.status !== "NotStarted";
+
     useUpdateEffect(() => {
       if (journeys.type !== CompletionStatus.Successful) {
         return;
@@ -243,6 +251,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       case ChannelType.Email:
         templateEditor = (
           <EmailEditor
+            disabled={started}
             hideSaveButton
             hideTitle
             saveOnUpdate

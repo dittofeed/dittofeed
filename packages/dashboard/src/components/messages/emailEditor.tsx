@@ -206,12 +206,14 @@ export default function EmailEditor({
   templateId: messageId,
   saveOnUpdate,
   sx,
+  disabled,
 }: {
   templateId: string;
   hideSaveButton?: boolean;
   hideTitle?: boolean;
   saveOnUpdate?: boolean;
   sx?: SxProps<Theme>;
+  disabled?: boolean;
 }) {
   const theme = useTheme();
   const router = useRouter();
@@ -507,6 +509,9 @@ export default function EmailEditor({
   }, [errors, mockUserProperties, userPropertySet]);
 
   const handleSave = useCallback(() => {
+    if (disabled) {
+      return;
+    }
     upsert({
       workspaceId: workspace?.id,
       messageId,
@@ -524,6 +529,7 @@ export default function EmailEditor({
   }, [
     // README don't update on emailMessageUpdateRequest change
     apiBase,
+    disabled,
     debouncedEmailBody,
     debouncedEmailFrom,
     debouncedEmailSubject,
@@ -597,6 +603,7 @@ export default function EmailEditor({
           }}
         />
         <TextField
+          disabled={disabled}
           label="From"
           variant="filled"
           onChange={(e) => {
@@ -614,6 +621,7 @@ export default function EmailEditor({
         <TextField
           label="Subject"
           required
+          disabled={disabled}
           variant="filled"
           onChange={(e) => {
             setSubject(e.target.value);
@@ -629,6 +637,7 @@ export default function EmailEditor({
         <TextField
           label="Reply-To"
           variant="filled"
+          disabled={disabled}
           onChange={(e) => {
             setEmailMessageReplyTo(e.target.value);
           }}
@@ -658,6 +667,7 @@ export default function EmailEditor({
         <ReactCodeMirror
           value={emailBody}
           onChange={htmlCodeMirrorHandleChange}
+          readOnly={disabled}
           extensions={[
             html(),
             EditorView.theme({
