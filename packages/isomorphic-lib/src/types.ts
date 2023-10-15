@@ -705,15 +705,6 @@ export const BroadcastResource = Type.Object({
 
 export type BroadcastResource = Static<typeof BroadcastResource>;
 
-export const UpsertBroadcastResourceV0 = Type.Composite([
-  Type.Omit(BroadcastResource, ["createdAt", "segmentId", "triggeredAt"]),
-  Type.Required(Type.Pick(BroadcastResource, ["segmentId"])),
-]);
-
-export type UpsertBroadcastResourceV0 = Static<
-  typeof UpsertBroadcastResourceV0
->;
-
 export const UpdateBroadcastRequest = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),
