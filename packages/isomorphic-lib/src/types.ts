@@ -1,4 +1,5 @@
 import { Static, TSchema, Type } from "@sinclair/typebox";
+import { Result } from "neverthrow";
 
 export enum JsonResultType {
   Ok = "Ok",
@@ -1947,6 +1948,11 @@ export const MessageSendResult = JsonResult(
 );
 
 export type MessageSendResult = Static<typeof MessageSendResult>;
+
+export type BackendMessageSendResult = Result<
+  MessageSendSuccess,
+  MessageSendFailure
+>;
 
 export enum SubscriptionChange {
   Subscribe = "Subscribe",
