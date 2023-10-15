@@ -48,6 +48,8 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
     id: broadcast.id,
     name: broadcast.name,
     segmentId: broadcast.segmentId ?? undefined,
+    journeyId: broadcast.journeyId ?? undefined,
+    messageTemplateId: broadcast.messageTemplateId ?? undefined,
     triggeredAt: broadcast.triggeredAt
       ? broadcast.triggeredAt.getTime()
       : undefined,
@@ -135,18 +137,7 @@ export async function upsertBroadcast({
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
   const broadcastJourneyName = getBroadcastJourneyName({ broadcastId: id });
-  const [broadcast, segment, messageTemplate] = await Promise.all([
-    prisma().broadcast.upsert({
-      where: {
-        id,
-      },
-      create: {
-        id,
-        workspaceId,
-        name: `Broadcast - ${id}`,
-      },
-      update: {},
-    }),
+  const [segment, messageTemplate] = await Promise.all([
     prisma().segment.upsert({
       where: {
         workspaceId_name: {
@@ -219,6 +210,21 @@ export async function upsertBroadcast({
     },
     update: {},
   });
+  const broadcast = await prisma().broadcast.upsert({
+    where: {
+      id,
+    },
+    create: {
+      id,
+      workspaceId,
+      name: `Broadcast - ${id}`,
+      segmentId: segment.id,
+      journeyId: journey.id,
+      messageTemplateId: messageTemplate.id,
+    },
+    update: {},
+  });
+
   return {
     broadcast: toBroadcastResource(broadcast),
     journey: unwrap(toJourneyResource(journey)),

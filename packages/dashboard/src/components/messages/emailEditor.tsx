@@ -780,7 +780,7 @@ export default function EmailEditor({
       <Stack
         direction="row"
         sx={{
-          ...sx,
+          height: "100%",
           width: "100%",
           paddingRight: 2,
           paddingTop: 2,

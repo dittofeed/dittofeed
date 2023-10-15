@@ -692,6 +692,8 @@ export const BroadcastResource = Type.Object({
   workspaceId: Type.String(),
   name: Type.String(),
   segmentId: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  messageTemplateId: Type.Optional(Type.String()),
   status: Type.Union([
     Type.Literal("NotStarted"),
     Type.Literal("InProgress"),

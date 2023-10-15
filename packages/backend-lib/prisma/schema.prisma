@@ -88,6 +88,7 @@ model Journey {
   updatedAt        DateTime           @updatedAt
   resourceType     DBResourceType     @default(Declarative)
   UserJourneyEvent UserJourneyEvent[]
+  Broadcast        Broadcast[]
 
   @@unique([workspaceId, name])
 }
@@ -106,18 +107,21 @@ enum DBBroadcastStatus {
 }
 
 model Broadcast {
-  id          String             @id() @default(uuid()) @db.Uuid
-  workspace   Workspace          @relation(fields: [workspaceId], references: [id])
-  workspaceId String             @db.Uuid
-  segment     Segment?           @relation(fields: [segmentId], references: [id], onDelete: SetNull)
-  // TODO create remaining fields for messageTemplate and journey
-  segmentId   String?            @db.Uuid
-  name        String
-  status      DBBroadcastStatus @default(NotStarted)
-  draft       Json?
-  triggeredAt DateTime?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id                String            @id() @default(uuid()) @db.Uuid
+  workspace         Workspace         @relation(fields: [workspaceId], references: [id])
+  workspaceId       String            @db.Uuid
+  segment           Segment?          @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  segmentId         String?           @db.Uuid
+  journey           Journey?          @relation(fields: [journeyId], references: [id], onDelete: SetNull)
+  journeyId         String?           @db.Uuid
+  messageTemplate   MessageTemplate?  @relation(fields: [messageTemplateId], references: [id], onDelete: SetNull)
+  messageTemplateId String?           @db.Uuid
+  name              String
+  status            DBBroadcastStatus @default(NotStarted)
+  draft             Json?
+  triggeredAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@unique([workspaceId, name])
 }
@@ -174,14 +178,15 @@ model EmailTemplate {
 }
 
 model MessageTemplate {
-  id          String    @id() @default(uuid()) @db.Uuid
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId String    @db.Uuid
-  name        String
+  id           String         @id() @default(uuid()) @db.Uuid
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId  String         @db.Uuid
+  name         String
   resourceType DBResourceType @default(Declarative)
-  definition  Json
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  definition   Json
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  Broadcast    Broadcast[]
 
   @@unique([workspaceId, name])
 }
