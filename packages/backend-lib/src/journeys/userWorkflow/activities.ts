@@ -20,7 +20,10 @@ import { v5 as uuidv5 } from "uuid";
 import { submitTrack } from "../../apps";
 import { sendNotification } from "../../destinations/fcm";
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
-import { sendSms as sendSmsTwilio } from "../../destinations/twilio";
+import {
+  sendSms as sendSmsTwilio,
+  TwilioRestException,
+} from "../../destinations/twilio";
 import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
 import { findMessageTemplate } from "../../messageTemplates";
@@ -258,7 +261,7 @@ interface MobilePushChannelConfig {
   fcmKey: string;
 }
 
-async function sendSmsWithPayload(
+export async function sendSmsWithPayload(
   params: BaseSendParams
 ): Promise<SendWithTrackingValue> {
   const buildSendValue = buildSendValueFactory(params);
@@ -377,6 +380,17 @@ async function sendSmsWithPayload(
             logger().error({ err: smsResult.error }, "failed to send sms");
             return buildSendValue(false, InternalEventType.MessageFailure, {
               message: `Failed to send sms: ${smsResult.error.message}`,
+              error: {
+                stack: smsResult.error.stack,
+                ...(smsResult.error instanceof TwilioRestException
+                  ? R.pick(smsResult.error, [
+                      "status",
+                      "code",
+                      "moreInfo",
+                      "details",
+                    ])
+                  : undefined),
+              },
             });
           }
 
@@ -408,7 +422,7 @@ export async function sendSms(params: SendParams): Promise<boolean> {
   return sent;
 }
 
-async function sendMobilePushWithPayload(
+export async function sendMobilePushWithPayload(
   params: BaseSendParams
 ): Promise<SendWithTrackingValue> {
   const buildSendValue = buildSendValueFactory(params);
@@ -638,6 +652,10 @@ async function sendEmailWithPayload(
             logger().error({ err: result.error });
             return buildSendValue(false, InternalEventType.MessageFailure, {
               message: `Failed to send message to sendgrid: ${result.error.message}`,
+              error: {
+                stack: result.error.stack,
+                responseBody: result.error.response.body,
+              },
             });
           }
 

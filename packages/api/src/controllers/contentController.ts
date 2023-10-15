@@ -11,6 +11,8 @@ import {
   EmptyResponse,
   JsonResultType,
   MessageTemplateResource,
+  MessageTemplateTestRequest,
+  MessageTemplateTestResponse,
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
   RenderMessageTemplateResponseContent,
@@ -105,6 +107,22 @@ export default async function contentController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const resource = await upsertMessageTemplate(request.body);
+      return reply.status(200).send(resource);
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/templates/test",
+    {
+      schema: {
+        description: "Send a test message for a message template.",
+        body: MessageTemplateTestRequest,
+        response: {
+          200: MessageTemplateTestResponse,
+        },
+      },
+    },
+    async (request, reply) => {
       return reply.status(200).send(resource);
     }
   );
