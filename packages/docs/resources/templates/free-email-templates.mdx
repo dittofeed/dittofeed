@@ -4,6 +4,52 @@ title: "Free Email Templates"
 
 For a quick way to get started sending messages, copy/paste these templates into any editor that is configured to render MJML, such as the Dittofeed template editor.
 
+## Plain Text Welcome Email
+
+Most applications want to send a welcome email to new users. This email represents a great opportunity to assist users in onboarding, and to link them to relevant documentation.
+
+Many teams find it advantageous to send a plain text welcome email, as it feels more personal and less like a marketing email. With the exception of the footer containing the company address, and the unsubscribe link, this email is entirely unstyled.
+
+<Frame>
+  ![Plain Text Welcome](/images/plaintext-welcome.png)
+</Frame>
+
+<Accordion title="Code.">
+```html welcome.mjml
+<mjml>
+  <mj-head>
+    <mj-style inline="inline">
+      .df-unsubscribe {
+        color: #a8a8a8;
+        text-decoration: underline;
+      }
+    </mj-style>
+  </mj-head>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="16px" align="left">
+          Hi {{ user.firstName | default: "there"}}<br/><br/>
+          A warm welcome to CompanyName! During this 14-day trial, you have the opportunity to use our product to make a difference in your day-to-day. We'll be providing you with a VIP tour of how to make the most of CompanyName.<br/><br/>
+          To get started, we'll integrate your data into the platform.<br/><br/>
+Take a look at our <a href="#" target="_blank">docs</a> for more info.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section padding-top="10px">
+      <mj-column>
+        <mj-text font-size="12px" align="center" color="#a8a8a8">
+          MyCompany, Inc., 40 Rosewood Lane, New York, NY 10003<br/>
+          Don't want to receive these emails? You can {% unsubscribe_link %} from them here.<br/>
+          Powered by Dittofeed.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+```
+</Accordion>
+
 ## Abandoned Cart
 
 Abandoned cart emails are a powerful tool for e-commerce businesses. They are sent to customers who have added products to their cart but did not complete the purchase. These emails serve as a reminder to customers about their unfinished transactions and often include a call to action to encourage them to complete their purchase. They can significantly help in recovering lost sales and improving conversion rates.
