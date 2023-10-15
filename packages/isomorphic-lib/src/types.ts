@@ -691,19 +691,34 @@ export const BroadcastResource = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
-  segmentId: Type.String(),
+  segmentId: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  messageTemplateId: Type.Optional(Type.String()),
+  status: Type.Union([
+    Type.Literal("NotStarted"),
+    Type.Literal("InProgress"),
+    Type.Literal("Triggered"),
+  ]),
   createdAt: Type.Number(),
   triggeredAt: Type.Optional(Type.Number()),
 });
 
 export type BroadcastResource = Static<typeof BroadcastResource>;
 
-export const UpsertBroadcastResource = Type.Omit(BroadcastResource, [
-  "createdAt",
-  "triggeredAt",
-]);
+export const UpdateBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+  name: Type.Optional(Type.String()),
+});
 
-export type UpsertBroadcastResource = Static<typeof UpsertBroadcastResource>;
+export type UpdateBroadcastRequest = Static<typeof UpdateBroadcastRequest>;
+
+export const TriggerBroadcastRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+});
+
+export type TriggerBroadcastRequest = Static<typeof TriggerBroadcastRequest>;
 
 export const UpsertSegmentResource = Type.Intersect([
   Type.Omit(Type.Partial(SegmentResource), ["id"]),
@@ -974,6 +989,7 @@ export const JourneyResourceStatus = Type.Union([
   Type.Literal("NotStarted"),
   Type.Literal("Running"),
   Type.Literal("Paused"),
+  Type.Literal("Broadcast"),
 ]);
 
 export type JourneyResourceStatus = Static<typeof JourneyResourceStatus>;
@@ -1705,3 +1721,11 @@ export const UpsertSmsProviderRequest = Type.Object({
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
+
+// Compatible as both a subset of EnrichedJourney and JourneyResource
+export interface CompatibleJourney {
+  workspaceId: string;
+  id: string;
+  name: string;
+  definition: JourneyDefinition;
+}

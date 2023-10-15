@@ -124,11 +124,31 @@ export async function findEnrichedSegments({
   return ok(enrichedSegments);
 }
 
-export async function findAllEnrichedSegments(
-  workspaceId: string
-): Promise<Result<EnrichedSegment[], ValueError[]>> {
+export async function findManyEnrichedSegments({
+  workspaceId,
+  segmentIds,
+  requireRunning = true,
+}: {
+  workspaceId: string;
+  segmentIds?: string[];
+  requireRunning?: boolean;
+}): Promise<Result<EnrichedSegment[], ValueError[]>> {
   const segments = await prisma().segment.findMany({
-    where: { workspaceId },
+    where: {
+      workspaceId,
+      ...(segmentIds?.length
+        ? {
+            id: {
+              in: segmentIds,
+            },
+          }
+        : null),
+      ...(requireRunning && !segmentIds?.length
+        ? {
+            status: "Running",
+          }
+        : null),
+    },
   });
 
   const enrichedSegments: EnrichedSegment[] = [];
@@ -166,7 +186,6 @@ export async function upsertSegment(
         "name" = COALESCE(excluded."name", "Segment"."name"),
         "definition" = COALESCE(excluded."definition", "Segment"."definition"),
         "updatedAt" = NOW()
-    WHERE "Segment"."resourceType" <> 'Internal'
     RETURNING *`;
   const [result] = (await prisma().$queryRaw(query)) as [Segment];
   const updatedDefinition = result.definition as SegmentDefinition;

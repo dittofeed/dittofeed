@@ -60,10 +60,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         type: CompletionStatus.Successful,
         value: templateResources,
       },
-      subscriptionGroups: {
-        type: CompletionStatus.Successful,
-        value: subscriptionGroups.map(subscriptionGroupToResource),
-      },
+      subscriptionGroups: subscriptionGroups.map(subscriptionGroupToResource),
     };
 
     const journeyResourceResult =

@@ -220,7 +220,7 @@ async function sendWithTracking<C>(
     }
   }
 
-  if (journey.status !== "Running") {
+  if (!(journey.status === "Running" || journey.status === "Broadcast")) {
     return buildSendValue(false, InternalEventType.MessageSkipped);
   }
 

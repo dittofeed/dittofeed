@@ -1,38 +1,32 @@
 import { findMessageTemplate } from "backend-lib/src/messageTemplates";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
-import { LoremIpsum } from "lorem-ipsum";
+import { ChannelType } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import React from "react";
-import { v4 as uuid, validate } from "uuid";
+import { validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
-import SmsEditor, {
-  defaultInitialUserProperties,
-  defaultSmsMessageState,
-} from "../../../components/messages/smsEditor";
+import SmsEditor from "../../../components/messages/smsEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
-import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
+import { getSmsEditorState } from "../../../lib/sms";
+import { PropsWithInitialState } from "../../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
-    let serverInitialState: PreloadedState;
     const id = ctx.params?.id;
 
     if (typeof id !== "string" || !validate(id)) {
-      serverInitialState = defaultSmsMessageState(uuid());
-
       return {
         notFound: true,
       };
     }
 
-    const [smsMessage, userProperties] = await Promise.all([
+    const [smsTemplate, userProperties] = await Promise.all([
       findMessageTemplate({
         id,
         channel: ChannelType.Sms,
@@ -44,57 +38,16 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     ]);
 
-    const lorem = new LoremIpsum({
-      sentencesPerParagraph: {
-        max: 8,
-        min: 4,
-      },
-      wordsPerSentence: {
-        max: 16,
-        min: 4,
-      },
-    });
-
-    const smsMessageUserProperties = {
-      ...userProperties.reduce<Record<string, string>>((memo, up) => {
-        memo[up.name] = lorem.generateWords(1);
-        return memo;
-      }, {}),
-      ...defaultInitialUserProperties,
-    };
-    const smsMessageUserPropertiesJSON = JSON.stringify(
-      smsMessageUserProperties,
-      null,
-      2
-    );
-
-    serverInitialState = {
-      ...defaultSmsMessageState(id),
-      smsMessageUserProperties,
-      smsMessageUserPropertiesJSON,
-    };
-
-    serverInitialState.userProperties = {
-      type: CompletionStatus.Successful,
-      value: userProperties.flatMap((up) =>
-        toUserPropertyResource(up).unwrapOr([])
-      ),
-    };
-
-    if (
-      smsMessage &&
-      smsMessage.definition.type === ChannelType.Sms &&
-      smsMessage.workspaceId === dfContext.workspace.id
-    ) {
-      const { body } = smsMessage.definition;
-      serverInitialState.smsMessageBody = body;
-      serverInitialState.smsMessageTitle = smsMessage.name;
-    }
-
     return {
       props: addInitialStateToProps({
         dfContext,
-        serverInitialState,
+        serverInitialState: getSmsEditorState({
+          smsTemplate,
+          templateId: id,
+          userProperties: userProperties.map((up) =>
+            unwrap(toUserPropertyResource(up))
+          ),
+        }),
         props: {},
       }),
     };
@@ -104,6 +57,9 @@ export default function MessageEditor() {
   const router = useRouter();
   const messageId =
     typeof router.query.id === "string" ? router.query.id : null;
+  if (!messageId) {
+    return null;
+  }
   return (
     <>
       <Head>
@@ -112,7 +68,7 @@ export default function MessageEditor() {
       </Head>
       <main>
         <MainLayout>
-          <SmsEditor key={messageId} />
+          <SmsEditor key={messageId} templateId={messageId} />
         </MainLayout>
       </main>
     </>

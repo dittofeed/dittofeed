@@ -2,14 +2,11 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
 import { buildSegmentsFile, upsertSegment } from "backend-lib/src/segments";
-import { submitBroadcast } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import {
-  BroadcastResource,
   DeleteSegmentRequest,
   EmptyResponse,
   SegmentResource,
-  UpsertBroadcastResource,
   UpsertSegmentResource,
 } from "isomorphic-lib/src/types";
 
@@ -72,56 +69,6 @@ export default async function segmentsController(fastify: FastifyInstance) {
       }
 
       return reply.status(204).send();
-    }
-  );
-
-  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
-    "/broadcasts",
-    {
-      schema: {
-        description: "Submit a broadcast for a segment.",
-        body: UpsertBroadcastResource,
-        response: {
-          200: BroadcastResource,
-        },
-      },
-    },
-    async (request, reply) => {
-      const { id, name, workspaceId, segmentId } = request.body;
-
-      await submitBroadcast({
-        workspaceId,
-        segmentId,
-        broadcastId: id,
-        broadcastName: name,
-      });
-
-      const broadcast = await prisma().broadcast.upsert({
-        where: {
-          id,
-        },
-        create: {
-          name,
-          segmentId,
-          status: "Successful",
-          workspaceId,
-          id,
-          triggeredAt: new Date(),
-        },
-        update: {},
-      });
-
-      const resource: BroadcastResource = {
-        workspaceId: broadcast.workspaceId,
-        id: broadcast.id,
-        name: broadcast.name,
-        segmentId,
-        triggeredAt: broadcast.triggeredAt
-          ? broadcast.triggeredAt.getTime()
-          : undefined,
-        createdAt: broadcast.createdAt.getTime(),
-      };
-      return reply.status(200).send(resource);
     }
   );
 

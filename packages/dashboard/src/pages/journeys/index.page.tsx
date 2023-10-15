@@ -33,7 +33,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const workspaceId = dfContext.workspace.id;
     const journeys = (
       await prisma().journey.findMany({
-        where: { workspaceId },
+        where: { workspaceId, resourceType: "Declarative" },
       })
     ).flatMap(({ id, definition, name, status }) => {
       const validatedDefinition = schemaValidate(definition, JourneyDefinition);

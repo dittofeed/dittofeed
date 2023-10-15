@@ -1,3 +1,5 @@
+import { ChannelType } from "./types";
+
 export const WORKSPACE_ID_HEADER = "df-workspace-id" as const;
 export const SUBSRIPTION_GROUP_ID_HEADER = "df-subscription-group-id" as const;
 export const UNAUTHORIZED_PAGE = "/404" as const;
@@ -11,3 +13,9 @@ export const SUBSCRIPTION_SECRET_NAME = "subscription-key" as const;
 export const TWILIO_SECRET_NAME = "twilio-key" as const;
 export const SENDGRID_WEBHOOK_SECRET_NAME = "sendgrid-webhook" as const;
 export const FCM_SECRET_NAME = "fcm-key" as const;
+
+export const CHANNEL_NAMES: Record<ChannelType, string> = {
+  [ChannelType.Sms]: "SMS",
+  [ChannelType.Email]: "Email",
+  [ChannelType.MobilePush]: "Push Notification",
+};

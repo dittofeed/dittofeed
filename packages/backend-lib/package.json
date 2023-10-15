@@ -30,6 +30,7 @@
     "@sinclair/typebox": "^0.31.5",
     "@temporalio/activity": "1.8.4",
     "@temporalio/client": "1.8.4",
+    "@temporalio/common": "1.8.4",
     "@temporalio/worker": "1.8.4",
     "@temporalio/workflow": "1.8.4",
     "axios": "^1.4.0",

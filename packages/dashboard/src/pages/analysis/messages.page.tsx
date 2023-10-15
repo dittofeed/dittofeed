@@ -1,23 +1,28 @@
 import { Box, Stack, Tabs, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { findManyJourneys } from "backend-lib/src/journeys";
+import { toBroadcastResource } from "backend-lib/src/broadcasts";
+import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import { round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
+  BroadcastResource,
   ChannelType,
   CompletionStatus,
   JourneyNodeType,
+  JourneyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
+import { useMemo } from "react";
 
 import MainLayout from "../../components/mainLayout";
 import TabLink from "../../components/tabLink";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStorePick } from "../../lib/appStore";
+import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
@@ -65,9 +70,28 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const { workspace } = dfContext;
     const workspaceId = workspace.id;
     const [journeys, messages] = await Promise.all([
-      findManyJourneys({ where: { workspaceId } }).then(unwrap),
-      findMessageTemplates({ workspaceId }),
+      prisma().journey.findMany({
+        where: {
+          workspaceId,
+        },
+        include: {
+          Broadcast: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      findMessageTemplates({ workspaceId, includeInternal: true }),
     ]);
+    const journeyResources: JourneyResource[] = [];
+    const broadcastResources: BroadcastResource[] = [];
+
+    for (const journey of journeys) {
+      journeyResources.push(unwrap(toJourneyResource(journey)));
+      for (const broadcast of journey.Broadcast ?? []) {
+        broadcastResources.push(toBroadcastResource(broadcast));
+      }
+    }
 
     return {
       props: addInitialStateToProps({
@@ -79,8 +103,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           },
           journeys: {
             type: CompletionStatus.Successful,
-            value: journeys,
+            value: journeyResources,
           },
+          broadcasts: broadcastResources,
         },
         dfContext,
       }),
@@ -122,8 +147,10 @@ export default function MessagesPage() {
     setJourneyStatsRequest,
     messages,
     workspace,
+    broadcasts,
   } = useAppStorePick([
     "journeyStats",
+    "broadcasts",
     "journeys",
     "apiBase",
     "upsertJourneyStats",
@@ -144,6 +171,17 @@ export default function MessagesPage() {
     apiBase,
     setJourneyStatsRequest,
   });
+
+  const broadcastByJourneyId = useMemo(
+    () =>
+      broadcasts.reduce((acc, broadcast) => {
+        if (broadcast.journeyId) {
+          acc.set(broadcast.journeyId, broadcast);
+        }
+        return acc;
+      }, new Map<string, BroadcastResource>()),
+    [broadcasts]
+  );
 
   if (messages.type !== CompletionStatus.Successful) {
     return [];
@@ -204,16 +242,20 @@ export default function MessagesPage() {
             flex: 1,
             renderHeader: () => (
               <Tooltip title="Journey">
-                <Typography variant="subtitle2">Journey</Typography>
+                <Typography variant="subtitle2">Journey / Broadcast</Typography>
               </Tooltip>
             ),
-            renderCell: (params) => (
-              <Tooltip title={params.row.journeyName}>
-                <Link href={`/journeys/${params.row.journeyId}`}>
-                  {params.row.journeyName}
-                </Link>
-              </Tooltip>
-            ),
+            renderCell: (params) => {
+              const broadcast = broadcastByJourneyId.get(params.row.journeyId);
+              const href = broadcast
+                ? `/broadcasts/review/${broadcast.id}`
+                : `/journeys/${params.row.journeyId}`;
+              return (
+                <Tooltip title={params.row.journeyName}>
+                  <Link href={href}>{params.row.journeyName}</Link>
+                </Tooltip>
+              );
+            },
           },
           {
             field: "messageName",

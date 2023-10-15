@@ -37,7 +37,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { shallow } from "zustand/shallow";
 
@@ -47,7 +47,8 @@ import {
   noticeAnchorOrigin as anchorOrigin,
   noticeAnchorOrigin,
 } from "../../lib/notices";
-import { EmailMessageEditorState } from "../../lib/types";
+import { AppContents, EmailMessageEditorState } from "../../lib/types";
+import { useUpdateEffect } from "../../lib/useUpdateEffect";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 import defaultEmailBody from "./defaultEmailBody";
@@ -113,6 +114,76 @@ const BodyBox = styled(Box, {
   })
 );
 
+function upsert({
+  workspaceId,
+  messageId,
+  emailFrom,
+  emailBody,
+  emailSubject,
+  emailMessageReplyTo,
+  apiBase,
+  emailMessageUpdateRequest,
+  setEmailMessageUpdateRequest,
+  emailMessageTitle,
+  upsertMessage,
+}: {
+  workspaceId?: string;
+  messageId: string | null;
+  emailMessageTitle: string;
+  emailFrom: string;
+  emailBody: string;
+  emailSubject: string;
+  emailMessageReplyTo: string;
+  apiBase: string;
+  upsertMessage: AppContents["upsertMessage"];
+  emailMessageUpdateRequest: AppContents["emailMessageUpdateRequest"];
+  setEmailMessageUpdateRequest: AppContents["setEmailMessageUpdateRequest"];
+}) {
+  if (
+    !workspaceId ||
+    !messageId ||
+    emailMessageTitle.length === 0 ||
+    emailBody.length === 0 ||
+    emailSubject.length === 0
+  ) {
+    return;
+  }
+  const upsertEmailDefinition: EmailTemplateResource = {
+    type: ChannelType.Email,
+    from: emailFrom,
+    body: emailBody,
+    subject: emailSubject,
+  };
+
+  const updateData: UpsertMessageTemplateResource = {
+    id: messageId,
+    workspaceId,
+    name: emailMessageTitle,
+    definition: upsertEmailDefinition,
+  };
+
+  if (emailMessageReplyTo.length) {
+    upsertEmailDefinition.replyTo = emailMessageReplyTo;
+  }
+
+  apiRequestHandlerFactory({
+    request: emailMessageUpdateRequest,
+    setRequest: setEmailMessageUpdateRequest,
+    responseSchema: MessageTemplateResource,
+    setResponse: upsertMessage,
+    onSuccessNotice: `Saved template.`,
+    onFailureNoticeHandler: () => `API Error: Failed to save template.`,
+    requestConfig: {
+      method: "PUT",
+      url: `${apiBase}/api/content/templates`,
+      data: updateData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  })();
+}
+
 type Fullscreen = "editor" | "preview" | null;
 
 enum NotifyKey {
@@ -129,7 +200,19 @@ function errorHash(key: NotifyKey, message: string) {
 
 const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 
-export default function EmailEditor() {
+export default function EmailEditor({
+  hideSaveButton,
+  hideTitle,
+  templateId: messageId,
+  saveOnUpdate,
+  disabled,
+}: {
+  templateId: string;
+  hideSaveButton?: boolean;
+  hideTitle?: boolean;
+  saveOnUpdate?: boolean;
+  disabled?: boolean;
+}) {
   const theme = useTheme();
   const router = useRouter();
   const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
@@ -195,9 +278,6 @@ export default function EmailEditor() {
       ),
     [userProperties]
   );
-
-  const messageId =
-    typeof router.query.id === "string" ? router.query.id : null;
 
   const workspace =
     workspaceRequest.type === CompletionStatus.Successful
@@ -426,44 +506,49 @@ export default function EmailEditor() {
     setRenderedBody(errorBodyHtml);
   }, [errors, mockUserProperties, userPropertySet]);
 
+  const handleSave = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+    upsert({
+      workspaceId: workspace?.id,
+      messageId,
+      emailBody: debouncedEmailBody,
+      emailFrom: debouncedEmailFrom,
+      emailSubject: debouncedEmailSubject,
+      emailMessageReplyTo: debouncedReplyTo,
+      emailMessageUpdateRequest,
+      setEmailMessageUpdateRequest,
+      upsertMessage,
+      apiBase,
+      emailMessageTitle,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    // README don't update on emailMessageUpdateRequest change
+    apiBase,
+    disabled,
+    debouncedEmailBody,
+    debouncedEmailFrom,
+    debouncedEmailSubject,
+    debouncedReplyTo,
+    emailMessageTitle,
+    messageId,
+    setEmailMessageUpdateRequest,
+    upsertMessage,
+    workspace?.id,
+  ]);
+
+  useUpdateEffect(() => {
+    if (!saveOnUpdate) {
+      return;
+    }
+    handleSave();
+  }, [handleSave, saveOnUpdate]);
+
   if (!workspace || !messageId) {
     return null;
   }
-
-  const upsertEmailDefinition: EmailTemplateResource = {
-    type: ChannelType.Email,
-    from: emailFrom,
-    body: emailBody,
-    subject: emailSubject,
-  };
-  const updateData: UpsertMessageTemplateResource = {
-    id: messageId,
-    workspaceId: workspace.id,
-    name: emailMessageTitle,
-    definition: upsertEmailDefinition,
-  };
-
-  if (emailMessageReplyTo.length) {
-    upsertEmailDefinition.replyTo = emailMessageReplyTo;
-  }
-
-  const handleSave = apiRequestHandlerFactory({
-    request: emailMessageUpdateRequest,
-    setRequest: setEmailMessageUpdateRequest,
-    responseSchema: MessageTemplateResource,
-    setResponse: upsertMessage,
-    onSuccessNotice: `Saved template ${emailMessageTitle}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to save template ${emailMessageTitle}.`,
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/content/templates`,
-      data: updateData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
 
   const htmlCodeMirrorHandleChange = (val: string) => {
     setEmailBody(val);
@@ -516,6 +601,7 @@ export default function EmailEditor() {
           }}
         />
         <TextField
+          disabled={disabled}
           label="From"
           variant="filled"
           onChange={(e) => {
@@ -533,6 +619,7 @@ export default function EmailEditor() {
         <TextField
           label="Subject"
           required
+          disabled={disabled}
           variant="filled"
           onChange={(e) => {
             setSubject(e.target.value);
@@ -548,6 +635,7 @@ export default function EmailEditor() {
         <TextField
           label="Reply-To"
           variant="filled"
+          disabled={disabled}
           onChange={(e) => {
             setEmailMessageReplyTo(e.target.value);
           }}
@@ -577,6 +665,7 @@ export default function EmailEditor() {
         <ReactCodeMirror
           value={emailBody}
           onChange={htmlCodeMirrorHandleChange}
+          readOnly={disabled}
           extensions={[
             html(),
             EditorView.theme({
@@ -691,6 +780,7 @@ export default function EmailEditor() {
       <Stack
         direction="row"
         sx={{
+          height: "100%",
           width: "100%",
           paddingRight: 2,
           paddingTop: 2,
@@ -708,13 +798,15 @@ export default function EmailEditor() {
             boxShadow: theme.shadows[2],
           }}
         >
-          <EditableName
-            name={emailMessageTitle}
-            variant="h4"
-            onChange={(e) => {
-              setEmailMessageTitle(e.target.value);
-            }}
-          />
+          {!hideTitle && (
+            <EditableName
+              name={emailMessageTitle}
+              variant="h4"
+              onChange={(e) => {
+                setEmailMessageTitle(e.target.value);
+              }}
+            />
+          )}
           <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
             <Typography variant="h5">User Properties</Typography>
           </InfoTooltip>
@@ -733,13 +825,15 @@ export default function EmailEditor() {
               lintGutter(),
             ]}
           />
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={errors.size > 0}
-          >
-            Save
-          </Button>
+          {!hideSaveButton && (
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={errors.size > 0}
+            >
+              Save
+            </Button>
+          )}
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box

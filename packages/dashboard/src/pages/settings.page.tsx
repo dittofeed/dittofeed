@@ -223,10 +223,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       subscriptionGroupToResource
     );
 
-    serverInitialState.subscriptionGroups = {
-      type: CompletionStatus.Successful,
-      value: subscriptionGroupResources,
-    };
+    serverInitialState.subscriptionGroups = subscriptionGroupResources;
     serverInitialState.smsProviders = smsProviders.flatMap((provider) => {
       const configResult = schemaValidateWithErr(
         provider.secret.configValue,
@@ -1231,14 +1228,11 @@ function SubscriptionManagementSettings() {
       ? workspaceResult.value
       : null;
 
-  const subscriptions =
-    subscriptionGroups.type === CompletionStatus.Successful
-      ? subscriptionGroups.value.map((sg, i) => ({
-          name: sg.name,
-          id: sg.id,
-          isSubscribed: !(i === 0 && fromSubscriptionChange && !fromSubscribe),
-        }))
-      : [];
+  const subscriptions = subscriptionGroups.map((sg, i) => ({
+    name: sg.name,
+    id: sg.id,
+    isSubscribed: !(i === 0 && fromSubscriptionChange && !fromSubscribe),
+  }));
 
   if (!workspace) {
     return null;

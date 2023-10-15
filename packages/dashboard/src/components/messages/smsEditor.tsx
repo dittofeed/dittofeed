@@ -32,7 +32,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -42,6 +42,7 @@ import {
   noticeAnchorOrigin,
 } from "../../lib/notices";
 import { SmsMessageEditorState } from "../../lib/types";
+import { useUpdateEffect } from "../../lib/useUpdateEffect";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 
@@ -84,8 +85,8 @@ export function defaultSmsMessageState(
 
 const BodyBox = styled(Stack, {
   shouldForwardProp: (prop) => prop !== "direction",
-})<{ borderDirection: "left" | "right" } & React.ComponentProps<typeof Box>>(
-  ({ theme, borderDirection: direction }) => ({
+})<{ borderdirection: "left" | "right" } & React.ComponentProps<typeof Box>>(
+  ({ theme, borderdirection: direction }) => ({
     flex: 1,
     flexBasis: 0,
     overflow: "scroll",
@@ -115,7 +116,17 @@ function errorHash(key: NotifyKey, message: string) {
 
 const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 
-export default function SmsEditor() {
+export default function SmsEditor({
+  templateId: messageId,
+  hideTitle,
+  hideSaveButton,
+  saveOnUpdate,
+}: {
+  templateId: string;
+  hideTitle?: boolean;
+  hideSaveButton?: boolean;
+  saveOnUpdate?: boolean;
+}) {
   const theme = useTheme();
   const router = useRouter();
   const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
@@ -163,9 +174,6 @@ export default function SmsEditor() {
       ),
     [userProperties]
   );
-
-  const messageId =
-    typeof router.query.id === "string" ? router.query.id : null;
 
   const workspace =
     workspaceRequest.type === CompletionStatus.Successful
@@ -337,38 +345,62 @@ export default function SmsEditor() {
     setRenderedBody(errorBodyHtml);
   }, [errors, mockUserProperties, userPropertySet]);
 
+  const handleSave = useCallback(() => {
+    if (!workspace || !debouncedSmsBody.length || !smsMessageTitle.length) {
+      return;
+    }
+    const upsertSmsDefinition: SmsTemplateResource = {
+      type: ChannelType.Sms,
+      body: debouncedSmsBody,
+    };
+    const updateData: UpsertMessageTemplateResource = {
+      id: messageId,
+      workspaceId: workspace.id,
+      name: smsMessageTitle,
+      definition: upsertSmsDefinition,
+    };
+
+    apiRequestHandlerFactory({
+      request: smsMessageUpdateRequest,
+      setRequest: setSmsMessageUpdateRequest,
+      responseSchema: MessageTemplateResource,
+      setResponse: upsertMessage,
+      onSuccessNotice: `Saved template ${smsMessageTitle}.`,
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to save template ${smsMessageTitle}.`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/content/templates`,
+        data: updateData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [
+    apiBase,
+    debouncedSmsBody,
+    messageId,
+    setSmsMessageUpdateRequest,
+    smsMessageTitle,
+    upsertMessage,
+    workspace?.id,
+    // README: don't update on request status changing
+    // smsMessageUpdateRequest,
+  ]);
+
+  useUpdateEffect(() => {
+    if (!saveOnUpdate) {
+      return;
+    }
+    handleSave();
+  }, [handleSave, saveOnUpdate]);
+
   if (!workspace || !messageId) {
     return null;
   }
-
-  const upsertSmsDefinition: SmsTemplateResource = {
-    type: ChannelType.Sms,
-    body: smsBody,
-  };
-  const updateData: UpsertMessageTemplateResource = {
-    id: messageId,
-    workspaceId: workspace.id,
-    name: smsMessageTitle,
-    definition: upsertSmsDefinition,
-  };
-
-  const handleSave = apiRequestHandlerFactory({
-    request: smsMessageUpdateRequest,
-    setRequest: setSmsMessageUpdateRequest,
-    responseSchema: MessageTemplateResource,
-    setResponse: upsertMessage,
-    onSuccessNotice: `Saved template ${smsMessageTitle}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to save template ${smsMessageTitle}.`,
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/content/templates`,
-      data: updateData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
 
   const handleCodeMirrorHandleChange = (val: string) => {
     setSmsBody(val);
@@ -420,7 +452,7 @@ export default function SmsEditor() {
 
       <BodyBox
         sx={{ padding: 1, fontFamily: "monospace" }}
-        borderDirection="left"
+        borderdirection="left"
       >
         <ReactCodeMirror
           value={smsBody}
@@ -459,22 +491,27 @@ export default function SmsEditor() {
           </IconButton>
         )}
       </Stack>
-      <BodyBox borderDirection="right" sx={{}}>
+      <BodyBox borderdirection="right">
         <Stack
-          sx={{ width: "100%", height: "100%", padding: 1 }}
+          sx={{
+            width: "100%",
+            height: "100%",
+            padding: 1,
+            overflow: "hidden",
+          }}
           direction="row"
           justifyContent="center"
           alignContent="center"
         >
           <Stack
             sx={{
-              height: "100%",
+              height: "60rem",
+              width: "24rem",
               backgroundImage:
                 "url(https://storage.googleapis.com/dittofeed-public/sms-box.svg)",
               backgroundRepeat: "no-repeat",
               backgroundSize: "contain",
-              width: theme.spacing(43),
-              backgroundPosition: "center",
+              backgroundPosition: "50% 0%",
               justifyContent: "start",
               alignItems: "center",
             }}
@@ -504,6 +541,7 @@ export default function SmsEditor() {
       <Stack
         direction="row"
         sx={{
+          height: "100%",
           width: "100%",
           paddingRight: 2,
           paddingTop: 2,
@@ -521,13 +559,15 @@ export default function SmsEditor() {
             boxShadow: theme.shadows[2],
           }}
         >
-          <EditableName
-            name={smsMessageTitle}
-            variant="h4"
-            onChange={(e) => {
-              setSmsMessageTitle(e.target.value);
-            }}
-          />
+          {!hideTitle && (
+            <EditableName
+              name={smsMessageTitle}
+              variant="h4"
+              onChange={(e) => {
+                setSmsMessageTitle(e.target.value);
+              }}
+            />
+          )}
           <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
             <Typography variant="h5">User Properties</Typography>
           </InfoTooltip>
@@ -546,13 +586,15 @@ export default function SmsEditor() {
               lintGutter(),
             ]}
           />
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={errors.size > 0}
-          >
-            Save
-          </Button>
+          {!hideSaveButton && (
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={errors.size > 0}
+            >
+              Save
+            </Button>
+          )}
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box

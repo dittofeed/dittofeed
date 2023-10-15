@@ -1,6 +1,7 @@
 import backendConfig from "backend-lib/src/config";
 import { FastifyInstance } from "fastify";
 
+import broadcastsController from "../controllers/broadcastsController";
 import contentController from "../controllers/contentController";
 import debugController from "../controllers/debugController";
 import eventsController from "../controllers/eventsController";
@@ -39,6 +40,9 @@ export default async function router(fastify: FastifyInstance) {
           prefix: "/subscription-groups",
         }),
         f.register(userPropertiesController, { prefix: "/user-properties" }),
+        f.register(broadcastsController, {
+          prefix: "/broadcasts",
+        }),
         f.register(usersController, { prefix: "/users" }),
         // mount redundant webhooks controller at root level for backwards
         // compatibility. this is the one exception to this route namespace being auth'd.

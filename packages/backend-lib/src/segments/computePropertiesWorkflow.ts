@@ -106,7 +106,6 @@ export async function computePropertiesWorkflow({
         tableVersion,
         currentTime,
         workspaceId,
-        newComputedIds: Object.fromEntries(newJourneysDiff),
         subscribedJourneys: journeys,
         userProperties,
       });

@@ -1,43 +1,35 @@
-import { toUserPropertyResource } from "backend-lib/src/userProperties";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import {
-  CompletionStatus,
-  EmailTemplateResource,
-} from "isomorphic-lib/src/types";
-import { LoremIpsum } from "lorem-ipsum";
+import { enrichMessageTemplate } from "backend-lib/src/messageTemplates";
+import { enrichUserProperty } from "backend-lib/src/userProperties";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import React from "react";
-import { v4 as uuid, validate } from "uuid";
+import { validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
-import EmailEditor, {
-  defaultEmailMessageState,
-  defaultInitialUserProperties,
-} from "../../../components/messages/emailEditor";
+import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
+import { getEmailEditorState } from "../../../lib/email";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
-import { PreloadedState, PropsWithInitialState } from "../../../lib/types";
+import { PropsWithInitialState } from "../../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
-    let serverInitialState: PreloadedState;
-    const id = ctx.params?.id;
+    const templateId = ctx.params?.id;
 
-    if (typeof id !== "string" || !validate(id)) {
-      serverInitialState = defaultEmailMessageState(uuid());
-
+    if (typeof templateId !== "string" || !validate(templateId)) {
       return {
         notFound: true,
       };
     }
     const workspaceId = dfContext.workspace.id;
-    const [emailMessage, userProperties] = await Promise.all([
+
+    const [emailTemplate, userProperties] = await Promise.all([
       prisma().messageTemplate.findUnique({
         where: {
-          id,
+          id: templateId,
         },
       }),
       prisma().userProperty.findMany({
@@ -46,67 +38,21 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         },
       }),
     ]);
-    const lorem = new LoremIpsum({
-      sentencesPerParagraph: {
-        max: 8,
-        min: 4,
-      },
-      wordsPerSentence: {
-        max: 16,
-        min: 4,
-      },
-    });
 
-    const emailMessageUserProperties = {
-      ...userProperties.reduce<Record<string, string>>((memo, up) => {
-        memo[up.name] = lorem.generateWords(1);
-        return memo;
-      }, {}),
-      ...defaultInitialUserProperties,
-    };
-    const emailMessageUserPropertiesJSON = JSON.stringify(
-      emailMessageUserProperties,
-      null,
-      2
-    );
-
-    serverInitialState = {
-      ...defaultEmailMessageState(id),
-      emailMessageUserProperties,
-      emailMessageUserPropertiesJSON,
-    };
-
-    serverInitialState.userProperties = {
-      type: CompletionStatus.Successful,
-      value: userProperties.flatMap((up) =>
-        toUserPropertyResource(up).unwrapOr([])
+    const serverInitialState = getEmailEditorState({
+      emailTemplate: emailTemplate
+        ? unwrap(enrichMessageTemplate(emailTemplate))
+        : null,
+      userProperties: userProperties.flatMap((p) =>
+        unwrap(enrichUserProperty(p))
       ),
-    };
-
-    if (emailMessage && emailMessage.workspaceId !== workspaceId) {
+      templateId,
+    });
+    if (!serverInitialState) {
       return {
         notFound: true,
       };
     }
-
-    const definitionResult = schemaValidateWithErr(
-      emailMessage?.definition,
-      EmailTemplateResource
-    );
-    if (emailMessage && definitionResult.isOk()) {
-      const { from, subject, body, replyTo } = definitionResult.value;
-
-      Object.assign(serverInitialState, {
-        emailMessageTitle: emailMessage.name,
-        emailMessageFrom: from,
-        emailMessageSubject: subject,
-        emailMessageBody: body,
-      });
-      if (replyTo) {
-        serverInitialState.emailMessageReplyTo = replyTo;
-      }
-    }
-
     return {
       props: addInitialStateToProps({
         dfContext,
@@ -122,6 +68,9 @@ export default function MessageEditor() {
   const messageId =
     typeof router.query.id === "string" ? router.query.id : null;
 
+  if (!messageId) {
+    return null;
+  }
   return (
     <>
       <Head>
@@ -130,7 +79,7 @@ export default function MessageEditor() {
       </Head>
       <main>
         <MainLayout>
-          <EmailEditor key={messageId} />
+          <EmailEditor templateId={messageId} />
         </MainLayout>
       </main>
     </>

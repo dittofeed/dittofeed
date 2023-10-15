@@ -1,5 +1,6 @@
 import { ListItem, ListItemText } from "@mui/material";
-import { BroadcastResource, CompletionStatus } from "isomorphic-lib/src/types";
+import { toBroadcastResource } from "backend-lib/src/broadcasts";
+import { BroadcastResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 
 import DashboardContent from "../components/dashboardContent";
@@ -23,23 +24,13 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       where: {
         workspaceId: workspace.id,
       },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
-    appState.broadcasts = {
-      type: CompletionStatus.Successful,
-      value: broadcasts.flatMap((b) =>
-        b.segmentId
-          ? {
-              id: b.id,
-              name: b.name,
-              workspaceId: b.workspaceId,
-              triggeredAt: b.triggeredAt?.getTime(),
-              createdAt: b.createdAt.getTime(),
-              segmentId: b.segmentId,
-            }
-          : []
-      ),
-    };
+    appState.broadcasts = broadcasts.map(toBroadcastResource);
+
     return {
       props: addInitialStateToProps({
         props: {},
@@ -50,9 +41,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 function BroadcastItem({ broadcast }: { broadcast: BroadcastResource }) {
+  const path = broadcast.status === "NotStarted" ? "segment" : "review";
+  const href = `/dashboard/broadcasts/${path}/${broadcast.id}`;
   return (
     <ListItem>
-      <ResourceListItemButton href={`/dashboard/broadcasts/${broadcast.id}`}>
+      <ResourceListItemButton href={href}>
         <ListItemText>{broadcast.name}</ListItemText>
       </ResourceListItemButton>
     </ListItem>
@@ -60,17 +53,13 @@ function BroadcastItem({ broadcast }: { broadcast: BroadcastResource }) {
 }
 
 export default function Broadcasts() {
-  const broadcastsResult = useAppStore((store) => store.broadcasts);
-  const broadcasts =
-    broadcastsResult.type === CompletionStatus.Successful
-      ? broadcastsResult.value
-      : [];
+  const broadcasts = useAppStore((store) => store.broadcasts);
 
   return (
     <DashboardContent>
       <ResourceListContainer
         title="Broadcasts"
-        newItemHref={(newItemId) => `/broadcasts/${newItemId}`}
+        newItemHref={(newItemId) => `/broadcasts/segment/${newItemId}`}
       >
         {broadcasts.length ? (
           <ResourceList>

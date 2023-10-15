@@ -68,8 +68,8 @@ export type AppState = {
   member: WorkspaceMemberResource | null;
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
-  broadcasts: RequestStatus<BroadcastResource[], Error>;
-  subscriptionGroups: RequestStatus<SubscriptionGroupResource[], Error>;
+  broadcasts: BroadcastResource[];
+  subscriptionGroups: SubscriptionGroupResource[];
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   journeys: RequestStatus<JourneyResource[], Error>;
@@ -172,7 +172,9 @@ export type EditedBroadcast = Optional<
 export interface BroadcastEditorContents {
   editedBroadcast: EditedBroadcast | null;
   broadcastUpdateRequest: EphemeralRequestStatus<Error>;
+  broadcastTriggerRequest: EphemeralRequestStatus<Error>;
   setBroadcastUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
+  setBroadcastTriggerRequest: (request: EphemeralRequestStatus<Error>) => void;
   updateEditedBroadcast: (broadcast: Partial<BroadcastResource>) => void;
 }
 

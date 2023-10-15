@@ -118,13 +118,16 @@ export async function upsertMessageTemplate(
 
 export async function findMessageTemplates({
   workspaceId,
+  includeInternal,
 }: {
   workspaceId: string;
+  includeInternal?: boolean;
 }): Promise<MessageTemplateResource[]> {
   return (
     await prisma().messageTemplate.findMany({
       where: {
         workspaceId,
+        resourceType: includeInternal ? undefined : "Declarative",
       },
     })
   ).map((mt) => unwrap(enrichMessageTemplate(mt)));
