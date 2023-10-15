@@ -30,20 +30,19 @@ import {
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
+export type SubscriptionGroupWithAssignment = SubscriptionGroup & {
+  Segment: (Segment & {
+    SegmentAssignment: SegmentAssignment[];
+  })[];
+};
+
 export async function getSubscriptionGroupWithAssignment({
   subscriptionGroupId,
   userId,
 }: {
   subscriptionGroupId: string;
   userId: string;
-}): Promise<
-  | (SubscriptionGroup & {
-      Segment: (Segment & {
-        SegmentAssignment: SegmentAssignment[];
-      })[];
-    })
-  | null
-> {
+}): Promise<SubscriptionGroupWithAssignment | null> {
   const sg = await prisma().subscriptionGroup.findUnique({
     where: {
       id: subscriptionGroupId,

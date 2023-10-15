@@ -1920,9 +1920,23 @@ export const MessageServiceFailure = Type.Object({
 
 export type MessageServiceFailure = Static<typeof MessageServiceFailure>;
 
+export enum MessageSkippedType {
+  SubscriptionState = "SubscriptionState",
+}
+
+export const MessageSkippedFailure = Type.Object({
+  type: Type.Literal(InternalEventType.MessageSkipped),
+  variant: Type.Object({
+    type: Type.Literal(MessageSkippedType.SubscriptionState),
+  }),
+});
+
+export type MessageSkippedFailure = Static<typeof MessageSkippedFailure>;
+
 export const MessageSendFailure = Type.Union([
   MessageSendBadConfiguration,
   MessageServiceFailure,
+  MessageSkippedFailure,
 ]);
 
 export type MessageSendFailure = Static<typeof MessageSendFailure>;
@@ -1933,3 +1947,12 @@ export const MessageSendResult = JsonResult(
 );
 
 export type MessageSendResult = Static<typeof MessageSendResult>;
+
+export enum SubscriptionChange {
+  Subscribe = "Subscribe",
+  Unsubscribe = "Unsubscribe",
+}
+
+export const UserSubscriptionAction = Nullable(Type.Enum(SubscriptionChange));
+
+export type UserSubscriptionAction = Static<typeof UserSubscriptionAction>;
