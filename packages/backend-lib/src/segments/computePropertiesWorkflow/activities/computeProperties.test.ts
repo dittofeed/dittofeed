@@ -1,5 +1,4 @@
 import { Segment, Workspace } from "@prisma/client";
-import { uuid4 } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { mapValues } from "remeda";
@@ -2415,45 +2414,6 @@ describe("compute properties activities", () => {
 
             expect(signalWithStart).not.toHaveBeenCalled();
             expect(signal).not.toHaveBeenCalled();
-          });
-        });
-
-        describe("when a new journey was created in the current polling period", () => {
-          let newlyCreatedJourney: EnrichedJourney;
-          let userId2: string;
-
-          beforeEach(async () => {
-            userId2 = `user-2-${uuid4()}`;
-            newlyCreatedJourney = unwrap(
-              enrichJourney(
-                await prisma().journey.create({
-                  data: {
-                    workspaceId: workspace.id,
-                    name: `user-journey-${randomUUID()}`,
-                    definition: basicJourneyDefinition(uuid4(), segment.id),
-                  },
-                })
-              )
-            );
-
-            // insert additional events within the second polling period
-            await insertUserEvents({
-              tableVersion,
-              workspaceId: workspace.id,
-              events: [
-                {
-                  messageId: randomUUID(),
-                  processingTime: "2022-01-01 00:15:50",
-                  messageRaw: segmentIdentifyEvent({
-                    userId: userId2,
-                    timestamp: "2022-01-01 00:15:00",
-                    traits: {
-                      plan: "paid",
-                    },
-                  }),
-                },
-              ],
-            });
           });
         });
       });

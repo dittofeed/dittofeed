@@ -17,9 +17,11 @@ export type SubscriptionGroupChangeHandler = (
 export default function SubscriptionGroupAutocomplete({
   channel,
   subscriptionGroupId,
+  disabled,
   handler,
 }: {
   subscriptionGroupId?: string;
+  disabled?: boolean;
   channel: ChannelType;
   handler: SubscriptionGroupChangeHandler;
 }) {
@@ -34,6 +36,7 @@ export default function SubscriptionGroupAutocomplete({
     <Autocomplete
       value={subscriptionGroup}
       options={subscriptionGroupItems}
+      disabled={disabled}
       getOptionLabel={getSubscriptionGroupLabel}
       onChange={(_event, sg) => {
         handler(sg);

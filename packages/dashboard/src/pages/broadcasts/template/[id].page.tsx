@@ -213,7 +213,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
     const started = broadcast?.status !== "NotStarted";
 
     useUpdateEffect(() => {
-      if (journeys.type !== CompletionStatus.Successful) {
+      if (journeys.type !== CompletionStatus.Successful || started) {
         return;
       }
       const journey = journeys.value.find((j) => j.id === journeyId);
@@ -269,9 +269,6 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
             hideTitle
             saveOnUpdate
             templateId={templateId}
-            sx={{
-              height: "100%",
-            }}
           />
         );
         break;
@@ -309,6 +306,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
           <FormControl>
             <InputLabel id="broadcast-channel-label">Channel</InputLabel>
             <Select
+              disabled={started}
               label="Channel"
               labelId="broadcast-channel-label"
               sx={{
@@ -338,6 +336,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
           <Box sx={{ minWidth: "12rem" }}>
             <SubscriptionGroupAutocomplete
               subscriptionGroupId={subscriptionGroupId ?? undefined}
+              disabled={started}
               channel={channel}
               handler={(sg) => {
                 setSubscriptionGroupId(sg?.id ?? null);

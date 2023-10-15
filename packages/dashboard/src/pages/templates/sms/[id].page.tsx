@@ -43,6 +43,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         dfContext,
         serverInitialState: getSmsEditorState({
           smsTemplate,
+          templateId: id,
           userProperties: userProperties.map((up) =>
             unwrap(toUserPropertyResource(up))
           ),

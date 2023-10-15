@@ -41,11 +41,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 function BroadcastItem({ broadcast }: { broadcast: BroadcastResource }) {
+  const path = broadcast.status === "NotStarted" ? "segment" : "review";
+  const href = `/dashboard/broadcasts/${path}/${broadcast.id}`;
   return (
     <ListItem>
-      <ResourceListItemButton
-        href={`/dashboard/broadcasts/review/${broadcast.id}`}
-      >
+      <ResourceListItemButton href={href}>
         <ListItemText>{broadcast.name}</ListItemText>
       </ResourceListItemButton>
     </ListItem>
