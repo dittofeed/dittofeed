@@ -6,11 +6,16 @@ import prisma from "./prisma";
 import {
   ChannelType,
   EmailTemplate,
+  MessageSendResult,
   MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
+  SubscriptionChange,
+  SubscriptionGroupType,
   UpsertMessageTemplateResource,
+  UserSubscriptionAction,
 } from "./types";
+import { UserPropertyAssignments } from "./userProperties";
 
 export function enrichMessageTemplate({
   id,
@@ -132,3 +137,19 @@ export async function findMessageTemplates({
     })
   ).map((mt) => unwrap(enrichMessageTemplate(mt)));
 }
+
+export async function sendMessage({
+  workspaceId,
+  templateId,
+  channel,
+  userPropertyAssignments,
+  subscriptionGroupAction,
+  subscriptionGroupType,
+}: {
+  workspaceId: string;
+  templateId: string;
+  userPropertyAssignments: UserPropertyAssignments;
+  channel: ChannelType;
+  subscriptionGroupAction: UserSubscriptionAction;
+  subscriptionGroupType: SubscriptionGroupType;
+}): Promise<MessageSendResult> {}
