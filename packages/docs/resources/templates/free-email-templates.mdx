@@ -4,8 +4,15 @@ title: "Free Email Templates"
 
 For a quick way to get started sending messages, copy/paste these templates into any editor that is configured to render MJML, such as the Dittofeed template editor.
 
-<CodeGroup>
+## Abandoned Cart
 
+Abandoned cart emails are a powerful tool for e-commerce businesses. They are sent to customers who have added products to their cart but did not complete the purchase. These emails serve as a reminder to customers about their unfinished transactions and often include a call to action to encourage them to complete their purchase. They can significantly help in recovering lost sales and improving conversion rates.
+
+<Frame>
+  ![Abandoned Cart](/images/cart_abandon_template.png)
+</Frame>
+
+<Accordion title="Code.">
 ```html cart_abandon_template.mjml
 <mjml>
   <mj-body>
@@ -130,10 +137,20 @@ For a quick way to get started sending messages, copy/paste these templates into
       <mj-column></mj-column>
     </mj-section>
   </mj-body>
-</mjml>
+</mjml>  
 ```
+</Accordion>
 
-```html drip_template.mjml
+## New Product Release
+
+New product release emails are a great way to announce new products to your customers, especially if they're targetted based on the their previous purchasing behavior. They can be used to build excitement and anticipation for the new product and drive sales.
+
+<Frame>
+  ![New Product Release](/images/drip_template.png)
+</Frame>
+
+<Accordion title="code">
+```html new_product_announcement.mjml
 <mjml>
   <mj-body>
     <!-- Company Header -->
@@ -274,7 +291,17 @@ For a quick way to get started sending messages, copy/paste these templates into
   </mj-body>
 </mjml>
 ```
+</Accordion>
 
+## Discount Code Drip
+
+Discount code drip emails are a great way to reward your customers for their loyalty. They can be used to encourage repeat purchases and increase customer lifetime value.
+
+<Frame>
+![Discount Code Drip](/images/discount_code_drip_template.png)
+</Frame>
+
+<Accordion title="Code.">
 ```html discount_code_drip_template.mjml
 <mjml>
   <mj-body>
@@ -411,25 +438,4 @@ For a quick way to get started sending messages, copy/paste these templates into
   </mj-body>
 </mjml>
 ```
-
-</CodeGroup>
-
->
-
-Cart Abandon Render
-
-<Frame>
-  <img src="/images/cart_abandon_template.png" />
-</Frame>
-
-Drip Render
-
-<Frame>
-  <img src="/images/drip_template.png" />
-</Frame>
-
-Discount Code Drip Render
-
-<Frame>
-  <img src="/images/discount_code_drip_template.png" />
-</Frame>
+</Accordion>
