@@ -118,7 +118,6 @@ model Broadcast {
   messageTemplateId String?           @db.Uuid
   name              String
   status            DBBroadcastStatus @default(NotStarted)
-  draft             Json?
   triggeredAt       DateTime?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
