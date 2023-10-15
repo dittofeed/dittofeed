@@ -51,6 +51,7 @@ import { AppContents, EmailMessageEditorState } from "../../lib/types";
 import { useUpdateEffect } from "../../lib/useUpdateEffect";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
+import LoadingModal from "../loadingModal";
 import defaultEmailBody from "./defaultEmailBody";
 
 function TransitionInner(
@@ -843,6 +844,9 @@ export default function EmailEditor({
               Publish Changes
             </Button>
           )}
+          <LoadingModal openTitle="Send Test Message" onSubmit={() => {}}>
+            Send test email body
+          </LoadingModal>
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box
