@@ -1,16 +1,22 @@
+import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
+import logger from "./logger";
 import prisma from "./prisma";
 import {
+  BackendMessageSendResult,
+  BadWorkspaceConfigurationType,
   ChannelType,
   EmailTemplate,
+  InternalEventType,
+  MessageSendFailure,
   MessageSendResult,
   MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
-  SubscriptionChange,
+  Secret,
   SubscriptionGroupType,
   UpsertMessageTemplateResource,
   UserSubscriptionAction,
@@ -138,6 +144,75 @@ export async function findMessageTemplates({
   ).map((mt) => unwrap(enrichMessageTemplate(mt)));
 }
 
+async function getSendMessageModels({
+  templateId,
+  workspaceId,
+  channel,
+}: {
+  workspaceId: string;
+  templateId: string;
+  channel: ChannelType;
+}): Promise<
+  Result<
+    {
+      messageTemplate: MessageTemplateResource;
+      subscriptionGroupSecret: Secret | null;
+    },
+    MessageSendFailure
+  >
+> {
+  const [messageTemplateResult, subscriptionGroupSecret] = await Promise.all([
+    findMessageTemplate({
+      id: templateId,
+      channel,
+    }),
+    prisma().secret.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: SUBSCRIPTION_SECRET_NAME,
+        },
+      },
+    }),
+  ]);
+  if (messageTemplateResult.isErr()) {
+    logger().error(
+      {
+        templateId,
+        workspaceId,
+        err: messageTemplateResult.error,
+      },
+      "failed to parse message template definition"
+    );
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateMisconfigured,
+      },
+    });
+  }
+  const messageTemplate = messageTemplateResult.value;
+  if (!messageTemplate) {
+    logger().error(
+      {
+        templateId,
+        workspaceId,
+      },
+      "message template not found"
+    );
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateNotFound,
+      },
+    });
+  }
+  return ok({
+    messageTemplate: messageTemplateResult.value,
+    subscriptionGroupSecret,
+  });
+}
+
 export async function sendMessage({
   workspaceId,
   templateId,
@@ -152,4 +227,4 @@ export async function sendMessage({
   channel: ChannelType;
   subscriptionGroupAction: UserSubscriptionAction;
   subscriptionGroupType: SubscriptionGroupType;
-}): Promise<MessageSendResult> {}
+}): Promise<BackendMessageSendResult> {}
