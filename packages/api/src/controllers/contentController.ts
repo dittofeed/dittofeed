@@ -141,7 +141,7 @@ export default async function contentController(fastify: FastifyInstance) {
       if (result.isOk()) {
         return reply.status(200).send({
           type: JsonResultType.Ok,
-          value: null,
+          value: result.value,
         });
       }
       if (
@@ -189,16 +189,12 @@ export default async function contentController(fastify: FastifyInstance) {
           result.error.variant.type ===
             BadWorkspaceConfigurationType.MessageServiceProviderNotFound)
       ) {
-        const responseData = JSON.stringify(
-          R.omit(result.error.variant, ["type"])
-        );
         return reply.status(200).send({
           type: JsonResultType.Err,
           err: {
             suggestions: [
               "Unable to send message, because Your message service provider is not configured correctly.",
             ],
-            responseData,
           },
         });
       }

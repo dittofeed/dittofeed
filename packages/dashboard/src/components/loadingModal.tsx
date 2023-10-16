@@ -17,6 +17,7 @@ export default function LoadingModal({
   submitDisabled,
   submitTitle,
   onSubmit,
+  onClose,
 }: {
   dialogTitle?: string;
   openTitle: string;
@@ -26,6 +27,7 @@ export default function LoadingModal({
   openDisabled?: boolean;
   submitDisabled?: boolean;
   onSubmit: () => void;
+  onClose?: () => void;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   return (
@@ -39,12 +41,13 @@ export default function LoadingModal({
       </Button>
       <Dialog open={modalOpen} onClose={() => setModalOpen(false)}>
         <DialogTitle>{dialogTitle ?? openTitle}</DialogTitle>
-        <DialogContent dividers>{children}</DialogContent>
+        {children && <DialogContent dividers>{children}</DialogContent>}
         <DialogActions>
           <Button
             autoFocus
             onClick={() => {
               setModalOpen(false);
+              onClose?.();
             }}
           >
             Cancel
@@ -54,7 +57,6 @@ export default function LoadingModal({
             disabled={submitDisabled}
             onClick={() => {
               onSubmit();
-              setModalOpen(false);
             }}
           >
             {submitTitle ?? "Submit"}

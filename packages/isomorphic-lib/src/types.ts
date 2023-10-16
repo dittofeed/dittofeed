@@ -1733,25 +1733,6 @@ export interface CompatibleJourney {
   definition: JourneyDefinition;
 }
 
-export const MessageTemplateTestRequest = Type.Object({
-  workspaceId: Type.String(),
-  templateId: Type.String(),
-  channel: Type.Enum(ChannelType),
-  userProperties: Type.Record(Type.String(), Type.Any()),
-});
-
-export type MessageTemplateTestRequest = Static<
-  typeof MessageTemplateTestRequest
->;
-
-export const MessageTemplateTestResponse = JsonResult(
-  Type.Null(),
-  Type.Object({
-    suggestions: Type.Array(Type.String()),
-    responseData: Type.Optional(Type.String()),
-  })
-);
-
 export const MessageTemplateTestErrorResponse = Type.Object({});
 
 export type MessageTemplateTestResponse = Static<
@@ -1801,6 +1782,11 @@ export type EmailServiceProviderSuccess = Static<
 export const MessageEmailSuccess = Type.Object({
   type: Type.Literal(ChannelType.Email),
   provider: EmailServiceProviderSuccess,
+  from: Type.String(),
+  body: Type.String(),
+  subject: Type.String(),
+  to: Type.String(),
+  replyTo: Type.Optional(Type.String()),
 });
 
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
@@ -2004,3 +1990,22 @@ export type BackendMessageSendResult = Result<
   MessageSendSuccess,
   MessageSendFailure
 >;
+
+export const MessageTemplateTestRequest = Type.Object({
+  workspaceId: Type.String(),
+  templateId: Type.String(),
+  channel: Type.Enum(ChannelType),
+  userProperties: Type.Record(Type.String(), Type.Any()),
+});
+
+export type MessageTemplateTestRequest = Static<
+  typeof MessageTemplateTestRequest
+>;
+
+export const MessageTemplateTestResponse = JsonResult(
+  MessageSendSuccess,
+  Type.Object({
+    suggestions: Type.Array(Type.String()),
+    responseData: Type.Optional(Type.String()),
+  })
+);

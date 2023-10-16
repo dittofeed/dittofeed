@@ -4,6 +4,7 @@ import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { Fullscreen, FullscreenExit } from "@mui/icons-material";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -29,8 +30,11 @@ import {
   ChannelType,
   CompletionStatus,
   EmailTemplateResource,
+  EphemeralRequestStatus,
   JsonResultType,
   MessageTemplateResource,
+  MessageTemplateTestRequest,
+  MessageTemplateTestResponse,
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
   UpsertMessageTemplateResource,
@@ -39,6 +43,8 @@ import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -113,6 +119,32 @@ const BodyBox = styled(Box, {
           borderBottomRightRadius: theme.shape.borderRadius * 1,
         }),
   })
+);
+
+interface EmailEditorStore {
+  messageTestRequest: EphemeralRequestStatus<Error>;
+  setMessageTestRequest: (request: EphemeralRequestStatus<Error>) => void;
+  testResponse: MessageTemplateTestResponse | null;
+  setTestResponse: (response: MessageTemplateTestResponse | null) => void;
+}
+
+export const useEmailEditorStore = create(
+  immer<EmailEditorStore>((set) => ({
+    messageTestRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    setMessageTestRequest: (request) => {
+      set((state) => {
+        state.messageTestRequest = request;
+      });
+    },
+    testResponse: null,
+    setTestResponse: (response) => {
+      set((state) => {
+        state.testResponse = response;
+      });
+    },
+  }))
 );
 
 function upsert({
@@ -227,7 +259,14 @@ export default function EmailEditor({
   const [previewSubject, setRenderedSubject] = useState<string>("");
   const [previewEmailFrom, setRenderedFrom] = useState<string>("");
   const [previewEmailReplyTo, setRenderedReplyTo] = useState<string>("");
-
+  const messageTestRequest = useEmailEditorStore(
+    (store) => store.messageTestRequest
+  );
+  const setMessageTestRequest = useEmailEditorStore(
+    (store) => store.setMessageTestRequest
+  );
+  const testResponse = useEmailEditorStore((store) => store.testResponse);
+  const setTestResponse = useEmailEditorStore((store) => store.setTestResponse);
   const [fullscreen, setFullscreen] = useState<Fullscreen>(null);
   const {
     apiBase,
@@ -785,6 +824,67 @@ export default function EmailEditor({
     </Stack>
   );
 
+  const submitTestData: MessageTemplateTestRequest = {
+    channel: ChannelType.Email,
+    workspaceId: workspace.id,
+    templateId: messageId,
+    userProperties: mockUserProperties,
+  };
+
+  // TODO use draft
+  const submitTest = apiRequestHandlerFactory({
+    request: messageTestRequest,
+    setRequest: setMessageTestRequest,
+    responseSchema: MessageTemplateTestResponse,
+    setResponse: setTestResponse,
+    onSuccessNotice: `Attempted test message.`,
+    onFailureNoticeHandler: () => `API Error: Failed to attempt test message.`,
+    requestConfig: {
+      method: "POST",
+      url: `${apiBase}/api/content/templates/test`,
+      data: submitTestData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
+
+  let testResponseEl: React.ReactNode = null;
+  if (testResponse) {
+    if (
+      testResponse.type === JsonResultType.Ok &&
+      testResponse.value.type === ChannelType.Email
+    ) {
+      testResponseEl = (
+        <Alert severity="success">
+          Message was sent successfully to {testResponse.value.to}
+        </Alert>
+      );
+    } else if (testResponse.type === JsonResultType.Err) {
+      testResponseEl = (
+        <Stack spacing={1}>
+          <Alert severity="error">
+            Failed to send test message. Suggestions:
+          </Alert>
+          {testResponse.err.suggestions.map((suggestion, i) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <Alert key={i} severity="warning">
+              {suggestion}
+            </Alert>
+          ))}
+          <Typography
+            sx={{
+              fontFamily: "monospace",
+              backgroundColor: theme.palette.grey[100],
+            }}
+          >
+            <code>{testResponse.err.responseData}</code>
+          </Typography>
+        </Stack>
+      );
+    }
+  }
+
   return (
     <>
       <Stack
@@ -844,8 +944,12 @@ export default function EmailEditor({
               Publish Changes
             </Button>
           )}
-          <LoadingModal openTitle="Send Test Message" onSubmit={() => {}}>
-            Send test email body
+          <LoadingModal
+            openTitle="Send Test Message"
+            onSubmit={submitTest}
+            onClose={() => setTestResponse(null)}
+          >
+            {testResponseEl}
           </LoadingModal>
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>

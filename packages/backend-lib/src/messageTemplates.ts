@@ -416,11 +416,12 @@ export async function sendEmail({
     });
   }
   const { from, subject, body, replyTo } = renderedValuesResult.value;
+  const to = identifier;
 
   switch (defaultEmailProvider.emailProvider.type) {
     case EmailProviderType.Sendgrid: {
       const mailData: MailDataRequired = {
-        to: identifier,
+        to,
         from,
         subject,
         html: body,
@@ -444,7 +445,8 @@ export async function sendEmail({
             type: ChannelType.Email,
             provider: {
               type: EmailProviderType.Sendgrid,
-              body: result.error.response.body,
+              // Necessary because the types on sendgrid's lib are wrong
+              body: JSON.stringify(result.error.response.body, null, 2),
               status: result.error.code,
             },
           },
@@ -452,6 +454,11 @@ export async function sendEmail({
       }
       return ok({
         type: ChannelType.Email,
+        from,
+        body,
+        to,
+        subject,
+        replyTo,
         provider: {
           type: EmailProviderType.Sendgrid,
         },
@@ -460,6 +467,11 @@ export async function sendEmail({
     case EmailProviderType.Test:
       return ok({
         type: ChannelType.Email,
+        from,
+        body,
+        to,
+        subject,
+        replyTo,
         provider: {
           type: EmailProviderType.Test,
         },

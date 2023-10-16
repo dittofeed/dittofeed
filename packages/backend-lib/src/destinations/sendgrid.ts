@@ -15,6 +15,8 @@ import {
   SendgridEvent,
 } from "../types";
 
+// README the typescript types on this are wrong, body is not of type string,
+// it's a parsed JSON object
 function guardResponseError(e: unknown): sendgridMail.ResponseError {
   if (e instanceof responseError) {
     return e;
