@@ -9,6 +9,7 @@ import { sendMail as sendEmailSendgrid } from "./destinations/sendgrid";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
 import prisma from "./prisma";
+import { SubscriptionGroupDetails } from "./subscriptionGroups";
 import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
@@ -152,14 +153,12 @@ async function getSendMessageModels({
   templateId,
   workspaceId,
   channel,
-  subscriptionGroupAction,
-  subscriptionGroupType,
+  subscriptionGroupDetails,
 }: {
   workspaceId: string;
   templateId: string;
   channel: ChannelType;
-  subscriptionGroupAction: UserSubscriptionAction;
-  subscriptionGroupType: SubscriptionGroupType;
+  subscriptionGroupDetails?: SubscriptionGroupDetails;
 }): Promise<
   Result<
     {
@@ -169,31 +168,35 @@ async function getSendMessageModels({
     MessageSendFailure
   >
 > {
-  if (
-    subscriptionGroupType === SubscriptionGroupType.OptIn &&
-    subscriptionGroupAction !== UserSubscriptionAction.Subscribe
-  ) {
-    return err({
-      type: InternalEventType.MessageSkipped,
-      variant: {
-        type: MessageSkippedType.SubscriptionState,
-        action: subscriptionGroupAction,
-        subscriptionGroupType,
-      },
-    });
-  }
-  if (
-    subscriptionGroupType === SubscriptionGroupType.OptOut &&
-    subscriptionGroupAction === UserSubscriptionAction.Unsubscribe
-  ) {
-    return err({
-      type: InternalEventType.MessageSkipped,
-      variant: {
-        type: MessageSkippedType.SubscriptionState,
-        action: subscriptionGroupAction,
-        subscriptionGroupType,
-      },
-    });
+  if (subscriptionGroupDetails) {
+    const { type: subscriptionGroupType, action: subscriptionGroupAction } =
+      subscriptionGroupDetails;
+    if (
+      subscriptionGroupType === SubscriptionGroupType.OptIn &&
+      subscriptionGroupAction !== UserSubscriptionAction.Subscribe
+    ) {
+      return err({
+        type: InternalEventType.MessageSkipped,
+        variant: {
+          type: MessageSkippedType.SubscriptionState,
+          action: subscriptionGroupAction,
+          subscriptionGroupType,
+        },
+      });
+    }
+    if (
+      subscriptionGroupType === SubscriptionGroupType.OptOut &&
+      subscriptionGroupAction === UserSubscriptionAction.Unsubscribe
+    ) {
+      return err({
+        type: InternalEventType.MessageSkipped,
+        variant: {
+          type: MessageSkippedType.SubscriptionState,
+          action: subscriptionGroupAction,
+          subscriptionGroupType,
+        },
+      });
+    }
   }
 
   const [messageTemplateResult, subscriptionGroupSecret] = await Promise.all([
@@ -255,9 +258,7 @@ interface SendMessageParameters {
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
   channel: ChannelType;
-  subscriptionGroupAction: UserSubscriptionAction;
-  subscriptionGroupType: SubscriptionGroupType;
-  subscriptionGroupId: string;
+  subscriptionGroupDetails?: SubscriptionGroupDetails;
   messageTags?: Record<string, string>;
 }
 
@@ -309,9 +310,7 @@ export async function sendEmail({
   workspaceId,
   templateId,
   userPropertyAssignments,
-  subscriptionGroupId,
-  subscriptionGroupAction,
-  subscriptionGroupType,
+  subscriptionGroupDetails,
   messageTags,
 }: Omit<SendMessageParameters, "channel">): Promise<BackendMessageSendResult> {
   const [getSendModelsResult, defaultEmailProvider] = await Promise.all([
@@ -319,8 +318,7 @@ export async function sendEmail({
       workspaceId,
       templateId,
       channel: ChannelType.Email,
-      subscriptionGroupAction,
-      subscriptionGroupType,
+      subscriptionGroupDetails,
     }),
     prisma().defaultEmailProvider.findUnique({
       where: {
@@ -357,7 +355,7 @@ export async function sendEmail({
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
-    subscriptionGroupId,
+    subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
     templates: {
       from: {

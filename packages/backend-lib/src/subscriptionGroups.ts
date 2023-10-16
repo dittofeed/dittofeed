@@ -24,6 +24,7 @@ import {
   SubscriptionGroupType,
   SubscriptionParams,
   UpsertSubscriptionGroupResource,
+  UserSubscriptionAction,
   UserSubscriptionLookup,
   UserSubscriptionResource,
   UserSubscriptionsUpdate,
@@ -35,6 +36,33 @@ export type SubscriptionGroupWithAssignment = SubscriptionGroup & {
     SegmentAssignment: SegmentAssignment[];
   })[];
 };
+
+export interface SubscriptionGroupDetails {
+  id: string;
+  action: UserSubscriptionAction;
+  type: SubscriptionGroupType;
+}
+
+export function getSubscriptionGroupDetails(
+  sg: SubscriptionGroupWithAssignment
+): SubscriptionGroupDetails {
+  let action: UserSubscriptionAction;
+  if (sg.Segment[0]?.SegmentAssignment[0] !== undefined) {
+    action = sg.Segment[0].SegmentAssignment[0].inSegment
+      ? UserSubscriptionAction.Subscribe
+      : UserSubscriptionAction.Unsubscribe;
+  } else {
+    action = null;
+  }
+  return {
+    type:
+      sg.type === "OptIn"
+        ? SubscriptionGroupType.OptIn
+        : SubscriptionGroupType.OptOut,
+    action,
+    id: sg.id,
+  };
+}
 
 export async function getSubscriptionGroupWithAssignment({
   subscriptionGroupId,
