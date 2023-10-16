@@ -4,7 +4,7 @@ import {
   UpdateBroadcastRequest,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import React from "react";
+import React, { useMemo } from "react";
 import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { toPairs } from "remeda/dist/commonjs/toPairs";
 import { useDebounce } from "use-debounce";
@@ -43,15 +43,21 @@ export function BroadcastLayout({
     apiBase,
     broadcastUpdateRequest,
     setBroadcastUpdateRequest,
+    broadcasts,
     upsertBroadcast,
   } = useAppStorePick([
     "apiBase",
+    "broadcasts",
     "editedBroadcast",
     "updateEditedBroadcast",
     "broadcastUpdateRequest",
     "setBroadcastUpdateRequest",
     "upsertBroadcast",
   ]);
+  const broadcast = useMemo(
+    () => broadcasts.find((b) => b.id === id),
+    [broadcasts, id]
+  );
   const editable = broadcast?.status === "NotStarted";
   const stepIndex = order[activeStep];
   const sortedSteps = sortBy(
