@@ -1,28 +1,31 @@
+import { MailDataRequired } from "@sendgrid/mail";
+import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
+import { sendMail as sendEmailSendgrid } from "./destinations/sendgrid";
+import { renderLiquid } from "./liquid";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
   ChannelType,
+  EmailProviderType,
   EmailTemplate,
   InternalEventType,
   MessageSendFailure,
+  MessageSkippedType,
   MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
-  Secret,
   SubscriptionGroupType,
   UpsertMessageTemplateResource,
   UserSubscriptionAction,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
-import { renderLiquid } from "./liquid";
-import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 
 export function enrichMessageTemplate({
   id,
@@ -160,19 +163,50 @@ async function getSendMessageModels({
   templateId,
   workspaceId,
   channel,
+  subscriptionGroupAction,
+  subscriptionGroupType,
 }: {
   workspaceId: string;
   templateId: string;
   channel: ChannelType;
+  subscriptionGroupAction: UserSubscriptionAction;
+  subscriptionGroupType: SubscriptionGroupType;
 }): Promise<
   Result<
     {
       messageTemplate: MessageTemplateResource;
-      subscriptionGroupSecret: Secret | null;
+      subscriptionGroupSecret: string | null;
     },
     MessageSendFailure
   >
 > {
+  if (
+    subscriptionGroupType === SubscriptionGroupType.OptIn &&
+    subscriptionGroupAction !== UserSubscriptionAction.Subscribe
+  ) {
+    return err({
+      type: InternalEventType.MessageSkipped,
+      variant: {
+        type: MessageSkippedType.SubscriptionState,
+        action: subscriptionGroupAction,
+        subscriptionGroupType,
+      },
+    });
+  }
+  if (
+    subscriptionGroupType === SubscriptionGroupType.OptOut &&
+    subscriptionGroupAction === UserSubscriptionAction.Unsubscribe
+  ) {
+    return err({
+      type: InternalEventType.MessageSkipped,
+      variant: {
+        type: MessageSkippedType.SubscriptionState,
+        action: subscriptionGroupAction,
+        subscriptionGroupType,
+      },
+    });
+  }
+
   const [messageTemplateResult, subscriptionGroupSecret] = await Promise.all([
     findMessageTemplate({
       id: templateId,
@@ -188,18 +222,20 @@ async function getSendMessageModels({
     }),
   ]);
   if (messageTemplateResult.isErr()) {
+    const message = "failed to parse message template definition";
     logger().error(
       {
         templateId,
         workspaceId,
         err: messageTemplateResult.error,
       },
-      "failed to parse message template definition"
+      message
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
         type: BadWorkspaceConfigurationType.MessageTemplateMisconfigured,
+        message,
       },
     });
   }
@@ -221,7 +257,7 @@ async function getSendMessageModels({
   }
   return ok({
     messageTemplate: messageTemplateResult.value,
-    subscriptionGroupSecret,
+    subscriptionGroupSecret: subscriptionGroupSecret?.value ?? null,
   });
 }
 
@@ -233,6 +269,7 @@ interface SendMessageParameters {
   subscriptionGroupAction: UserSubscriptionAction;
   subscriptionGroupType: SubscriptionGroupType;
   subscriptionGroupId: string;
+  messageTags?: Record<string, string>;
 }
 
 type TemplateDictionary<T> = {
@@ -284,12 +321,17 @@ export async function sendEmail({
   templateId,
   userPropertyAssignments,
   subscriptionGroupId,
+  subscriptionGroupAction,
+  subscriptionGroupType,
+  messageTags,
 }: Omit<SendMessageParameters, "channel">): Promise<BackendMessageSendResult> {
   const [getSendModelsResult, defaultEmailProvider] = await Promise.all([
     getSendMessageModels({
       workspaceId,
       templateId,
       channel: ChannelType.Email,
+      subscriptionGroupAction,
+      subscriptionGroupType,
     }),
     prisma().defaultEmailProvider.findUnique({
       where: {
@@ -322,9 +364,10 @@ export async function sendEmail({
       },
     });
   }
+  const identifierKey = CHANNEL_IDENTIFIERS[ChannelType.Email];
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,
-    identifierKey: CHANNEL_IDENTIFIERS[ChannelType.Email],
+    identifierKey,
     subscriptionGroupId,
     workspaceId,
     templates: {
@@ -338,8 +381,21 @@ export async function sendEmail({
         contents: messageTemplate.definition.body,
         mjml: true,
       },
+      ...(messageTemplate.definition.replyTo
+        ? {
+            replyTo: {
+              contents: messageTemplate.definition.replyTo,
+            },
+          }
+        : undefined),
     },
+    secrets: subscriptionGroupSecret
+      ? {
+          [SUBSCRIPTION_SECRET_NAME]: subscriptionGroupSecret,
+        }
+      : undefined,
   });
+
   if (renderedValuesResult.isErr()) {
     const { error, field } = renderedValuesResult.error;
     return err({
@@ -350,6 +406,74 @@ export async function sendEmail({
         error,
       },
     });
+  }
+  const identifier = userPropertyAssignments[identifierKey];
+  if (!identifier || typeof identifier !== "string") {
+    return err({
+      type: InternalEventType.MessageSkipped,
+      variant: {
+        type: MessageSkippedType.MissingIdentifier,
+        identifierKey,
+      },
+    });
+  }
+  const { from, subject, body, replyTo } = renderedValuesResult.value;
+
+  switch (defaultEmailProvider.emailProvider.type) {
+    case EmailProviderType.Sendgrid: {
+      const mailData: MailDataRequired = {
+        to: identifier,
+        from,
+        subject,
+        html: body,
+        replyTo,
+        customArgs: {
+          workspaceId,
+          templateId,
+          ...messageTags,
+        },
+      };
+
+      const result = await sendEmailSendgrid({
+        mailData,
+        apiKey: defaultEmailProvider.emailProvider.apiKey,
+      });
+
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Email,
+            provider: {
+              type: EmailProviderType.Sendgrid,
+              body: result.error.response.body,
+              status: result.error.code,
+            },
+          },
+        });
+      }
+      return ok({
+        type: ChannelType.Email,
+        provider: {
+          type: EmailProviderType.Sendgrid,
+        },
+      });
+    }
+    case EmailProviderType.Test:
+      return ok({
+        type: ChannelType.Email,
+        provider: {
+          type: EmailProviderType.Test,
+        },
+      });
+    default: {
+      return err({
+        type: InternalEventType.BadWorkspaceConfiguration,
+        variant: {
+          type: BadWorkspaceConfigurationType.MessageServiceProviderNotFound,
+        },
+      });
+    }
   }
 }
 
