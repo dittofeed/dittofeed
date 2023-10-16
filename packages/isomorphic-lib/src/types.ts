@@ -1803,6 +1803,7 @@ export type MessageSendSuccess = Static<typeof MessageSendSuccess>;
 export enum BadWorkspaceConfigurationType {
   MessageTemplateNotFound = "MessageTemplateNotFound",
   MessageTemplateMisconfigured = "MessageTemplateMisconfigured",
+  MessageTemplateRenderError = "MessageTemplateRenderError",
   JourneyNotFound = "JourneyNotFound",
   SubscriptionGroupNotFound = "SubscriptionGroupNotFound",
   IdentifierNotFound = "IdentifierNotFound",
@@ -1819,6 +1820,14 @@ export const BadWorkspaceConfigurationVariant = Type.Union([
     type: Type.Literal(
       BadWorkspaceConfigurationType.MessageTemplateMisconfigured
     ),
+    message: Type.String(),
+  }),
+  Type.Object({
+    type: Type.Literal(
+      BadWorkspaceConfigurationType.MessageTemplateRenderError
+    ),
+    field: Type.String(),
+    error: Type.String(),
   }),
   Type.Object({
     type: Type.Literal(BadWorkspaceConfigurationType.JourneyNotFound),
