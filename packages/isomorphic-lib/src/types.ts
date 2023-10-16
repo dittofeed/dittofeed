@@ -1774,13 +1774,22 @@ export const MessageSmsSuccess = Type.Object({
 
 export type MessageSmsSuccess = Static<typeof MessageSmsSuccess>;
 
+export const EmailTestSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.Test),
+});
+
+export type EmailTestSuccess = Static<typeof EmailTestSuccess>;
+
 export const EmailSendgridSuccess = Type.Object({
   type: Type.Literal(EmailProviderType.Sendgrid),
 });
 
 export type EmailSendgridSuccess = Static<typeof EmailSendgridSuccess>;
 
-export const EmailServiceProviderSuccess = Type.Union([EmailSendgridSuccess]);
+export const EmailServiceProviderSuccess = Type.Union([
+  EmailSendgridSuccess,
+  EmailTestSuccess,
+]);
 
 export type EmailServiceProviderSuccess = Static<
   typeof EmailServiceProviderSuccess
@@ -1870,6 +1879,8 @@ export type MessageSendBadConfiguration = Static<
 
 export const MessageSendgridServiceFailure = Type.Object({
   type: Type.Literal(EmailProviderType.Sendgrid),
+  status: Type.Optional(Type.Number()),
+  body: Type.Optional(Type.String()),
 });
 
 export type MessageSendgridServiceFailure = Static<
@@ -1928,15 +1939,45 @@ export const MessageServiceFailure = Type.Object({
 
 export type MessageServiceFailure = Static<typeof MessageServiceFailure>;
 
+export enum SubscriptionChange {
+  Subscribe = "Subscribe",
+  Unsubscribe = "Unsubscribe",
+}
+
+export const UserSubscriptionAction = Nullable(Type.Enum(SubscriptionChange));
+
+export type UserSubscriptionAction = Static<typeof UserSubscriptionAction>;
+
 export enum MessageSkippedType {
   SubscriptionState = "SubscriptionState",
+  MissingIdentifier = "MissingIdentifier",
 }
+
+export const MessageSkippedSubscriptionState = Type.Object({
+  type: Type.Literal(MessageSkippedType.SubscriptionState),
+  action: UserSubscriptionAction,
+  subscriptionGroupType: Type.Enum(SubscriptionGroupType),
+});
+
+export type MessageSkippedSubscriptionState = Static<
+  typeof MessageSkippedSubscriptionState
+>;
+
+export const MessageSkippedMissingIdentifier = Type.Object({
+  type: Type.Literal(MessageSkippedType.MissingIdentifier),
+  identifierKey: Type.String(),
+});
+
+export const MessageSkippedVariant = Type.Union([
+  MessageSkippedSubscriptionState,
+  MessageSkippedMissingIdentifier,
+]);
+
+export type MessageSkippedVariant = Static<typeof MessageSkippedVariant>;
 
 export const MessageSkippedFailure = Type.Object({
   type: Type.Literal(InternalEventType.MessageSkipped),
-  variant: Type.Object({
-    type: Type.Literal(MessageSkippedType.SubscriptionState),
-  }),
+  variant: MessageSkippedVariant,
 });
 
 export type MessageSkippedFailure = Static<typeof MessageSkippedFailure>;
@@ -1960,12 +2001,3 @@ export type BackendMessageSendResult = Result<
   MessageSendSuccess,
   MessageSendFailure
 >;
-
-export enum SubscriptionChange {
-  Subscribe = "Subscribe",
-  Unsubscribe = "Unsubscribe",
-}
-
-export const UserSubscriptionAction = Nullable(Type.Enum(SubscriptionChange));
-
-export type UserSubscriptionAction = Static<typeof UserSubscriptionAction>;
