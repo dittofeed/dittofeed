@@ -12,7 +12,6 @@ import {
   EmailTemplate,
   InternalEventType,
   MessageSendFailure,
-  MessageSendResult,
   MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
@@ -22,6 +21,8 @@ import {
   UserSubscriptionAction,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
+import { renderLiquid } from "./liquid";
+import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 
 export function enrichMessageTemplate({
   id,
@@ -224,18 +225,143 @@ async function getSendMessageModels({
   });
 }
 
-export async function sendMessage({
-  workspaceId,
-  templateId,
-  channel,
-  userPropertyAssignments,
-  subscriptionGroupAction,
-  subscriptionGroupType,
-}: {
+interface SendMessageParameters {
   workspaceId: string;
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
   channel: ChannelType;
   subscriptionGroupAction: UserSubscriptionAction;
   subscriptionGroupType: SubscriptionGroupType;
-}): Promise<BackendMessageSendResult> {}
+  subscriptionGroupId: string;
+}
+
+type TemplateDictionary<T> = {
+  [K in keyof T]: {
+    contents?: string;
+    mjml?: boolean;
+  };
+};
+
+function renderValues<T extends TemplateDictionary<T>>({
+  templates,
+  ...rest
+}: Omit<Parameters<typeof renderLiquid>[0], "template"> & {
+  templates: T;
+}): Result<
+  { [K in keyof T]: string },
+  {
+    field: string;
+    error: string;
+  }
+> {
+  const result: Record<string, string> = {};
+
+  for (const key in templates) {
+    if (Object.prototype.hasOwnProperty.call(templates, key)) {
+      const { contents: template, mjml } = templates[key];
+      try {
+        result[key] = renderLiquid({
+          ...rest,
+          template,
+          mjml,
+        });
+      } catch (e) {
+        const error = e as Error;
+        return err({
+          field: key,
+          error: error.message,
+        });
+      }
+    }
+  }
+
+  const coercedResult = result as { [K in keyof T]: string };
+  return ok(coercedResult);
+}
+
+export async function sendEmail({
+  workspaceId,
+  templateId,
+  userPropertyAssignments,
+  subscriptionGroupId,
+}: Omit<SendMessageParameters, "channel">): Promise<BackendMessageSendResult> {
+  const [getSendModelsResult, defaultEmailProvider] = await Promise.all([
+    getSendMessageModels({
+      workspaceId,
+      templateId,
+      channel: ChannelType.Email,
+    }),
+    prisma().defaultEmailProvider.findUnique({
+      where: {
+        workspaceId,
+      },
+      include: { emailProvider: true },
+    }),
+  ]);
+  if (getSendModelsResult.isErr()) {
+    return err(getSendModelsResult.error);
+  }
+  const { messageTemplate, subscriptionGroupSecret } =
+    getSendModelsResult.value;
+
+  if (!defaultEmailProvider?.emailProvider) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageServiceProviderNotFound,
+      },
+    });
+  }
+
+  if (messageTemplate.definition.type !== ChannelType.Email) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateMisconfigured,
+        message: "message template is not an email template",
+      },
+    });
+  }
+  const renderedValuesResult = renderValues({
+    userProperties: userPropertyAssignments,
+    identifierKey: CHANNEL_IDENTIFIERS[ChannelType.Email],
+    subscriptionGroupId,
+    workspaceId,
+    templates: {
+      from: {
+        contents: messageTemplate.definition.from,
+      },
+      subject: {
+        contents: messageTemplate.definition.subject,
+      },
+      body: {
+        contents: messageTemplate.definition.body,
+        mjml: true,
+      },
+    },
+  });
+  if (renderedValuesResult.isErr()) {
+    const { error, field } = renderedValuesResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+}
+
+export async function sendMessage(
+  params: SendMessageParameters
+): Promise<BackendMessageSendResult> {
+  switch (params.channel) {
+    case ChannelType.Email:
+      return sendEmail(params);
+    case ChannelType.Sms:
+      throw new Error("not implemented");
+    case ChannelType.MobilePush:
+      throw new Error("not implemented");
+  }
+}

@@ -7,7 +7,7 @@ import mjml2html from "mjml";
 import logger from "./logger";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
 import { SubscriptionChange } from "./types";
-import { assignmentAsString,UserPropertyAssignments } from "./userProperties";
+import { assignmentAsString, UserPropertyAssignments } from "./userProperties";
 
 const md = new MarkdownIt({
   html: true,
@@ -134,7 +134,7 @@ export function renderLiquid({
   secrets = {},
   mjml = false,
 }: {
-  template: string;
+  template?: string;
   mjml?: boolean;
   identifierKey: string;
   userProperties: UserPropertyAssignments;
@@ -142,7 +142,7 @@ export function renderLiquid({
   subscriptionGroupId?: string;
   workspaceId: string;
 }): string {
-  if (!template.length) {
+  if (!template?.length) {
     return "";
   }
 
