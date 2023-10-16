@@ -250,9 +250,10 @@ export default function MessagesPage() {
               const href = broadcast
                 ? `/broadcasts/review/${broadcast.id}`
                 : `/journeys/${params.row.journeyId}`;
+              const name = broadcast ? broadcast.name : params.row.journeyName;
               return (
-                <Tooltip title={params.row.journeyName}>
-                  <Link href={href}>{params.row.journeyName}</Link>
+                <Tooltip title={name}>
+                  <Link href={href}>{name}</Link>
                 </Tooltip>
               );
             },
