@@ -26,9 +26,12 @@ import {
 } from "../../destinations/twilio";
 import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
-import { findMessageTemplate } from "../../messageTemplates";
+import { findMessageTemplate, sendMessage } from "../../messageTemplates";
 import prisma from "../../prisma";
-import { getSubscriptionGroupWithAssignment } from "../../subscriptionGroups";
+import {
+  getSubscriptionGroupDetails,
+  getSubscriptionGroupWithAssignment,
+} from "../../subscriptionGroups";
 import {
   ChannelType,
   EmailProviderType,
@@ -679,6 +682,45 @@ async function sendEmailWithPayload(
       }
     },
   });
+}
+
+// TODO WIP
+export async function sendTrackedMessage({
+  workspaceId,
+  userId,
+  subscriptionGroupId,
+  templateId,
+  journeyId,
+  nodeId,
+  runId,
+  channel,
+}: BaseSendParams): Promise<boolean> {
+  const [userPropertyAssignments, subscriptionGroup, journey] =
+    await Promise.all([
+      findAllUserPropertyAssignments({ userId, workspaceId }),
+      subscriptionGroupId
+        ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
+        : null,
+      prisma().journey.findUnique({ where: { id: journeyId } }),
+    ]);
+  const subscriptionGroupDetails = subscriptionGroup
+    ? getSubscriptionGroupDetails(subscriptionGroup)
+    : undefined;
+
+  const result = await sendMessage({
+    workspaceId,
+    templateId,
+    channel,
+    userPropertyAssignments,
+    subscriptionGroupDetails,
+    messageTags: {
+      journeyId,
+      nodeId,
+      runId,
+    },
+  });
+
+  return true;
 }
 
 export async function sendEmail(params: SendParams): Promise<boolean> {
