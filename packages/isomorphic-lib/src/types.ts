@@ -1736,6 +1736,7 @@ export interface CompatibleJourney {
 export const MessageTemplateTestRequest = Type.Object({
   workspaceId: Type.String(),
   templateId: Type.String(),
+  channel: Type.Enum(ChannelType),
   userProperties: Type.Record(Type.String(), Type.Any()),
 });
 
@@ -1747,7 +1748,7 @@ export const MessageTemplateTestResponse = JsonResult(
   Type.Null(),
   Type.Object({
     suggestions: Type.Array(Type.String()),
-    providerResponseBody: Type.String(),
+    responseData: Type.Optional(Type.String()),
   })
 );
 
