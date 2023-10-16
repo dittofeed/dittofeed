@@ -52,7 +52,7 @@ export function BroadcastLayout({
     "setBroadcastUpdateRequest",
     "upsertBroadcast",
   ]);
-  const editable = editedBroadcast?.triggeredAt === undefined;
+  const editable = broadcast?.status === "NotStarted";
   const stepIndex = order[activeStep];
   const sortedSteps = sortBy(
     toPairs(steps),
