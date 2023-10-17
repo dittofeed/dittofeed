@@ -1,5 +1,4 @@
-import { LinkProps } from "next/link";
-import { createContext, PropsWithChildren } from "react";
+import { createContext } from "react";
 
 import { MenuItemGroup } from "../menuItems/types";
 

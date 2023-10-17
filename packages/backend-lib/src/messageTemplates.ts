@@ -462,7 +462,7 @@ export async function sendEmail({
             provider: {
               type: EmailProviderType.Sendgrid,
               // Necessary because the types on sendgrid's lib are wrong
-              body: JSON.stringify(result.error.response.body, null, 2),
+              body: JSON.stringify(result.error.response.body),
               status: result.error.code,
             },
           },
