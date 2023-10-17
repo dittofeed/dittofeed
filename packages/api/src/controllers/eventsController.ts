@@ -3,8 +3,14 @@ import {
   GetEventsRequest,
   GetEventsResponse,
   GetEventsResponseItem,
+  GetTraitsRequest,
+  GetTraitsResponse,
 } from "backend-lib/src/types";
-import { findEventsCount, findManyEvents } from "backend-lib/src/userEvents";
+import {
+  findEventsCount,
+  findIdentifyTraits,
+  findManyEvents,
+} from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -72,6 +78,25 @@ export default async function eventsController(fastify: FastifyInstance) {
         events,
         count,
       });
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/traits",
+    {
+      schema: {
+        description: "Get list of traits available on identify calls",
+        querystring: GetTraitsRequest,
+        response: {
+          200: GetTraitsResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const traits = await findIdentifyTraits({
+        workspaceId: request.query.workspaceId,
+      });
+      return reply.status(200).send({ traits });
     }
   );
 }

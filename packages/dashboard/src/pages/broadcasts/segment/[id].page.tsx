@@ -3,7 +3,7 @@ import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { findAllUserTraits } from "backend-lib/src/userEvents";
+import { findIdentifyTraits } from "backend-lib/src/userEvents";
 import { SegmentResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
@@ -44,7 +44,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         workspaceId: dfContext.workspace.id,
         broadcastId: id,
       }),
-      findAllUserTraits({
+      findIdentifyTraits({
         workspaceId,
       }),
       prisma().subscriptionGroup.findMany({

@@ -7,7 +7,7 @@ import config from "./config";
 import prisma from "./prisma";
 import { EventType, InternalEventType } from "./types";
 import {
-  findAllUserTraits,
+  findIdentifyTraits,
   findManyEvents,
   submitBroadcast,
 } from "./userEvents";
@@ -66,7 +66,7 @@ describe("userEvents", () => {
     });
 
     it("returns the relevant traits without duplicates", async () => {
-      const userTraits = await findAllUserTraits({
+      const userTraits = await findIdentifyTraits({
         workspaceId: workspace.id,
         tableVersion: config().defaultUserEventsTableVersion,
       });

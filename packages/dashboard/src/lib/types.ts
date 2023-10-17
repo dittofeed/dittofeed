@@ -73,7 +73,8 @@ export type AppState = {
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   journeys: RequestStatus<JourneyResource[], Error>;
-  traits: RequestStatus<string[], Error>;
+  traits: string[];
+  getTraitsRequest: EphemeralRequestStatus<Error>;
   writeKeys: WriteKeyResource[];
   secrets: SecretResource[];
   defaultEmailProvider: RequestStatus<
@@ -122,6 +123,8 @@ export interface AppActions {
   upsertUserProperty: (userProperty: UserPropertyResource) => void;
   deleteUserProperty: (userPropertyId: string) => void;
   upsertIntegration: (integrations: IntegrationResource) => void;
+  upsertTraits: (traits: string[]) => void;
+  setGetTraitsRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
 export interface SegmentIndexContent {

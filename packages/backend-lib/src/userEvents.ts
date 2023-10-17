@@ -367,7 +367,7 @@ export async function findEventsCount({
   return results[0]?.event_count ?? 0;
 }
 
-export async function findAllUserTraits({
+export async function findIdentifyTraits({
   workspaceId,
   tableVersion: tableVersionParam,
 }: {

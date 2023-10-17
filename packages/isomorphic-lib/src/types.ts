@@ -2009,3 +2009,15 @@ export const MessageTemplateTestResponse = JsonResult(
     responseData: Type.Optional(Type.String()),
   })
 );
+
+export const GetTraitsRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type GetTraitsRequest = Static<typeof GetTraitsRequest>;
+
+export const GetTraitsResponse = Type.Object({
+  traits: Type.Array(Type.String()),
+});
+
+export type GetTraitsResponse = Static<typeof GetTraitsResponse>;

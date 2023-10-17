@@ -10,7 +10,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { findAllUserTraits } from "backend-lib/src/userEvents";
+import { findIdentifyTraits } from "backend-lib/src/userEvents";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -191,7 +191,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           id,
         },
       }),
-      findAllUserTraits({
+      findIdentifyTraits({
         workspaceId,
       }),
     ]);

@@ -21,6 +21,8 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   EmailSegmentNode,
+  GetTraitsRequest,
+  GetTraitsResponse,
   InternalEventType,
   PerformedSegmentNode,
   RelationalOperators,
@@ -36,10 +38,11 @@ import {
   SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { useContext, useMemo } from "react";
+import React, { useContext, useEffect, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
-import { useAppStore } from "../lib/appStore";
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
+import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
 import DurationSelect from "./durationSelect";
 
@@ -492,8 +495,6 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const { disabled } = useContext(DisabledContext);
 
   const traits = useAppStore((store) => store.traits);
-  const traitOptions =
-    traits.type === CompletionStatus.Successful ? traits.value : [];
   const operator = keyedOperatorOptions.get(node.operator.type);
   if (!operator) {
     throw new Error(`Unsupported operator type: ${node.operator.type}`);
@@ -546,7 +547,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
             traitOnChange(newValue);
           }}
           disableClearable
-          options={traitOptions}
+          options={traits}
           renderInput={(params) => (
             <TextField
               {...params}
@@ -833,6 +834,45 @@ export function SegmentEditorInner({
   const { entryNode } = editedSegment.definition;
   const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
 
+  const {
+    apiBase,
+    workspace,
+    upsertTraits,
+    getTraitsRequest,
+    setGetTraitsRequest,
+  } = useAppStorePick([
+    "apiBase",
+    "workspace",
+    "upsertTraits",
+    "getTraitsRequest",
+    "setGetTraitsRequest",
+  ]);
+
+  useEffect(() => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return;
+    }
+    const workspaceId = workspace.value.id;
+    const params: GetTraitsRequest = {
+      workspaceId,
+    };
+    apiRequestHandlerFactory({
+      request: getTraitsRequest,
+      setRequest: setGetTraitsRequest,
+      responseSchema: GetTraitsResponse,
+      setResponse: ({ traits: t }) => upsertTraits(t),
+      requestConfig: {
+        method: "GET",
+        url: `${apiBase}/api/events/traits`,
+        params,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <DisabledContext.Provider value={memoizedDisabled}>
       <Box
@@ -852,7 +892,7 @@ export function SegmentEditorInner({
 }
 
 export default function SegmentEditor({ disabled }: { disabled?: boolean }) {
-  const editedSegment = useAppStore((state) => state.editedSegment);
+  const { editedSegment } = useAppStorePick(["editedSegment"]);
 
   if (!editedSegment) {
     return null;

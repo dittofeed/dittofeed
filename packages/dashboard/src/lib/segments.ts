@@ -16,14 +16,12 @@ export function getSegmentConfigState({
   segment,
   segmentId: id,
   messageTemplates,
-  traits,
   subscriptionGroups,
 }: {
   workspaceId: string;
   segmentId: string;
   messageTemplates: MessageTemplateResource[];
   subscriptionGroups: SubscriptionGroupResource[];
-  traits: string[];
   segment: SegmentResource | null;
 }): Partial<AppState> {
   const serverInitialState: Partial<AppState> = {};
@@ -60,9 +58,5 @@ export function getSegmentConfigState({
   serverInitialState.editedSegment = segmentResource;
   serverInitialState.subscriptionGroups = subscriptionGroups;
 
-  serverInitialState.traits = {
-    type: CompletionStatus.Successful,
-    value: traits,
-  };
   return serverInitialState;
 }
