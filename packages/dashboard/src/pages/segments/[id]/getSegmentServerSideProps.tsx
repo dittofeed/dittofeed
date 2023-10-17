@@ -1,7 +1,6 @@
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { findIdentifyTraits } from "backend-lib/src/userEvents";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
