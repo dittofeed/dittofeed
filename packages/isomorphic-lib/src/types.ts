@@ -1,4 +1,5 @@
 import { Static, TSchema, Type } from "@sinclair/typebox";
+import { Result } from "neverthrow";
 
 export enum JsonResultType {
   Ok = "Ok",
@@ -1731,3 +1732,280 @@ export interface CompatibleJourney {
   name: string;
   definition: JourneyDefinition;
 }
+
+export const MessageTemplateTestErrorResponse = Type.Object({});
+
+export type MessageTemplateTestResponse = Static<
+  typeof MessageTemplateTestResponse
+>;
+
+export const SmsTwilioSuccess = Type.Object({
+  type: Type.Literal(SmsProviderType.Twilio),
+  sid: Type.String(),
+});
+export type SmsTwilioSuccess = Static<typeof SmsTwilioSuccess>;
+
+export const SmsServiceProviderSuccess = Type.Union([SmsTwilioSuccess]);
+
+export type SmsServiceProviderSuccess = Static<
+  typeof SmsServiceProviderSuccess
+>;
+
+export const MessageSmsSuccess = Type.Object({
+  type: Type.Literal(ChannelType.Sms),
+  provider: SmsServiceProviderSuccess,
+});
+
+export type MessageSmsSuccess = Static<typeof MessageSmsSuccess>;
+
+export const EmailTestSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.Test),
+});
+
+export type EmailTestSuccess = Static<typeof EmailTestSuccess>;
+
+export const EmailSendgridSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.Sendgrid),
+});
+
+export type EmailSendgridSuccess = Static<typeof EmailSendgridSuccess>;
+
+export const EmailServiceProviderSuccess = Type.Union([
+  EmailSendgridSuccess,
+  EmailTestSuccess,
+]);
+
+export type EmailServiceProviderSuccess = Static<
+  typeof EmailServiceProviderSuccess
+>;
+
+export const MessageEmailSuccess = Type.Object({
+  type: Type.Literal(ChannelType.Email),
+  provider: EmailServiceProviderSuccess,
+  from: Type.String(),
+  body: Type.String(),
+  subject: Type.String(),
+  to: Type.String(),
+  replyTo: Type.Optional(Type.String()),
+});
+
+export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
+
+export const MessageSendSuccess = Type.Union([
+  MessageEmailSuccess,
+  MessageSmsSuccess,
+]);
+
+export type MessageSendSuccess = Static<typeof MessageSendSuccess>;
+
+export enum BadWorkspaceConfigurationType {
+  MessageTemplateNotFound = "MessageTemplateNotFound",
+  MessageTemplateMisconfigured = "MessageTemplateMisconfigured",
+  MessageTemplateRenderError = "MessageTemplateRenderError",
+  JourneyNotFound = "JourneyNotFound",
+  SubscriptionGroupNotFound = "SubscriptionGroupNotFound",
+  IdentifierNotFound = "IdentifierNotFound",
+  SubscriptionSecretNotFound = "SubscriptionSecretNotFound",
+  MessageServiceProviderNotFound = "MessageServiceProviderNotFound",
+  MessageServiceProviderMisconfigured = "MessageServiceProviderMisconfigured",
+}
+
+export const BadWorkspaceConfigurationVariant = Type.Union([
+  Type.Object({
+    type: Type.Literal(BadWorkspaceConfigurationType.MessageTemplateNotFound),
+  }),
+  Type.Object({
+    type: Type.Literal(
+      BadWorkspaceConfigurationType.MessageTemplateMisconfigured
+    ),
+    message: Type.String(),
+  }),
+  Type.Object({
+    type: Type.Literal(
+      BadWorkspaceConfigurationType.MessageTemplateRenderError
+    ),
+    field: Type.String(),
+    error: Type.String(),
+  }),
+  Type.Object({
+    type: Type.Literal(BadWorkspaceConfigurationType.JourneyNotFound),
+  }),
+  Type.Object({
+    type: Type.Literal(BadWorkspaceConfigurationType.SubscriptionGroupNotFound),
+  }),
+  Type.Object({
+    type: Type.Literal(BadWorkspaceConfigurationType.IdentifierNotFound),
+  }),
+  Type.Object({
+    type: Type.Literal(
+      BadWorkspaceConfigurationType.SubscriptionSecretNotFound
+    ),
+  }),
+  Type.Object({
+    type: Type.Literal(
+      BadWorkspaceConfigurationType.MessageServiceProviderNotFound
+    ),
+  }),
+  Type.Object({
+    type: Type.Literal(
+      BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured
+    ),
+  }),
+]);
+
+export type BadWorkspaceConfigurationVariant = Static<
+  typeof BadWorkspaceConfigurationVariant
+>;
+
+export const MessageSendBadConfiguration = Type.Object({
+  type: Type.Literal(InternalEventType.BadWorkspaceConfiguration),
+  variant: BadWorkspaceConfigurationVariant,
+});
+
+export type MessageSendBadConfiguration = Static<
+  typeof MessageSendBadConfiguration
+>;
+
+export const MessageSendgridServiceFailure = Type.Object({
+  type: Type.Literal(EmailProviderType.Sendgrid),
+  status: Type.Optional(Type.Number()),
+  body: Type.Optional(Type.String()),
+});
+
+export type MessageSendgridServiceFailure = Static<
+  typeof MessageSendgridServiceFailure
+>;
+
+export const EmailServiceProviderFailure = Type.Union([
+  MessageSendgridServiceFailure,
+]);
+
+export type EmailServiceProviderFailure = Static<
+  typeof EmailServiceProviderFailure
+>;
+
+export const MessageEmailServiceFailure = Type.Object({
+  type: Type.Literal(ChannelType.Email),
+  provider: EmailServiceProviderFailure,
+});
+
+export type MessageEmailServiceFailure = Static<
+  typeof MessageEmailServiceFailure
+>;
+
+export const MessageTwilioServiceFailure = Type.Object({
+  type: Type.Literal(SmsProviderType.Twilio),
+});
+
+export const SmsServiceProviderFailure = Type.Union([
+  MessageTwilioServiceFailure,
+]);
+
+export type SmsServiceProviderFailure = Static<
+  typeof SmsServiceProviderFailure
+>;
+
+export const MessageSmsServiceFailure = Type.Object({
+  type: Type.Literal(ChannelType.Sms),
+  provider: SmsServiceProviderFailure,
+});
+
+export type MessageSmsServiceFailure = Static<typeof MessageSmsServiceFailure>;
+
+export const MessageServiceFailureVariant = Type.Union([
+  MessageEmailServiceFailure,
+  MessageSmsServiceFailure,
+]);
+
+export type MessageServiceFailureVariant = Static<
+  typeof MessageServiceFailureVariant
+>;
+
+export const MessageServiceFailure = Type.Object({
+  type: Type.Literal(InternalEventType.MessageFailure),
+  variant: MessageServiceFailureVariant,
+});
+
+export type MessageServiceFailure = Static<typeof MessageServiceFailure>;
+
+export enum SubscriptionChange {
+  Subscribe = "Subscribe",
+  Unsubscribe = "Unsubscribe",
+}
+
+export const UserSubscriptionAction = Nullable(Type.Enum(SubscriptionChange));
+
+export type UserSubscriptionAction = Static<typeof UserSubscriptionAction>;
+
+export enum MessageSkippedType {
+  SubscriptionState = "SubscriptionState",
+  MissingIdentifier = "MissingIdentifier",
+}
+
+export const MessageSkippedSubscriptionState = Type.Object({
+  type: Type.Literal(MessageSkippedType.SubscriptionState),
+  action: UserSubscriptionAction,
+  subscriptionGroupType: Type.Enum(SubscriptionGroupType),
+});
+
+export type MessageSkippedSubscriptionState = Static<
+  typeof MessageSkippedSubscriptionState
+>;
+
+export const MessageSkippedMissingIdentifier = Type.Object({
+  type: Type.Literal(MessageSkippedType.MissingIdentifier),
+  identifierKey: Type.String(),
+});
+
+export const MessageSkippedVariant = Type.Union([
+  MessageSkippedSubscriptionState,
+  MessageSkippedMissingIdentifier,
+]);
+
+export type MessageSkippedVariant = Static<typeof MessageSkippedVariant>;
+
+export const MessageSkippedFailure = Type.Object({
+  type: Type.Literal(InternalEventType.MessageSkipped),
+  variant: MessageSkippedVariant,
+});
+
+export type MessageSkippedFailure = Static<typeof MessageSkippedFailure>;
+
+export const MessageSendFailure = Type.Union([
+  MessageSendBadConfiguration,
+  MessageServiceFailure,
+  MessageSkippedFailure,
+]);
+
+export type MessageSendFailure = Static<typeof MessageSendFailure>;
+
+export const MessageSendResult = JsonResult(
+  MessageSendSuccess,
+  MessageSendFailure
+);
+
+export type MessageSendResult = Static<typeof MessageSendResult>;
+
+export type BackendMessageSendResult = Result<
+  MessageSendSuccess,
+  MessageSendFailure
+>;
+
+export const MessageTemplateTestRequest = Type.Object({
+  workspaceId: Type.String(),
+  templateId: Type.String(),
+  channel: Type.Enum(ChannelType),
+  userProperties: Type.Record(Type.String(), Type.Any()),
+});
+
+export type MessageTemplateTestRequest = Static<
+  typeof MessageTemplateTestRequest
+>;
+
+export const MessageTemplateTestResponse = JsonResult(
+  MessageSendSuccess,
+  Type.Object({
+    suggestions: Type.Array(Type.String()),
+    responseData: Type.Optional(Type.String()),
+  })
+);

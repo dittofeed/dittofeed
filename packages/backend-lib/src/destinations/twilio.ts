@@ -4,6 +4,8 @@ import RestException from "twilio/lib/base/RestException";
 
 import logger from "../logger";
 
+export const TwilioRestException = RestException;
+
 export async function sendSms({
   body,
   accountSid,

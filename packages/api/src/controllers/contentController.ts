@@ -1,16 +1,27 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { renderLiquid } from "backend-lib/src/liquid";
-import { upsertMessageTemplate } from "backend-lib/src/messageTemplates";
+import logger from "backend-lib/src/logger";
+import {
+  sendMessage,
+  upsertMessageTemplate,
+} from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
 import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
+  BadWorkspaceConfigurationType,
+  ChannelType,
   DeleteMessageTemplateRequest,
+  EmailProviderType,
   EmptyResponse,
+  InternalEventType,
   JsonResultType,
+  MessageSkippedType,
   MessageTemplateResource,
+  MessageTemplateTestRequest,
+  MessageTemplateTestResponse,
   RenderMessageTemplateRequest,
   RenderMessageTemplateResponse,
   RenderMessageTemplateResponseContent,
@@ -106,6 +117,90 @@ export default async function contentController(fastify: FastifyInstance) {
     async (request, reply) => {
       const resource = await upsertMessageTemplate(request.body);
       return reply.status(200).send(resource);
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/templates/test",
+    {
+      schema: {
+        description: "Send a test message for a message template.",
+        body: MessageTemplateTestRequest,
+        response: {
+          200: MessageTemplateTestResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const result = await sendMessage({
+        workspaceId: request.body.workspaceId,
+        templateId: request.body.templateId,
+        userPropertyAssignments: request.body.userProperties,
+        channel: request.body.channel,
+        useDraft: true,
+      });
+      if (result.isOk()) {
+        return reply.status(200).send({
+          type: JsonResultType.Ok,
+          value: result.value,
+        });
+      }
+      if (
+        result.error.type === InternalEventType.MessageSkipped &&
+        result.error.variant.type === MessageSkippedType.MissingIdentifier
+      ) {
+        return reply.status(200).send({
+          type: JsonResultType.Err,
+          err: {
+            suggestions: [
+              `Missing identifying user property value: ${result.error.variant.identifierKey}`,
+            ],
+          },
+        });
+      }
+      if (result.error.type === InternalEventType.MessageFailure) {
+        if (
+          result.error.variant.type === ChannelType.Email &&
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          result.error.variant.provider.type === EmailProviderType.Sendgrid
+        ) {
+          const { body, status } = result.error.variant.provider;
+          const suggestions: string[] = [];
+          if (status) {
+            suggestions.push(`Sendgrid responded with status: ${status}`);
+            if (status === 403) {
+              suggestions.push(
+                "Is the configured email domain authorized in sengrid?"
+              );
+            }
+          }
+          return reply.status(200).send({
+            type: JsonResultType.Err,
+            err: {
+              suggestions,
+              responseData: body,
+            },
+          });
+        }
+      }
+      if (
+        result.error.type === InternalEventType.BadWorkspaceConfiguration &&
+        (result.error.variant.type ===
+          BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured ||
+          result.error.variant.type ===
+            BadWorkspaceConfigurationType.MessageServiceProviderNotFound)
+      ) {
+        return reply.status(200).send({
+          type: JsonResultType.Err,
+          err: {
+            suggestions: [
+              "Unable to send message, because Your message service provider is not configured correctly.",
+            ],
+          },
+        });
+      }
+      logger().error(result.error, "Unexpected error sending test message");
+      return reply.status(500);
     }
   );
 

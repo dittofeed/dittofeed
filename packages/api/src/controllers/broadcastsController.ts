@@ -83,7 +83,6 @@ export default async function broadcastsController(fastify: FastifyInstance) {
           status: "InProgress",
         },
       });
-      console.log("broadcast", broadcast);
       return reply.status(200).send(toBroadcastResource(broadcast));
     }
   );

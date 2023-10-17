@@ -127,11 +127,6 @@ export const LogLevel = Type.Union([
 
 export type LogLevel = Static<typeof LogLevel>;
 
-export enum SubscriptionChange {
-  Subscribe = "Subscribe",
-  Unsubscribe = "Unsubscribe",
-}
-
 export const DecodedJwt = Type.Object({
   sub: Type.String(),
   email: Type.String(),
