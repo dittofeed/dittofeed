@@ -126,8 +126,10 @@ function upsert({
   setEmailMessageUpdateRequest,
   emailMessageTitle,
   upsertMessage,
+  saveAsDraft = false,
 }: {
   workspaceId?: string;
+  saveAsDraft?: boolean;
   messageId: string | null;
   emailMessageTitle: string;
   emailFrom: string;
@@ -155,15 +157,19 @@ function upsert({
     subject: emailSubject,
   };
 
+  if (emailMessageReplyTo.length) {
+    upsertEmailDefinition.replyTo = emailMessageReplyTo;
+  }
+
   const updateData: UpsertMessageTemplateResource = {
     id: messageId,
     workspaceId,
     name: emailMessageTitle,
-    definition: upsertEmailDefinition,
+    draft: upsertEmailDefinition,
   };
 
-  if (emailMessageReplyTo.length) {
-    upsertEmailDefinition.replyTo = emailMessageReplyTo;
+  if (!saveAsDraft) {
+    updateData.definition = upsertEmailDefinition;
   }
 
   apiRequestHandlerFactory({
@@ -506,44 +512,47 @@ export default function EmailEditor({
     setRenderedBody(errorBodyHtml);
   }, [errors, mockUserProperties, userPropertySet]);
 
-  const handleSave = useCallback(() => {
-    if (disabled) {
-      return;
-    }
-    upsert({
-      workspaceId: workspace?.id,
+  const handleSave = useCallback(
+    ({ saveAsDraft = false }: { saveAsDraft?: boolean }) => {
+      if (disabled) {
+        return;
+      }
+      upsert({
+        workspaceId: workspace?.id,
+        messageId,
+        emailBody: debouncedEmailBody,
+        emailFrom: debouncedEmailFrom,
+        emailSubject: debouncedEmailSubject,
+        emailMessageReplyTo: debouncedReplyTo,
+        emailMessageUpdateRequest,
+        saveAsDraft,
+        setEmailMessageUpdateRequest,
+        upsertMessage,
+        apiBase,
+        emailMessageTitle,
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      // README don't update on emailMessageUpdateRequest change
+      apiBase,
+      disabled,
+      debouncedEmailBody,
+      debouncedEmailFrom,
+      debouncedEmailSubject,
+      debouncedReplyTo,
+      emailMessageTitle,
       messageId,
-      emailBody: debouncedEmailBody,
-      emailFrom: debouncedEmailFrom,
-      emailSubject: debouncedEmailSubject,
-      emailMessageReplyTo: debouncedReplyTo,
-      emailMessageUpdateRequest,
       setEmailMessageUpdateRequest,
       upsertMessage,
-      apiBase,
-      emailMessageTitle,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    // README don't update on emailMessageUpdateRequest change
-    apiBase,
-    disabled,
-    debouncedEmailBody,
-    debouncedEmailFrom,
-    debouncedEmailSubject,
-    debouncedReplyTo,
-    emailMessageTitle,
-    messageId,
-    setEmailMessageUpdateRequest,
-    upsertMessage,
-    workspace?.id,
-  ]);
+      workspace?.id,
+    ]
+  );
 
   useUpdateEffect(() => {
-    if (!saveOnUpdate) {
-      return;
-    }
-    handleSave();
+    handleSave({
+      saveAsDraft: !saveOnUpdate,
+    });
   }, [handleSave, saveOnUpdate]);
 
   if (!workspace || !messageId) {
@@ -828,10 +837,10 @@ export default function EmailEditor({
           {!hideSaveButton && (
             <Button
               variant="contained"
-              onClick={handleSave}
+              onClick={() => handleSave({})}
               disabled={errors.size > 0}
             >
-              Save
+              Publish Changes
             </Button>
           )}
         </Stack>

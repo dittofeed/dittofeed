@@ -53,15 +53,18 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     if (
       mobilePushMessage &&
-      mobilePushMessage.definition.type === ChannelType.MobilePush &&
       mobilePushMessage.workspaceId === dfContext.workspace.id
     ) {
-      const { title, body, imageUrl } = mobilePushMessage.definition;
-      Object.assign(serverInitialState, {
-        mobilePushMessageTitle: title,
-        mobilePushMessageBody: body,
-        mobilePushMesssageImageUrl: imageUrl,
-      });
+      const definition =
+        mobilePushMessage.draft ?? mobilePushMessage.definition;
+      if (definition && definition.type === ChannelType.MobilePush) {
+        const { title, body, imageUrl } = definition;
+        Object.assign(serverInitialState, {
+          mobilePushMessageTitle: title,
+          mobilePushMessageBody: body,
+          mobilePushMesssageImageUrl: imageUrl,
+        });
+      }
     }
 
     return {

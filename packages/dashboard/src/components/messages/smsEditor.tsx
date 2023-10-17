@@ -345,57 +345,61 @@ export default function SmsEditor({
     setRenderedBody(errorBodyHtml);
   }, [errors, mockUserProperties, userPropertySet]);
 
-  const handleSave = useCallback(() => {
-    if (!workspace || !debouncedSmsBody.length || !smsMessageTitle.length) {
-      return;
-    }
-    const upsertSmsDefinition: SmsTemplateResource = {
-      type: ChannelType.Sms,
-      body: debouncedSmsBody,
-    };
-    const updateData: UpsertMessageTemplateResource = {
-      id: messageId,
-      workspaceId: workspace.id,
-      name: smsMessageTitle,
-      definition: upsertSmsDefinition,
-    };
+  const handleSave = useCallback(
+    ({ saveAsDraft = false }: { saveAsDraft?: boolean }) => {
+      if (!workspace || !debouncedSmsBody.length || !smsMessageTitle.length) {
+        return;
+      }
+      const upsertSmsDefinition: SmsTemplateResource = {
+        type: ChannelType.Sms,
+        body: debouncedSmsBody,
+      };
+      const updateData: UpsertMessageTemplateResource = {
+        id: messageId,
+        workspaceId: workspace.id,
+        name: smsMessageTitle,
+        draft: upsertSmsDefinition,
+      };
+      if (!saveAsDraft) {
+        updateData.definition = upsertSmsDefinition;
+      }
 
-    apiRequestHandlerFactory({
-      request: smsMessageUpdateRequest,
-      setRequest: setSmsMessageUpdateRequest,
-      responseSchema: MessageTemplateResource,
-      setResponse: upsertMessage,
-      onSuccessNotice: `Saved template ${smsMessageTitle}.`,
-      onFailureNoticeHandler: () =>
-        `API Error: Failed to save template ${smsMessageTitle}.`,
-      requestConfig: {
-        method: "PUT",
-        url: `${apiBase}/api/content/templates`,
-        data: updateData,
-        headers: {
-          "Content-Type": "application/json",
+      apiRequestHandlerFactory({
+        request: smsMessageUpdateRequest,
+        setRequest: setSmsMessageUpdateRequest,
+        responseSchema: MessageTemplateResource,
+        setResponse: upsertMessage,
+        onSuccessNotice: `Saved template ${smsMessageTitle}.`,
+        onFailureNoticeHandler: () =>
+          `API Error: Failed to save template ${smsMessageTitle}.`,
+        requestConfig: {
+          method: "PUT",
+          url: `${apiBase}/api/content/templates`,
+          data: updateData,
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-      },
-    })();
-
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [
-    apiBase,
-    debouncedSmsBody,
-    messageId,
-    setSmsMessageUpdateRequest,
-    smsMessageTitle,
-    upsertMessage,
-    workspace?.id,
-    // README: don't update on request status changing
-    // smsMessageUpdateRequest,
-  ]);
+      })();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      apiBase,
+      debouncedSmsBody,
+      messageId,
+      setSmsMessageUpdateRequest,
+      smsMessageTitle,
+      upsertMessage,
+      workspace?.id,
+      // README: don't update on request status changing
+      // smsMessageUpdateRequest,
+    ]
+  );
 
   useUpdateEffect(() => {
-    if (!saveOnUpdate) {
-      return;
-    }
-    handleSave();
+    handleSave({
+      saveAsDraft: !saveOnUpdate,
+    });
   }, [handleSave, saveOnUpdate]);
 
   if (!workspace || !messageId) {
@@ -589,10 +593,10 @@ export default function SmsEditor({
           {!hideSaveButton && (
             <Button
               variant="contained"
-              onClick={handleSave}
+              onClick={() => handleSave({})}
               disabled={errors.size > 0}
             >
-              Save
+              Publish
             </Button>
           )}
         </Stack>

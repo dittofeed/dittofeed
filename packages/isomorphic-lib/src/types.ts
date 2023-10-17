@@ -816,7 +816,8 @@ const MessageTemplateResourceProperties = {
   workspaceId: Type.String(),
   id: Type.String(),
   name: Type.String(),
-  definition: MessageTemplateResourceDefinition,
+  definition: Type.Optional(MessageTemplateResourceDefinition),
+  draft: Type.Optional(MessageTemplateResourceDefinition),
 } as const;
 
 export const MessageTemplateResource = Type.Object(
@@ -835,7 +836,8 @@ export const UpsertMessageTemplateResource = Type.Object({
   workspaceId: Type.Optional(Type.String()),
   id: Type.String(),
   name: Type.Optional(Type.String()),
-  definition: MessageTemplateResourceDefinition,
+  definition: Type.Optional(MessageTemplateResourceDefinition),
+  draft: Type.Optional(MessageTemplateResourceDefinition),
 });
 
 export type UpsertMessageTemplateResource = Static<

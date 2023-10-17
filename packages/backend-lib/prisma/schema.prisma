@@ -181,8 +181,9 @@ model MessageTemplate {
   workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   workspaceId  String         @db.Uuid
   name         String
+  draft        Json?
   resourceType DBResourceType @default(Declarative)
-  definition   Json
+  definition   Json?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   Broadcast    Broadcast[]

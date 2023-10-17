@@ -17,13 +17,19 @@ export function enrichMessageTemplate({
   name,
   workspaceId,
   definition,
+  draft,
 }: MessageTemplate): Result<MessageTemplateResource, Error> {
-  const enrichedDefintion = schemaValidateWithErr(
-    definition,
-    MessageTemplateResourceDefinition
-  );
+  const enrichedDefintion = definition
+    ? schemaValidateWithErr(definition, MessageTemplateResourceDefinition)
+    : ok(undefined);
+  const enrichedDraft = draft
+    ? schemaValidateWithErr(draft, MessageTemplateResourceDefinition)
+    : ok(undefined);
   if (enrichedDefintion.isErr()) {
     return err(enrichedDefintion.error);
+  }
+  if (enrichedDraft.isErr()) {
+    return err(enrichedDraft.error);
   }
 
   return ok({
@@ -31,6 +37,7 @@ export function enrichMessageTemplate({
     name,
     workspaceId,
     definition: enrichedDefintion.value,
+    draft: enrichedDraft.value,
   });
 }
 
@@ -73,9 +80,10 @@ export async function findMessageTemplate({
     return ok(null);
   }
 
-  return enrichMessageTemplate(template).map((t) =>
-    t.definition.type === channel ? t : null
-  );
+  return enrichMessageTemplate(template).map((t) => {
+    const definition = t.draft ?? t.definition ?? null;
+    return definition && definition.type === channel ? t : null;
+  });
 }
 
 export async function upsertMessageTemplate(
@@ -92,12 +100,14 @@ export async function upsertMessageTemplate(
         name: data.name,
         id: data.id,
         definition: data.definition,
+        draft: data.draft,
       },
       update: {
         workspaceId: data.workspaceId,
         name: data.name,
         id: data.id,
         definition: data.definition,
+        draft: data.draft,
       },
     });
   } else {
@@ -110,6 +120,7 @@ export async function upsertMessageTemplate(
         name: data.name,
         id: data.id,
         definition: data.definition,
+        draft: data.draft,
       },
     });
   }
