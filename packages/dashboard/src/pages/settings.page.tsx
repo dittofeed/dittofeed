@@ -339,7 +339,7 @@ function SettingsLayout(
   return (
     <Layout
       pageTitle="Settings"
-      backLink={{ href: "/", children: "Back to home" }}
+      backLink="/"
       navigationRenderer="minimal"
       items={menuItems}
       {...props}

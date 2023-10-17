@@ -1,6 +1,6 @@
 // material-ui
 import { ArrowBackIos } from "@mui/icons-material";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, IconButton, Stack, Typography } from "@mui/material";
 import Link from "next/link";
 import { useContext } from "react";
 
@@ -46,23 +46,13 @@ function Navigation() {
   return (
     <Box sx={{ pt: 2, px: isMinimal ? 3 : undefined }}>
       {title ? (
-        <Stack direction="row" sx={{ ml: -1 }}>
+        <Stack direction="row" sx={{ ml: -1, alignItems: "center" }}>
           {backLink ? (
-            <Link
-              {...backLink}
-              style={{
-                textDecoration: "none",
-                color: "inherit",
-                opacity: 0.6,
-                display: "flex",
-                alignItems: "center",
-                margin: "4px 0 20px",
-              }}
-            >
+            <IconButton component={Link} href={backLink}>
               <ArrowBackIos fontSize="inherit" />
-            </Link>
+            </IconButton>
           ) : null}
-          <Typography mb={2} variant="h1" fontSize={21}>
+          <Typography variant="h1" fontSize={21}>
             {title}
           </Typography>
         </Stack>
