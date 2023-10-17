@@ -1,10 +1,6 @@
 import { Button, Stack, useTheme } from "@mui/material";
-import {
-  GetTraitsRequest,
-  GetTraitsResponse,
-  SegmentResource,
-} from "isomorphic-lib/src/types";
-import React, { useEffect } from "react";
+import { SegmentResource } from "isomorphic-lib/src/types";
+import React from "react";
 
 import EditableName from "../../components/editableName";
 import SegmentEditor from "../../components/segmentEditor";
