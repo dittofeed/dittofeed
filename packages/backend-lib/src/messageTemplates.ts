@@ -165,15 +165,17 @@ async function getSendMessageModels({
   workspaceId,
   channel,
   subscriptionGroupDetails,
+  useDraft,
 }: {
   workspaceId: string;
   templateId: string;
   channel: ChannelType;
   subscriptionGroupDetails?: SubscriptionGroupDetails;
+  useDraft?: boolean;
 }): Promise<
   Result<
     {
-      messageTemplate: MessageTemplateResource;
+      messageTemplateDefinition: MessageTemplateResourceDefinition;
       subscriptionGroupSecret: string | null;
     },
     MessageSendFailure
@@ -258,8 +260,19 @@ async function getSendMessageModels({
       },
     });
   }
+  const messageTemplateDefinition =
+    (useDraft && messageTemplate.draft) ?? messageTemplate.definition;
+
+  if (!messageTemplateDefinition) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateNotFound,
+      },
+    });
+  }
   return ok({
-    messageTemplate: messageTemplateResult.value,
+    messageTemplateDefinition,
     subscriptionGroupSecret: subscriptionGroupSecret?.value ?? null,
   });
 }
@@ -271,6 +284,7 @@ interface SendMessageParameters {
   channel: ChannelType;
   subscriptionGroupDetails?: SubscriptionGroupDetails;
   messageTags?: Record<string, string>;
+  useDraft: boolean;
 }
 
 type TemplateDictionary<T> = {
@@ -323,12 +337,14 @@ export async function sendEmail({
   userPropertyAssignments,
   subscriptionGroupDetails,
   messageTags,
+  useDraft,
 }: Omit<SendMessageParameters, "channel">): Promise<BackendMessageSendResult> {
   const [getSendModelsResult, defaultEmailProvider] = await Promise.all([
     getSendMessageModels({
       workspaceId,
       templateId,
       channel: ChannelType.Email,
+      useDraft,
       subscriptionGroupDetails,
     }),
     prisma().defaultEmailProvider.findUnique({
@@ -341,7 +357,7 @@ export async function sendEmail({
   if (getSendModelsResult.isErr()) {
     return err(getSendModelsResult.error);
   }
-  const { messageTemplate, subscriptionGroupSecret } =
+  const { messageTemplateDefinition, subscriptionGroupSecret } =
     getSendModelsResult.value;
 
   if (!defaultEmailProvider?.emailProvider) {
@@ -353,7 +369,7 @@ export async function sendEmail({
     });
   }
 
-  if (messageTemplate.definition.type !== ChannelType.Email) {
+  if (messageTemplateDefinition.type !== ChannelType.Email) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
@@ -370,19 +386,19 @@ export async function sendEmail({
     workspaceId,
     templates: {
       from: {
-        contents: messageTemplate.definition.from,
+        contents: messageTemplateDefinition.from,
       },
       subject: {
-        contents: messageTemplate.definition.subject,
+        contents: messageTemplateDefinition.subject,
       },
       body: {
-        contents: messageTemplate.definition.body,
+        contents: messageTemplateDefinition.body,
         mjml: true,
       },
-      ...(messageTemplate.definition.replyTo
+      ...(messageTemplateDefinition.replyTo
         ? {
             replyTo: {
-              contents: messageTemplate.definition.replyTo,
+              contents: messageTemplateDefinition.replyTo,
             },
           }
         : undefined),

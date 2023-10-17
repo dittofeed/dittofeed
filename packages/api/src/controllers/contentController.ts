@@ -137,6 +137,7 @@ export default async function contentController(fastify: FastifyInstance) {
         templateId: request.body.templateId,
         userPropertyAssignments: request.body.userProperties,
         channel: request.body.channel,
+        useDraft: true,
       });
       if (result.isOk()) {
         return reply.status(200).send({
