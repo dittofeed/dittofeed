@@ -112,9 +112,14 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
     deleteMessageTemplate(deleteRequest.id);
   };
 
+  const definition = template.draft ?? template.definition;
+  if (!definition) {
+    return null;
+  }
+
   const deleteData: DeleteMessageTemplateRequest = {
     id: template.id,
-    type: template.definition.type,
+    type: definition.type,
   };
   const handleDelete = apiRequestHandlerFactory({
     request: messageTemplateDeleteRequest,
@@ -149,7 +154,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
         }}
         onClick={() => {
           let messageType: string;
-          switch (template.definition.type) {
+          switch (definition.type) {
             case ChannelType.Email:
               messageType = "email";
               break;
@@ -190,27 +195,31 @@ function TemplateListContents() {
       smsTemplates: NarrowedMessageTemplateResource<SmsTemplateResource>[];
     }>(
       (acc, template) => {
-        switch (template.definition.type) {
+        const definition = template.draft ?? template.definition;
+        if (!definition) {
+          return acc;
+        }
+        switch (definition.type) {
           case ChannelType.Email:
             acc.emailTemplates.push({
               ...template,
-              definition: template.definition,
+              definition,
             });
             break;
           case ChannelType.MobilePush:
             acc.mobilePushTemplates.push({
               ...template,
-              definition: template.definition,
+              definition,
             });
             break;
           case ChannelType.Sms:
             acc.smsTemplates.push({
               ...template,
-              definition: template.definition,
+              definition,
             });
             break;
           default: {
-            const { type } = template.definition;
+            const { type } = definition;
             assertUnreachable(type);
           }
         }

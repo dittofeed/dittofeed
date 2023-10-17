@@ -321,7 +321,7 @@ async function sendSmsWithPayload(
           },
         });
 
-      if (messageTemplate.definition.type !== ChannelType.Sms) {
+      if (messageTemplate.definition?.type !== ChannelType.Sms) {
         return buildSendValue(
           false,
           InternalEventType.BadWorkspaceConfiguration,
@@ -456,7 +456,7 @@ async function sendMobilePushWithPayload(
           },
         });
 
-      if (messageTemplate.definition.type !== ChannelType.MobilePush) {
+      if (messageTemplate.definition?.type !== ChannelType.MobilePush) {
         return buildSendValue(
           false,
           InternalEventType.BadWorkspaceConfiguration,
@@ -575,7 +575,7 @@ async function sendEmailWithPayload(
           },
         });
 
-      if (messageTemplate.definition.type !== ChannelType.Email) {
+      if (messageTemplate.definition?.type !== ChannelType.Email) {
         return buildSendValue(
           false,
           InternalEventType.BadWorkspaceConfiguration,

@@ -9,7 +9,8 @@ export async function getMobilePushTemplates({
   const templates = await findMessageTemplates({
     workspaceId,
   });
-  return templates.filter(
-    (template) => template.definition.type === ChannelType.MobilePush
-  );
+  return templates.filter((template) => {
+    const definition = template.draft ?? template.definition ?? null;
+    return definition && definition.type === ChannelType.MobilePush;
+  });
 }

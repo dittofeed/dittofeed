@@ -53,10 +53,13 @@ export function getSmsEditorState({
     value: userProperties,
   };
 
-  if (smsMessage && smsMessage.definition.type === ChannelType.Sms) {
-    const { body } = smsMessage.definition;
-    serverInitialState.smsMessageBody = body;
-    serverInitialState.smsMessageTitle = smsMessage.name;
+  if (smsMessage) {
+    const definition = smsMessage.draft ?? smsMessage.definition;
+    if (definition && definition.type === ChannelType.Sms) {
+      const { body } = definition;
+      serverInitialState.smsMessageBody = body;
+      serverInitialState.smsMessageTitle = smsMessage.name;
+    }
   } else {
     Object.assign(serverInitialState, defaultSmsMessageState(templateId));
   }

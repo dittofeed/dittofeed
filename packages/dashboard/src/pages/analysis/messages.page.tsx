@@ -206,6 +206,9 @@ export default function MessagesPage() {
               return [];
             }
             const nodeStats = stats?.nodeStats[node.id];
+            if (!message.definition) {
+              return [];
+            }
 
             const row: MessageRow = {
               id: `${journey.id}-${node.id}`,

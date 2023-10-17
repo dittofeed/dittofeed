@@ -228,10 +228,7 @@ export async function upsertBroadcast({
   return {
     broadcast: toBroadcastResource(broadcast),
     journey: unwrap(toJourneyResource(journey)),
-    messageTemplate: {
-      ...messageTemplate,
-      definition: WELCOME_TEMPLATE,
-    },
+    messageTemplate: unwrap(enrichMessageTemplate(messageTemplate)),
     segment: unwrap(toSegmentResource(segment)),
   };
 }

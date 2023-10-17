@@ -55,15 +55,18 @@ export function getEmailEditorState({
     value: userProperties,
   };
 
-  if (emailTemplate && emailTemplate.definition.type === ChannelType.Email) {
-    const { from, subject, body, replyTo } = emailTemplate.definition;
-    serverInitialState.emailMessageTitle = emailTemplate.name;
-    serverInitialState.emailMessageFrom = from;
-    serverInitialState.emailMessageSubject = subject;
-    serverInitialState.emailMessageBody = body;
+  if (emailTemplate) {
+    const definition = emailTemplate.draft ?? emailTemplate.definition;
+    if (definition && definition.type === ChannelType.Email) {
+      const { from, subject, body, replyTo } = definition;
+      serverInitialState.emailMessageTitle = emailTemplate.name;
+      serverInitialState.emailMessageFrom = from;
+      serverInitialState.emailMessageSubject = subject;
+      serverInitialState.emailMessageBody = body;
 
-    if (replyTo) {
-      serverInitialState.emailMessageReplyTo = replyTo;
+      if (replyTo) {
+        serverInitialState.emailMessageReplyTo = replyTo;
+      }
     }
   } else {
     Object.assign(serverInitialState, defaultEmailMessageState(templateId));
