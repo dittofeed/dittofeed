@@ -214,9 +214,18 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
         smsProviders: [],
-        traits: {
+        traits: [],
+        getTraitsRequest: {
           type: CompletionStatus.NotStarted,
         },
+        upsertTraits: (traits) =>
+          set((state) => {
+            state.traits = Array.from(new Set(traits.concat(state.traits)));
+          }),
+        setGetTraitsRequest: (request) =>
+          set((state) => {
+            state.getTraitsRequest = request;
+          }),
         messages: {
           type: CompletionStatus.NotStarted,
         },

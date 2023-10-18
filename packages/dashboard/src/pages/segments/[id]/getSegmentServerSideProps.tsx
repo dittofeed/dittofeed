@@ -1,7 +1,6 @@
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { findAllUserTraits } from "backend-lib/src/userEvents";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
@@ -23,28 +22,23 @@ const getSegmentServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [segment, traits, subscriptionGroups, messageTemplates] =
-      await Promise.all([
-        prisma().segment.findUnique({
-          where: {
-            id,
-          },
-        }),
-        findAllUserTraits({
+    const [segment, subscriptionGroups, messageTemplates] = await Promise.all([
+      prisma().segment.findUnique({
+        where: {
+          id,
+        },
+      }),
+      prisma().subscriptionGroup.findMany({
+        where: {
           workspaceId,
-        }),
-        prisma().subscriptionGroup.findMany({
-          where: {
-            workspaceId,
-          },
-        }),
-        findMessageTemplates({
-          workspaceId,
-        }),
-      ]);
+        },
+      }),
+      findMessageTemplates({
+        workspaceId,
+      }),
+    ]);
     const serverInitialState = getSegmentConfigState({
       segment: segment ? unwrap(toSegmentResource(segment)) : null,
-      traits,
       segmentId: id,
       workspaceId,
       subscriptionGroups: subscriptionGroups.map((sg) =>

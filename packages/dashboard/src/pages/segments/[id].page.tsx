@@ -5,23 +5,28 @@ import React from "react";
 import EditableName from "../../components/editableName";
 import SegmentEditor from "../../components/segmentEditor";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../../lib/appStore";
+import { useAppStorePick } from "../../lib/appStore";
 import getSegmentServerSideProps from "./[id]/getSegmentServerSideProps";
 import SegmentLayout from "./[id]/segmentLayout";
 
 export const getServerSideProps = getSegmentServerSideProps;
 
 export default function NewSegment() {
-  const editedSegment = useAppStore((state) => state.editedSegment);
-  const setName = useAppStore((state) => state.setEditableSegmentName);
-  const apiBase = useAppStore((state) => state.apiBase);
-  const segmentUpdateRequest = useAppStore(
-    (state) => state.segmentUpdateRequest
-  );
-  const setSegmentUpdateRequest = useAppStore(
-    (state) => state.setSegmentUpdateRequest
-  );
-  const upsertSegment = useAppStore((state) => state.upsertSegment);
+  const {
+    editedSegment,
+    setEditableSegmentName: setName,
+    apiBase,
+    setSegmentUpdateRequest,
+    segmentUpdateRequest,
+    upsertSegment,
+  } = useAppStorePick([
+    "editedSegment",
+    "setEditableSegmentName",
+    "apiBase",
+    "setSegmentUpdateRequest",
+    "upsertSegment",
+    "segmentUpdateRequest",
+  ]);
   const theme = useTheme();
 
   if (!editedSegment) {

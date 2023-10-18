@@ -39,8 +39,9 @@ import {
 import React, { useContext, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
-import { useAppStore } from "../lib/appStore";
+import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
+import useLoadTraits from "../lib/useLoadTraits";
 import DurationSelect from "./durationSelect";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
@@ -492,8 +493,6 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const { disabled } = useContext(DisabledContext);
 
   const traits = useAppStore((store) => store.traits);
-  const traitOptions =
-    traits.type === CompletionStatus.Successful ? traits.value : [];
   const operator = keyedOperatorOptions.get(node.operator.type);
   if (!operator) {
     throw new Error(`Unsupported operator type: ${node.operator.type}`);
@@ -546,7 +545,7 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
             traitOnChange(newValue);
           }}
           disableClearable
-          options={traitOptions}
+          options={traits}
           renderInput={(params) => (
             <TextField
               {...params}
@@ -832,6 +831,7 @@ export function SegmentEditorInner({
 
   const { entryNode } = editedSegment.definition;
   const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
+  useLoadTraits();
 
   return (
     <DisabledContext.Provider value={memoizedDisabled}>
@@ -852,7 +852,7 @@ export function SegmentEditorInner({
 }
 
 export default function SegmentEditor({ disabled }: { disabled?: boolean }) {
-  const editedSegment = useAppStore((state) => state.editedSegment);
+  const { editedSegment } = useAppStorePick(["editedSegment"]);
 
   if (!editedSegment) {
     return null;
