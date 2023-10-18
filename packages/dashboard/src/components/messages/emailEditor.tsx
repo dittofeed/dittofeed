@@ -831,7 +831,6 @@ export default function EmailEditor({
     userProperties: mockUserProperties,
   };
 
-  // TODO use draft
   const submitTest = apiRequestHandlerFactory({
     request: messageTestRequest,
     setRequest: setMessageTestRequest,
