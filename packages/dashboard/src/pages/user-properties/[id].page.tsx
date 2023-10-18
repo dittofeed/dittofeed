@@ -10,7 +10,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { findIdentifyTraits } from "backend-lib/src/userEvents";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -44,6 +43,7 @@ import {
   PreloadedState,
   PropsWithInitialState,
 } from "../../lib/types";
+import useLoadTraits from "../../lib/useLoadTraits";
 
 const selectorWidth = "192px";
 
@@ -185,16 +185,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [userProperty, traits] = await Promise.all([
-      prisma().userProperty.findUnique({
-        where: {
-          id,
-        },
-      }),
-      findIdentifyTraits({
-        workspaceId,
-      }),
-    ]);
+    const userProperty = await prisma().userProperty.findUnique({
+      where: {
+        id,
+      },
+    });
 
     let userPropertyResource: UserPropertyResource;
     if (userProperty && userProperty.workspaceId === workspaceId) {
@@ -225,11 +220,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     serverInitialState.editedUserProperty = userPropertyResource;
 
-    serverInitialState.traits = {
-      type: CompletionStatus.Successful,
-      value: traits,
-    };
-
     return {
       props: addInitialStateToProps({
         serverInitialState,
@@ -244,9 +234,8 @@ function TraitUserPropertyDefinitionEditor({
 }: {
   definition: TraitUserPropertyDefinition;
 }) {
+  useLoadTraits();
   const traits = useAppStore((store) => store.traits);
-  const traitOptions =
-    traits.type === CompletionStatus.Successful ? traits.value : [];
 
   const updateUserPropertyDefinition = useAppStore(
     (state) => state.updateUserPropertyDefinition
@@ -280,7 +269,7 @@ function TraitUserPropertyDefinitionEditor({
       }}
       disableClearable
       sx={{ width: selectorWidth }}
-      options={traitOptions}
+      options={traits}
       renderInput={(params) => (
         <TextField
           {...params}

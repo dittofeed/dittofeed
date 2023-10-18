@@ -3,7 +3,6 @@ import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { findIdentifyTraits } from "backend-lib/src/userEvents";
 import { SegmentResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
@@ -34,28 +33,21 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [
-      { broadcast, segment },
-      traits,
-      subscriptionGroups,
-      messageTemplates,
-    ] = await Promise.all([
-      getOrCreateBroadcast({
-        workspaceId: dfContext.workspace.id,
-        broadcastId: id,
-      }),
-      findIdentifyTraits({
-        workspaceId,
-      }),
-      prisma().subscriptionGroup.findMany({
-        where: {
+    const [{ broadcast, segment }, subscriptionGroups, messageTemplates] =
+      await Promise.all([
+        getOrCreateBroadcast({
+          workspaceId: dfContext.workspace.id,
+          broadcastId: id,
+        }),
+        prisma().subscriptionGroup.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        findMessageTemplates({
           workspaceId,
-        },
-      }),
-      findMessageTemplates({
-        workspaceId,
-      }),
-    ]);
+        }),
+      ]);
     if (broadcast.workspaceId !== workspaceId) {
       return {
         notFound: true,
@@ -65,7 +57,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const baseAppState = getBroadcastAppState({ broadcast });
     const segmentAppState = getSegmentConfigState({
       segment,
-      traits,
       segmentId: id,
       workspaceId,
       subscriptionGroups: subscriptionGroups.map((sg) =>

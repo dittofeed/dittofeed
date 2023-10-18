@@ -21,8 +21,6 @@ import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   EmailSegmentNode,
-  GetTraitsRequest,
-  GetTraitsResponse,
   InternalEventType,
   PerformedSegmentNode,
   RelationalOperators,
@@ -38,12 +36,12 @@ import {
   SubscriptionGroupSegmentNode,
   TraitSegmentNode,
 } from "isomorphic-lib/src/types";
-import React, { useContext, useEffect, useMemo } from "react";
+import React, { useContext, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
+import useLoadTraits from "../lib/useLoadTraits";
 import DurationSelect from "./durationSelect";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
@@ -833,45 +831,7 @@ export function SegmentEditorInner({
 
   const { entryNode } = editedSegment.definition;
   const memoizedDisabled = useMemo(() => ({ disabled }), [disabled]);
-
-  const {
-    apiBase,
-    workspace,
-    upsertTraits,
-    getTraitsRequest,
-    setGetTraitsRequest,
-  } = useAppStorePick([
-    "apiBase",
-    "workspace",
-    "upsertTraits",
-    "getTraitsRequest",
-    "setGetTraitsRequest",
-  ]);
-
-  useEffect(() => {
-    if (workspace.type !== CompletionStatus.Successful) {
-      return;
-    }
-    const workspaceId = workspace.value.id;
-    const params: GetTraitsRequest = {
-      workspaceId,
-    };
-    apiRequestHandlerFactory({
-      request: getTraitsRequest,
-      setRequest: setGetTraitsRequest,
-      responseSchema: GetTraitsResponse,
-      setResponse: ({ traits: t }) => upsertTraits(t),
-      requestConfig: {
-        method: "GET",
-        url: `${apiBase}/api/events/traits`,
-        params,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useLoadTraits();
 
   return (
     <DisabledContext.Provider value={memoizedDisabled}>
