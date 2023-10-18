@@ -30,6 +30,10 @@ export default function LoadingModal({
   onClose?: () => void;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
+  const onCloseModal = () => {
+    setModalOpen(false);
+    onClose?.();
+  };
   return (
     <>
       <Button
@@ -39,17 +43,11 @@ export default function LoadingModal({
       >
         {openTitle}
       </Button>
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)}>
+      <Dialog open={modalOpen} onClose={onCloseModal}>
         <DialogTitle>{dialogTitle ?? openTitle}</DialogTitle>
         {children && <DialogContent dividers>{children}</DialogContent>}
         <DialogActions>
-          <Button
-            autoFocus
-            onClick={() => {
-              setModalOpen(false);
-              onClose?.();
-            }}
-          >
+          <Button autoFocus onClick={onCloseModal}>
             Cancel
           </Button>
           <LoadingButton
