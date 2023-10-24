@@ -67,7 +67,7 @@
         "integrations/sources",
         {
           "group": "Data Source Types",
-          "pages": ["integrations/sources/segment", "integrations/sources/api"]
+          "pages": ["integrations/sources/segment", "integrations/sources/api", "integrations/sources/polytomic"]
         },
         "integrations/channels",
         {

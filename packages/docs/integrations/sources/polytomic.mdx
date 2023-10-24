@@ -1,0 +1,38 @@
+---
+title: "Using Dittofeed's Polytomic Integration"
+description: "Pull data from databases and data warehouses into Dittofeed using reverse ETL."
+---
+
+<div style={{width: "30%"}} key="polytomic">
+    <svg width="100%" height="100%" viewBox="0 0 158 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path fillRule="evenodd" clipRule="evenodd" d="M19.0513 7.80749C19.9421 6.9853 20.5 5.8078 20.5 4.5C20.5 2.01472 18.4853 0 16 0C13.5147 0 11.5 2.01472 11.5 4.5C11.5 5.80785 12.0579 6.98539 12.9488 7.80759L5.31569 23.0737C5.05115 23.0253 4.77853 23 4.5 23C2.01472 23 0 25.0147 0 27.5C0 29.9853 2.01472 32 4.5 32C6.55153 32 8.28242 30.6272 8.8241 28.75H23.1759C23.7176 30.6272 25.4485 32 27.5 32C29.9853 32 32 29.9853 32 27.5C32 25.0147 29.9853 23 27.5 23C27.2215 23 26.9489 23.0253 26.6845 23.0737L19.0513 7.80749ZM24.4487 24.1924L16.8156 8.92626C16.5511 8.9747 16.2785 9 16 9C15.7215 9 15.449 8.97471 15.1845 8.92629L7.55138 24.1925C8.14671 24.7421 8.59336 25.4503 8.82413 26.25H23.1759C23.4067 25.4502 23.8533 24.742 24.4487 24.1924Z" fill="#0BD9A5"></path>
+        <path d="M40 22.7304H41.9642V17.5695H44.5447C46.9904 17.5695 48.8005 15.8748 48.8005 13.3906C48.8005 10.8872 47.0674 9.25034 44.5447 9.25034H40V22.7304ZM41.9642 15.7978V11.0413H44.4292C45.8735 11.0413 46.7978 12.0234 46.7978 13.3906C46.7978 14.7579 45.8735 15.7978 44.4292 15.7978H41.9642Z" fill="white"></path>
+        <path d="M58.0607 22.9807C62.0084 22.9807 64.9933 19.9381 64.9933 15.9904C64.9933 12.0619 62.0277 9 58.08 9C54.1322 9 51.1474 12.0234 51.1474 15.9904C51.1474 19.9766 54.113 22.9807 58.0607 22.9807ZM58.08 21.1128C55.2877 21.1128 53.1886 18.956 53.1886 15.9904C53.1886 13.0633 55.2877 10.868 58.08 10.868C60.853 10.868 62.9713 13.0633 62.9713 15.9904C62.9713 18.956 60.853 21.1128 58.08 21.1128Z" fill="white"></path>
+        <path d="M68.3532 22.7304H75.9791V20.9395H70.3175V9.25034H68.3532V22.7304Z" fill="white"></path>
+        <path d="M80.1788 22.7304H82.1238V16.8184L86.7648 9.25034H84.4539L81.1802 14.912H81.0454L77.7717 9.25034H75.5378L80.1788 16.8184V22.7304Z" fill="white"></path>
+        <path d="M92.5746 22.7304H94.5196V11.0605H98.3518V9.25034H88.7424V11.0605H92.5746V22.7304Z" fill="white"></path>
+        <path d="M107.414 22.9807C111.362 22.9807 114.347 19.9381 114.347 15.9904C114.347 12.0619 111.381 9 107.433 9C103.486 9 100.501 12.0234 100.501 15.9904C100.501 19.9766 103.466 22.9807 107.414 22.9807ZM107.433 21.1128C104.641 21.1128 102.542 18.956 102.542 15.9904C102.542 13.0633 104.641 10.868 107.433 10.868C110.206 10.868 112.325 13.0633 112.325 15.9904C112.325 18.956 110.206 21.1128 107.433 21.1128Z" fill="white"></path>
+        <path d="M117.707 22.7304H119.613V11.1183H119.748L123.041 22.7304H125.852L129.126 11.1183H129.28V22.7304H131.167V9.25034H127.778L124.504 20.8624H124.37L121.096 9.25034H117.707V22.7304Z" fill="white"></path>
+        <path d="M135.189 22.7304H141.062V20.978H139.098V11.0028H141.062V9.25034H135.189V11.0028H137.153V20.978H135.189V22.7304Z" fill="white"></path>
+        <path d="M151.09 23C154.114 23 156.559 21.2283 157.426 18.436H155.308C154.653 20.1114 152.997 21.132 151.09 21.132C148.279 21.132 146.257 18.956 146.257 15.9904C146.257 13.0633 148.279 10.868 151.09 10.868C153.016 10.868 154.634 11.9078 155.308 13.5447H157.426C156.54 10.8102 154.133 9 151.09 9C147.123 9 144.215 12.0426 144.215 15.9904C144.215 19.9766 147.104 23 151.09 23Z" fill="white"></path>
+    </svg>
+</div>
+
+
+Workspace members can pull data from databases (such as PostgreSQL and MySQL) or data warehouses (such as Snowflake, BigQuery, and Redshift) into Dittofeed using the Polytomic integration. This empowers Dittofeed workspace members to flexibly submit new events, without having to rope in an engineer to add more event tracking to their application's production codebase. This is especially useful for teams who have limited engineering resources.
+
+## Polytomic
+
+To get started, read Polytomic's [documentation](https://docs.polytomic.com/docs/getting-started) to learn how to connect it to your database or data warehouse. Once you've connected Polytomic to your database or data warehouse, you can use the Polytomic integration to feed data into Dittofeed. The Polytomic's Dittofeed docs can be found [here](https://docs.polytomic.com/docs/dittofeed).
+
+## Supported Data Sources
+
+The Polytomic integration supports the following data sources, among others:
+
+- [PostgreSQL](https://docs.polytomic.com/docs/postgresql-connections)
+- [MySQL](https://docs.polytomic.com/docs/mysql-connections)
+- [Snowflake](https://docs.polytomic.com/docs/snowflake-connections)
+- [BigQuery](https://docs.polytomic.com/docs/google-bigquery-connections)
+- [Redshift](https://docs.polytomic.com/docs/redshift-connections)
+
+Polytomic also allows users to pull data from common SaaS tools, such as [Stripe](https://docs.polytomic.com/docs/redshift-connections), [Hubspot](https://docs.polytomic.com/docs/hubspot), and [Salesforce](https://docs.polytomic.com/docs/salesforce-connections). You can find a full list of supported data sources [here](https://docs.polytomic.com/docs).
