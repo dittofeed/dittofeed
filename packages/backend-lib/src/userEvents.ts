@@ -145,8 +145,10 @@ export async function findManyEvents({
   tableVersion: tableVersionParam,
   startDate,
   endDate,
+  userId,
 }: {
   workspaceId: string;
+  userId?: string;
   tableVersion?: string;
   limit?: number;
   offset?: number;
@@ -177,6 +179,10 @@ export async function findManyEvents({
     ? `AND event_time <= ${qb.addQueryValue(endDate, "DateTime64(3)")}`
     : "";
 
+  const userIdClause = userId
+    ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
+    : "";
+
   const query = `SELECT
     workspace_id,
     event_type,
@@ -193,6 +199,7 @@ export async function findManyEvents({
   WHERE workspace_id = ${workspaceIdParam}
   ${startDateClause}
   ${endDateClause}
+  ${userIdClause}
   ORDER BY event_time DESC, message_id
   ${paginationClause}`;
 
@@ -337,9 +344,11 @@ export async function submitBroadcast({
 export async function findEventsCount({
   workspaceId,
   tableVersion: tableVersionParam,
+  userId,
 }: {
   workspaceId: string;
   tableVersion?: string;
+  userId?: string;
   limit?: number;
   offset?: number;
 }): Promise<number> {
@@ -348,10 +357,13 @@ export async function findEventsCount({
     tableVersion: tableVersionParam,
   });
 
+  const userIdClause = userId ? `AND user_id = {userId:String}` : "";
+
   const query = `SELECT COUNT(message_id) AS event_count FROM ${buildUserEventsTableName(
     tableVersion
   )}
   WHERE workspace_id = {workspaceId:String}
+  ${userIdClause}
   GROUP BY workspace_id
   `;
 
@@ -360,6 +372,7 @@ export async function findEventsCount({
     format: "JSONEachRow",
     query_params: {
       workspaceId,
+      userId,
     },
   });
 

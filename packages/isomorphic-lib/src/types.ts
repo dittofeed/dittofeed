@@ -736,6 +736,7 @@ export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
 
 export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
+  userId: Type.Optional(Type.String()),
   offset: Type.Number(),
   limit: Type.Number(),
   startDate: Type.Optional(Type.Number()),

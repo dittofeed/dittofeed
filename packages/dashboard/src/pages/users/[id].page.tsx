@@ -112,7 +112,7 @@ const User: NextPage<UserPageProps> = function User(props) {
               }}
             >
               {user.segments.map((segment) => (
-                <ListItem>
+                <ListItem key={segment.id}>
                   <ResourceListItemButton
                     href={`/dashboard/segments/${segment.id}`}
                   >
@@ -146,7 +146,7 @@ const User: NextPage<UserPageProps> = function User(props) {
           </Stack>
         </Stack>
         <Box sx={{ flex: 1 }}>
-          <EventsTable />
+          <EventsTable userId={user.id} />
         </Box>
       </Stack>
     </MainLayout>
