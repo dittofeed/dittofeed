@@ -1621,7 +1621,7 @@ describe("compute properties activities", () => {
           });
         });
 
-        describe("when user id and anonymous id properties are specified", () => {
+        describe.only("when user id and anonymous id properties are specified", () => {
           let userProperties: EnrichedUserProperty[];
 
           beforeEach(async () => {

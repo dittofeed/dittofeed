@@ -124,13 +124,17 @@ export async function upsertBulkUserPropertyAssignments({
     values.push(item.value);
   }
 
+  const joinedUserPropertyIds = Prisma.join(userPropertyIds);
+
   const query = Prisma.sql`
     INSERT INTO "UserPropertyAssignment" ("workspaceId", "userId", "userPropertyId", "value")
-    SELECT
-      unnest(array[${Prisma.join(workspaceIds)}]),
-      unnest(array[${Prisma.join(userIds)}]),
-      unnest(array[${Prisma.join(userPropertyIds)}]),
-      unnest(array[${Prisma.join(values)}])
+    SELECT DISTINCT
+      unnest(array[${Prisma.join(workspaceIds)}]) AS "workspaceId",
+      unnest(array[${Prisma.join(userIds)}]) as "userId",
+      unnest(array[${joinedUserPropertyIds}]) AS "userPropertyId",
+      unnest(array[${Prisma.join(values)}]) AS "value"
+    FROM "UserProperty"
+    WHERE "UserProperty".id = ANY(array[${joinedUserPropertyIds}])
     ON CONFLICT ("workspaceId", "userId", "userPropertyId")
     DO UPDATE SET
       "value" = EXCLUDED."value"
