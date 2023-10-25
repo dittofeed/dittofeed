@@ -69,9 +69,7 @@ function buildUserIdQueries({
 
   let userIdsCondition: Sql;
   if (userIds && userIds.length > 0) {
-    userIdsCondition = Prisma.sql`"userId" IN (${Prisma.join(
-      userIds.map((id) => `CAST(${id} AS UUID)`)
-    )})`;
+    userIdsCondition = Prisma.sql`"userId" IN (${Prisma.join(userIds)})`;
   } else {
     userIdsCondition = Prisma.sql`1=1`;
   }

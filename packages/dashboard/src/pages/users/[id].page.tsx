@@ -37,6 +37,7 @@ export const getServerSideProps: GetServerSideProps<
     throw new Error("Unable to retrieve user");
   }
 
+  logger().debug({ value: usersResult.value }, "usersResult");
   const [user] = usersResult.value.users;
 
   if (!user) {
