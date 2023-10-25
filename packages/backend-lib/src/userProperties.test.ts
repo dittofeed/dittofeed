@@ -1,10 +1,11 @@
+import { randomUUID } from "crypto";
+
+import prisma from "./prisma";
+import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
 import {
   upsertBulkUserPropertyAssignments,
   UserPropertyBulkUpsertItem,
 } from "./userProperties";
-import prisma from "./prisma";
-import { randomUUID } from "crypto";
-import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
 
 describe("upsertBulkUserPropertyAssignments", () => {
   it("should not throw when upserting assignments to existing and non-existing user properties", async () => {
