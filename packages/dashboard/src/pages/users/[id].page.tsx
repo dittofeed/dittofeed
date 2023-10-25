@@ -87,7 +87,7 @@ const User: NextPage<UserPageProps> = function User(props) {
   return (
     <MainLayout>
       <Stack direction="row" sx={{ padding: 1 }}>
-        <Stack sx={{ flex: 1 }} spacing={1}>
+        <Stack sx={{ flex: 1 }} spacing={2}>
           <Stack spacing={1}>
             <Typography
               variant="h2"
