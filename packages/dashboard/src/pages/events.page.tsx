@@ -163,7 +163,11 @@ export default function Events() {
         return;
       }
 
-      updateEvents(result.value.events);
+      const events = result.value.events.map((event) => ({
+        ...event,
+        id: event.messageId,
+      }));
+      updateEvents(events);
       updateTotalRowCount(result.value.count);
 
       updateEventsPaginationRequest({

@@ -1072,8 +1072,20 @@ export type GetUsersRequest = Static<typeof GetUsersRequest>;
 
 const GetUsersResponseItem = Type.Object({
   id: Type.String(),
-  properties: Type.Record(Type.String(), Type.String()),
-  segments: Type.Array(Type.String()),
+  // map from id to name and value
+  properties: Type.Record(
+    Type.String(),
+    Type.Object({
+      name: Type.String(),
+      value: Type.String(),
+    })
+  ),
+  segments: Type.Array(
+    Type.Object({
+      id: Type.String(),
+      name: Type.String(),
+    })
+  ),
 });
 
 export type GetUsersResponseItem = Static<typeof GetUsersResponseItem>;
