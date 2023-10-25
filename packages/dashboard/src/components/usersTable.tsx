@@ -4,7 +4,6 @@ import IconButton from "@mui/material/IconButton";
 import {
   DataGrid,
   GridColDef,
-  GridRenderCellParams,
   GridSlotsComponentsProps,
 } from "@mui/x-data-grid";
 import { Type } from "@sinclair/typebox";
@@ -57,27 +56,7 @@ const baseColumn: Partial<GridColDef<Row>> = {
   flex: 1,
   sortable: false,
   filterable: false,
-  renderCell: (params: unknown) =>
-    renderCell(params, {
-      href: (row) => `/users/${row.id}`,
-    }),
-};
-
-const renderUserCell: (
-  formatter?: (value: unknown) => string
-) => (params: GridRenderCellParams) => JSX.Element = (formatter) => {
-  return (params: GridRenderCellParams) => {
-    const formattedValue = formatter ? formatter(params.value) : params.value;
-    return renderCell(
-      {
-        ...params,
-        value: formattedValue,
-      },
-      {
-        href: (row) => `/users/${row.id}`,
-      }
-    );
-  };
+  renderCell,
 };
 
 declare module "@mui/x-data-grid" {

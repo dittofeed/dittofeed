@@ -1,8 +1,11 @@
-import { Stack } from "@mui/material";
+import { Stack, useTheme } from "@mui/material";
 import logger from "backend-lib/src/logger";
 import { getUsers } from "backend-lib/src/users";
+import { json as codeMirrorJson } from "@codemirror/lang-json";
+import ReactCodeMirror from "@uiw/react-codemirror";
 import { GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
+import { EditorView } from "@codemirror/view";
 
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
@@ -59,9 +62,28 @@ export const getServerSideProps: GetServerSideProps<
 
 const User: NextPage<UserPageProps> = function User(props) {
   const { user } = props;
+  const theme = useTheme();
+  const properties = user.properties
+
+
   return (
     <MainLayout>
-      <Stack>{JSON.stringify(user)}</Stack>
+      <Stack>
+        <ReactCodeMirror
+          value={user.}
+          extensions={[
+            codeMirrorJson(),
+            EditorView.lineWrapping,
+            EditorView.theme({
+              "&": {
+                fontFamily: theme.typography.fontFamily,
+              },
+            }),
+          ]}
+        />
+
+        {JSON.stringify(user)}
+      </Stack>
     </MainLayout>
   );
 };
