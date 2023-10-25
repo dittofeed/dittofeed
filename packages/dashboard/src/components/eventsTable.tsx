@@ -1,4 +1,4 @@
-import { Box, Stack, useTheme } from "@mui/material";
+import { useTheme } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -152,11 +152,11 @@ export function EventsTable({
         return;
       }
 
-      const events = result.value.events.map((event) => ({
+      const eventsWithId = result.value.events.map((event) => ({
         ...event,
         id: event.messageId,
       }));
-      updateEvents(events);
+      updateEvents(eventsWithId);
       updateTotalRowCount(result.value.count);
 
       updateEventsPaginationRequest({

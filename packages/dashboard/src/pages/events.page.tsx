@@ -3,11 +3,11 @@ import { GetServerSideProps } from "next";
 import Head from "next/head";
 import React from "react";
 
+import { EventsTable } from "../components/eventsTable";
 import MainLayout from "../components/mainLayout";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
-import { EventsTable } from "../components/eventsTable";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => ({

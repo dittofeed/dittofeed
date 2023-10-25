@@ -1,3 +1,5 @@
+import { json as codeMirrorJson } from "@codemirror/lang-json";
+import { EditorView } from "@codemirror/view";
 import {
   Box,
   Divider,
@@ -8,20 +10,18 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import ReactCodeMirror from "@uiw/react-codemirror";
 import logger from "backend-lib/src/logger";
 import { getUsers } from "backend-lib/src/users";
-import { json as codeMirrorJson } from "@codemirror/lang-json";
-import ReactCodeMirror from "@uiw/react-codemirror";
 import { GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
-import { EditorView } from "@codemirror/view";
 
+import { EventsTable } from "../../components/eventsTable";
 import MainLayout from "../../components/mainLayout";
+import { ResourceListItemButton } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
-import { ResourceListItemButton } from "../../components/resourceList";
-import { EventsTable } from "../../components/eventsTable";
 
 interface UserPageProps {
   user: GetUsersResponse["users"][0];
