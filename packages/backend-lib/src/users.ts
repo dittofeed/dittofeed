@@ -18,9 +18,10 @@ import {
 const UsersQueryItem = Type.Object({
   type: Type.Union([Type.Literal(0), Type.Literal(1)]),
   userId: Type.String(),
-  computedPropertyKey: Type.String(),
   segmentValue: Type.Boolean(),
   userPropertyValue: Type.String(),
+  computedPropertyName: Type.String(),
+  computedPropertyId: Type.String(),
 });
 
 const UsersQueryResult = Type.Array(UsersQueryItem);
@@ -43,12 +44,14 @@ function buildUserIdQueries({
   workspaceId,
   direction,
   segmentId,
+  userIds,
   cursor,
 }: {
   workspaceId: string;
   segmentId?: string;
   cursor: Cursor | null;
   direction: CursorDirectionEnum;
+  userIds?: string[];
 }): Sql {
   let lastUserIdCondition: Sql;
   if (cursor) {
@@ -63,6 +66,13 @@ function buildUserIdQueries({
     }
   } else {
     lastUserIdCondition = Prisma.sql`1=1`;
+  }
+
+  let userIdsCondition: Sql;
+  if (userIds && userIds.length > 0) {
+    userIdsCondition = Prisma.sql`"userId" IN (${Prisma.join(userIds)})`;
+  } else {
+    userIdsCondition = Prisma.sql`1=1`;
   }
 
   const segmentIdCondition = segmentId
@@ -80,6 +90,7 @@ function buildUserIdQueries({
       AND ${lastUserIdCondition}
       AND "value" != ''
       AND ${userPropertyAssignmentCondition}
+      AND ${userIdsCondition}
 
     UNION ALL
 
@@ -89,6 +100,7 @@ function buildUserIdQueries({
       AND ${lastUserIdCondition}
       AND "inSegment" = TRUE
       AND ${segmentIdCondition}
+      AND ${userIdsCondition}
   `;
 
   return userIdQueries;
@@ -99,6 +111,7 @@ export async function getUsers({
   cursor: unparsedCursor,
   segmentId,
   direction = CursorDirectionEnum.After,
+  userIds,
   limit = 10,
 }: GetUsersRequest & { workspaceId: string }): Promise<
   Result<GetUsersResponse, Error>
@@ -126,6 +139,7 @@ export async function getUsers({
 
   const userIdQueries = buildUserIdQueries({
     workspaceId,
+    userIds,
     cursor,
     segmentId,
     direction,
@@ -139,12 +153,19 @@ export async function getUsers({
           LIMIT ${limit}
       )
 
-      SELECT *
+      SELECT 
+        cr."userId",
+        cr."type",
+        cr."computedPropertyName",
+        cr."computedPropertyId",
+        cr."segmentValue",
+        cr."userPropertyValue"
       FROM (
           SELECT
               1 AS type,
               "userId",
-              up.name AS "computedPropertyKey",
+              up.name AS "computedPropertyName",
+              up.id AS "computedPropertyId",
               FALSE AS "segmentValue",
               value AS "userPropertyValue"
           FROM "UserPropertyAssignment" as upa
@@ -160,15 +181,18 @@ export async function getUsers({
           SELECT
               0 AS type,
               "userId",
-              CAST("segmentId" AS TEXT) AS "computedPropertyKey",
+              s.name AS "computedPropertyName",
+              s.id AS "computedPropertyId",
               "inSegment" AS "segmentValue",
               '' AS "userPropertyValue"
-          FROM "SegmentAssignment"
+          FROM "SegmentAssignment" as sa
+          JOIN "Segment" AS s ON s.id = sa."segmentId"
           WHERE
-              "workspaceId" = CAST(${workspaceId} AS UUID)
+              sa."workspaceId" = CAST(${workspaceId} AS UUID)
               AND "userId" IN (SELECT "userId" FROM unique_user_ids)
+              AND s."resourceType" != 'Internal'
               AND "inSegment" = TRUE
-      ) AS combined_results
+      ) AS cr
       ORDER BY "userId" ASC;
     `;
 
@@ -184,7 +208,10 @@ export async function getUsers({
       properties: {},
     };
     if (result.type === 0) {
-      user.segments.push(result.computedPropertyKey);
+      user.segments.push({
+        id: result.computedPropertyId,
+        name: result.computedPropertyName,
+      });
     } else {
       let value: string;
       try {
@@ -192,7 +219,10 @@ export async function getUsers({
       } catch (e) {
         value = result.userPropertyValue;
       }
-      user.properties[result.computedPropertyKey] = value;
+      user.properties[result.computedPropertyId] = {
+        name: result.computedPropertyName,
+        value,
+      };
     }
     userMap.set(result.userId, user);
   }

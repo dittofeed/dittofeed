@@ -27,7 +27,8 @@ export default async function eventsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { workspaceId, limit, offset, startDate, endDate } = request.query;
+      const { workspaceId, limit, offset, startDate, endDate, userId } =
+        request.query;
 
       const [eventsRaw, count] = await Promise.all([
         findManyEvents({
@@ -36,9 +37,11 @@ export default async function eventsController(fastify: FastifyInstance) {
           offset,
           startDate,
           endDate,
+          userId,
         }),
         findEventsCount({
           workspaceId,
+          userId,
         }),
       ]);
 

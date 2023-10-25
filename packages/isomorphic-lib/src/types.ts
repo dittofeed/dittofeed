@@ -736,6 +736,7 @@ export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
 
 export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
+  userId: Type.Optional(Type.String()),
   offset: Type.Number(),
   limit: Type.Number(),
   startDate: Type.Optional(Type.Number()),
@@ -1064,6 +1065,7 @@ export const GetUsersRequest = Type.Object({
   segmentId: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
+  userIds: Type.Optional(Type.Array(Type.String())),
   workspaceId: Type.String(),
 });
 
@@ -1071,8 +1073,20 @@ export type GetUsersRequest = Static<typeof GetUsersRequest>;
 
 const GetUsersResponseItem = Type.Object({
   id: Type.String(),
-  properties: Type.Record(Type.String(), Type.String()),
-  segments: Type.Array(Type.String()),
+  // map from id to name and value
+  properties: Type.Record(
+    Type.String(),
+    Type.Object({
+      name: Type.String(),
+      value: Type.String(),
+    })
+  ),
+  segments: Type.Array(
+    Type.Object({
+      id: Type.String(),
+      name: Type.String(),
+    })
+  ),
 });
 
 export type GetUsersResponseItem = Static<typeof GetUsersResponseItem>;

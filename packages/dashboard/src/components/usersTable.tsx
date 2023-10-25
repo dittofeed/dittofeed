@@ -15,7 +15,7 @@ import {
   GetUsersResponse,
   GetUsersResponseItem,
 } from "isomorphic-lib/src/types";
-import { NextRouter } from "next/router";
+import { NextRouter, useRouter } from "next/router";
 import React, { useMemo } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
@@ -140,16 +140,18 @@ export type OnPaginationChangeProps = Pick<
   "direction" | "cursor"
 >;
 
-export type Props = Omit<GetUsersRequest, "limit"> & {
+export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
   onPaginationChange: (args: OnPaginationChangeProps) => void;
 };
+
 export default function UsersTable({
   workspaceId,
   segmentId,
   direction,
   cursor,
   onPaginationChange,
-}: Props) {
+}: UsersTableProps) {
+  const router = useRouter();
   const apiBase = useAppStore((store) => store.apiBase);
   const getUsersRequest = usersStore((store) => store.getUsersRequest);
   const users = usersStore((store) => store.users);
@@ -169,11 +171,20 @@ export default function UsersTable({
         if (!user) {
           return [];
         }
+        const userProperties: Record<string, string> = {};
+        for (const propertyId in user.properties) {
+          const property = user.properties[propertyId];
+          if (!property) {
+            continue;
+          }
+          userProperties[property.name] = property.value;
+        }
+        const segments = user.segments.map((segment) => segment.name);
 
         return {
           id: user.id,
-          properties: JSON.stringify(user.properties),
-          segments: JSON.stringify(user.segments),
+          properties: JSON.stringify(userProperties),
+          segments: segments.join(" "),
         };
       }),
     [currentPageUserIds, users]
@@ -185,7 +196,6 @@ export default function UsersTable({
         if (direction === CursorDirectionEnum.Before) {
           setNextCursor(null);
           setPreviousCursor(null);
-
           onPaginationChange({});
         }
       } else {
@@ -227,8 +237,24 @@ export default function UsersTable({
   return (
     <DataGrid
       rows={usersPage}
-      sx={{ height: "100%", width: "100%" }}
+      sx={{
+        height: "100%",
+        width: "100%",
+        // disable cell selection style
+        ".MuiDataGrid-cell:focus": {
+          outline: "none",
+        },
+        // pointer cursor on ALL rows
+        "& .MuiDataGrid-row:hover": {
+          cursor: "pointer",
+        },
+      }}
       getRowId={(row) => row.id}
+      onRowClick={(params) => {
+        router.push({
+          pathname: `/users/${params.id}`,
+        });
+      }}
       autoHeight
       columns={[
         {
