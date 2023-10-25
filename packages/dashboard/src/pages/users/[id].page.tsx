@@ -1,5 +1,6 @@
 import {
   Box,
+  Divider,
   List,
   ListItem,
   ListItemText,
@@ -20,6 +21,7 @@ import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PropsWithInitialState } from "../../lib/types";
 import { ResourceListItemButton } from "../../components/resourceList";
+import { EventsTable } from "../../components/eventsTable";
 
 interface UserPageProps {
   user: GetUsersResponse["users"][0];
@@ -86,30 +88,13 @@ const User: NextPage<UserPageProps> = function User(props) {
 
   return (
     <MainLayout>
-      <Stack direction="row" sx={{ padding: 1 }}>
-        <Stack sx={{ flex: 1 }} spacing={2}>
-          <Stack spacing={1}>
-            <Typography
-              variant="h2"
-              fontWeight={300}
-              sx={{ fontSize: 20, marginBottom: 0.5 }}
-            >
-              User Properties
-            </Typography>
-            <ReactCodeMirror
-              value={properties}
-              readOnly
-              extensions={[
-                codeMirrorJson(),
-                EditorView.lineWrapping,
-                EditorView.theme({
-                  "&": {
-                    fontFamily: theme.typography.fontFamily,
-                  },
-                }),
-              ]}
-            />
-          </Stack>
+      <Stack
+        direction="row"
+        sx={{ padding: 2, width: "100%" }}
+        spacing={2}
+        divider={<Divider orientation="vertical" />}
+      >
+        <Stack sx={{ flex: 1, height: "100%" }} spacing={2}>
           <Stack spacing={1}>
             <Typography
               variant="h2"
@@ -136,9 +121,33 @@ const User: NextPage<UserPageProps> = function User(props) {
                 </ListItem>
               ))}
             </List>
+            <Stack spacing={1}>
+              <Typography
+                variant="h2"
+                fontWeight={300}
+                sx={{ fontSize: 20, marginBottom: 0.5 }}
+              >
+                User Properties
+              </Typography>
+              <ReactCodeMirror
+                value={properties}
+                readOnly
+                extensions={[
+                  codeMirrorJson(),
+                  EditorView.lineWrapping,
+                  EditorView.theme({
+                    "&": {
+                      fontFamily: theme.typography.fontFamily,
+                    },
+                  }),
+                ]}
+              />
+            </Stack>
           </Stack>
         </Stack>
-        <Box sx={{ flex: 1 }}>{JSON.stringify(user)}</Box>
+        <Box sx={{ flex: 1 }}>
+          <EventsTable />
+        </Box>
       </Stack>
     </MainLayout>
   );
