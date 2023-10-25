@@ -43,12 +43,14 @@ function buildUserIdQueries({
   workspaceId,
   direction,
   segmentId,
+  userIds,
   cursor,
 }: {
   workspaceId: string;
   segmentId?: string;
   cursor: Cursor | null;
   direction: CursorDirectionEnum;
+  userIds?: string[];
 }): Sql {
   let lastUserIdCondition: Sql;
   if (cursor) {
@@ -63,6 +65,15 @@ function buildUserIdQueries({
     }
   } else {
     lastUserIdCondition = Prisma.sql`1=1`;
+  }
+
+  let userIdsCondition: Sql;
+  if (userIds && userIds.length > 0) {
+    userIdsCondition = Prisma.sql`"userId" IN (${Prisma.join(
+      userIds.map((id) => `CAST(${id} AS UUID)`)
+    )})`;
+  } else {
+    userIdsCondition = Prisma.sql`1=1`;
   }
 
   const segmentIdCondition = segmentId
@@ -80,6 +91,7 @@ function buildUserIdQueries({
       AND ${lastUserIdCondition}
       AND "value" != ''
       AND ${userPropertyAssignmentCondition}
+      AND ${userIdsCondition}
 
     UNION ALL
 
@@ -89,6 +101,7 @@ function buildUserIdQueries({
       AND ${lastUserIdCondition}
       AND "inSegment" = TRUE
       AND ${segmentIdCondition}
+      AND ${userIdsCondition}
   `;
 
   return userIdQueries;
@@ -99,6 +112,7 @@ export async function getUsers({
   cursor: unparsedCursor,
   segmentId,
   direction = CursorDirectionEnum.After,
+  userIds,
   limit = 10,
 }: GetUsersRequest & { workspaceId: string }): Promise<
   Result<GetUsersResponse, Error>
@@ -126,6 +140,7 @@ export async function getUsers({
 
   const userIdQueries = buildUserIdQueries({
     workspaceId,
+    userIds,
     cursor,
     segmentId,
     direction,

@@ -56,7 +56,10 @@ const baseColumn: Partial<GridColDef<Row>> = {
   flex: 1,
   sortable: false,
   filterable: false,
-  renderCell,
+  renderCell: (params) =>
+    renderCell(params, {
+      href: (row) => `/users/${row.id}`,
+    }),
 };
 
 declare module "@mui/x-data-grid" {
@@ -140,16 +143,17 @@ export type OnPaginationChangeProps = Pick<
   "direction" | "cursor"
 >;
 
-export type Props = Omit<GetUsersRequest, "limit"> & {
+export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
   onPaginationChange: (args: OnPaginationChangeProps) => void;
 };
+
 export default function UsersTable({
   workspaceId,
   segmentId,
   direction,
   cursor,
   onPaginationChange,
-}: Props) {
+}: UsersTableProps) {
   const apiBase = useAppStore((store) => store.apiBase);
   const getUsersRequest = usersStore((store) => store.getUsersRequest);
   const users = usersStore((store) => store.users);
@@ -185,7 +189,6 @@ export default function UsersTable({
         if (direction === CursorDirectionEnum.Before) {
           setNextCursor(null);
           setPreviousCursor(null);
-
           onPaginationChange({});
         }
       } else {

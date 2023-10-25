@@ -1064,6 +1064,7 @@ export const GetUsersRequest = Type.Object({
   segmentId: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
+  userIds: Type.Optional(Type.Array(Type.String())),
   workspaceId: Type.String(),
 });
 
