@@ -197,6 +197,67 @@ describe("compute properties activities", () => {
     const tableTests: TableTest[] = [
       {
         description:
+          "With within createdAt trait segment and iso formatted date",
+        segments: [
+          {
+            name: "createdWithinHour",
+            definition: {
+              entryNode: {
+                id: "1",
+                type: SegmentNodeType.And,
+                children: ["2", "3"],
+              },
+              nodes: [
+                {
+                  id: "2",
+                  type: SegmentNodeType.Trait,
+                  path: "createdAt",
+                  operator: {
+                    type: SegmentOperatorType.Within,
+                    windowSeconds: 60 * 60,
+                  },
+                },
+                {
+                  id: "3",
+                  type: SegmentNodeType.Performed,
+                  event: "createdTeam",
+                  times: 1,
+                  timesOperator: RelationalOperators.GreaterThanOrEqual,
+                },
+              ],
+            },
+          },
+        ],
+        events: [
+          {
+            eventTimeOffset: -(1000 * 60 * 60 + 10),
+            overrides: (defaults) =>
+              segmentIdentifyEvent({
+                ...defaults,
+                traits: {
+                  createdAt: new Date(
+                    new Date(defaults.timestamp as string).getTime() -
+                      (1000 * 60 * 60 + 20)
+                  ).toISOString(),
+                },
+              }),
+          },
+          {
+            eventTimeOffset: -200,
+            overrides: (defaults) =>
+              segmentTrackEvent({
+                ...defaults,
+                event: "createdTeam",
+              }),
+          },
+        ],
+        expectedSegments: {
+          createdWithinHour: false,
+        },
+        expectedSignals: [],
+      },
+      {
+        description:
           "When a user did submit an identify event but the segment is malformed with an empty path",
         segments: [
           {
