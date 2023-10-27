@@ -46,6 +46,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       userProperties: userProperties.flatMap((p) =>
         unwrap(enrichUserProperty(p))
       ),
+      memberEmail: dfContext.member.email,
       templateId,
     });
     if (!serverInitialState) {
