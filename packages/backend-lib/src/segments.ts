@@ -356,6 +356,7 @@ export async function upsertBulkSegmentAssignments({
     inSegment.push(item.inSegment);
   }
 
+  // FIXME adapt logic from userProperties.ts
   const query = Prisma.sql`
     INSERT INTO "SegmentAssignment" ("workspaceId", "userId", "segmentId", "inSegment")
     SELECT
