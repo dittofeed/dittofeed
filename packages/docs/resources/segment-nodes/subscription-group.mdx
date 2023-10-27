@@ -5,12 +5,6 @@ description: "Restrict a segment to members of a subscription group."
 
 The subscription group segment node is restricted to users who are currently within a subscription group.
 
-## Example Use Case - Subscription Group Broadcasts
+## Example Use Case - Messaging Users Who Subscribe
 
-["And" segment nodes](/resources/segment-nodes/and) are commonly combined with [broadcast segment nodes](/resources/segment-nodes/broadcast) and subscription group nodes to allow you to broadcast to users in a specific subscription group.
-
-<Frame>
-![Weekly Newsletter Broadcast Segment](/images/weekly-newsletter-broadcast-segment.png)
-</Frame>
-
-In this case, this allows you to manually trigger (broadcast) a message to all users who are subscribed to the "Weekly Newsletter" subscription group.
+You may decide to send a message thanking all users who subscribe to your newsletter. To do this you can create a "Newsletter" subscription group, create a subscription group segment referring to it, and then a journey using that segment.

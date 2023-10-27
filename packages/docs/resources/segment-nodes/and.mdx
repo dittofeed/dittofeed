@@ -5,12 +5,13 @@ description: "Allow any users to join the segment if they satisfy one condition 
 
 "And" segment nodes allow you to combine two or more conditions using the logical AND operator. This means that the user must satisfy all of the conditions in order to join the segment.
 
-## Example Use Case - Subscription Group Broadcasts
+## Example Use Case - New Team Creator
 
-"And" segment nodes are commonly combined with [broadcast segment nodes](/resources/segment-nodes/broadcast) and [subscription group nodes](/resources/segment-nodes/subscription-group) to allow you to broadcast to users in a specific subscription group.
+You may want to message a user that has created a team, and who has joined the platform recently. You can do this by creating a segment with two conditions:
+
+1. User has created a team, performing the `CREATE_TEAM` action.
+2. User has a `createdAt` trait within the last day.
 
 <Frame>
-![Weekly Newsletter Broadcast Segment](/images/weekly-newsletter-broadcast-segment.png)
+![New Team Creator](/images/new-team-creator.png)
 </Frame>
-
-In this case, this allows you to manually trigger (broadcast) a message to all users who are subscribed to the "Weekly Newsletter" subscription group.

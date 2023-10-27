@@ -3,26 +3,29 @@ title: "Broadcasts"
 description: "Using broadcasts to manually trigger journeys."
 ---
 
-Broadcasts are useful for manually triggering journeys. This is useful for sending one-off messages to a group of users, or for testing journeys.
+Broadcasts are useful for manually triggering journeys. This is useful for sending one-off messages to a group of users. This is great for usecases like:
 
-See the [broadcast segment node](/resources/segment-nodes/broadcast), which is required for configuring a journey which can receive broadcasts.
+- Newsletters
+- Product updates
+- Promotions
+- Announcements
 
-Steps involved in sending a broadcast include:
+## Steps
 
-1. Create a segment with a broadcast node.
+1. Create a segment which contains the users you'd like to broadcast to.
 
 <Frame>
-![Weekly Newsletter Broadcast Segment](/images/weekly-newsletter-broadcast-segment.png)
+![Broadcast Segment](/images/broadcast-segment.png)
 </Frame>
 
-2. Use that segment as the entry condition for a journey.
+2. Create a template for the broadcast, optionally selecting a subscription group.
 
 <Frame>
-![Simple Broadcast Journey](/images/simple-broadcast-journey.png)
+![Broadcast Template](/images/broadcast-template.png)
 </Frame>
 
-3. Send a broadcast to that segment.
+3. Submit the broadcast!
 
 <Frame>
-![Simple Broadcast](/images/simple-broadcast.png)
+![Broadcast Submit](/images/broadcast-submit.png)
 </Frame>
