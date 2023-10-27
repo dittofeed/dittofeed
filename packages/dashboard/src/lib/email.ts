@@ -16,8 +16,10 @@ export function getEmailEditorState({
   emailTemplate,
   templateId,
   userProperties,
+  memberEmail,
 }: {
   emailTemplate: MessageTemplateResource | null;
+  memberEmail: string;
   templateId: string;
   userProperties: UserPropertyResource[];
 }): Partial<AppState> | null {
@@ -38,6 +40,7 @@ export function getEmailEditorState({
       return memo;
     }, {}),
     ...defaultInitialUserProperties,
+    email: memberEmail,
   };
   const emailMessageUserPropertiesJSON = JSON.stringify(
     emailMessageUserProperties,

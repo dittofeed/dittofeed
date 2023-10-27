@@ -57,10 +57,12 @@ async function getChannelState({
   workspaceId,
   channel,
   template,
+  memberEmail,
 }: {
   template: MessageTemplateResource;
   workspaceId: string;
   channel: ChannelType;
+  memberEmail: string;
 }): Promise<Partial<AppState> | null> {
   const userProperties = (
     await prisma().userProperty.findMany({
@@ -76,6 +78,7 @@ async function getChannelState({
         emailTemplate: template,
         userProperties,
         templateId: template.id,
+        memberEmail,
       });
       return state;
     }
@@ -135,6 +138,7 @@ export const getServerSideProps: GetServerSideProps<
     channel,
     template: messageTemplate,
     workspaceId: dfContext.workspace.id,
+    memberEmail: dfContext.member.email,
   });
 
   const appState: Partial<AppState> = {
