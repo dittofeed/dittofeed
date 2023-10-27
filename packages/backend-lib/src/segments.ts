@@ -356,16 +356,31 @@ export async function upsertBulkSegmentAssignments({
     inSegment.push(item.inSegment);
   }
 
+  const joinedSegmentIds = Prisma.join(segmentIds);
+
   const query = Prisma.sql`
+    WITH unnested_values AS (
+        SELECT
+            unnest(array[${Prisma.join(workspaceIds)}]) AS "workspaceId",
+            unnest(array[${Prisma.join(userIds)}]) as "userId",
+            unnest(array[${joinedSegmentIds}]) AS "segmentId",
+            unnest(array[${Prisma.join(inSegment)}]) AS "inSegment"
+    )
     INSERT INTO "SegmentAssignment" ("workspaceId", "userId", "segmentId", "inSegment")
     SELECT
-      unnest(array[${Prisma.join(workspaceIds)}]),
-      unnest(array[${Prisma.join(userIds)}]),
-      unnest(array[${Prisma.join(segmentIds)}]),
-      unnest(array[${Prisma.join(inSegment)}])
+        u."workspaceId",
+        u."userId",
+        u."segmentId",
+        u."inSegment"
+    FROM unnested_values u
+    WHERE EXISTS (
+        SELECT 1
+        FROM "Segment" s
+        WHERE s.id = u."segmentId"
+    )
     ON CONFLICT ("workspaceId", "userId", "segmentId")
     DO UPDATE SET
-      "inSegment" = EXCLUDED."inSegment"
+        "inSegment" = EXCLUDED."inSegment"
   `;
 
   try {
