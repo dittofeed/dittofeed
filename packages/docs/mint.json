@@ -122,7 +122,6 @@
             "resources/segment-nodes/and",
             "resources/segment-nodes/or",
             "resources/segment-nodes/subscription-group",
-            "resources/segment-nodes/broadcast",
             "resources/segment-nodes/email"
           ]
         },
