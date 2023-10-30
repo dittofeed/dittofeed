@@ -36,6 +36,7 @@ const {
   isRunnable,
   sendMobilePush,
   sendSms,
+  sendMessageV2,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
 });
@@ -238,22 +239,30 @@ export async function userJourneyWorkflow({
           templateId: currentNode.variant.templateId,
           messageId,
         };
-        switch (currentNode.variant.type) {
-          case ChannelType.Email: {
-            shouldContinue = await sendEmail(messagePayload);
-            break;
-          }
-          case ChannelType.MobilePush: {
-            shouldContinue = await sendMobilePush(messagePayload);
-            break;
-          }
-          case ChannelType.Sms: {
-            shouldContinue = await sendSms(messagePayload);
-            break;
-          }
-          default: {
-            const { type }: never = currentNode.variant;
-            assertUnreachable(type, `unknown channel type ${type}`);
+
+        if (wf.patched("send-message-v2")) {
+          shouldContinue = await sendMessageV2({
+            channel: currentNode.variant.type,
+            ...messagePayload,
+          });
+        } else {
+          switch (currentNode.variant.type) {
+            case ChannelType.Email: {
+              shouldContinue = await sendEmail(messagePayload);
+              break;
+            }
+            case ChannelType.MobilePush: {
+              shouldContinue = await sendMobilePush(messagePayload);
+              break;
+            }
+            case ChannelType.Sms: {
+              shouldContinue = await sendSms(messagePayload);
+              break;
+            }
+            default: {
+              const { type }: never = currentNode.variant;
+              assertUnreachable(type, `unknown channel type ${type}`);
+            }
           }
         }
 
