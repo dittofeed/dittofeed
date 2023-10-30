@@ -15,6 +15,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
+import { omit } from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitTrack } from "../../apps";
@@ -26,10 +27,15 @@ import {
 } from "../../destinations/twilio";
 import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
-import { findMessageTemplate } from "../../messageTemplates";
+import { findMessageTemplate, sendMessage } from "../../messageTemplates";
 import prisma from "../../prisma";
-import { getSubscriptionGroupWithAssignment } from "../../subscriptionGroups";
 import {
+  getSubscriptionGroupDetails,
+  getSubscriptionGroupWithAssignment,
+} from "../../subscriptionGroups";
+import {
+  BackendMessageSendResult,
+  BadWorkspaceConfigurationType,
   ChannelType,
   EmailProviderType,
   InternalEventType,
@@ -679,6 +685,112 @@ async function sendEmailWithPayload(
       }
     },
   });
+}
+
+export interface SendParamsV2 extends SendParams {
+  channel: ChannelType;
+}
+
+async function sendMessageInner({
+  userId,
+  workspaceId,
+  runId,
+  nodeId,
+  templateId,
+  journeyId,
+  messageId,
+  subscriptionGroupId,
+  channel,
+}: SendParamsV2): Promise<BackendMessageSendResult> {
+  const [userPropertyAssignments, journey, subscriptionGroup] =
+    await Promise.all([
+      findAllUserPropertyAssignments({ userId, workspaceId }),
+      prisma().journey.findUnique({ where: { id: journeyId } }),
+      subscriptionGroupId
+        ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
+        : null,
+    ]);
+
+  const subscriptionGroupDetails = subscriptionGroup
+    ? getSubscriptionGroupDetails(subscriptionGroup)
+    : undefined;
+
+  if (!journey) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.JourneyNotFound,
+      },
+    });
+  }
+
+  if (!(journey.status === "Running" || journey.status === "Broadcast")) {
+    return ok({
+      type: InternalEventType.MessageSkipped,
+      message: "Journey is not running",
+    });
+  }
+
+  const result = await sendMessage({
+    workspaceId,
+    channel,
+    useDraft: false,
+    templateId,
+    userPropertyAssignments,
+    subscriptionGroupDetails,
+    messageTags: {
+      runId,
+      nodeId,
+      journeyId,
+      messageId,
+      userId,
+    },
+  });
+  return result;
+}
+
+export async function sendMessageV2(params: SendParamsV2): Promise<boolean> {
+  const { messageId, userId, journeyId, nodeId, templateId, runId } = params;
+  const sendResult = await sendMessageInner(params);
+  let shouldContinue: boolean;
+  let event: InternalEventType;
+  let trackingProperties: TrackData["properties"] = {
+    journeyId,
+    nodeId,
+    templateId,
+    runId,
+  };
+
+  if (sendResult.isErr()) {
+    shouldContinue = false;
+    event = sendResult.error.type;
+
+    trackingProperties = {
+      ...trackingProperties,
+      ...omit(sendResult.error, ["type"]),
+    };
+  } else {
+    shouldContinue = true;
+    event = sendResult.value.type;
+
+    trackingProperties = {
+      ...trackingProperties,
+      ...omit(sendResult.value, ["type"]),
+    };
+  }
+
+  const trackData: TrackData = {
+    userId,
+    messageId,
+    event,
+    properties: trackingProperties,
+  };
+
+  await submitTrack({
+    workspaceId: params.workspaceId,
+    data: trackData,
+  });
+  return shouldContinue;
 }
 
 export async function sendEmail(params: SendParams): Promise<boolean> {

@@ -31,6 +31,7 @@ import {
   CompletionStatus,
   EmailTemplateResource,
   EphemeralRequestStatus,
+  InternalEventType,
   JsonResultType,
   MessageTemplateResource,
   MessageTemplateTestRequest,
@@ -852,12 +853,12 @@ export default function EmailEditor({
   if (testResponse) {
     if (
       testResponse.type === JsonResultType.Ok &&
-      testResponse.value.type === ChannelType.Email
+      testResponse.value.type === InternalEventType.MessageSent &&
+      testResponse.value.variant.type === ChannelType.Email
     ) {
+      const { to } = testResponse.value.variant;
       testResponseEl = (
-        <Alert severity="success">
-          Message was sent successfully to {testResponse.value.to}
-        </Alert>
+        <Alert severity="success">Message was sent successfully to {to}</Alert>
       );
     } else if (testResponse.type === JsonResultType.Err) {
       testResponseEl = (
