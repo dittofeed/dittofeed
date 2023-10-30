@@ -1716,6 +1716,7 @@ export type JourneyStatsRequest = Static<typeof JourneyStatsRequest>;
 
 export enum SmsProviderType {
   Twilio = "Twilio",
+  Test = "Test",
 }
 
 export const TwilioSmsProvider = Type.Object({
@@ -1757,9 +1758,19 @@ export const SmsTwilioSuccess = Type.Object({
   type: Type.Literal(SmsProviderType.Twilio),
   sid: Type.String(),
 });
+
 export type SmsTwilioSuccess = Static<typeof SmsTwilioSuccess>;
 
-export const SmsServiceProviderSuccess = Type.Union([SmsTwilioSuccess]);
+export const SmsTestSuccess = Type.Object({
+  type: Type.Literal(SmsProviderType.Test),
+});
+
+export type SmsTestSuccess = Static<typeof SmsTestSuccess>;
+
+export const SmsServiceProviderSuccess = Type.Union([
+  SmsTwilioSuccess,
+  SmsTestSuccess,
+]);
 
 export type SmsServiceProviderSuccess = Static<
   typeof SmsServiceProviderSuccess
@@ -1805,12 +1816,23 @@ export const MessageEmailSuccess = Type.Object({
 
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
 
-export const MessageSendSuccess = Type.Union([
-  MessageEmailSuccess,
-  MessageSmsSuccess,
-]);
+export const MessageSkipped = Type.Object({
+  type: Type.Literal(InternalEventType.MessageSkipped),
+  message: Type.Optional(Type.String()),
+});
+
+export type MessageSkipped = Static<typeof MessageSkipped>;
+
+export const MessageSendSuccess = Type.Object({
+  type: Type.Literal(InternalEventType.MessageSent),
+  variant: Type.Union([MessageEmailSuccess, MessageSmsSuccess]),
+});
 
 export type MessageSendSuccess = Static<typeof MessageSendSuccess>;
+
+export const MessageSuccess = Type.Union([MessageSendSuccess, MessageSkipped]);
+
+export type MessageSuccess = Static<typeof MessageSuccess>;
 
 export enum BadWorkspaceConfigurationType {
   MessageTemplateNotFound = "MessageTemplateNotFound",
@@ -1864,6 +1886,7 @@ export const BadWorkspaceConfigurationVariant = Type.Union([
     type: Type.Literal(
       BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured
     ),
+    message: Type.Optional(Type.String()),
   }),
 ]);
 
@@ -1909,6 +1932,7 @@ export type MessageEmailServiceFailure = Static<
 
 export const MessageTwilioServiceFailure = Type.Object({
   type: Type.Literal(SmsProviderType.Twilio),
+  message: Type.Optional(Type.String()),
 });
 
 export const SmsServiceProviderFailure = Type.Union([
@@ -1993,15 +2017,12 @@ export const MessageSendFailure = Type.Union([
 
 export type MessageSendFailure = Static<typeof MessageSendFailure>;
 
-export const MessageSendResult = JsonResult(
-  MessageSendSuccess,
-  MessageSendFailure
-);
+export const MessageSendResult = JsonResult(MessageSuccess, MessageSendFailure);
 
 export type MessageSendResult = Static<typeof MessageSendResult>;
 
 export type BackendMessageSendResult = Result<
-  MessageSendSuccess,
+  MessageSuccess,
   MessageSendFailure
 >;
 
@@ -2017,7 +2038,7 @@ export type MessageTemplateTestRequest = Static<
 >;
 
 export const MessageTemplateTestResponse = JsonResult(
-  MessageSendSuccess,
+  MessageSuccess,
   Type.Object({
     suggestions: Type.Array(Type.String()),
     responseData: Type.Optional(Type.String()),

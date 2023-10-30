@@ -53,6 +53,7 @@ describe("end to end journeys", () => {
 
   const testActivities = {
     sendEmail: jest.fn().mockReturnValue(true),
+    sendMessageV2: jest.fn().mockReturnValue(true),
   };
 
   beforeEach(async () => {
@@ -266,8 +267,8 @@ describe("end to end journeys", () => {
           await handle.result();
         });
 
-        expect(testActivities.sendEmail).toHaveBeenCalledTimes(1);
-        expect(testActivities.sendEmail).toHaveBeenCalledWith(
+        expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+        expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
           expect.objectContaining({
             nodeId: messageNode1,
           })
@@ -344,8 +345,8 @@ describe("end to end journeys", () => {
           await handle.result();
         });
 
-        expect(testActivities.sendEmail).toHaveBeenCalledTimes(1);
-        expect(testActivities.sendEmail).toHaveBeenCalledWith(
+        expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+        expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
           expect.objectContaining({
             nodeId: messageNode2,
           })
@@ -421,8 +422,8 @@ describe("end to end journeys", () => {
           await handle.result();
         });
 
-        expect(testActivities.sendEmail).toHaveBeenCalledTimes(1);
-        expect(testActivities.sendEmail).toHaveBeenCalledWith(
+        expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+        expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
           expect.objectContaining({
             nodeId: messageNode2,
           })
@@ -613,7 +614,7 @@ describe("end to end journeys", () => {
           await Promise.all([handle.result(), handle2.result()]);
         });
 
-        expect(testActivities.sendEmail).toHaveBeenCalledTimes(1);
+        expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -732,7 +733,7 @@ describe("end to end journeys", () => {
               workflowDescribeError = e;
             }
             expect(workflowDescribeError).toBeInstanceOf(WorkflowNotFoundError);
-            expect(testActivities.sendEmail).toHaveBeenCalledTimes(0);
+            expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(0);
 
             await prisma().journey.update({
               where: {
@@ -758,8 +759,8 @@ describe("end to end journeys", () => {
               }
             );
 
-            expect(testActivities.sendEmail).toHaveBeenCalledTimes(1);
-            expect(testActivities.sendEmail).toHaveBeenCalledWith(
+            expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+            expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
               expect.objectContaining({
                 userId: userId1,
               })
@@ -813,8 +814,8 @@ describe("end to end journeys", () => {
               }
             );
 
-            expect(testActivities.sendEmail).toHaveBeenCalledTimes(1);
-            expect(testActivities.sendEmail).not.toHaveBeenCalledWith(
+            expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
+            expect(testActivities.sendMessageV2).not.toHaveBeenCalledWith(
               expect.objectContaining({
                 userId: userId2,
               })
@@ -841,8 +842,8 @@ describe("end to end journeys", () => {
               ],
             });
 
-            expect(testActivities.sendEmail).toHaveBeenCalledTimes(2);
-            expect(testActivities.sendEmail).toHaveBeenCalledWith(
+            expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(2);
+            expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
               expect.objectContaining({
                 userId: userId2,
               })
