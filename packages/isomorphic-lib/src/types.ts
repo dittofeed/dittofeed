@@ -2071,6 +2071,8 @@ export const SearchDeliveriesRequest = Type.Object({
   fromIdentifier: Type.Optional(Type.String()),
   toIdentifier: Type.Optional(Type.String()),
   channel: Type.Optional(Type.Enum(ChannelType)),
+  limit: Type.Optional(Type.Number()),
+  cursor: Type.Optional(Type.String()),
 });
 
 export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;

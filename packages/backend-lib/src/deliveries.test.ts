@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 
-import { submitBatch, submitTrack } from "./apps";
+import { submitBatch } from "./apps";
 import config from "./config";
 import { searchDeliveries } from "./deliveries";
 import prisma from "./prisma";
@@ -61,6 +61,8 @@ describe("deliveries", () => {
       const runId = randomUUID();
       const templateId1 = randomUUID();
       const templateId2 = randomUUID();
+      const messageId1 = randomUUID();
+      const messageId2 = randomUUID();
 
       const node1Properties = {
         workspaceId,
@@ -69,6 +71,7 @@ describe("deliveries", () => {
         runId,
         templateId: templateId1,
         channel: ChannelType.Email,
+        messageId: messageId1,
       };
 
       const node2Properties = {
@@ -78,6 +81,7 @@ describe("deliveries", () => {
         runId,
         templateId: templateId2,
         channel: ChannelType.Email,
+        messageId: messageId2,
       };
 
       // Submit email events
@@ -133,6 +137,7 @@ describe("deliveries", () => {
 
     it("returns the correct email events", async () => {
       const deliveries = await searchDeliveries({ workspaceId });
+      console.log("deliveries", deliveries);
       expect(deliveries.items).toHaveLength(2);
     });
   });
