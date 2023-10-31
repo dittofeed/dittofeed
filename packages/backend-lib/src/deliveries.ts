@@ -32,7 +32,7 @@ export async function searchDeliveries({
       SELECT
         workspace_id,
         user_or_anonymous_id,
-        JSON_VALUE(message_raw, '$.properties') properties,
+        JSONExtractString(message_raw, 'properties') properties,
         event,
         event_time,
         JSON_VALUE(message_raw, '$.properties.messageId') origin_message_id
