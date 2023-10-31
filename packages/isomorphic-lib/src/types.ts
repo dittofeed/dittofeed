@@ -1823,9 +1823,18 @@ export const MessageSkipped = Type.Object({
 
 export type MessageSkipped = Static<typeof MessageSkipped>;
 
+export const MessageSendSuccessVariant = Type.Union([
+  MessageEmailSuccess,
+  MessageSmsSuccess,
+]);
+
+export type MessageSendSuccessVariant = Static<
+  typeof MessageSendSuccessVariant
+>;
+
 export const MessageSendSuccess = Type.Object({
   type: Type.Literal(InternalEventType.MessageSent),
-  variant: Type.Union([MessageEmailSuccess, MessageSmsSuccess]),
+  variant: MessageSendSuccessVariant,
 });
 
 export type MessageSendSuccess = Static<typeof MessageSendSuccess>;
@@ -2056,3 +2065,34 @@ export const GetTraitsResponse = Type.Object({
 });
 
 export type GetTraitsResponse = Static<typeof GetTraitsResponse>;
+
+export const SearchDeliveriesRequest = Type.Object({
+  workspaceId: Type.String(),
+  fromIdentifier: Type.Optional(Type.String()),
+  toIdentifier: Type.Optional(Type.String()),
+  channel: Type.Optional(Type.Enum(ChannelType)),
+});
+
+export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
+
+export const SearchDeliveriesResponseItem = Type.Union([
+  // TODO implement sms status
+  Type.Composite([MessageSmsSuccess]),
+  Type.Composite([
+    MessageEmailSuccess,
+    Type.Object({
+      status: EmailEvent,
+    }),
+  ]),
+]);
+
+export type SearchDeliveriesResponseItem = Static<
+  typeof SearchDeliveriesResponseItem
+>;
+
+export const SearchDeliveriesResponse = Type.Object({
+  workspaceId: Type.String(),
+  items: Type.Array(SearchDeliveriesResponseItem),
+});
+
+export type SearchDeliveriesResponse = Static<typeof SearchDeliveriesResponse>;
