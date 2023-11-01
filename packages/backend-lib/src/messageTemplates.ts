@@ -28,9 +28,7 @@ import {
   MessageTemplateResourceDefinition,
   SmsProviderConfig,
   SmsProviderType,
-  SubscriptionGroupType,
   UpsertMessageTemplateResource,
-  UserSubscriptionAction,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -259,10 +257,18 @@ async function getSendMessageModels({
       },
     });
   }
-  const messageTemplateDefinition =
-    (useDraft && messageTemplate.draft) ?? messageTemplate.definition;
+  const messageTemplateDefinition = useDraft
+    ? messageTemplate.draft ?? messageTemplate.definition
+    : messageTemplate.definition;
 
   if (!messageTemplateDefinition) {
+    logger().debug(
+      {
+        messageTemplate,
+      },
+      "message template has no definition"
+    );
+
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
