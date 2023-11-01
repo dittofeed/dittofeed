@@ -2126,6 +2126,7 @@ export type SearchDeliveriesResponseItem = Static<
 export const SearchDeliveriesResponse = Type.Object({
   workspaceId: Type.String(),
   items: Type.Array(SearchDeliveriesResponseItem),
+  cursor: Type.Optional(Type.String()),
 });
 
 export type SearchDeliveriesResponse = Static<typeof SearchDeliveriesResponse>;

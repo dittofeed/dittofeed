@@ -6,6 +6,7 @@ import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
 import logger from "./logger";
+import { deserializeCursor, serializeCursor } from "./pagination";
 import prisma from "./prisma";
 import {
   CursorDirectionEnum,
@@ -36,8 +37,8 @@ const Cursor = Type.Object({
 
 type Cursor = Static<typeof Cursor>;
 
-function serializeCursor(cursor: Cursor): string {
-  return Buffer.from(JSON.stringify(cursor)).toString("base64");
+function serializeUserCursor(cursor: Cursor): string {
+  return serializeCursor(cursor);
 }
 
 function buildUserIdQueries({
@@ -122,10 +123,7 @@ export async function getUsers({
   let cursor: Cursor | null = null;
   if (unparsedCursor) {
     try {
-      const asciiString = Buffer.from(unparsedCursor, "base64").toString(
-        "ascii"
-      );
-      const decoded = JSON.parse(asciiString);
+      const decoded = deserializeCursor(unparsedCursor);
       cursor = unwrap(schemaValidate(decoded, Cursor));
     } catch (e) {
       logger().error(
@@ -254,10 +252,10 @@ export async function getUsers({
   };
 
   if (nextCursor) {
-    val.nextCursor = serializeCursor(nextCursor);
+    val.nextCursor = serializeUserCursor(nextCursor);
   }
   if (previousCursor) {
-    val.previousCursor = serializeCursor(previousCursor);
+    val.previousCursor = serializeUserCursor(previousCursor);
   }
 
   return ok(val);

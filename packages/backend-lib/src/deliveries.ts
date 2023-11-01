@@ -8,6 +8,7 @@ import {
   streamClickhouseQuery,
 } from "./clickhouse";
 import logger from "./logger";
+import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   EmailEventList,
   SearchDeliveriesRequest,
@@ -28,9 +29,44 @@ const SearchDeliveryRow = Type.Object({
 
 type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
 
+const OffsetKey = "o" as const;
+
+const Cursor = Type.Object({
+  [OffsetKey]: Type.Number(),
+});
+
+type Cursor = Static<typeof Cursor>;
+
+function parseCursorOffset(cursor?: string): number {
+  if (!cursor) {
+    return 0;
+  }
+  const deserialized = deserializeCursor(cursor);
+  const result = schemaValidateWithErr(deserialized, Cursor);
+  if (result.isErr()) {
+    logger().info(
+      {
+        err: result.error,
+      },
+      "Failed to parse deliveries cursor"
+    );
+    return 0;
+  }
+  return result.value[OffsetKey];
+}
+
+function serializeCursorOffset(offset: number): string {
+  return serializeCursor({
+    [OffsetKey]: offset,
+  });
+}
+
 export async function searchDeliveries({
   workspaceId,
+  cursor,
+  limit = 20,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
+  const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
   const eventList = queryBuilder.addQueryValue(EmailEventList, "Array(String)");
@@ -59,6 +95,10 @@ export async function searchDeliveries({
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     ORDER BY sent_at DESC
+    LIMIT ${queryBuilder.addQueryValue(
+      offset,
+      "UInt64"
+    )},${queryBuilder.addQueryValue(limit, "UInt64")}
   `;
 
   const result = await clickhouseClient().query({
@@ -97,8 +137,12 @@ export async function searchDeliveries({
     }
   });
 
+  const responseCursor =
+    items.length >= limit ? serializeCursorOffset(offset + limit) : undefined;
+
   return {
     workspaceId,
     items,
+    cursor: responseCursor,
   };
 }
