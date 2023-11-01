@@ -25,6 +25,7 @@ const SearchDeliveryRow = Type.Object({
   sent_at: Type.String(),
   origin_message_id: Type.String(),
   workspace_id: Type.String(),
+  user_or_anonymous_id: Type.String(),
 });
 
 type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
@@ -119,6 +120,8 @@ export async function searchDeliveries({
           sentAt: parsed.sent_at,
           updatedAt: parsed.updated_at,
           status: parsed.last_event,
+          originMessageId: parsed.origin_message_id,
+          userId: parsed.user_or_anonymous_id,
           ...properties,
         },
         SearchDeliveriesResponseItem

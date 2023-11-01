@@ -163,12 +163,13 @@ export function EventsTable({
         type: CompletionStatus.NotStarted,
       });
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     page,
     pageSize,
     workspaceId,
+    userId,
     updateTotalRowCount,
-    updateEventsPaginationRequest,
     updateEvents,
     apiBase,
   ]);

@@ -2097,6 +2097,8 @@ const BaseDeliveryItem = Type.Object({
   updatedAt: Type.String(),
   to: Type.String(),
   journeyId: Type.String(),
+  userId: Type.String(),
+  originMessageId: Type.String(),
 });
 
 export const SearchDeliveriesResponseItem = Type.Union([
