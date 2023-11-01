@@ -2,17 +2,107 @@
 title: "Free Email Templates"
 ---
 
-For a quick way to get started sending messages, copy/paste these templates into any editor that is configured to render MJML, such as the Dittofeed template editor.
+For a quick way to get started sending messages, copy/paste the code for these templates into any editor that is configured to render MJML, such as the Dittofeed template editor.
 
-## Plain Text Welcome Email
+## Newsletter/Product Update
+
+Regularly informing your users about what's going on at your company with email newsletters and product updates is an important and simple way to keep them engaged.
+
+This template is used at Dittofeed for our product release update emails. Adapt the design, copy, and links to suit your company's newsletter needs, then send it off with a Dittofeed broadcast!
+
+<Accordion title="Code.">
+```html newsletter.mjml
+<mjml>
+  <mj-body background-color="#FFFFFF">
+    <mj-section background-color="#f8fafc" padding-left="20px" padding-right="20px">
+      <mj-column>
+
+        <!-- Logo Section -->
+        <mj-section padding-bottom="0px" padding-top="30px">
+          <mj-column>
+            <mj-image src="https://i.imgur.com/0jplLWS.png?1" alt="Dittofeed Logo" width="300px"></mj-image>
+            <mj-divider border-color="#94a3b8" padding-top="30px" border-width=".5px" width="100%" />
+            <mj-text font-family="Arial" color="#64748b" font-size="21px" font-weight="500" line-height="1.25" align="left">Release v0.6.0 - Reverse ETL, Broadcasts UI, & Email Testing</mj-text>
+            <mj-divider border-color="#94a3b8" border-width=".5px" width="100%" />
+          </mj-column>
+        </mj-section>
+
+        <!-- Reverse ETL Section -->
+        <mj-section padding-top="0px" padding-bottom="0px">
+          <mj-column>
+            <mj-text color="#0f172a" padding-top="40px" padding-bottom="0px" font-family="Arial" font-size="18px" line-height="1.25" align="left">Reverse ETL via Polytomic</mj-text>
+            <mj-divider border-color="#cbd5e1" border-width=".5px" width="100%" />
+            <mj-text color="#0f172a" line-height="1.5" font-family="Arial" font-size="14px" align="left">Dittofeed now offers a reverse ETL integration with the help of Polytomic. Polytomic is a data platform which supports both ETL and reverse ETL. Reverse ETL is useful for allowing growth teams to track new events without blocking on the product engineering team.</mj-text>
+            <mj-button background-color="#f1f5f9" color="#334155" font-family="Arial" font-size="14px" font-weight="700" align="center" href="https://docs.dittofeed.com/integrations/sources/polytomic">Read the docs</mj-button>
+            <mj-image src="https://i.imgur.com/aU84tjC.jpg" border-radius="5px" alt="User Survey Image"></mj-image>
+          </mj-column>
+        </mj-section>
+
+        <!-- Broadcasts UI Section -->
+    <mj-section padding-top="20px" padding-bottom="0px">
+      <mj-column>
+        <mj-text color="#0f172a" padding-top="30px" padding-bottom="0px" font-family="Arial" font-size="18px" line-height="1.25" align="left">Broadcast UI Overhaul</mj-text>
+        <mj-divider border-color="#cbd5e1" border-width=".5px" width="100%" />
+        <mj-text color="#0f172a" line-height="1.5" font-family="Arial" font-size="14px" align="left">Our “broadcasts” feature has gotten a full UI overhaul to improve the ease of sending one-off messages like newsletters and product updates. It's what we're using to send these updates to you right now!</mj-text>
+        <mj-button background-color="#f1f5f9" color="#334155" font-family="Arial" font-size="14px" font-weight="700" align="center" href="https://docs.dittofeed.com/resources/broadcasts">Try it out!</mj-button>
+        <mj-image src="https://i.imgur.com/Q7Xrr6H.png" border-radius="5px" alt="Broadcast User Interface"></mj-image>
+      </mj-column>
+    </mj-section>
+
+    <!-- Test Email Section -->
+    <mj-section  padding-top="20px" padding-bottom="0px">
+      <mj-column>
+        <mj-text color="#0f172a" padding-top="30px" padding-bottom="0px" font-family="Arial" font-size="18px" line-height="1.25" align="left">Email Testing</mj-text>
+        <mj-divider border-color="#cbd5e1" border-width=".5px" width="100%" />
+        <mj-text color="#0f172a" line-height="1.5" font-family="Arial" font-size="14px" align="left">You can now send test messages to yourself to ensure proper rendering in different email clients, validate ESP credentials, and more.</mj-text>
+        <mj-button background-color="#f1f5f9" color="#334155" font-family="Arial" font-size="14px" font-weight="700" align="center" href="https://dittofeed.com/dashboard">Start sending</mj-button>
+        <mj-image src="https://i.imgur.com/wibh1iY.png"  border-radius="5px" alt="Email Testing"></mj-image>
+      </mj-column>
+    </mj-section>
+
+    <!-- General Info Section -->
+    <mj-section padding-top="30px" padding-bottom="0px">
+      <mj-column>
+        <mj-divider border-color="#cbd5e1" border-width=".5px" padding-bottom="30px" width="100%" />
+        <mj-image src="https://i.imgur.com/0W3RTdr.png" width="60px" alt="Dittofeed Graphic"></mj-image>
+        <mj-text color="#0f172a" line-height="1.5" font-family="Arial" font-size="14px" align="center">Our release newsletter is great way to track the work we're doing developing the first open source customer engagement platform. The Dittofeed community would love to hear your thoughts! </mj-text>
+        <mj-button background-color="#f8fafc" font-family="Arial" font-weight="600" color="#334155" align="center" padding-bottom="6px" font-size="14px" href="https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A">Join our Slack community &rarr;</mj-button>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer Section -->
+    <mj-section  padding-top="10px" padding-bottom="10px">
+      <mj-column>
+        <mj-divider border-color="#cbd5e1" border-width=".5px" padding-bottom="30px" width="100%" />
+        <mj-text color="#0f172a" font-family="Arial" font-size="14px" line-height="1.5" align="center" >Check out the full release blog post for more details.</mj-text>
+        <mj-button font-family="Arial" href="https://dittofeed.com/blog/release-0-6-0" background-color="#f8fafc" color="#334155" font-weight="600" padding-bottom="6px" font-size="14px">Full release &rarr;</mj-button>
+        <mj-divider border-color="#cbd5e1" border-width=".5px" width="100%" />
+        <mj-text color="#0f172a" font-family="Arial" font-size="12px" line-height="1.25" align="left" padding-top="20px">We send this newsletter twice a month. If you would not like to receive these emails, unsubscribe {% unsubscribe_link here %} or <a href="mailto:support@dittofeed.com" >contact us</a>. Idea Market Inc., 2261 Market Street STE 5651
+
+San Francisco, CA 94114.</mj-text>
+</mj-column>
+</mj-section>
+
+          </mj-column>
+        </mj-section>
+
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>
+```
+</Accordion>
+
+<Frame>
+  ![Newsletter/Product Update](/images/newsletter_template_screenshot.png)
+</Frame>
+
+## Plain Text Welcome
 
 Most applications want to send a welcome email to new users. This email represents a great opportunity to assist users in onboarding, and to link them to relevant documentation.
 
 Many teams find it advantageous to send a plain text welcome email, as it feels more personal and less like a marketing email. With the exception of the footer containing the company address, and the unsubscribe link, this email is entirely unstyled.
-
-<Frame>
-  ![Plain Text Welcome](/images/plaintext-welcome.png)
-</Frame>
 
 <Accordion title="Code.">
 ```html welcome.mjml
@@ -50,13 +140,11 @@ Take a look at our <a href="#" target="_blank">docs</a> for more info.
 ```
 </Accordion>
 
+<Frame>![Plain Text Welcome](/images/plaintext-welcome.png)</Frame>
+
 ## Abandoned Cart
 
 Abandoned cart emails are a powerful tool for e-commerce businesses. They are sent to customers who have added products to their cart but did not complete the purchase. These emails serve as a reminder to customers about their unfinished transactions and often include a call to action to encourage them to complete their purchase. They can significantly help in recovering lost sales and improving conversion rates.
-
-<Frame>
-  ![Abandoned Cart](/images/cart_abandon_template.png)
-</Frame>
 
 <Accordion title="Code.">
 ```html cart_abandon_template.mjml
@@ -187,13 +275,11 @@ Abandoned cart emails are a powerful tool for e-commerce businesses. They are se
 ```
 </Accordion>
 
+<Frame>![Abandoned Cart](/images/cart_abandon_template.png)</Frame>
+
 ## New Product Release
 
 New product release emails are a great way to announce new products to your customers, especially if they're targetted based on the their previous purchasing behavior. They can be used to build excitement and anticipation for the new product and drive sales.
-
-<Frame>
-  ![New Product Release](/images/drip_template.png)
-</Frame>
 
 <Accordion title="code">
 ```html new_product_announcement.mjml
@@ -339,13 +425,11 @@ New product release emails are a great way to announce new products to your cust
 ```
 </Accordion>
 
+<Frame>![New Product Release](/images/drip_template.png)</Frame>
+
 ## Discount Code Drip
 
 Discount code drip emails are a great way to reward your customers for their loyalty. They can be used to encourage repeat purchases and increase customer lifetime value.
-
-<Frame>
-![Discount Code Drip](/images/discount_code_drip_template.png)
-</Frame>
 
 <Accordion title="Code.">
 ```html discount_code_drip_template.mjml
@@ -485,3 +569,5 @@ Discount code drip emails are a great way to reward your customers for their loy
 </mjml>
 ```
 </Accordion>
+
+<Frame>![Discount Code Drip](/images/discount_code_drip_template.png)</Frame>
