@@ -11,6 +11,7 @@ import {
   EmailProviderType,
   EventType,
   InternalEventType,
+  MessageSendSuccess,
 } from "./types";
 
 describe("deliveries", () => {
@@ -73,7 +74,6 @@ describe("deliveries", () => {
           nodeId: nodeId1,
           runId,
           templateId: templateId1,
-          channel: ChannelType.Email,
           messageId: messageId1,
         };
 
@@ -83,8 +83,33 @@ describe("deliveries", () => {
           nodeId: nodeId2,
           runId,
           templateId: templateId2,
-          channel: ChannelType.Email,
           messageId: messageId2,
+        };
+
+        const messageSentEvent1: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body1",
+            subject: "subject1",
+            provider: {
+              type: EmailProviderType.Sendgrid,
+            },
+          },
+        };
+
+        const messageSentEvent2: Omit<MessageSendSuccess, "type"> = {
+          variant: {
+            type: ChannelType.Email,
+            from: "test-from@email.com",
+            to: "test-to@email.com",
+            body: "body2",
+            subject: "subject2",
+            provider: {
+              type: EmailProviderType.Sendgrid,
+            },
+          },
         };
 
         // Submit email events
@@ -94,11 +119,7 @@ describe("deliveries", () => {
             event: InternalEventType.MessageSent,
             properties: {
               ...node1Properties,
-              provider: EmailProviderType.Sendgrid,
-              from: "test-from@email.com",
-              to: "test-to@email.com",
-              body: "body1",
-              subject: "subject1",
+              ...messageSentEvent1,
             },
           }),
           generateEvent({
@@ -116,11 +137,7 @@ describe("deliveries", () => {
             event: InternalEventType.MessageSent,
             properties: {
               ...node2Properties,
-              provider: EmailProviderType.Sendgrid,
-              from: "test-from@email.com",
-              to: "test-to@email.com",
-              body: "body2",
-              subject: "subject2",
+              ...messageSentEvent2,
             },
           }),
           generateEvent({
@@ -150,27 +167,36 @@ describe("deliveries", () => {
 
     describe("when paginating", () => {
       beforeEach(async () => {
-        const events: BatchItem[] = times(15, () => ({
-          userId: randomUUID(),
-          timestamp: new Date().toISOString(),
-          type: EventType.Track,
-          messageId: randomUUID(),
-          event: InternalEventType.MessageSent,
-          properties: {
-            workspaceId,
-            journeyId: randomUUID(),
-            nodeId: randomUUID(),
-            runId: randomUUID(),
-            templateId: randomUUID(),
-            channel: ChannelType.Email,
+        const events: BatchItem[] = times(15, () => {
+          const messageSentEvent: Omit<MessageSendSuccess, "type"> = {
+            variant: {
+              type: ChannelType.Email,
+              from: "test-from@email.com",
+              to: "test-to@email.com",
+              body: "body",
+              subject: "subject",
+              provider: {
+                type: EmailProviderType.Sendgrid,
+              },
+            },
+          };
+          return {
+            userId: randomUUID(),
+            timestamp: new Date().toISOString(),
+            type: EventType.Track,
             messageId: randomUUID(),
-            provider: EmailProviderType.Sendgrid,
-            from: "test-from@email.com",
-            to: "test-to@email.com",
-            body: "body1",
-            subject: "subject1",
-          },
-        }));
+            event: InternalEventType.MessageSent,
+            properties: {
+              workspaceId,
+              journeyId: randomUUID(),
+              nodeId: randomUUID(),
+              runId: randomUUID(),
+              templateId: randomUUID(),
+              messageId: randomUUID(),
+              ...messageSentEvent,
+            },
+          };
+        });
         await submitBatch({
           workspaceId,
           data: {

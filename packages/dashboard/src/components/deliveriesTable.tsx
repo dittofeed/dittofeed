@@ -20,6 +20,8 @@ import { shallow } from "zustand/shallow";
 
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
+import { requestContext } from "../lib/requestContext";
+import { GetServerSideProps } from "next";
 
 interface DeliveriesState {
   pageSize: number;
@@ -129,13 +131,16 @@ export function DeliveriesTable() {
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
 
   React.useEffect(() => {
+    console.log("loc0");
     (async () => {
+      console.log("loc1");
       if (
         !workspaceId ||
         paginationRequest.type === CompletionStatus.InProgress
       ) {
         return;
       }
+      console.log("loc2");
 
       updatePaginationRequest({
         type: CompletionStatus.InProgress,
@@ -216,6 +221,7 @@ export function DeliveriesTable() {
       ].map((c) => ({ ...baseColumn, ...c }))}
       // pageSize={pageSize}
       pagination
+      rowCount={100}
       paginationMode="server"
       // onPageChange={handlePageChange}
       // onPageSizeChange={handlePageSizeChange}

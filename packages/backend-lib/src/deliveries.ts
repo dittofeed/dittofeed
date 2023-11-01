@@ -115,21 +115,23 @@ export async function searchDeliveries({
       const properties = parsed.properties.length
         ? (JSON.parse(parsed.properties) as Record<string, unknown>)
         : {};
+      const unvalidatedItem = {
+        sentAt: parsed.sent_at,
+        updatedAt: parsed.updated_at,
+        status: parsed.last_event,
+        originMessageId: parsed.origin_message_id,
+        userId: parsed.user_or_anonymous_id,
+        ...properties,
+      };
       const itemResult = schemaValidateWithErr(
-        {
-          sentAt: parsed.sent_at,
-          updatedAt: parsed.updated_at,
-          status: parsed.last_event,
-          originMessageId: parsed.origin_message_id,
-          userId: parsed.user_or_anonymous_id,
-          ...properties,
-        },
+        unvalidatedItem,
         SearchDeliveriesResponseItem
       );
 
       if (itemResult.isErr()) {
         logger().error(
           {
+            unvalidatedItem,
             err: itemResult.error,
           },
           "Failed to parse delivery item from clickhouse"
