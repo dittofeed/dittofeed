@@ -32,7 +32,7 @@ interface DeliveriesState {
 
 type PaginationModel = Pick<DeliveriesState, "page" | "pageSize">;
 
-const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
+const baseColumn: Partial<GridColDef<SearchDeliveriesResponseItem>> = {
   flex: 1,
   sortable: false,
   filterable: false,
@@ -190,39 +190,35 @@ export function DeliveriesTable() {
       rows={items}
       columns={[
         {
+          field: "sentAt",
+        },
+        {
+          field: "updatedAt",
+        },
+        {
+          field: "to",
+        },
+        {
+          field: "journeyId",
+        },
+        {
           field: "userId",
         },
         {
-          field: "anonymousId",
+          field: "originMessageId",
         },
         {
-          field: "eventType",
+          field: "status",
         },
         {
-          field: "event",
-        },
-        {
-          field: "traits",
-          flex: 2,
-        },
-        {
-          field: "eventTime",
-          flex: 1,
-        },
-        {
-          field: "processingTime",
-          flex: 1,
-        },
-        {
-          field: "messageId",
-          flex: 1,
+          field: "channel",
         },
       ].map((c) => ({ ...baseColumn, ...c }))}
-      pageSize={pageSize}
+      // pageSize={pageSize}
       pagination
       paginationMode="server"
-      onPageChange={handlePageChange}
-      onPageSizeChange={handlePageSizeChange}
+      // onPageChange={handlePageChange}
+      // onPageSizeChange={handlePageSizeChange}
     />
   );
 }
