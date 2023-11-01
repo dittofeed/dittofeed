@@ -137,8 +137,11 @@ describe("deliveries", () => {
 
     it("returns the correct email events", async () => {
       const deliveries = await searchDeliveries({ workspaceId });
-      console.log("deliveries", deliveries);
       expect(deliveries.items).toHaveLength(2);
+      expect(deliveries.items.flatMap((d) => d.status)).toEqual([
+        InternalEventType.EmailBounced,
+        InternalEventType.EmailOpened,
+      ]);
     });
   });
 });

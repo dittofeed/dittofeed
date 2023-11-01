@@ -1,8 +1,13 @@
+import { Static, Type } from "@sinclair/typebox";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+
 import {
   clickhouseClient,
   ClickHouseQueryBuilder,
   streamClickhouseQuery,
 } from "./clickhouse";
+import logger from "./logger";
 import {
   EmailEventList,
   SearchDeliveriesRequest,
@@ -11,6 +16,17 @@ import {
 } from "./types";
 import { getTableVersion } from "./userEvents";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
+
+const SearchDeliveryRow = Type.Object({
+  last_event: Type.String(),
+  properties: Type.String(),
+  updated_at: Type.String(),
+  sent_at: Type.String(),
+  origin_message_id: Type.String(),
+  workspace_id: Type.String(),
+});
+
+type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
 
 export async function searchDeliveries({
   workspaceId,
@@ -44,7 +60,6 @@ export async function searchDeliveries({
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
     ORDER BY sent_at DESC
   `;
-  // FIXME properties not working
 
   const result = await clickhouseClient().query({
     query,
@@ -55,7 +70,30 @@ export async function searchDeliveries({
   const items: SearchDeliveriesResponseItem[] = [];
   await streamClickhouseQuery(result, (rows) => {
     for (const row of rows) {
-      items.push(row as SearchDeliveriesResponseItem);
+      const parsed = unwrap(schemaValidateWithErr(row, SearchDeliveryRow));
+      const properties = parsed.properties.length
+        ? (JSON.parse(parsed.properties) as Record<string, unknown>)
+        : {};
+      const itemResult = schemaValidateWithErr(
+        {
+          sentAt: parsed.sent_at,
+          updatedAt: parsed.updated_at,
+          status: parsed.last_event,
+          ...properties,
+        },
+        SearchDeliveriesResponseItem
+      );
+
+      if (itemResult.isErr()) {
+        logger().error(
+          {
+            err: itemResult.error,
+          },
+          "Failed to parse delivery item from clickhouse"
+        );
+        continue;
+      }
+      items.push(itemResult.value);
     }
   });
 
