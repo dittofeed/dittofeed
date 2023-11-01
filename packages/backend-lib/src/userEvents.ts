@@ -110,7 +110,7 @@ export async function insertUserEvents({
   }
 }
 
-async function getTableVersion({
+export async function getTableVersion({
   workspaceId,
   tableVersion: tableVersionParam,
 }: {

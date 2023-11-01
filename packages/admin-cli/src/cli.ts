@@ -72,6 +72,15 @@ export async function cli() {
       }
     )
     .command(
+      "clickhouse client",
+      "Spawns 'clickhouse client' with dittofeed's config used to authenticate. Useful for local development for users that installed both clickhouse server and client.",
+      () => {},
+      async () => {
+        const host = new URL(backendConfig().clickhouseHost).hostname;
+        spawnWithEnv(["clickhouse", "client", `--host=${host}`]);
+      }
+    )
+    .command(
       "onboard-user",
       "Onboards a user to a workspace.",
       (cmd) =>

@@ -769,13 +769,19 @@ export const GetEventsResponse = Type.Object({
 
 export type GetEventsResponse = Static<typeof GetEventsResponse>;
 
-export const EmailTemplateResource = Type.Object({
-  type: Type.Literal(ChannelType.Email),
+export const EmailContents = Type.Object({
   from: Type.String(),
-  subject: Type.String(),
   body: Type.String(),
+  subject: Type.String(),
   replyTo: Type.Optional(Type.String()),
 });
+
+export const EmailTemplateResource = Type.Composite([
+  Type.Object({
+    type: Type.Literal(ChannelType.Email),
+  }),
+  EmailContents,
+]);
 
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
@@ -797,10 +803,16 @@ export type MobilePushTemplateResource = Static<
   typeof MobilePushTemplateResource
 >;
 
-export const SmsTemplateResource = Type.Object({
-  type: Type.Literal(ChannelType.Sms),
+const SmsContents = Type.Object({
   body: Type.String(),
 });
+
+export const SmsTemplateResource = Type.Composite([
+  Type.Object({
+    type: Type.Literal(ChannelType.Sms),
+  }),
+  SmsContents,
+]);
 
 export type SmsTemplateResource = Static<typeof SmsTemplateResource>;
 
@@ -1776,10 +1788,14 @@ export type SmsServiceProviderSuccess = Static<
   typeof SmsServiceProviderSuccess
 >;
 
-export const MessageSmsSuccess = Type.Object({
-  type: Type.Literal(ChannelType.Sms),
-  provider: SmsServiceProviderSuccess,
-});
+export const MessageSmsSuccess = Type.Composite([
+  Type.Object({
+    type: Type.Literal(ChannelType.Sms),
+    provider: SmsServiceProviderSuccess,
+    to: Type.String(),
+  }),
+  SmsContents,
+]);
 
 export type MessageSmsSuccess = Static<typeof MessageSmsSuccess>;
 
@@ -1804,15 +1820,14 @@ export type EmailServiceProviderSuccess = Static<
   typeof EmailServiceProviderSuccess
 >;
 
-export const MessageEmailSuccess = Type.Object({
-  type: Type.Literal(ChannelType.Email),
-  provider: EmailServiceProviderSuccess,
-  from: Type.String(),
-  body: Type.String(),
-  subject: Type.String(),
-  to: Type.String(),
-  replyTo: Type.Optional(Type.String()),
-});
+export const MessageEmailSuccess = Type.Composite([
+  Type.Object({
+    type: Type.Literal(ChannelType.Email),
+    provider: EmailServiceProviderSuccess,
+    to: Type.String(),
+  }),
+  EmailContents,
+]);
 
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
 
@@ -1823,9 +1838,18 @@ export const MessageSkipped = Type.Object({
 
 export type MessageSkipped = Static<typeof MessageSkipped>;
 
+export const MessageSendSuccessVariant = Type.Union([
+  MessageEmailSuccess,
+  MessageSmsSuccess,
+]);
+
+export type MessageSendSuccessVariant = Static<
+  typeof MessageSendSuccessVariant
+>;
+
 export const MessageSendSuccess = Type.Object({
   type: Type.Literal(InternalEventType.MessageSent),
-  variant: Type.Union([MessageEmailSuccess, MessageSmsSuccess]),
+  variant: MessageSendSuccessVariant,
 });
 
 export type MessageSendSuccess = Static<typeof MessageSendSuccess>;
@@ -2056,3 +2080,52 @@ export const GetTraitsResponse = Type.Object({
 });
 
 export type GetTraitsResponse = Static<typeof GetTraitsResponse>;
+
+export const SearchDeliveriesRequest = Type.Object({
+  workspaceId: Type.String(),
+  fromIdentifier: Type.Optional(Type.String()),
+  toIdentifier: Type.Optional(Type.String()),
+  channel: Type.Optional(Type.Enum(ChannelType)),
+  limit: Type.Optional(Type.Number()),
+  cursor: Type.Optional(Type.String()),
+});
+
+export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
+
+const BaseDeliveryItem = Type.Object({
+  sentAt: Type.String(),
+  updatedAt: Type.String(),
+  to: Type.String(),
+  journeyId: Type.String(),
+});
+
+export const SearchDeliveriesResponseItem = Type.Union([
+  // TODO implement sms status
+  Type.Composite([
+    Type.Object({
+      channel: Type.Literal(ChannelType.Sms),
+      status: Type.String(),
+    }),
+    BaseDeliveryItem,
+    SmsContents,
+  ]),
+  Type.Composite([
+    Type.Object({
+      status: EmailEvent,
+      channel: Type.Literal(ChannelType.Email),
+    }),
+    BaseDeliveryItem,
+    EmailContents,
+  ]),
+]);
+
+export type SearchDeliveriesResponseItem = Static<
+  typeof SearchDeliveriesResponseItem
+>;
+
+export const SearchDeliveriesResponse = Type.Object({
+  workspaceId: Type.String(),
+  items: Type.Array(SearchDeliveriesResponseItem),
+});
+
+export type SearchDeliveriesResponse = Static<typeof SearchDeliveriesResponse>;

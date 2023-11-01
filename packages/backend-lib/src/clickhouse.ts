@@ -1,6 +1,11 @@
 import { Readable } from "node:stream";
 
-import { ClickHouseClient, createClient } from "@clickhouse/client";
+import {
+  BaseResultSet,
+  ClickHouseClient,
+  createClient,
+  Row,
+} from "@clickhouse/client";
 import { NodeClickHouseClientConfigOptions } from "@clickhouse/client/dist/client";
 import { v4 as uuid } from "uuid";
 
@@ -93,4 +98,29 @@ export function clickhouseClient() {
     CLICKHOUSE_CLIENT = createClickhouseClient();
   }
   return CLICKHOUSE_CLIENT;
+}
+
+export async function streamClickhouseQuery(
+  query: BaseResultSet<Readable>,
+  cb: (rows: unknown[]) => Promise<void> | void
+): Promise<void> {
+  const stream = query.stream();
+  const rowPromises: Promise<unknown>[] = [];
+
+  stream.on("data", (rows: Row[]) => {
+    const promise = (async () => {
+      const json = await Promise.all(rows.map((row) => row.json()));
+      await cb(json);
+    })();
+    rowPromises.push(promise);
+  });
+
+  await Promise.all([
+    new Promise((resolve) => {
+      stream.on("end", () => {
+        resolve(0);
+      });
+    }),
+    ...rowPromises,
+  ]);
 }

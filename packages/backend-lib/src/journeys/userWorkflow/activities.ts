@@ -744,6 +744,7 @@ async function sendMessageInner({
       journeyId,
       messageId,
       userId,
+      channel,
     },
   });
   return result;
