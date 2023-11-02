@@ -2121,6 +2121,7 @@ export const SearchDeliveriesResponseItem = Type.Union([
     Type.Object({
       status: EmailEvent,
       to: Type.String(),
+      channel: Type.Literal(ChannelType.Email),
     }),
     EmailContents,
     BaseDeliveryItem,

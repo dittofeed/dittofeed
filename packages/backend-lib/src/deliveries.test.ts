@@ -128,7 +128,7 @@ describe("deliveries", () => {
 
         // past format form backwards compatibility
         const messageSentEvent3 = {
-          type: ChannelType.Email,
+          channel: ChannelType.Email,
           from: "test-from@email.com",
           to: "test-to@email.com",
           body: "body2",
