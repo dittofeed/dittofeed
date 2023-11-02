@@ -1,38 +1,41 @@
-import { useTheme } from "@mui/material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   EphemeralRequestStatus,
-  GetEventsRequest,
-  GetEventsResponse,
-  GetEventsResponseItem,
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
 } from "isomorphic-lib/src/types";
-import React, { useCallback, useMemo } from "react";
+import React from "react";
 import { pick } from "remeda/dist/commonjs/pick";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { shallow } from "zustand/shallow";
 
-import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { useAppStorePick } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
-import { requestContext } from "../lib/requestContext";
-import { GetServerSideProps } from "next";
+import { useRouter } from "next/router";
+import { omit } from "remeda/dist/commonjs/omit";
+
+interface TableItem {
+  userId: string;
+  to: string;
+  sentAt: string;
+  updatedAt: string;
+  originType: "broadcast" | "journey";
+  originName: string;
+  status: string;
+  id: string;
+  templateId: string;
+  templateName: string;
+}
 
 interface DeliveriesState {
   pageSize: number;
-  page: number;
-  totalRowCount: number;
   items: SearchDeliveriesResponseItem[];
   paginationRequest: EphemeralRequestStatus<Error>;
-  cursor: string | null;
 }
-
-type PaginationModel = Pick<DeliveriesState, "page" | "pageSize">;
 
 const baseColumn: Partial<GridColDef<SearchDeliveriesResponseItem>> = {
   flex: 1,
@@ -43,11 +46,8 @@ const baseColumn: Partial<GridColDef<SearchDeliveriesResponseItem>> = {
 
 interface DeliveriesActions {
   updateItems: (key: DeliveriesState["items"]) => void;
-  updatePagination: (key: PaginationModel) => void;
-  // FIXME remove total row count
-  updateTotalRowCount: (key: DeliveriesState["totalRowCount"]) => void;
   updatePaginationRequest: (key: DeliveriesState["paginationRequest"]) => void;
-  updateCursor: (key: DeliveriesState["cursor"]) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }
 
 type DeliveriesStore = DeliveriesState & DeliveriesActions;
@@ -56,9 +56,7 @@ export const useDeliveriesStore = create(
   immer<DeliveriesStore>((set) => ({
     pageSize: 10,
     page: 0,
-    totalRowCount: 2,
     items: [],
-    cursor: null,
     paginationRequest: {
       type: CompletionStatus.NotStarted,
     },
@@ -66,22 +64,13 @@ export const useDeliveriesStore = create(
       set((state) => {
         state.items = items;
       }),
-    updatePagination: (pagination) =>
-      set((state) => {
-        state.page = pagination.page;
-        state.pageSize = pagination.pageSize;
-      }),
     updatePaginationRequest: (request) =>
       set((state) => {
         state.paginationRequest = request;
       }),
-    updateTotalRowCount: (totalRowCount) =>
+    onPageSizeChange: (pageSize) =>
       set((state) => {
-        state.totalRowCount = totalRowCount;
-      }),
-    updateCursor: (cursor) =>
-      set((state) => {
-        state.cursor = cursor;
+        state.pageSize = pageSize;
       }),
   }))
 );
@@ -92,7 +81,28 @@ function useStorePick<K extends keyof DeliveriesStore>(
   return useDeliveriesStore((store) => pick(store, params));
 }
 
+const QUERY_PARAMETERS = {
+  PREVIOUS_CURSOR: "pdc",
+  CURRENT_CURSOR: "cdc",
+  NEXT_CURSOR: "ndc",
+} as const;
+
 export function DeliveriesTable() {
+  const [page, setPage] = React.useState(0);
+  const router = useRouter();
+  const {
+    [QUERY_PARAMETERS.PREVIOUS_CURSOR]: previousCursor,
+    [QUERY_PARAMETERS.CURRENT_CURSOR]: currentCursor,
+    [QUERY_PARAMETERS.NEXT_CURSOR]: nextCursor,
+  } = router.query;
+  if (
+    (previousCursor && typeof previousCursor !== "string") ||
+    (currentCursor && typeof currentCursor !== "string") ||
+    (nextCursor && typeof nextCursor !== "string")
+  ) {
+    return null;
+  }
+
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
       "workspace",
@@ -106,41 +116,27 @@ export function DeliveriesTable() {
     items,
     paginationRequest,
     pageSize,
-    page,
-    totalRowCount,
     updateItems,
-    updatePagination,
     updatePaginationRequest,
-    updateTotalRowCount,
-    cursor,
-    updateCursor,
   } = useStorePick([
     "items",
     "paginationRequest",
     "pageSize",
-    "page",
-    "totalRowCount",
     "updateItems",
-    "updatePagination",
     "updatePaginationRequest",
-    "updateTotalRowCount",
-    "cursor",
-    "updateCursor",
+    "onPageSizeChange",
   ]);
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
 
   React.useEffect(() => {
-    console.log("loc0");
     (async () => {
-      console.log("loc1");
       if (
         !workspaceId ||
         paginationRequest.type === CompletionStatus.InProgress
       ) {
         return;
       }
-      console.log("loc2");
 
       updatePaginationRequest({
         type: CompletionStatus.InProgress,
@@ -149,7 +145,7 @@ export function DeliveriesTable() {
       try {
         const params: SearchDeliveriesRequest = {
           workspaceId,
-          cursor: cursor ?? undefined,
+          cursor: currentCursor,
           limit: pageSize,
         };
 
@@ -181,14 +177,33 @@ export function DeliveriesTable() {
         id: item.originMessageId,
       }));
       updateItems(itemsWithId);
-      // updateTotalRowCount(result.value.count);
+
+      if (result.value.cursor) {
+        router.push({
+          pathname: router.pathname,
+          query: {
+            ...router.query,
+            [QUERY_PARAMETERS.NEXT_CURSOR]: result.value.cursor,
+          },
+        });
+      }
+
+      if (result.value.previousCursor) {
+        router.push({
+          pathname: router.pathname,
+          query: {
+            ...router.query,
+            [QUERY_PARAMETERS.PREVIOUS_CURSOR]: result.value.previousCursor,
+          },
+        });
+      }
 
       updatePaginationRequest({
         type: CompletionStatus.NotStarted,
       });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, workspaceId, updateTotalRowCount, updateItems, apiBase]);
+  }, [workspaceId, currentCursor]);
 
   return (
     <DataGrid
@@ -219,12 +234,42 @@ export function DeliveriesTable() {
           field: "channel",
         },
       ].map((c) => ({ ...baseColumn, ...c }))}
-      // pageSize={pageSize}
       pagination
-      rowCount={100}
       paginationMode="server"
-      // onPageChange={handlePageChange}
-      // onPageSizeChange={handlePageSizeChange}
+      pageSizeOptions={[pageSize]}
+      paginationModel={{
+        pageSize: pageSize,
+        page,
+      }}
+      rowCount={nextCursor ? Number.MAX_VALUE : pageSize * (page + 1)}
+      onPaginationModelChange={(newPaginationModel: GridPaginationModel) => {
+        if (newPaginationModel.page > page) {
+          const query = {
+            ...omit(router.query, [QUERY_PARAMETERS.NEXT_CURSOR]),
+            [QUERY_PARAMETERS.PREVIOUS_CURSOR]: currentCursor,
+            [QUERY_PARAMETERS.CURRENT_CURSOR]: nextCursor,
+          };
+          router.push({
+            pathname: router.pathname,
+            query,
+          });
+        } else {
+          router.push({
+            pathname: router.pathname,
+            query: {
+              ...omit(router.query, [QUERY_PARAMETERS.PREVIOUS_CURSOR]),
+              [QUERY_PARAMETERS.CURRENT_CURSOR]: previousCursor,
+              [QUERY_PARAMETERS.NEXT_CURSOR]: currentCursor,
+            },
+          });
+        }
+        setPage(newPaginationModel.page);
+      }}
+      sx={{
+        ".MuiTablePagination-displayedRows": {
+          display: "none", // 👈 to hide huge pagination number
+        },
+      }}
     />
   );
 }

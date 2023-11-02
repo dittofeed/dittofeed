@@ -2098,6 +2098,7 @@ const BaseDeliveryItem = Type.Object({
   journeyId: Type.String(),
   userId: Type.String(),
   originMessageId: Type.String(),
+  templateId: Type.String(),
 });
 
 export const SearchDeliveriesResponseItem = Type.Union([
@@ -2126,6 +2127,7 @@ export const SearchDeliveriesResponse = Type.Object({
   workspaceId: Type.String(),
   items: Type.Array(SearchDeliveriesResponseItem),
   cursor: Type.Optional(Type.String()),
+  previousCursor: Type.Optional(Type.String()),
 });
 
 export type SearchDeliveriesResponse = Static<typeof SearchDeliveriesResponse>;

@@ -42,16 +42,18 @@ describe("deliveries", () => {
           offset,
           event,
           properties,
+          messageId,
         }: {
           offset: number;
           event: string;
           properties: Record<string, unknown>;
+          messageId?: string;
         }): BatchItem {
           return {
             userId,
             timestamp: new Date(now.getTime() + offset).toISOString(),
             type: EventType.Track,
-            messageId: randomUUID(),
+            messageId: messageId ?? randomUUID(),
             event,
             properties: {
               ...properties,
@@ -117,6 +119,7 @@ describe("deliveries", () => {
           generateEvent({
             offset: 0,
             event: InternalEventType.MessageSent,
+            messageId: messageId1,
             properties: {
               ...node1Properties,
               ...messageSentEvent1,
@@ -135,6 +138,7 @@ describe("deliveries", () => {
           generateEvent({
             offset: 10,
             event: InternalEventType.MessageSent,
+            messageId: messageId2,
             properties: {
               ...node2Properties,
               ...messageSentEvent2,
