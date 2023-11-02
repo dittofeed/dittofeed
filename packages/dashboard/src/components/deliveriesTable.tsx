@@ -22,7 +22,7 @@ import { useAppStorePick } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
 import { useRouter } from "next/router";
 import { omit } from "remeda/dist/commonjs/omit";
-import { Box, Button, Tooltip } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
 import Link from "next/link";
 
 interface TableItem {
@@ -56,6 +56,34 @@ interface DeliveriesActions {
   updateItems: (key: DeliveriesState["items"]) => void;
   updatePaginationRequest: (key: DeliveriesState["paginationRequest"]) => void;
   onPageSizeChange: (pageSize: number) => void;
+}
+
+function ButtonLinkCell({ href, value }: { href: string; value: string }) {
+  return (
+    <Tooltip title={value}>
+      <Link
+        style={{
+          width: "100%",
+          textDecoration: "none",
+          color: "inherit",
+        }}
+        href={href}
+      >
+        <Button
+          sx={{
+            display: "block",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            width: "100%",
+          }}
+          variant="outlined"
+        >
+          {value}
+        </Button>
+      </Link>
+    </Tooltip>
+  );
 }
 
 type DeliveriesStore = DeliveriesState & DeliveriesActions;
@@ -215,12 +243,17 @@ export function DeliveriesTable() {
         TableItem,
         "originName" | "originType" | "originId"
       > | null = null;
+      let template: Pick<TableItem, "templateId" | "templateName"> | null =
+        null;
       for (const broadcast of broadcasts) {
         if (broadcast.journeyId === item.journeyId) {
           origin = {
             originName: broadcast.name,
             originType: "broadcast",
             originId: broadcast.id,
+          };
+          template = {
+            templateId: broadcast.messageTemplateId,
           };
           break;
         }
@@ -246,8 +279,6 @@ export function DeliveriesTable() {
 
       const messagesValue =
         messages.type === CompletionStatus.Successful ? messages.value : [];
-      let template: Pick<TableItem, "templateId" | "templateName"> | null =
-        null;
       for (const message of messagesValue) {
         if (message.id === item.templateId) {
           template = {
@@ -301,36 +332,28 @@ export function DeliveriesTable() {
               row.originType === "broadcast"
                 ? `/broadcasts/review/${row.originId}`
                 : `/journeys/configure/${row.originId}`;
-            return (
-              <Tooltip title={row.originName}>
-                <Link
-                  style={{
-                    width: "100%",
-                    textDecoration: "none",
-                    color: "inherit",
-                  }}
-                  href={href}
-                >
-                  <Button
-                    sx={{
-                      display: "block",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      width: "100%",
-                    }}
-                    variant="outlined"
-                  >
-                    {row.originName}
-                  </Button>
-                </Link>
-              </Tooltip>
-            );
+            return <ButtonLinkCell href={href} value={row.originName} />;
           },
         },
         {
           field: "templateId",
           headerName: "Template",
+          renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+            const href =
+              row.originType === "broadcast"
+                ? `/broadcasts/template/${row.originId}`
+                : `/templates/${row.templateId}`;
+            let value: string;
+            if (!row.templateName) {
+              if (row.originType !== "broadcast") {
+                return null;
+              }
+              value = "Broadcast Template";
+            } else {
+              value = row.templateName;
+            }
+            return <ButtonLinkCell href={href} value={value} />;
+          },
         },
         {
           field: "sentAt",
