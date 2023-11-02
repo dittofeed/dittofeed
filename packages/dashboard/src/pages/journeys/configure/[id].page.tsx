@@ -11,6 +11,7 @@ import { useRouter } from "next/router";
 
 import { DeliveriesTable } from "../../../components/deliveriesTable";
 import EditableName from "../../../components/editableName";
+import { SubtleHeader } from "../../../components/headers";
 import InfoTooltip from "../../../components/infoTooltip";
 import JourneyLayout from "../../../components/journeys/layout";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
@@ -154,7 +155,12 @@ function JourneyConfigure() {
 
   return (
     <JourneyLayout journeyId={id}>
-      <Stack direction="column" sx={{ padding: 2, height: "100%" }} spacing={3}>
+      <Stack
+        direction="column"
+        sx={{ padding: 2, height: "100%", width: "100%" }}
+        id="journey-configure"
+        spacing={3}
+      >
         <EditableName
           name={journeyName}
           onChange={(e) => setJourneyName(e.target.value)}
@@ -172,14 +178,8 @@ function JourneyConfigure() {
           </Button>
         </InfoTooltip>
         {journey?.status !== "NotStarted" && (
-          <Stack sx={{ flex: 1 }} spacing={1}>
-            <Typography
-              fontWeight={300}
-              variant="h2"
-              sx={{ fontSize: 16, marginBottom: 0.5 }}
-            >
-              Deliveries
-            </Typography>
+          <Stack sx={{ flex: 1, width: "100%" }} spacing={1}>
+            <SubtleHeader>Deliveries</SubtleHeader>
             <DeliveriesTable journeyId={id} />
           </Stack>
         )}

@@ -151,7 +151,7 @@ const QUERY_PARAMETERS = {
 
 function getQueryValue(query: ParsedUrlQuery, key: string): string | undefined {
   const val = query[key];
-  if (val) {
+  if (Array.isArray(val)) {
     return val[0];
   }
   return val;

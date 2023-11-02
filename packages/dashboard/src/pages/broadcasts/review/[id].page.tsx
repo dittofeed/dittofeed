@@ -1,5 +1,5 @@
 import { LoadingButton } from "@mui/lab";
-import { Tooltip, Typography } from "@mui/material";
+import { Stack, Tooltip, Typography } from "@mui/material";
 import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
@@ -13,6 +13,8 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { validate } from "uuid";
 
+import { DeliveriesTable } from "../../../components/deliveriesTable";
+import { SubtleHeader } from "../../../components/headers";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../../lib/appStore";
@@ -100,9 +102,9 @@ export default function BroadcastReview() {
   ]);
 
   const persistedBroadcast = broadcasts.find((b) => b.id === id);
-  const editable = persistedBroadcast?.status === "NotStarted";
+  const notStarted = persistedBroadcast?.status === "NotStarted";
   const triggerDisabled =
-    !editable || broadcastTriggerRequest.type === CompletionStatus.InProgress;
+    !notStarted || broadcastTriggerRequest.type === CompletionStatus.InProgress;
 
   if (typeof id !== "string" || !editedBroadcast) {
     return null;
@@ -134,20 +136,30 @@ export default function BroadcastReview() {
       <Typography fontWeight={400} variant="h2" sx={{ fontSize: 16 }}>
         Broadcast Review
       </Typography>
-      <Tooltip title={!editable ? "Broadcast has already been triggered" : ""}>
-        <span>
-          <LoadingButton
-            loading={
-              broadcastTriggerRequest.type === CompletionStatus.InProgress
-            }
-            disabled={triggerDisabled}
-            variant="contained"
-            onClick={handleTrigger}
-          >
-            Trigger Broadcast
-          </LoadingButton>
-        </span>
-      </Tooltip>
+      <Stack spacing={2} sx={{ width: "100%" }}>
+        <Tooltip
+          title={!notStarted ? "Broadcast has already been triggered" : ""}
+        >
+          <span>
+            <LoadingButton
+              loading={
+                broadcastTriggerRequest.type === CompletionStatus.InProgress
+              }
+              disabled={triggerDisabled}
+              variant="contained"
+              onClick={handleTrigger}
+            >
+              Trigger Broadcast
+            </LoadingButton>
+          </span>
+        </Tooltip>
+        {!notStarted && (
+          <Stack sx={{ flex: 1 }} spacing={1}>
+            <SubtleHeader>Deliveries</SubtleHeader>
+            <DeliveriesTable journeyId={persistedBroadcast?.journeyId} />
+          </Stack>
+        )}
+      </Stack>
     </BroadcastLayout>
   );
 }
