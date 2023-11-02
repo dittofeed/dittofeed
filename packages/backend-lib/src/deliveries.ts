@@ -67,12 +67,19 @@ export async function searchDeliveries({
   workspaceId,
   cursor,
   limit = 20,
+  journeyId,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
   const eventList = queryBuilder.addQueryValue(EmailEventList, "Array(String)");
   const tableVersion = await getTableVersion({ workspaceId });
+  const journeyIdClause = journeyId
+    ? `AND JSONExtractString(properties, 'journeyId') = ${queryBuilder.addQueryValue(
+        journeyId,
+        "String"
+      )}`
+    : "";
   const query = `
     SELECT 
       argMax(event, event_time) last_event,
@@ -98,7 +105,9 @@ export async function searchDeliveries({
         AND workspace_id = ${workspaceIdParam}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
-    HAVING origin_message_id != ''
+    HAVING
+      origin_message_id != ''
+      ${journeyIdClause}
     ORDER BY sent_at DESC
     LIMIT ${queryBuilder.addQueryValue(
       offset,
