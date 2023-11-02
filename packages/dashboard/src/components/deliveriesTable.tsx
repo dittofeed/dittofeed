@@ -22,7 +22,7 @@ import { useAppStorePick } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
 import { useRouter } from "next/router";
 import { omit } from "remeda/dist/commonjs/omit";
-import { Button, Tooltip } from "@mui/material";
+import { Box, Button, Tooltip } from "@mui/material";
 import Link from "next/link";
 
 interface TableItem {
@@ -56,6 +56,26 @@ interface DeliveriesActions {
   updateItems: (key: DeliveriesState["items"]) => void;
   updatePaginationRequest: (key: DeliveriesState["paginationRequest"]) => void;
   onPageSizeChange: (pageSize: number) => void;
+}
+function LinkCell({ href, value }: { href: string; value: string }) {
+  return (
+    <Tooltip title={value}>
+      <Link
+        style={{
+          width: "100%",
+          textDecoration: "none",
+          color: "inherit",
+          display: "block",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+        href={href}
+      >
+        {value}
+      </Link>
+    </Tooltip>
+  );
 }
 
 function ButtonLinkCell({ href, value }: { href: string; value: string }) {
@@ -308,98 +328,109 @@ export function DeliveriesTable() {
   }, [items]);
 
   return (
-    <DataGrid
-      rows={rows}
-      columns={[
-        {
-          field: "userId",
-          headerName: "User ID",
-        },
-        {
-          field: "to",
-          headerName: "To",
-        },
-        {
-          field: "status",
-          headerName: "Status",
-        },
-        {
-          field: "originId",
-          flex: 1,
-          headerName: "Journey / Broadcast",
-          renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
-            const href =
-              row.originType === "broadcast"
-                ? `/broadcasts/review/${row.originId}`
-                : `/journeys/configure/${row.originId}`;
-            return <ButtonLinkCell href={href} value={row.originName} />;
-          },
-        },
-        {
-          field: "templateId",
-          headerName: "Template",
-          renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
-            const href =
-              row.originType === "broadcast"
-                ? `/broadcasts/template/${row.originId}`
-                : `/templates/${row.templateId}`;
-            let value: string;
-            if (!row.templateName) {
-              if (row.originType !== "broadcast") {
-                return null;
-              }
-              value = "Broadcast Template";
-            } else {
-              value = row.templateName;
-            }
-            return <ButtonLinkCell href={href} value={value} />;
-          },
-        },
-        {
-          field: "sentAt",
-          headerName: "Sent At",
-        },
-        {
-          field: "updatedAt",
-          headerName: "Updated At",
-        },
-      ].map((c) => ({ ...baseColumn, ...c }))}
-      pagination
-      paginationMode="server"
-      pageSizeOptions={[pageSize]}
-      paginationModel={{
-        pageSize: pageSize,
-        page,
-      }}
-      rowCount={nextCursor ? Number.MAX_VALUE : pageSize * (page + 1)}
-      onPaginationModelChange={(newPaginationModel: GridPaginationModel) => {
-        if (newPaginationModel.page > page) {
-          const query = {
-            ...omit(router.query, [QUERY_PARAMETERS.NEXT_CURSOR]),
-            [QUERY_PARAMETERS.PREVIOUS_CURSOR]: currentCursor,
-            [QUERY_PARAMETERS.CURRENT_CURSOR]: nextCursor,
-          };
-          router.push({
-            pathname: router.pathname,
-            query,
-          });
-        } else {
-          router.push({
-            pathname: router.pathname,
-            query: {
-              ...omit(router.query, [QUERY_PARAMETERS.PREVIOUS_CURSOR]),
-              [QUERY_PARAMETERS.CURRENT_CURSOR]: previousCursor,
-              [QUERY_PARAMETERS.NEXT_CURSOR]: currentCursor,
+    <Box sx={{ width: "100%" }}>
+      <DataGrid
+        rows={rows}
+        columns={[
+          {
+            field: "userId",
+            headerName: "User ID",
+            renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+              const href = `/users/${row.userId}`;
+              return <LinkCell href={href} value={row.userId} />;
             },
-          });
-        }
-        setPage(newPaginationModel.page);
-      }}
-      sx={{
-        ".MuiTablePagination-displayedRows": {
-          display: "none", // 👈 to hide huge pagination number
-        },
-      }}
-    />
+          },
+          {
+            field: "to",
+            headerName: "To",
+            renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+              const href = `/users/${row.userId}`;
+              return <LinkCell href={href} value={row.to} />;
+            },
+          },
+          {
+            field: "status",
+            headerName: "Status",
+          },
+          {
+            field: "originId",
+            flex: 1,
+            headerName: "Journey / Broadcast",
+            renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+              const href =
+                row.originType === "broadcast"
+                  ? `/broadcasts/review/${row.originId}`
+                  : `/journeys/configure/${row.originId}`;
+              return <ButtonLinkCell href={href} value={row.originName} />;
+            },
+          },
+          {
+            field: "templateId",
+            headerName: "Template",
+            renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+              const href =
+                row.originType === "broadcast"
+                  ? `/broadcasts/template/${row.originId}`
+                  : `/templates/${row.templateId}`;
+              let value: string;
+              if (!row.templateName) {
+                if (row.originType !== "broadcast") {
+                  return null;
+                }
+                value = "Broadcast Template";
+              } else {
+                value = row.templateName;
+              }
+              return <ButtonLinkCell href={href} value={value} />;
+            },
+          },
+          {
+            field: "sentAt",
+            headerName: "Sent At",
+          },
+          {
+            field: "updatedAt",
+            headerName: "Updated At",
+          },
+        ].map((c) => ({ ...baseColumn, ...c }))}
+        pagination
+        paginationMode="server"
+        pageSizeOptions={[pageSize]}
+        autoHeight
+        paginationModel={{
+          pageSize: pageSize,
+          page,
+        }}
+        rowCount={nextCursor ? Number.MAX_VALUE : pageSize * (page + 1)}
+        onPaginationModelChange={(newPaginationModel: GridPaginationModel) => {
+          if (newPaginationModel.page > page) {
+            const query = {
+              ...omit(router.query, [QUERY_PARAMETERS.NEXT_CURSOR]),
+              [QUERY_PARAMETERS.PREVIOUS_CURSOR]: currentCursor,
+              [QUERY_PARAMETERS.CURRENT_CURSOR]: nextCursor,
+            };
+            router.push({
+              pathname: router.pathname,
+              query,
+            });
+          } else {
+            router.push({
+              pathname: router.pathname,
+              query: {
+                ...omit(router.query, [QUERY_PARAMETERS.PREVIOUS_CURSOR]),
+                [QUERY_PARAMETERS.CURRENT_CURSOR]: previousCursor,
+                [QUERY_PARAMETERS.NEXT_CURSOR]: currentCursor,
+              },
+            });
+          }
+          setPage(newPaginationModel.page);
+        }}
+        sx={{
+          ".MuiTablePagination-displayedRows": {
+            display: "none", // 👈 to hide huge pagination number
+          },
+        }}
+      />
+    </Box>
   );
 }
