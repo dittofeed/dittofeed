@@ -64,11 +64,14 @@ describe("deliveries", () => {
         const journeyId = randomUUID();
         const nodeId1 = randomUUID();
         const nodeId2 = randomUUID();
+        const nodeId3 = randomUUID();
         const runId = randomUUID();
         const templateId1 = randomUUID();
         const templateId2 = randomUUID();
+        const templateId3 = randomUUID();
         const messageId1 = randomUUID();
         const messageId2 = randomUUID();
+        const messageId3 = randomUUID();
 
         const node1Properties = {
           workspaceId,
@@ -86,6 +89,15 @@ describe("deliveries", () => {
           runId,
           templateId: templateId2,
           messageId: messageId2,
+        };
+
+        const node3Properties = {
+          workspaceId,
+          journeyId,
+          nodeId: nodeId3,
+          runId,
+          templateId: templateId3,
+          messageId: messageId3,
         };
 
         const messageSentEvent1: Omit<MessageSendSuccess, "type"> = {
@@ -112,6 +124,15 @@ describe("deliveries", () => {
               type: EmailProviderType.Sendgrid,
             },
           },
+        };
+
+        // past format form backwards compatibility
+        const messageSentEvent3 = {
+          type: ChannelType.Email,
+          from: "test-from@email.com",
+          to: "test-to@email.com",
+          body: "body2",
+          subject: "subject2",
         };
 
         // Submit email events
@@ -149,6 +170,16 @@ describe("deliveries", () => {
             event: InternalEventType.EmailBounced,
             properties: node2Properties,
           }),
+          // check that backwards compatible
+          generateEvent({
+            offset: 40,
+            event: InternalEventType.MessageSent,
+            messageId: messageId3,
+            properties: {
+              ...node3Properties,
+              ...messageSentEvent3,
+            },
+          }),
         ];
 
         await submitBatch({
@@ -161,8 +192,9 @@ describe("deliveries", () => {
 
       it("returns the correct email events", async () => {
         const deliveries = await searchDeliveries({ workspaceId });
-        expect(deliveries.items).toHaveLength(2);
-        expect(deliveries.items.flatMap((d) => d.status)).toEqual([
+        expect(deliveries.items).toHaveLength(3);
+        expect(deliveries.items.map((d) => d.status)).toEqual([
+          InternalEventType.MessageSent,
           InternalEventType.EmailBounced,
           InternalEventType.EmailOpened,
         ]);
