@@ -155,7 +155,9 @@ function getQueryValue(query: ParsedUrlQuery, key: string): string | undefined {
   return val;
 }
 
-export function DeliveriesTable() {
+export function DeliveriesTable({
+  journeyId,
+}: Pick<SearchDeliveriesRequest, "journeyId">) {
   const [page, setPage] = React.useState(0);
   const router = useRouter();
   const previousCursor = getQueryValue(
@@ -212,6 +214,7 @@ export function DeliveriesTable() {
           workspaceId,
           cursor: currentCursor,
           limit: pageSize,
+          journeyId,
         };
 
         response = await axios.get(`${apiBase}/api/deliveries`, {
@@ -269,6 +272,9 @@ export function DeliveriesTable() {
   const rows: TableItem[] = React.useMemo(
     () =>
       items.flatMap((item) => {
+        if (journeyId && item.journeyId !== journeyId) {
+          return [];
+        }
         let origin: Pick<
           TableItem,
           "originName" | "originType" | "originId"
