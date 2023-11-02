@@ -172,7 +172,7 @@ describe("deliveries", () => {
           }),
           // check that backwards compatible
           generateEvent({
-            offset: 10,
+            offset: 40,
             event: InternalEventType.MessageSent,
             messageId: messageId3,
             properties: {
@@ -193,10 +193,10 @@ describe("deliveries", () => {
       it("returns the correct email events", async () => {
         const deliveries = await searchDeliveries({ workspaceId });
         expect(deliveries.items).toHaveLength(3);
-        expect(deliveries.items.flatMap((d) => d.status)).toEqual([
+        expect(deliveries.items.map((d) => d.status)).toEqual([
+          InternalEventType.MessageSent,
           InternalEventType.EmailBounced,
           InternalEventType.EmailOpened,
-          InternalEventType.MessageSent,
         ]);
       });
     });

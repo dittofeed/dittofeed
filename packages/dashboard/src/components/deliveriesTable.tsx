@@ -320,12 +320,21 @@ export function DeliveriesTable() {
           return [];
         }
 
+        let to: string | null = null;
+        if ("variant" in item) {
+          to = item.variant.to;
+        } else {
+          to = item.to;
+        }
+        if (!to) {
+          return [];
+        }
         const tableItem: TableItem = {
           id: item.originMessageId,
           sentAt: item.sentAt,
           updatedAt: item.updatedAt,
           userId: item.userId,
-          to: item.variant.to,
+          to,
           status: item.status,
           ...origin,
           ...template,

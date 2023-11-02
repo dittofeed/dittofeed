@@ -2117,6 +2117,14 @@ export const SearchDeliveriesResponseItem = Type.Union([
     }),
     BaseDeliveryItem,
   ]),
+  Type.Composite([
+    Type.Object({
+      status: EmailEvent,
+      to: Type.String(),
+    }),
+    EmailContents,
+    BaseDeliveryItem,
+  ]),
 ]);
 
 export type SearchDeliveriesResponseItem = Static<
