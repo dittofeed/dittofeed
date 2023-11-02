@@ -1,5 +1,5 @@
 import { DittofeedSdk as sdk } from "@dittofeed/sdk-web";
-import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
+import { Button, Stack, Typography } from "@mui/material";
 import {
   CompletionStatus,
   JourneyResource,
@@ -9,6 +9,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 
+import { DeliveriesTable } from "../../../components/deliveriesTable";
 import EditableName from "../../../components/editableName";
 import InfoTooltip from "../../../components/infoTooltip";
 import JourneyLayout from "../../../components/journeys/layout";
@@ -102,7 +103,6 @@ function JourneyConfigure() {
       ? journeys.value.find((j) => j.id === id) ?? null
       : null;
 
-  const theme = useTheme();
   if (journey?.status === "Broadcast") {
     throw new Error("Broadcast journeys cannot be configured.");
   }
@@ -154,7 +154,7 @@ function JourneyConfigure() {
 
   return (
     <JourneyLayout journeyId={id}>
-      <Stack direction="column" sx={{ padding: 2 }} spacing={3}>
+      <Stack direction="column" sx={{ padding: 2, height: "100%" }} spacing={3}>
         <EditableName
           name={journeyName}
           onChange={(e) => setJourneyName(e.target.value)}
@@ -162,17 +162,27 @@ function JourneyConfigure() {
         <InfoTooltip title={statusValue.currentDescription}>
           <Typography variant="h5">Status: {statusValue.label}</Typography>
         </InfoTooltip>
-        <Box sx={{ width: theme.spacing(25) }}>
-          <InfoTooltip title={statusValue.nextDescription}>
-            <Button
-              variant="contained"
-              disabled={statusValue.disabled}
-              onClick={handleChangeStatus}
+        <InfoTooltip title={statusValue.nextDescription}>
+          <Button
+            variant="contained"
+            disabled={statusValue.disabled}
+            onClick={handleChangeStatus}
+          >
+            {statusValue.nextStatusLabel}
+          </Button>
+        </InfoTooltip>
+        {journey?.status !== "NotStarted" && (
+          <Stack sx={{ flex: 1 }} spacing={1}>
+            <Typography
+              fontWeight={300}
+              variant="h2"
+              sx={{ fontSize: 16, marginBottom: 0.5 }}
             >
-              {statusValue.nextStatusLabel}
-            </Button>
-          </InfoTooltip>
-        </Box>
+              Deliveries
+            </Typography>
+            <DeliveriesTable journeyId={id} />
+          </Stack>
+        )}
       </Stack>
     </JourneyLayout>
   );
