@@ -45,7 +45,7 @@ interface TableItem {
 
 interface DeliveriesState {
   pageSize: number;
-  items: SearchDeliveriesResponseItem[];
+  items: Map<string, SearchDeliveriesResponseItem>;
   paginationRequest: EphemeralRequestStatus<Error>;
 }
 
@@ -57,7 +57,7 @@ const baseColumn: Partial<GridColDef<TableItem>> = {
 };
 
 interface DeliveriesActions {
-  updateItems: (key: DeliveriesState["items"]) => void;
+  upsertItems: (key: SearchDeliveriesResponseItem[]) => void;
   updatePaginationRequest: (key: DeliveriesState["paginationRequest"]) => void;
   onPageSizeChange: (pageSize: number) => void;
 }
@@ -116,13 +116,15 @@ export const useDeliveriesStore = create(
   immer<DeliveriesStore>((set) => ({
     pageSize: 10,
     page: 0,
-    items: [],
+    items: new Map(),
     paginationRequest: {
       type: CompletionStatus.NotStarted,
     },
-    updateItems: (items) =>
+    upsertItems: (items) =>
       set((state) => {
-        state.items = items;
+        for (const item of items) {
+          state.items.set(item.originMessageId, item);
+        }
       }),
     updatePaginationRequest: (request) =>
       set((state) => {
@@ -159,6 +161,7 @@ export function DeliveriesTable({
   journeyId,
 }: Pick<SearchDeliveriesRequest, "journeyId">) {
   const [page, setPage] = React.useState(0);
+  const [pageItems, setPageItems] = React.useState(new Set<string>());
   const router = useRouter();
   const previousCursor = getQueryValue(
     router.query,
@@ -183,13 +186,13 @@ export function DeliveriesTable({
     items,
     paginationRequest,
     pageSize,
-    updateItems,
+    upsertItems,
     updatePaginationRequest,
   } = useStorePick([
     "items",
     "paginationRequest",
     "pageSize",
-    "updateItems",
+    "upsertItems",
     "updatePaginationRequest",
     "onPageSizeChange",
   ]);
@@ -240,7 +243,8 @@ export function DeliveriesTable({
         return;
       }
 
-      updateItems(result.value.items);
+      upsertItems(result.value.items);
+      setPageItems(new Set(result.value.items.map((i) => i.originMessageId)));
 
       if (result.value.cursor) {
         router.push({
@@ -271,8 +275,9 @@ export function DeliveriesTable({
 
   const rows: TableItem[] = React.useMemo(
     () =>
-      items.flatMap((item) => {
-        if (journeyId && item.journeyId !== journeyId) {
+      Array.from(pageItems).flatMap((pageItem) => {
+        const item = items.get(pageItem);
+        if (!item) {
           return [];
         }
         let origin: Pick<
@@ -338,7 +343,7 @@ export function DeliveriesTable({
           to = item.to;
           channel = item.channel;
         }
-        if (!to) {
+        if (!to || !channel) {
           return [];
         }
         const tableItem: TableItem = {
@@ -354,7 +359,7 @@ export function DeliveriesTable({
         };
         return tableItem;
       }),
-    [items]
+    [items, pageItems]
   );
 
   return (

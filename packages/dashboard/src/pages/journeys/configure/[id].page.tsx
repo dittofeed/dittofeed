@@ -1,5 +1,5 @@
 import { DittofeedSdk as sdk } from "@dittofeed/sdk-web";
-import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
+import { Button, Stack, Typography } from "@mui/material";
 import {
   CompletionStatus,
   JourneyResource,
