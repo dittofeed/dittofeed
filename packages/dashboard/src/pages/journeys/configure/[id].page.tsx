@@ -18,7 +18,7 @@ import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
 import {
   JourneyGetServerSideProps,
   journeyGetServerSideProps,
-} from "./getServerSideProps";
+} from "../getServerSideProps";
 
 export const getServerSideProps: JourneyGetServerSideProps = (ctx) =>
   journeyGetServerSideProps(ctx);

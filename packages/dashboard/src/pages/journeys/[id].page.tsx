@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 
-import JourneysBuilder from "../../../components/journeys/journeysBuilder";
-import JourneyLayout from "../../../components/journeys/layout";
+import JourneysBuilder from "../../components/journeys/journeysBuilder";
+import JourneyLayout from "../../components/journeys/layout";
 import {
   JourneyGetServerSideProps,
   journeyGetServerSideProps,
