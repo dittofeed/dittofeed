@@ -39,6 +39,7 @@ import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
+import { getTemplatesLink } from "../../lib/templatesLink";
 import { AppState, PropsWithInitialState } from "../../lib/types";
 
 interface TabPanelProps {
@@ -153,19 +154,12 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
           borderColor: "grey.200",
         }}
         onClick={() => {
-          let messageType: string;
-          switch (definition.type) {
-            case ChannelType.Email:
-              messageType = "email";
-              break;
-            case ChannelType.MobilePush:
-              messageType = "mobile-push";
-              break;
-            case ChannelType.Sms:
-              messageType = "sms";
-              break;
-          }
-          path.push(`/templates/${messageType}/${template.id}`);
+          path.push(
+            getTemplatesLink({
+              id: template.id,
+              channel: definition.type,
+            })
+          );
         }}
       >
         <ListItemText primary={template.name} />

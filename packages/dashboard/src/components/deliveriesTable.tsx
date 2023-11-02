@@ -8,6 +8,7 @@ import {
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  ChannelType,
   CompletionStatus,
   EphemeralRequestStatus,
   SearchDeliveriesRequest,
@@ -25,6 +26,7 @@ import { immer } from "zustand/middleware/immer";
 
 import { useAppStorePick } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
+import { getTemplatesLink } from "../lib/templatesLink";
 
 interface TableItem {
   userId: string;
@@ -38,6 +40,7 @@ interface TableItem {
   id: string;
   templateId?: string;
   templateName?: string;
+  channel: ChannelType;
 }
 
 interface DeliveriesState {
@@ -321,10 +324,13 @@ export function DeliveriesTable() {
         }
 
         let to: string | null = null;
+        let channel: ChannelType | null = null;
         if ("variant" in item) {
           to = item.variant.to;
+          channel = item.variant.type;
         } else {
           to = item.to;
+          channel = item.channel;
         }
         if (!to) {
           return [];
@@ -336,6 +342,7 @@ export function DeliveriesTable() {
           userId: item.userId,
           to,
           status: item.status,
+          channel,
           ...origin,
           ...template,
         };
@@ -388,7 +395,10 @@ export function DeliveriesTable() {
               const href =
                 row.originType === "broadcast"
                   ? `/broadcasts/template/${row.originId}`
-                  : `/templates/${row.templateId}`;
+                  : getTemplatesLink({
+                      channel: row.channel,
+                      id: row.originId,
+                    });
               let value: string;
               if (!row.templateName) {
                 if (row.originType !== "broadcast") {
