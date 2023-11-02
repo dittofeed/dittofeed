@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import {
   CampaignOutlined,
+  InboxOutlined,
   ManageAccountsOutlined,
   PeopleOutlined,
 } from "@mui/icons-material";
@@ -32,6 +33,14 @@ const menuItems: { items: MenuItemGroup[] } = {
           url: "/analysis/messages",
           icon: BarChartOutlined,
           description: "Analyze metrics across your entire workspace.",
+        },
+        {
+          id: "deliveries",
+          title: "Deliveries",
+          type: "item",
+          url: "/deliveries",
+          icon: InboxOutlined,
+          description: "See which messages were delivered to which users.",
         },
       ],
     },

@@ -43,6 +43,16 @@ export interface SubscriptionGroupDetails {
   type: SubscriptionGroupType;
 }
 
+export function inSubscriptionGroup(
+  details: SubscriptionGroupDetails
+): boolean {
+  // in the case that the subscription group segment hasn't been calculated yet
+  if (details.action === null && details.type === SubscriptionGroupType.OptIn) {
+    return false;
+  }
+  return details.action !== UserSubscriptionAction.Unsubscribe;
+}
+
 export function getSubscriptionGroupDetails(
   sg: SubscriptionGroupWithAssignment
 ): SubscriptionGroupDetails {

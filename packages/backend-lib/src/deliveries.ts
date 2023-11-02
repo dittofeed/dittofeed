@@ -11,6 +11,7 @@ import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
   EmailEventList,
+  InternalEventType,
   SearchDeliveriesRequest,
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
@@ -25,6 +26,7 @@ const SearchDeliveryRow = Type.Object({
   sent_at: Type.String(),
   origin_message_id: Type.String(),
   workspace_id: Type.String(),
+  user_or_anonymous_id: Type.String(),
 });
 
 type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
@@ -87,13 +89,16 @@ export async function searchDeliveries({
         JSONExtractString(message_raw, 'properties') properties,
         event,
         event_time,
-        JSON_VALUE(message_raw, '$.properties.messageId') origin_message_id
+        if(event = '${
+          InternalEventType.MessageSent
+        }', message_id, JSON_VALUE(message_raw, '$.properties.messageId')) origin_message_id
       FROM ${buildUserEventsTableName(tableVersion)} 
       WHERE
         event in ${eventList}
         AND workspace_id = ${workspaceIdParam}
     ) AS inner
     GROUP BY workspace_id, user_or_anonymous_id, origin_message_id
+    HAVING origin_message_id != ''
     ORDER BY sent_at DESC
     LIMIT ${queryBuilder.addQueryValue(
       offset,
@@ -114,19 +119,24 @@ export async function searchDeliveries({
       const properties = parsed.properties.length
         ? (JSON.parse(parsed.properties) as Record<string, unknown>)
         : {};
+      const unvalidatedItem = {
+        sentAt: parsed.sent_at,
+        updatedAt: parsed.updated_at,
+        status: parsed.last_event,
+        originMessageId: parsed.origin_message_id,
+        userId: parsed.user_or_anonymous_id,
+        ...properties,
+      };
+
       const itemResult = schemaValidateWithErr(
-        {
-          sentAt: parsed.sent_at,
-          updatedAt: parsed.updated_at,
-          status: parsed.last_event,
-          ...properties,
-        },
+        unvalidatedItem,
         SearchDeliveriesResponseItem
       );
 
       if (itemResult.isErr()) {
         logger().error(
           {
+            unvalidatedItem,
             err: itemResult.error,
           },
           "Failed to parse delivery item from clickhouse"
@@ -139,10 +149,13 @@ export async function searchDeliveries({
 
   const responseCursor =
     items.length >= limit ? serializeCursorOffset(offset + limit) : undefined;
+  const responsePreviousCursor =
+    offset > 0 ? serializeCursorOffset(Math.min(offset - limit, 0)) : undefined;
 
   return {
     workspaceId,
     items,
     cursor: responseCursor,
+    previousCursor: responsePreviousCursor,
   };
 }

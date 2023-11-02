@@ -4,6 +4,7 @@ import { FastifyInstance } from "fastify";
 import broadcastsController from "../controllers/broadcastsController";
 import contentController from "../controllers/contentController";
 import debugController from "../controllers/debugController";
+import deliveriesController from "../controllers/deliveriesController";
 import eventsController from "../controllers/eventsController";
 import indexController from "../controllers/indexController";
 import integrationsController from "../controllers/integrationsController";
@@ -42,6 +43,9 @@ export default async function router(fastify: FastifyInstance) {
         f.register(userPropertiesController, { prefix: "/user-properties" }),
         f.register(broadcastsController, {
           prefix: "/broadcasts",
+        }),
+        f.register(deliveriesController, {
+          prefix: "/deliveries",
         }),
         f.register(usersController, { prefix: "/users" }),
         // mount redundant webhooks controller at root level for backwards

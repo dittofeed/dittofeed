@@ -10,7 +10,10 @@ import { sendSms as sendSmsTwilio } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
 import prisma from "./prisma";
-import { SubscriptionGroupDetails } from "./subscriptionGroups";
+import {
+  inSubscriptionGroup,
+  SubscriptionGroupDetails,
+} from "./subscriptionGroups";
 import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
@@ -25,9 +28,7 @@ import {
   MessageTemplateResourceDefinition,
   SmsProviderConfig,
   SmsProviderType,
-  SubscriptionGroupType,
   UpsertMessageTemplateResource,
-  UserSubscriptionAction,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -184,35 +185,28 @@ async function getSendMessageModels({
     MessageSendFailure
   >
 > {
-  if (subscriptionGroupDetails) {
+  if (
+    subscriptionGroupDetails &&
+    inSubscriptionGroup(subscriptionGroupDetails)
+  ) {
     const { type: subscriptionGroupType, action: subscriptionGroupAction } =
       subscriptionGroupDetails;
-    if (
-      subscriptionGroupType === SubscriptionGroupType.OptIn &&
-      subscriptionGroupAction !== UserSubscriptionAction.Subscribe
-    ) {
-      return err({
-        type: InternalEventType.MessageSkipped,
-        variant: {
-          type: MessageSkippedType.SubscriptionState,
-          action: subscriptionGroupAction,
-          subscriptionGroupType,
-        },
-      });
-    }
-    if (
-      subscriptionGroupType === SubscriptionGroupType.OptOut &&
-      subscriptionGroupAction === UserSubscriptionAction.Unsubscribe
-    ) {
-      return err({
-        type: InternalEventType.MessageSkipped,
-        variant: {
-          type: MessageSkippedType.SubscriptionState,
-          action: subscriptionGroupAction,
-          subscriptionGroupType,
-        },
-      });
-    }
+
+    logger().debug(
+      {
+        subscriptionGroupDetails,
+      },
+      "message skipped because user is in subscription group"
+    );
+
+    return err({
+      type: InternalEventType.MessageSkipped,
+      variant: {
+        type: MessageSkippedType.SubscriptionState,
+        action: subscriptionGroupAction,
+        subscriptionGroupType,
+      },
+    });
   }
 
   const [messageTemplateResult, subscriptionGroupSecret] = await Promise.all([
@@ -263,10 +257,18 @@ async function getSendMessageModels({
       },
     });
   }
-  const messageTemplateDefinition =
-    (useDraft && messageTemplate.draft) ?? messageTemplate.definition;
+  const messageTemplateDefinition = useDraft
+    ? messageTemplate.draft ?? messageTemplate.definition
+    : messageTemplate.definition;
 
   if (!messageTemplateDefinition) {
+    logger().debug(
+      {
+        messageTemplate,
+      },
+      "message template has no definition"
+    );
+
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {

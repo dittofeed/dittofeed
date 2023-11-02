@@ -2095,27 +2095,27 @@ export type SearchDeliveriesRequest = Static<typeof SearchDeliveriesRequest>;
 const BaseDeliveryItem = Type.Object({
   sentAt: Type.String(),
   updatedAt: Type.String(),
-  to: Type.String(),
   journeyId: Type.String(),
+  userId: Type.String(),
+  originMessageId: Type.String(),
+  templateId: Type.String(),
 });
 
 export const SearchDeliveriesResponseItem = Type.Union([
   // TODO implement sms status
   Type.Composite([
     Type.Object({
-      channel: Type.Literal(ChannelType.Sms),
       status: Type.String(),
+      variant: MessageSmsSuccess,
     }),
     BaseDeliveryItem,
-    SmsContents,
   ]),
   Type.Composite([
     Type.Object({
       status: EmailEvent,
-      channel: Type.Literal(ChannelType.Email),
+      variant: MessageEmailSuccess,
     }),
     BaseDeliveryItem,
-    EmailContents,
   ]),
 ]);
 
@@ -2127,6 +2127,7 @@ export const SearchDeliveriesResponse = Type.Object({
   workspaceId: Type.String(),
   items: Type.Array(SearchDeliveriesResponseItem),
   cursor: Type.Optional(Type.String()),
+  previousCursor: Type.Optional(Type.String()),
 });
 
 export type SearchDeliveriesResponse = Static<typeof SearchDeliveriesResponse>;
