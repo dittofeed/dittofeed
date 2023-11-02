@@ -1,3 +1,4 @@
+import { Box, Button, Tooltip } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
@@ -13,17 +14,17 @@ import {
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
 } from "isomorphic-lib/src/types";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { ParsedUrlQuery } from "querystring";
 import React from "react";
+import { omit } from "remeda/dist/commonjs/omit";
 import { pick } from "remeda/dist/commonjs/pick";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { useAppStorePick } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
-import { useRouter } from "next/router";
-import { omit } from "remeda/dist/commonjs/omit";
-import { Box, Button, Tooltip } from "@mui/material";
-import Link from "next/link";
 
 interface TableItem {
   userId: string;
@@ -143,21 +144,26 @@ const QUERY_PARAMETERS = {
   NEXT_CURSOR: "ndc",
 } as const;
 
+function getQueryValue(query: ParsedUrlQuery, key: string): string | undefined {
+  const val = query[key];
+  if (val) {
+    return val[0];
+  }
+  return val;
+}
+
 export function DeliveriesTable() {
   const [page, setPage] = React.useState(0);
   const router = useRouter();
-  const {
-    [QUERY_PARAMETERS.PREVIOUS_CURSOR]: previousCursor,
-    [QUERY_PARAMETERS.CURRENT_CURSOR]: currentCursor,
-    [QUERY_PARAMETERS.NEXT_CURSOR]: nextCursor,
-  } = router.query;
-  if (
-    (previousCursor && typeof previousCursor !== "string") ||
-    (currentCursor && typeof currentCursor !== "string") ||
-    (nextCursor && typeof nextCursor !== "string")
-  ) {
-    return null;
-  }
+  const previousCursor = getQueryValue(
+    router.query,
+    QUERY_PARAMETERS.PREVIOUS_CURSOR
+  );
+  const currentCursor = getQueryValue(
+    router.query,
+    QUERY_PARAMETERS.CURRENT_CURSOR
+  );
+  const nextCursor = getQueryValue(router.query, QUERY_PARAMETERS.NEXT_CURSOR);
 
   const { workspace, apiBase, messages, journeys, broadcasts } =
     useAppStorePick([
@@ -257,75 +263,77 @@ export function DeliveriesTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, currentCursor]);
 
-  const rows: TableItem[] = React.useMemo(() => {
-    return items.flatMap((item) => {
-      let origin: Pick<
-        TableItem,
-        "originName" | "originType" | "originId"
-      > | null = null;
-      let template: Pick<TableItem, "templateId" | "templateName"> | null =
-        null;
-      for (const broadcast of broadcasts) {
-        if (broadcast.journeyId === item.journeyId) {
-          origin = {
-            originName: broadcast.name,
-            originType: "broadcast",
-            originId: broadcast.id,
-          };
-          template = {
-            templateId: broadcast.messageTemplateId,
-          };
-          break;
-        }
-      }
-      if (!origin) {
-        const journeyValue =
-          journeys.type === CompletionStatus.Successful ? journeys.value : [];
-        for (const journey of journeyValue) {
-          if (journey.id === item.journeyId) {
+  const rows: TableItem[] = React.useMemo(
+    () =>
+      items.flatMap((item) => {
+        let origin: Pick<
+          TableItem,
+          "originName" | "originType" | "originId"
+        > | null = null;
+        let template: Pick<TableItem, "templateId" | "templateName"> | null =
+          null;
+        for (const broadcast of broadcasts) {
+          if (broadcast.journeyId === item.journeyId) {
             origin = {
-              originName: journey.name,
-              originType: "journey",
-              originId: journey.id,
+              originName: broadcast.name,
+              originType: "broadcast",
+              originId: broadcast.id,
+            };
+            template = {
+              templateId: broadcast.messageTemplateId,
             };
             break;
           }
         }
-      }
-
-      if (!origin) {
-        return [];
-      }
-
-      const messagesValue =
-        messages.type === CompletionStatus.Successful ? messages.value : [];
-      for (const message of messagesValue) {
-        if (message.id === item.templateId) {
-          template = {
-            templateId: message.id,
-            templateName: message.name,
-          };
-          break;
+        if (!origin) {
+          const journeyValue =
+            journeys.type === CompletionStatus.Successful ? journeys.value : [];
+          for (const journey of journeyValue) {
+            if (journey.id === item.journeyId) {
+              origin = {
+                originName: journey.name,
+                originType: "journey",
+                originId: journey.id,
+              };
+              break;
+            }
+          }
         }
-      }
 
-      if (!template && origin?.originType !== "broadcast") {
-        return [];
-      }
+        if (!origin) {
+          return [];
+        }
 
-      const tableItem: TableItem = {
-        id: item.originMessageId,
-        sentAt: item.sentAt,
-        updatedAt: item.updatedAt,
-        userId: item.userId,
-        to: item.variant.to,
-        status: item.status,
-        ...origin,
-        ...template,
-      };
-      return tableItem;
-    });
-  }, [items]);
+        const messagesValue =
+          messages.type === CompletionStatus.Successful ? messages.value : [];
+        for (const message of messagesValue) {
+          if (message.id === item.templateId) {
+            template = {
+              templateId: message.id,
+              templateName: message.name,
+            };
+            break;
+          }
+        }
+
+        if (!template && origin.originType !== "broadcast") {
+          return [];
+        }
+
+        const tableItem: TableItem = {
+          id: item.originMessageId,
+          sentAt: item.sentAt,
+          updatedAt: item.updatedAt,
+          userId: item.userId,
+          to: item.variant.to,
+          status: item.status,
+          ...origin,
+          ...template,
+        };
+        return tableItem;
+      }),
+    [items]
+  );
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -398,7 +406,7 @@ export function DeliveriesTable() {
         pageSizeOptions={[pageSize]}
         autoHeight
         paginationModel={{
-          pageSize: pageSize,
+          pageSize,
           page,
         }}
         rowCount={nextCursor ? Number.MAX_VALUE : pageSize * (page + 1)}

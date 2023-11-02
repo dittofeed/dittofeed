@@ -123,8 +123,7 @@ export async function searchDeliveries({
         sentAt: parsed.sent_at,
         updatedAt: parsed.updated_at,
         status: parsed.last_event,
-        // ensure no empty strings
-        originMessageId: parsed.origin_message_id ?? undefined,
+        originMessageId: parsed.origin_message_id,
         userId: parsed.user_or_anonymous_id,
         ...properties,
       };
