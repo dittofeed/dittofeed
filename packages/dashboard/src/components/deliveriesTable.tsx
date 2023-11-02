@@ -1,4 +1,9 @@
-import { DataGrid, GridColDef, GridPaginationModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridPaginationModel,
+  GridRenderCellParams,
+} from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -17,6 +22,8 @@ import { useAppStorePick } from "../lib/appStore";
 import renderCell from "../lib/renderCell";
 import { useRouter } from "next/router";
 import { omit } from "remeda/dist/commonjs/omit";
+import { Box, Button, Tooltip } from "@mui/material";
+import Link from "next/link";
 
 interface TableItem {
   userId: string;
@@ -25,10 +32,11 @@ interface TableItem {
   updatedAt: string;
   originType: "broadcast" | "journey";
   originName: string;
+  originId: string;
   status: string;
   id: string;
-  templateId: string;
-  templateName: string;
+  templateId?: string;
+  templateName?: string;
 }
 
 interface DeliveriesState {
@@ -37,7 +45,7 @@ interface DeliveriesState {
   paginationRequest: EphemeralRequestStatus<Error>;
 }
 
-const baseColumn: Partial<GridColDef<SearchDeliveriesResponseItem>> = {
+const baseColumn: Partial<GridColDef<TableItem>> = {
   flex: 1,
   sortable: false,
   filterable: false,
@@ -172,11 +180,7 @@ export function DeliveriesTable() {
         return;
       }
 
-      const itemsWithId = result.value.items.map((item) => ({
-        ...item,
-        id: item.originMessageId,
-      }));
-      updateItems(itemsWithId);
+      updateItems(result.value.items);
 
       if (result.value.cursor) {
         router.push({
@@ -205,33 +209,136 @@ export function DeliveriesTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, currentCursor]);
 
+  const rows: TableItem[] = React.useMemo(() => {
+    return items.flatMap((item) => {
+      let origin: Pick<
+        TableItem,
+        "originName" | "originType" | "originId"
+      > | null = null;
+      for (const broadcast of broadcasts) {
+        if (broadcast.journeyId === item.journeyId) {
+          origin = {
+            originName: broadcast.name,
+            originType: "broadcast",
+            originId: broadcast.id,
+          };
+          break;
+        }
+      }
+      if (!origin) {
+        const journeyValue =
+          journeys.type === CompletionStatus.Successful ? journeys.value : [];
+        for (const journey of journeyValue) {
+          if (journey.id === item.journeyId) {
+            origin = {
+              originName: journey.name,
+              originType: "journey",
+              originId: journey.id,
+            };
+            break;
+          }
+        }
+      }
+
+      if (!origin) {
+        return [];
+      }
+
+      const messagesValue =
+        messages.type === CompletionStatus.Successful ? messages.value : [];
+      let template: Pick<TableItem, "templateId" | "templateName"> | null =
+        null;
+      for (const message of messagesValue) {
+        if (message.id === item.templateId) {
+          template = {
+            templateId: message.id,
+            templateName: message.name,
+          };
+          break;
+        }
+      }
+
+      if (!template && origin?.originType !== "broadcast") {
+        return [];
+      }
+
+      const tableItem: TableItem = {
+        id: item.originMessageId,
+        sentAt: item.sentAt,
+        updatedAt: item.updatedAt,
+        userId: item.userId,
+        to: item.variant.to,
+        status: item.status,
+        ...origin,
+        ...template,
+      };
+      return tableItem;
+    });
+  }, [items]);
+
   return (
     <DataGrid
-      rows={items}
+      rows={rows}
       columns={[
         {
-          field: "sentAt",
-        },
-        {
-          field: "updatedAt",
+          field: "userId",
+          headerName: "User ID",
         },
         {
           field: "to",
-        },
-        {
-          field: "journeyId",
-        },
-        {
-          field: "userId",
-        },
-        {
-          field: "originMessageId",
+          headerName: "To",
         },
         {
           field: "status",
+          headerName: "Status",
         },
         {
-          field: "channel",
+          field: "originId",
+          flex: 1,
+          headerName: "Journey / Broadcast",
+          renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
+            const href =
+              row.originType === "broadcast"
+                ? `/broadcasts/review/${row.originId}`
+                : `/journeys/configure/${row.originId}`;
+            return (
+              <Tooltip title={row.originName}>
+                <Link
+                  style={{
+                    width: "100%",
+                    textDecoration: "none",
+                    color: "inherit",
+                  }}
+                  href={href}
+                >
+                  <Button
+                    sx={{
+                      display: "block",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      width: "100%",
+                    }}
+                    variant="outlined"
+                  >
+                    {row.originName}
+                  </Button>
+                </Link>
+              </Tooltip>
+            );
+          },
+        },
+        {
+          field: "templateId",
+          headerName: "Template",
+        },
+        {
+          field: "sentAt",
+          headerName: "Sent At",
+        },
+        {
+          field: "updatedAt",
+          headerName: "Updated At",
         },
       ].map((c) => ({ ...baseColumn, ...c }))}
       pagination
