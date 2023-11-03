@@ -368,6 +368,7 @@ export function DeliveriesTable({
     <Stack sx={{ width: "100%" }} spacing={1}>
       <DataGrid
         rows={rows}
+        loading={paginationRequest.type === CompletionStatus.InProgress}
         columns={[
           {
             field: "userId",
