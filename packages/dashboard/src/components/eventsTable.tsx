@@ -1,5 +1,5 @@
-import { useTheme } from "@mui/material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { Box, useTheme } from "@mui/material";
+import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -15,7 +15,7 @@ import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
-import { monospaceCell } from "../lib/datagridCells";
+import { LinkCell, monospaceCell } from "../lib/datagridCells";
 
 interface EventsState {
   pageSize: number;
@@ -185,6 +185,17 @@ export function EventsTable({
       columns={[
         {
           field: "userId",
+          renderCell: ({ value }: GridRenderCellParams) => (
+            <LinkCell href={`/users/${value}`} title={value}>
+              <Box
+                sx={{
+                  fontFamily: "monospace",
+                }}
+              >
+                {value}
+              </Box>
+            </LinkCell>
+          ),
         },
         {
           field: "anonymousId",
