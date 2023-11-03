@@ -22,7 +22,7 @@ import { immer } from "zustand/middleware/immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
-import renderCell from "../lib/renderCell";
+import { monospaceCell } from "../lib/datagridCells";
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -56,7 +56,7 @@ const baseColumn: Partial<GridColDef<Row>> = {
   flex: 1,
   sortable: false,
   filterable: false,
-  renderCell,
+  renderCell: monospaceCell,
 };
 
 declare module "@mui/x-data-grid" {

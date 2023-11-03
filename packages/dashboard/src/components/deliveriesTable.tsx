@@ -24,7 +24,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { useAppStorePick } from "../lib/appStore";
-import renderCell from "../lib/renderCell";
+import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import { getTemplatesLink } from "../lib/templatesLink";
 
 interface TableItem {
@@ -52,7 +52,7 @@ const baseColumn: Partial<GridColDef<TableItem>> = {
   flex: 1,
   sortable: false,
   filterable: false,
-  renderCell,
+  renderCell: monospaceCell,
 };
 
 interface DeliveriesActions {
@@ -60,27 +60,6 @@ interface DeliveriesActions {
   updatePaginationRequest: (key: DeliveriesState["paginationRequest"]) => void;
   onPageSizeChange: (pageSize: number) => void;
 }
-function LinkCell({ href, value }: { href: string; value: string }) {
-  return (
-    <Tooltip title={value}>
-      <Link
-        style={{
-          width: "100%",
-          textDecoration: "none",
-          color: "inherit",
-          display: "block",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-        href={href}
-      >
-        {value}
-      </Link>
-    </Tooltip>
-  );
-}
-
 function ButtonLinkCell({ href, value }: { href: string; value: string }) {
   return (
     <Tooltip title={value}>
@@ -375,7 +354,7 @@ export function DeliveriesTable({
             headerName: "User ID",
             renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
               const href = `/users/${row.userId}`;
-              return <LinkCell href={href} value={row.userId} />;
+              return <LinkCell href={href} title={row.userId} />;
             },
           },
           {
@@ -383,7 +362,7 @@ export function DeliveriesTable({
             headerName: "To",
             renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
               const href = `/users/${row.userId}`;
-              return <LinkCell href={href} value={row.to} />;
+              return <LinkCell href={href} title={row.to} />;
             },
           },
           {
