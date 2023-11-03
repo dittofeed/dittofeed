@@ -15,7 +15,7 @@ import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
-import renderCell from "../lib/renderCell";
+import monospaceCell from "../lib/datagridCells";
 
 interface EventsState {
   pageSize: number;
@@ -69,7 +69,7 @@ const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
   flex: 1,
   sortable: false,
   filterable: false,
-  renderCell,
+  renderCell: monospaceCell,
 };
 
 export function EventsTable({

@@ -13,7 +13,7 @@ export const RenderCellValues = Type.Object({
 
 export type RenderCellValues = Static<typeof RenderCellValues>;
 
-export default function renderCell(params: unknown) {
+export default function monospaceCell(params: unknown) {
   const coerced = params as Record<string, unknown>;
   const result = schemaValidateWithErr(
     pick(coerced, ["value", "row"]),

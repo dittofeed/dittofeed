@@ -24,7 +24,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { useAppStorePick } from "../lib/appStore";
-import renderCell from "../lib/renderCell";
+import monospaceCell from "../lib/datagridCells";
 import { getTemplatesLink } from "../lib/templatesLink";
 
 interface TableItem {
@@ -52,7 +52,7 @@ const baseColumn: Partial<GridColDef<TableItem>> = {
   flex: 1,
   sortable: false,
   filterable: false,
-  renderCell,
+  renderCell: monospaceCell,
 };
 
 interface DeliveriesActions {
