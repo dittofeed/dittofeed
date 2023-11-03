@@ -1,10 +1,9 @@
-import { Box, Button, Tooltip } from "@mui/material";
 import {
-  DataGrid,
-  GridColDef,
-  GridPaginationModel,
-  GridRenderCellParams,
-} from "@mui/x-data-grid";
+  ArrowBackIosNewOutlined,
+  ArrowForwardIosOutlined,
+} from "@mui/icons-material";
+import { Button, IconButton, Stack, Tooltip } from "@mui/material";
+import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -154,13 +153,15 @@ function getQueryValue(query: ParsedUrlQuery, key: string): string | undefined {
   if (Array.isArray(val)) {
     return val[0];
   }
+  if (val && val.length === 0) {
+    return undefined;
+  }
   return val;
 }
 
 export function DeliveriesTable({
   journeyId,
 }: Pick<SearchDeliveriesRequest, "journeyId">) {
-  const [page, setPage] = React.useState(0);
   const [pageItems, setPageItems] = React.useState(new Set<string>());
   const router = useRouter();
   const previousCursor = getQueryValue(
@@ -246,23 +247,24 @@ export function DeliveriesTable({
       upsertItems(result.value.items);
       setPageItems(new Set(result.value.items.map((i) => i.originMessageId)));
 
+      let updateQuery = false;
+      const query: ParsedUrlQuery = {
+        ...router.query,
+      };
       if (result.value.cursor) {
-        router.push({
-          pathname: router.pathname,
-          query: {
-            ...router.query,
-            [QUERY_PARAMETERS.NEXT_CURSOR]: result.value.cursor,
-          },
-        });
+        updateQuery = true;
+        query[QUERY_PARAMETERS.NEXT_CURSOR] = result.value.cursor;
       }
 
       if (result.value.previousCursor) {
+        updateQuery = true;
+        query[QUERY_PARAMETERS.PREVIOUS_CURSOR] = result.value.previousCursor;
+      }
+
+      if (updateQuery) {
         router.push({
           pathname: router.pathname,
-          query: {
-            ...router.query,
-            [QUERY_PARAMETERS.PREVIOUS_CURSOR]: result.value.previousCursor,
-          },
+          query,
         });
       }
 
@@ -363,7 +365,7 @@ export function DeliveriesTable({
   );
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Stack sx={{ width: "100%" }} spacing={1}>
       <DataGrid
         rows={rows}
         columns={[
@@ -435,13 +437,32 @@ export function DeliveriesTable({
         paginationMode="server"
         pageSizeOptions={[pageSize]}
         autoHeight
-        paginationModel={{
-          pageSize,
-          page,
-        }}
-        rowCount={nextCursor ? Number.MAX_VALUE : pageSize * (page + 1)}
-        onPaginationModelChange={(newPaginationModel: GridPaginationModel) => {
-          if (newPaginationModel.page > page) {
+        hideFooter
+      />
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="flex-end"
+        spacing={1}
+      >
+        <IconButton
+          disabled={!currentCursor}
+          onClick={() => {
+            router.push({
+              pathname: router.pathname,
+              query: {
+                ...omit(router.query, [QUERY_PARAMETERS.PREVIOUS_CURSOR]),
+                [QUERY_PARAMETERS.CURRENT_CURSOR]: previousCursor,
+                [QUERY_PARAMETERS.NEXT_CURSOR]: currentCursor,
+              },
+            });
+          }}
+        >
+          <ArrowBackIosNewOutlined />
+        </IconButton>
+        <IconButton
+          disabled={!nextCursor}
+          onClick={() => {
             const query = {
               ...omit(router.query, [QUERY_PARAMETERS.NEXT_CURSOR]),
               [QUERY_PARAMETERS.PREVIOUS_CURSOR]: currentCursor,
@@ -451,24 +472,11 @@ export function DeliveriesTable({
               pathname: router.pathname,
               query,
             });
-          } else {
-            router.push({
-              pathname: router.pathname,
-              query: {
-                ...omit(router.query, [QUERY_PARAMETERS.PREVIOUS_CURSOR]),
-                [QUERY_PARAMETERS.CURRENT_CURSOR]: previousCursor,
-                [QUERY_PARAMETERS.NEXT_CURSOR]: currentCursor,
-              },
-            });
-          }
-          setPage(newPaginationModel.page);
-        }}
-        sx={{
-          ".MuiTablePagination-displayedRows": {
-            display: "none", // 👈 to hide huge pagination number
-          },
-        }}
-      />
-    </Box>
+          }}
+        >
+          <ArrowForwardIosOutlined />
+        </IconButton>
+      </Stack>
+    </Stack>
   );
 }
