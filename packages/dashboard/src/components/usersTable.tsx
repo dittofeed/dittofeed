@@ -22,7 +22,7 @@ import { immer } from "zustand/middleware/immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
-import monospaceCell from "../lib/datagridCells";
+import { monospaceCell } from "../lib/datagridCells";
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",

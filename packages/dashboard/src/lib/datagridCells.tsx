@@ -1,6 +1,7 @@
 import { Box, Tooltip } from "@mui/material";
 import { Static, Type } from "@sinclair/typebox";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import Link from "next/link";
 import React from "react";
 import { pick } from "remeda/dist/commonjs/pick";
 
@@ -13,7 +14,7 @@ export const RenderCellValues = Type.Object({
 
 export type RenderCellValues = Static<typeof RenderCellValues>;
 
-export default function monospaceCell(params: unknown) {
+export function monospaceCell(params: unknown) {
   const coerced = params as Record<string, unknown>;
   const result = schemaValidateWithErr(
     pick(coerced, ["value", "row"]),
@@ -33,6 +34,34 @@ export default function monospaceCell(params: unknown) {
   return (
     <Tooltip title={title} placement="right-start">
       <Box sx={{ fontFamily: "monospace" }}>{renderCellContent}</Box>
+    </Tooltip>
+  );
+}
+export function LinkCell({
+  href,
+  title,
+  children,
+}: {
+  href: string;
+  title: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <Tooltip title={title}>
+      <Link
+        style={{
+          width: "100%",
+          textDecoration: "none",
+          color: "inherit",
+          display: "block",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+        href={href}
+      >
+        {children ?? title}
+      </Link>
     </Tooltip>
   );
 }

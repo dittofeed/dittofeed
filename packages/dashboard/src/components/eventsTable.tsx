@@ -15,7 +15,7 @@ import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
-import monospaceCell from "../lib/datagridCells";
+import { monospaceCell } from "../lib/datagridCells";
 
 interface EventsState {
   pageSize: number;
