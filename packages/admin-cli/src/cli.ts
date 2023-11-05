@@ -3,6 +3,10 @@ import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
+import {
+  SENDGRID_SECRET,
+  SENDGRID_WEBHOOK_SECRET_NAME,
+} from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   ChannelType,
@@ -16,10 +20,6 @@ import yargs from "yargs/yargs";
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
-import {
-  SENDGRID_SECRET,
-  SENDGRID_WEBHOOK_SECRET_NAME,
-} from "isomorphic-lib/src/constants";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.
