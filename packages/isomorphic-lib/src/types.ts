@@ -918,7 +918,7 @@ export const SendgridEmailProvider = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
   type: Type.Literal(EmailProviderType.Sendgrid),
-  apiKey: Type.String(),
+  apiKey: Type.Optional(Type.String()),
 });
 
 export type SendgridEmailProvider = Static<typeof SendgridEmailProvider>;

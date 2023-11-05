@@ -24,7 +24,7 @@ async function sendgridEmail() {
     },
     include: { emailProvider: true },
   });
-  if (!defaultEmailProvider) {
+  if (!defaultEmailProvider?.emailProvider.apiKey) {
     throw new Error("Default email provider not found");
   }
   const result = await sendMail({
