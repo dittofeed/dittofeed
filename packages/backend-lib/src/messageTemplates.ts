@@ -454,6 +454,10 @@ export async function sendEmail({
         },
       };
 
+      if (!defaultEmailProvider.emailProvider.apiKey) {
+        throw new Error("missing sendgrid api key");
+      }
+
       const result = await sendEmailSendgrid({
         mailData,
         apiKey: defaultEmailProvider.emailProvider.apiKey,

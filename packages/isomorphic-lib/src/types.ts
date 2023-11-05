@@ -2141,3 +2141,15 @@ export const SearchDeliveriesResponse = Type.Object({
 });
 
 export type SearchDeliveriesResponse = Static<typeof SearchDeliveriesResponse>;
+
+export const SendgridSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.Sendgrid),
+  apiKey: Type.Optional(Type.String()),
+  webhookKey: Type.Optional(Type.String()),
+});
+
+export type SendgridSecret = Static<typeof SendgridSecret>;
+
+export const EmailProviderSecrets = Type.Union([SendgridSecret]);
+
+export type EmailProviderSecrets = Static<typeof EmailProviderSecrets>;
