@@ -160,7 +160,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           default:
             throw new Error("Unknown email provider type");
         }
-        return { type: providerType, id, apiKey, workspaceId };
+        return {
+          type: providerType,
+          id,
+          apiKey: apiKey ?? undefined,
+          workspaceId,
+        };
       }),
       prisma().defaultEmailProvider.findFirst({
         where: { workspaceId },

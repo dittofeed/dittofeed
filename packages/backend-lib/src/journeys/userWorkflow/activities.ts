@@ -648,6 +648,9 @@ async function sendEmailWithPayload(
           if (replyTo) {
             mailData.replyTo = replyTo;
           }
+          if (!channelConfig.emailProvider.apiKey) {
+            throw new Error("Missing sendgrid api key");
+          }
           // TODO distinguish between retryable and non-retryable errors
           const result = await sendEmailSendgrid({
             mailData,

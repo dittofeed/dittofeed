@@ -3,8 +3,17 @@ import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
+import {
+  SENDGRID_SECRET,
+  SENDGRID_WEBHOOK_SECRET_NAME,
+} from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { ChannelType, EmailTemplateResource } from "isomorphic-lib/src/types";
+import {
+  ChannelType,
+  EmailProviderType,
+  EmailTemplateResource,
+  SendgridSecret,
+} from "isomorphic-lib/src/types";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
@@ -138,6 +147,48 @@ export async function cli() {
       () => {},
       () => {
         logger().info(backendConfig(), "Backend Config");
+      }
+    )
+    .command(
+      "migrations email-provider-secret",
+      "Runs migrations, copying api keys on email providers to the secrets table.",
+      () => {},
+      async () => {
+        await prisma().$transaction(async (pTx) => {
+          const emailProviders = await pTx.emailProvider.findMany();
+          await Promise.all(
+            emailProviders.map(async (emailProvider) => {
+              const webhookSecret = await pTx.secret.findUnique({
+                where: {
+                  workspaceId_name: {
+                    workspaceId: emailProvider.workspaceId,
+                    name: SENDGRID_WEBHOOK_SECRET_NAME,
+                  },
+                },
+              });
+              const sendgridSecretDefinition: SendgridSecret = {
+                apiKey: emailProvider.apiKey ?? undefined,
+                webhookKey: webhookSecret?.value ?? undefined,
+                type: EmailProviderType.Sendgrid,
+              };
+              const secret = await pTx.secret.create({
+                data: {
+                  workspaceId: emailProvider.workspaceId,
+                  name: SENDGRID_SECRET,
+                  configValue: sendgridSecretDefinition,
+                },
+              });
+              await pTx.emailProvider.update({
+                where: {
+                  id: emailProvider.id,
+                },
+                data: {
+                  secretId: secret.id,
+                },
+              });
+            })
+          );
+        });
       }
     )
     .command(
