@@ -186,6 +186,9 @@ export default async function settingsController(fastify: FastifyInstance) {
             `unknown email provider record type ${emailProvider.type}`
           );
       }
+      if (!emailProvider.apiKey) {
+        throw new Error("email provider api key is required");
+      }
       const resource: EmailProviderResource = {
         id: emailProvider.id,
         type: recordType,
