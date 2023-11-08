@@ -21,6 +21,8 @@ services:
       - postgres
       - temporal
       - api
+    env_file:
+      - .env
     environment:
       <<: *backend-app-env
     networks:
@@ -33,6 +35,8 @@ services:
       - postgres
       - temporal
       - worker
+    env_file:
+      - .env
     environment:
       <<: *backend-app-env
     networks:
@@ -42,6 +46,8 @@ services:
     depends_on:
       - postgres
       - temporal
+    env_file:
+      - .env
     environment:
       <<: *backend-app-env
     networks:
@@ -51,11 +57,14 @@ services:
     entrypoint: []
     command: tail -f /dev/null
     tty: true
+    env_file:
+      - .env
     depends_on:
       - postgres
       - temporal
       - clickhouse-server
     environment:
+      PRETTY_LOGS: true
       <<: *backend-app-env
     networks:
       - dittofeed-network
