@@ -27,10 +27,15 @@ export async function createTables() {
           )
         ),
         message_id String,
-        anonymous_id Nullable(String) DEFAULT JSONExtract(
+        anonymous_id String DEFAULT JSONExtract(
           message_raw, 
           'anonymousId', 
-          'Nullable(String)'
+          'String'
+        ),
+        anonymous_id String DEFAULT JSONExtract(
+          message_raw, 
+          'anonymousId', 
+          'String'
         ),
         user_or_anonymous_id String DEFAULT assumeNotNull(
           coalesce(
@@ -58,16 +63,43 @@ export async function createTables() {
       );
     `,
     `
+      CREATE TABLE IF NOT EXISTS computed_property_state (
+        workspace_id LowCardinality(String),
+        type Enum('user_property' = 1, 'segment' = 2),
+        computed_property_id LowCardinality(String),
+        user_id String,
+        last_value AggregateFunction(argMax, String, DateTime),
+        unique_count AggregateFunction(uniq, String),
+        INDEX computed_at_idx last_assigned_at TYPE minmax GRANULARITY 4
+      )
+      ENGINE = AggregatingMergeTree()
+      PARTITION BY toYYYYMM(last_computed_at)
+      ORDER BY (
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id
+      );
+    `,
+    `
       CREATE TABLE IF NOT EXISTS computed_property_assignments_v2 (
-          workspace_id LowCardinality(String),
-          user_id String,
-          type Enum('user_property' = 1, 'segment' = 2),
-          computed_property_id LowCardinality(String),
-          segment_value Boolean,
-          user_property_value String,
-          assigned_at DateTime64(3) DEFAULT now64(3)
-      ) Engine = ReplacingMergeTree()
-      ORDER BY (workspace_id, computed_property_id, user_id);
+        workspace_id LowCardinality(String),
+        type Enum('user_property' = 1, 'segment' = 2),
+        computed_property_id LowCardinality(String),
+        user_id String,
+        segment_value AggregateFunction(argMax, Boolean, DateTime),
+        user_property_value AggregateFunction(argMax, String, DateTime),
+        last_assigned_at AggregateFunction(max, DateTime),
+        INDEX assigned_at_idx last_assigned_at TYPE minmax GRANULARITY 4
+      )
+      ENGINE = AggregatingMergeTree()
+      PARTITION BY toYYYYMM(last_assigned_at)
+      ORDER BY (
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id
+      );
     `,
   ];
 }
