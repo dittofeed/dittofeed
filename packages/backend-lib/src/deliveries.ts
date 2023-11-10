@@ -68,6 +68,7 @@ export async function searchDeliveries({
   cursor,
   limit = 20,
   journeyId,
+  userId,
 }: SearchDeliveriesRequest): Promise<SearchDeliveriesResponse> {
   const offset = parseCursorOffset(cursor);
   const queryBuilder = new ClickHouseQueryBuilder();
@@ -77,6 +78,12 @@ export async function searchDeliveries({
   const journeyIdClause = journeyId
     ? `AND JSONExtractString(properties, 'journeyId') = ${queryBuilder.addQueryValue(
         journeyId,
+        "String"
+      )}`
+    : "";
+  const userIdClause = userId
+    ? `AND user_or_anonymous_id = ${queryBuilder.addQueryValue(
+        userId,
         "String"
       )}`
     : "";
@@ -108,6 +115,7 @@ export async function searchDeliveries({
     HAVING
       origin_message_id != ''
       ${journeyIdClause}
+      ${userIdClause}
     ORDER BY sent_at DESC
     LIMIT ${queryBuilder.addQueryValue(
       offset,
