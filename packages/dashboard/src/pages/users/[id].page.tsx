@@ -1,13 +1,11 @@
 import { json as codeMirrorJson } from "@codemirror/lang-json";
 import { EditorView } from "@codemirror/view";
 import {
-  Box,
   Divider,
   List,
   ListItem,
   ListItemText,
   Stack,
-  Typography,
   useTheme,
 } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
@@ -16,7 +14,9 @@ import { getUsers } from "backend-lib/src/users";
 import { GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
+import { DeliveriesTable } from "../../components/deliveriesTable";
 import { EventsTable } from "../../components/eventsTable";
+import { SubtleHeader } from "../../components/headers";
 import MainLayout from "../../components/mainLayout";
 import { ResourceListItemButton } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
@@ -96,13 +96,7 @@ const User: NextPage<UserPageProps> = function User(props) {
       >
         <Stack sx={{ flex: 1, height: "100%" }} spacing={2}>
           <Stack spacing={1}>
-            <Typography
-              variant="h2"
-              fontWeight={300}
-              sx={{ fontSize: 20, marginBottom: 0.5 }}
-            >
-              Segments
-            </Typography>
+            <SubtleHeader>Segments</SubtleHeader>
             <List
               sx={{
                 width: "100%",
@@ -122,13 +116,7 @@ const User: NextPage<UserPageProps> = function User(props) {
               ))}
             </List>
             <Stack spacing={1}>
-              <Typography
-                variant="h2"
-                fontWeight={300}
-                sx={{ fontSize: 20, marginBottom: 0.5 }}
-              >
-                User Properties
-              </Typography>
+              <SubtleHeader>User Properties</SubtleHeader>
               <ReactCodeMirror
                 value={properties}
                 readOnly
@@ -145,9 +133,16 @@ const User: NextPage<UserPageProps> = function User(props) {
             </Stack>
           </Stack>
         </Stack>
-        <Box sx={{ flex: 1 }}>
-          <EventsTable userId={user.id} />
-        </Box>
+        <Stack sx={{ flex: 1 }} spacing={2}>
+          <Stack spacing={1} sx={{ flex: 1 }}>
+            <SubtleHeader>Events</SubtleHeader>
+            <EventsTable userId={user.id} />
+          </Stack>
+          <Stack spacing={1} sx={{ flex: 1 }}>
+            <SubtleHeader>Deliveries</SubtleHeader>
+            <DeliveriesTable userId={user.id} />
+          </Stack>
+        </Stack>
       </Stack>
     </MainLayout>
   );
