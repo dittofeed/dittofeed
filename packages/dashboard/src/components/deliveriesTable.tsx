@@ -140,7 +140,8 @@ function getQueryValue(query: ParsedUrlQuery, key: string): string | undefined {
 
 export function DeliveriesTable({
   journeyId,
-}: Pick<SearchDeliveriesRequest, "journeyId">) {
+  userId,
+}: Pick<SearchDeliveriesRequest, "journeyId" | "userId">) {
   const [pageItems, setPageItems] = React.useState(new Set<string>());
   const router = useRouter();
   const previousCursor = getQueryValue(
@@ -198,6 +199,7 @@ export function DeliveriesTable({
           cursor: currentCursor,
           limit: pageSize,
           journeyId,
+          userId,
         };
 
         response = await axios.get(`${apiBase}/api/deliveries`, {

@@ -1,27 +1,31 @@
 import { json as codeMirrorJson } from "@codemirror/lang-json";
 import { EditorView } from "@codemirror/view";
 import {
-  Box,
   Divider,
   List,
   ListItem,
   ListItemText,
   Stack,
-  Typography,
   useTheme,
 } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import { toBroadcastResource } from "backend-lib/src/broadcasts";
+import { toJourneyResource } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
+import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import prisma from "backend-lib/src/prisma";
 import { getUsers } from "backend-lib/src/users";
-import { GetUsersResponse } from "isomorphic-lib/src/types";
+import { CompletionStatus, GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
+import { DeliveriesTable } from "../../components/deliveriesTable";
 import { EventsTable } from "../../components/eventsTable";
+import { SubtleHeader } from "../../components/headers";
 import MainLayout from "../../components/mainLayout";
 import { ResourceListItemButton } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
-import { PropsWithInitialState } from "../../lib/types";
+import { PreloadedState, PropsWithInitialState } from "../../lib/types";
 
 interface UserPageProps {
   user: GetUsersResponse["users"][0];
@@ -36,10 +40,27 @@ export const getServerSideProps: GetServerSideProps<
       notFound: true,
     };
   }
-  const usersResult = await getUsers({
-    workspaceId: dfContext.workspace.id,
-    userIds: [userId],
-  });
+  const [usersResult, messageTemplates, broadcasts, journeys] =
+    await Promise.all([
+      getUsers({
+        workspaceId: dfContext.workspace.id,
+        userIds: [userId],
+      }),
+      findMessageTemplates({
+        workspaceId: dfContext.workspace.id,
+      }),
+      prisma().broadcast.findMany({
+        where: {
+          workspaceId: dfContext.workspace.id,
+        },
+      }),
+
+      prisma().journey.findMany({
+        where: {
+          workspaceId: dfContext.workspace.id,
+        },
+      }),
+    ]);
 
   if (usersResult.isErr()) {
     logger().error(
@@ -60,9 +81,21 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
+  const serverInitialState: PreloadedState = {
+    messages: {
+      type: CompletionStatus.Successful,
+      value: messageTemplates,
+    },
+    broadcasts: broadcasts.map(toBroadcastResource),
+    journeys: {
+      type: CompletionStatus.Successful,
+      value: journeys.flatMap((j) => toJourneyResource(j).unwrapOr([])),
+    },
+  };
+
   return {
     props: addInitialStateToProps({
-      serverInitialState: {},
+      serverInitialState,
       dfContext,
       props: {
         user,
@@ -96,13 +129,7 @@ const User: NextPage<UserPageProps> = function User(props) {
       >
         <Stack sx={{ flex: 1, height: "100%" }} spacing={2}>
           <Stack spacing={1}>
-            <Typography
-              variant="h2"
-              fontWeight={300}
-              sx={{ fontSize: 20, marginBottom: 0.5 }}
-            >
-              Segments
-            </Typography>
+            <SubtleHeader>Segments</SubtleHeader>
             <List
               sx={{
                 width: "100%",
@@ -122,13 +149,7 @@ const User: NextPage<UserPageProps> = function User(props) {
               ))}
             </List>
             <Stack spacing={1}>
-              <Typography
-                variant="h2"
-                fontWeight={300}
-                sx={{ fontSize: 20, marginBottom: 0.5 }}
-              >
-                User Properties
-              </Typography>
+              <SubtleHeader>User Properties</SubtleHeader>
               <ReactCodeMirror
                 value={properties}
                 readOnly
@@ -145,9 +166,16 @@ const User: NextPage<UserPageProps> = function User(props) {
             </Stack>
           </Stack>
         </Stack>
-        <Box sx={{ flex: 1 }}>
-          <EventsTable userId={user.id} />
-        </Box>
+        <Stack sx={{ flex: 1 }} spacing={2}>
+          <Stack spacing={1} sx={{ flex: 1 }}>
+            <SubtleHeader>Events</SubtleHeader>
+            <EventsTable userId={user.id} />
+          </Stack>
+          <Stack spacing={1} sx={{ flex: 1 }}>
+            <SubtleHeader>Deliveries</SubtleHeader>
+            <DeliveriesTable userId={user.id} />
+          </Stack>
+        </Stack>
       </Stack>
     </MainLayout>
   );
