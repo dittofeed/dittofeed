@@ -679,6 +679,16 @@ export const SegmentResource = Type.Object({
 
 export type SegmentResource = Static<typeof SegmentResource>;
 
+export const SavedSegmentResource = Type.Composite([
+  SegmentResource,
+  Type.Object({
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+  }),
+]);
+
+export type SavedSegmentResource = Static<typeof SavedSegmentResource>;
+
 export const UpsertSubscriptionGroupResource = Type.Omit(
   SubscriptionGroupResource,
   ["createdAt"]
@@ -1047,6 +1057,16 @@ export const UserPropertyResource = Type.Object({
 });
 
 export type UserPropertyResource = Static<typeof UserPropertyResource>;
+
+export const SavdUserPropertyResource = Type.Composite([
+  UserPropertyResource,
+  Type.Object({
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+  }),
+]);
+
+export type SavdUserPropertyResource = Static<typeof SavdUserPropertyResource>;
 
 export const UpsertUserPropertyResource = Type.Intersect([
   Type.Omit(Type.Partial(UserPropertyResource), ["id", "name"]),
