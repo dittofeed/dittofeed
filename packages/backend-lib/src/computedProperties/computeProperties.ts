@@ -1,4 +1,4 @@
-import { ClickHouseQueryBuilder, clickhouseClient } from "../clickhouse";
+import { clickhouseClient, ClickHouseQueryBuilder } from "../clickhouse";
 import { SavdUserPropertyResource, SavedSegmentResource } from "../types";
 
 // TODO pull out into separate files
@@ -63,7 +63,7 @@ export async function createTables() {
         user_or_anonymous_id,
         event_time,
         message_id
-      );
+    );
     `,
     `
       CREATE TABLE IF NOT EXISTS computed_property_state (
@@ -91,13 +91,12 @@ export async function createTables() {
         type Enum('user_property' = 1, 'segment' = 2),
         computed_property_id LowCardinality(String),
         user_id String,
-        segment_value AggregateFunction(argMax, Boolean, DateTime64(3)),
-        user_property_value AggregateFunction(argMax, String, DateTime64(3)),
+        segment_value Boolean,
+        user_property_value String,
+        max_event_time DateTime64(3),
         assigned_at DateTime64(3) DEFAULT now64(3),
-        INDEX assigned_at_idx assigned_at TYPE minmax GRANULARITY 4
       )
-      ENGINE = AggregatingMergeTree()
-      PARTITION BY toYYYYMM(assigned_at)
+      ENGINE = ReplacingMergeTree()
       ORDER BY (
         workspace_id,
         type,
@@ -113,12 +112,12 @@ export async function createTables() {
         computed_property_id LowCardinality(String),
         processed_for LowCardinality(String),
         processed_for_type LowCardinality(String),
-        segment_value AggregateFunction(argMax, Boolean, DateTime64(3)),
-        user_property_value AggregateFunction(argMax, String, DateTime64(3)),
+        segment_value Boolean,
+        user_property_value String,
+        max_event_time DateTime64(3), 
         processed_at DateTime64(3) DEFAULT now64(3),
       )
-      ENGINE = AggregatingMergeTree()
-      PARTITION BY toYYYYMM(processed_at)
+      ENGINE = ReplacingMergeTree()
       ORDER BY (
         workspace_id,
         type,

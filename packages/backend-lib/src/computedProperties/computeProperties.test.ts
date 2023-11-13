@@ -1,8 +1,9 @@
 import { randomUUID } from "crypto";
-import prisma from "../prisma";
-import { createTables, dropTables } from "./computeProperties";
+
 import { submitBatch } from "../apps";
+import prisma from "../prisma";
 import { EventType } from "../types";
+import { createTables, dropTables } from "./computeProperties";
 
 describe("computeProperties", () => {
   let workspaceId: string;
