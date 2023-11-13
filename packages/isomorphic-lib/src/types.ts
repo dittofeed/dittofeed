@@ -1058,7 +1058,7 @@ export const UserPropertyResource = Type.Object({
 
 export type UserPropertyResource = Static<typeof UserPropertyResource>;
 
-export const SavdUserPropertyResource = Type.Composite([
+export const SavedUserPropertyResource = Type.Composite([
   UserPropertyResource,
   Type.Object({
     createdAt: Type.Number(),
@@ -1066,7 +1066,9 @@ export const SavdUserPropertyResource = Type.Composite([
   }),
 ]);
 
-export type SavdUserPropertyResource = Static<typeof SavdUserPropertyResource>;
+export type SavedUserPropertyResource = Static<
+  typeof SavedUserPropertyResource
+>;
 
 export const UpsertUserPropertyResource = Type.Intersect([
   Type.Omit(Type.Partial(UserPropertyResource), ["id", "name"]),

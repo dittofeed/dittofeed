@@ -2,8 +2,12 @@ import { randomUUID } from "crypto";
 
 import { submitBatch } from "../apps";
 import prisma from "../prisma";
-import { EventType } from "../types";
-import { createTables, dropTables } from "./computeProperties";
+import {
+  EventType,
+  UserPropertyDefinitionType,
+  UserPropertyResource,
+} from "../types";
+import { computeState, createTables, dropTables } from "./computeProperties";
 
 describe("computeProperties", () => {
   let workspaceId: string;
@@ -48,6 +52,20 @@ describe("computeProperties", () => {
             },
           ],
         },
+      });
+      const userPropertyResource: UserPropertyResource = {
+        id: randomUUID(),
+        name: "email",
+        workspaceId,
+        definition: {
+          type: UserPropertyDefinitionType.Trait,
+          path: "email",
+        },
+      };
+      await computeState({
+        workspaceId,
+        segments: [],
+        userProperties: [userPropertyResource],
       });
     });
 

@@ -1,5 +1,11 @@
+import { v5 as uuidv5 } from "uuid";
+
 import { clickhouseClient, ClickHouseQueryBuilder } from "../clickhouse";
-import { SavdUserPropertyResource, SavedSegmentResource } from "../types";
+import {
+  SavedSegmentResource,
+  SavedUserPropertyResource,
+  UserPropertyDefinitionType,
+} from "../types";
 
 // TODO pull out into separate files
 export async function createTables() {
@@ -163,6 +169,15 @@ export async function dropTables() {
   );
 }
 
+interface SubQueryData {
+  condition: string;
+  type: "user_property" | "segment";
+  computedPropertyId: string;
+  stateId: string;
+  argMaxValue?: string;
+  uniqValue?: string;
+}
+
 export async function computeState({
   workspaceId,
   segments,
@@ -170,26 +185,101 @@ export async function computeState({
 }: {
   workspaceId: string;
   segments: SavedSegmentResource[];
-  userProperties: SavdUserPropertyResource[];
+  userProperties: SavedUserPropertyResource[];
 }) {
-  const queries: {
-    query: string;
-    queryBuilder: ClickHouseQueryBuilder;
-  }[] = [];
+  const qb = new ClickHouseQueryBuilder();
+  // TODO implement pagination
+  const subQueryData: SubQueryData[] = [];
 
   for (const segment of segments) {
-    const qb = new ClickHouseQueryBuilder();
   }
 
   for (const userProperty of userProperties) {
-    const qb = new ClickHouseQueryBuilder();
+    let subQuery: SubQueryData;
     switch (userProperty.definition.type) {
+      case UserPropertyDefinitionType.Trait: {
+        const stateId = uuidv5(
+          userProperty.id,
+          userProperty.updatedAt.toString()
+        );
+        subQuery = {
+          condition: `(visitParamExtractString(properties, 'email') as email) != ''`,
+          type: "user_property",
+          uniqValue: "",
+          argMaxValue: "email",
+          computedPropertyId: userProperty.id,
+          stateId,
+        };
+        break;
+      }
       default:
         throw new Error(
           `Unhandled user property type: ${userProperty.definition.type}`
         );
     }
+    subQueryData.push(subQuery);
   }
+  if (subQueryData.length === 0) {
+    return;
+  }
+
+  const dateLowerBound = 1699058578;
+  const dateUpperBound = 1699058578;
+
+  const subQueries = subQueryData
+    .map(
+      (subQuery) => `
+      if(
+        ${subQuery.condition},
+        (
+          '${subQuery.type}',
+          '${subQuery.computedPropertyId}',
+          '${subQuery.stateId}',
+          ${subQuery.argMaxValue},
+          ${subQuery.uniqValue}
+        ),
+        (Null, Null, Null, Null, Null)
+      )
+    `
+    )
+    .join(", ");
+
+  const query = `
+    select
+      workspace_id,
+      (
+        arrayJoin(
+          arrayFilter(
+            v -> not(isNull(v.1)),
+            [${subQueries}]
+          )
+        ) as c
+      ).1 as type,
+      c.2 as computed_property_id,
+      c.3 as state_id,
+      user_id,
+      argMaxState(ifNull(c.4, ''), event_time) as last_value,
+      uniqState(ifNull(c.5, '')) as unique_count,
+      maxState(event_time) as max_event_time,
+      now64(3) as computed_at
+    from dittofeed.user_events_v2
+    where
+      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+      and processing_time >= toDateTime64(${dateLowerBound}, 3)
+      and processing_time < toDateTime64(${dateUpperBound}, 3)
+    group by
+      workspace_id,
+      type,
+      computed_property_id,
+      state_id,
+      user_id,
+      processing_time;
+  `;
+
+  await clickhouseClient().exec({
+    query,
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
 }
 
 export async function computeAssignments() {}
