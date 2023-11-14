@@ -22,7 +22,7 @@ CREATE TABLE "ComputedPropertyPeriod" (
 );
 
 -- CreateIndex
-CREATE INDEX "ComputedPropertyPeriod_workspaceId_type_computedPropertyId__idx" ON "ComputedPropertyPeriod"("workspaceId", "type", "computedPropertyId", "version");
+CREATE INDEX "ComputedPropertyPeriod_workspaceId_type_computedPropertyId__idx" ON "ComputedPropertyPeriod"("workspaceId", "type", "computedPropertyId", "to");
 
 -- AddForeignKey
 ALTER TABLE "ComputedPropertyPeriod" ADD CONSTRAINT "ComputedPropertyPeriod_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;

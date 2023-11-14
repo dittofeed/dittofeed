@@ -427,5 +427,5 @@ model ComputedPropertyPeriod {
   to                 DateTime
   createdAt          DateTime             @default(now())
 
-  @@index([workspaceId, type, computedPropertyId, version])
+  @@index([workspaceId, type, computedPropertyId, to])
 }
