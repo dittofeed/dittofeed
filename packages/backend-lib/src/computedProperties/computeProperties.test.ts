@@ -4,6 +4,7 @@ import { submitBatch } from "../apps";
 import prisma from "../prisma";
 import {
   EventType,
+  SavedUserPropertyResource,
   UserPropertyDefinitionType,
   UserPropertyResource,
 } from "../types";
@@ -53,7 +54,7 @@ describe("computeProperties", () => {
           ],
         },
       });
-      const userPropertyResource: UserPropertyResource = {
+      const userPropertyResource: SavedUserPropertyResource = {
         id: randomUUID(),
         name: "email",
         workspaceId,
@@ -61,12 +62,14 @@ describe("computeProperties", () => {
           type: UserPropertyDefinitionType.Trait,
           path: "email",
         },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        definitionUpdatedAt: Date.now(),
       };
       await computeState({
         workspaceId,
         segments: [],
-        // userProperties: [userPropertyResource],
-        userProperties: [],
+        userProperties: [userPropertyResource],
       });
     });
 

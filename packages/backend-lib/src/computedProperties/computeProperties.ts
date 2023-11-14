@@ -1,7 +1,10 @@
+import { Prisma } from "@prisma/client";
 import { v5 as uuidv5 } from "uuid";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "../clickhouse";
+import prisma from "../prisma";
 import {
+  ComputedPropertyPeriod,
   SavedSegmentResource,
   SavedUserPropertyResource,
   UserPropertyDefinitionType,

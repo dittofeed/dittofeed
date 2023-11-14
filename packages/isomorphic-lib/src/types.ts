@@ -684,6 +684,7 @@ export const SavedSegmentResource = Type.Composite([
   Type.Object({
     createdAt: Type.Number(),
     updatedAt: Type.Number(),
+    definitionUpdatedAt: Type.Number(),
   }),
 ]);
 
@@ -1063,6 +1064,7 @@ export const SavedUserPropertyResource = Type.Composite([
   Type.Object({
     createdAt: Type.Number(),
     updatedAt: Type.Number(),
+    definitionUpdatedAt: Type.Number(),
   }),
 ]);
 
