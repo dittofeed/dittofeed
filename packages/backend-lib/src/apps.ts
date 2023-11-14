@@ -10,6 +10,32 @@ import {
 } from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
+export async function submitIdentify({
+  workspaceId,
+  data,
+}: {
+  workspaceId: string;
+  data: IdentifyData;
+}) {
+  const rest = R.omit(data, ["timestamp", "traits"]);
+  const traits = data.traits ?? {};
+  const timestamp = data.timestamp ?? new Date().toISOString();
+
+  const userEvent: InsertUserEvent = {
+    messageRaw: JSON.stringify({
+      type: "identify",
+      traits,
+      timestamp,
+      ...rest,
+    }),
+    messageId: data.messageId,
+  };
+  await insertUserEvents({
+    workspaceId,
+    userEvents: [userEvent],
+  });
+}
+
 export async function submitTrack({
   workspaceId,
   data,
