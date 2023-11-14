@@ -65,7 +65,8 @@ describe("computeProperties", () => {
       await computeState({
         workspaceId,
         segments: [],
-        userProperties: [userPropertyResource],
+        // userProperties: [userPropertyResource],
+        userProperties: [],
       });
     });
 

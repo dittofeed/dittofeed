@@ -284,4 +284,6 @@ export async function computeState({
 
 export async function computeAssignments() {}
 
+export async function readAssignments() {}
+
 export async function processAssignments() {}

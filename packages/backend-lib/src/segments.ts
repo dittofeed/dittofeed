@@ -185,7 +185,8 @@ export async function upsertSegment(
         "workspaceId" = excluded."workspaceId",
         "name" = COALESCE(excluded."name", "Segment"."name"),
         "definition" = COALESCE(excluded."definition", "Segment"."definition"),
-        "updatedAt" = NOW()
+        "updatedAt" = NOW(),
+        "definitionUpdatedAt" = CASE WHEN excluded."definition" != "Segment"."definition" THEN NOW() ELSE "Segment"."definitionUpdatedAt" END
     RETURNING *`;
   const [result] = (await prisma().$queryRaw(query)) as [Segment];
   const updatedDefinition = result.definition as SegmentDefinition;
