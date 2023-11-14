@@ -247,6 +247,57 @@ export async function computeState({
     )
     .join(", ");
 
+  const periodsQuery = Prisma.sql`
+    SELECT DISTINCT ON (workspaceId, type, computedPropertyId)
+      type,
+      computedPropertyId,
+      version,
+      MAX(to) OVER (PARTITION BY workspaceId, type, computedPropertyId) as to
+    FROM ComputedPropertyPeriod
+    WHERE workspaceId = CAST(${workspaceId} AS UUID)
+    ORDER BY workspaceId, type, computedPropertyId, to DESC;
+  `;
+  const periods = await prisma().$queryRaw<
+    Omit<ComputedPropertyPeriod, "from" | "workspaceId">[]
+  >(periodsQuery);
+
+  // produce separate queries if date ranges are different
+  // ok to set empty lower bound
+  // const periods = await prisma().computedPropertyPeriod.groupBy({
+  //   where: {
+  //     computedPropertyId: {
+  //       in: userProperties
+  //         .map((userProperty) => userProperty.id)
+  //         .concat(segments.map((segment) => segment.id)),
+  //     },
+  //   },
+  //   by: ["workspaceId", "type", "computedPropertyId"],
+  //   _max: {
+  //     to: true,
+  //   },
+  //   _argMax: {},
+  //   orderBy: {
+  //     _max: {
+  //       to: "desc",
+  //     },
+  //   },
+  // });
+
+  const periodByComputedPropertyId = periods.reduce<
+    Map<
+      string,
+      Pick<ComputedPropertyPeriod, "to" | "computedPropertyId" | "version">
+    >
+  >((acc, period) => {
+    const { to } = period;
+    acc.set(period.computedPropertyId, {
+      to,
+      computedPropertyId: period.computedPropertyId,
+      version: period.version,
+    });
+    return acc;
+  }, new Map());
+
   const query = `
     select
       workspace_id,
