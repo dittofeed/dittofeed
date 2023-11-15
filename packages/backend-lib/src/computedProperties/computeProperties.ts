@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { mapValues } from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "../clickhouse";
@@ -9,7 +10,6 @@ import {
   SavedUserPropertyResource,
   UserPropertyDefinitionType,
 } from "../types";
-import { Overwrite } from "utility-types";
 
 // TODO pull out into separate files
 export async function createTables() {
@@ -189,12 +189,21 @@ type AggregatedComputedPropertyPeriod = Omit<
   maxTo: ComputedPropertyPeriod["to"];
 };
 
+enum ComputedPropertyStep {
+  ComputeState = "ComputeState",
+  WriteAssignments = "WriteAssignments",
+  ProcessAssignments = "ProcessAssignments",
+}
+
 export async function computeState({
   workspaceId,
   segments,
   userProperties,
+  now,
 }: {
   workspaceId: string;
+  // timestamp in ms
+  now: number;
   segments: SavedSegmentResource[];
   userProperties: SavedUserPropertyResource[];
 }) {
@@ -234,27 +243,6 @@ export async function computeState({
     return;
   }
 
-  const dateLowerBound = 1699058578;
-  const dateUpperBound = 1699058578;
-
-  const subQueries = subQueryData
-    .map(
-      (subQuery) => `
-      if(
-        ${subQuery.condition},
-        (
-          '${subQuery.type}',
-          '${subQuery.computedPropertyId}',
-          '${subQuery.stateId}',
-          ${subQuery.argMaxValue},
-          ${subQuery.uniqValue}
-        ),
-        (Null, Null, Null, Null, Null)
-      )
-    `
-    )
-    .join(", ");
-
   const periodsQuery = Prisma.sql`
     SELECT DISTINCT ON ("workspaceId", "type", "computedPropertyId")
       "type",
@@ -262,34 +250,14 @@ export async function computeState({
       "version",
       MAX("to") OVER (PARTITION BY "workspaceId", "type", "computedPropertyId") as "maxTo"
     FROM "ComputedPropertyPeriod"
-    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+    WHERE
+      "workspaceId" = CAST(${workspaceId} AS UUID)
+      "step" = ${ComputedPropertyStep.ComputeState}
     ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
   `;
   const periods = await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(
     periodsQuery
   );
-
-  // produce separate queries if date ranges are different
-  // ok to set empty lower bound
-  // const periods = await prisma().computedPropertyPeriod.groupBy({
-  //   where: {
-  //     computedPropertyId: {
-  //       in: userProperties
-  //         .map((userProperty) => userProperty.id)
-  //         .concat(segments.map((segment) => segment.id)),
-  //     },
-  //   },
-  //   by: ["workspaceId", "type", "computedPropertyId"],
-  //   _max: {
-  //     to: true,
-  //   },
-  //   _argMax: {},
-  //   orderBy: {
-  //     _max: {
-  //       to: "desc",
-  //     },
-  //   },
-  // });
 
   const periodByComputedPropertyId = periods.reduce<
     Map<
@@ -309,46 +277,167 @@ export async function computeState({
     return acc;
   }, new Map());
 
-  const query = `
-    select
-      workspace_id,
-      (
-        arrayJoin(
-          arrayFilter(
-            v -> not(isNull(v.1)),
-            [${subQueries}]
-          )
-        ) as c
-      ).1 as type,
-      c.2 as computed_property_id,
-      c.3 as state_id,
-      user_id,
-      argMaxState(ifNull(c.4, ''), event_time) as last_value,
-      uniqState(ifNull(c.5, '')) as unique_count,
-      maxState(event_time) as max_event_time,
-      now64(3) as computed_at
-    from dittofeed.user_events_v2
-    where
-      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-      and processing_time >= toDateTime64(${dateLowerBound}, 3)
-      and processing_time < toDateTime64(${dateUpperBound}, 3)
-    group by
-      workspace_id,
-      type,
-      computed_property_id,
-      state_id,
-      user_id,
-      processing_time;
-  `;
+  const subQueriesWithPeriods = subQueryData.reduce<
+    Record<number, SubQueryData[]>
+  >((memo, subQuery) => {
+    const period =
+      periodByComputedPropertyId.get(subQuery.computedPropertyId) ?? null;
+    const periodKey = period?.maxTo.getTime() ?? 0;
+    const subQueriesForPeriod = memo[periodKey] ?? [];
+    memo[periodKey] = [...subQueriesForPeriod, subQuery];
+    return memo;
+  }, {});
 
-  await clickhouseClient().exec({
-    query,
-    clickhouse_settings: { wait_end_of_query: 1 },
-  });
+  const nowSeconds = now / 1000;
+  const queries = Object.values(
+    mapValues(subQueriesWithPeriods, (periodSubQueries, period) => {
+      const lowerBoundClause =
+        period !== 0
+          ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
+          : ``;
+
+      const subQueries = periodSubQueries
+        .map(
+          (subQuery) => `
+            if(
+              ${subQuery.condition},
+              (
+                '${subQuery.type}',
+                '${subQuery.computedPropertyId}',
+                '${subQuery.stateId}',
+                ${subQuery.argMaxValue},
+                ${subQuery.uniqValue}
+              ),
+              (Null, Null, Null, Null, Null)
+            )
+          `
+        )
+        .join(", ");
+
+      const query = `
+        select
+          workspace_id,
+          (
+            arrayJoin(
+              arrayFilter(
+                v -> not(isNull(v.1)),
+                [${subQueries}]
+              )
+            ) as c
+          ).1 as type,
+          c.2 as computed_property_id,
+          c.3 as state_id,
+          user_id,
+          argMaxState(ifNull(c.4, ''), event_time) as last_value,
+          uniqState(ifNull(c.5, '')) as unique_count,
+          maxState(event_time) as max_event_time,
+          now64(3) as computed_at
+        from user_events_v2
+        where
+          workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+          and processing_time < toDateTime64(${nowSeconds}, 3)
+          ${lowerBoundClause}
+        group by
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id,
+          processing_time;
+      `;
+      return clickhouseClient().exec({
+        query,
+        query_params: qb.getQueries(),
+      });
+    })
+  );
+  await Promise.all(queries);
+  // fixme write step
 }
 
-export async function computeAssignments() {}
+export async function computeAssignments({
+  workspaceId,
+  userProperties,
+}: {
+  workspaceId: string;
+  userProperties: SavedUserPropertyResource[];
+  segments: SavedSegmentResource[];
+}): Promise<void> {
+  const qb = new ClickHouseQueryBuilder();
+  let queryies: Promise<unknown>[] = [];
+  // FIXME get period
+  for (const userProperty of userProperties) {
+    let query: string;
+    switch (userProperty.definition.type) {
+      case UserPropertyDefinitionType.Trait: {
+        const stateId = uuidv5(
+          userProperty.updatedAt.toString(),
+          userProperty.id
+        );
+        query = `
+          insert into computed_property_assignmts_v2
+          select
+            workspace_id,
+            type,
+            computed_property_id,
+            user_id,
+            False as segment_value,
+            argMaxMerge(last_value) as user_property_value,
+            maxMerge(max_event_time) as max_event_time,
+            now64(3) as assigned_at
+          from dittofeed.computed_property_state
+          where
+            (
+              workspace_id,
+              type,
+              computed_property_id,
+              state_id,
+              user_id
+            ) in (
+              select
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+              from dittofeed.updated_computed_property_state
+              where
+                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                and type = 'user_property'
+                and computed_property_id = ${qb.addQueryValue(
+                  userProperty.id,
+                  "String"
+                )}
+                and state_id = ${qb.addQueryValue(stateId, "String")}
+            )
+          group by
+            workspace_id,
+            type,
+            computed_property_id,
+            user_id;
+        `;
+        break;
+      }
+      default:
+        throw new Error(
+          `Unhandled user property type: ${userProperty.definition.type}`
+        );
+    }
+    queryies.push(clickhouseClient().exec({ query }));
+  }
+  await Promise.all(queryies);
+  // fixme write step
+}
 
-export async function readAssignments() {}
+export interface ComputedPropertyAssignment {
+  workspace_id: string;
+  type: "segment" | "user_property";
+  computed_property_id: string;
+  user_id: string;
+  segment_value: boolean;
+  user_property_value: string;
+  max_event_time: string;
+  assigned_at: string;
+}
 
 export async function processAssignments() {}

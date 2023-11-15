@@ -1,14 +1,38 @@
 import { randomUUID } from "crypto";
 
 import { submitBatch } from "../apps";
+import { clickhouseClient, ClickHouseQueryBuilder } from "../clickhouse";
 import prisma from "../prisma";
 import {
   EventType,
   SavedUserPropertyResource,
   UserPropertyDefinitionType,
-  UserPropertyResource,
 } from "../types";
-import { computeState, createTables, dropTables } from "./computeProperties";
+import {
+  computeAssignments,
+  ComputedPropertyAssignment,
+  computeState,
+  createTables,
+  dropTables,
+} from "./computeProperties";
+
+async function readAssignments({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<ComputedPropertyAssignment[]> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select *
+    from computed_property_assignments_v2
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+  });
+  return response.json();
+}
 
 describe("computeProperties", () => {
   let workspaceId: string;
@@ -54,6 +78,7 @@ describe("computeProperties", () => {
           ],
         },
       });
+      const now = Date.now();
       const userPropertyResource: SavedUserPropertyResource = {
         id: randomUUID(),
         name: "email",
@@ -62,19 +87,30 @@ describe("computeProperties", () => {
           type: UserPropertyDefinitionType.Trait,
           path: "email",
         },
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        definitionUpdatedAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
+        definitionUpdatedAt: now,
       };
       await computeState({
+        workspaceId,
+        segments: [],
+        now,
+        userProperties: [userPropertyResource],
+      });
+      await computeAssignments({
         workspaceId,
         segments: [],
         userProperties: [userPropertyResource],
       });
     });
 
-    it("produces the correct intermediate states", () => {
-      expect(1).toEqual(1);
+    it("produces the correct intermediate states", async () => {
+      const assignments = await readAssignments({
+        workspaceId,
+      });
+      expect(assignments.map((up) => up.user_property_value)).toEqual([
+        "test@email.com",
+      ]);
     });
   });
 });

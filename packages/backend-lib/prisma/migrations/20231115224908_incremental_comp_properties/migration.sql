@@ -16,6 +16,7 @@ CREATE TABLE "ComputedPropertyPeriod" (
     "version" TEXT NOT NULL,
     "from" TIMESTAMP(3) NOT NULL,
     "to" TIMESTAMP(3) NOT NULL,
+    "step" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ComputedPropertyPeriod_pkey" PRIMARY KEY ("id")

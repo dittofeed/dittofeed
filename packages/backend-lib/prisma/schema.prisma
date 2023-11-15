@@ -425,6 +425,7 @@ model ComputedPropertyPeriod {
   version            String
   from               DateTime
   to                 DateTime
+  step               String
   createdAt          DateTime             @default(now())
 
   @@index([workspaceId, type, computedPropertyId, to])
