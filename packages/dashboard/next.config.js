@@ -16,6 +16,15 @@ const nextConfig = {
   images: {
     domains: ["*"],
   },
+  async headers() {
+    return [
+      {
+        // Apply CORS headers to /dashboard/public path
+        source: "/public/:path*",
+        headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+      },
+    ];
+  },
   async redirects() {
     return [
       {
