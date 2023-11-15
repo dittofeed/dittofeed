@@ -9,6 +9,7 @@ import {
   SavedUserPropertyResource,
   UserPropertyDefinitionType,
 } from "../types";
+import { Overwrite } from "utility-types";
 
 // TODO pull out into separate files
 export async function createTables() {
@@ -181,6 +182,13 @@ interface SubQueryData {
   uniqValue?: string;
 }
 
+type AggregatedComputedPropertyPeriod = Omit<
+  ComputedPropertyPeriod,
+  "from" | "workspaceId" | "to"
+> & {
+  maxTo: ComputedPropertyPeriod["to"];
+};
+
 export async function computeState({
   workspaceId,
   segments,
@@ -202,8 +210,8 @@ export async function computeState({
     switch (userProperty.definition.type) {
       case UserPropertyDefinitionType.Trait: {
         const stateId = uuidv5(
-          userProperty.id,
-          userProperty.updatedAt.toString()
+          userProperty.updatedAt.toString(),
+          userProperty.id
         );
         subQuery = {
           condition: `(visitParamExtractString(properties, 'email') as email) != ''`,
@@ -248,18 +256,18 @@ export async function computeState({
     .join(", ");
 
   const periodsQuery = Prisma.sql`
-    SELECT DISTINCT ON (workspaceId, type, computedPropertyId)
-      type,
-      computedPropertyId,
-      version,
-      MAX(to) OVER (PARTITION BY workspaceId, type, computedPropertyId) as to
-    FROM ComputedPropertyPeriod
-    WHERE workspaceId = CAST(${workspaceId} AS UUID)
-    ORDER BY workspaceId, type, computedPropertyId, to DESC;
+    SELECT DISTINCT ON ("workspaceId", "type", "computedPropertyId")
+      "type",
+      "computedPropertyId",
+      "version",
+      MAX("to") OVER (PARTITION BY "workspaceId", "type", "computedPropertyId") as "maxTo"
+    FROM "ComputedPropertyPeriod"
+    WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
+    ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
   `;
-  const periods = await prisma().$queryRaw<
-    Omit<ComputedPropertyPeriod, "from" | "workspaceId">[]
-  >(periodsQuery);
+  const periods = await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(
+    periodsQuery
+  );
 
   // produce separate queries if date ranges are different
   // ok to set empty lower bound
@@ -286,12 +294,15 @@ export async function computeState({
   const periodByComputedPropertyId = periods.reduce<
     Map<
       string,
-      Pick<ComputedPropertyPeriod, "to" | "computedPropertyId" | "version">
+      Pick<
+        AggregatedComputedPropertyPeriod,
+        "maxTo" | "computedPropertyId" | "version"
+      >
     >
   >((acc, period) => {
-    const { to } = period;
+    const { maxTo } = period;
     acc.set(period.computedPropertyId, {
-      to,
+      maxTo,
       computedPropertyId: period.computedPropertyId,
       version: period.version,
     });
