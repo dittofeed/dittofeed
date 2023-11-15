@@ -80,18 +80,19 @@ export async function createTables() {
         workspace_id LowCardinality(String),
         type Enum('user_property' = 1, 'segment' = 2),
         computed_property_id LowCardinality(String),
+        state_id LowCardinality(String),
         user_id String,
         last_value AggregateFunction(argMax, String, DateTime64(3)),
         unique_count AggregateFunction(uniq, String),
-        computed_at DateTime64(3) DEFAULT now64(3),
-        INDEX computed_at_idx computed_at TYPE minmax GRANULARITY 4
+        max_event_time AggregateFunction(max, DateTime64(3)),
+        computed_at DateTime64(3)
       )
       ENGINE = AggregatingMergeTree()
-      PARTITION BY toYYYYMM(computed_at)
       ORDER BY (
         workspace_id,
         type,
         computed_property_id,
+        state_id,
         user_id
       );
     `,
@@ -225,7 +226,7 @@ export async function computeState({
         subQuery = {
           condition: `(visitParamExtractString(properties, 'email') as email) != ''`,
           type: "user_property",
-          uniqValue: "",
+          uniqValue: "''",
           argMaxValue: "email",
           computedPropertyId: userProperty.id,
           stateId,
@@ -252,7 +253,7 @@ export async function computeState({
     FROM "ComputedPropertyPeriod"
     WHERE
       "workspaceId" = CAST(${workspaceId} AS UUID)
-      "step" = ${ComputedPropertyStep.ComputeState}
+      AND "step" = ${ComputedPropertyStep.ComputeState}
     ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
   `;
   const periods = await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(
@@ -315,6 +316,7 @@ export async function computeState({
         .join(", ");
 
       const query = `
+        insert into computed_property_state
         select
           workspace_id,
           (
@@ -345,6 +347,7 @@ export async function computeState({
           user_id,
           processing_time;
       `;
+      console.log(query);
       return clickhouseClient().exec({
         query,
         query_params: qb.getQueries(),
@@ -352,6 +355,7 @@ export async function computeState({
     })
   );
   await Promise.all(queries);
+  console.log("computeState done");
   // fixme write step
 }
 
@@ -385,7 +389,7 @@ export async function computeAssignments({
             argMaxMerge(last_value) as user_property_value,
             maxMerge(max_event_time) as max_event_time,
             now64(3) as assigned_at
-          from dittofeed.computed_property_state
+          from .computed_property_state
           where
             (
               workspace_id,
@@ -400,7 +404,7 @@ export async function computeAssignments({
                 computed_property_id,
                 state_id,
                 user_id
-              from dittofeed.updated_computed_property_state
+              from updated_computed_property_state
               where
                 workspace_id = ${qb.addQueryValue(workspaceId, "String")}
                 and type = 'user_property'
