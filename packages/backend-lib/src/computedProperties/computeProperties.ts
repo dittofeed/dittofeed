@@ -136,6 +136,31 @@ export async function createTables() {
         user_id
       );
     `,
+    `
+      create table updated_computed_property_state(
+        workspace_id LowCardinality(String),
+        type Enum('user_property' = 1, 'segment' = 2),
+        computed_property_id LowCardinality(String),
+        state_id LowCardinality(String),
+        user_id String,
+        computed_at DateTime64(3)
+      ) Engine=MergeTree
+      partition by toYYYYMMDD(computed_at)
+      order by computed_at
+      TTL toStartOfDay(computed_at) + interval 100 day;
+    `,
+    `
+      create table if not exists updated_property_assignments_v2(
+        workspace_id LowCardinality(String),
+        type Enum('user_property' = 1, 'segment' = 2),
+        computed_property_id LowCardinality(String),
+        user_id String,
+        assigned_at DateTime64(3)
+      ) Engine=MergeTree
+      partition by toYYYYMMDD(assigned_at)
+      order by assigned_at
+      TTL toStartOfDay(assigned_at) + interval 100 day;
+    `,
   ];
 
   await Promise.all(
@@ -146,6 +171,52 @@ export async function createTables() {
       })
     )
   );
+  const mvQueries = [
+    `
+      create materialized view updated_property_assignments_v2_mv to updated_property_assignments_v2
+      as select
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id,
+        assigned_at
+      from computed_property_assignments_v2
+      group by
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id,
+        assigned_at;
+    `,
+    `
+      create materialized view updated_computed_property_state_mv to updated_computed_property_state
+      as select
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id,
+        computed_at
+      from computed_property_state
+      group by
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id,
+        computed_at;
+    `,
+  ];
+
+  await Promise.all(
+    mvQueries.map((query) =>
+      clickhouseClient().exec({
+        query,
+        clickhouse_settings: { wait_end_of_query: 1 },
+      })
+    )
+  );
+  console.log("createTables done", queries);
 }
 
 export async function dropTables() {
@@ -161,6 +232,18 @@ export async function dropTables() {
     `,
     `
       DROP TABLE IF EXISTS processed_computed_properties_v2;
+    `,
+    `
+      DROP TABLE IF EXISTS updated_computed_property_state;
+    `,
+    `
+      DROP TABLE IF EXISTS updated_computed_property_state_mv;
+    `,
+    `
+      DROP TABLE IF EXISTS updated_property_assignments_v2;
+    `,
+    `
+      DROP TABLE IF EXISTS updated_property_assignments_v2_mv;
     `,
   ];
 
@@ -368,7 +451,7 @@ export async function computeAssignments({
   segments: SavedSegmentResource[];
 }): Promise<void> {
   const qb = new ClickHouseQueryBuilder();
-  let queryies: Promise<unknown>[] = [];
+  const queryies: Promise<unknown>[] = [];
   // FIXME get period
   for (const userProperty of userProperties) {
     let query: string;
@@ -427,7 +510,9 @@ export async function computeAssignments({
           `Unhandled user property type: ${userProperty.definition.type}`
         );
     }
-    queryies.push(clickhouseClient().exec({ query }));
+    queryies.push(
+      clickhouseClient().exec({ query, query_params: qb.getQueries() })
+    );
   }
   await Promise.all(queryies);
   // fixme write step

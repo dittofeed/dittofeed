@@ -91,12 +91,15 @@ describe("computeProperties", () => {
         updatedAt: now,
         definitionUpdatedAt: now,
       };
+
+      console.log("computing state");
       await computeState({
         workspaceId,
         segments: [],
         now,
         userProperties: [userPropertyResource],
       });
+      console.log("computing assignments");
       await computeAssignments({
         workspaceId,
         segments: [],
@@ -105,6 +108,7 @@ describe("computeProperties", () => {
     });
 
     it("produces the correct intermediate states", async () => {
+      console.log("reading assignments");
       const assignments = await readAssignments({
         workspaceId,
       });
