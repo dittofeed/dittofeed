@@ -379,7 +379,7 @@ export async function computeAssignments({
           userProperty.id
         );
         query = `
-          insert into computed_property_assignmts_v2
+          insert into computed_property_assignments_v2
           select
             workspace_id,
             type,
@@ -389,7 +389,7 @@ export async function computeAssignments({
             argMaxMerge(last_value) as user_property_value,
             maxMerge(max_event_time) as max_event_time,
             now64(3) as assigned_at
-          from .computed_property_state
+          from computed_property_state
           where
             (
               workspace_id,
