@@ -31,7 +31,8 @@ async function readAssignments({
     query,
     query_params: qb.getQueries(),
   });
-  return response.json();
+  const values: { data: ComputedPropertyAssignment[] } = await response.json();
+  return values.data;
 }
 
 describe("computeProperties", () => {
