@@ -14,6 +14,7 @@ import {
   computeState,
   createTables,
   dropTables,
+  processAssignments,
 } from "./computeProperties";
 
 async function readAssignments({
@@ -104,6 +105,13 @@ describe("computeProperties", () => {
       await computeAssignments({
         workspaceId,
         segments: [],
+        userProperties: [userPropertyResource],
+      });
+      await processAssignments({
+        workspaceId,
+        segments: [],
+        integrations: [],
+        journeys: [],
         userProperties: [userPropertyResource],
       });
     });
