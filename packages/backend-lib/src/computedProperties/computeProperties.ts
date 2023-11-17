@@ -1,13 +1,17 @@
+/* eslint-disable no-await-in-loop */
 import { Prisma } from "@prisma/client";
+import pLimit from "p-limit";
 import { mapValues } from "remeda";
-import { v5 as uuidv5 } from "uuid";
+import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
 
 import {
   clickhouseClient,
   ClickHouseQueryBuilder,
   createClickhouseClient,
   getChCompatibleUuid,
+  streamClickhouseQuery,
 } from "../clickhouse";
+import config from "../config";
 import { getSubscribedSegments } from "../journeys";
 import logger from "../logger";
 import prisma from "../prisma";
@@ -225,7 +229,6 @@ export async function createTables() {
       })
     )
   );
-  console.log("createTables done", queries);
 }
 
 export async function dropTables() {
@@ -536,6 +539,15 @@ export interface ComputedPropertyAssignment {
   assigned_at: string;
 }
 
+let LIMIT: pLimit.Limit | null = null;
+
+function limit() {
+  if (!LIMIT) {
+    LIMIT = pLimit(config().readQueryConcurrency);
+  }
+  return LIMIT;
+}
+
 export async function processAssignments({
   workspaceId,
   userProperties,
@@ -778,9 +790,116 @@ export async function processAssignments({
     enableSession: true,
   });
 
-  await ch.command({
-    query,
-    query_params: qb.getQueries(),
-    clickhouse_settings: { wait_end_of_query: 1 },
-  });
+  const tmpTableQueryId = uuidv4();
+  try {
+    try {
+      await ch.command({
+        query,
+        query_id: tmpTableQueryId,
+        query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+    } catch (e) {
+      logger().error(
+        {
+          workspaceId,
+          queryId: tmpTableQueryId,
+          err: e,
+        },
+        "failed read temp table"
+      );
+      throw e;
+    }
+
+    const { readQueryPageSize } = config();
+
+    let offset = 0;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+    while (true) {
+      const paginatedReadQuery = `SELECT * FROM ${tmpTableName} LIMIT ${readQueryPageSize} OFFSET ${offset}`;
+
+      let resultSet: Awaited<ReturnType<(typeof ch)["query"]>>;
+      const pageQueryId = uuidv4();
+
+      try {
+        let receivedRows = 0;
+        resultSet = await limit()(() =>
+          ch.query({
+            query: paginatedReadQuery,
+            query_id: pageQueryId,
+            format: "JSONEachRow",
+          })
+        );
+
+        try {
+          await streamClickhouseQuery(resultSet, async (rows) => {
+            receivedRows += rows.length;
+          });
+        } catch (e) {
+          logger().error(
+            {
+              err: e,
+              pageQueryId,
+              tmpTableQueryId,
+            },
+            "failed to process rows"
+          );
+        }
+
+        // If no rows were fetched in this iteration, break out of the loop.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (receivedRows < readQueryPageSize) {
+          break;
+        }
+
+        // Increment the offset by PAGE_SIZE to fetch the next set of rows in the next iteration.
+        offset += readQueryPageSize;
+      } catch (e) {
+        logger().error(
+          {
+            workspaceId,
+            queryId: pageQueryId,
+            err: e,
+            readQueryPageSize,
+            offset,
+          },
+          "failed read query page"
+        );
+        throw e;
+      }
+      logger().info(
+        {
+          workspaceId,
+          queryId: pageQueryId,
+          readQueryPageSize,
+          offset,
+        },
+        "read query page"
+      );
+    }
+  } finally {
+    const queryId = uuidv4();
+    try {
+      await ch.command({
+        query: `DROP TABLE IF EXISTS ${tmpTableName}`,
+        query_id: queryId,
+      });
+    } catch (e) {
+      logger().error(
+        {
+          workspaceId,
+          queryId,
+          err: e,
+        },
+        "failed to cleanup temp table"
+      );
+    }
+    logger().info(
+      {
+        workspaceId,
+        queryId,
+      },
+      "cleanup temp table"
+    );
+  }
 }
