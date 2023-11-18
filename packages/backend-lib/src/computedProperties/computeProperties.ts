@@ -1,5 +1,7 @@
 /* eslint-disable no-await-in-loop */
+import { Row } from "@clickhouse/client";
 import { Prisma } from "@prisma/client";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import pLimit from "p-limit";
 import { mapValues } from "remeda";
 import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
@@ -12,17 +14,76 @@ import {
   streamClickhouseQuery,
 } from "../clickhouse";
 import config from "../config";
+import { HUBSPOT_INTEGRATION } from "../constants";
+import { startHubspotUserIntegrationWorkflow } from "../integrations/hubspot/signalUtils";
 import { getSubscribedSegments } from "../journeys";
+import {
+  segmentUpdateSignal,
+  userJourneyWorkflow,
+} from "../journeys/userWorkflow";
 import logger from "../logger";
 import prisma from "../prisma";
+import { upsertBulkSegmentAssignments } from "../segments";
+import { getContext } from "../temporal/activity";
 import {
+  ComputedAssignment,
+  ComputedPropertyAssignment,
   ComputedPropertyPeriod,
+  ComputedPropertyUpdate,
   JourneyResource,
   SavedIntegrationResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
+  SegmentUpdate,
   UserPropertyDefinitionType,
 } from "../types";
+import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
+import { upsertBulkUserPropertyAssignments } from "../userProperties";
+
+async function signalJourney({
+  segmentId,
+  workspaceId,
+  segmentAssignment,
+  journey,
+}: {
+  segmentId: string;
+  workspaceId: string;
+  segmentAssignment: ComputedAssignment;
+  journey: JourneyResource;
+}) {
+  const segmentUpdate: SegmentUpdate = {
+    segmentId,
+    currentlyInSegment: Boolean(segmentAssignment.latest_segment_value),
+    segmentVersion: new Date(segmentAssignment.max_assigned_at).getTime(),
+    type: "segment",
+  };
+
+  if (!segmentUpdate.currentlyInSegment) {
+    return;
+  }
+
+  const { workflowClient } = getContext();
+  const workflowId = `user-journey-${journey.id}-${segmentAssignment.user_id}`;
+
+  const userId = segmentAssignment.user_id;
+  await workflowClient.signalWithStart<
+    typeof userJourneyWorkflow,
+    [SegmentUpdate]
+  >(userJourneyWorkflow, {
+    taskQueue: "default",
+    workflowId,
+    args: [
+      {
+        journeyId: journey.id,
+        definition: journey.definition,
+        workspaceId,
+        userId,
+      },
+    ],
+    signal: segmentUpdateSignal,
+    signalArgs: [segmentUpdate],
+  });
+}
 
 // TODO pull out into separate files
 export async function createTables() {
@@ -528,16 +589,16 @@ export async function computeAssignments({
   // fixme write step
 }
 
-export interface ComputedPropertyAssignment {
-  workspace_id: string;
-  type: "segment" | "user_property";
-  computed_property_id: string;
-  user_id: string;
-  segment_value: boolean;
-  user_property_value: string;
-  max_event_time: string;
-  assigned_at: string;
-}
+// interface ComputedPropertyAssignment {
+//   workspace_id: string;
+//   type: "segment" | "user_property";
+//   computed_property_id: string;
+//   user_id: string;
+//   segment_value: boolean;
+//   user_property_value: string;
+//   max_event_time: string;
+//   assigned_at: string;
+// }
 
 let LIMIT: pLimit.Limit | null = null;
 
@@ -546,6 +607,168 @@ function limit() {
     LIMIT = pLimit(config().readQueryConcurrency);
   }
   return LIMIT;
+}
+
+async function processRows({
+  rows,
+  workspaceId,
+  subscribedJourneys,
+}: {
+  rows: Row[];
+  workspaceId: string;
+  subscribedJourneys: JourneyResource[];
+}): Promise<boolean> {
+  let hasRows = false;
+  const assignments: ComputedAssignment[] = (
+    await Promise.all(
+      rows.map(async (row) => {
+        const json = await row.json();
+        const result = schemaValidateWithErr(json, ComputedAssignment);
+        if (result.isErr()) {
+          logger().error(
+            { err: result.error, json },
+            "failed to parse assignment json"
+          );
+          const emptyAssignments: ComputedAssignment[] = [];
+          return emptyAssignments;
+        }
+        return result.value;
+      })
+    )
+  ).flat();
+
+  const pgUserPropertyAssignments: ComputedAssignment[] = [];
+  const pgSegmentAssignments: ComputedAssignment[] = [];
+  const journeySegmentAssignments: ComputedAssignment[] = [];
+  const integrationAssignments: ComputedAssignment[] = [];
+
+  for (const assignment of assignments) {
+    hasRows = true;
+
+    let assignmentCategory: ComputedAssignment[];
+    if (assignment.processed_for_type === "pg") {
+      switch (assignment.type) {
+        case "segment":
+          assignmentCategory = pgSegmentAssignments;
+          break;
+        case "user_property":
+          assignmentCategory = pgUserPropertyAssignments;
+          break;
+      }
+    } else if (assignment.processed_for_type === "integration") {
+      assignmentCategory = integrationAssignments;
+    } else {
+      assignmentCategory = journeySegmentAssignments;
+    }
+    assignmentCategory.push(assignment);
+  }
+
+  logger().info(
+    {
+      workspaceId,
+      assignmentsCount: assignments.length,
+      pgUserPropertyAssignmentsCount: pgUserPropertyAssignments.length,
+      pgSegmentAssignmentsCount: pgSegmentAssignments.length,
+      journeySegmentAssignmentsCount: journeySegmentAssignments.length,
+      integrationAssignmentsCount: integrationAssignments.length,
+    },
+    "processing computed assignments"
+  );
+
+  await Promise.all([
+    upsertBulkUserPropertyAssignments({
+      data: pgUserPropertyAssignments.map((a) => ({
+        workspaceId: a.workspace_id,
+        userId: a.user_id,
+        userPropertyId: a.computed_property_id,
+        value: a.latest_user_property_value,
+      })),
+    }),
+    upsertBulkSegmentAssignments({
+      data: pgSegmentAssignments.map((a) => ({
+        workspaceId: a.workspace_id,
+        userId: a.user_id,
+        segmentId: a.computed_property_id,
+        inSegment: a.latest_segment_value,
+      })),
+    }),
+  ]);
+
+  await Promise.all([
+    ...journeySegmentAssignments.flatMap((assignment) => {
+      const journey = subscribedJourneys.find(
+        (j) => j.id === assignment.processed_for
+      );
+      if (!journey) {
+        logger().error(
+          {
+            subscribedJourneys: subscribedJourneys.map((j) => j.id),
+            processed_for: assignment.processed_for,
+          },
+          "journey in assignment.processed_for missing from subscribed journeys"
+        );
+        return [];
+      }
+
+      return signalJourney({
+        workspaceId,
+        segmentId: assignment.computed_property_id,
+        segmentAssignment: assignment,
+        journey,
+      });
+    }),
+    ...integrationAssignments.flatMap(async (assignment) => {
+      switch (assignment.processed_for) {
+        case HUBSPOT_INTEGRATION: {
+          const { workflowClient } = getContext();
+          const updateVersion = new Date(assignment.max_assigned_at).getTime();
+
+          const update: ComputedPropertyUpdate =
+            assignment.type === "segment"
+              ? {
+                  type: "segment",
+                  segmentId: assignment.computed_property_id,
+                  segmentVersion: updateVersion,
+                  currentlyInSegment: assignment.latest_segment_value,
+                }
+              : {
+                  type: "user_property",
+                  userPropertyId: assignment.computed_property_id,
+                  value: assignment.latest_user_property_value,
+                  userPropertyVersion: updateVersion,
+                };
+
+          return startHubspotUserIntegrationWorkflow({
+            workspaceId: assignment.workspace_id,
+            userId: assignment.user_id,
+            workflowClient,
+            update,
+          });
+        }
+        default:
+          logger().error(
+            {
+              workspaceId,
+              assignment,
+            },
+            "integration in assignment.processed_for missing from subscribed integrations"
+          );
+          return [];
+      }
+    }),
+  ]);
+
+  const processedAssignments: ComputedPropertyAssignment[] =
+    assignments.flatMap((assignment) => ({
+      user_property_value: assignment.latest_user_property_value,
+      segment_value: assignment.latest_segment_value,
+      ...assignment,
+    }));
+
+  await insertProcessedComputedProperties({
+    assignments: processedAssignments,
+  });
+  return hasRows;
 }
 
 export async function processAssignments({
