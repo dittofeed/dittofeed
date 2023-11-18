@@ -137,7 +137,7 @@ describe("computeProperties", () => {
         workspaceId,
       });
       expect(chAssignments.map((up) => up.user_property_value)).toEqual([
-        "test@email.com",
+        '"test@email.com"',
       ]);
       expect(pgAssignments.email).toEqual("test@email.com");
     });

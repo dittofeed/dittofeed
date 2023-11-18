@@ -539,7 +539,7 @@ export async function computeAssignments({
             computed_property_id,
             user_id,
             False as segment_value,
-            argMaxMerge(last_value) as user_property_value,
+            toJSONString(argMaxMerge(last_value)) as user_property_value,
             maxMerge(max_event_time) as max_event_time,
             now64(3) as assigned_at
           from computed_property_state

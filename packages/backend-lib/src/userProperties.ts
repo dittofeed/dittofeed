@@ -11,7 +11,6 @@ import {
   JSONValue,
   SavedUserPropertyResource,
   UserPropertyDefinition,
-  UserPropertyResource,
 } from "./types";
 
 export function enrichUserProperty(
@@ -66,14 +65,14 @@ export async function findAllUserProperties({
   const enrichedUserProperties: EnrichedUserProperty[] = [];
 
   for (const userProperty of userProperties) {
-    const enrichedJourney = enrichUserProperty(userProperty);
+    const enriched = enrichUserProperty(userProperty);
 
-    if (enrichedJourney.isErr()) {
-      logger().error({ err: enrichedJourney.error });
+    if (enriched.isErr()) {
+      logger().error({ err: enriched.error });
       continue;
     }
 
-    enrichedUserProperties.push(enrichedJourney.value);
+    enrichedUserProperties.push(enriched.value);
   }
 
   return enrichedUserProperties;
