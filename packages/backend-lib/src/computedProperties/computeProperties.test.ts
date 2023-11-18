@@ -1,16 +1,22 @@
 import { randomUUID } from "crypto";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { submitBatch } from "../apps";
 import { clickhouseClient, ClickHouseQueryBuilder } from "../clickhouse";
 import prisma from "../prisma";
 import {
+  ComputedPropertyAssignment,
   EventType,
   SavedUserPropertyResource,
+  UserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "../types";
 import {
+  findAllUserPropertyAssignments,
+  toUserPropertyResource,
+} from "../userProperties";
+import {
   computeAssignments,
-  ComputedPropertyAssignment,
   computeState,
   createTables,
   dropTables,
@@ -64,13 +70,16 @@ describe("computeProperties", () => {
   });
 
   describe("computeStates", () => {
+    let userId: string;
     beforeEach(async () => {
+      userId = randomUUID();
+
       await submitBatch({
         workspaceId,
         data: {
           batch: [
             {
-              userId: randomUUID(),
+              userId,
               type: EventType.Identify,
               messageId: randomUUID(),
               traits: {
@@ -81,18 +90,21 @@ describe("computeProperties", () => {
         },
       });
       const now = Date.now();
-      const userPropertyResource: SavedUserPropertyResource = {
-        id: randomUUID(),
-        name: "email",
-        workspaceId,
-        definition: {
-          type: UserPropertyDefinitionType.Trait,
-          path: "email",
-        },
-        createdAt: now,
-        updatedAt: now,
-        definitionUpdatedAt: now,
+      const userPropertyDefinition: UserPropertyDefinition = {
+        type: UserPropertyDefinitionType.Trait,
+        path: "email",
       };
+      const userPropertyResource: SavedUserPropertyResource = unwrap(
+        toUserPropertyResource(
+          await prisma().userProperty.create({
+            data: {
+              workspaceId,
+              name: "email",
+              definition: userPropertyDefinition,
+            },
+          })
+        )
+      );
 
       console.log("computing state");
       await computeState({
@@ -118,12 +130,17 @@ describe("computeProperties", () => {
 
     it("produces the correct intermediate states", async () => {
       console.log("reading assignments");
-      const assignments = await readAssignments({
+      const chAssignments = await readAssignments({
         workspaceId,
       });
-      expect(assignments.map((up) => up.user_property_value)).toEqual([
+      const pgAssignments = await findAllUserPropertyAssignments({
+        userId: "1",
+        workspaceId,
+      });
+      expect(chAssignments.map((up) => up.user_property_value)).toEqual([
         "test@email.com",
       ]);
+      expect(pgAssignments.email).toEqual("test@email.com");
     });
   });
 });

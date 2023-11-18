@@ -9,6 +9,7 @@ import prisma from "./prisma";
 import {
   EnrichedUserProperty,
   JSONValue,
+  SavedUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyResource,
 } from "./types";
@@ -31,13 +32,24 @@ export function enrichUserProperty(
 
 export function toUserPropertyResource(
   userProperty: UserProperty
-): Result<UserPropertyResource, ValueError[]> {
+): Result<SavedUserPropertyResource, ValueError[]> {
   return enrichUserProperty(userProperty).map(
-    ({ workspaceId, name, id, definition }) => ({
+    ({
       workspaceId,
       name,
       id,
       definition,
+      createdAt,
+      updatedAt,
+      definitionUpdatedAt,
+    }) => ({
+      workspaceId,
+      name,
+      id,
+      definition,
+      createdAt: createdAt.getTime(),
+      updatedAt: updatedAt.getTime(),
+      definitionUpdatedAt: definitionUpdatedAt.getTime(),
     })
   );
 }
