@@ -1,5 +1,4 @@
 /* eslint-disable no-await-in-loop */
-import { Row } from "@clickhouse/client";
 import { Prisma } from "@prisma/client";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import pLimit from "p-limit";
@@ -614,28 +613,25 @@ async function processRows({
   workspaceId,
   subscribedJourneys,
 }: {
-  rows: Row[];
+  rows: unknown[];
   workspaceId: string;
   subscribedJourneys: JourneyResource[];
 }): Promise<boolean> {
   let hasRows = false;
-  const assignments: ComputedAssignment[] = (
-    await Promise.all(
-      rows.map(async (row) => {
-        const json = await row.json();
-        const result = schemaValidateWithErr(json, ComputedAssignment);
-        if (result.isErr()) {
-          logger().error(
-            { err: result.error, json },
-            "failed to parse assignment json"
-          );
-          const emptyAssignments: ComputedAssignment[] = [];
-          return emptyAssignments;
-        }
-        return result.value;
-      })
-    )
-  ).flat();
+  const assignments: ComputedAssignment[] = rows
+    .map((json) => {
+      const result = schemaValidateWithErr(json, ComputedAssignment);
+      if (result.isErr()) {
+        logger().error(
+          { err: result.error, json },
+          "failed to parse assignment json"
+        );
+        const emptyAssignments: ComputedAssignment[] = [];
+        return emptyAssignments;
+      }
+      return result.value;
+    })
+    .flat();
 
   const pgUserPropertyAssignments: ComputedAssignment[] = [];
   const pgSegmentAssignments: ComputedAssignment[] = [];
@@ -1057,6 +1053,11 @@ export async function processAssignments({
         try {
           await streamClickhouseQuery(resultSet, async (rows) => {
             receivedRows += rows.length;
+            await processRows({
+              rows,
+              workspaceId,
+              subscribedJourneys: journeys,
+            });
           });
         } catch (e) {
           logger().error(
