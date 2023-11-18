@@ -72,7 +72,7 @@ describe("computeProperties", () => {
   describe("computeStates", () => {
     let userId: string;
     beforeEach(async () => {
-      userId = randomUUID();
+      userId = "user-1";
 
       await submitBatch({
         workspaceId,
@@ -129,12 +129,11 @@ describe("computeProperties", () => {
     });
 
     it("produces the correct intermediate states", async () => {
-      console.log("reading assignments");
       const chAssignments = await readAssignments({
         workspaceId,
       });
       const pgAssignments = await findAllUserPropertyAssignments({
-        userId: "1",
+        userId,
         workspaceId,
       });
       expect(chAssignments.map((up) => up.user_property_value)).toEqual([
