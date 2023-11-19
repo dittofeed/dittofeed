@@ -1362,7 +1362,7 @@ export type KnownIdentifyData = Static<typeof KnownIdentifyData>;
 
 const AnonymousIdentifyData = Type.Object({
   ...BaseIdentifyData,
-  userId: Type.String(),
+  anonymousId: Type.String(),
 });
 
 export type AnonymousIdentifyData = Static<typeof AnonymousIdentifyData>;
@@ -1374,15 +1374,25 @@ export const IdentifyData = Type.Union([
 
 export type IdentifyData = Static<typeof IdentifyData>;
 
+export const KnownBatchIdentifyData = Type.Object({
+  ...BaseBatchIdentifyData,
+  userId: Type.String(),
+});
+
+export type KnownBatchIdentifyData = Static<typeof KnownBatchIdentifyData>;
+
+export const AnonymousBatchIdentifyData = Type.Object({
+  ...BaseBatchIdentifyData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousBatchIdentifyData = Static<
+  typeof AnonymousBatchIdentifyData
+>;
+
 export const BatchIdentifyData = Type.Union([
-  Type.Object({
-    ...BaseBatchIdentifyData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseBatchIdentifyData,
-    anonymousId: Type.String(),
-  }),
+  KnownBatchIdentifyData,
+  AnonymousBatchIdentifyData,
 ]);
 
 export type BatchIdentifyData = Static<typeof BatchIdentifyData>;
@@ -1419,15 +1429,23 @@ export const TrackData = Type.Union([KnownTrackData, AnonymousTrackData]);
 
 export type TrackData = Static<typeof TrackData>;
 
+export const KnownBatchTrackData = Type.Object({
+  ...BaseBatchTrackData,
+  userId: Type.String(),
+});
+
+export type KnownBatchTrackData = Static<typeof KnownBatchTrackData>;
+
+export const AnonymousBatchTrackData = Type.Object({
+  ...BaseBatchTrackData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousBatchTrackData = Static<typeof AnonymousBatchTrackData>;
+
 export const BatchTrackData = Type.Union([
-  Type.Object({
-    ...BaseBatchTrackData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseBatchTrackData,
-    anonymousId: Type.String(),
-  }),
+  KnownBatchTrackData,
+  AnonymousBatchTrackData,
 ]);
 
 export type BatchTrackData = Static<typeof BatchTrackData>;

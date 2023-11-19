@@ -14,6 +14,7 @@ import {
   EnrichedSegment,
   InternalEventType,
   Prisma,
+  SavedSegmentResource,
   Segment,
   SegmentAssignment,
   SegmentDefinition,
@@ -39,6 +40,26 @@ export function enrichSegment(
   });
 }
 
+export async function findAllSegmentAssignments({
+  workspaceId,
+  userId,
+}: {
+  workspaceId: string;
+  userId: string;
+}): Promise<Record<string, boolean>> {
+  return (
+    await prisma().segmentAssignment.findMany({
+      where: {
+        workspaceId,
+        userId,
+      },
+    })
+  ).reduce<Record<string, boolean>>((memo, curr) => {
+    memo[curr.segmentId] = curr.inSegment;
+    return memo;
+  }, {});
+}
+
 export async function createSegment({
   name,
   definition,
@@ -59,7 +80,7 @@ export async function createSegment({
 
 export function toSegmentResource(
   segment: Segment
-): Result<SegmentResource, Error> {
+): Result<SavedSegmentResource, Error> {
   const result = enrichSegment(segment);
   if (result.isErr()) {
     return err(result.error);
@@ -72,6 +93,9 @@ export function toSegmentResource(
     workspaceId,
     definition,
     subscriptionGroupId: subscriptionGroupId ?? undefined,
+    updatedAt: segment.updatedAt.getTime(),
+    definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
+    createdAt: segment.createdAt.getTime(),
   });
 }
 
