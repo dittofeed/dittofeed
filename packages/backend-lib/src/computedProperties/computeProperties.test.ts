@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-loop-func */
+/* eslint-disable no-await-in-loop */
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { omit } from "remeda";
 
+import { buildBatchUserEvents } from "../apps";
 import { clickhouseClient, ClickHouseQueryBuilder } from "../clickhouse";
 import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
@@ -19,6 +22,7 @@ import {
   UserPropertyDefinitionType,
   UserPropertyResource,
 } from "../types";
+import { insertUserEvents } from "../userEvents";
 import {
   findAllUserPropertyAssignments,
   toUserPropertyResource,
@@ -30,8 +34,6 @@ import {
   dropTables,
   processAssignments,
 } from "./computeProperties";
-import { buildBatchUserEvents } from "../apps";
-import { insertUserEvents } from "../userEvents";
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -162,14 +164,35 @@ interface TableUser {
   segments?: Record<string, boolean>;
 }
 
+enum EventsStepType {
+  SubmitEvents = "SubmitEvents",
+  ComputeProperties = "ComputeProperties",
+  Assert = "Assert",
+}
+
+interface SubmitEventsStep {
+  type: EventsStepType.SubmitEvents;
+  events: TableEvent[];
+}
+
+interface ComputePropertiesStep {
+  type: EventsStepType.ComputeProperties;
+}
+
+interface AssertStep {
+  type: EventsStepType.Assert;
+  users: TableUser[];
+}
+
+type TableStep = SubmitEventsStep | ComputePropertiesStep | AssertStep;
+
 interface TableTest {
   description: string;
   skip?: boolean;
   only?: boolean;
   userProperties: Pick<UserPropertyResource, "name" | "definition">[];
   segments: Pick<SegmentResource, "name" | "definition">[];
-  events: TableEvent[];
-  users?: TableUser[];
+  steps: TableStep[];
 }
 
 describe("computeProperties", () => {
@@ -193,22 +216,33 @@ describe("computeProperties", () => {
         },
       ],
       segments: [],
-      events: [
+      steps: [
         {
-          type: EventType.Identify,
-          offsetMs: -100,
-          userId: "user-1",
-          traits: {
-            email: "test@email.com",
-          },
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email: "test@email.com",
+              },
+            },
+          ],
         },
-      ],
-      users: [
         {
-          id: "user-1",
-          properties: {
-            email: "test@email.com",
-          },
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test@email.com",
+              },
+            },
+          ],
         },
       ],
     },
@@ -265,50 +299,59 @@ describe("computeProperties", () => {
             return unwrap(toSegmentResource(model));
           })
         ),
-        submitBatch({
-          workspaceId,
-          data: test.events,
-          now,
-        }),
       ]);
 
-      await computeState({
-        workspaceId,
-        segments,
-        now,
-        userProperties,
-      });
-
-      await computeAssignments({
-        workspaceId,
-        segments,
-        userProperties,
-      });
-
-      await processAssignments({
-        workspaceId,
-        segments,
-        integrations: [],
-        journeys: [],
-        userProperties,
-      });
-
-      test.users?.map(async (user) => {
-        await Promise.all([
-          user.properties
-            ? findAllUserPropertyAssignments({
-                userId: user.id,
-                workspaceId,
-              }).then((up) => expect(up).toEqual(user.properties))
-            : null,
-          user.segments
-            ? findAllSegmentAssignments({
-                userId: user.id,
-                workspaceId,
-              }).then((s) => expect(s).toEqual(user.segments))
-            : null,
-        ]);
-      });
+      for (const step of test.steps) {
+        switch (step.type) {
+          case EventsStepType.SubmitEvents:
+            await submitBatch({
+              workspaceId,
+              data: step.events,
+              now,
+            });
+            break;
+          case EventsStepType.ComputeProperties:
+            await computeState({
+              workspaceId,
+              segments,
+              now,
+              userProperties,
+            });
+            await computeAssignments({
+              workspaceId,
+              segments,
+              userProperties,
+            });
+            await processAssignments({
+              workspaceId,
+              segments,
+              integrations: [],
+              journeys: [],
+              userProperties,
+            });
+            break;
+          case EventsStepType.Assert:
+            await Promise.all(
+              step.users.map(async (user) => {
+                await Promise.all([
+                  user.properties
+                    ? findAllUserPropertyAssignments({
+                        userId: user.id,
+                        workspaceId,
+                      }).then((up) => expect(up).toEqual(user.properties))
+                    : null,
+                  user.segments
+                    ? findAllSegmentAssignments({
+                        userId: user.id,
+                        workspaceId,
+                      }).then((s) => expect(s).toEqual(user.segments))
+                    : null,
+                ]);
+              })
+            );
+            break;
+        }
+      }
     }
   );
 });
