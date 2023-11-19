@@ -488,7 +488,7 @@ export async function computeState({
           argMaxState(ifNull(c.4, ''), event_time) as last_value,
           uniqState(ifNull(c.5, '')) as unique_count,
           maxState(event_time) as max_event_time,
-          now64(3) as computed_at
+          toDateTime64(${nowSeconds}, 3) as computed_at
         from user_events_v2
         where
           workspace_id = ${qb.addQueryValue(workspaceId, "String")}
