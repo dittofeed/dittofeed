@@ -168,6 +168,7 @@ enum EventsStepType {
   SubmitEvents = "SubmitEvents",
   ComputeProperties = "ComputeProperties",
   Assert = "Assert",
+  Sleep = "Sleep",
 }
 
 interface SubmitEventsStep {
@@ -179,12 +180,21 @@ interface ComputePropertiesStep {
   type: EventsStepType.ComputeProperties;
 }
 
+interface SleepStep {
+  type: EventsStepType.Sleep;
+  timeMs: number;
+}
+
 interface AssertStep {
   type: EventsStepType.Assert;
   users: TableUser[];
 }
 
-type TableStep = SubmitEventsStep | ComputePropertiesStep | AssertStep;
+type TableStep =
+  | SubmitEventsStep
+  | ComputePropertiesStep
+  | AssertStep
+  | SleepStep;
 
 interface TableTest {
   description: string;
@@ -246,6 +256,79 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "computes a trait user property over multiple periods",
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email: "test1@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test1@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email: "test2@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test2@email.com",
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
 
   const only: null | string =
@@ -272,7 +355,7 @@ describe("computeProperties", () => {
         },
       });
 
-      const now = Date.now();
+      let now = Date.now();
 
       const [userProperties, segments] = await Promise.all([
         Promise.all(
@@ -329,6 +412,9 @@ describe("computeProperties", () => {
               journeys: [],
               userProperties,
             });
+            break;
+          case EventsStepType.Sleep:
+            now += step.timeMs;
             break;
           case EventsStepType.Assert:
             await Promise.all(
