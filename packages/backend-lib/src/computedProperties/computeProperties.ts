@@ -845,6 +845,9 @@ export async function computeAssignments({
         `;
         break;
       }
+      // case SegmentNodeType.And: {
+
+      // }
       default:
         throw new Error(
           `Unhandled user property type: ${segment.definition.entryNode.type}`

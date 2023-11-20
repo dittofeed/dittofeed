@@ -437,6 +437,73 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "computes an AND segment",
+      userProperties: [],
+      only: true,
+      segments: [
+        {
+          name: "andSegment",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "env",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "test",
+                },
+              },
+              {
+                type: SegmentNodeType.Trait,
+                id: "3",
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "running",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+                status: "running",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
 
   const only: null | string =
