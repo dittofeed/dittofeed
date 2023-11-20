@@ -345,7 +345,7 @@ type AggregatedComputedPropertyPeriod = Omit<
   maxTo: ComputedPropertyPeriod["to"];
 };
 
-enum ComputedPropertyStep {
+export enum ComputedPropertyStep {
   ComputeState = "ComputeState",
   WriteAssignments = "WriteAssignments",
   ProcessAssignments = "ProcessAssignments",

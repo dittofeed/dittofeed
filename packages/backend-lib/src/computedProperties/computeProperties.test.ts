@@ -29,6 +29,7 @@ import {
 } from "../userProperties";
 import {
   computeAssignments,
+  ComputedPropertyStep,
   computeState,
   createTables,
   dropTables,
@@ -187,7 +188,12 @@ interface SleepStep {
 
 interface AssertStep {
   type: EventsStepType.Assert;
-  users: TableUser[];
+  users?: TableUser[];
+  periods?: {
+    from?: number;
+    to: number;
+    step: ComputedPropertyStep;
+  }[];
 }
 
 type TableStep =
@@ -293,6 +299,20 @@ describe("computeProperties", () => {
               properties: {
                 email: "test1@email.com",
               },
+            },
+          ],
+          periods: [
+            {
+              to: 0,
+              step: ComputedPropertyStep.ComputeState,
+            },
+            {
+              to: 0,
+              step: ComputedPropertyStep.ProcessAssignments,
+            },
+            {
+              to: 0,
+              step: ComputedPropertyStep.WriteAssignments,
             },
           ],
         },
@@ -417,8 +437,8 @@ describe("computeProperties", () => {
             now += step.timeMs;
             break;
           case EventsStepType.Assert:
-            await Promise.all(
-              step.users.map(async (user) => {
+            await Promise.all([
+              ...(step.users?.map(async (user) => {
                 await Promise.all([
                   user.properties
                     ? findAllUserPropertyAssignments({
@@ -433,8 +453,27 @@ describe("computeProperties", () => {
                       }).then((s) => expect(s).toEqual(user.segments))
                     : null,
                 ]);
-              })
-            );
+              }) ?? []),
+              step.periods
+                ? (async () => {
+                    const periods =
+                      await prisma().computedPropertyPeriod.findMany({
+                        where: {
+                          workspaceId,
+                        },
+                        orderBy: {
+                          to: "asc",
+                        },
+                      });
+                    const simplifiedPeriods = periods.map((p) => ({
+                      from: p.from ? p.from.getTime() - now : undefined,
+                      to: p.to.getTime() - now,
+                      step: p.step,
+                    }));
+                    expect(simplifiedPeriods).toEqual(step.periods);
+                  })()
+                : null,
+            ]);
             break;
         }
       }
