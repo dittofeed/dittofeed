@@ -291,6 +291,59 @@ export async function createTables() {
   );
 }
 
+export enum ComputedPropertyStep {
+  ComputeState = "ComputeState",
+  WriteAssignments = "WriteAssignments",
+  ProcessAssignments = "ProcessAssignments",
+}
+
+type PeriodByComputedPropertyId = Map<
+  string,
+  Pick<
+    AggregatedComputedPropertyPeriod,
+    "maxTo" | "computedPropertyId" | "version"
+  >
+>;
+
+async function getPeriodsByComputedPropertyId({
+  workspaceId,
+  step,
+}: {
+  workspaceId: string;
+  step: ComputedPropertyStep;
+}): Promise<PeriodByComputedPropertyId> {
+  const periodsQuery = Prisma.sql`
+    SELECT DISTINCT ON ("workspaceId", "type", "computedPropertyId")
+      "type",
+      "computedPropertyId",
+      "version",
+      MAX("to") OVER (PARTITION BY "workspaceId", "type", "computedPropertyId") as "maxTo"
+    FROM "ComputedPropertyPeriod"
+    WHERE
+      "workspaceId" = CAST(${workspaceId} AS UUID)
+      AND "step" = ${step}
+    ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
+  `;
+  const periods = await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(
+    periodsQuery
+  );
+
+  const periodByComputedPropertyId = periods.reduce<PeriodByComputedPropertyId>(
+    (acc, period) => {
+      const { maxTo } = period;
+      acc.set(period.computedPropertyId, {
+        maxTo,
+        computedPropertyId: period.computedPropertyId,
+        version: period.version,
+      });
+      return acc;
+    },
+    new Map()
+  );
+
+  return periodByComputedPropertyId;
+}
+
 export async function dropTables() {
   const queries: string[] = [
     `
@@ -329,6 +382,55 @@ export async function dropTables() {
   );
 }
 
+async function createPeriods({
+  workspaceId,
+  userProperties,
+  segments,
+  now,
+  periodByComputedPropertyId,
+  step,
+}: {
+  step: ComputedPropertyStep;
+  workspaceId: string;
+  userProperties: SavedUserPropertyResource[];
+  segments: SavedSegmentResource[];
+  periodByComputedPropertyId: PeriodByComputedPropertyId;
+  now: number;
+}) {
+  const newPeriods: Prisma.ComputedPropertyPeriodCreateManyInput[] = [];
+
+  for (const segment of segments) {
+    const previousPeriod = periodByComputedPropertyId.get(segment.id);
+    newPeriods.push({
+      workspaceId,
+      step,
+      type: "Segment",
+      computedPropertyId: segment.id,
+      from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
+      to: new Date(now),
+      version: segment.definitionUpdatedAt.toString(),
+    });
+  }
+
+  for (const userProperty of userProperties) {
+    const previousPeriod = periodByComputedPropertyId.get(userProperty.id);
+    newPeriods.push({
+      workspaceId,
+      step,
+      type: "UserProperty",
+      computedPropertyId: userProperty.id,
+      from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
+      to: new Date(now),
+      version: userProperty.definitionUpdatedAt.toString(),
+    });
+  }
+
+  await prisma().computedPropertyPeriod.createMany({
+    data: newPeriods,
+    skipDuplicates: true,
+  });
+}
+
 interface SubQueryData {
   condition: string;
   type: "user_property" | "segment";
@@ -344,12 +446,6 @@ type AggregatedComputedPropertyPeriod = Omit<
 > & {
   maxTo: ComputedPropertyPeriod["to"];
 };
-
-export enum ComputedPropertyStep {
-  ComputeState = "ComputeState",
-  WriteAssignments = "WriteAssignments",
-  ProcessAssignments = "ProcessAssignments",
-}
 
 export async function computeState({
   workspaceId,
@@ -399,39 +495,10 @@ export async function computeState({
     return;
   }
 
-  const periodsQuery = Prisma.sql`
-    SELECT DISTINCT ON ("workspaceId", "type", "computedPropertyId")
-      "type",
-      "computedPropertyId",
-      "version",
-      MAX("to") OVER (PARTITION BY "workspaceId", "type", "computedPropertyId") as "maxTo"
-    FROM "ComputedPropertyPeriod"
-    WHERE
-      "workspaceId" = CAST(${workspaceId} AS UUID)
-      AND "step" = ${ComputedPropertyStep.ComputeState}
-    ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
-  `;
-  const periods = await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(
-    periodsQuery
-  );
-
-  const periodByComputedPropertyId = periods.reduce<
-    Map<
-      string,
-      Pick<
-        AggregatedComputedPropertyPeriod,
-        "maxTo" | "computedPropertyId" | "version"
-      >
-    >
-  >((acc, period) => {
-    const { maxTo } = period;
-    acc.set(period.computedPropertyId, {
-      maxTo,
-      computedPropertyId: period.computedPropertyId,
-      version: period.version,
-    });
-    return acc;
-  }, new Map());
+  const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
+    workspaceId,
+    step: ComputedPropertyStep.ComputeState,
+  });
 
   const subQueriesWithPeriods = subQueryData.reduce<
     Record<number, SubQueryData[]>
@@ -446,7 +513,7 @@ export async function computeState({
 
   const nowSeconds = now / 1000;
   const queries = Object.values(
-    mapValues(subQueriesWithPeriods, (periodSubQueries, period) => {
+    mapValues(subQueriesWithPeriods, async (periodSubQueries, period) => {
       const lowerBoundClause =
         period !== 0
           ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
@@ -502,28 +569,54 @@ export async function computeState({
           user_id,
           processing_time;
       `;
-      return clickhouseClient().command({
+      await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
       });
     })
   );
+
   await Promise.all(queries);
-  // fixme write step
+
+  await createPeriods({
+    workspaceId,
+    userProperties,
+    segments,
+    now,
+    periodByComputedPropertyId,
+    step: ComputedPropertyStep.ComputeState,
+  });
 }
 
 export async function computeAssignments({
   workspaceId,
+  segments,
   userProperties,
+  now,
 }: {
   workspaceId: string;
   userProperties: SavedUserPropertyResource[];
   segments: SavedSegmentResource[];
+  now: number;
 }): Promise<void> {
   const qb = new ClickHouseQueryBuilder();
   const queryies: Promise<unknown>[] = [];
+
+  const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
+    workspaceId,
+    step: ComputedPropertyStep.WriteAssignments,
+  });
+
   // FIXME get period
+  // FIXME segments
+
+  const nowSeconds = now / 1000;
+
   for (const userProperty of userProperties) {
+    const period = periodByComputedPropertyId.get(userProperty.id);
+    const lowerBoundClause = period
+      ? `and computed_at >= toDateTime64(${period.maxTo.getTime() / 1000}, 3)`
+      : "";
     let query: string;
     switch (userProperty.definition.type) {
       case UserPropertyDefinitionType.Trait: {
@@ -566,6 +659,8 @@ export async function computeAssignments({
                   "String"
                 )}
                 and state_id = ${qb.addQueryValue(stateId, "String")}
+                and computed_at < toDateTime64(${nowSeconds}, 3)
+                ${lowerBoundClause}
             )
           group by
             workspace_id,
@@ -585,7 +680,15 @@ export async function computeAssignments({
     );
   }
   await Promise.all(queryies);
-  // fixme write step
+
+  await createPeriods({
+    workspaceId,
+    userProperties,
+    segments,
+    now,
+    periodByComputedPropertyId,
+    step: ComputedPropertyStep.WriteAssignments,
+  });
 }
 
 // interface ComputedPropertyAssignment {
@@ -773,8 +876,10 @@ export async function processAssignments({
   segments,
   integrations,
   journeys,
+  now,
 }: {
   workspaceId: string;
+  now: number;
   userProperties: SavedUserPropertyResource[];
   segments: SavedSegmentResource[];
   integrations: SavedIntegrationResource[];
@@ -1126,4 +1231,19 @@ export async function processAssignments({
       "cleanup temp table"
     );
   }
+
+  // TODO encorporate existing periods into query
+  const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
+    workspaceId,
+    step: ComputedPropertyStep.ProcessAssignments,
+  });
+
+  await createPeriods({
+    workspaceId,
+    userProperties,
+    segments,
+    now,
+    periodByComputedPropertyId,
+    step: ComputedPropertyStep.ProcessAssignments,
+  });
 }

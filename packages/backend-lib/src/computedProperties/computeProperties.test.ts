@@ -308,11 +308,11 @@ describe("computeProperties", () => {
             },
             {
               to: 0,
-              step: ComputedPropertyStep.ProcessAssignments,
+              step: ComputedPropertyStep.WriteAssignments,
             },
             {
               to: 0,
-              step: ComputedPropertyStep.WriteAssignments,
+              step: ComputedPropertyStep.ProcessAssignments,
             },
           ],
         },
@@ -424,6 +424,7 @@ describe("computeProperties", () => {
               workspaceId,
               segments,
               userProperties,
+              now,
             });
             await processAssignments({
               workspaceId,
@@ -431,6 +432,7 @@ describe("computeProperties", () => {
               integrations: [],
               journeys: [],
               userProperties,
+              now,
             });
             break;
           case EventsStepType.Sleep:
