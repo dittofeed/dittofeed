@@ -204,8 +204,9 @@ export async function createTables() {
       ENGINE = ReplacingMergeTree()
       ORDER BY (
         workspace_id,
-        type,
         computed_property_id,
+        processed_for_type,
+        processed_for,
         user_id
       );
     `,
