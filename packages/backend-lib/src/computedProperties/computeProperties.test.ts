@@ -390,7 +390,6 @@ describe("computeProperties", () => {
     {
       description: "computes a trait segment",
       userProperties: [],
-      skip: true,
       segments: [
         {
           name: "test",

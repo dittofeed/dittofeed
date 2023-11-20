@@ -48,14 +48,20 @@ export async function findAllSegmentAssignments({
   userId: string;
 }): Promise<Record<string, boolean>> {
   return (
-    await prisma().segmentAssignment.findMany({
+    await prisma().segment.findMany({
       where: {
         workspaceId,
-        userId,
+      },
+      include: {
+        SegmentAssignment: {
+          where: {
+            userId,
+          },
+        },
       },
     })
   ).reduce<Record<string, boolean>>((memo, curr) => {
-    memo[curr.segmentId] = curr.inSegment;
+    memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? false;
     return memo;
   }, {});
 }

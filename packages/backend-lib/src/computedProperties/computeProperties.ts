@@ -35,6 +35,7 @@ import {
   SavedUserPropertyResource,
   SegmentNode,
   SegmentNodeType,
+  SegmentOperatorType,
   SegmentUpdate,
   UserPropertyDefinitionType,
 } from "../types";
@@ -476,11 +477,14 @@ export async function computeState({
 
       switch (node.type) {
         case SegmentNodeType.Trait: {
-          const stateId = uuidv5(segment.updatedAt.toString(), node.id);
+          const stateId = uuidv5(
+            segment.definitionUpdatedAt.toString(),
+            node.id
+          );
           const path = qb.addQueryValue(node.path, "String");
           subQuery = {
             condition: `event_type == 'identify'`,
-            type: "user_property",
+            type: "segment",
             uniqValue: "''",
             argMaxValue: `visitParamExtractString(properties, ${path})`,
             computedPropertyId: segment.id,
@@ -500,7 +504,7 @@ export async function computeState({
     switch (userProperty.definition.type) {
       case UserPropertyDefinitionType.Trait: {
         const stateId = uuidv5(
-          userProperty.updatedAt.toString(),
+          userProperty.definitionUpdatedAt.toString(),
           userProperty.id
         );
         const path = qb.addQueryValue(userProperty.definition.path, "String");
@@ -618,6 +622,125 @@ export async function computeState({
   });
 }
 
+function buildComputeAssignmentsSegment({
+  node,
+  segment,
+  qb,
+}: {
+  node: SegmentNode;
+  segment: SavedSegmentResource;
+  qb: ClickHouseQueryBuilder;
+}): {
+  query: string;
+} {
+  let query: string;
+  // for (const segment of segments) {
+  //   switch (segment.definition.entryNode.type) {
+  //     case SegmentNodeType.Trait: {
+  //       break;
+  //     }
+  //     default:
+  //       throw new Error(
+  //         `Unhandled user property type: ${segment.definition.entryNode.type}`
+  //       );
+  //   }
+  // }
+  return {
+    query: "",
+  };
+}
+
+enum ComputedPropertyType {
+  UserProperty = "UserProperty",
+  Segment = "Segment",
+}
+
+interface SegmentValue {
+  type: ComputedPropertyType.Segment;
+  segment: SavedSegmentResource;
+}
+
+interface UserPropertyValue {
+  type: ComputedPropertyType.UserProperty;
+  userProperty: SavedUserPropertyResource;
+}
+
+type ComputedPropertyValue = SegmentValue | UserPropertyValue;
+
+function buildComputeAssignmentsQuery({
+  workspaceId,
+  now,
+  value,
+}: {
+  now: number;
+  workspaceId: string;
+  value: ComputedPropertyValue;
+}): {
+  query: string;
+  queryBuilder: ClickHouseQueryBuilder;
+} {
+  const nowSeconds = now / 1000;
+  const qb = new ClickHouseQueryBuilder();
+  let computedPropertyId: string;
+  let type: string;
+  if (value.type === ComputedPropertyType.Segment) {
+    computedPropertyId = value.segment.id;
+    type = "segment";
+  } else {
+    computedPropertyId = value.userProperty.id;
+    type = "user_property";
+  }
+  const query = "";
+  // const query = `
+  //  insert into computed_property_assignments_v2
+  //  select
+  //    workspace_id,
+  //    type,
+  //    computed_property_id,
+  //    user_id,
+  //    False as segment_value,
+  //    toJSONString(argMaxMerge(last_value)) as user_property_value,
+  //    maxMerge(max_event_time) as max_event_time,
+  //    now64(3) as assigned_at
+  //  from computed_property_state
+  //  where
+  //    (
+  //      workspace_id,
+  //      type,
+  //      computed_property_id,
+  //      state_id,
+  //      user_id
+  //    ) in (
+  //      select
+  //        workspace_id,
+  //        type,
+  //        computed_property_id,
+  //        state_id,
+  //        user_id
+  //      from updated_computed_property_state
+  //      where
+  //        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  //        and type = ${qb.addQueryValue(type, "String")}
+  //        and computed_property_id = ${qb.addQueryValue(
+  //          computedPropertyId,
+  //          "String"
+  //        )}
+  //        and state_id = ${qb.addQueryValue(stateId, "String")}
+  //        and computed_at <= toDateTime64(${nowSeconds}, 3)
+  //        ${lowerBoundClause}
+  //    )
+  //  group by
+  //    workspace_id,
+  //    type,
+  //    computed_property_id,
+  //    user_id;
+  //  `;
+  return {
+    query,
+    queryBuilder: qb,
+  };
+}
+
 export async function computeAssignments({
   workspaceId,
   segments,
@@ -629,7 +752,7 @@ export async function computeAssignments({
   segments: SavedSegmentResource[];
   now: number;
 }): Promise<void> {
-  const qb = new ClickHouseQueryBuilder();
+  // FIXME new per cp
   const queryies: Promise<unknown>[] = [];
 
   const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
@@ -641,18 +764,113 @@ export async function computeAssignments({
 
   const nowSeconds = now / 1000;
 
+  for (const segment of segments) {
+    const period = periodByComputedPropertyId.get(segment.id);
+    const lowerBoundClause = period
+      ? `and computed_at >= toDateTime64(${period.maxTo.getTime() / 1000}, 3)`
+      : "";
+    const qb = new ClickHouseQueryBuilder();
+    let query: string;
+    const node = segment.definition.entryNode;
+    switch (node.type) {
+      case SegmentNodeType.Trait: {
+        const stateId = uuidv5(segment.definitionUpdatedAt.toString(), node.id);
+        let condition: string;
+        switch (node.operator.type) {
+          case SegmentOperatorType.Equals: {
+            const value = qb.addQueryValue(node.operator.value, "String");
+            condition = `argMaxMerge(last_value) == ${value}`;
+            break;
+          }
+          case SegmentOperatorType.NotEquals: {
+            const value = qb.addQueryValue(node.operator.value, "String");
+            condition = `argMaxMerge(last_value) != ${value}`;
+            break;
+          }
+          case SegmentOperatorType.Exists: {
+            condition = `argMaxMerge(last_value) != '""'`;
+            break;
+          }
+          case SegmentOperatorType.HasBeen: {
+            throw new Error("not implemented");
+          }
+          case SegmentOperatorType.Within: {
+            throw new Error("not implemented");
+          }
+        }
+
+        query = `
+          insert into computed_property_assignments_v2
+          select
+            workspace_id,
+            type,
+            computed_property_id,
+            user_id,
+            ${condition} as segment_value,
+            '""' as user_property_value,
+            maxMerge(max_event_time) as max_event_time,
+            now64(3) as assigned_at
+          from computed_property_state
+          where
+            (
+              workspace_id,
+              type,
+              computed_property_id,
+              state_id,
+              user_id
+            ) in (
+              select
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+              from updated_computed_property_state
+              where
+                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                and type = 'segment'
+                and computed_property_id = ${qb.addQueryValue(
+                  segment.id,
+                  "String"
+                )}
+                and state_id = ${qb.addQueryValue(stateId, "String")}
+                and computed_at <= toDateTime64(${nowSeconds}, 3)
+                ${lowerBoundClause}
+            )
+          group by
+            workspace_id,
+            type,
+            computed_property_id,
+            user_id;
+        `;
+        break;
+      }
+      default:
+        throw new Error(
+          `Unhandled user property type: ${segment.definition.entryNode.type}`
+        );
+    }
+
+    queryies.push(
+      clickhouseClient().command({ query, query_params: qb.getQueries() })
+    );
+  }
+
   for (const userProperty of userProperties) {
     const period = periodByComputedPropertyId.get(userProperty.id);
     const lowerBoundClause = period
       ? `and computed_at >= toDateTime64(${period.maxTo.getTime() / 1000}, 3)`
       : "";
     let query: string;
+
+    const qb = new ClickHouseQueryBuilder();
     switch (userProperty.definition.type) {
       case UserPropertyDefinitionType.Trait: {
         const stateId = uuidv5(
-          userProperty.updatedAt.toString(),
+          userProperty.definitionUpdatedAt.toString(),
           userProperty.id
         );
+        // FIXME reuse
         query = `
           insert into computed_property_assignments_v2
           select
