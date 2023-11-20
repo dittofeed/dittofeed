@@ -293,7 +293,7 @@ export async function createTables() {
 
 export enum ComputedPropertyStep {
   ComputeState = "ComputeState",
-  WriteAssignments = "WriteAssignments",
+  ComputeAssignments = "ComputeAssignments",
   ProcessAssignments = "ProcessAssignments",
 }
 
@@ -559,7 +559,7 @@ export async function computeState({
         from user_events_v2
         where
           workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-          and processing_time < toDateTime64(${nowSeconds}, 3)
+          and processing_time <= toDateTime64(${nowSeconds}, 3)
           ${lowerBoundClause}
         group by
           workspace_id,
@@ -604,10 +604,9 @@ export async function computeAssignments({
 
   const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
     workspaceId,
-    step: ComputedPropertyStep.WriteAssignments,
+    step: ComputedPropertyStep.ComputeAssignments,
   });
 
-  // FIXME get period
   // FIXME segments
 
   const nowSeconds = now / 1000;
@@ -659,7 +658,7 @@ export async function computeAssignments({
                   "String"
                 )}
                 and state_id = ${qb.addQueryValue(stateId, "String")}
-                and computed_at < toDateTime64(${nowSeconds}, 3)
+                and computed_at <= toDateTime64(${nowSeconds}, 3)
                 ${lowerBoundClause}
             )
           group by
@@ -687,20 +686,9 @@ export async function computeAssignments({
     segments,
     now,
     periodByComputedPropertyId,
-    step: ComputedPropertyStep.WriteAssignments,
+    step: ComputedPropertyStep.ComputeAssignments,
   });
 }
-
-// interface ComputedPropertyAssignment {
-//   workspace_id: string;
-//   type: "segment" | "user_property";
-//   computed_property_id: string;
-//   user_id: string;
-//   segment_value: boolean;
-//   user_property_value: string;
-//   max_event_time: string;
-//   assigned_at: string;
-// }
 
 let LIMIT: pLimit.Limit | null = null;
 

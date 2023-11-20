@@ -308,7 +308,7 @@ describe("computeProperties", () => {
             },
             {
               to: 0,
-              step: ComputedPropertyStep.WriteAssignments,
+              step: ComputedPropertyStep.ComputeAssignments,
             },
             {
               to: 0,
@@ -344,6 +344,46 @@ describe("computeProperties", () => {
               properties: {
                 email: "test2@email.com",
               },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "test2@email.com",
+              },
+            },
+          ],
+          periods: [
+            {
+              to: -1000,
+              step: ComputedPropertyStep.ComputeState,
+            },
+            {
+              to: -1000,
+              step: ComputedPropertyStep.ComputeAssignments,
+            },
+            {
+              to: -1000,
+              step: ComputedPropertyStep.ProcessAssignments,
+            },
+            {
+              from: -1000,
+              to: 0,
+              step: ComputedPropertyStep.ComputeState,
+            },
+            {
+              from: -1000,
+              to: 0,
+              step: ComputedPropertyStep.ComputeAssignments,
+            },
+            {
+              from: -1000,
+              to: 0,
+              step: ComputedPropertyStep.ProcessAssignments,
             },
           ],
         },
