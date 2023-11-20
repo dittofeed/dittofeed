@@ -424,7 +424,7 @@ model ComputedPropertyPeriod {
   type               ComputedPropertyType
   computedPropertyId String               @db.Uuid
   version            String
-  from               DateTime
+  from               DateTime?
   to                 DateTime
   step               String
   createdAt          DateTime             @default(now())

@@ -17,7 +17,7 @@ CREATE TABLE "ComputedPropertyPeriod" (
     "type" "ComputedPropertyType" NOT NULL,
     "computedPropertyId" UUID NOT NULL,
     "version" TEXT NOT NULL,
-    "from" TIMESTAMP(3) NOT NULL,
+    "from" TIMESTAMP(3),
     "to" TIMESTAMP(3) NOT NULL,
     "step" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
