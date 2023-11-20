@@ -2,7 +2,6 @@
 /* eslint-disable no-await-in-loop */
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { omit } from "remeda";
 
 import { buildBatchUserEvents } from "../apps";
 import { clickhouseClient, ClickHouseQueryBuilder } from "../clickhouse";
@@ -10,15 +9,14 @@ import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
   BatchAppData,
-  BatchItem,
   ComputedPropertyAssignment,
   EventType,
   JSONValue,
   KnownBatchIdentifyData,
   KnownBatchTrackData,
-  SavedUserPropertyResource,
+  SegmentNodeType,
+  SegmentOperatorType,
   SegmentResource,
-  UserPropertyDefinition,
   UserPropertyDefinitionType,
   UserPropertyResource,
 } from "../types";
@@ -389,136 +387,188 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "computes a trait segment",
+      userProperties: [],
+      skip: true,
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: "env",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "test",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
 
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
 
-  test.concurrent.each(tests.filter((t) => t.skip !== true))(
-    "$description",
-    async (test) => {
-      if (only && test.description !== only) {
-        return;
-      }
+  test.concurrent.each(
+    tests.filter(
+      (t) => t.skip !== true && (only === null || only === t.description)
+    )
+  )("$description", async (test) => {
+    if (only && test.description !== only) {
+      return;
+    }
 
-      const workspace = await prisma().workspace.create({
-        data: {
-          name: randomUUID(),
-        },
-      });
-      const workspaceId = workspace.id;
+    const workspace = await prisma().workspace.create({
+      data: {
+        name: randomUUID(),
+      },
+    });
+    const workspaceId = workspace.id;
 
-      await prisma().currentUserEventsTable.create({
-        data: {
-          workspaceId,
-          version: "v2",
-        },
-      });
+    await prisma().currentUserEventsTable.create({
+      data: {
+        workspaceId,
+        version: "v2",
+      },
+    });
 
-      let now = Date.now();
+    let now = Date.now();
 
-      const [userProperties, segments] = await Promise.all([
-        Promise.all(
-          test.userProperties.map(async (up) => {
-            const model = await prisma().userProperty.create({
-              data: {
-                workspaceId,
-                name: up.name,
-                definition: up.definition,
-              },
-            });
-            return unwrap(toUserPropertyResource(model));
-          })
-        ),
-        Promise.all(
-          test.segments.map(async (s) => {
-            const model = await prisma().segment.create({
-              data: {
-                workspaceId,
-                name: s.name,
-                definition: s.definition,
-              },
-            });
-            return unwrap(toSegmentResource(model));
-          })
-        ),
-      ]);
-
-      for (const step of test.steps) {
-        switch (step.type) {
-          case EventsStepType.SubmitEvents:
-            await submitBatch({
+    const [userProperties, segments] = await Promise.all([
+      Promise.all(
+        test.userProperties.map(async (up) => {
+          const model = await prisma().userProperty.create({
+            data: {
               workspaceId,
-              data: step.events,
-              now,
-            });
-            break;
-          case EventsStepType.ComputeProperties:
-            await computeState({
+              name: up.name,
+              definition: up.definition,
+            },
+          });
+          return unwrap(toUserPropertyResource(model));
+        })
+      ),
+      Promise.all(
+        test.segments.map(async (s) => {
+          const model = await prisma().segment.create({
+            data: {
               workspaceId,
-              segments,
-              now,
-              userProperties,
-            });
-            await computeAssignments({
-              workspaceId,
-              segments,
-              userProperties,
-              now,
-            });
-            await processAssignments({
-              workspaceId,
-              segments,
-              integrations: [],
-              journeys: [],
-              userProperties,
-              now,
-            });
-            break;
-          case EventsStepType.Sleep:
-            now += step.timeMs;
-            break;
-          case EventsStepType.Assert:
-            await Promise.all([
-              ...(step.users?.map(async (user) => {
-                await Promise.all([
-                  user.properties
-                    ? findAllUserPropertyAssignments({
-                        userId: user.id,
+              name: s.name,
+              definition: s.definition,
+            },
+          });
+          return unwrap(toSegmentResource(model));
+        })
+      ),
+    ]);
+
+    for (const step of test.steps) {
+      switch (step.type) {
+        case EventsStepType.SubmitEvents:
+          await submitBatch({
+            workspaceId,
+            data: step.events,
+            now,
+          });
+          break;
+        case EventsStepType.ComputeProperties:
+          await computeState({
+            workspaceId,
+            segments,
+            now,
+            userProperties,
+          });
+          await computeAssignments({
+            workspaceId,
+            segments,
+            userProperties,
+            now,
+          });
+          await processAssignments({
+            workspaceId,
+            segments,
+            integrations: [],
+            journeys: [],
+            userProperties,
+            now,
+          });
+          break;
+        case EventsStepType.Sleep:
+          now += step.timeMs;
+          break;
+        case EventsStepType.Assert:
+          await Promise.all([
+            ...(step.users?.map(async (user) => {
+              await Promise.all([
+                user.properties
+                  ? findAllUserPropertyAssignments({
+                      userId: user.id,
+                      workspaceId,
+                    }).then((up) => expect(up).toEqual(user.properties))
+                  : null,
+                user.segments
+                  ? findAllSegmentAssignments({
+                      userId: user.id,
+                      workspaceId,
+                    }).then((s) => expect(s).toEqual(user.segments))
+                  : null,
+              ]);
+            }) ?? []),
+            step.periods
+              ? (async () => {
+                  const periods =
+                    await prisma().computedPropertyPeriod.findMany({
+                      where: {
                         workspaceId,
-                      }).then((up) => expect(up).toEqual(user.properties))
-                    : null,
-                  user.segments
-                    ? findAllSegmentAssignments({
-                        userId: user.id,
-                        workspaceId,
-                      }).then((s) => expect(s).toEqual(user.segments))
-                    : null,
-                ]);
-              }) ?? []),
-              step.periods
-                ? (async () => {
-                    const periods =
-                      await prisma().computedPropertyPeriod.findMany({
-                        where: {
-                          workspaceId,
-                        },
-                        orderBy: {
-                          to: "asc",
-                        },
-                      });
-                    const simplifiedPeriods = periods.map((p) => ({
-                      from: p.from ? p.from.getTime() - now : undefined,
-                      to: p.to.getTime() - now,
-                      step: p.step,
-                    }));
-                    expect(simplifiedPeriods).toEqual(step.periods);
-                  })()
-                : null,
-            ]);
-            break;
-        }
+                      },
+                      orderBy: {
+                        to: "asc",
+                      },
+                    });
+                  const simplifiedPeriods = periods.map((p) => ({
+                    from: p.from ? p.from.getTime() - now : undefined,
+                    to: p.to.getTime() - now,
+                    step: p.step,
+                  }));
+                  expect(simplifiedPeriods).toEqual(step.periods);
+                })()
+              : null,
+          ]);
+          break;
       }
     }
-  );
+  });
 });

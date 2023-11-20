@@ -33,6 +33,8 @@ import {
   SavedIntegrationResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
+  SegmentNode,
+  SegmentNodeType,
   SegmentUpdate,
   UserPropertyDefinitionType,
 } from "../types";
@@ -465,6 +467,32 @@ export async function computeState({
   const subQueryData: SubQueryData[] = [];
 
   for (const segment of segments) {
+    const nodes: SegmentNode[] = [
+      segment.definition.entryNode,
+      ...segment.definition.nodes,
+    ];
+    for (const node of nodes) {
+      let subQuery: SubQueryData;
+
+      switch (node.type) {
+        case SegmentNodeType.Trait: {
+          const stateId = uuidv5(segment.updatedAt.toString(), node.id);
+          const path = qb.addQueryValue(node.path, "String");
+          subQuery = {
+            condition: `event_type == 'identify'`,
+            type: "user_property",
+            uniqValue: "''",
+            argMaxValue: `visitParamExtractString(properties, ${path})`,
+            computedPropertyId: segment.id,
+            stateId,
+          };
+          break;
+        }
+        default:
+          throw new Error(`Unhandled user property type: ${node.type}`);
+      }
+      subQueryData.push(subQuery);
+    }
   }
 
   for (const userProperty of userProperties) {
@@ -475,11 +503,12 @@ export async function computeState({
           userProperty.updatedAt.toString(),
           userProperty.id
         );
+        const path = qb.addQueryValue(userProperty.definition.path, "String");
         subQuery = {
-          condition: `(visitParamExtractString(properties, 'email') as email) != ''`,
+          condition: `event_type == 'identify'`,
           type: "user_property",
           uniqValue: "''",
-          argMaxValue: "email",
+          argMaxValue: `visitParamExtractString(properties, ${path})`,
           computedPropertyId: userProperty.id,
           stateId,
         };
