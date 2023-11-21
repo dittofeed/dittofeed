@@ -877,12 +877,43 @@ export async function computeAssignments({
         break;
       }
       case SegmentNodeType.And: {
-        const childStateIds = node.children.flatMap((childId) =>
-          uuidv5(
+        const conditions: string[] = [];
+        const childStateIds: string[] = [];
+
+        for (const childId of node.children) {
+          const childNode = segment.definition.nodes.find(
+            (n) => n.id === childId
+          );
+          if (!childNode) {
+            logger().error(
+              {
+                segment,
+                childId,
+                node,
+              },
+              "AND child node not found"
+            );
+            continue;
+          }
+          if (childNode.type !== SegmentNodeType.Trait) {
+            throw new Error("not implemented");
+          }
+          if (childNode.operator.type !== SegmentOperatorType.Equals) {
+            throw new Error("not implemented");
+          }
+          const childStateId = uuidv5(
             `${segment.definitionUpdatedAt.toString()}${childId}`,
             segment.id
-          )
-        );
+          );
+          const condition = `inner1.segment_values[${qb.addQueryValue(
+            childStateId,
+            "String"
+          )}] == ${qb.addQueryValue(childNode.operator.value, "String")}`;
+
+          conditions.push(condition);
+          childStateIds.push(childStateId);
+        }
+        const condition = conditions.join(" and ");
 
         query = `
           insert into computed_property_assignments_v2
@@ -891,7 +922,7 @@ export async function computeAssignments({
             inner1.type,
             inner1.computed_property_id,
             inner1.user_id,
-            False as segment_value,
+            ${condition} as segment_value,
             '""' as user_property_value,
             inner1.max_event_time,
             toDateTime64(${nowSeconds}, 3) as assigned_at
@@ -902,7 +933,13 @@ export async function computeAssignments({
               inner2.computed_property_id as computed_property_id,
               inner2.user_id as user_id,
               inner2.max_event_time as max_event_time,
-              groupArray(inner2.segment_value) as segment_values
+              CAST(
+                (
+                  groupArray(inner2.state_id), 
+                  groupArray(inner2.segment_value)
+                ),
+                'Map(String, String)'
+              ) as segment_values
             from (
               select
                 workspace_id,
