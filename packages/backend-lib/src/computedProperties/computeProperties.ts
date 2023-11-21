@@ -201,7 +201,7 @@ export async function createTables() {
         processed_for_type LowCardinality(String),
         segment_value Boolean,
         user_property_value String,
-        max_event_time DateTime64(3), 
+        max_event_time DateTime64(3),
         processed_at DateTime64(3) DEFAULT now64(3),
       )
       ENGINE = ReplacingMergeTree()
@@ -915,8 +915,75 @@ export async function computeAssignments({
         }
         const condition = conditions.join(" and ");
 
-        query = `
-          insert into computed_property_assignments_v2
+        const innerQuery = `
+          select
+            inner2.workspace_id as workspace_id,
+            inner2.type as type,
+            inner2.computed_property_id as computed_property_id,
+            inner2.user_id as user_id,
+            inner2.max_event_time as max_event_time,
+            CAST(
+              (
+                groupArray(inner2.state_id),
+                groupArray(inner2.last_value)
+              ),
+              'Map(String, String)'
+            ) as segment_values
+          from (
+            select
+              workspace_id,
+              type,
+              computed_property_id,
+              user_id,
+              state_id,
+              argMaxMerge(last_value) as last_value,
+              maxMerge(max_event_time) as max_event_time
+            from computed_property_state
+            where
+              (
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+              ) in (
+                select
+                  workspace_id,
+                  type,
+                  computed_property_id,
+                  state_id,
+                  user_id
+                from updated_computed_property_state
+                where
+                  workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                  and type = 'segment'
+                  and computed_property_id = ${qb.addQueryValue(
+                    segment.id,
+                    "String"
+                  )}
+                  and state_id in ${qb.addQueryValue(
+                    childStateIds,
+                    "Array(String)"
+                  )}
+                  and computed_at <= toDateTime64(${nowSeconds}, 3)
+                  ${lowerBoundClause}
+              )
+            group by
+              workspace_id,
+              type,
+              computed_property_id,
+              state_id,
+              user_id
+          ) as inner2
+          group by
+            workspace_id,
+            type,
+            computed_property_id,
+            max_event_time,
+            user_id
+        `;
+
+        const selectQuery = `
           select
             inner1.workspace_id,
             inner1.type,
@@ -926,76 +993,29 @@ export async function computeAssignments({
             '""' as user_property_value,
             inner1.max_event_time,
             toDateTime64(${nowSeconds}, 3) as assigned_at
-          from (
-            select
-              inner2.workspace_id as workspace_id,
-              inner2.type as type,
-              inner2.computed_property_id as computed_property_id,
-              inner2.user_id as user_id,
-              inner2.max_event_time as max_event_time,
-              CAST(
-                (
-                  groupArray(inner2.state_id), 
-                  groupArray(inner2.segment_value)
-                ),
-                'Map(String, String)'
-              ) as segment_values
-            from (
-              select
-                workspace_id,
-                type,
-                computed_property_id,
-                user_id,
-                state_id,
-                False as segment_value,
-                argMaxMerge(last_value) as user_property_values,
-                maxMerge(max_event_time) as max_event_time
-              from computed_property_state
-              where
-                (
-                  workspace_id,
-                  type,
-                  computed_property_id,
-                  state_id,
-                  user_id
-                ) in (
-                  select
-                    workspace_id,
-                    type,
-                    computed_property_id,
-                    state_id,
-                    user_id
-                  from updated_computed_property_state
-                  where
-                    workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-                    and type = 'segment'
-                    and computed_property_id = ${qb.addQueryValue(
-                      segment.id,
-                      "String"
-                    )}
-                    and state_id in ${qb.addQueryValue(
-                      childStateIds,
-                      "Array(String)"
-                    )}
-                    and computed_at <= toDateTime64(${nowSeconds}, 3)
-                    ${lowerBoundClause}
-                )
-              group by
-                workspace_id,
-                type,
-                computed_property_id,
-                state_id,
-                user_id
-            ) as inner2
-            group by
-              workspace_id,
-              type,
-              computed_property_id,
-              max_event_time,
-              user_id
-          ) as inner1;
+          from (${innerQuery}) as inner1;
         `;
 
+        query = `
+          insert into computed_property_assignments_v2
+          ${selectQuery}
+        `;
+
+        const debug1 = await (
+          await clickhouseClient().query({
+            query: selectQuery,
+            query_params: qb.getQueries(),
+          })
+        ).json();
+        const debug2 = await (
+          await clickhouseClient().query({
+            query: innerQuery,
+            query_params: qb.getQueries(),
+          })
+        ).json();
+
+        console.log("and query loc1", JSON.stringify(debug1, null, 2));
+        console.log("and query loc2", JSON.stringify(debug2, null, 2));
         break;
       }
       default:
