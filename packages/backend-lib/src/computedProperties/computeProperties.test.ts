@@ -439,8 +439,8 @@ describe("computeProperties", () => {
     },
     {
       description: "computes an AND segment",
-      userProperties: [],
       only: true,
+      userProperties: [],
       segments: [
         {
           name: "andSegment",

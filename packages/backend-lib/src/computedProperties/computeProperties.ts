@@ -451,6 +451,59 @@ type AggregatedComputedPropertyPeriod = Omit<
   maxTo: ComputedPropertyPeriod["to"];
 };
 
+function segmentNodeToStateSubQuery({
+  segment,
+  node,
+  qb,
+}: {
+  segment: SavedSegmentResource;
+  node: SegmentNode;
+  qb: ClickHouseQueryBuilder;
+}): SubQueryData[] {
+  switch (node.type) {
+    case SegmentNodeType.Trait: {
+      const stateId = uuidv5(
+        `${segment.definitionUpdatedAt.toString()}${node.id}`,
+        segment.id
+      );
+      const path = qb.addQueryValue(node.path, "String");
+      return [
+        {
+          condition: `event_type == 'identify'`,
+          type: "segment",
+          uniqValue: "''",
+          argMaxValue: `visitParamExtractString(properties, ${path})`,
+          computedPropertyId: segment.id,
+          stateId,
+        },
+      ];
+    }
+    case SegmentNodeType.And: {
+      return node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "AND child node not found"
+          );
+          return [];
+        }
+        return segmentNodeToStateSubQuery({
+          node: childNode,
+          segment,
+          qb,
+        });
+      });
+    }
+    default:
+      throw new Error(`Unhandled user property type: ${node.type}`);
+  }
+}
+
 export async function computeState({
   workspaceId,
   segments,
@@ -465,38 +518,16 @@ export async function computeState({
 }) {
   const qb = new ClickHouseQueryBuilder();
   // TODO implement pagination
-  const subQueryData: SubQueryData[] = [];
+  let subQueryData: SubQueryData[] = [];
 
   for (const segment of segments) {
-    const nodes: SegmentNode[] = [
-      segment.definition.entryNode,
-      ...segment.definition.nodes,
-    ];
-    for (const node of nodes) {
-      let subQuery: SubQueryData;
-
-      switch (node.type) {
-        case SegmentNodeType.Trait: {
-          const stateId = uuidv5(
-            segment.definitionUpdatedAt.toString(),
-            node.id
-          );
-          const path = qb.addQueryValue(node.path, "String");
-          subQuery = {
-            condition: `event_type == 'identify'`,
-            type: "segment",
-            uniqValue: "''",
-            argMaxValue: `visitParamExtractString(properties, ${path})`,
-            computedPropertyId: segment.id,
-            stateId,
-          };
-          break;
-        }
-        default:
-          throw new Error(`Unhandled user property type: ${node.type}`);
-      }
-      subQueryData.push(subQuery);
-    }
+    subQueryData = subQueryData.concat(
+      segmentNodeToStateSubQuery({
+        segment,
+        node: segment.definition.entryNode,
+        qb,
+      })
+    );
   }
 
   for (const userProperty of userProperties) {
@@ -752,15 +783,12 @@ export async function computeAssignments({
   segments: SavedSegmentResource[];
   now: number;
 }): Promise<void> {
-  // FIXME new per cp
   const queryies: Promise<unknown>[] = [];
 
   const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
     workspaceId,
     step: ComputedPropertyStep.ComputeAssignments,
   });
-
-  // FIXME segments
 
   const nowSeconds = now / 1000;
 
@@ -774,7 +802,10 @@ export async function computeAssignments({
     const node = segment.definition.entryNode;
     switch (node.type) {
       case SegmentNodeType.Trait: {
-        const stateId = uuidv5(segment.definitionUpdatedAt.toString(), node.id);
+        const stateId = uuidv5(
+          `${segment.definitionUpdatedAt.toString()}${node.id}`,
+          segment.id
+        );
         let condition: string;
         switch (node.operator.type) {
           case SegmentOperatorType.Equals: {
@@ -809,7 +840,7 @@ export async function computeAssignments({
             ${condition} as segment_value,
             '""' as user_property_value,
             maxMerge(max_event_time) as max_event_time,
-            now64(3) as assigned_at
+            toDateTime64(${nowSeconds}, 3) as assigned_at
           from computed_property_state
           where
             (
@@ -845,9 +876,91 @@ export async function computeAssignments({
         `;
         break;
       }
-      // case SegmentNodeType.And: {
+      case SegmentNodeType.And: {
+        const childStateIds = node.children.flatMap((childId) =>
+          uuidv5(
+            `${segment.definitionUpdatedAt.toString()}${childId}`,
+            segment.id
+          )
+        );
 
-      // }
+        query = `
+          insert into computed_property_assignments_v2
+          select
+            inner1.workspace_id,
+            inner1.type,
+            inner1.computed_property_id,
+            inner1.user_id,
+            False as segment_value,
+            '""' as user_property_value,
+            inner1.max_event_time,
+            toDateTime64(${nowSeconds}, 3) as assigned_at
+          from (
+            select
+              inner2.workspace_id as workspace_id,
+              inner2.type as type,
+              inner2.computed_property_id as computed_property_id,
+              inner2.user_id as user_id,
+              inner2.max_event_time as max_event_time,
+              groupArray(inner2.segment_value) as segment_values
+            from (
+              select
+                workspace_id,
+                type,
+                computed_property_id,
+                user_id,
+                state_id,
+                False as segment_value,
+                argMaxMerge(last_value) as user_property_values,
+                maxMerge(max_event_time) as max_event_time
+              from computed_property_state
+              where
+                (
+                  workspace_id,
+                  type,
+                  computed_property_id,
+                  state_id,
+                  user_id
+                ) in (
+                  select
+                    workspace_id,
+                    type,
+                    computed_property_id,
+                    state_id,
+                    user_id
+                  from updated_computed_property_state
+                  where
+                    workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                    and type = 'segment'
+                    and computed_property_id = ${qb.addQueryValue(
+                      segment.id,
+                      "String"
+                    )}
+                    and state_id in ${qb.addQueryValue(
+                      childStateIds,
+                      "Array(String)"
+                    )}
+                    and computed_at <= toDateTime64(${nowSeconds}, 3)
+                    ${lowerBoundClause}
+                )
+              group by
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+            ) as inner2
+            group by
+              workspace_id,
+              type,
+              computed_property_id,
+              max_event_time,
+              user_id
+          ) as inner1;
+        `;
+
+        break;
+      }
       default:
         throw new Error(
           `Unhandled user property type: ${segment.definition.entryNode.type}`
@@ -884,7 +997,7 @@ export async function computeAssignments({
             False as segment_value,
             toJSONString(argMaxMerge(last_value)) as user_property_value,
             maxMerge(max_event_time) as max_event_time,
-            now64(3) as assigned_at
+            toDateTime64(${nowSeconds}, 3) as assigned_at
           from computed_property_state
           where
             (
