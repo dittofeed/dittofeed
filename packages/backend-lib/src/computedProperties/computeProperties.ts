@@ -1000,22 +1000,6 @@ export async function computeAssignments({
           insert into computed_property_assignments_v2
           ${selectQuery}
         `;
-
-        const debug1 = await (
-          await clickhouseClient().query({
-            query: selectQuery,
-            query_params: qb.getQueries(),
-          })
-        ).json();
-        const debug2 = await (
-          await clickhouseClient().query({
-            query: innerQuery,
-            query_params: qb.getQueries(),
-          })
-        ).json();
-
-        console.log("and query loc1", JSON.stringify(debug1, null, 2));
-        console.log("and query loc2", JSON.stringify(debug2, null, 2));
         break;
       }
       default:

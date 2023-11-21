@@ -439,7 +439,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes an AND segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -498,6 +497,75 @@ describe("computeProperties", () => {
               id: "user-1",
               segments: {
                 andSegment: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes within operator trait segment",
+      userProperties: [],
+      only: true,
+      segments: [
+        {
+          name: "newUsers",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: "createdAt",
+              operator: {
+                type: SegmentOperatorType.Within,
+                windowSeconds: 60,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                createdAt: new Date().toISOString(),
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "newUsers",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 60000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "newUsers",
+              segments: {
+                test: false,
               },
             },
           ],
