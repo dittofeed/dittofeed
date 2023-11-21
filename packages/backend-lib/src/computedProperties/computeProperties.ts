@@ -818,14 +818,32 @@ export async function computeAssignments({
             condition = `argMaxMerge(last_value) != ${value}`;
             break;
           }
+          case SegmentOperatorType.Within: {
+            const lowerBound = Math.min(
+              nowSeconds - node.operator.windowSeconds,
+              0
+            );
+            const name = getChCompatibleUuid();
+            condition = `
+              and(
+                not(
+                  isNull(
+                    parseDateTime64BestEffortOrNull(argMaxMerge(last_value)) as ${name}
+                  )
+                ),
+                ${name} >= toDateTime64(${qb.addQueryValue(
+              lowerBound,
+              "UInt64"
+            )}, 3)
+              )
+            `;
+            break;
+          }
           case SegmentOperatorType.Exists: {
             condition = `argMaxMerge(last_value) != '""'`;
             break;
           }
           case SegmentOperatorType.HasBeen: {
-            throw new Error("not implemented");
-          }
-          case SegmentOperatorType.Within: {
             throw new Error("not implemented");
           }
         }
@@ -838,7 +856,7 @@ export async function computeAssignments({
             computed_property_id,
             user_id,
             ${condition} as segment_value,
-            '""' as user_property_value,
+            argMaxMerge(last_value) as user_property_value,
             maxMerge(max_event_time) as max_event_time,
             toDateTime64(${nowSeconds}, 3) as assigned_at
           from computed_property_state
@@ -1113,6 +1131,7 @@ async function processRows({
   workspaceId: string;
   subscribedJourneys: JourneyResource[];
 }): Promise<boolean> {
+  console.log("processRows", rows);
   let hasRows = false;
   const assignments: ComputedAssignment[] = rows
     .map((json) => {

@@ -170,9 +170,15 @@ enum EventsStepType {
   Sleep = "Sleep",
 }
 
+interface StepContext {
+  now: number;
+}
+
+type EventBuilder = (ctx: StepContext) => TableEvent;
+
 interface SubmitEventsStep {
   type: EventsStepType.SubmitEvents;
-  events: TableEvent[];
+  events: (TableEvent | EventBuilder)[];
 }
 
 interface ComputePropertiesStep {
@@ -186,6 +192,7 @@ interface SleepStep {
 
 interface AssertStep {
   type: EventsStepType.Assert;
+  description?: string;
   users?: TableUser[];
   periods?: {
     from?: number;
@@ -528,14 +535,14 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.SubmitEvents,
           events: [
-            {
+            ({ now }) => ({
               type: EventType.Identify,
               offsetMs: -100,
               userId: "user-1",
               traits: {
-                createdAt: new Date().toISOString(),
+                createdAt: new Date(now - 100).toISOString(),
               },
-            },
+            }),
           ],
         },
         {
@@ -543,11 +550,12 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          description: "user is initially within segment window",
           users: [
             {
               id: "newUsers",
               segments: {
-                test: true,
+                newUsers: true,
               },
             },
           ],
@@ -561,11 +569,12 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          description: "user falls outside of segment window after waiting",
           users: [
             {
               id: "newUsers",
               segments: {
-                test: false,
+                newUsers: false,
               },
             },
           ],
@@ -631,13 +640,22 @@ describe("computeProperties", () => {
 
     for (const step of test.steps) {
       switch (step.type) {
-        case EventsStepType.SubmitEvents:
+        case EventsStepType.SubmitEvents: {
+          const events: TableEvent[] = [];
+          for (const event of step.events) {
+            if (typeof event === "function") {
+              events.push(await event({ now }));
+            } else {
+              events.push(event);
+            }
+          }
           await submitBatch({
             workspaceId,
-            data: step.events,
+            data: events,
             now,
           });
           break;
+        }
         case EventsStepType.ComputeProperties:
           await computeState({
             workspaceId,
@@ -671,13 +689,17 @@ describe("computeProperties", () => {
                   ? findAllUserPropertyAssignments({
                       userId: user.id,
                       workspaceId,
-                    }).then((up) => expect(up).toEqual(user.properties))
+                    }).then((up) =>
+                      expect(up, step.description).toEqual(user.properties)
+                    )
                   : null,
                 user.segments
                   ? findAllSegmentAssignments({
                       userId: user.id,
                       workspaceId,
-                    }).then((s) => expect(s).toEqual(user.segments))
+                    }).then((s) =>
+                      expect(s, step.description).toEqual(user.segments)
+                    )
                   : null,
               ]);
             }) ?? []),
@@ -697,7 +719,9 @@ describe("computeProperties", () => {
                     to: p.to.getTime() - now,
                     step: p.step,
                   }));
-                  expect(simplifiedPeriods).toEqual(step.periods);
+                  expect(simplifiedPeriods, step.description).toEqual(
+                    step.periods
+                  );
                 })()
               : null,
           ]);

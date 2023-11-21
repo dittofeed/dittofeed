@@ -23,4 +23,5 @@
     "useUnknownInCatchVariables": true
   },
   "exclude": ["node_modules", "dist"],
+  "files": ["node_modules/jest-expect-message/types/index.d.ts"],
 }
