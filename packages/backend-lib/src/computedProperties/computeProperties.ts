@@ -214,7 +214,7 @@ export async function createTables() {
       );
     `,
     `
-      create table updated_computed_property_state(
+      create table if not exists updated_computed_property_state(
         workspace_id LowCardinality(String),
         type Enum('user_property' = 1, 'segment' = 2),
         computed_property_id LowCardinality(String),
@@ -250,7 +250,7 @@ export async function createTables() {
   );
   const mvQueries = [
     `
-      create materialized view updated_property_assignments_v2_mv to updated_property_assignments_v2
+      create materialized view if not exists updated_property_assignments_v2_mv to updated_property_assignments_v2
       as select
         workspace_id,
         type,
@@ -266,7 +266,7 @@ export async function createTables() {
         assigned_at;
     `,
     `
-      create materialized view updated_computed_property_state_mv to updated_computed_property_state
+      create materialized view if not exists updated_computed_property_state_mv to updated_computed_property_state
       as select
         workspace_id,
         type,
@@ -807,6 +807,7 @@ export async function computeAssignments({
           segment.id
         );
         let condition: string;
+        let debug = "";
         switch (node.operator.type) {
           case SegmentOperatorType.Equals: {
             const value = qb.addQueryValue(node.operator.value, "String");
@@ -819,9 +820,12 @@ export async function computeAssignments({
             break;
           }
           case SegmentOperatorType.Within: {
-            const lowerBound = Math.min(
-              nowSeconds - node.operator.windowSeconds,
-              0
+            const lowerBound = Math.round(
+              Math.max(nowSeconds - node.operator.windowSeconds, 0)
+            );
+            console.log(
+              "lowerBound loc1",
+              new Date(lowerBound * 1000).toISOString()
             );
             const name = getChCompatibleUuid();
             condition = `
@@ -831,12 +835,10 @@ export async function computeAssignments({
                     parseDateTime64BestEffortOrNull(argMaxMerge(last_value)) as ${name}
                   )
                 ),
-                ${name} >= toDateTime64(${qb.addQueryValue(
-              lowerBound,
-              "UInt64"
-            )}, 3)
+                ${name} >= toDateTime64(${lowerBound}, 3)
               )
             `;
+            debug = `formatDateTime(toDateTime64(${lowerBound}, 3), '%Y-%m-%dT%H:%M:%S')`;
             break;
           }
           case SegmentOperatorType.Exists: {
@@ -856,8 +858,8 @@ export async function computeAssignments({
             computed_property_id,
             user_id,
             ${condition} as segment_value,
-            argMaxMerge(last_value) as user_property_value,
-            maxMerge(max_event_time) as max_event_time,
+            concat(argMaxMerge(last_value), ' && ', ${debug}) as user_property_value,
+            maxMerge(max_event_time)  as max_event_time,
             toDateTime64(${nowSeconds}, 3) as assigned_at
           from computed_property_state
           where
@@ -883,8 +885,8 @@ export async function computeAssignments({
                   "String"
                 )}
                 and state_id = ${qb.addQueryValue(stateId, "String")}
-                and computed_at <= toDateTime64(${nowSeconds}, 3)
-                ${lowerBoundClause}
+                -- and computed_at <= toDateTime64(${nowSeconds}, 3)
+                -- ${lowerBoundClause}
             )
           group by
             workspace_id,
@@ -892,6 +894,7 @@ export async function computeAssignments({
             computed_property_id,
             user_id;
         `;
+        console.log("within query loc1", query);
         break;
       }
       case SegmentNodeType.And: {
@@ -1131,7 +1134,12 @@ async function processRows({
   workspaceId: string;
   subscribedJourneys: JourneyResource[];
 }): Promise<boolean> {
-  console.log("processRows", rows);
+  logger().debug(
+    {
+      rows,
+    },
+    "processRows"
+  );
   let hasRows = false;
   const assignments: ComputedAssignment[] = rows
     .map((json) => {
@@ -1278,6 +1286,7 @@ async function processRows({
 
   await insertProcessedComputedProperties({
     assignments: processedAssignments,
+    tableVersion: "v2",
   });
   return hasRows;
 }
@@ -1587,9 +1596,11 @@ export async function processAssignments({
           );
         }
 
+        // FIXME received rows is 0
         // If no rows were fetched in this iteration, break out of the loop.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (receivedRows < readQueryPageSize) {
+          debugger;
           break;
         }
 

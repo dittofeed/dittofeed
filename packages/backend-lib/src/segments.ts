@@ -47,20 +47,19 @@ export async function findAllSegmentAssignments({
   workspaceId: string;
   userId: string;
 }): Promise<Record<string, boolean>> {
-  return (
-    await prisma().segment.findMany({
-      where: {
-        workspaceId,
-      },
-      include: {
-        SegmentAssignment: {
-          where: {
-            userId,
-          },
+  const segments = await prisma().segment.findMany({
+    where: {
+      workspaceId,
+    },
+    include: {
+      SegmentAssignment: {
+        where: {
+          userId,
         },
       },
-    })
-  ).reduce<Record<string, boolean>>((memo, curr) => {
+    },
+  });
+  return segments.reduce<Record<string, boolean>>((memo, curr) => {
     memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? false;
     return memo;
   }, {});
@@ -421,6 +420,8 @@ export async function upsertBulkSegmentAssignments({
       !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
     ) {
       throw e;
+    } else {
+      console.log("P2003 error", e);
     }
   }
 }

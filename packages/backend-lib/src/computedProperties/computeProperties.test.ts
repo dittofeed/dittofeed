@@ -33,6 +33,9 @@ import {
   dropTables,
   processAssignments,
 } from "./computeProperties";
+import logger from "../logger";
+
+jest.setTimeout(Math.pow(10, 5));
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -168,6 +171,7 @@ enum EventsStepType {
   ComputeProperties = "ComputeProperties",
   Assert = "Assert",
   Sleep = "Sleep",
+  DebugAssignments = "DebugAssignments",
 }
 
 interface StepContext {
@@ -183,6 +187,10 @@ interface SubmitEventsStep {
 
 interface ComputePropertiesStep {
   type: EventsStepType.ComputeProperties;
+}
+
+interface DebugAssignmentsStep {
+  type: EventsStepType.DebugAssignments;
 }
 
 interface SleepStep {
@@ -205,7 +213,8 @@ type TableStep =
   | SubmitEventsStep
   | ComputePropertiesStep
   | AssertStep
-  | SleepStep;
+  | SleepStep
+  | DebugAssignmentsStep;
 
 interface TableTest {
   description: string;
@@ -546,14 +555,18 @@ describe("computeProperties", () => {
           ],
         },
         {
+          // FIXME this doesn't seem to be getting called
           type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,
           description: "user is initially within segment window",
           users: [
             {
-              id: "newUsers",
+              id: "user-1",
               segments: {
                 newUsers: true,
               },
@@ -562,17 +575,22 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Sleep,
-          timeMs: 60000,
+          timeMs: 1200000,
         },
+        // FIXME this is not doing anything because of the way we're doing date ranges ie processRows is not getting called
         {
           type: EventsStepType.ComputeProperties,
+        },
+        // FIXME previous rows not being processed until this step, current rows not processed here
+        {
+          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,
           description: "user falls outside of segment window after waiting",
           users: [
             {
-              id: "newUsers",
+              id: "user-1",
               segments: {
                 newUsers: false,
               },
@@ -656,19 +674,40 @@ describe("computeProperties", () => {
           });
           break;
         }
+        case EventsStepType.DebugAssignments: {
+          const assignments = await readAssignments({ workspaceId });
+          debugger;
+          logger().warn(
+            {
+              assignments,
+            },
+            "debug assignments"
+          );
+          break;
+        }
         case EventsStepType.ComputeProperties:
+          logger().debug(
+            {
+              now: new Date(now).toISOString(),
+              step,
+            },
+            "now loc1"
+          );
+          logger().debug("compute state");
           await computeState({
             workspaceId,
             segments,
             now,
             userProperties,
           });
+          logger().debug("compute assignments");
           await computeAssignments({
             workspaceId,
             segments,
             userProperties,
             now,
           });
+          logger().debug("process assignments");
           await processAssignments({
             workspaceId,
             segments,
