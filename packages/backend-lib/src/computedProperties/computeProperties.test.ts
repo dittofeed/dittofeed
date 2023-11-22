@@ -62,11 +62,21 @@ async function readAssignments({
   return values.data;
 }
 
+interface State {
+  type: "segment" | "user_property";
+  computedPropertyId: string;
+  userId: string;
+  max_event_time: string;
+  computed_at: string;
+  last_value: string;
+  unique_count: number;
+}
+
 async function readStates({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<unknown[]> {
+}): Promise<State[]> {
   const qb = new ClickHouseQueryBuilder();
   const query = `
     select
@@ -76,7 +86,8 @@ async function readStates({
       user_id,
       argMaxMerge(last_value) as last_value,
       uniqMerge(unique_count) as unique_count,
-      maxMerge(max_event_time) as max_event_time
+      maxMerge(max_event_time) as max_event_time,
+      computed_at
     from computed_property_state
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
     group by
@@ -85,11 +96,43 @@ async function readStates({
       state_id,
       user_id
   `;
-  const response = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-  });
-  return response.json();
+  const response = (await (
+    await clickhouseClient().query({
+      query,
+      query_params: qb.getQueries(),
+    })
+  ).json()) as { data: State[] };
+  return response.data;
+}
+
+interface Processed {
+  workspace_id: string;
+  user_id: string;
+  type: "segment" | "user_property";
+  computed_property_id: string;
+  processed_for: string;
+  processed_for_type: string;
+  segment_value: number;
+  user_property_value: string;
+  max_event_time: string;
+  processed_at: string;
+}
+
+async function readProcessed({}: {
+  workspaceId: string;
+}): Promise<Processed[]> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select *
+    from processed_computed_properties_v2
+  `;
+  const response: { data: Processed[] } = await (
+    await clickhouseClient().query({
+      query,
+      query_params: qb.getQueries(),
+    })
+  ).json();
+  return response.data;
 }
 
 async function readEvents({
@@ -555,11 +598,7 @@ describe("computeProperties", () => {
           ],
         },
         {
-          // FIXME this doesn't seem to be getting called
           type: EventsStepType.ComputeProperties,
-        },
-        {
-          type: EventsStepType.DebugAssignments,
         },
         {
           type: EventsStepType.Assert,
@@ -575,15 +614,30 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Sleep,
-          timeMs: 1200000,
+          timeMs: 50,
         },
-        // FIXME this is not doing anything because of the way we're doing date ranges ie processRows is not getting called
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user continues to be within the segment window after waiting for a short period",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: true,
+              },
+            },
+          ],
+        },
         {
           type: EventsStepType.ComputeProperties,
         },
-        // FIXME previous rows not being processed until this step, current rows not processed here
         {
-          type: EventsStepType.DebugAssignments,
+          type: EventsStepType.Sleep,
+          timeMs: 1200000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
         },
         {
           type: EventsStepType.Assert,
@@ -676,7 +730,6 @@ describe("computeProperties", () => {
         }
         case EventsStepType.DebugAssignments: {
           const assignments = await readAssignments({ workspaceId });
-          debugger;
           logger().warn(
             {
               assignments,
