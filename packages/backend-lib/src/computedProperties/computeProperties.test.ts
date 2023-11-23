@@ -253,7 +253,7 @@ function toTestState(
       if (!userProperty) {
         throw new Error("userProperty not found");
       }
-      // TODO set nodeId
+      // TODO set nodeId for nested user properties
       return {
         type: "user_property",
         name: userProperty.name,
@@ -907,14 +907,6 @@ describe("computeProperties", () => {
                         s.name === expectedState.name &&
                         s.type === expectedState.type &&
                         s.nodeId === expectedState.nodeId
-                    );
-                    logger().debug(
-                      {
-                        now: new Date(now).toISOString(),
-                        expectedState,
-                        actualState,
-                      },
-                      "assert state"
                     );
                     expect(actualState, step.description).not.toBeUndefined();
                     if (expectedState.lastValue) {

@@ -804,9 +804,6 @@ export async function computeAssignments({
 
   for (const segment of segments) {
     const period = periodByComputedPropertyId.get(segment.id);
-    const lowerBoundClause = period
-      ? `and computed_at >= toDateTime64(${period.maxTo.getTime() / 1000}, 3)`
-      : "";
     const qb = new ClickHouseQueryBuilder();
     let query: string;
     const node = segment.definition.entryNode;
@@ -815,6 +812,7 @@ export async function computeAssignments({
         const stateId = segmentNodeStateId(segment, node.id);
         let condition: string;
         let debug = "''";
+        let isTimeBounded = true;
         switch (node.operator.type) {
           case SegmentOperatorType.Equals: {
             const value = qb.addQueryValue(node.operator.value, "String");
@@ -835,6 +833,7 @@ export async function computeAssignments({
               new Date(lowerBound * 1000).toISOString()
             );
             const name = getChCompatibleUuid();
+            isTimeBounded = false;
             condition = `
               and(
                 not(
@@ -856,6 +855,13 @@ export async function computeAssignments({
             throw new Error("not implemented");
           }
         }
+
+        const lowerBoundClause =
+          period && isTimeBounded
+            ? `and computed_at >= toDateTime64(${
+                period.maxTo.getTime() / 1000
+              }, 3)`
+            : "";
 
         query = `
           insert into computed_property_assignments_v2
@@ -892,7 +898,6 @@ export async function computeAssignments({
                   "String"
                 )}
                 and state_id = ${qb.addQueryValue(stateId, "String")}
-                -- FIXME why isn't this failing?
                 and computed_at <= toDateTime64(${nowSeconds}, 3)
                 ${lowerBoundClause}
             )
@@ -940,6 +945,12 @@ export async function computeAssignments({
           childStateIds.push(childStateId);
         }
         const condition = conditions.join(" and ");
+
+        const lowerBoundClause = period
+          ? `and computed_at >= toDateTime64(${
+              period.maxTo.getTime() / 1000
+            }, 3)`
+          : "";
 
         const innerQuery = `
           select
