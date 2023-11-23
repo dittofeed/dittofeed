@@ -646,6 +646,7 @@ export async function computeState({
       await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
       });
     })
   );
@@ -1034,7 +1035,11 @@ export async function computeAssignments({
     }
 
     queryies.push(
-      clickhouseClient().command({ query, query_params: qb.getQueries() })
+      clickhouseClient().command({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      })
     );
   }
 
@@ -1104,7 +1109,11 @@ export async function computeAssignments({
         );
     }
     queryies.push(
-      clickhouseClient().command({ query, query_params: qb.getQueries() })
+      clickhouseClient().command({
+        query,
+        query_params: qb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      })
     );
   }
   await Promise.all(queryies);
@@ -1576,6 +1585,7 @@ export async function processAssignments({
             query: paginatedReadQuery,
             query_id: pageQueryId,
             format: "JSONEachRow",
+            clickhouse_settings: { wait_end_of_query: 1 },
           })
         );
 

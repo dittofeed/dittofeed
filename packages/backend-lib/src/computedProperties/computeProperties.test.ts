@@ -98,7 +98,8 @@ async function readStates({
       type,
       computed_property_id,
       state_id,
-      user_id
+      user_id,
+      computed_at
   `;
   const response = (await (
     await clickhouseClient().query({
@@ -519,7 +520,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -637,7 +637,7 @@ describe("computeProperties", () => {
     {
       description: "computes within operator trait segment",
       userProperties: [],
-      skip: true,
+      only: true,
       segments: [
         {
           name: "newUsers",
@@ -709,6 +709,15 @@ describe("computeProperties", () => {
               },
             },
           ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "1",
+              lastValue: new Date(now - 100).toISOString(),
+            }),
+          ],
         },
         {
           type: EventsStepType.ComputeProperties,
@@ -731,11 +740,22 @@ describe("computeProperties", () => {
               },
             },
           ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "1",
+              lastValue: new Date(now - 100).toISOString(),
+            }),
+          ],
         },
       ],
     },
   ];
-
+  // FIXME some kind of race condition. getting different failures every time
+  // got events table doesn't exist error
+  // got user falls outside of segment window after waiting
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
 
@@ -887,6 +907,14 @@ describe("computeProperties", () => {
                         s.name === expectedState.name &&
                         s.type === expectedState.type &&
                         s.nodeId === expectedState.nodeId
+                    );
+                    logger().debug(
+                      {
+                        now: new Date(now).toISOString(),
+                        expectedState,
+                        actualState,
+                      },
+                      "assert state"
                     );
                     expect(actualState, step.description).not.toBeUndefined();
                     if (expectedState.lastValue) {
