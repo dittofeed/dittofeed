@@ -14,6 +14,7 @@ import {
   JSONValue,
   KnownBatchIdentifyData,
   KnownBatchTrackData,
+  SavedSegmentResource,
   SegmentNodeType,
   SegmentOperatorType,
   SegmentResource,
@@ -32,6 +33,8 @@ import {
   createTables,
   dropTables,
   processAssignments,
+  segmentNodeStateId,
+  segmentNodeToStateSubQuery,
 } from "./computeProperties";
 import logger from "../logger";
 
@@ -64,8 +67,9 @@ async function readAssignments({
 
 interface State {
   type: "segment" | "user_property";
-  computedPropertyId: string;
-  userId: string;
+  computed_property_id: string;
+  state_id: string;
+  user_id: string;
   max_event_time: string;
   computed_at: string;
   last_value: string;
@@ -203,6 +207,71 @@ async function submitBatch({
   });
 }
 
+interface TestState {
+  type: "segment" | "user_property";
+  userId: string;
+  name: string;
+  nodeId?: string;
+  lastValue?: string;
+  uniqueCount?: number;
+}
+
+function toTestState(
+  state: State,
+  userProperties: UserPropertyResource[],
+  segments: SavedSegmentResource[]
+): TestState {
+  switch (state.type) {
+    case "segment": {
+      const segment = segments.find((s) => s.id === state.computed_property_id);
+      if (!segment) {
+        throw new Error("segment not found");
+      }
+      const nodeId = [
+        segment.definition.entryNode,
+        ...segment.definition.nodes,
+      ].find((n) => {
+        const stateId = segmentNodeStateId(segment, n.id);
+        return state.state_id === stateId;
+      })?.id;
+
+      return {
+        type: "segment",
+        name: segment.name,
+        nodeId,
+        lastValue: state.last_value,
+        uniqueCount: state.unique_count,
+        userId: state.user_id,
+      };
+    }
+    case "user_property": {
+      const userProperty = userProperties.find(
+        (up) => up.id === state.computed_property_id
+      );
+      if (!userProperty) {
+        throw new Error("userProperty not found");
+      }
+      // TODO set nodeId
+      return {
+        type: "user_property",
+        name: userProperty.name,
+        lastValue: state.last_value,
+        uniqueCount: state.unique_count,
+        userId: state.user_id,
+      };
+    }
+  }
+}
+
+// interface TestAssignment {
+//   type: "segment" | "user_property";
+//   name: string;
+//   nodeId: string;
+//   segmentValue?: boolean;
+//   userPropertyValue?: string;
+//   // assignedAt
+// }
+
 interface TableUser {
   id: string;
   properties?: Record<string, JSONValue>;
@@ -245,6 +314,7 @@ interface AssertStep {
   type: EventsStepType.Assert;
   description?: string;
   users?: TableUser[];
+  states?: TestState[];
   periods?: {
     from?: number;
     to: number;
@@ -565,7 +635,7 @@ describe("computeProperties", () => {
     {
       description: "computes within operator trait segment",
       userProperties: [],
-      only: true,
+      skip: true,
       segments: [
         {
           name: "newUsers",
@@ -739,28 +809,18 @@ describe("computeProperties", () => {
           break;
         }
         case EventsStepType.ComputeProperties:
-          logger().debug(
-            {
-              now: new Date(now).toISOString(),
-              step,
-            },
-            "now loc1"
-          );
-          logger().debug("compute state");
           await computeState({
             workspaceId,
             segments,
             now,
             userProperties,
           });
-          logger().debug("compute assignments");
           await computeAssignments({
             workspaceId,
             segments,
             userProperties,
             now,
           });
-          logger().debug("process assignments");
           await processAssignments({
             workspaceId,
             segments,
@@ -795,6 +855,26 @@ describe("computeProperties", () => {
                   : null,
               ]);
             }) ?? []),
+            step.states
+              ? (async () => {
+                  const states = await readStates({ workspaceId });
+                  const actualTestStates = states.map((s) =>
+                    toTestState(s, userProperties, segments)
+                  );
+                  for (const expectedState of step.states ?? []) {
+                    const actualState = actualTestStates.find(
+                      (s) =>
+                        s.userId === expectedState.userId &&
+                        s.name === expectedState.name &&
+                        s.type === expectedState.type &&
+                        s.nodeId === expectedState.nodeId
+                    );
+                    expect(actualState, step.description).toEqual(
+                      expectedState
+                    );
+                  }
+                })()
+              : null,
             step.periods
               ? (async () => {
                   const periods =

@@ -451,7 +451,7 @@ type AggregatedComputedPropertyPeriod = Omit<
   maxTo: ComputedPropertyPeriod["to"];
 };
 
-function segmentNodeToStateSubQuery({
+export function segmentNodeToStateSubQuery({
   segment,
   node,
   qb,
@@ -502,6 +502,18 @@ function segmentNodeToStateSubQuery({
     default:
       throw new Error(`Unhandled user property type: ${node.type}`);
   }
+}
+
+export function segmentNodeStateId(
+  segment: SavedSegmentResource,
+  nodeId: string
+): string {
+  return uuidv5(
+    `${segment.definitionUpdatedAt.toString()}:${
+      segment.definition.entryNode.id
+    }`,
+    segment.id
+  );
 }
 
 export async function computeState({
@@ -802,10 +814,7 @@ export async function computeAssignments({
     const node = segment.definition.entryNode;
     switch (node.type) {
       case SegmentNodeType.Trait: {
-        const stateId = uuidv5(
-          `${segment.definitionUpdatedAt.toString()}${node.id}`,
-          segment.id
-        );
+        const stateId = segmentNodeStateId(segment, node.id);
         let condition: string;
         let debug = "";
         switch (node.operator.type) {
@@ -885,8 +894,9 @@ export async function computeAssignments({
                   "String"
                 )}
                 and state_id = ${qb.addQueryValue(stateId, "String")}
-                -- and computed_at <= toDateTime64(${nowSeconds}, 3)
-                -- ${lowerBoundClause}
+                -- FIXME why isn't this failing?
+                and computed_at <= toDateTime64(${nowSeconds}, 3)
+                ${lowerBoundClause}
             )
           group by
             workspace_id,
@@ -922,10 +932,7 @@ export async function computeAssignments({
           if (childNode.operator.type !== SegmentOperatorType.Equals) {
             throw new Error("not implemented");
           }
-          const childStateId = uuidv5(
-            `${segment.definitionUpdatedAt.toString()}${childId}`,
-            segment.id
-          );
+          const childStateId = segmentNodeStateId(segment, childNode.id);
           const condition = `inner1.segment_values[${qb.addQueryValue(
             childStateId,
             "String"
@@ -1048,7 +1055,6 @@ export async function computeAssignments({
           userProperty.definitionUpdatedAt.toString(),
           userProperty.id
         );
-        // FIXME reuse
         query = `
           insert into computed_property_assignments_v2
           select
@@ -1596,7 +1602,6 @@ export async function processAssignments({
           );
         }
 
-        // FIXME received rows is 0
         // If no rows were fetched in this iteration, break out of the loop.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (receivedRows < readQueryPageSize) {

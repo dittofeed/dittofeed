@@ -425,3 +425,13 @@ export async function upsertBulkSegmentAssignments({
     }
   }
 }
+
+export function getSegmentNode(
+  definition: SegmentDefinition,
+  id: string
+): SegmentNode | null {
+  if (definition.entryNode.id === id) {
+    return definition.entryNode;
+  }
+  return definition.nodes.find((node) => node.id === id) || null;
+}
