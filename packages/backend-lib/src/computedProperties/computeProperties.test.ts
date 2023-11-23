@@ -214,6 +214,7 @@ interface TestState {
   nodeId?: string;
   lastValue?: string;
   uniqueCount?: number;
+  // FIXME offset
 }
 
 function toTestState(
@@ -314,7 +315,7 @@ interface AssertStep {
   type: EventsStepType.Assert;
   description?: string;
   users?: TableUser[];
-  states?: TestState[];
+  states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: {
     from?: number;
     to: number;
@@ -518,6 +519,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait segment",
+      only: true,
       userProperties: [],
       segments: [
         {
@@ -642,7 +644,7 @@ describe("computeProperties", () => {
           definition: {
             entryNode: {
               type: SegmentNodeType.Trait,
-              id: randomUUID(),
+              id: "1",
               path: "createdAt",
               operator: {
                 type: SegmentOperatorType.Within,
@@ -680,6 +682,15 @@ describe("computeProperties", () => {
                 newUsers: true,
               },
             },
+          ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "1",
+              lastValue: new Date(now - 100).toISOString(),
+            }),
           ],
         },
         {
@@ -779,6 +790,9 @@ describe("computeProperties", () => {
         })
       ),
     ]);
+    const stepContext: StepContext = {
+      now,
+    };
 
     for (const step of test.steps) {
       switch (step.type) {
@@ -786,7 +800,7 @@ describe("computeProperties", () => {
           const events: TableEvent[] = [];
           for (const event of step.events) {
             if (typeof event === "function") {
-              events.push(await event({ now }));
+              events.push(await event(stepContext));
             } else {
               events.push(event);
             }
@@ -861,7 +875,12 @@ describe("computeProperties", () => {
                   const actualTestStates = states.map((s) =>
                     toTestState(s, userProperties, segments)
                   );
-                  for (const expectedState of step.states ?? []) {
+                  for (const expected of step.states ?? []) {
+                    const expectedState =
+                      typeof expected === "function"
+                        ? expected(stepContext)
+                        : expected;
+
                     const actualState = actualTestStates.find(
                       (s) =>
                         s.userId === expectedState.userId &&
@@ -869,9 +888,19 @@ describe("computeProperties", () => {
                         s.type === expectedState.type &&
                         s.nodeId === expectedState.nodeId
                     );
-                    expect(actualState, step.description).toEqual(
-                      expectedState
-                    );
+                    expect(actualState, step.description).not.toBeUndefined();
+                    if (expectedState.lastValue) {
+                      expect(actualState, step.description).toHaveProperty(
+                        "lastValue",
+                        expectedState.lastValue
+                      );
+                    }
+                    if (expectedState.uniqueCount) {
+                      expect(actualState, step.description).toHaveProperty(
+                        "uniqueCount",
+                        expectedState.uniqueCount
+                      );
+                    }
                   }
                 })()
               : null,

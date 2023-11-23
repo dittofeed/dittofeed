@@ -462,10 +462,7 @@ export function segmentNodeToStateSubQuery({
 }): SubQueryData[] {
   switch (node.type) {
     case SegmentNodeType.Trait: {
-      const stateId = uuidv5(
-        `${segment.definitionUpdatedAt.toString()}${node.id}`,
-        segment.id
-      );
+      const stateId = segmentNodeStateId(segment, node.id);
       const path = qb.addQueryValue(node.path, "String");
       return [
         {
@@ -816,7 +813,7 @@ export async function computeAssignments({
       case SegmentNodeType.Trait: {
         const stateId = segmentNodeStateId(segment, node.id);
         let condition: string;
-        let debug = "";
+        let debug = "''";
         switch (node.operator.type) {
           case SegmentOperatorType.Equals: {
             const value = qb.addQueryValue(node.operator.value, "String");
@@ -904,7 +901,7 @@ export async function computeAssignments({
             computed_property_id,
             user_id;
         `;
-        console.log("within query loc1", query);
+        console.log("trait segment query loc1", query);
         break;
       }
       case SegmentNodeType.And: {
