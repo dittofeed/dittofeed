@@ -44,7 +44,7 @@ export default async function usersController(fastify: FastifyInstance) {
     }
   );
 
-  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+  fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
     "/",
     {
       schema: {
