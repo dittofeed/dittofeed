@@ -6,7 +6,7 @@ import {
   GetUsersRequest,
   GetUsersResponse,
 } from "backend-lib/src/types";
-import { getUsers } from "backend-lib/src/users";
+import { deleteUsers, getUsers } from "backend-lib/src/users";
 import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -56,6 +56,9 @@ export default async function usersController(fastify: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {}
+    async (request, reply) => {
+      await deleteUsers(request.body);
+      return reply.status(204).send();
+    }
   );
 }
