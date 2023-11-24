@@ -3,7 +3,11 @@ import { times } from "remeda";
 
 import { submitBatch } from "./apps";
 import config from "./config";
-import { searchDeliveries } from "./deliveries";
+import {
+  parseSearchDeliveryRow,
+  searchDeliveries,
+  SearchDeliveryRow,
+} from "./deliveries";
 import prisma from "./prisma";
 import {
   BatchItem,
@@ -397,6 +401,32 @@ describe("deliveries", () => {
         expect(deliveries.items).toHaveLength(5);
         expect(deliveries.cursor).toBeUndefined();
       });
+    });
+  });
+  describe("parseSearchDeliveryRow", () => {
+    it("accepts either messageType or channel", () => {
+      const row: SearchDeliveryRow = {
+        sent_at: "2023-08-01 01:41:18.585",
+        updated_at: "2023-08-01 01:41:18.585",
+        last_event: "DFInternalMessageSent",
+        origin_message_id: "043ddf20-b4a6-4e88-a7b6-15c88b9617de",
+        user_or_anonymous_id: "3dae7dd0-cc99-4a76-b298-af33dd606b27",
+        workspace_id: "4f0732c7-e505-45f1-b052-4d08e30e7c33",
+        properties: JSON.stringify({
+          messageType: "Email",
+          emailProvider: "SendGrid",
+          nodeId: "60b133f1-9957-4aa8-a8df-8a26b8e577db",
+          to: "test1@email.com",
+          from: "test2@email.com",
+          subject: "subject",
+          body: "body",
+          templateId: "bd9dad3b-7cc5-427c-8838-6aa5cbc4dd0b",
+          runId: "2dffde47-0438-423e-bc36-7c6f1d635677",
+          journeyId: "d2dd13d3-d905-4a83-b9c2-eeb9c1f4bea2",
+        }),
+      };
+      const result = parseSearchDeliveryRow(row);
+      expect(result).not.toBeNull();
     });
   });
 });
