@@ -5,6 +5,8 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
+import { clickhouseClient,ClickHouseQueryBuilder } from "./clickhouse";
+import config from "./config";
 import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import prisma from "./prisma";
@@ -16,8 +18,6 @@ import {
   GetUsersResponseItem,
   Prisma,
 } from "./types";
-import { ClickHouseQueryBuilder, clickhouseClient } from "./clickhouse";
-import config from "./config";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 const UsersQueryItem = Type.Object({
@@ -269,6 +269,7 @@ export async function deleteUsers({
   workspaceId,
   userIds,
 }: DeleteUsersRequest): Promise<void> {
+  // TODO delete intermediate state in ch
   const qb = new ClickHouseQueryBuilder();
   const query = `
     ALTER TABLE ${buildUserEventsTableName(

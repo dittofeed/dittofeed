@@ -2,6 +2,9 @@ import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
+import { submitBatch } from "./apps";
+import { clickhouseClient } from "./clickhouse";
+import config from "./config";
 import prisma from "./prisma";
 import {
   EventType,
@@ -10,11 +13,8 @@ import {
   SegmentOperatorType,
   UserPropertyDefinitionType,
 } from "./types";
-import { deleteUsers, getUsers } from "./users";
-import { submitBatch } from "./apps";
-import { clickhouseClient } from "./clickhouse";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
-import config from "./config";
+import { deleteUsers, getUsers } from "./users";
 
 describe("getUsers", () => {
   let workspace: Workspace;
