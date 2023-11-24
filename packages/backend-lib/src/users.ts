@@ -265,7 +265,7 @@ export async function getUsers({
   return ok(val);
 }
 
-export async function deleteUser({
+export async function deleteUsers({
   workspaceId,
   userIds,
 }: DeleteUsersRequest): Promise<void> {

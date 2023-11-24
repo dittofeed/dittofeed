@@ -10,7 +10,7 @@ import {
   SegmentOperatorType,
   UserPropertyDefinitionType,
 } from "./types";
-import { getUsers } from "./users";
+import { deleteUsers, getUsers } from "./users";
 import { submitBatch } from "./apps";
 import { clickhouseClient } from "./clickhouse";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
@@ -268,17 +268,23 @@ describe("getUsers", () => {
         }),
       ]);
     });
-    it.only("deletes users", async () => {
+    it("deletes users", async () => {
+      await deleteUsers({
+        workspaceId: workspace.id,
+        userIds: [userIds[0]],
+      });
       const eventsQuery = `select * from ${buildUserEventsTableName(
         config().defaultUserEventsTableVersion
       )} where workspace_id = '${workspace.id}'`;
-      console.log(eventsQuery);
       const events: { data: unknown[] } = await (
         await clickhouseClient().query({
           query: eventsQuery,
         })
       ).json();
       expect(events.data).toHaveLength(1);
+      expect(events.data[0]).toEqual(
+        expect.objectContaining({ user_id: userIds[1] })
+      );
       const userPropertyAssignments =
         await prisma().userPropertyAssignment.findMany({
           where: {
@@ -286,6 +292,7 @@ describe("getUsers", () => {
           },
         });
       expect(userPropertyAssignments).toHaveLength(1);
+      expect(userPropertyAssignments[0]?.userId).toEqual(userIds[1]);
     });
   });
 });
