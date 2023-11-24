@@ -192,6 +192,26 @@ export async function createTables() {
       );
     `,
     `
+      CREATE TABLE IF NOT EXISTS computed_property_assignments_records (
+        workspace_id LowCardinality(String),
+        type Enum('user_property' = 1, 'segment' = 2),
+        computed_property_id LowCardinality(String),
+        user_id String,
+        segment_value Boolean,
+        user_property_value String,
+        max_event_time DateTime64(3),
+        min_event_time DateTime64(3),
+        assigned_at DateTime64(3) DEFAULT now64(3),
+      )
+      ENGINE = ReplacingMergeTree()
+      ORDER BY (
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id,
+      );
+    `,
+    `
       CREATE TABLE IF NOT EXISTS processed_computed_properties_v2 (
         workspace_id LowCardinality(String),
         user_id String,
@@ -611,6 +631,7 @@ export async function computeState({
         )
         .join(", ");
 
+      // join results table
       const query = `
         insert into computed_property_state
         select

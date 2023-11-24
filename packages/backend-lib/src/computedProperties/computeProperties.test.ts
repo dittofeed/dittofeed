@@ -215,7 +215,6 @@ interface TestState {
   nodeId?: string;
   lastValue?: string;
   uniqueCount?: number;
-  // FIXME offset
 }
 
 function toTestState(
