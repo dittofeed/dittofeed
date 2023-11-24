@@ -19,7 +19,7 @@ import {
 import { getTableVersion } from "./userEvents";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
-const SearchDeliveryRow = Type.Object({
+export const SearchDeliveryRow = Type.Object({
   last_event: Type.String(),
   properties: Type.String(),
   updated_at: Type.String(),
@@ -29,7 +29,7 @@ const SearchDeliveryRow = Type.Object({
   user_or_anonymous_id: Type.String(),
 });
 
-type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
+export type SearchDeliveryRow = Static<typeof SearchDeliveryRow>;
 
 const OffsetKey = "o" as const;
 
@@ -61,6 +61,43 @@ function serializeCursorOffset(offset: number): string {
   return serializeCursor({
     [OffsetKey]: offset,
   });
+}
+
+export function parseSearchDeliveryRow(
+  row: SearchDeliveryRow
+): SearchDeliveriesResponseItem | null {
+  const properties = row.properties.length
+    ? (JSON.parse(row.properties) as Record<string, unknown>)
+    : {};
+  const unvalidatedItem = {
+    sentAt: row.sent_at,
+    updatedAt: row.updated_at,
+    status: row.last_event,
+    originMessageId: row.origin_message_id,
+    userId: row.user_or_anonymous_id,
+    channel:
+      properties.messageType && !properties.channnel
+        ? properties.messageType
+        : undefined,
+    ...properties,
+  };
+
+  const itemResult = schemaValidateWithErr(
+    unvalidatedItem,
+    SearchDeliveriesResponseItem
+  );
+
+  if (itemResult.isErr()) {
+    logger().error(
+      {
+        unvalidatedItem,
+        err: itemResult.error,
+      },
+      "Failed to parse delivery item from clickhouse"
+    );
+    return null;
+  }
+  return itemResult.value;
 }
 
 export async function searchDeliveries({
@@ -132,35 +169,12 @@ export async function searchDeliveries({
   const items: SearchDeliveriesResponseItem[] = [];
   await streamClickhouseQuery(result, (rows) => {
     for (const row of rows) {
-      const parsed = unwrap(schemaValidateWithErr(row, SearchDeliveryRow));
-      const properties = parsed.properties.length
-        ? (JSON.parse(parsed.properties) as Record<string, unknown>)
-        : {};
-      const unvalidatedItem = {
-        sentAt: parsed.sent_at,
-        updatedAt: parsed.updated_at,
-        status: parsed.last_event,
-        originMessageId: parsed.origin_message_id,
-        userId: parsed.user_or_anonymous_id,
-        ...properties,
-      };
-
-      const itemResult = schemaValidateWithErr(
-        unvalidatedItem,
-        SearchDeliveriesResponseItem
-      );
-
-      if (itemResult.isErr()) {
-        logger().error(
-          {
-            unvalidatedItem,
-            err: itemResult.error,
-          },
-          "Failed to parse delivery item from clickhouse"
-        );
+      const parsedRow = unwrap(schemaValidateWithErr(row, SearchDeliveryRow));
+      const parsedItem = parseSearchDeliveryRow(parsedRow);
+      if (!parsedItem) {
         continue;
       }
-      items.push(itemResult.value);
+      items.push(parsedItem);
     }
   });
 
