@@ -25,7 +25,7 @@ export interface InsertValue {
 }
 
 export function buildUserEventsTableName(tableVersion: string) {
-  return `${config().clickhouseDatabase}.user_events_${tableVersion}`;
+  return `user_events_${tableVersion}`;
 }
 
 // TODO route through kafka

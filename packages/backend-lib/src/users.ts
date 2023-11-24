@@ -5,16 +5,20 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
+import { clickhouseClient,ClickHouseQueryBuilder } from "./clickhouse";
+import config from "./config";
 import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import prisma from "./prisma";
 import {
   CursorDirectionEnum,
+  DeleteUsersRequest,
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
   Prisma,
 } from "./types";
+import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 const UsersQueryItem = Type.Object({
   type: Type.Union([Type.Literal(0), Type.Literal(1)]),
@@ -259,4 +263,35 @@ export async function getUsers({
   }
 
   return ok(val);
+}
+
+export async function deleteUsers({
+  workspaceId,
+  userIds,
+}: DeleteUsersRequest): Promise<void> {
+  // TODO delete intermediate state in ch
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    ALTER TABLE ${buildUserEventsTableName(
+      config().defaultUserEventsTableVersion
+    )}  DELETE WHERE workspace_id = ${qb.addQueryValue(
+    workspaceId,
+    "String"
+  )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});
+  `;
+  await clickhouseClient().command({
+    query,
+    query_params: qb.getQueries(),
+    clickhouse_settings: {
+      wait_end_of_query: 1,
+    },
+  });
+  await prisma().userPropertyAssignment.deleteMany({
+    where: {
+      workspaceId,
+      userId: {
+        in: userIds,
+      },
+    },
+  });
 }

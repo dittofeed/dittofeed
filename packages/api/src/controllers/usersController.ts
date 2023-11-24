@@ -1,10 +1,12 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   BadRequestResponse,
+  DeleteUsersRequest,
+  EmptyResponse,
   GetUsersRequest,
   GetUsersResponse,
 } from "backend-lib/src/types";
-import { getUsers } from "backend-lib/src/users";
+import { deleteUsers, getUsers } from "backend-lib/src/users";
 import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -39,6 +41,24 @@ export default async function usersController(fastify: FastifyInstance) {
         nextCursor,
         previousCursor,
       });
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/",
+    {
+      schema: {
+        description:
+          "Delete events, and computed properties and segments for specific users.",
+        body: DeleteUsersRequest,
+        response: {
+          204: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      await deleteUsers(request.body);
+      return reply.status(204).send();
     }
   );
 }
