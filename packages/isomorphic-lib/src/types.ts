@@ -2154,3 +2154,10 @@ export type SendgridSecret = Static<typeof SendgridSecret>;
 export const EmailProviderSecrets = Type.Union([SendgridSecret]);
 
 export type EmailProviderSecrets = Static<typeof EmailProviderSecrets>;
+
+export const DeleteUsersRequest = Type.Object({
+  workspaceId: Type.String(),
+  userIds: Type.Array(Type.String()),
+});
+
+export type DeleteUsersRequest = Static<typeof DeleteUsersRequest>;

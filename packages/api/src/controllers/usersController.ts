@@ -1,6 +1,8 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import {
   BadRequestResponse,
+  DeleteUsersRequest,
+  EmptyResponse,
   GetUsersRequest,
   GetUsersResponse,
 } from "backend-lib/src/types";
@@ -40,5 +42,20 @@ export default async function usersController(fastify: FastifyInstance) {
         previousCursor,
       });
     }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/",
+    {
+      schema: {
+        description:
+          "Delete events, and computed properties and segments for specific users.",
+        body: DeleteUsersRequest,
+        response: {
+          204: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {}
   );
 }

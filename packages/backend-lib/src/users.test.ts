@@ -4,12 +4,17 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import prisma from "./prisma";
 import {
+  EventType,
   SegmentDefinition,
   SegmentNodeType,
   SegmentOperatorType,
   UserPropertyDefinitionType,
 } from "./types";
 import { getUsers } from "./users";
+import { submitBatch } from "./apps";
+import { clickhouseClient } from "./clickhouse";
+import { buildUserEventsTableName } from "./userEvents/clickhouse";
+import config from "./config";
 
 describe("getUsers", () => {
   let workspace: Workspace;
@@ -200,6 +205,87 @@ describe("getUsers", () => {
           },
         ],
       });
+    });
+  });
+
+  describe("deleteUsers", () => {
+    let userIds: [string, string];
+
+    beforeEach(async () => {
+      userIds = [
+        "185410bb-60e0-407a-95bb-4568ad450ff9",
+        "787ec382-1f3a-4375-ae7d-2dae8b863991",
+      ];
+      const firstNameProperty = await prisma().userProperty.create({
+        data: {
+          name: "firstName",
+          workspaceId: workspace.id,
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "firstName",
+          },
+        },
+      });
+      await submitBatch({
+        workspaceId: workspace.id,
+        data: {
+          batch: [
+            {
+              userId: userIds[0],
+              type: EventType.Identify,
+              messageId: "1",
+              traits: {
+                firstName: "max",
+              },
+            },
+            {
+              userId: userIds[1],
+              type: EventType.Identify,
+              messageId: "2",
+              traits: {
+                firstName: "chandler",
+              },
+            },
+          ],
+        },
+      });
+      await Promise.all([
+        prisma().userPropertyAssignment.createMany({
+          data: [
+            {
+              userPropertyId: firstNameProperty.id,
+              workspaceId: workspace.id,
+              userId: userIds[0],
+              value: JSON.stringify("max"),
+            },
+            {
+              userPropertyId: firstNameProperty.id,
+              workspaceId: workspace.id,
+              userId: userIds[1],
+              value: JSON.stringify("chandler"),
+            },
+          ],
+        }),
+      ]);
+    });
+    it.only("deletes users", async () => {
+      const eventsQuery = `select * from ${buildUserEventsTableName(
+        config().defaultUserEventsTableVersion
+      )} where workspace_id = '${workspace.id}'`;
+      console.log(eventsQuery);
+      const events: { data: unknown[] } = await (
+        await clickhouseClient().query({
+          query: eventsQuery,
+        })
+      ).json();
+      expect(events.data).toHaveLength(1);
+      const userPropertyAssignments =
+        await prisma().userPropertyAssignment.findMany({
+          where: {
+            workspaceId: workspace.id,
+          },
+        });
+      expect(userPropertyAssignments).toHaveLength(1);
     });
   });
 });

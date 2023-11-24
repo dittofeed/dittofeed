@@ -37,18 +37,9 @@ async function insertUserEventsDirect({
   userEvents,
   asyncInsert,
 }: InsertUserEventsParams & { asyncInsert?: boolean }) {
-  const currentTable = await prisma().currentUserEventsTable.findUnique({
-    where: {
-      workspaceId,
-    },
-  });
-  if (!currentTable) {
-    logger().error("Missing current table.");
-    return;
-  }
-
+  const version = await getCurrentUserEventsTable({ workspaceId });
   await clickhouseClient().insert({
-    table: `user_events_${currentTable.version} (message_raw, processing_time, workspace_id, message_id)`,
+    table: `user_events_${version} (message_raw, processing_time, workspace_id, message_id)`,
     values: userEvents.map((e) => {
       const value: {
         message_raw: string;
@@ -66,6 +57,7 @@ async function insertUserEventsDirect({
     clickhouse_settings: {
       async_insert: asyncInsert ? 1 : undefined,
       wait_for_async_insert: asyncInsert ? 1 : undefined,
+      wait_end_of_query: asyncInsert ? undefined : 1,
     },
     format: "JSONEachRow",
   });
