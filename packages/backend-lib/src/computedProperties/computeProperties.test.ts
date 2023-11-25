@@ -15,6 +15,7 @@ import {
   KnownBatchIdentifyData,
   KnownBatchTrackData,
   SavedSegmentResource,
+  SegmentHasBeenOperatorComparator,
   SegmentNodeType,
   SegmentOperatorType,
   SegmentResource,
@@ -749,6 +750,84 @@ describe("computeProperties", () => {
               nodeId: "1",
               lastValue: new Date(now - 100).toISOString(),
             }),
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes HasBeen operator trait segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "stuckOnboarding",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: "1",
+              path: "status",
+              operator: {
+                type: SegmentOperatorType.HasBeen,
+                value: "onboarding",
+                comparator: SegmentHasBeenOperatorComparator.GTE,
+                windowSeconds: 60 * 60 * 24 * 7,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                status: "onboarding",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 50,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is initially not stuck onboarding",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                stuckOnboarding: false,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          // 1 week + 1 minute
+          timeMs: 1000 * 60 * 60 * 24 * 7 + 60 * 1000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "after remaining onboarding for over a week the user is stuck onboarding",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                stuckOnboarding: true,
+              },
+            },
           ],
         },
       ],
