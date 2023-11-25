@@ -472,7 +472,7 @@ export function segmentNodeToStateSubQuery({
         {
           condition: `event_type == 'identify'`,
           type: "segment",
-          uniqValue: "",
+          uniqValue: "''",
           argMaxValue: `visitParamExtractString(properties, ${path})`,
           computedPropertyId: segment.id,
           stateId,
@@ -598,6 +598,8 @@ export async function computeState({
         period !== 0
           ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
           : ``;
+
+      console.log("loc3", periodSubQueries);
 
       const subQueries = periodSubQueries
         .map(

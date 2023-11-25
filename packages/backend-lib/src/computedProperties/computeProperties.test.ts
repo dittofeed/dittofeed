@@ -521,7 +521,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -639,6 +638,7 @@ describe("computeProperties", () => {
     {
       description: "computes within operator trait segment",
       userProperties: [],
+      only: true,
       segments: [
         {
           name: "newUsers",
@@ -675,8 +675,81 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          description: "segment is ignored",
-          users: [],
+          description: "user is initially within segment window",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: true,
+              },
+            },
+          ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "1",
+              lastValue: new Date(now - 100).toISOString(),
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 50,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user continues to be within the segment window after waiting for a short period",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: true,
+              },
+            },
+          ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "1",
+              lastValue: new Date(now - 100).toISOString(),
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1200000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user falls outside of segment window after waiting",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: false,
+              },
+            },
+          ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "1",
+              lastValue: new Date(now - 100).toISOString(),
+            }),
+          ],
         },
       ],
     },
