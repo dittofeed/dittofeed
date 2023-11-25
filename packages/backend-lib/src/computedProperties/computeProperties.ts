@@ -192,26 +192,6 @@ export async function createTables() {
       );
     `,
     `
-      CREATE TABLE IF NOT EXISTS computed_property_assignments_records (
-        workspace_id LowCardinality(String),
-        type Enum('user_property' = 1, 'segment' = 2),
-        computed_property_id LowCardinality(String),
-        user_id String,
-        segment_value Boolean,
-        user_property_value String,
-        max_event_time DateTime64(3),
-        min_event_time DateTime64(3),
-        assigned_at DateTime64(3) DEFAULT now64(3),
-      )
-      ENGINE = ReplacingMergeTree()
-      ORDER BY (
-        workspace_id,
-        type,
-        computed_property_id,
-        user_id,
-      );
-    `,
-    `
       CREATE TABLE IF NOT EXISTS processed_computed_properties_v2 (
         workspace_id LowCardinality(String),
         user_id String,
@@ -482,13 +462,17 @@ export function segmentNodeToStateSubQuery({
 }): SubQueryData[] {
   switch (node.type) {
     case SegmentNodeType.Trait: {
+      // deprecated operator
+      if (node.operator.type === SegmentOperatorType.HasBeen) {
+        return [];
+      }
       const stateId = segmentNodeStateId(segment, node.id);
       const path = qb.addQueryValue(node.path, "String");
       return [
         {
           condition: `event_type == 'identify'`,
           type: "segment",
-          uniqValue: "''",
+          uniqValue: "",
           argMaxValue: `visitParamExtractString(properties, ${path})`,
           computedPropertyId: segment.id,
           stateId,
@@ -571,6 +555,7 @@ export async function computeState({
         subQuery = {
           condition: `event_type == 'identify'`,
           type: "user_property",
+          // FIXME
           uniqValue: "''",
           argMaxValue: `visitParamExtractString(properties, ${path})`,
           computedPropertyId: userProperty.id,
@@ -585,6 +570,7 @@ export async function computeState({
     }
     subQueryData.push(subQuery);
   }
+  console.log("loc2", subQueryData);
   if (subQueryData.length === 0) {
     return;
   }
@@ -631,7 +617,6 @@ export async function computeState({
         )
         .join(", ");
 
-      // join results table
       const query = `
         insert into computed_property_state
         select
@@ -664,6 +649,8 @@ export async function computeState({
           user_id,
           processing_time;
       `;
+      // FIXME not reaching there
+      console.log("loc1", query);
       await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
@@ -828,6 +815,10 @@ export async function computeAssignments({
     const qb = new ClickHouseQueryBuilder();
     let query: string;
     const node = segment.definition.entryNode;
+
+    const lowerBoundClause = period
+      ? `and computed_at >= toDateTime64(${period.maxTo.getTime() / 1000}, 3)`
+      : "";
     switch (node.type) {
       case SegmentNodeType.Trait: {
         const stateId = segmentNodeStateId(segment, node.id);
@@ -873,16 +864,9 @@ export async function computeAssignments({
             break;
           }
           case SegmentOperatorType.HasBeen: {
-            throw new Error("not implemented");
+            continue;
           }
         }
-
-        const lowerBoundClause =
-          period && isTimeBounded
-            ? `and computed_at >= toDateTime64(${
-                period.maxTo.getTime() / 1000
-              }, 3)`
-            : "";
 
         query = `
           insert into computed_property_assignments_v2
@@ -892,7 +876,7 @@ export async function computeAssignments({
             computed_property_id,
             user_id,
             ${condition} as segment_value,
-            concat(argMaxMerge(last_value), ' && ', ${debug}) as user_property_value,
+            '' as user_property_value,
             maxMerge(max_event_time)  as max_event_time,
             toDateTime64(${nowSeconds}, 3) as assigned_at
           from computed_property_state
@@ -928,7 +912,6 @@ export async function computeAssignments({
             computed_property_id,
             user_id;
         `;
-        console.log("trait segment query loc1", query);
         break;
       }
       case SegmentNodeType.And: {
