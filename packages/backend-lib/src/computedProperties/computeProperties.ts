@@ -570,7 +570,6 @@ export async function computeState({
     }
     subQueryData.push(subQuery);
   }
-  console.log("loc2", subQueryData);
   if (subQueryData.length === 0) {
     return;
   }
@@ -818,7 +817,7 @@ export async function computeAssignments({
     let query: string;
     const node = segment.definition.entryNode;
 
-    const lowerBoundClause = period
+    let lowerBoundClause = period
       ? `and computed_at >= toDateTime64(${period.maxTo.getTime() / 1000}, 3)`
       : "";
     switch (node.type) {
@@ -842,10 +841,6 @@ export async function computeAssignments({
             const lowerBound = Math.round(
               Math.max(nowSeconds - node.operator.windowSeconds, 0)
             );
-            console.log(
-              "lowerBound loc1",
-              new Date(lowerBound * 1000).toISOString()
-            );
             const name = getChCompatibleUuid();
             isTimeBounded = false;
             condition = `
@@ -868,6 +863,9 @@ export async function computeAssignments({
           case SegmentOperatorType.HasBeen: {
             continue;
           }
+        }
+        if (!isTimeBounded) {
+          lowerBoundClause = "";
         }
 
         query = `
