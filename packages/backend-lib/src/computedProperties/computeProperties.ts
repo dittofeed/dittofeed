@@ -442,6 +442,7 @@ interface SubQueryData {
   stateId: string;
   argMaxValue?: string;
   uniqValue?: string;
+  comparisonCondition?: string;
 }
 
 type AggregatedComputedPropertyPeriod = Omit<
@@ -463,11 +464,25 @@ export function segmentNodeToStateSubQuery({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       // deprecated operator
-      if (node.operator.type === SegmentOperatorType.HasBeen) {
-        return [];
-      }
+      // FIXME
+
       const stateId = segmentNodeStateId(segment, node.id);
       const path = qb.addQueryValue(node.path, "String");
+      if (node.operator.type === SegmentOperatorType.HasBeen) {
+        const variableName = getChCompatibleUuid();
+        return [
+          {
+            // condition: `event_type == 'identify' and argMaxMerge(cps.last_value) != (visitParamExtractString(properties, ${path}) as ${variableName})`,
+            condition: `event_type == 'identify'`,
+            type: "segment",
+            uniqValue: "''",
+            // argMaxValue: `${variableName}`,
+            argMaxValue: `visitParamExtractString(properties, ${path}) as ${variableName}`,
+            computedPropertyId: segment.id,
+            stateId,
+          },
+        ];
+      }
       return [
         {
           condition: `event_type == 'identify'`,
@@ -617,11 +632,66 @@ export async function computeState({
           `
         )
         .join(", ");
-
       const query = `
         insert into computed_property_state
         select
-          workspace_id,
+          inner1.workspace_id,
+          inner1.type,
+          inner1.computed_property_id,
+          inner1.state_id,
+          inner1.user_id,
+          argMaxState(inner1.last_value, event_time) as last_value,
+          uniqState(inner1.unique_count) as unique_count,
+          maxState(inner1.event_time) as max_event_time,
+          toDateTime64(${nowSeconds}, 3) as computed_at
+        from (
+          select
+            workspace_id,
+            CAST(
+              (
+                arrayJoin(
+                  arrayFilter(
+                    v -> not(isNull(v.1)),
+                    [${subQueries}]
+                  )
+                ) as c
+              ).1, 
+              'Enum8(\\'user_property\\' = 1, \\'segment\\' = 2)'
+            ) as type,
+            c.2 as computed_property_id,
+            c.3 as state_id,
+            user_id,
+            ifNull(c.4, '') as last_value,
+            ifNull(c.5, '') as unique_count,
+            event_time
+          from user_events_v2 ue
+          where
+            workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+            and processing_time <= toDateTime64(${nowSeconds}, 3)
+            ${lowerBoundClause}
+        ) as inner1
+        join computed_property_state cps on
+          inner1.workspace_id = cps.workspace_id
+          and inner1.type = cps.type
+          and inner1.computed_property_id = cps.computed_property_id
+          and inner1.user_id = cps.user_id
+          and inner1.state_id = cps.state_id
+        group by
+          inner1.workspace_id,
+          inner1.type,
+          inner1.type,
+          inner1.computed_property_id,
+          inner1.state_id,
+          inner1.user_id,
+          inner1.last_value,
+          inner1.unique_count,
+          inner1.event_time;
+      `;
+
+      const query1 = `
+        insert into computed_property_state
+        select
+          ue.workspace_id as event_workspace_id,
           (
             arrayJoin(
               arrayFilter(
@@ -637,7 +707,13 @@ export async function computeState({
           uniqState(ifNull(c.5, '')) as unique_count,
           maxState(event_time) as max_event_time,
           toDateTime64(${nowSeconds}, 3) as computed_at
-        from user_events_v2
+        from user_events_v2 ue
+        join computed_property_state cps on
+          event_workspace_id = cps.workspace_id
+          and type = cps.type
+          and computed_property_id = cps.computed_property_id
+          and user_id = cps.user_id
+          and state_id = cps.state_id
         where
           workspace_id = ${qb.addQueryValue(workspaceId, "String")}
           and processing_time <= toDateTime64(${nowSeconds}, 3)
@@ -650,8 +726,6 @@ export async function computeState({
           user_id,
           processing_time;
       `;
-      // FIXME not reaching there
-      console.log("loc1", query);
       await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
