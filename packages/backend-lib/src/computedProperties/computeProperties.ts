@@ -635,57 +635,71 @@ export async function computeState({
       const query = `
         insert into computed_property_state
         select
-          inner1.workspace_id,
-          inner1.type,
-          inner1.computed_property_id,
-          inner1.state_id,
-          inner1.user_id,
-          argMaxState(inner1.last_value, event_time) as last_value,
-          uniqState(inner1.unique_count) as unique_count,
-          maxState(inner1.event_time) as max_event_time,
+          inner2.workspace_id,
+          inner2.type,
+          inner2.computed_property_id,
+          inner2.state_id,
+          inner2.user_id,
+          inner2.last_value,
+          inner2.unique_count,
+          inner2.max_event_time,
           toDateTime64(${nowSeconds}, 3) as computed_at
         from (
           select
-            workspace_id,
-            CAST(
-              (
-                arrayJoin(
-                  arrayFilter(
-                    v -> not(isNull(v.1)),
-                    [${subQueries}]
-                  )
-                ) as c
-              ).1, 
-              'Enum8(\\'user_property\\' = 1, \\'segment\\' = 2)'
-            ) as type,
-            c.2 as computed_property_id,
-            c.3 as state_id,
-            user_id,
-            ifNull(c.4, '') as last_value,
-            ifNull(c.5, '') as unique_count,
-            event_time
-          from user_events_v2 ue
-          where
-            workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-            and processing_time <= toDateTime64(${nowSeconds}, 3)
-            ${lowerBoundClause}
-        ) as inner1
-        join computed_property_state cps on
-          inner1.workspace_id = cps.workspace_id
-          and inner1.type = cps.type
-          and inner1.computed_property_id = cps.computed_property_id
-          and inner1.user_id = cps.user_id
-          and inner1.state_id = cps.state_id
-        group by
-          inner1.workspace_id,
-          inner1.type,
-          inner1.type,
-          inner1.computed_property_id,
-          inner1.state_id,
-          inner1.user_id,
-          inner1.last_value,
-          inner1.unique_count,
-          inner1.event_time;
+            inner1.workspace_id as workspace_id,
+            inner1.type as type,
+            inner1.computed_property_id as computed_property_id,
+            inner1.state_id as state_id,
+            inner1.user_id as user_id,
+            argMaxState(inner1.last_value, inner1.event_time) as last_value,
+            uniqState(inner1.unique_count) as unique_count,
+            maxState(inner1.event_time) as max_event_time,
+            argMaxMerge(cps.last_value) as existing_last_value,
+            uniqMerge(cps.unique_count) as existing_unique_count
+          from (
+            select
+              workspace_id,
+              CAST(
+                (
+                  arrayJoin(
+                    arrayFilter(
+                      v -> not(isNull(v.1)),
+                      [${subQueries}]
+                    )
+                  ) as c
+                ).1, 
+                'Enum8(\\'user_property\\' = 1, \\'segment\\' = 2)'
+              ) as type,
+              c.2 as computed_property_id,
+              c.3 as state_id,
+              user_id,
+              ifNull(c.4, '') as last_value,
+              ifNull(c.5, '') as unique_count,
+              event_time
+            from user_events_v2 ue
+            where
+              workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+              and processing_time <= toDateTime64(${nowSeconds}, 3)
+              ${lowerBoundClause}
+          ) as inner1
+          join computed_property_state cps on
+            inner1.workspace_id = cps.workspace_id
+            and inner1.type = cps.type
+            and inner1.computed_property_id = cps.computed_property_id
+            and inner1.user_id = cps.user_id
+            and inner1.state_id = cps.state_id
+          group by
+            inner1.workspace_id,
+            inner1.type,
+            inner1.computed_property_id,
+            inner1.state_id,
+            inner1.user_id,
+            inner1.last_value,
+            inner1.unique_count,
+            inner1.event_time
+          having
+            existing_last_value != inner1.last_value
+        ) inner2
       `;
 
       const query1 = `
