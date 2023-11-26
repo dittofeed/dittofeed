@@ -469,15 +469,21 @@ export function segmentNodeToStateSubQuery({
       const stateId = segmentNodeStateId(segment, node.id);
       const path = qb.addQueryValue(node.path, "String");
       if (node.operator.type === SegmentOperatorType.HasBeen) {
-        const variableName = getChCompatibleUuid();
+        // FIXME check that argMax value is not empty
+        console.log("loc2 has been");
+        // const variableName = getChCompatibleUuid();
         return [
           {
             // condition: `event_type == 'identify' and argMaxMerge(cps.last_value) != (visitParamExtractString(properties, ${path}) as ${variableName})`,
+            // condition: `event_type == 'identify' and argMaxMerge(cps.last_value) != visitParamExtractString(properties, ${path})`,
             condition: `event_type == 'identify'`,
+            // condition: `1=1`,
             type: "segment",
             uniqValue: "''",
+            // argMaxValue: "''",
             // argMaxValue: `${variableName}`,
-            argMaxValue: `visitParamExtractString(properties, ${path}) as ${variableName}`,
+            // argMaxValue: `visitParamExtractString(properties, ${path}) as ${variableName}`,
+            argMaxValue: `visitParamExtractString(properties, ${path})`,
             computedPropertyId: segment.id,
             stateId,
           },
@@ -567,10 +573,10 @@ export async function computeState({
           userProperty.id
         );
         const path = qb.addQueryValue(userProperty.definition.path, "String");
+        // FIXME check that value is not empty
         subQuery = {
           condition: `event_type == 'identify'`,
           type: "user_property",
-          // FIXME
           uniqValue: "''",
           argMaxValue: `visitParamExtractString(properties, ${path})`,
           computedPropertyId: userProperty.id,
@@ -613,7 +619,7 @@ export async function computeState({
           ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
           : ``;
 
-      console.log("loc3", periodSubQueries);
+      console.log("subqueries loc3", periodSubQueries);
 
       const subQueries = periodSubQueries
         .map(
@@ -632,7 +638,7 @@ export async function computeState({
           `
         )
         .join(", ");
-      const query = `
+      const query2 = `
         insert into computed_property_state
         select
           inner2.workspace_id,
@@ -653,9 +659,9 @@ export async function computeState({
             inner1.user_id as user_id,
             argMaxState(inner1.last_value, inner1.event_time) as last_value,
             uniqState(inner1.unique_count) as unique_count,
-            maxState(inner1.event_time) as max_event_time,
-            argMaxMerge(cps.last_value) as existing_last_value,
-            uniqMerge(cps.unique_count) as existing_unique_count
+            maxState(inner1.event_time) as max_event_time
+            -- argMaxMerge(cps.last_value) as existing_last_value,
+            -- uniqMerge(cps.unique_count) as existing_unique_count
           from (
             select
               workspace_id,
@@ -679,15 +685,15 @@ export async function computeState({
             from user_events_v2 ue
             where
               workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-              and processing_time <= toDateTime64(${nowSeconds}, 3)
-              ${lowerBoundClause}
+              -- and processing_time <= toDateTime64(${nowSeconds}, 3)
+              -- ${lowerBoundClause}
           ) as inner1
-          join computed_property_state cps on
-            inner1.workspace_id = cps.workspace_id
-            and inner1.type = cps.type
-            and inner1.computed_property_id = cps.computed_property_id
-            and inner1.user_id = cps.user_id
-            and inner1.state_id = cps.state_id
+          -- join computed_property_state cps on
+          --   inner1.workspace_id = cps.workspace_id
+          --   and inner1.type = cps.type
+          --   and inner1.computed_property_id = cps.computed_property_id
+          --   and inner1.user_id = cps.user_id
+          --   and inner1.state_id = cps.state_id
           group by
             inner1.workspace_id,
             inner1.type,
@@ -697,12 +703,11 @@ export async function computeState({
             inner1.last_value,
             inner1.unique_count,
             inner1.event_time
-          having
-            existing_last_value != inner1.last_value
+          -- having
+            --existing_last_value != inner1.last_value
         ) inner2
       `;
-
-      const query1 = `
+      const query = `
         insert into computed_property_state
         select
           ue.workspace_id as event_workspace_id,
@@ -722,16 +727,10 @@ export async function computeState({
           maxState(event_time) as max_event_time,
           toDateTime64(${nowSeconds}, 3) as computed_at
         from user_events_v2 ue
-        join computed_property_state cps on
-          event_workspace_id = cps.workspace_id
-          and type = cps.type
-          and computed_property_id = cps.computed_property_id
-          and user_id = cps.user_id
-          and state_id = cps.state_id
         where
           workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-          and processing_time <= toDateTime64(${nowSeconds}, 3)
-          ${lowerBoundClause}
+          -- and processing_time <= toDateTime64(${nowSeconds}, 3)
+          -- ${lowerBoundClause}
         group by
           workspace_id,
           type,
@@ -740,6 +739,8 @@ export async function computeState({
           user_id,
           processing_time;
       `;
+
+      console.log("loc2 query", query);
       await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
@@ -912,7 +913,6 @@ export async function computeAssignments({
       case SegmentNodeType.Trait: {
         const stateId = segmentNodeStateId(segment, node.id);
         let condition: string;
-        let debug = "''";
         let isTimeBounded = true;
         switch (node.operator.type) {
           case SegmentOperatorType.Equals: {
@@ -941,7 +941,6 @@ export async function computeAssignments({
                 ${name} >= toDateTime64(${lowerBound}, 3)
               )
             `;
-            debug = `formatDateTime(toDateTime64(${lowerBound}, 3), '%Y-%m-%dT%H:%M:%S')`;
             break;
           }
           case SegmentOperatorType.Exists: {
@@ -949,7 +948,16 @@ export async function computeAssignments({
             break;
           }
           case SegmentOperatorType.HasBeen: {
-            continue;
+            const upperBound = Math.max(
+              nowSeconds - node.operator.windowSeconds,
+              0
+            );
+            isTimeBounded = false;
+            condition = `maxMerge(max_event_time) < toDateTime64(${upperBound}, 3) and argMaxMerge(last_value) == ${qb.addQueryValue(
+              node.operator.value,
+              "String"
+            )}`;
+            break;
           }
         }
         if (!isTimeBounded) {
@@ -965,7 +973,7 @@ export async function computeAssignments({
             user_id,
             ${condition} as segment_value,
             '' as user_property_value,
-            maxMerge(max_event_time)  as max_event_time,
+            maxMerge(max_event_time),
             toDateTime64(${nowSeconds}, 3) as assigned_at
           from computed_property_state
           where

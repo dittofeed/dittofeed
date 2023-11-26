@@ -4,7 +4,11 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { buildBatchUserEvents } from "../apps";
-import { clickhouseClient, ClickHouseQueryBuilder } from "../clickhouse";
+import {
+  clickhouseClient,
+  clickhouseDateToIso,
+  ClickHouseQueryBuilder,
+} from "../clickhouse";
 import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
@@ -108,6 +112,7 @@ async function readStates({
       query_params: qb.getQueries(),
     })
   ).json()) as { data: State[] };
+  console.log("loc4 response", response);
   return response.data;
 }
 
@@ -216,6 +221,7 @@ interface TestState {
   nodeId?: string;
   lastValue?: string;
   uniqueCount?: number;
+  maxEventTime?: string;
 }
 
 function toTestState(
@@ -223,6 +229,7 @@ function toTestState(
   userProperties: UserPropertyResource[],
   segments: SavedSegmentResource[]
 ): TestState {
+  const maxEventTime = clickhouseDateToIso(state.max_event_time);
   switch (state.type) {
     case "segment": {
       const segment = segments.find((s) => s.id === state.computed_property_id);
@@ -244,6 +251,7 @@ function toTestState(
         lastValue: state.last_value,
         uniqueCount: state.unique_count,
         userId: state.user_id,
+        maxEventTime,
       };
     }
     case "user_property": {
@@ -260,6 +268,7 @@ function toTestState(
         lastValue: state.last_value,
         uniqueCount: state.unique_count,
         userId: state.user_id,
+        maxEventTime,
       };
     }
   }
@@ -776,6 +785,7 @@ describe("computeProperties", () => {
           },
         },
       ],
+      // FIXME check when user is in a different state for 24 hours
       steps: [
         {
           type: EventsStepType.SubmitEvents,
@@ -794,6 +804,7 @@ describe("computeProperties", () => {
           type: EventsStepType.Sleep,
           timeMs: 50,
         },
+
         {
           type: EventsStepType.ComputeProperties,
         },
@@ -808,6 +819,16 @@ describe("computeProperties", () => {
               },
             },
           ],
+          states: [
+            ({ now }) => ({
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              name: "stuckOnboarding",
+              lastValue: "onboarding",
+              maxEventTime: new Date(now - 100 - 50).toISOString(),
+            }),
+          ],
         },
         {
           type: EventsStepType.Sleep,
@@ -821,6 +842,18 @@ describe("computeProperties", () => {
           type: EventsStepType.Assert,
           description:
             "after remaining onboarding for over a week the user is stuck onboarding",
+          states: [
+            ({ now }) => ({
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              name: "stuckOnboarding",
+              lastValue: "onboarding",
+              maxEventTime: new Date(
+                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50
+              ).toISOString(),
+            }),
+          ],
           users: [
             {
               id: "user-1",
@@ -887,11 +920,11 @@ describe("computeProperties", () => {
         })
       ),
     ]);
-    const stepContext: StepContext = {
-      now,
-    };
 
     for (const step of test.steps) {
+      const stepContext: StepContext = {
+        now,
+      };
       switch (step.type) {
         case EventsStepType.SubmitEvents: {
           const events: TableEvent[] = [];
@@ -943,6 +976,7 @@ describe("computeProperties", () => {
           break;
         case EventsStepType.Sleep:
           now += step.timeMs;
+          console.log("now sleep loc7", new Date(now).toISOString());
           break;
         case EventsStepType.Assert:
           await Promise.all([
@@ -972,6 +1006,7 @@ describe("computeProperties", () => {
                   const actualTestStates = states.map((s) =>
                     toTestState(s, userProperties, segments)
                   );
+                  console.log("actual states loc5", actualTestStates);
                   for (const expected of step.states ?? []) {
                     const expectedState =
                       typeof expected === "function"
@@ -996,6 +1031,12 @@ describe("computeProperties", () => {
                       expect(actualState, step.description).toHaveProperty(
                         "uniqueCount",
                         expectedState.uniqueCount
+                      );
+                    }
+                    if (expectedState.maxEventTime) {
+                      expect(actualState, step.description).toHaveProperty(
+                        "maxEventTime",
+                        expectedState.maxEventTime
                       );
                     }
                   }
