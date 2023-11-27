@@ -982,7 +982,7 @@ describe("computeProperties", () => {
     {
       description: "any of user property",
       segments: [],
-      only: true,
+      skip: true,
       userProperties: [
         {
           name: "email",

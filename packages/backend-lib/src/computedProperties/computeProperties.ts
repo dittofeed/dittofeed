@@ -688,16 +688,65 @@ function leafUserPropertyToAssignment({
 
 function groupedUserPropertyToAssignment({
   userProperty,
-  child,
+  group,
+  node,
   qb,
 }: {
   userProperty: SavedUserPropertyResource;
-  child: GroupChildrenUserPropertyDefinitions;
+  node: GroupChildrenUserPropertyDefinitions;
+  group: GroupUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
 }): {
   query: string;
 } {
-  throw new Error("not implemented");
+  switch (node.type) {
+    case UserPropertyDefinitionType.AnyOf: {
+      const childNodes = node.children.flatMap((child) => {
+        const childNode = group.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              userProperty,
+              child,
+              node,
+            },
+            "Grouped user property child node not found"
+          );
+          return []
+        }
+        return groupedUserPropertyToAssignment({
+          userProperty,
+          node: childNode,
+          group,
+          qb,
+        });
+      });
+      if (childNodes.length === 0) {
+        return {
+          query: "''",
+        };
+      }
+      if (childNodes.length === 1 && childNodes[0]) {
+        return childNodes[0];
+      }
+      return {
+        query: `coalesce(${childNodes.map((c) => c.query).join(", ")})`
+      }
+    }
+    case UserPropertyDefinitionType.Trait: {
+      return leafUserPropertyToAssignment({
+        userProperty,
+        child: node,
+        qb,
+      });
+    }
+    case UserPropertyDefinitionType.Performed: {
+      return leafUserPropertyToAssignment({
+        userProperty,
+        child: node,
+        qb,
+      });
+    }
 }
 
 function userPropertyToAssignment({
@@ -714,6 +763,30 @@ function userPropertyToAssignment({
       return leafUserPropertyToAssignment({
         userProperty,
         child: userProperty.definition,
+        qb,
+      });
+    }
+    case UserPropertyDefinitionType.Group: {
+      const entryId = userProperty.definition.entry;
+      const entryNode = userProperty.definition.nodes.find(
+        (n) => n.id === entryId
+      );
+      if (!entryNode) {
+        logger().error(
+          {
+            userProperty,
+            entryId,
+          },
+          "Grouped user property entry node not found"
+        );
+        return {
+          query: "''",
+        };
+      }
+      return groupedUserPropertyToAssignment({
+        userProperty,
+        node: entryNode,
+        group: userProperty.definition,
         qb,
       });
     }
@@ -1297,7 +1370,11 @@ export async function computeAssignments({
     switch (userProperty.definition.type) {
       case UserPropertyDefinitionType.Trait: {
         const stateIds: string[] = [userPropertyStateId(userProperty)];
-        const valueExpression = `toJSONString(argMaxMerge(last_value))`;
+        const valueExpression = userPropertyToAssignment({
+          userProperty,
+          qb,
+        }).query;
+
         query = `
           insert into computed_property_assignments_v2
           select
