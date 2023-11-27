@@ -96,15 +96,14 @@ async function readStates({
       argMaxMerge(last_value) as last_value,
       uniqMerge(unique_count) as unique_count,
       maxMerge(max_event_time) as max_event_time,
-      computed_at
+      max(computed_at)
     from computed_property_state
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
     group by
       type,
       computed_property_id,
       state_id,
-      user_id,
-      computed_at
+      user_id
   `;
   const response = (await (
     await clickhouseClient().query({
