@@ -1160,7 +1160,7 @@ export async function computeAssignments({
     const qb = new ClickHouseQueryBuilder();
     switch (userProperty.definition.type) {
       case UserPropertyDefinitionType.Trait: {
-        const stateId = userPropertyStateId(userProperty);
+        const stateIds: string[] = [userPropertyStateId(userProperty)];
         query = `
           insert into computed_property_assignments_v2
           select
@@ -1195,7 +1195,7 @@ export async function computeAssignments({
                   userProperty.id,
                   "String"
                 )}
-                and state_id = ${qb.addQueryValue(stateId, "String")}
+                and state_id in ${qb.addQueryValue(stateIds, "Array(String)")}
                 and computed_at <= toDateTime64(${nowSeconds}, 3)
                 ${lowerBoundClause}
             )
