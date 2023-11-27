@@ -1157,7 +1157,6 @@ describe("computeProperties", () => {
           break;
         case EventsStepType.Sleep:
           now += step.timeMs;
-          console.log("now sleep loc7", new Date(now).toISOString());
           break;
         case EventsStepType.Assert:
           await Promise.all([
@@ -1242,9 +1241,11 @@ describe("computeProperties", () => {
                       where: {
                         workspaceId,
                       },
-                      orderBy: {
-                        to: "asc",
-                      },
+                      orderBy: [
+                        {
+                          createdAt: "asc",
+                        },
+                      ],
                     });
                   const simplifiedPeriods = periods.map((p) => {
                     const s: TestPeriod = {
