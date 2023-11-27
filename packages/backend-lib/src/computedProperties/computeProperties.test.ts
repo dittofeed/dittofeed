@@ -634,12 +634,28 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          users: [
+          // users: [
+          //   {
+          //     id: "user-1",
+          //     segments: {
+          //       andSegment: true,
+          //     },
+          //   },
+          // ],
+          states: [
             {
-              id: "user-1",
-              segments: {
-                andSegment: true,
-              },
+              type: "segment",
+              userId: "user-1",
+              name: "andSegment",
+              nodeId: "2",
+              lastValue: "test",
+            },
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "andSegment",
+              nodeId: "3",
+              lastValue: "running",
             },
           ],
         },
@@ -1173,7 +1189,6 @@ describe("computeProperties", () => {
                   const actualTestStates = states.map((s) =>
                     toTestState(s, userProperties, segments)
                   );
-                  console.log("actual states loc5", actualTestStates);
                   for (const expected of step.states ?? []) {
                     const expectedState =
                       typeof expected === "function"
@@ -1187,7 +1202,20 @@ describe("computeProperties", () => {
                         s.type === expectedState.type &&
                         s.nodeId === expectedState.nodeId
                     );
-                    expect(actualState, step.description).not.toBeUndefined();
+                    expect(
+                      actualState,
+                      `${["expected state", step.description]
+                        .filter((s) => !!s)
+                        .join(" - ")}:\n\n${JSON.stringify(
+                        expectedState,
+                        null,
+                        2
+                      )}\n\nto be found in actual states:\n\n${JSON.stringify(
+                        actualTestStates,
+                        null,
+                        2
+                      )}`
+                    ).not.toBeUndefined();
                     if (expectedState.lastValue) {
                       expect(actualState, step.description).toHaveProperty(
                         "lastValue",
