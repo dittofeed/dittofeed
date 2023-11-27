@@ -1161,6 +1161,7 @@ export async function computeAssignments({
     switch (userProperty.definition.type) {
       case UserPropertyDefinitionType.Trait: {
         const stateIds: string[] = [userPropertyStateId(userProperty)];
+        const valueExpression = `toJSONString(argMaxMerge(last_value))`;
         query = `
           insert into computed_property_assignments_v2
           select
@@ -1169,7 +1170,7 @@ export async function computeAssignments({
             computed_property_id,
             user_id,
             False as segment_value,
-            toJSONString(argMaxMerge(last_value)) as user_property_value,
+            ${valueExpression} as user_property_value,
             maxMerge(max_event_time) as max_event_time,
             toDateTime64(${nowSeconds}, 3) as assigned_at
           from computed_property_state
