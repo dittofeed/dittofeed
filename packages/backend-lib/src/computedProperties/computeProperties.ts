@@ -712,7 +712,7 @@ function groupedUserPropertyToAssignment({
             },
             "Grouped user property child node not found"
           );
-          return []
+          return [];
         }
         return groupedUserPropertyToAssignment({
           userProperty,
@@ -730,8 +730,8 @@ function groupedUserPropertyToAssignment({
         return childNodes[0];
       }
       return {
-        query: `coalesce(${childNodes.map((c) => c.query).join(", ")})`
-      }
+        query: `coalesce(${childNodes.map((c) => c.query).join(", ")})`,
+      };
     }
     case UserPropertyDefinitionType.Trait: {
       return leafUserPropertyToAssignment({
@@ -747,6 +747,7 @@ function groupedUserPropertyToAssignment({
         qb,
       });
     }
+  }
 }
 
 function userPropertyToAssignment({
@@ -964,125 +965,6 @@ export async function computeState({
     periodByComputedPropertyId,
     step: ComputedPropertyStep.ComputeState,
   });
-}
-
-function buildComputeAssignmentsSegment({
-  node,
-  segment,
-  qb,
-}: {
-  node: SegmentNode;
-  segment: SavedSegmentResource;
-  qb: ClickHouseQueryBuilder;
-}): {
-  query: string;
-} {
-  let query: string;
-  // for (const segment of segments) {
-  //   switch (segment.definition.entryNode.type) {
-  //     case SegmentNodeType.Trait: {
-  //       break;
-  //     }
-  //     default:
-  //       throw new Error(
-  //         `Unhandled user property type: ${segment.definition.entryNode.type}`
-  //       );
-  //   }
-  // }
-  return {
-    query: "",
-  };
-}
-
-enum ComputedPropertyType {
-  UserProperty = "UserProperty",
-  Segment = "Segment",
-}
-
-interface SegmentValue {
-  type: ComputedPropertyType.Segment;
-  segment: SavedSegmentResource;
-}
-
-interface UserPropertyValue {
-  type: ComputedPropertyType.UserProperty;
-  userProperty: SavedUserPropertyResource;
-}
-
-type ComputedPropertyValue = SegmentValue | UserPropertyValue;
-
-function buildComputeAssignmentsQuery({
-  workspaceId,
-  now,
-  value,
-}: {
-  now: number;
-  workspaceId: string;
-  value: ComputedPropertyValue;
-}): {
-  query: string;
-  queryBuilder: ClickHouseQueryBuilder;
-} {
-  const nowSeconds = now / 1000;
-  const qb = new ClickHouseQueryBuilder();
-  let computedPropertyId: string;
-  let type: string;
-  if (value.type === ComputedPropertyType.Segment) {
-    computedPropertyId = value.segment.id;
-    type = "segment";
-  } else {
-    computedPropertyId = value.userProperty.id;
-    type = "user_property";
-  }
-  const query = "";
-  // const query = `
-  //  insert into computed_property_assignments_v2
-  //  select
-  //    workspace_id,
-  //    type,
-  //    computed_property_id,
-  //    user_id,
-  //    False as segment_value,
-  //    toJSONString(argMaxMerge(last_value)) as user_property_value,
-  //    maxMerge(max_event_time) as max_event_time,
-  //    now64(3) as assigned_at
-  //  from computed_property_state
-  //  where
-  //    (
-  //      workspace_id,
-  //      type,
-  //      computed_property_id,
-  //      state_id,
-  //      user_id
-  //    ) in (
-  //      select
-  //        workspace_id,
-  //        type,
-  //        computed_property_id,
-  //        state_id,
-  //        user_id
-  //      from updated_computed_property_state
-  //      where
-  //        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-  //        and type = ${qb.addQueryValue(type, "String")}
-  //        and computed_property_id = ${qb.addQueryValue(
-  //          computedPropertyId,
-  //          "String"
-  //        )}
-  //        and state_id = ${qb.addQueryValue(stateId, "String")}
-  //        and computed_at <= toDateTime64(${nowSeconds}, 3)
-  //        ${lowerBoundClause}
-  //    )
-  //  group by
-  //    workspace_id,
-  //    type,
-  //    computed_property_id,
-  //    user_id;
-  //  `;
-  return {
-    query,
-    queryBuilder: qb,
-  };
 }
 
 export async function computeAssignments({
