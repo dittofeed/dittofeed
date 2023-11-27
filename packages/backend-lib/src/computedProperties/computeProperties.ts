@@ -470,14 +470,14 @@ export function segmentNodeToStateSubQuery({
       const path = qb.addQueryValue(node.path, "String");
       if (node.operator.type === SegmentOperatorType.HasBeen) {
         // FIXME check that argMax value is not empty
-        console.log("loc2 has been");
+        console.log("loc8 has been");
         // const variableName = getChCompatibleUuid();
         return [
           {
             // condition: `event_type == 'identify' and argMaxMerge(cps.last_value) != (visitParamExtractString(properties, ${path}) as ${variableName})`,
             // condition: `event_type == 'identify' and argMaxMerge(cps.last_value) != visitParamExtractString(properties, ${path})`,
-            condition: `event_type == 'identify'`,
-            // condition: `1=1`,
+            // condition: `event_type == 'identify'`,
+            condition: `1=1`,
             type: "segment",
             uniqValue: "''",
             // argMaxValue: "''",
@@ -638,7 +638,7 @@ export async function computeState({
           `
         )
         .join(", ");
-      const query2 = `
+      const query = `
         insert into computed_property_state
         select
           inner2.workspace_id,
@@ -659,9 +659,9 @@ export async function computeState({
             inner1.user_id as user_id,
             argMaxState(inner1.last_value, inner1.event_time) as last_value,
             uniqState(inner1.unique_count) as unique_count,
-            maxState(inner1.event_time) as max_event_time
-            -- argMaxMerge(cps.last_value) as existing_last_value,
-            -- uniqMerge(cps.unique_count) as existing_unique_count
+            maxState(inner1.event_time) as max_event_time,
+            argMaxMerge(cps.last_value) as existing_last_value,
+            uniqMerge(cps.unique_count) as existing_unique_count
           from (
             select
               workspace_id,
@@ -685,15 +685,15 @@ export async function computeState({
             from user_events_v2 ue
             where
               workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-              -- and processing_time <= toDateTime64(${nowSeconds}, 3)
-              -- ${lowerBoundClause}
+              and processing_time <= toDateTime64(${nowSeconds}, 3)
+              ${lowerBoundClause}
           ) as inner1
-          -- join computed_property_state cps on
-          --   inner1.workspace_id = cps.workspace_id
-          --   and inner1.type = cps.type
-          --   and inner1.computed_property_id = cps.computed_property_id
-          --   and inner1.user_id = cps.user_id
-          --   and inner1.state_id = cps.state_id
+          left join computed_property_state cps on
+            inner1.workspace_id = cps.workspace_id
+            and inner1.type = cps.type
+            and inner1.computed_property_id = cps.computed_property_id
+            and inner1.user_id = cps.user_id
+            and inner1.state_id = cps.state_id
           group by
             inner1.workspace_id,
             inner1.type,
@@ -703,11 +703,11 @@ export async function computeState({
             inner1.last_value,
             inner1.unique_count,
             inner1.event_time
-          -- having
-            --existing_last_value != inner1.last_value
+          having
+            existing_last_value != inner1.last_value
         ) inner2
       `;
-      const query = `
+      const query1 = `
         insert into computed_property_state
         select
           ue.workspace_id as event_workspace_id,
@@ -729,8 +729,8 @@ export async function computeState({
         from user_events_v2 ue
         where
           workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-          -- and processing_time <= toDateTime64(${nowSeconds}, 3)
-          -- ${lowerBoundClause}
+          and processing_time <= toDateTime64(${nowSeconds}, 3)
+          ${lowerBoundClause}
         group by
           workspace_id,
           type,
@@ -741,11 +741,12 @@ export async function computeState({
       `;
 
       console.log("loc2 query", query);
-      await clickhouseClient().command({
+      const response = await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
       });
+      console.log("insert response loc2.1", response);
     })
   );
 

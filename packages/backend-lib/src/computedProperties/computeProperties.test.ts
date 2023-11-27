@@ -785,7 +785,6 @@ describe("computeProperties", () => {
           },
         },
       ],
-      // FIXME check when user is in a different state for 24 hours
       steps: [
         {
           type: EventsStepType.SubmitEvents,
@@ -851,6 +850,51 @@ describe("computeProperties", () => {
               lastValue: "onboarding",
               maxEventTime: new Date(
                 now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50
+              ).toISOString(),
+            }),
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                stuckOnboarding: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 500,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                status: "onboarding",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "continues to be stuck onboarding after submitting redundant identify events",
+          states: [
+            ({ now }) => ({
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              name: "stuckOnboarding",
+              lastValue: "onboarding",
+              maxEventTime: new Date(
+                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100
               ).toISOString(),
             }),
           ],
