@@ -707,40 +707,7 @@ export async function computeState({
             existing_last_value != inner1.last_value
         ) inner2
       `;
-      const query1 = `
-        insert into computed_property_state
-        select
-          ue.workspace_id as event_workspace_id,
-          (
-            arrayJoin(
-              arrayFilter(
-                v -> not(isNull(v.1)),
-                [${subQueries}]
-              )
-            ) as c
-          ).1 as type,
-          c.2 as computed_property_id,
-          c.3 as state_id,
-          user_id,
-          argMaxState(ifNull(c.4, ''), event_time) as last_value,
-          uniqState(ifNull(c.5, '')) as unique_count,
-          maxState(event_time) as max_event_time,
-          toDateTime64(${nowSeconds}, 3) as computed_at
-        from user_events_v2 ue
-        where
-          workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-          and processing_time <= toDateTime64(${nowSeconds}, 3)
-          ${lowerBoundClause}
-        group by
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id,
-          processing_time;
-      `;
 
-      console.log("loc2 query", query);
       const response = await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),

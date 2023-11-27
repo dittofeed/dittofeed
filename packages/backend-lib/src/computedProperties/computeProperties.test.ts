@@ -764,7 +764,6 @@ describe("computeProperties", () => {
     {
       description: "computes HasBeen operator trait segment",
       userProperties: [],
-      only: true,
       segments: [
         {
           name: "stuckOnboarding",
@@ -951,6 +950,81 @@ describe("computeProperties", () => {
               id: "user-1",
               segments: {
                 stuckOnboarding: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "any of user property",
+      segments: [],
+      only: true,
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Group,
+            entry: "1",
+            nodes: [
+              {
+                type: UserPropertyDefinitionType.AnyOf,
+                id: "1",
+                children: ["2", "3"],
+              },
+              {
+                type: UserPropertyDefinitionType.Trait,
+                id: "2",
+                path: "email1",
+              },
+              {
+                type: UserPropertyDefinitionType.Trait,
+                id: "3",
+                path: "email2",
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                email1: "email1@test.com",
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                email2: "email2@test.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user-1 is in the group",
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                email: "email1@test.com",
+              },
+            },
+            {
+              id: "user-2",
+              properties: {
+                email: "email1@test.com",
               },
             },
           ],
