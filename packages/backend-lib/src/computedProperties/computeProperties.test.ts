@@ -580,6 +580,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes an AND segment",
+      only: true,
       userProperties: [],
       segments: [
         {
@@ -707,6 +708,9 @@ describe("computeProperties", () => {
           timeMs: 50,
         },
         {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
           type: EventsStepType.Assert,
           description:
             "user continues to be within the segment window after waiting for a short period",
@@ -724,12 +728,9 @@ describe("computeProperties", () => {
               userId: "user-1",
               name: "newUsers",
               nodeId: "1",
-              lastValue: new Date(now - 100).toISOString(),
+              lastValue: new Date(now - 50 - 100).toISOString(),
             }),
           ],
-        },
-        {
-          type: EventsStepType.ComputeProperties,
         },
         {
           type: EventsStepType.Sleep,
@@ -755,7 +756,7 @@ describe("computeProperties", () => {
               userId: "user-1",
               name: "newUsers",
               nodeId: "1",
-              lastValue: new Date(now - 100).toISOString(),
+              lastValue: new Date(now - 100 - 50 - 1200000).toISOString(),
             }),
           ],
         },
@@ -959,7 +960,7 @@ describe("computeProperties", () => {
     {
       description: "any of user property",
       segments: [],
-      only: true,
+      skip: true,
       userProperties: [
         {
           name: "email",

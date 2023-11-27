@@ -463,32 +463,8 @@ export function segmentNodeToStateSubQuery({
 }): SubQueryData[] {
   switch (node.type) {
     case SegmentNodeType.Trait: {
-      // deprecated operator
-      // FIXME
-
       const stateId = segmentNodeStateId(segment, node.id);
       const path = qb.addQueryValue(node.path, "String");
-      if (node.operator.type === SegmentOperatorType.HasBeen) {
-        // FIXME check that argMax value is not empty
-        console.log("loc8 has been");
-        // const variableName = getChCompatibleUuid();
-        return [
-          {
-            // condition: `event_type == 'identify' and argMaxMerge(cps.last_value) != (visitParamExtractString(properties, ${path}) as ${variableName})`,
-            // condition: `event_type == 'identify' and argMaxMerge(cps.last_value) != visitParamExtractString(properties, ${path})`,
-            // condition: `event_type == 'identify'`,
-            condition: `1=1`,
-            type: "segment",
-            uniqValue: "''",
-            // argMaxValue: "''",
-            // argMaxValue: `${variableName}`,
-            // argMaxValue: `visitParamExtractString(properties, ${path}) as ${variableName}`,
-            argMaxValue: `visitParamExtractString(properties, ${path})`,
-            computedPropertyId: segment.id,
-            stateId,
-          },
-        ];
-      }
       return [
         {
           condition: `event_type == 'identify'`,
