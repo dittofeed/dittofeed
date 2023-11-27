@@ -29,7 +29,9 @@ import {
   ComputedPropertyAssignment,
   ComputedPropertyPeriod,
   ComputedPropertyUpdate,
+  GroupChildrenUserPropertyDefinitions,
   JourneyResource,
+  LeafUserPropertyDefinition,
   SavedIntegrationResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
@@ -502,6 +504,16 @@ export function segmentNodeToStateSubQuery({
   }
 }
 
+export function userPropertyStateId(
+  userProperty: SavedUserPropertyResource,
+  nodeId: string = ""
+): string {
+  return uuidv5(
+    `${userProperty.definitionUpdatedAt.toString()}:${nodeId}`,
+    userProperty.id
+  );
+}
+
 export function segmentNodeStateId(
   segment: SavedSegmentResource,
   nodeId: string
@@ -510,6 +522,70 @@ export function segmentNodeStateId(
     `${segment.definitionUpdatedAt.toString()}:${nodeId}`,
     segment.id
   );
+}
+
+function leafUserPropertyToSubQuery({
+  userProperty,
+  child,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  child: LeafUserPropertyDefinition;
+  qb: ClickHouseQueryBuilder;
+}): SubQueryData {
+  switch (child.type) {
+    case UserPropertyDefinitionType.Trait: {
+      const stateId = userPropertyStateId(userProperty, child.id);
+      const path = qb.addQueryValue(child.path, "String");
+      // FIXME check that value is not empty
+      return {
+        condition: `event_type == 'identify'`,
+        type: "user_property",
+        uniqValue: "''",
+        argMaxValue: `visitParamExtractString(properties, ${path})`,
+        computedPropertyId: userProperty.id,
+        stateId,
+      };
+    }
+    default:
+      throw new Error(`Unhandled user property type: ${child.type}`);
+  }
+}
+
+function groupedUserPropertyToSubQuery({
+  userProperty,
+  child,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  child: GroupChildrenUserPropertyDefinitions;
+  qb: ClickHouseQueryBuilder;
+}): SubQueryData[] {
+  throw new Error("not implemented");
+}
+
+function userPropertyToSubQuery({
+  userProperty,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  qb: ClickHouseQueryBuilder;
+}): SubQueryData[] {
+  switch (userProperty.definition.type) {
+    case UserPropertyDefinitionType.Trait: {
+      return [
+        leafUserPropertyToSubQuery({
+          userProperty,
+          child: userProperty.definition,
+          qb,
+        }),
+      ];
+    }
+    default:
+      throw new Error(
+        `Unhandled user property type: ${userProperty.definition.type}`
+      );
+  }
 }
 
 export async function computeState({
@@ -525,7 +601,6 @@ export async function computeState({
   userProperties: SavedUserPropertyResource[];
 }) {
   const qb = new ClickHouseQueryBuilder();
-  // TODO implement pagination
   let subQueryData: SubQueryData[] = [];
 
   for (const segment of segments) {
@@ -539,31 +614,12 @@ export async function computeState({
   }
 
   for (const userProperty of userProperties) {
-    let subQuery: SubQueryData;
-    switch (userProperty.definition.type) {
-      case UserPropertyDefinitionType.Trait: {
-        const stateId = uuidv5(
-          userProperty.definitionUpdatedAt.toString(),
-          userProperty.id
-        );
-        const path = qb.addQueryValue(userProperty.definition.path, "String");
-        // FIXME check that value is not empty
-        subQuery = {
-          condition: `event_type == 'identify'`,
-          type: "user_property",
-          uniqValue: "''",
-          argMaxValue: `visitParamExtractString(properties, ${path})`,
-          computedPropertyId: userProperty.id,
-          stateId,
-        };
-        break;
-      }
-      default:
-        throw new Error(
-          `Unhandled user property type: ${userProperty.definition.type}`
-        );
-    }
-    subQueryData.push(subQuery);
+    subQueryData = subQueryData.concat(
+      userPropertyToSubQuery({
+        userProperty,
+        qb,
+      })
+    );
   }
   if (subQueryData.length === 0) {
     return;
@@ -592,8 +648,6 @@ export async function computeState({
         period !== 0
           ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
           : ``;
-
-      console.log("subqueries loc3", periodSubQueries);
 
       const subQueries = periodSubQueries
         .map(
@@ -1106,10 +1160,7 @@ export async function computeAssignments({
     const qb = new ClickHouseQueryBuilder();
     switch (userProperty.definition.type) {
       case UserPropertyDefinitionType.Trait: {
-        const stateId = uuidv5(
-          userProperty.definitionUpdatedAt.toString(),
-          userProperty.id
-        );
+        const stateId = userPropertyStateId(userProperty);
         query = `
           insert into computed_property_assignments_v2
           select

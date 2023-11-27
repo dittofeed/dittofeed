@@ -397,6 +397,14 @@ describe("computeProperties", () => {
               },
             },
           ],
+          states: [
+            {
+              userId: "user-1",
+              type: "user_property",
+              lastValue: "test@email.com",
+              name: "email",
+            },
+          ],
         },
       ],
     },
