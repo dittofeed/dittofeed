@@ -664,6 +664,11 @@ function userPropertyToSubQuery({
   }
 }
 
+type UserPropertyNodeAssignment = {
+  query: string;
+  stateIds: string[];
+} | null;
+
 function leafUserPropertyToAssignment({
   userProperty,
   child,
@@ -672,13 +677,13 @@ function leafUserPropertyToAssignment({
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): {
-  query: string;
-} {
+}): UserPropertyNodeAssignment {
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
+      const stateId = userPropertyStateId(userProperty, child.id);
       return {
         query: "toJSONString(argMaxMerge(last_value))",
+        stateIds: [stateId],
       };
     }
     default:
@@ -696,9 +701,7 @@ function groupedUserPropertyToAssignment({
   node: GroupChildrenUserPropertyDefinitions;
   group: GroupUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): {
-  query: string;
-} {
+}): UserPropertyNodeAssignment {
   switch (node.type) {
     case UserPropertyDefinitionType.AnyOf: {
       const childNodes = node.children.flatMap((child) => {
@@ -714,23 +717,26 @@ function groupedUserPropertyToAssignment({
           );
           return [];
         }
-        return groupedUserPropertyToAssignment({
+        const assignment = groupedUserPropertyToAssignment({
           userProperty,
           node: childNode,
           group,
           qb,
         });
+        if (!assignment) {
+          return [];
+        }
+        return assignment;
       });
       if (childNodes.length === 0) {
-        return {
-          query: "''",
-        };
+        return null;
       }
       if (childNodes.length === 1 && childNodes[0]) {
         return childNodes[0];
       }
       return {
         query: `coalesce(${childNodes.map((c) => c.query).join(", ")})`,
+        stateIds: childNodes.flatMap((c) => c.stateIds),
       };
     }
     case UserPropertyDefinitionType.Trait: {
@@ -756,9 +762,7 @@ function userPropertyToAssignment({
 }: {
   userProperty: SavedUserPropertyResource;
   qb: ClickHouseQueryBuilder;
-}): {
-  query: string;
-} {
+}): UserPropertyNodeAssignment {
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       return leafUserPropertyToAssignment({
@@ -780,9 +784,7 @@ function userPropertyToAssignment({
           },
           "Grouped user property entry node not found"
         );
-        return {
-          query: "''",
-        };
+        return null;
       }
       return groupedUserPropertyToAssignment({
         userProperty,
@@ -1246,68 +1248,64 @@ export async function computeAssignments({
     const lowerBoundClause = period
       ? `and computed_at >= toDateTime64(${period.maxTo.getTime() / 1000}, 3)`
       : "";
-    let query: string;
 
     const qb = new ClickHouseQueryBuilder();
-    switch (userProperty.definition.type) {
-      case UserPropertyDefinitionType.Trait: {
-        const stateIds: string[] = [userPropertyStateId(userProperty)];
-        const valueExpression = userPropertyToAssignment({
-          userProperty,
-          qb,
-        }).query;
-
-        query = `
-          insert into computed_property_assignments_v2
+    const nodeAssignment = userPropertyToAssignment({
+      qb,
+      userProperty,
+    });
+    if (!nodeAssignment) {
+      continue;
+    }
+    const query = `
+      insert into computed_property_assignments_v2
+      select
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id,
+        False as segment_value,
+        ${nodeAssignment.query} as user_property_value,
+        maxMerge(max_event_time) as max_event_time,
+        toDateTime64(${nowSeconds}, 3) as assigned_at
+      from computed_property_state
+      where
+        (
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id
+        ) in (
           select
             workspace_id,
             type,
             computed_property_id,
-            user_id,
-            False as segment_value,
-            ${valueExpression} as user_property_value,
-            maxMerge(max_event_time) as max_event_time,
-            toDateTime64(${nowSeconds}, 3) as assigned_at
-          from computed_property_state
+            state_id,
+            user_id
+          from updated_computed_property_state
           where
-            (
-              workspace_id,
-              type,
-              computed_property_id,
-              state_id,
-              user_id
-            ) in (
-              select
-                workspace_id,
-                type,
-                computed_property_id,
-                state_id,
-                user_id
-              from updated_computed_property_state
-              where
-                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-                and type = 'user_property'
-                and computed_property_id = ${qb.addQueryValue(
-                  userProperty.id,
-                  "String"
-                )}
-                and state_id in ${qb.addQueryValue(stateIds, "Array(String)")}
-                and computed_at <= toDateTime64(${nowSeconds}, 3)
-                ${lowerBoundClause}
-            )
-          group by
-            workspace_id,
-            type,
-            computed_property_id,
-            user_id;
-        `;
-        break;
-      }
-      default:
-        throw new Error(
-          `Unhandled user property type: ${userProperty.definition.type}`
-        );
-    }
+            workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+            and type = 'user_property'
+            and computed_property_id = ${qb.addQueryValue(
+              userProperty.id,
+              "String"
+            )}
+            -- FIXME need to group all values for a computed property id into columns of map(state id, to value)
+            and state_id in ${qb.addQueryValue(
+              nodeAssignment.stateIds,
+              "Array(String)"
+            )}
+            and computed_at <= toDateTime64(${nowSeconds}, 3)
+            ${lowerBoundClause}
+        )
+      group by
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id;
+    `;
+    console.log("insert query loc1", query);
     queryies.push(
       clickhouseClient().command({
         query,
