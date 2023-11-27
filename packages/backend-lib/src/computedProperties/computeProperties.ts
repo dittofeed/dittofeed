@@ -30,6 +30,8 @@ import {
   ComputedPropertyPeriod,
   ComputedPropertyUpdate,
   GroupChildrenUserPropertyDefinitions,
+  GroupParentUserPropertyDefinitions,
+  GroupUserPropertyDefinition,
   JourneyResource,
   LeafUserPropertyDefinition,
   SavedIntegrationResource,
@@ -554,14 +556,57 @@ function leafUserPropertyToSubQuery({
 
 function groupedUserPropertyToSubQuery({
   userProperty,
-  child,
+  group,
+  node,
   qb,
 }: {
   userProperty: SavedUserPropertyResource;
-  child: GroupChildrenUserPropertyDefinitions;
+  node: GroupChildrenUserPropertyDefinitions;
+  group: GroupUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
 }): SubQueryData[] {
-  throw new Error("not implemented");
+  switch (node.type) {
+    case UserPropertyDefinitionType.AnyOf: {
+      return node.children.flatMap((child) => {
+        const childNode = group.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              userProperty,
+              child,
+              node,
+            },
+            "Grouped user property child node not found"
+          );
+          return [];
+        }
+        return groupedUserPropertyToSubQuery({
+          userProperty,
+          node: childNode,
+          group,
+          qb,
+        });
+      });
+    }
+    case UserPropertyDefinitionType.Trait: {
+      return [
+        leafUserPropertyToSubQuery({
+          userProperty,
+          child: node,
+          qb,
+        }),
+      ];
+    }
+    case UserPropertyDefinitionType.Performed: {
+      return [
+        leafUserPropertyToSubQuery({
+          userProperty,
+          child: node,
+          qb,
+        }),
+      ];
+    }
+  }
 }
 
 function userPropertyToSubQuery({
@@ -580,6 +625,97 @@ function userPropertyToSubQuery({
           qb,
         }),
       ];
+    }
+    case UserPropertyDefinitionType.Performed: {
+      return [
+        leafUserPropertyToSubQuery({
+          userProperty,
+          child: userProperty.definition,
+          qb,
+        }),
+      ];
+    }
+    case UserPropertyDefinitionType.Group: {
+      const entryId = userProperty.definition.entry;
+      const entryNode = userProperty.definition.nodes.find(
+        (n) => n.id === entryId
+      );
+      if (!entryNode) {
+        logger().error(
+          {
+            userProperty,
+            entryId,
+          },
+          "Grouped user property entry node not found"
+        );
+        return [];
+      }
+      return groupedUserPropertyToSubQuery({
+        userProperty,
+        node: entryNode,
+        group: userProperty.definition,
+        qb,
+      });
+    }
+    default:
+      throw new Error(
+        `Unhandled user property type: ${userProperty.definition.type}`
+      );
+  }
+}
+
+function leafUserPropertyToAssignment({
+  userProperty,
+  child,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  child: LeafUserPropertyDefinition;
+  qb: ClickHouseQueryBuilder;
+}): {
+  query: string;
+} {
+  switch (child.type) {
+    case UserPropertyDefinitionType.Trait: {
+      return {
+        query: "toJSONString(argMaxMerge(last_value))",
+      };
+    }
+    default:
+      throw new Error(`Unhandled user property type: ${child.type}`);
+  }
+}
+
+function groupedUserPropertyToAssignment({
+  userProperty,
+  child,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  child: GroupChildrenUserPropertyDefinitions;
+  qb: ClickHouseQueryBuilder;
+}): {
+  query: string;
+} {
+  throw new Error("not implemented");
+}
+
+function userPropertyToAssignment({
+  userProperty,
+  qb,
+}: {
+  userProperty: SavedUserPropertyResource;
+  qb: ClickHouseQueryBuilder;
+}): {
+  query: string;
+} {
+  switch (userProperty.definition.type) {
+    case UserPropertyDefinitionType.Trait: {
+      return leafUserPropertyToAssignment({
+        userProperty,
+        child: userProperty.definition,
+        qb,
+      });
     }
     default:
       throw new Error(
