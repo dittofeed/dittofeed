@@ -906,6 +906,55 @@ describe("computeProperties", () => {
             },
           ],
         },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 500,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                status: "active",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000 * 60 * 60 * 24 * 7,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "is no longer stuck onboarding when status changes to active",
+          states: [
+            ({ now }) => ({
+              userId: "user-1",
+              type: "segment",
+              nodeId: "1",
+              name: "stuckOnboarding",
+              lastValue: "active",
+              maxEventTime: new Date(
+                now - 1000 * 60 * 60 * 24 * 7 - 100
+              ).toISOString(),
+            }),
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                stuckOnboarding: false,
+              },
+            },
+          ],
+        },
       ],
     },
   ];
