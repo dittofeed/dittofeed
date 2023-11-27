@@ -507,9 +507,7 @@ export function segmentNodeStateId(
   nodeId: string
 ): string {
   return uuidv5(
-    `${segment.definitionUpdatedAt.toString()}:${
-      segment.definition.entryNode.id
-    }`,
+    `${segment.definitionUpdatedAt.toString()}:${nodeId}`,
     segment.id
   );
 }

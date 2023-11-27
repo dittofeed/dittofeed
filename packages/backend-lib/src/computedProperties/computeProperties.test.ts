@@ -111,7 +111,6 @@ async function readStates({
       query_params: qb.getQueries(),
     })
   ).json()) as { data: State[] };
-  console.log("loc4 response", response);
   return response.data;
 }
 
@@ -580,7 +579,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes an AND segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -634,14 +632,14 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          // users: [
-          //   {
-          //     id: "user-1",
-          //     segments: {
-          //       andSegment: true,
-          //     },
-          //   },
-          // ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                andSegment: true,
+              },
+            },
+          ],
           states: [
             {
               type: "segment",
