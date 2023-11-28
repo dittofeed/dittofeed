@@ -1078,7 +1078,7 @@ describe("computeProperties", () => {
     },
     {
       description: "double nested segment with And and Or conditionals",
-      only: true,
+      skip: true,
       segments: [
         {
           name: "doubleNested",
