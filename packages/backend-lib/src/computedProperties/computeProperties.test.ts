@@ -989,7 +989,6 @@ describe("computeProperties", () => {
     {
       description: "any of user property",
       segments: [],
-      only: true,
       userProperties: [
         {
           name: "email",
@@ -1077,7 +1076,119 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "double nested segment with And and Or conditionals",
+      only: true,
+      segments: [
+        {
+          name: "doubleNested",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Or,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "onboarding",
+                },
+              },
+              {
+                type: SegmentNodeType.And,
+                id: "3",
+                children: ["4", "5"],
+              },
+              {
+                type: SegmentNodeType.Trait,
+                id: "4",
+                path: "status",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "active",
+                },
+              },
+              {
+                type: SegmentNodeType.Trait,
+                id: "5",
+                path: "atRisk",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "true",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      userProperties: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                status: "onboarding",
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                status: "active",
+                atRisk: true,
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-3",
+              traits: {
+                status: "active",
+                atRisk: false,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                doubleNested: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                doubleNested: true,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                doubleNested: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
     // TODO object user property
+    // TODO performed
+    // TODO performed many
     // TODO double nested segment
   ];
   const only: null | string =
