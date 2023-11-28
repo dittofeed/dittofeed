@@ -1077,6 +1077,8 @@ describe("computeProperties", () => {
         },
       ],
     },
+    // TODO object user property
+    // TODO double nested segment
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
