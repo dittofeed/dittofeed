@@ -200,12 +200,6 @@ export async function findAllUserPropertyAssignments({
     },
   });
 
-  logger().debug(
-    {
-      userProperties,
-    },
-    "findAllUserPropertyAssignments"
-  );
   const combinedAssignments: UserPropertyAssignments = {};
 
   for (const userProperty of userProperties) {
@@ -240,6 +234,14 @@ export async function findAllUserPropertyAssignments({
       combinedAssignments[userProperty.name] = parsed.value;
     }
   }
+  logger().debug(
+    {
+      userId,
+      userProperties,
+      combinedAssignments,
+    },
+    "findAllUserPropertyAssignments"
+  );
 
   return combinedAssignments;
 }

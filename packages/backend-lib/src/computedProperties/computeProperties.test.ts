@@ -19,6 +19,7 @@ import {
   KnownBatchIdentifyData,
   KnownBatchTrackData,
   SavedSegmentResource,
+  SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
   SegmentNodeType,
   SegmentOperatorType,
@@ -40,6 +41,7 @@ import {
   processAssignments,
   segmentNodeStateId,
   segmentNodeToStateSubQuery,
+  userPropertyStateId,
 } from "./computeProperties";
 import logger from "../logger";
 
@@ -224,7 +226,7 @@ interface TestState {
 
 function toTestState(
   state: State,
-  userProperties: UserPropertyResource[],
+  userProperties: SavedUserPropertyResource[],
   segments: SavedSegmentResource[]
 ): TestState {
   const maxEventTime = clickhouseDateToIso(state.max_event_time);
@@ -253,19 +255,24 @@ function toTestState(
       };
     }
     case "user_property": {
-      const userProperty = userProperties.find(
-        (up) => up.id === state.computed_property_id
-      );
+      const userProperty: SavedUserPropertyResource | undefined =
+        userProperties.find((up) => up.id === state.computed_property_id);
       if (!userProperty) {
         throw new Error("userProperty not found");
       }
-      // TODO set nodeId for nested user properties
+      let nodeId: string | undefined;
+      if (userProperty.definition.type === UserPropertyDefinitionType.Group) {
+        nodeId = userProperty.definition.nodes.find(
+          (n) => userPropertyStateId(userProperty, n.id) === state.state_id
+        )?.id;
+      }
       return {
         type: "user_property",
         name: userProperty.name,
         lastValue: state.last_value,
         uniqueCount: state.unique_count,
         userId: state.user_id,
+        nodeId,
         maxEventTime,
       };
     }
@@ -1036,7 +1043,23 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          description: "user-1 is in the group",
+          description: "user-1 and user-2 both have emails",
+          states: [
+            {
+              userId: "user-1",
+              type: "user_property",
+              name: "email",
+              nodeId: "2",
+              lastValue: "email1@test.com",
+            },
+            {
+              userId: "user-2",
+              type: "user_property",
+              name: "email",
+              nodeId: "3",
+              lastValue: "email2@test.com",
+            },
+          ],
           users: [
             {
               id: "user-1",
@@ -1047,7 +1070,7 @@ describe("computeProperties", () => {
             {
               id: "user-2",
               properties: {
-                email: "email1@test.com",
+                email: "email2@test.com",
               },
             },
           ],
@@ -1124,6 +1147,7 @@ describe("computeProperties", () => {
               events.push(event);
             }
           }
+          console.log("events loc2", events);
           await submitBatch({
             workspaceId,
             data: events,

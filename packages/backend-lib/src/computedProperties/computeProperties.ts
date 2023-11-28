@@ -510,10 +510,15 @@ export function userPropertyStateId(
   userProperty: SavedUserPropertyResource,
   nodeId: string = ""
 ): string {
-  return uuidv5(
+  const stateId = uuidv5(
     `${userProperty.definitionUpdatedAt.toString()}:${nodeId}`,
     userProperty.id
   );
+  console.log("userPropertyStateId", {
+    stateId,
+    nodeId,
+  });
+  return stateId;
 }
 
 export function segmentNodeStateId(
@@ -678,11 +683,14 @@ function leafUserPropertyToAssignment({
   child: LeafUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
 }): UserPropertyNodeAssignment {
+  console.log("leafUserPropertyToAssignment", {
+    child,
+  });
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
       return {
-        query: "toJSONString(argMaxMerge(last_value))",
+        query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
       };
     }
@@ -734,8 +742,14 @@ function groupedUserPropertyToAssignment({
       if (childNodes.length === 1 && childNodes[0]) {
         return childNodes[0];
       }
+      const query: string = `coalesce(${childNodes
+        .map((c) => {
+          const varName = getChCompatibleUuid();
+          return `if((${c.query} as ${varName}) == '', Null, ${varName})`;
+        })
+        .join(", ")})`;
       return {
-        query: `coalesce(${childNodes.map((c) => c.query).join(", ")})`,
+        query,
         stateIds: childNodes.flatMap((c) => c.stateIds),
       };
     }
@@ -947,6 +961,8 @@ export async function computeState({
             existing_last_value != inner1.last_value
         ) inner2
       `;
+      // logger().debug({ query }, "insert state query");
+      console.log("insert state query", query);
 
       const response = await clickhouseClient().command({
         query,
@@ -1187,6 +1203,7 @@ export async function computeAssignments({
                     segment.id,
                     "String"
                   )}
+                  -- FIXME todo separate time bound stateids vs non time bound ones
                   and state_id in ${qb.addQueryValue(
                     childStateIds,
                     "Array(String)"
@@ -1265,47 +1282,75 @@ export async function computeAssignments({
         computed_property_id,
         user_id,
         False as segment_value,
-        ${nodeAssignment.query} as user_property_value,
-        maxMerge(max_event_time) as max_event_time,
+        toJSONString(ifNull(${
+          nodeAssignment.query
+        }, '')) as user_property_value,
+        arrayReduce('max', mapValues(max_event_time)),
         toDateTime64(${nowSeconds}, 3) as assigned_at
-      from computed_property_state
-      where
-        (
+      from (
+        select
           workspace_id,
           type,
           computed_property_id,
-          state_id,
-          user_id
-        ) in (
+          user_id,
+          CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
+          CAST((groupArray(state_id), groupArray(unique_count)), 'Map(String, Int32)') as unique_count,
+          CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time
+        from (
           select
             workspace_id,
             type,
             computed_property_id,
             state_id,
-            user_id
-          from updated_computed_property_state
+            user_id,
+            argMaxMerge(last_value) last_value,
+            uniqMerge(unique_count) unique_count,
+            maxMerge(max_event_time) max_event_time
+          from computed_property_state
           where
-            workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-            and type = 'user_property'
-            and computed_property_id = ${qb.addQueryValue(
-              userProperty.id,
-              "String"
-            )}
-            -- FIXME need to group all values for a computed property id into columns of map(state id, to value)
-            and state_id in ${qb.addQueryValue(
-              nodeAssignment.stateIds,
-              "Array(String)"
-            )}
-            and computed_at <= toDateTime64(${nowSeconds}, 3)
-            ${lowerBoundClause}
-        )
-      group by
-        workspace_id,
-        type,
-        computed_property_id,
-        user_id;
+            (
+              workspace_id,
+              type,
+              computed_property_id,
+              state_id,
+              user_id
+            ) in (
+              select
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+              from updated_computed_property_state
+              where
+                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                and type = 'user_property'
+                and computed_property_id = ${qb.addQueryValue(
+                  userProperty.id,
+                  "String"
+                )}
+                and state_id in ${qb.addQueryValue(
+                  nodeAssignment.stateIds,
+                  "Array(String)"
+                )}
+                and computed_at <= toDateTime64(${nowSeconds}, 3)
+                ${lowerBoundClause}
+            )
+          group by
+            workspace_id,
+            type,
+            computed_property_id,
+            state_id,
+            user_id
+        ) inner1
+        group by
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id
+      ) inner2
     `;
-    console.log("insert query loc1", query);
+    console.log("calculate assignments query", query);
     queryies.push(
       clickhouseClient().command({
         query,
