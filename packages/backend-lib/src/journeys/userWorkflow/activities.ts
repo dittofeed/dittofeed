@@ -14,6 +14,8 @@ import { getNodeId } from "isomorphic-lib/src/journeys";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
+
+import nodemailer from "nodemailer";
 import * as R from "remeda";
 import { omit } from "remeda";
 import { v5 as uuidv5 } from "uuid";
@@ -651,8 +653,38 @@ async function sendEmailWithPayload(
           if (!channelConfig.emailProvider.apiKey) {
             throw new Error("Missing sendgrid api key");
           }
+
+          const transport = nodemailer.createTransport({
+            host: "sandbox.smtp.mailtrap.io",
+            port: 2525,
+            auth: {
+              user: process.env.MAIL_USER,
+              pass: process.env.MAIL_PASS,
+            }
+          });
+
+          const mailOptions = {
+            from: 'nax@mahasos.com',
+            to: 'nax@mahasos.com',
+            subject: 'Nagaraju Testing Emails',
+            text: 'Nagaraju Testing Emails'
+          };
+
+          transport.sendMail(mailOptions, (error, info) => {
+            if (error) {
+              logger().error({ message: 'Email Failed', err: error});
+            } else {
+              logger().info({message: `Email sent: ${  info.response}`});
+            }
+          });
+
+          logger().info({
+            message: "Mail information",
+            mailInfo: mailData
+          })
+
           // TODO distinguish between retryable and non-retryable errors
-          const result = await sendEmailSendgrid({
+          /* const result = await sendEmailSendgrid({
             mailData,
             apiKey: channelConfig.emailProvider.apiKey,
           });
@@ -666,7 +698,7 @@ async function sendEmailWithPayload(
                 responseBody: result.error.response.body,
               },
             });
-          }
+          } */
 
           return buildSendValue(true, InternalEventType.MessageSent, {
             from,
