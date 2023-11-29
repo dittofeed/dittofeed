@@ -485,9 +485,29 @@ export function segmentNodeToStateSubQuery({
       const stateId = segmentNodeStateId(segment, node.id);
       const event = qb.addQueryValue(node.event, "String");
       // FIXME performed properties
+      const propertyConditions = node.properties?.map((property) => {
+        const operatorType = property.operator.type;
+        switch (operatorType) {
+          case SegmentOperatorType.Equals: {
+            return `visitParamExtractString(properties, ${qb.addQueryValue(
+              property.path,
+              "String"
+            )}) == ${qb.addQueryValue(property.operator.value, "String")}`;
+          }
+          default:
+            throw new Error(
+              `Unimplemented segment operator for performed node ${operatorType}`
+            );
+        }
+      });
+      const propertyClause =
+        propertyConditions && propertyConditions.length
+          ? `and (${propertyConditions.join(" and ")})`
+          : "";
+      console.log("propertyClause", propertyClause);
       return [
         {
-          condition: `event_type == 'track' and event == ${event}`,
+          condition: `event_type == 'track' and event == ${event} ${propertyClause}`,
           type: "segment",
           uniqValue: "message_id",
           argMaxValue: "''",
@@ -1335,12 +1355,12 @@ export async function computeState({
         ) inner2
       `;
 
-      const response = await clickhouseClient().command({
+      console.log("state query loc3", query);
+      await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
       });
-      console.log("insert response loc2.1", response);
     })
   );
 
