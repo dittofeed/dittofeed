@@ -1017,6 +1017,15 @@ function constructStateQuery({
     return null;
   }
   const stateIdClause = `and (${stateIdClauses.join(" or ")})`;
+  let segmentValue: string;
+  let userPropertyValue: string;
+  if (computedPropertyType === "segment") {
+    userPropertyValue = "''";
+    segmentValue = config.query;
+  } else {
+    segmentValue = "False";
+    userPropertyValue = `toJSONString(ifNull(${config.query}, ''))`;
+  }
   const query = `
     insert into computed_property_assignments_v2
     select
@@ -1024,8 +1033,8 @@ function constructStateQuery({
       type,
       computed_property_id,
       user_id,
-      False as segment_value,
-      toJSONString(ifNull(${config.query}, '')) as user_property_value,
+      ${segmentValue} as segment_value,
+      ${userPropertyValue} as user_property_value,
       arrayReduce('max', mapValues(max_event_time)),
       toDateTime64(${nowSeconds}, 3) as assigned_at
     from (
