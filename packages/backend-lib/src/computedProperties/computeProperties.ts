@@ -522,6 +522,27 @@ export function segmentNodeToStateSubQuery({
         });
       });
     }
+    case SegmentNodeType.Or: {
+      return node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "Or child node not found"
+          );
+          return [];
+        }
+        return segmentNodeToStateSubQuery({
+          node: childNode,
+          segment,
+          qb,
+        });
+      });
+    }
     default:
       throw new Error(`Unhandled user property type: ${node.type}`);
   }
@@ -954,6 +975,44 @@ function segmentToAssignment({
         return childQueries[0];
       }
       const query = `(${childQueries.map((c) => c.query).join(" and ")})`;
+      return {
+        query,
+        stateIds: childQueries.flatMap((c) => c.stateIds),
+        unboundedStateIds: childQueries.flatMap((c) => c.unboundedStateIds),
+      };
+    }
+    case SegmentNodeType.Or: {
+      const childQueries = node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "Or child node not found"
+          );
+          return [];
+        }
+        const assignment = segmentToAssignment({
+          node: childNode,
+          segment,
+          now,
+          qb,
+        });
+        if (!assignment) {
+          return [];
+        }
+        return assignment;
+      });
+      if (childQueries.length === 0) {
+        return null;
+      }
+      if (childQueries.length === 1 && childQueries[0]) {
+        return childQueries[0];
+      }
+      const query = `(${childQueries.map((c) => c.query).join(" or ")})`;
       return {
         query,
         stateIds: childQueries.flatMap((c) => c.stateIds),

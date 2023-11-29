@@ -1078,7 +1078,7 @@ describe("computeProperties", () => {
     },
     {
       description: "double nested segment with And and Or conditionals",
-      skip: true,
+      only: true,
       segments: [
         {
           name: "doubleNested",
@@ -1260,7 +1260,6 @@ describe("computeProperties", () => {
               events.push(event);
             }
           }
-          console.log("events loc2", events);
           await submitBatch({
             workspaceId,
             data: events,
@@ -1312,7 +1311,12 @@ describe("computeProperties", () => {
                       userId: user.id,
                       workspaceId,
                     }).then((up) =>
-                      expect(up, step.description).toEqual(user.properties)
+                      expect(
+                        up,
+                        `${
+                          step.description ? `${step.description}: ` : ""
+                        }user properties for: ${user.id}`
+                      ).toEqual(user.properties)
                     )
                   : null,
                 user.segments
@@ -1320,7 +1324,12 @@ describe("computeProperties", () => {
                       userId: user.id,
                       workspaceId,
                     }).then((s) =>
-                      expect(s, step.description).toEqual(user.segments)
+                      expect(
+                        s,
+                        `${
+                          step.description ? `${step.description}: ` : ""
+                        }segments for: ${user.id}`
+                      ).toEqual(user.segments)
                     )
                   : null,
               ]);
