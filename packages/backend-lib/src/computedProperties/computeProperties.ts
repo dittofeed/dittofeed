@@ -34,6 +34,7 @@ import {
   GroupUserPropertyDefinition,
   JourneyResource,
   LeafUserPropertyDefinition,
+  RelationalOperators,
   SavedIntegrationResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
@@ -480,6 +481,21 @@ export function segmentNodeToStateSubQuery({
         },
       ];
     }
+    case SegmentNodeType.Performed: {
+      const stateId = segmentNodeStateId(segment, node.id);
+      const event = qb.addQueryValue(node.event, "String");
+      // FIXME performed properties
+      return [
+        {
+          condition: `event_type == 'track' and event == ${event}`,
+          type: "segment",
+          uniqValue: "message_id",
+          argMaxValue: "''",
+          computedPropertyId: segment.id,
+          stateId,
+        },
+      ];
+    }
     case SegmentNodeType.Or: {
       return node.children.flatMap((child) => {
         const childNode = segment.definition.nodes.find((n) => n.id === child);
@@ -874,6 +890,7 @@ function segmentToAssignment({
   const nowSeconds = now / 1000;
   const stateIdQueryValue = qb.addQueryValue(stateId, "String");
   const lastValue = `last_value[${stateIdQueryValue}]`;
+  const uniqCount = `unique_count[${stateIdQueryValue}]`;
   const maxEventTime = `max_event_time[${stateIdQueryValue}]`;
 
   switch (node.type) {
@@ -942,6 +959,16 @@ function segmentToAssignment({
           };
         }
       }
+    }
+    case SegmentNodeType.Performed: {
+      const operator: string = node.timesOperator ?? RelationalOperators.Equals;
+      const times = node.times === undefined ? 1 : node.times;
+
+      return {
+        query: `${uniqCount} ${operator} ${qb.addQueryValue(times, "Int32")}`,
+        stateIds: [stateId],
+        unboundedStateIds: [],
+      };
     }
     case SegmentNodeType.And: {
       const childQueries = node.children.flatMap((child) => {
@@ -1304,6 +1331,7 @@ export async function computeState({
             inner1.event_time
           having
             existing_last_value != inner1.last_value
+            OR inner1.unique_count != ''
         ) inner2
       `;
 

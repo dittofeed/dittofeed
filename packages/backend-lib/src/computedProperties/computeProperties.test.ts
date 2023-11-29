@@ -18,6 +18,7 @@ import {
   JSONValue,
   KnownBatchIdentifyData,
   KnownBatchTrackData,
+  RelationalOperators,
   SavedSegmentResource,
   SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
@@ -80,7 +81,7 @@ interface State {
   max_event_time: string;
   computed_at: string;
   last_value: string;
-  unique_count: number;
+  unique_count: string;
 }
 
 async function readStates({
@@ -249,7 +250,7 @@ function toTestState(
         name: segment.name,
         nodeId,
         lastValue: state.last_value,
-        uniqueCount: state.unique_count,
+        uniqueCount: Number(state.unique_count),
         userId: state.user_id,
         maxEventTime,
       };
@@ -270,7 +271,7 @@ function toTestState(
         type: "user_property",
         name: userProperty.name,
         lastValue: state.last_value,
-        uniqueCount: state.unique_count,
+        uniqueCount: Number(state.unique_count),
         userId: state.user_id,
         nodeId,
         maxEventTime,
@@ -278,15 +279,6 @@ function toTestState(
     }
   }
 }
-
-// interface TestAssignment {
-//   type: "segment" | "user_property";
-//   name: string;
-//   nodeId: string;
-//   segmentValue?: boolean;
-//   userPropertyValue?: string;
-//   // assignedAt
-// }
 
 interface TableUser {
   id: string;
@@ -1078,7 +1070,6 @@ describe("computeProperties", () => {
     },
     {
       description: "double nested segment with And and Or conditionals",
-      only: true,
       segments: [
         {
           name: "doubleNested",
@@ -1144,7 +1135,7 @@ describe("computeProperties", () => {
               userId: "user-2",
               traits: {
                 status: "active",
-                atRisk: true,
+                atRisk: "true",
               },
             },
             {
@@ -1153,7 +1144,7 @@ describe("computeProperties", () => {
               userId: "user-3",
               traits: {
                 status: "active",
-                atRisk: false,
+                atRisk: "false",
               },
             },
           ],
@@ -1186,10 +1177,90 @@ describe("computeProperties", () => {
         },
       ],
     },
-    // TODO object user property
+    {
+      description: "performed segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 2,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -150,
+              userId: "user-1",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-2",
+              event: "test",
+            },
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-3",
+              event: "unrelated",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "includes user who performed test event twice, but excludes user who performed test event once, and user who performed unrelated event",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "performed",
+              nodeId: "1",
+              uniqueCount: 2,
+            },
+            {
+              type: "segment",
+              userId: "user-2",
+              name: "performed",
+              nodeId: "1",
+              uniqueCount: 1,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
     // TODO performed
     // TODO performed many
-    // TODO double nested segment
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
