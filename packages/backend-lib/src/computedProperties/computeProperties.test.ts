@@ -1569,7 +1569,7 @@ describe("computeProperties", () => {
     },
     {
       description: "with a performed many user property",
-      skip: true,
+      only: true,
       userProperties: [
         {
           name: "performedMany",

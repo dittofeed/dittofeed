@@ -790,6 +790,20 @@ function userPropertyToSubQuery({
         qb,
       });
     }
+    case UserPropertyDefinitionType.PerformedMany: {
+      return [
+        {
+          condition: `event_type == 'track' and has(${qb.addQueryValue(
+            userProperty.definition.or.map((event) => event.event),
+            "Array(String)"
+          )}, event)`,
+          type: "user_property",
+          recordMessageId: true,
+          computedPropertyId: userProperty.id,
+          stateId: userPropertyStateId(userProperty),
+        },
+      ];
+    }
     default:
       throw new Error(
         `Unhandled user property type: ${userProperty.definition.type}`
@@ -822,7 +836,7 @@ function leafUserPropertyToAssignment({
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
-        unboundedStateIds: [stateId],
+        unboundedStateIds: [],
       };
     }
     default:
@@ -938,6 +952,29 @@ function userPropertyToAssignment({
         group: userProperty.definition,
         qb,
       });
+    }
+    case UserPropertyDefinitionType.PerformedMany: {
+      const stateId = userPropertyStateId(userProperty);
+      const varName = getChCompatibleUuid();
+      return {
+        query: `
+          map(
+            'event',
+            (grouped_events[${qb.addQueryValue(
+              stateId,
+              "String"
+            )}] as ${varName}).1,
+            'timestamp',
+            formatDateTime(
+              ${varName}.2,
+              '%Y-%m-%dT%H:%M:%S'
+            ),
+            'properties',
+            ${varName}.3
+          )`,
+        stateIds: [stateId],
+        unboundedStateIds: [],
+      };
     }
     default:
       throw new Error(
@@ -1293,7 +1330,8 @@ function constructStateQuery({
       ) inner1
       array join inner1.grouped_message_ids as message_id
       left join user_events_v2 ue
-        on inner1.workspace_id = ue.workspace_id
+        on message_id != ''
+        and inner1.workspace_id = ue.workspace_id
         and inner1.user_id = ue.user_id
         and message_id = ue.message_id
       group by
@@ -1377,8 +1415,8 @@ export async function computeState({
                 '${subQuery.type}',
                 '${subQuery.computedPropertyId}',
                 '${subQuery.stateId}',
-                ${subQuery.argMaxValue},
-                ${subQuery.uniqValue},
+                ${subQuery.argMaxValue ?? "''"},
+                ${subQuery.uniqValue ?? "''"},
                 ${subQuery.recordMessageId ? "message_id" : "''"}
               ),
               (Null, Null, Null, Null, Null, Null)
