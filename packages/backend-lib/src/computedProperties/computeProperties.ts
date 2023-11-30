@@ -166,6 +166,7 @@ export async function createTables() {
         last_value AggregateFunction(argMax, String, DateTime64(3)),
         unique_count AggregateFunction(uniq, String),
         max_event_time AggregateFunction(max, DateTime64(3)),
+        grouped_message_ids AggregateFunction(groupArray, String),
         computed_at DateTime64(3)
       )
       ENGINE = AggregatingMergeTree()
@@ -447,7 +448,7 @@ interface SubQueryData {
   stateId: string;
   argMaxValue?: string;
   uniqValue?: string;
-  comparisonCondition?: string;
+  recordMessageId?: boolean;
 }
 
 type AggregatedComputedPropertyPeriod = Omit<
@@ -622,6 +623,7 @@ export function segmentNodeToStateSubQuery({
           type: "segment",
           uniqValue: "''",
           argMaxValue: `toJSONString([${propertyValues.join(", ")}])`,
+          recordMessageId: true,
           computedPropertyId: segment.id,
           stateId,
         },
@@ -1356,9 +1358,10 @@ export async function computeState({
                 '${subQuery.computedPropertyId}',
                 '${subQuery.stateId}',
                 ${subQuery.argMaxValue},
-                ${subQuery.uniqValue}
+                ${subQuery.uniqValue},
+                ${subQuery.recordMessageId ? "message_id" : "''"}
               ),
-              (Null, Null, Null, Null, Null)
+              (Null, Null, Null, Null, Null, Null)
             )
           `
         )
@@ -1374,6 +1377,7 @@ export async function computeState({
           inner2.last_value,
           inner2.unique_count,
           inner2.max_event_time,
+          inner2.grouped_message_ids,
           toDateTime64(${nowSeconds}, 3) as computed_at
         from (
           select
@@ -1385,6 +1389,7 @@ export async function computeState({
             argMaxState(inner1.last_value, inner1.event_time) as last_value,
             uniqState(inner1.unique_count) as unique_count,
             maxState(inner1.event_time) as max_event_time,
+            groupArrayState(inner1.grouped_message_id) as grouped_message_ids,
             argMaxMerge(cps.last_value) as existing_last_value,
             uniqMerge(cps.unique_count) as existing_unique_count
           from (
@@ -1406,6 +1411,7 @@ export async function computeState({
               user_id,
               ifNull(c.4, '') as last_value,
               ifNull(c.5, '') as unique_count,
+              ifNull(c.6, '') as grouped_message_id,
               event_time
             from user_events_v2 ue
             where
@@ -1434,6 +1440,7 @@ export async function computeState({
         ) inner2
       `;
 
+      console.log("stateQuery loc1", query);
       await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
