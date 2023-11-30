@@ -18,6 +18,7 @@ import {
   JSONValue,
   KnownBatchIdentifyData,
   KnownBatchTrackData,
+  ParsedPerformedManyValueItem,
   RelationalOperators,
   SavedSegmentResource,
   SavedUserPropertyResource,
@@ -328,7 +329,7 @@ interface TestPeriod {
 interface AssertStep {
   type: EventsStepType.Assert;
   description?: string;
-  users?: TableUser[];
+  users?: (TableUser | ((ctx: StepContext) => TableUser))[];
   states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: TestPeriod[];
 }
@@ -1566,8 +1567,83 @@ describe("computeProperties", () => {
         },
       ],
     },
-    // TODO performed
+    {
+      description: "with a performed many user property",
+      only: true,
+      userProperties: [
+        {
+          name: "performedMany",
+          definition: {
+            type: UserPropertyDefinitionType.PerformedMany,
+            or: [
+              {
+                event: "test1",
+              },
+              {
+                event: "test2",
+              },
+            ],
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              userId: "user-1",
+              event: "test1",
+              offsetMs: -100,
+              properties: {
+                prop1: "value1",
+              },
+            },
+            {
+              type: EventType.Track,
+              userId: "user-1",
+              event: "test2",
+              offsetMs: -100,
+              properties: {
+                prop2: "value2",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            ({ now }) => ({
+              id: "user-1",
+              properties: {
+                performedMany: [
+                  {
+                    event: "test1",
+                    timestamp: new Date(now - 100).toISOString(),
+                    properties: {
+                      prop1: "value1",
+                    },
+                  },
+                  {
+                    event: "test2",
+                    timestamp: new Date(now - 100).toISOString(),
+                    properties: {
+                      prop2: "value2",
+                    },
+                  },
+                ] as ParsedPerformedManyValueItem[],
+              },
+            }),
+          ],
+        },
+      ],
+    },
     // TODO performed many
+    // TODO subscription group
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
@@ -1682,7 +1758,13 @@ describe("computeProperties", () => {
           break;
         case EventsStepType.Assert:
           await Promise.all([
-            ...(step.users?.map(async (user) => {
+            ...(step.users?.map(async (userOrFn) => {
+              let user: TableUser;
+              if (typeof userOrFn === "function") {
+                user = await userOrFn(stepContext);
+              } else {
+                user = userOrFn;
+              }
               await Promise.all([
                 user.properties
                   ? findAllUserPropertyAssignments({

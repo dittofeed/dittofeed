@@ -1434,7 +1434,6 @@ export async function computeState({
         ) inner2
       `;
 
-      console.log("state query loc3", query);
       await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
