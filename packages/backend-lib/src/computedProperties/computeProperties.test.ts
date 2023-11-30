@@ -1315,7 +1315,6 @@ describe("computeProperties", () => {
           },
         },
       ],
-      only: true,
       segments: [
         {
           name: "performed",
@@ -1447,6 +1446,120 @@ describe("computeProperties", () => {
               id: "user-4",
               segments: {
                 performed: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "last performed segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "lastPerformed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.LastPerformed,
+              id: "1",
+              event: "test",
+              whereProperties: [
+                {
+                  path: "kind",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "integration",
+                  },
+                },
+              ],
+              hasProperties: [
+                {
+                  path: "group",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "first",
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              userId: "user-1",
+              event: "test",
+              offsetMs: -100,
+              properties: {
+                kind: "integration",
+                group: "first",
+              },
+            },
+            {
+              type: EventType.Track,
+              userId: "user-2",
+              event: "unrelated",
+              offsetMs: -100,
+              properties: {
+                kind: "integration",
+                group: "first",
+              },
+            },
+            {
+              type: EventType.Track,
+              userId: "user-3",
+              event: "test",
+              offsetMs: -100,
+              properties: {
+                kind: "unrelated",
+                group: "first",
+              },
+            },
+            {
+              type: EventType.Track,
+              userId: "user-4",
+              event: "test",
+              offsetMs: -100,
+              properties: {
+                kind: "integration",
+                group: "unrelated",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                lastPerformed: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                lastPerformed: false,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                lastPerformed: false,
+              },
+            },
+            {
+              id: "user-4",
+              segments: {
+                lastPerformed: false,
               },
             },
           ],

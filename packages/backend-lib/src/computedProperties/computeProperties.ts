@@ -484,7 +484,6 @@ export function segmentNodeToStateSubQuery({
     case SegmentNodeType.Performed: {
       const stateId = segmentNodeStateId(segment, node.id);
       const event = qb.addQueryValue(node.event, "String");
-      // FIXME performed properties
       const propertyConditions = node.properties?.map((property) => {
         const operatorType = property.operator.type;
         switch (operatorType) {
@@ -504,7 +503,6 @@ export function segmentNodeToStateSubQuery({
         propertyConditions && propertyConditions.length
           ? `and (${propertyConditions.join(" and ")})`
           : "";
-      console.log("propertyClause", propertyClause);
       return [
         {
           condition: `event_type == 'track' and event == ${event} ${propertyClause}`,
@@ -579,8 +577,58 @@ export function segmentNodeToStateSubQuery({
         });
       });
     }
+    case SegmentNodeType.LastPerformed: {
+      const stateId = segmentNodeStateId(segment, node.id);
+      const event = qb.addQueryValue(node.event, "String");
+      const whereConditions = node.whereProperties?.map((property) => {
+        const operatorType = property.operator.type;
+        switch (operatorType) {
+          case SegmentOperatorType.Equals: {
+            return `visitParamExtractString(properties, ${qb.addQueryValue(
+              property.path,
+              "String"
+            )}) == ${qb.addQueryValue(property.operator.value, "String")}`;
+          }
+          default:
+            throw new Error(
+              `Unimplemented segment operator for performed node ${operatorType}`
+            );
+        }
+      });
+      const wherePropertyClause =
+        whereConditions && whereConditions.length
+          ? `and (${whereConditions.join(" and ")})`
+          : "";
+      const propertyValues =
+        node.hasProperties?.map((property) => {
+          const operatorType = property.operator.type;
+          switch (operatorType) {
+            case SegmentOperatorType.Equals: {
+              return `visitParamExtractString(properties, ${qb.addQueryValue(
+                property.path,
+                "String"
+              )})`;
+            }
+            default:
+              throw new Error(
+                `Unimplemented segment operator for performed node ${operatorType}`
+              );
+          }
+        }) ?? [];
+
+      return [
+        {
+          condition: `event_type == 'track' and event == ${event} ${wherePropertyClause}`,
+          type: "segment",
+          uniqValue: "''",
+          argMaxValue: `toJSONString([${propertyValues.join(", ")}])`,
+          computedPropertyId: segment.id,
+          stateId,
+        },
+      ];
+    }
     default:
-      throw new Error(`Unhandled user property type: ${node.type}`);
+      throw new Error(`Unhandled segment type: ${node.type}`);
   }
 }
 
@@ -986,6 +1034,37 @@ function segmentToAssignment({
 
       return {
         query: `${uniqCount} ${operator} ${qb.addQueryValue(times, "Int32")}`,
+        stateIds: [stateId],
+        unboundedStateIds: [],
+      };
+    }
+    case SegmentNodeType.LastPerformed: {
+      const varName = getChCompatibleUuid();
+      const hasPropertyConditions = node.hasProperties?.map((property, i) => {
+        const operatorType = property.operator.type;
+        const reference =
+          i === 0
+            ? `(JSONExtract(${lastValue}, 'Array(String)') as ${varName})`
+            : varName;
+        switch (operatorType) {
+          case SegmentOperatorType.Equals: {
+            return `${reference}[${i + 1}] == ${qb.addQueryValue(
+              property.operator.value,
+              "String"
+            )}`;
+          }
+          default:
+            throw new Error(
+              `Unimplemented segment operator for performed node ${operatorType}`
+            );
+        }
+      });
+      const query = hasPropertyConditions.length
+        ? `(${hasPropertyConditions.join(" and ")})`
+        : `1=1`;
+
+      return {
+        query,
         stateIds: [stateId],
         unboundedStateIds: [],
       };
