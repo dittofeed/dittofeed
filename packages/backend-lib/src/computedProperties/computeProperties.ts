@@ -1233,7 +1233,20 @@ function constructStateQuery({
         user_id,
         CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
         CAST((groupArray(state_id), groupArray(unique_count)), 'Map(String, Int32)') as unique_count,
-        CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time
+        CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time,
+        CAST(
+          (
+            groupArray(state_id),
+            groupArray(
+              (
+                ue.event,
+                ue.event_time,
+                ue.properties
+              )
+            )
+          ),
+          'Map(String, Tuple(String, DateTime64(3), String))'
+        ) as grouped_events
       from (
         select
           workspace_id,
@@ -1243,7 +1256,8 @@ function constructStateQuery({
           user_id,
           argMaxMerge(last_value) last_value,
           uniqMerge(unique_count) unique_count,
-          maxMerge(max_event_time) max_event_time
+          maxMerge(max_event_time) max_event_time,
+          groupArray(grouped_message_ids) as grouped_message_ids
         from computed_property_state
         where
           (
@@ -1277,6 +1291,11 @@ function constructStateQuery({
           state_id,
           user_id
       ) inner1
+      array join inner1.grouped_message_ids as message_id
+      left join user_events_v2 ue
+        on inner1.workspace_id = ue.workspace_id
+        and inner1.user_id = ue.user_id
+        and message_id = ue.message_id
       group by
         workspace_id,
         type,
@@ -1404,7 +1423,7 @@ export async function computeState({
                       [${subQueries}]
                     )
                   ) as c
-                ).1, 
+                ).1,
                 'Enum8(\\'user_property\\' = 1, \\'segment\\' = 2)'
               ) as type,
               c.2 as computed_property_id,
