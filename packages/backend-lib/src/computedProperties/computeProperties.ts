@@ -809,8 +809,9 @@ function leafUserPropertyToSubQuery({
         stateId,
       };
     }
-    default:
-      throw new Error(`Unhandled user property type: ${child.type}`);
+    case UserPropertyDefinitionType.Performed: {
+      throw new Error("Unhandled user property type");
+    }
   }
 }
 
