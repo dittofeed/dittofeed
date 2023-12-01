@@ -1491,10 +1491,12 @@ export async function computeState({
             inner1.user_id,
             inner1.last_value,
             inner1.unique_count,
+            inner1.grouped_message_id,
             inner1.event_time
           having
             existing_last_value != inner1.last_value
             OR inner1.unique_count != ''
+            OR inner1.grouped_message_id != ''
         ) inner2
       `;
 

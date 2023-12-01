@@ -1616,29 +1616,36 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          users: [
-            ({ now }) => ({
-              id: "user-1",
-              properties: {
-                performedMany: [
-                  {
-                    event: "test1",
-                    timestamp: new Date(now - 100).toISOString(),
-                    properties: {
-                      prop1: "value1",
-                    },
-                  },
-                  {
-                    event: "test2",
-                    timestamp: new Date(now - 100).toISOString(),
-                    properties: {
-                      prop2: "value2",
-                    },
-                  },
-                ] as ParsedPerformedManyValueItem[],
-              },
-            }),
+          states: [
+            {
+              userId: "user-1",
+              type: "user_property",
+              name: "performedMany",
+            },
           ],
+          // users: [
+          //   ({ now }) => ({
+          //     id: "user-1",
+          //     properties: {
+          //       performedMany: [
+          //         {
+          //           event: "test1",
+          //           timestamp: new Date(now - 100).toISOString(),
+          //           properties: {
+          //             prop1: "value1",
+          //           },
+          //         },
+          //         {
+          //           event: "test2",
+          //           timestamp: new Date(now - 100).toISOString(),
+          //           properties: {
+          //             prop2: "value2",
+          //           },
+          //         },
+          //       ] as ParsedPerformedManyValueItem[],
+          //     },
+          //   }),
+          // ],
         },
       ],
     },
