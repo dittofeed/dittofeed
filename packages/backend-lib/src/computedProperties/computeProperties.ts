@@ -700,7 +700,7 @@ export function segmentNodeToStateSubQuery({
           ? `and (${whereConditions.join(" and ")})`
           : "";
       const propertyValues =
-        node.hasProperties?.map((property) => {
+        node.hasProperties.map((property) => {
           const operatorType = property.operator.type;
           switch (operatorType) {
             case SegmentOperatorType.Equals: {
@@ -764,7 +764,7 @@ export function segmentNodeToStateSubQuery({
 
 export function userPropertyStateId(
   userProperty: SavedUserPropertyResource,
-  nodeId: string = ""
+  nodeId = ""
 ): string {
   const stateId = uuidv5(
     `${userProperty.definitionUpdatedAt.toString()}:${nodeId}`,
@@ -966,13 +966,13 @@ function userPropertyToSubQuery({
   }
 }
 
-type AssignmentQueryConfig = {
+interface AssignmentQueryConfig {
   query: string;
   // ids of states to aggregate that need to fall within bounded time window
   stateIds: string[];
   // ids of states to aggregate that don't need to fall within bounded time window
   unboundedStateIds: string[];
-};
+}
 
 type OptionalAssignmentQueryConfig = AssignmentQueryConfig | null;
 
@@ -1048,7 +1048,7 @@ function groupedUserPropertyToAssignment({
       if (childNodes.length === 1 && childNodes[0]) {
         return childNodes[0];
       }
-      const query: string = `coalesce(${childNodes
+      const query = `coalesce(${childNodes
         .map((c) => {
           const varName = getChCompatibleUuid();
           return `if((${c.query} as ${varName}) == '', Null, ${varName})`;
@@ -1262,7 +1262,7 @@ function segmentToAssignment({
     }
     case SegmentNodeType.LastPerformed: {
       const varName = getChCompatibleUuid();
-      const hasPropertyConditions = node.hasProperties?.map((property, i) => {
+      const hasPropertyConditions = node.hasProperties.map((property, i) => {
         const operatorType = property.operator.type;
         const reference =
           i === 0
@@ -1423,7 +1423,7 @@ function constructStateQuery({
   config: AssignmentQueryConfig;
 }): string | null {
   const nowSeconds = now / 1000;
-  let lowerBoundClause =
+  const lowerBoundClause =
     periodBound && periodBound !== 0
       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
       : "";

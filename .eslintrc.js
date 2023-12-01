@@ -49,6 +49,12 @@ module.exports = {
       },
     ],
     "@typescript-eslint/no-unsafe-enum-comparison": "error",
+    // "jest/valid-expect": [
+    //   "error",
+    //   {
+    //     maxArgs: 2,
+    //   },
+    // ],
   },
   root: true,
 };

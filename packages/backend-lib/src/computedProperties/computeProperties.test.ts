@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-loop-func */
 /* eslint-disable no-await-in-loop */
 import { randomUUID } from "crypto";
+import { format } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { buildBatchUserEvents } from "../apps";
@@ -9,6 +11,7 @@ import {
   clickhouseDateToIso,
   ClickHouseQueryBuilder,
 } from "../clickhouse";
+import logger from "../logger";
 import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
@@ -42,20 +45,8 @@ import {
   dropTables,
   processAssignments,
   segmentNodeStateId,
-  segmentNodeToStateSubQuery,
   userPropertyStateId,
 } from "./computeProperties";
-import logger from "../logger";
-import { format } from "date-fns";
-import { utcToZonedTime } from "date-fns-tz";
-
-jest.setTimeout(Math.pow(10, 5));
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 async function readAssignments({
   workspaceId,
@@ -120,54 +111,6 @@ async function readStates({
     })
   ).json()) as { data: State[] };
   return response.data;
-}
-
-interface Processed {
-  workspace_id: string;
-  user_id: string;
-  type: "segment" | "user_property";
-  computed_property_id: string;
-  processed_for: string;
-  processed_for_type: string;
-  segment_value: number;
-  user_property_value: string;
-  max_event_time: string;
-  processed_at: string;
-}
-
-async function readProcessed({}: {
-  workspaceId: string;
-}): Promise<Processed[]> {
-  const qb = new ClickHouseQueryBuilder();
-  const query = `
-    select *
-    from processed_computed_properties_v2
-  `;
-  const response: { data: Processed[] } = await (
-    await clickhouseClient().query({
-      query,
-      query_params: qb.getQueries(),
-    })
-  ).json();
-  return response.data;
-}
-
-async function readEvents({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<unknown[]> {
-  const qb = new ClickHouseQueryBuilder();
-  const query = `
-    select *
-    from user_events_v2
-    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-  `;
-  const response = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-  });
-  return response.json();
 }
 
 type TableEventCommon<T> = Omit<T, "messageId" | "timestamp"> & {
@@ -1931,7 +1874,7 @@ describe("computeProperties", () => {
                       to: p.to.getTime() - now,
                       step: p.step as ComputedPropertyStep,
                     };
-                    if (p.from !== undefined) {
+                    if (p.from !== null) {
                       s.from = p.from ? p.from.getTime() - now : undefined;
                     }
                     return s;
