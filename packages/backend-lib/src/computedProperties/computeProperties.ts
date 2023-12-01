@@ -1437,72 +1437,94 @@ function constructStateQuery({
         CAST(
           (
             groupArray(state_id),
-            groupArray(
-              (
-                ue.event,
-                ue.event_time,
-                ue.properties
-              )
-            )
+            groupArray(events)
           ),
-          'Map(String, Tuple(String, DateTime64(3), String))'
+          'Map(String, Array(Tuple(String, DateTime64(3), String)))'
         ) as grouped_events
       from (
-        select
+        select 
           workspace_id,
           type,
           computed_property_id,
           state_id,
           user_id,
-          argMaxMerge(last_value) last_value,
-          uniqMerge(unique_count) unique_count,
-          maxMerge(max_event_time) max_event_time,
-          groupArray(grouped_message_ids) as grouped_message_ids
-        from computed_property_state
-        where
-          (
+          last_value,
+          unique_count,
+          max_event_time,
+          groupArray(
+            event
+          ) as events
+        from (
+          select
             workspace_id,
             type,
             computed_property_id,
             state_id,
-            user_id
-          ) in (
-            select
+            user_id,
+            argMaxMerge(last_value) last_value,
+            uniqMerge(unique_count) unique_count,
+            maxMerge(max_event_time) max_event_time,
+            groupArrayMerge(cps.grouped_message_ids) grouped_message_ids,
+            (
+              ue.event,
+              ue.event_time,
+              ue.properties
+            ) as event
+          from computed_property_state cps
+          array join grouped_message_ids as message_id
+          left join user_events_v2 ue
+            on message_id != ''
+            and cps.workspace_id = ue.workspace_id
+            and cps.user_id = ue.user_id
+            and message_id = ue.message_id
+          where
+            (
               workspace_id,
               type,
               computed_property_id,
               state_id,
               user_id
-            from updated_computed_property_state
-            where
-              workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-              and type = '${computedPropertyType}'
-              and computed_property_id = ${qb.addQueryValue(
-                computedPropertyId,
-                "String"
-              )}
-              and computed_at <= toDateTime64(${nowSeconds}, 3)
-              ${stateIdClause}
-          )
+            ) in (
+              select
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+              from updated_computed_property_state
+              where
+                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                and type = '${computedPropertyType}'
+                and computed_property_id = ${qb.addQueryValue(
+                  computedPropertyId,
+                  "String"
+                )}
+                and computed_at <= toDateTime64(${nowSeconds}, 3)
+                ${stateIdClause}
+            )
+          group by
+            workspace_id,
+            type,
+            computed_property_id,
+            state_id,
+            user_id
+        ) inner1
         group by
           workspace_id,
           type,
           computed_property_id,
-          state_id,
           user_id
-      ) inner1
-      array join inner1.grouped_message_ids as message_id
-      left join user_events_v2 ue
-        on message_id != ''
-        and inner1.workspace_id = ue.workspace_id
-        and inner1.user_id = ue.user_id
-        and message_id = ue.message_id
+      ) inner2
       group by
         workspace_id,
         type,
         computed_property_id,
-        user_id
-    ) inner2
+        state_id,
+        user_id,
+        last_value,
+        unique_count,
+        max_event_time
+    ) inner3
   `;
   console.log("assignmentQuery loc1", query);
   return query;
