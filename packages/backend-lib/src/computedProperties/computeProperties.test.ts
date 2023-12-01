@@ -1547,7 +1547,7 @@ describe("computeProperties", () => {
               type: EventType.Track,
               userId: "user-1",
               event: "test1",
-              offsetMs: -150,
+              offsetMs: -(1000 * 60),
               properties: {
                 prop1: "value1",
               },
@@ -1593,7 +1593,7 @@ describe("computeProperties", () => {
                   {
                     event: "test1",
                     timestamp: format(
-                      utcToZonedTime(new Date(now - 150), "UTC"),
+                      utcToZonedTime(new Date(now - 1000 * 60), "UTC"),
                       "yyyy-MM-dd'T'HH:mm:ss"
                     ),
                     properties: {

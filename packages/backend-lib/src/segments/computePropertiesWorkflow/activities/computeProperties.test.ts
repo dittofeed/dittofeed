@@ -4,10 +4,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { mapValues } from "remeda";
 import { Overwrite } from "utility-types";
 
-import {
-  segmentIdentifyEvent,
-  segmentTrackEvent,
-} from "../../../../test/factories/segment";
+import { segmentIdentifyEvent, segmentTrackEvent } from "../../../segmentIO";
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
 import {
   EMAIL_EVENTS_UP_NAME,

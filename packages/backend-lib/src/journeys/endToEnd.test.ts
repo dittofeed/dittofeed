@@ -5,7 +5,7 @@ import { WorkflowNotFoundError } from "@temporalio/workflow";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { segmentIdentifyEvent } from "../../test/factories/segment";
+import { segmentIdentifyEvent } from "../segmentIO";
 import { createEnvAndWorker } from "../../test/temporal";
 import { clickhouseClient, getChCompatibleUuid } from "../clickhouse";
 import { enrichJourney } from "../journeys";

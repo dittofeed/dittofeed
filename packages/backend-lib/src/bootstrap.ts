@@ -6,7 +6,7 @@ import {
 } from "isomorphic-lib/src/constants";
 import { v5 as uuidv5 } from "uuid";
 
-import { segmentIdentifyEvent } from "../test/factories/segment";
+import { segmentIdentifyEvent } from "./segmentIO";
 import { createWriteKey } from "./auth";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";

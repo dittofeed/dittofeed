@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import deepmerge from "deepmerge";
 
-import { JSONValue } from "../../src/types";
+import { JSONValue } from "./types";
 
 function getTimestamps() {
   const currentTime = Date.now() - Math.random() * 1000;
