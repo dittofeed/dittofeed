@@ -119,7 +119,6 @@ async function readStates({
       query_params: qb.getQueries(),
     })
   ).json()) as { data: State[] };
-  console.log("states response loc4", JSON.stringify(response, null, 2));
   return response.data;
 }
 
@@ -1639,16 +1638,6 @@ describe("computeProperties", () => {
               properties: {
                 performedMany: [
                   {
-                    event: "test2",
-                    timestamp: format(
-                      utcToZonedTime(new Date(now - 100), "UTC"),
-                      "yyyy-MM-dd'T'HH:mm:ss"
-                    ),
-                    properties: {
-                      prop2: "value2",
-                    },
-                  },
-                  {
                     event: "test1",
                     timestamp: format(
                       utcToZonedTime(new Date(now - 150), "UTC"),
@@ -1658,6 +1647,16 @@ describe("computeProperties", () => {
                       prop1: "value1",
                     },
                   },
+                  {
+                    event: "test2",
+                    timestamp: format(
+                      utcToZonedTime(new Date(now - 100), "UTC"),
+                      "yyyy-MM-dd'T'HH:mm:ss"
+                    ),
+                    properties: {
+                      prop2: "value2",
+                    },
+                  },
                 ] as ParsedPerformedManyValueItem[],
               },
             }),
@@ -1665,7 +1664,50 @@ describe("computeProperties", () => {
         },
       ],
     },
-    // TODO performed many
+    {
+      description: "with a performed user property",
+      userProperties: [
+        {
+          name: "performed",
+          definition: {
+            type: UserPropertyDefinitionType.Performed,
+            event: "register",
+            path: "status",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "register",
+              properties: {
+                status: "lead",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                performed: "lead",
+              },
+            },
+          ],
+        },
+      ],
+    },
     // TODO subscription group
   ];
   const only: null | string =

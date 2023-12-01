@@ -770,10 +770,6 @@ export function userPropertyStateId(
     `${userProperty.definitionUpdatedAt.toString()}:${nodeId}`,
     userProperty.id
   );
-  console.log("userPropertyStateId", {
-    stateId,
-    nodeId,
-  });
   return stateId;
 }
 
@@ -810,7 +806,19 @@ function leafUserPropertyToSubQuery({
       };
     }
     case UserPropertyDefinitionType.Performed: {
-      throw new Error("Unhandled user property type");
+      const stateId = userPropertyStateId(userProperty, child.id);
+      const path = qb.addQueryValue(child.path, "String");
+      return {
+        condition: `event_type == 'track' and event = ${qb.addQueryValue(
+          child.event,
+          "String"
+        )}`,
+        type: "user_property",
+        uniqValue: "''",
+        argMaxValue: `visitParamExtractString(properties, ${path})`,
+        computedPropertyId: userProperty.id,
+        stateId,
+      };
     }
   }
 }
@@ -986,8 +994,14 @@ function leafUserPropertyToAssignment({
         unboundedStateIds: [],
       };
     }
-    default:
-      throw new Error(`Unhandled user property type: ${child.type}`);
+    case UserPropertyDefinitionType.Performed: {
+      const stateId = userPropertyStateId(userProperty, child.id);
+      return {
+        query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
+        stateIds: [stateId],
+        unboundedStateIds: [],
+      };
+    }
   }
 }
 
@@ -1565,7 +1579,6 @@ function constructStateQuery({
         user_id
     ) inner3
   `;
-  console.log("assignmentQuery loc1", JSON.stringify(query, null, 2));
   return query;
 }
 
@@ -1724,7 +1737,6 @@ export async function computeState({
         ) inner2
       `;
 
-      console.log("stateQuery loc1", query);
       await clickhouseClient().command({
         query,
         query_params: qb.getQueries(),
