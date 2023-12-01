@@ -21,7 +21,7 @@ const config = {
         "^.+\\.tsx?$": [
           "ts-jest",
           {
-            tsconfig: "<rootDir>/packages/backend-lib/tsconfig.json",
+            tsconfig: "<rootDir>/packages/backend-lib/tsconfig.jest.json",
           },
         ],
       },
