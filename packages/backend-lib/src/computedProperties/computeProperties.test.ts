@@ -46,6 +46,8 @@ import {
   userPropertyStateId,
 } from "./computeProperties";
 import logger from "../logger";
+import { format } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
 
 jest.setTimeout(Math.pow(10, 5));
 
@@ -83,6 +85,7 @@ interface State {
   computed_at: string;
   last_value: string;
   unique_count: string;
+  grouped_message_ids: string[];
 }
 
 async function readStates({
@@ -100,6 +103,7 @@ async function readStates({
       argMaxMerge(last_value) as last_value,
       uniqMerge(unique_count) as unique_count,
       maxMerge(max_event_time) as max_event_time,
+      groupArrayMerge(grouped_message_ids) as grouped_message_ids,
       max(computed_at)
     from computed_property_state
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
@@ -115,7 +119,7 @@ async function readStates({
       query_params: qb.getQueries(),
     })
   ).json()) as { data: State[] };
-  console.log("states response loc4", response);
+  console.log("states response loc4", JSON.stringify(response, null, 2));
   return response.data;
 }
 
@@ -1569,7 +1573,6 @@ describe("computeProperties", () => {
     },
     {
       description: "with a performed many user property",
-      only: true,
       userProperties: [
         {
           name: "performedMany",
@@ -1595,7 +1598,7 @@ describe("computeProperties", () => {
               type: EventType.Track,
               userId: "user-1",
               event: "test1",
-              offsetMs: -100,
+              offsetMs: -150,
               properties: {
                 prop1: "value1",
               },
@@ -1629,17 +1632,23 @@ describe("computeProperties", () => {
               properties: {
                 performedMany: [
                   {
-                    event: "test1",
-                    timestamp: new Date(now - 100).toISOString(),
+                    event: "test2",
+                    timestamp: format(
+                      utcToZonedTime(new Date(now - 100), "UTC"),
+                      "yyyy-MM-dd'T'HH:mm:ss"
+                    ),
                     properties: {
-                      prop1: "value1",
+                      prop2: "value2",
                     },
                   },
                   {
-                    event: "test2",
-                    timestamp: new Date(now - 100).toISOString(),
+                    event: "test1",
+                    timestamp: format(
+                      utcToZonedTime(new Date(now - 150), "UTC"),
+                      "yyyy-MM-dd'T'HH:mm:ss"
+                    ),
                     properties: {
-                      prop2: "value2",
+                      prop1: "value1",
                     },
                   },
                 ] as ParsedPerformedManyValueItem[],

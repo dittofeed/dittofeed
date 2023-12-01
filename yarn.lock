@@ -6321,6 +6321,7 @@ __metadata:
     change-case: ^4.1.2
     cross-spawn: ^7.0.3
     date-fns: ^2.29.3
+    date-fns-tz: ^2.0.0
     deepmerge: ^4.2.2
     dotenv: ^16.0.3
     escape-html: ^1.0.3
@@ -7393,6 +7394,15 @@ __metadata:
       optional: true
   languageName: unknown
   linkType: soft
+
+"date-fns-tz@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "date-fns-tz@npm:2.0.0"
+  peerDependencies:
+    date-fns: ">=2.0.0"
+  checksum: a6553603a9d26dd9669326c99a58a2335ac550bc060c74b86a5ad9e1de73c9d4e3e5236f0f552f990e616e4e8dcc2b6a637913a04d2e04396e6a9f8ae83c73da
+  languageName: node
+  linkType: hard
 
 "date-fns@npm:^2.29.3":
   version: 2.29.3

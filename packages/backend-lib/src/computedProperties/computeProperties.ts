@@ -1083,23 +1083,23 @@ function userPropertyToAssignment({
     }
     case UserPropertyDefinitionType.PerformedMany: {
       const stateId = userPropertyStateId(userProperty);
-      const varName = getChCompatibleUuid();
       return {
         query: `
           toJSONString(
-            map(
-              'event',
-              (grouped_events[${qb.addQueryValue(
-                stateId,
-                "String"
-              )}] as ${varName}).1,
-              'timestamp',
-              formatDateTime(
-                ${varName}.2,
-                '%Y-%m-%dT%H:%M:%S'
-              ),
-              'properties',
-              ${varName}.3
+            arrayMap(
+              event ->
+                map(
+                  'event',
+                  event.1,
+                  'timestamp',
+                  formatDateTime(
+                    event.2,
+                    '%Y-%m-%dT%H:%M:%S'
+                  ),
+                  'properties',
+                  event.3
+                ),
+              grouped_events[${qb.addQueryValue(stateId, "String")}]
             )
           )`,
         stateIds: [stateId],
@@ -1451,8 +1451,13 @@ function constructStateQuery({
           last_value,
           unique_count,
           max_event_time,
-          groupArray(
-            event
+          message_ids,
+          groupArrayDistinct(
+            (
+              ue.event,
+              ue.event_time,
+              ue.properties
+            )
           ) as events
         from (
           select
@@ -1464,19 +1469,8 @@ function constructStateQuery({
             argMaxMerge(last_value) last_value,
             uniqMerge(unique_count) unique_count,
             maxMerge(max_event_time) max_event_time,
-            groupArrayMerge(cps.grouped_message_ids) grouped_message_ids,
-            (
-              ue.event,
-              ue.event_time,
-              ue.properties
-            ) as event
+            groupArrayMerge(cps.grouped_message_ids) message_ids
           from computed_property_state cps
-          array join grouped_message_ids as message_id
-          left join user_events_v2 ue
-            on message_id != ''
-            and cps.workspace_id = ue.workspace_id
-            and cps.user_id = ue.user_id
-            and message_id = ue.message_id
           where
             (
               workspace_id,
@@ -1509,24 +1503,31 @@ function constructStateQuery({
             state_id,
             user_id
         ) inner1
+        array join message_ids as message_id
+        left join user_events_v2 ue
+          on message_id != ''
+          and message_id = ue.message_id
+          and inner1.workspace_id = ue.workspace_id
+          and inner1.user_id = ue.user_id
         group by
           workspace_id,
           type,
           computed_property_id,
-          user_id
+          user_id,
+          state_id,
+          message_ids,
+          last_value,
+          unique_count,
+          max_event_time
       ) inner2
       group by
         workspace_id,
         type,
         computed_property_id,
-        state_id,
-        user_id,
-        last_value,
-        unique_count,
-        max_event_time
+        user_id
     ) inner3
   `;
-  console.log("assignmentQuery loc1", query);
+  console.log("assignmentQuery loc1", JSON.stringify(query, null, 2));
   return query;
 }
 
