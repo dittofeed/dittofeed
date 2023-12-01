@@ -32,7 +32,6 @@ import {
   ComputedPropertyUpdate,
   EmailSegmentNode,
   GroupChildrenUserPropertyDefinitions,
-  GroupParentUserPropertyDefinitions,
   GroupUserPropertyDefinition,
   InternalEventType,
   JourneyResource,
@@ -557,6 +556,16 @@ type AggregatedComputedPropertyPeriod = Omit<
   maxTo: ComputedPropertyPeriod["to"];
 };
 
+export function segmentNodeStateId(
+  segment: SavedSegmentResource,
+  nodeId: string
+): string {
+  return uuidv5(
+    `${segment.definitionUpdatedAt.toString()}:${nodeId}`,
+    segment.id
+  );
+}
+
 export function segmentNodeToStateSubQuery({
   segment,
   node,
@@ -599,10 +608,9 @@ export function segmentNodeToStateSubQuery({
             );
         }
       });
-      const propertyClause =
-        propertyConditions && propertyConditions.length
-          ? `and (${propertyConditions.join(" and ")})`
-          : "";
+      const propertyClause = propertyConditions?.length
+        ? `and (${propertyConditions.join(" and ")})`
+        : "";
       return [
         {
           condition: `event_type == 'track' and event == ${event} ${propertyClause}`,
@@ -613,27 +621,6 @@ export function segmentNodeToStateSubQuery({
           stateId,
         },
       ];
-    }
-    case SegmentNodeType.Or: {
-      return node.children.flatMap((child) => {
-        const childNode = segment.definition.nodes.find((n) => n.id === child);
-        if (!childNode) {
-          logger().error(
-            {
-              segment,
-              child,
-              node,
-            },
-            "AND child node not found"
-          );
-          return [];
-        }
-        return segmentNodeToStateSubQuery({
-          node: childNode,
-          segment,
-          qb,
-        });
-      });
     }
     case SegmentNodeType.And: {
       return node.children.flatMap((child) => {
@@ -695,10 +682,9 @@ export function segmentNodeToStateSubQuery({
             );
         }
       });
-      const wherePropertyClause =
-        whereConditions && whereConditions.length
-          ? `and (${whereConditions.join(" and ")})`
-          : "";
+      const wherePropertyClause = whereConditions?.length
+        ? `and (${whereConditions.join(" and ")})`
+        : "";
       const propertyValues =
         node.hasProperties.map((property) => {
           const operatorType = property.operator.type;
@@ -771,16 +757,6 @@ export function userPropertyStateId(
     userProperty.id
   );
   return stateId;
-}
-
-export function segmentNodeStateId(
-  segment: SavedSegmentResource,
-  nodeId: string
-): string {
-  return uuidv5(
-    `${segment.definitionUpdatedAt.toString()}:${nodeId}`,
-    segment.id
-  );
 }
 
 function leafUserPropertyToSubQuery({
@@ -1249,6 +1225,7 @@ function segmentToAssignment({
           };
         }
       }
+      break;
     }
     case SegmentNodeType.Performed: {
       const operator: string = node.timesOperator ?? RelationalOperators.Equals;
@@ -1407,7 +1384,7 @@ function segmentToAssignment({
 
 function constructStateQuery({
   workspaceId,
-  config,
+  config: ac,
   computedPropertyId,
   computedPropertyType,
   periodBound,
@@ -1429,26 +1406,23 @@ function constructStateQuery({
       : "";
 
   const stateIdClauses: string[] = [];
-  if (config.stateIds.length > 0) {
+  if (ac.stateIds.length > 0) {
     stateIdClauses.push(
       `(state_id in ${qb.addQueryValue(
-        config.stateIds,
+        ac.stateIds,
         "Array(String)"
       )} ${lowerBoundClause})`
     );
   }
-  if (config.unboundedStateIds.length > 0) {
+  if (ac.unboundedStateIds.length > 0) {
     stateIdClauses.push(
-      `state_id in ${qb.addQueryValue(
-        config.unboundedStateIds,
-        "Array(String)"
-      )}`
+      `state_id in ${qb.addQueryValue(ac.unboundedStateIds, "Array(String)")}`
     );
   }
   if (stateIdClauses.length === 0) {
     logger().error(
       {
-        config,
+        config: ac,
         computedPropertyId,
         computedPropertyType,
       },
@@ -1461,10 +1435,10 @@ function constructStateQuery({
   let userPropertyValue: string;
   if (computedPropertyType === "segment") {
     userPropertyValue = "''";
-    segmentValue = config.query;
+    segmentValue = ac.query;
   } else {
     segmentValue = "False";
-    userPropertyValue = `toJSONString(ifNull(${config.query}, ''))`;
+    userPropertyValue = `toJSONString(ifNull(${ac.query}, ''))`;
   }
   const query = `
     insert into computed_property_assignments_v2
@@ -1774,11 +1748,11 @@ export async function computeAssignments({
   const queryies: Promise<unknown>[] = [];
   const assignmentConfig: AssignmentQueryConfig[] = [];
   for (const userProperty of userProperties) {
-    const config = userPropertyToAssignment({
+    const ac = userPropertyToAssignment({
       userProperty,
       qb: new ClickHouseQueryBuilder(),
     });
-    if (!config) {
+    if (!ac) {
       continue;
     }
     assignmentConfig.push();
@@ -1792,20 +1766,20 @@ export async function computeAssignments({
   for (const segment of segments) {
     const period = periodByComputedPropertyId.get(segment.id);
     const qb = new ClickHouseQueryBuilder();
-    const config = segmentToAssignment({
+    const ac = segmentToAssignment({
       segment,
       node: segment.definition.entryNode,
       now,
       qb,
     });
-    if (!config) {
+    if (!ac) {
       continue;
     }
     const stateQuery = constructStateQuery({
       workspaceId,
       computedPropertyId: segment.id,
       computedPropertyType: "segment",
-      config,
+      config: ac,
       qb,
       now,
       periodBound: period?.maxTo.getTime(),
@@ -1826,18 +1800,18 @@ export async function computeAssignments({
   for (const userProperty of userProperties) {
     const period = periodByComputedPropertyId.get(userProperty.id);
     const qb = new ClickHouseQueryBuilder();
-    const config = userPropertyToAssignment({
+    const ac = userPropertyToAssignment({
       userProperty,
       qb,
     });
-    if (!config) {
+    if (!ac) {
       continue;
     }
     const stateQuery = constructStateQuery({
       workspaceId,
       computedPropertyId: userProperty.id,
       computedPropertyType: "user_property",
-      config,
+      config: ac,
       qb,
       now,
       periodBound: period?.maxTo.getTime(),
@@ -2351,7 +2325,6 @@ export async function processAssignments({
         // If no rows were fetched in this iteration, break out of the loop.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (receivedRows < readQueryPageSize) {
-          debugger;
           break;
         }
 

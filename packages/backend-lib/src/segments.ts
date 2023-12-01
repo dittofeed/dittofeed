@@ -421,7 +421,7 @@ export async function upsertBulkSegmentAssignments({
     ) {
       throw e;
     } else {
-      console.log("P2003 error", e);
+      logger().debug("P2003 error", e);
     }
   }
 }
@@ -433,5 +433,5 @@ export function getSegmentNode(
   if (definition.entryNode.id === id) {
     return definition.entryNode;
   }
-  return definition.nodes.find((node) => node.id === id) || null;
+  return definition.nodes.find((node) => node.id === id) ?? null;
 }

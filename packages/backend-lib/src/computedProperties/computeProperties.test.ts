@@ -1874,9 +1874,7 @@ describe("computeProperties", () => {
                       to: p.to.getTime() - now,
                       step: p.step as ComputedPropertyStep,
                     };
-                    if (p.from !== null) {
-                      s.from = p.from ? p.from.getTime() - now : undefined;
-                    }
+                    s.from = p.from ? p.from.getTime() - now : undefined;
                     return s;
                   });
                   expect(simplifiedPeriods, step.description).toEqual(
