@@ -32,8 +32,11 @@ import {
   GroupChildrenUserPropertyDefinitions,
   GroupParentUserPropertyDefinitions,
   GroupUserPropertyDefinition,
+  InternalEventType,
   JourneyResource,
+  LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
+  PerformedSegmentNode,
   RelationalOperators,
   SavedIntegrationResource,
   SavedSegmentResource,
@@ -42,6 +45,8 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SegmentUpdate,
+  SubscriptionChange,
+  SubscriptionGroupType,
   UserPropertyDefinitionType,
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
@@ -1187,8 +1192,104 @@ function segmentToAssignment({
         unboundedStateIds: childQueries.flatMap((c) => c.unboundedStateIds),
       };
     }
-    default:
-      throw new Error(`Unhandled segment type: ${node.type}`);
+    case SegmentNodeType.Broadcast: {
+      const performedNode: PerformedSegmentNode = {
+        id: node.id,
+        type: SegmentNodeType.Performed,
+        event: InternalEventType.SegmentBroadcast,
+        times: 1,
+        timesOperator: RelationalOperators.GreaterThanOrEqual,
+        properties: [
+          {
+            path: "segmentId",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: segment.id,
+            },
+          },
+        ],
+      };
+      return segmentToAssignment({
+        node: performedNode,
+        segment,
+        now,
+        qb,
+      });
+    }
+    case SegmentNodeType.Email: {
+      const performedNode: PerformedSegmentNode = {
+        id: node.id,
+        type: SegmentNodeType.Performed,
+        event: node.event,
+        times: 1,
+        timesOperator: RelationalOperators.GreaterThanOrEqual,
+        properties: [
+          {
+            path: "templateId",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: segment.id,
+            },
+          },
+        ],
+      };
+      return segmentToAssignment({
+        node: performedNode,
+        segment,
+        now,
+        qb,
+      });
+    }
+    case SegmentNodeType.SubscriptionGroup: {
+      let hasProperties: LastPerformedSegmentNode["hasProperties"];
+      switch (node.subscriptionGroupType) {
+        case SubscriptionGroupType.OptIn:
+          hasProperties = [
+            {
+              path: "action",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: SubscriptionChange.Subscribe,
+              },
+            },
+          ];
+          break;
+        case SubscriptionGroupType.OptOut:
+          hasProperties = [
+            {
+              path: "action",
+              operator: {
+                type: SegmentOperatorType.NotEquals,
+                value: SubscriptionChange.Unsubscribe,
+              },
+            },
+          ];
+          break;
+      }
+
+      const lastPerformedNode: LastPerformedSegmentNode = {
+        id: node.id,
+        type: SegmentNodeType.LastPerformed,
+        event: InternalEventType.SubscriptionChange,
+        whereProperties: [
+          {
+            path: "subscriptionId",
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: node.subscriptionGroupId,
+            },
+          },
+        ],
+        hasProperties,
+      };
+
+      return segmentToAssignment({
+        node: lastPerformedNode,
+        segment,
+        now,
+        qb,
+      });
+    }
   }
 }
 
