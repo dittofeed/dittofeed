@@ -1504,11 +1504,14 @@ function constructStateQuery({
           unique_count,
           max_event_time,
           message_ids,
-          groupArrayDistinct(
-            (
-              ue.event,
-              ue.event_time,
-              ue.properties
+          arraySort(
+            e -> -toUInt64(e.2),
+            groupArrayDistinct(
+              (
+                ue.event,
+                ue.event_time,
+                ue.properties
+              )
             )
           ) as events
         from (

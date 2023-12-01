@@ -1638,16 +1638,6 @@ describe("computeProperties", () => {
               properties: {
                 performedMany: [
                   {
-                    event: "test1",
-                    timestamp: format(
-                      utcToZonedTime(new Date(now - 150), "UTC"),
-                      "yyyy-MM-dd'T'HH:mm:ss"
-                    ),
-                    properties: {
-                      prop1: "value1",
-                    },
-                  },
-                  {
                     event: "test2",
                     timestamp: format(
                       utcToZonedTime(new Date(now - 100), "UTC"),
@@ -1655,6 +1645,16 @@ describe("computeProperties", () => {
                     ),
                     properties: {
                       prop2: "value2",
+                    },
+                  },
+                  {
+                    event: "test1",
+                    timestamp: format(
+                      utcToZonedTime(new Date(now - 150), "UTC"),
+                      "yyyy-MM-dd'T'HH:mm:ss"
+                    ),
+                    properties: {
+                      prop1: "value1",
                     },
                   },
                 ] as ParsedPerformedManyValueItem[],
