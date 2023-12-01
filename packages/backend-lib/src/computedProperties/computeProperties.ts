@@ -958,19 +958,21 @@ function userPropertyToAssignment({
       const varName = getChCompatibleUuid();
       return {
         query: `
-          map(
-            'event',
-            (grouped_events[${qb.addQueryValue(
-              stateId,
-              "String"
-            )}] as ${varName}).1,
-            'timestamp',
-            formatDateTime(
-              ${varName}.2,
-              '%Y-%m-%dT%H:%M:%S'
-            ),
-            'properties',
-            ${varName}.3
+          toJSONString(
+            map(
+              'event',
+              (grouped_events[${qb.addQueryValue(
+                stateId,
+                "String"
+              )}] as ${varName}).1,
+              'timestamp',
+              formatDateTime(
+                ${varName}.2,
+                '%Y-%m-%dT%H:%M:%S'
+              ),
+              'properties',
+              ${varName}.3
+            )
           )`,
         stateIds: [stateId],
         unboundedStateIds: [],
