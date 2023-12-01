@@ -877,6 +877,7 @@ function userPropertyToSubQuery({
   userProperty: SavedUserPropertyResource;
   qb: ClickHouseQueryBuilder;
 }): SubQueryData[] {
+  const stateId = userPropertyStateId(userProperty);
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       return [
@@ -928,14 +929,32 @@ function userPropertyToSubQuery({
           type: "user_property",
           recordMessageId: true,
           computedPropertyId: userProperty.id,
-          stateId: userPropertyStateId(userProperty),
+          stateId,
         },
       ];
     }
-    default:
-      throw new Error(
-        `Unhandled user property type: ${userProperty.definition.type}`
-      );
+    case UserPropertyDefinitionType.AnonymousId: {
+      return [
+        {
+          condition: "True",
+          type: "user_property",
+          computedPropertyId: userProperty.id,
+          argMaxValue: "anonymous_id",
+          stateId,
+        },
+      ];
+    }
+    case UserPropertyDefinitionType.Id: {
+      return [
+        {
+          condition: "True",
+          type: "user_property",
+          computedPropertyId: userProperty.id,
+          argMaxValue: "user_or_anonymous_id",
+          stateId,
+        },
+      ];
+    }
   }
 }
 
@@ -1106,10 +1125,29 @@ function userPropertyToAssignment({
         unboundedStateIds: [],
       };
     }
-    default:
-      throw new Error(
-        `Unhandled user property type: ${userProperty.definition.type}`
-      );
+    case UserPropertyDefinitionType.AnonymousId: {
+      const stateId = userPropertyStateId(userProperty);
+      return {
+        query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
+        stateIds: [stateId],
+        unboundedStateIds: [],
+      };
+    }
+    case UserPropertyDefinitionType.Id: {
+      const stateId = userPropertyStateId(userProperty);
+      return {
+        query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
+        stateIds: [stateId],
+        unboundedStateIds: [],
+      };
+    }
+    case UserPropertyDefinitionType.Performed: {
+      return leafUserPropertyToAssignment({
+        userProperty,
+        child: userProperty.definition,
+        qb,
+      });
+    }
   }
 }
 

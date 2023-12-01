@@ -373,6 +373,12 @@ describe("computeProperties", () => {
             path: "email",
           },
         },
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
       ],
       segments: [],
       steps: [
@@ -399,6 +405,7 @@ describe("computeProperties", () => {
               id: "user-1",
               properties: {
                 email: "test@email.com",
+                id: "user-1",
               },
             },
           ],
