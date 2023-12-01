@@ -25,10 +25,12 @@ import prisma from "../prisma";
 import { upsertBulkSegmentAssignments } from "../segments";
 import { getContext } from "../temporal/activity";
 import {
+  BroadcastSegmentNode,
   ComputedAssignment,
   ComputedPropertyAssignment,
   ComputedPropertyPeriod,
   ComputedPropertyUpdate,
+  EmailSegmentNode,
   GroupChildrenUserPropertyDefinitions,
   GroupParentUserPropertyDefinitions,
   GroupUserPropertyDefinition,
@@ -46,11 +48,102 @@ import {
   SegmentOperatorType,
   SegmentUpdate,
   SubscriptionChange,
+  SubscriptionGroupSegmentNode,
   SubscriptionGroupType,
   UserPropertyDefinitionType,
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
+
+function broadcastSegmentToPerformed(
+  segmentId: string,
+  node: BroadcastSegmentNode
+): PerformedSegmentNode {
+  return {
+    id: node.id,
+    type: SegmentNodeType.Performed,
+    event: InternalEventType.SegmentBroadcast,
+    times: 1,
+    timesOperator: RelationalOperators.GreaterThanOrEqual,
+    properties: [
+      {
+        path: "segmentId",
+        operator: {
+          type: SegmentOperatorType.Equals,
+          value: segmentId,
+        },
+      },
+    ],
+  };
+}
+
+function emailSegmentToPerformed(
+  segmentId: string,
+  node: EmailSegmentNode
+): PerformedSegmentNode {
+  return {
+    id: node.id,
+    type: SegmentNodeType.Performed,
+    event: node.event,
+    times: 1,
+    timesOperator: RelationalOperators.GreaterThanOrEqual,
+    properties: [
+      {
+        path: "templateId",
+        operator: {
+          type: SegmentOperatorType.Equals,
+          value: segmentId,
+        },
+      },
+    ],
+  };
+}
+
+function subscriptionChangeToPerformed(
+  node: SubscriptionGroupSegmentNode
+): LastPerformedSegmentNode {
+  let hasProperties: LastPerformedSegmentNode["hasProperties"];
+  switch (node.subscriptionGroupType) {
+    case SubscriptionGroupType.OptIn:
+      hasProperties = [
+        {
+          path: "action",
+          operator: {
+            type: SegmentOperatorType.Equals,
+            value: SubscriptionChange.Subscribe,
+          },
+        },
+      ];
+      break;
+    case SubscriptionGroupType.OptOut:
+      hasProperties = [
+        {
+          path: "action",
+          operator: {
+            type: SegmentOperatorType.NotEquals,
+            value: SubscriptionChange.Unsubscribe,
+          },
+        },
+      ];
+      break;
+  }
+
+  return {
+    id: node.id,
+    type: SegmentNodeType.LastPerformed,
+    event: InternalEventType.SubscriptionChange,
+    whereProperties: [
+      {
+        path: "subscriptionId",
+        operator: {
+          type: SegmentOperatorType.Equals,
+          value: node.subscriptionGroupId,
+        },
+      },
+    ],
+    hasProperties,
+  };
+}
 
 async function signalJourney({
   segmentId,
@@ -635,8 +728,37 @@ export function segmentNodeToStateSubQuery({
         },
       ];
     }
-    default:
-      throw new Error(`Unhandled segment type: ${node.type}`);
+    case SegmentNodeType.Broadcast: {
+      const performedNode: PerformedSegmentNode = broadcastSegmentToPerformed(
+        segment.id,
+        node
+      );
+      return segmentNodeToStateSubQuery({
+        node: performedNode,
+        segment,
+        qb,
+      });
+    }
+    case SegmentNodeType.Email: {
+      const performedNode: PerformedSegmentNode = emailSegmentToPerformed(
+        segment.id,
+        node
+      );
+      return segmentNodeToStateSubQuery({
+        node: performedNode,
+        segment,
+        qb,
+      });
+    }
+    case SegmentNodeType.SubscriptionGroup: {
+      const performedNode: LastPerformedSegmentNode =
+        subscriptionChangeToPerformed(node);
+      return segmentNodeToStateSubQuery({
+        node: performedNode,
+        segment,
+        qb,
+      });
+    }
   }
 }
 
@@ -1193,22 +1315,10 @@ function segmentToAssignment({
       };
     }
     case SegmentNodeType.Broadcast: {
-      const performedNode: PerformedSegmentNode = {
-        id: node.id,
-        type: SegmentNodeType.Performed,
-        event: InternalEventType.SegmentBroadcast,
-        times: 1,
-        timesOperator: RelationalOperators.GreaterThanOrEqual,
-        properties: [
-          {
-            path: "segmentId",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: segment.id,
-            },
-          },
-        ],
-      };
+      const performedNode: PerformedSegmentNode = broadcastSegmentToPerformed(
+        segment.id,
+        node
+      );
       return segmentToAssignment({
         node: performedNode,
         segment,
@@ -1217,22 +1327,10 @@ function segmentToAssignment({
       });
     }
     case SegmentNodeType.Email: {
-      const performedNode: PerformedSegmentNode = {
-        id: node.id,
-        type: SegmentNodeType.Performed,
-        event: node.event,
-        times: 1,
-        timesOperator: RelationalOperators.GreaterThanOrEqual,
-        properties: [
-          {
-            path: "templateId",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: segment.id,
-            },
-          },
-        ],
-      };
+      const performedNode: PerformedSegmentNode = emailSegmentToPerformed(
+        segment.id,
+        node
+      );
       return segmentToAssignment({
         node: performedNode,
         segment,
@@ -1241,47 +1339,8 @@ function segmentToAssignment({
       });
     }
     case SegmentNodeType.SubscriptionGroup: {
-      let hasProperties: LastPerformedSegmentNode["hasProperties"];
-      switch (node.subscriptionGroupType) {
-        case SubscriptionGroupType.OptIn:
-          hasProperties = [
-            {
-              path: "action",
-              operator: {
-                type: SegmentOperatorType.Equals,
-                value: SubscriptionChange.Subscribe,
-              },
-            },
-          ];
-          break;
-        case SubscriptionGroupType.OptOut:
-          hasProperties = [
-            {
-              path: "action",
-              operator: {
-                type: SegmentOperatorType.NotEquals,
-                value: SubscriptionChange.Unsubscribe,
-              },
-            },
-          ];
-          break;
-      }
-
-      const lastPerformedNode: LastPerformedSegmentNode = {
-        id: node.id,
-        type: SegmentNodeType.LastPerformed,
-        event: InternalEventType.SubscriptionChange,
-        whereProperties: [
-          {
-            path: "subscriptionId",
-            operator: {
-              type: SegmentOperatorType.Equals,
-              value: node.subscriptionGroupId,
-            },
-          },
-        ],
-        hasProperties,
-      };
+      const lastPerformedNode: LastPerformedSegmentNode =
+        subscriptionChangeToPerformed(node);
 
       return segmentToAssignment({
         node: lastPerformedNode,
