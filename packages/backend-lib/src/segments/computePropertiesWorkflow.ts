@@ -31,8 +31,6 @@ export function generateComputePropertiesId(workspaceId: string) {
   return `compute-properties-workflow-${workspaceId}`;
 }
 
-type JourneyMap = Map<string, boolean>;
-
 export const POLLING_JITTER_COEFFICIENT = 1000;
 
 export interface ComputedPropertiesWorkflowParams {
@@ -45,6 +43,36 @@ export interface ComputedPropertiesWorkflowParams {
   subscribedJourneys?: EnrichedJourney[];
 }
 
+async function processPollingPeriod({
+  workspaceId,
+  tableVersion,
+  currentTime,
+}: {
+  workspaceId: string;
+  tableVersion: string;
+  currentTime: number;
+}) {
+  const [subscribedJourneys, userProperties] = await Promise.all([
+    findAllJourneysUnsafe({
+      where: {
+        workspaceId,
+        status: "Running",
+      },
+    }),
+    findAllUserProperties({
+      workspaceId,
+    }),
+  ]);
+
+  await computePropertiesPeriod({
+    tableVersion,
+    currentTime,
+    workspaceId,
+    subscribedJourneys,
+    userProperties,
+  });
+}
+
 export async function computePropertiesWorkflow({
   tableVersion,
   workspaceId,
@@ -55,69 +83,30 @@ export async function computePropertiesWorkflow({
   pollingJitterCoefficient = POLLING_JITTER_COEFFICIENT,
   subscribedJourneys = [],
 }: ComputedPropertiesWorkflowParams): Promise<ComputedPropertiesWorkflowParams> {
-  let journeys = subscribedJourneys;
-
   for (let i = 0; i < maxPollingAttempts; i++) {
+    const currentTime = Date.now();
+
+    logger.info("segmentsNotificationWorkflow polling attempt", {
+      i,
+      currentTime,
+      maxPollingAttempts,
+    });
+
+    const { computePropertiesInterval } = await config([
+      "computePropertiesInterval",
+    ]);
+
     try {
-      const currentTime = Date.now();
-
-      logger.info("segmentsNotificationWorkflow polling attempt", {
-        i,
-        currentTime,
-        maxPollingAttempts,
-      });
-
-      /**
-       * scenarios, at query time:
-       *  1. new journey is NotStarted
-       *  2. new journey is Running
-       *  3. new journey is Paused
-       *
-       * handling:
-       *  1. NotStarted journeys should be filtered out with db query
-       *  2. Running journeys should be handled as normal
-       *  3. Paused journeys should be removed from subscribed journeys, so that on subsequent queries they are entirely refreshed
-       */
-      const [latestSubscribedJourneys, userProperties] = await Promise.all([
-        findAllJourneysUnsafe({
-          where: {
-            workspaceId,
-            status: "Running",
-          },
-        }),
-        findAllUserProperties({
-          workspaceId,
-        }),
-      ]);
-
-      const newJourneysDiff: JourneyMap =
-        latestSubscribedJourneys.reduce<JourneyMap>((memo, journey) => {
-          memo.set(journey.id, true);
-          return memo;
-        }, new Map());
-
-      journeys.forEach((j) => {
-        newJourneysDiff.delete(j.id);
-      });
-
-      journeys = latestSubscribedJourneys;
-
-      await computePropertiesPeriod({
+      processPollingPeriod({
+        workspaceId,
         tableVersion,
         currentTime,
-        workspaceId,
-        subscribedJourneys: journeys,
-        userProperties,
       });
     } catch (e) {
       logger.error("computePropertiesWorkflow failed to re-compute", {
         err: e,
       });
     }
-
-    const { computePropertiesInterval } = await config([
-      "computePropertiesInterval",
-    ]);
 
     // only use override if shouldContinueAsNew is false, in order to allow value
     // to be reconfigured at deploy time
@@ -135,7 +124,7 @@ export async function computePropertiesWorkflow({
     maxPollingAttempts,
     pollingJitterCoefficient,
     shouldContinueAsNew,
-    subscribedJourneys: journeys,
+    subscribedJourneys,
     tableVersion,
     workspaceId,
   };
