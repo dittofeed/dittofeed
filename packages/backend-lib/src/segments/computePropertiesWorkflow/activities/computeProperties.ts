@@ -738,3 +738,5 @@ export async function computePropertiesPeriod(
     throw e;
   }
 }
+
+// export async function computePropertiesPeriodIncremental({

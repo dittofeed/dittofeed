@@ -46,7 +46,7 @@ import {
   processAssignments,
   segmentNodeStateId,
   userPropertyStateId,
-} from "./computeProperties";
+} from "./computePropertiesIncremental";
 
 async function readAssignments({
   workspaceId,

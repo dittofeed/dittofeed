@@ -73,6 +73,16 @@ async function processPollingPeriod({
   });
 }
 
+async function processPollingPeriodIncremental({
+  workspaceId,
+  currentTime,
+}: {
+  workspaceId: string;
+  currentTime: number;
+}) {
+  // TODO
+}
+
 export async function computePropertiesWorkflow({
   tableVersion,
   workspaceId,

@@ -1559,18 +1559,27 @@ function constructStateQuery({
   return query;
 }
 
+export interface ComputePropertiesArgs {
+  integrations: SavedIntegrationResource[];
+  journeys: JourneyResource[];
+  // timestamp in ms
+  now: number;
+  segments: SavedSegmentResource[];
+  userProperties: SavedUserPropertyResource[];
+  workspaceId: string;
+}
+
+export type PartialComputePropertiesArgs = Omit<
+  ComputePropertiesArgs,
+  "journeys" | "integrations"
+>;
+
 export async function computeState({
   workspaceId,
   segments,
   userProperties,
   now,
-}: {
-  workspaceId: string;
-  // timestamp in ms
-  now: number;
-  segments: SavedSegmentResource[];
-  userProperties: SavedUserPropertyResource[];
-}) {
+}: PartialComputePropertiesArgs) {
   const qb = new ClickHouseQueryBuilder();
   let subQueryData: SubQueryData[] = [];
 
@@ -1739,12 +1748,7 @@ export async function computeAssignments({
   segments,
   userProperties,
   now,
-}: {
-  workspaceId: string;
-  userProperties: SavedUserPropertyResource[];
-  segments: SavedSegmentResource[];
-  now: number;
-}): Promise<void> {
+}: PartialComputePropertiesArgs): Promise<void> {
   const queryies: Promise<unknown>[] = [];
   const assignmentConfig: AssignmentQueryConfig[] = [];
   for (const userProperty of userProperties) {
@@ -2023,14 +2027,7 @@ export async function processAssignments({
   integrations,
   journeys,
   now,
-}: {
-  workspaceId: string;
-  now: number;
-  userProperties: SavedUserPropertyResource[];
-  segments: SavedSegmentResource[];
-  integrations: SavedIntegrationResource[];
-  journeys: JourneyResource[];
-}): Promise<void> {
+}: ComputePropertiesArgs): Promise<void> {
   // segment id / pg + journey id
   const subscribedJourneyMap = journeys.reduce<Map<string, Set<string>>>(
     (memo, j) => {
