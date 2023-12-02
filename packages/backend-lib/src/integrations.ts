@@ -75,6 +75,7 @@ export async function upsertIntegration({
 }: UpsertIntegrationResource): Promise<IntegrationResource> {
   let integration: Integration;
   if (definition) {
+    const now = new Date();
     integration = await prisma().integration.upsert({
       where: {
         workspaceId_name: {
@@ -87,10 +88,12 @@ export async function upsertIntegration({
         workspaceId,
         definition,
         enabled,
+        definitionUpdatedAt: now,
       },
       update: {
         definition,
         enabled,
+        definitionUpdatedAt: now,
       },
     });
   } else {

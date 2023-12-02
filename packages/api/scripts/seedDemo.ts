@@ -1,6 +1,6 @@
 import prisma from "backend-lib/src/prisma";
 import { insertUserEvents } from "backend-lib/src/userEvents/clickhouse";
-import { segmentIdentifyEvent } from "backend-lib/test/factories/segment";
+import { segmentIdentifyEvent } from "backend-lib/src/segmentIO";
 import { v4 as uuid } from "uuid";
 
 async function seedDemo() {

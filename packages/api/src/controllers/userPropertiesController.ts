@@ -33,6 +33,7 @@ export default async function userPropertiesController(
       const { id, name, definition, workspaceId } = request.body;
 
       const canCreate = workspaceId && name && definition;
+      const definitionUpdatedAt = definition ? new Date() : undefined;
 
       if (protectedUserProperties.has(name)) {
         return reply.status(400).send();
@@ -53,6 +54,7 @@ export default async function userPropertiesController(
             workspaceId,
             name,
             definition,
+            definitionUpdatedAt,
           },
         });
       } else {
@@ -64,6 +66,7 @@ export default async function userPropertiesController(
             workspaceId,
             name,
             definition,
+            definitionUpdatedAt,
           },
         });
       }

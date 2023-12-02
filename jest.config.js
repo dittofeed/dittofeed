@@ -5,6 +5,7 @@ const BASE_CONFIG = {
   transform: {
     ...tsjPreset.transform,
   },
+  setupFilesAfterEnv: ["jest-expect-message"],
 };
 
 const config = {
@@ -17,29 +18,29 @@ const config = {
       displayName: "backend-lib",
       roots: ["<rootDir>/packages/backend-lib/src"],
       transform: {
-        '^.+\\.tsx?$': [
-          'ts-jest',
+        "^.+\\.tsx?$": [
+          "ts-jest",
           {
-            "tsconfig": "<rootDir>/packages/backend-lib/tsconfig.json"
+            tsconfig: "<rootDir>/packages/backend-lib/tsconfig.jest.json",
           },
         ],
-      }
+      },
     },
     {
       ...BASE_CONFIG,
       displayName: "dashboard",
       roots: ["<rootDir>/packages/dashboard/src"],
       moduleNameMapper: {
-        "\\.css$": "<rootDir>/packages/dashboard/test/__mocks__/styleMock.ts"
+        "\\.css$": "<rootDir>/packages/dashboard/test/__mocks__/styleMock.ts",
       },
       transform: {
-        '^.+\\.tsx?$': [
-          'ts-jest',
+        "^.+\\.tsx?$": [
+          "ts-jest",
           {
-            "tsconfig": "<rootDir>/packages/dashboard/tsconfig.jest.json"
+            tsconfig: "<rootDir>/packages/dashboard/tsconfig.jest.json",
           },
         ],
-      }
+      },
     },
     {
       ...BASE_CONFIG,
@@ -48,26 +49,26 @@ const config = {
       displayName: "api",
       roots: ["<rootDir>/packages/api/src"],
       transform: {
-        '^.+\\.tsx?$': [
-          'ts-jest',
+        "^.+\\.tsx?$": [
+          "ts-jest",
           {
-            "tsconfig": "<rootDir>/packages/api/tsconfig.json"
+            tsconfig: "<rootDir>/packages/api/tsconfig.json",
           },
         ],
-      }
+      },
     },
     {
       ...BASE_CONFIG,
       displayName: "isomorphic-lib",
       roots: ["<rootDir>/packages/isomorphic-lib/src"],
       transform: {
-        '^.+\\.tsx?$': [
-          'ts-jest',
+        "^.+\\.tsx?$": [
+          "ts-jest",
           {
-            "tsconfig": "<rootDir>/packages/dashboard/tsconfig.jest.json"
+            tsconfig: "<rootDir>/packages/dashboard/tsconfig.jest.json",
           },
         ],
-      }
+      },
     },
   ],
 };

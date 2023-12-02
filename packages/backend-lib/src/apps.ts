@@ -114,16 +114,15 @@ export async function submitScreen({
   });
 }
 
-export async function submitBatch({
-  workspaceId,
-  data,
-}: {
+export interface SubmitBatchOptions {
   workspaceId: string;
   data: BatchAppData;
-}) {
+}
+
+export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
   const { context, batch } = data;
 
-  const userEvents: InsertUserEvent[] = batch.map((message) => {
+  return batch.map((message) => {
     let rest: Record<string, unknown>;
     let timestamp: string;
     const messageRaw: Record<string, unknown> = { context };
@@ -151,6 +150,10 @@ export async function submitBatch({
       messageRaw: JSON.stringify(messageRaw),
     };
   });
+}
+
+export async function submitBatch({ workspaceId, data }: SubmitBatchOptions) {
+  const userEvents = buildBatchUserEvents(data);
 
   await insertUserEvents({
     workspaceId,

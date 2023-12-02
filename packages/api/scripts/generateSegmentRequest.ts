@@ -2,7 +2,7 @@
 
 import backendConfig from "backend-lib/src/config";
 import { generateDigest } from "backend-lib/src/crypto";
-import { segmentIdentifyEvent } from "backend-lib/test/factories/segment";
+import { segmentIdentifyEvent } from "backend-lib/src/segmentIO";
 
 function generateSegmentRequest() {
   const sharedSecret = process.env.SHARED_SECRET;

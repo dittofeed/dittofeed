@@ -124,3 +124,7 @@ export async function streamClickhouseQuery(
     ...rowPromises,
   ]);
 }
+
+export function clickhouseDateToIso(dateString: string): string {
+  return `${dateString.replace(" ", "T")  }Z`;
+}

@@ -187,3 +187,24 @@ export type EnrichedIntegration = Overwrite<
   Integration,
   { definition: IntegrationDefinition }
 >;
+
+export const IntegrationResource = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  definition: IntegrationDefinition,
+  enabled: Type.Boolean(),
+  workspaceId: Type.String(),
+});
+
+export type IntegrationResource = Static<typeof IntegrationResource>;
+
+export const SavedIntegrationResource = Type.Composite([
+  IntegrationResource,
+  Type.Object({
+    createdAt: Type.String(),
+    updatedAt: Type.String(),
+    definitionUpdatedAt: Type.String(),
+  }),
+]);
+
+export type SavedIntegrationResource = Static<typeof SavedIntegrationResource>;

@@ -36,6 +36,7 @@ model Workspace {
   Integration            Integration[]
   DefaultSmsProvider     DefaultSmsProvider?
   SmsProvider            SmsProvider[]
+  ComputedPropertyPeriod ComputedPropertyPeriod[]
 
   @@unique([name])
 }
@@ -60,6 +61,7 @@ model Segment {
   definition          Json
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
+  definitionUpdatedAt DateTime            @default(now())
   status              SegmentStatus       @default(Running)
   subscriptionGroupId String?             @db.Uuid
   subscriptionGroup   SubscriptionGroup?  @relation(fields: [subscriptionGroupId], references: [id], onDelete: SetNull)
@@ -134,6 +136,7 @@ model UserProperty {
   definition             Json
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
+  definitionUpdatedAt    DateTime                 @default(now())
   UserPropertyAssignment UserPropertyAssignment[]
 
   @@unique([workspaceId, name])
@@ -396,14 +399,35 @@ model OauthToken {
 }
 
 model Integration {
-  id          String    @id() @default(uuid()) @db.Uuid
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId String    @db.Uuid
-  name        String
-  definition  Json
-  enabled     Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                  String    @id() @default(uuid()) @db.Uuid
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId         String    @db.Uuid
+  name                String
+  definition          Json
+  enabled             Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  definitionUpdatedAt DateTime  @default(now())
 
   @@unique([workspaceId, name])
+}
+
+enum ComputedPropertyType {
+  Segment
+  UserProperty
+}
+
+model ComputedPropertyPeriod {
+  id                 String               @id() @default(uuid()) @db.Uuid
+  workspace          Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId        String               @db.Uuid
+  type               ComputedPropertyType
+  computedPropertyId String               @db.Uuid
+  version            String
+  from               DateTime?
+  to                 DateTime
+  step               String
+  createdAt          DateTime             @default(now())
+
+  @@index([workspaceId, type, computedPropertyId, to])
 }

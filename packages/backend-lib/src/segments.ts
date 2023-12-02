@@ -14,6 +14,7 @@ import {
   EnrichedSegment,
   InternalEventType,
   Prisma,
+  SavedSegmentResource,
   Segment,
   SegmentAssignment,
   SegmentDefinition,
@@ -39,6 +40,31 @@ export function enrichSegment(
   });
 }
 
+export async function findAllSegmentAssignments({
+  workspaceId,
+  userId,
+}: {
+  workspaceId: string;
+  userId: string;
+}): Promise<Record<string, boolean>> {
+  const segments = await prisma().segment.findMany({
+    where: {
+      workspaceId,
+    },
+    include: {
+      SegmentAssignment: {
+        where: {
+          userId,
+        },
+      },
+    },
+  });
+  return segments.reduce<Record<string, boolean>>((memo, curr) => {
+    memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? false;
+    return memo;
+  }, {});
+}
+
 export async function createSegment({
   name,
   definition,
@@ -59,7 +85,7 @@ export async function createSegment({
 
 export function toSegmentResource(
   segment: Segment
-): Result<SegmentResource, Error> {
+): Result<SavedSegmentResource, Error> {
   const result = enrichSegment(segment);
   if (result.isErr()) {
     return err(result.error);
@@ -72,6 +98,9 @@ export function toSegmentResource(
     workspaceId,
     definition,
     subscriptionGroupId: subscriptionGroupId ?? undefined,
+    updatedAt: segment.updatedAt.getTime(),
+    definitionUpdatedAt: segment.definitionUpdatedAt.getTime(),
+    createdAt: segment.createdAt.getTime(),
   });
 }
 
@@ -185,7 +214,8 @@ export async function upsertSegment(
         "workspaceId" = excluded."workspaceId",
         "name" = COALESCE(excluded."name", "Segment"."name"),
         "definition" = COALESCE(excluded."definition", "Segment"."definition"),
-        "updatedAt" = NOW()
+        "updatedAt" = NOW(),
+        "definitionUpdatedAt" = CASE WHEN excluded."definition" != "Segment"."definition" THEN NOW() ELSE "Segment"."definitionUpdatedAt" END
     RETURNING *`;
   const [result] = (await prisma().$queryRaw(query)) as [Segment];
   const updatedDefinition = result.definition as SegmentDefinition;
@@ -390,6 +420,18 @@ export async function upsertBulkSegmentAssignments({
       !(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003")
     ) {
       throw e;
+    } else {
+      logger().debug("P2003 error", e);
     }
   }
+}
+
+export function getSegmentNode(
+  definition: SegmentDefinition,
+  id: string
+): SegmentNode | null {
+  if (definition.entryNode.id === id) {
+    return definition.entryNode;
+  }
+  return definition.nodes.find((node) => node.id === id) ?? null;
 }

@@ -9,8 +9,8 @@ import prisma from "./prisma";
 import {
   EnrichedUserProperty,
   JSONValue,
+  SavedUserPropertyResource,
   UserPropertyDefinition,
-  UserPropertyResource,
 } from "./types";
 
 export function enrichUserProperty(
@@ -31,13 +31,24 @@ export function enrichUserProperty(
 
 export function toUserPropertyResource(
   userProperty: UserProperty
-): Result<UserPropertyResource, ValueError[]> {
+): Result<SavedUserPropertyResource, ValueError[]> {
   return enrichUserProperty(userProperty).map(
-    ({ workspaceId, name, id, definition }) => ({
+    ({
       workspaceId,
       name,
       id,
       definition,
+      createdAt,
+      updatedAt,
+      definitionUpdatedAt,
+    }) => ({
+      workspaceId,
+      name,
+      id,
+      definition,
+      createdAt: createdAt.getTime(),
+      updatedAt: updatedAt.getTime(),
+      definitionUpdatedAt: definitionUpdatedAt.getTime(),
     })
   );
 }
@@ -54,14 +65,14 @@ export async function findAllUserProperties({
   const enrichedUserProperties: EnrichedUserProperty[] = [];
 
   for (const userProperty of userProperties) {
-    const enrichedJourney = enrichUserProperty(userProperty);
+    const enriched = enrichUserProperty(userProperty);
 
-    if (enrichedJourney.isErr()) {
-      logger().error({ err: enrichedJourney.error });
+    if (enriched.isErr()) {
+      logger().error({ err: enriched.error });
       continue;
     }
 
-    enrichedUserProperties.push(enrichedJourney.value);
+    enrichedUserProperties.push(enriched.value);
   }
 
   return enrichedUserProperties;
@@ -189,12 +200,6 @@ export async function findAllUserPropertyAssignments({
     },
   });
 
-  logger().debug(
-    {
-      userProperties,
-    },
-    "findAllUserPropertyAssignments"
-  );
   const combinedAssignments: UserPropertyAssignments = {};
 
   for (const userProperty of userProperties) {
@@ -229,6 +234,14 @@ export async function findAllUserPropertyAssignments({
       combinedAssignments[userProperty.name] = parsed.value;
     }
   }
+  logger().debug(
+    {
+      userId,
+      userProperties,
+      combinedAssignments,
+    },
+    "findAllUserPropertyAssignments"
+  );
 
   return combinedAssignments;
 }

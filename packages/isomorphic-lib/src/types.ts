@@ -679,6 +679,17 @@ export const SegmentResource = Type.Object({
 
 export type SegmentResource = Static<typeof SegmentResource>;
 
+export const SavedSegmentResource = Type.Composite([
+  SegmentResource,
+  Type.Object({
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+    definitionUpdatedAt: Type.Number(),
+  }),
+]);
+
+export type SavedSegmentResource = Static<typeof SavedSegmentResource>;
+
 export const UpsertSubscriptionGroupResource = Type.Omit(
   SubscriptionGroupResource,
   ["createdAt"]
@@ -1048,6 +1059,19 @@ export const UserPropertyResource = Type.Object({
 
 export type UserPropertyResource = Static<typeof UserPropertyResource>;
 
+export const SavedUserPropertyResource = Type.Composite([
+  UserPropertyResource,
+  Type.Object({
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+    definitionUpdatedAt: Type.Number(),
+  }),
+]);
+
+export type SavedUserPropertyResource = Static<
+  typeof SavedUserPropertyResource
+>;
+
 export const UpsertUserPropertyResource = Type.Intersect([
   Type.Omit(Type.Partial(UserPropertyResource), ["id", "name"]),
   Type.Pick(UserPropertyResource, ["id", "name"]),
@@ -1338,7 +1362,7 @@ export type KnownIdentifyData = Static<typeof KnownIdentifyData>;
 
 const AnonymousIdentifyData = Type.Object({
   ...BaseIdentifyData,
-  userId: Type.String(),
+  anonymousId: Type.String(),
 });
 
 export type AnonymousIdentifyData = Static<typeof AnonymousIdentifyData>;
@@ -1350,15 +1374,25 @@ export const IdentifyData = Type.Union([
 
 export type IdentifyData = Static<typeof IdentifyData>;
 
+export const KnownBatchIdentifyData = Type.Object({
+  ...BaseBatchIdentifyData,
+  userId: Type.String(),
+});
+
+export type KnownBatchIdentifyData = Static<typeof KnownBatchIdentifyData>;
+
+export const AnonymousBatchIdentifyData = Type.Object({
+  ...BaseBatchIdentifyData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousBatchIdentifyData = Static<
+  typeof AnonymousBatchIdentifyData
+>;
+
 export const BatchIdentifyData = Type.Union([
-  Type.Object({
-    ...BaseBatchIdentifyData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseBatchIdentifyData,
-    anonymousId: Type.String(),
-  }),
+  KnownBatchIdentifyData,
+  AnonymousBatchIdentifyData,
 ]);
 
 export type BatchIdentifyData = Static<typeof BatchIdentifyData>;
@@ -1395,15 +1429,23 @@ export const TrackData = Type.Union([KnownTrackData, AnonymousTrackData]);
 
 export type TrackData = Static<typeof TrackData>;
 
+export const KnownBatchTrackData = Type.Object({
+  ...BaseBatchTrackData,
+  userId: Type.String(),
+});
+
+export type KnownBatchTrackData = Static<typeof KnownBatchTrackData>;
+
+export const AnonymousBatchTrackData = Type.Object({
+  ...BaseBatchTrackData,
+  anonymousId: Type.String(),
+});
+
+export type AnonymousBatchTrackData = Static<typeof AnonymousBatchTrackData>;
+
 export const BatchTrackData = Type.Union([
-  Type.Object({
-    ...BaseBatchTrackData,
-    userId: Type.String(),
-  }),
-  Type.Object({
-    ...BaseBatchTrackData,
-    anonymousId: Type.String(),
-  }),
+  KnownBatchTrackData,
+  AnonymousBatchTrackData,
 ]);
 
 export type BatchTrackData = Static<typeof BatchTrackData>;

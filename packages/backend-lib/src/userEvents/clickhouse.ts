@@ -31,14 +31,22 @@ export function buildUserEventsTableName(tableVersion: string) {
 // TODO route through kafka
 export async function insertProcessedComputedProperties({
   assignments,
+  tableVersion,
 }: {
   assignments: ComputedPropertyAssignment[];
+  tableVersion?: string;
 }) {
+  const tableName = ["processed_computed_properties"];
+  if (tableVersion) {
+    tableName.push(tableVersion);
+  }
   await clickhouseClient().insert({
-    table:
-      "processed_computed_properties (workspace_id, user_id, type, computed_property_id, segment_value, user_property_value, processed_for, processed_for_type)",
+    table: `${tableName.join(
+      "_"
+    )} (workspace_id, user_id, type, computed_property_id, segment_value, user_property_value, processed_for, processed_for_type)`,
     values: assignments,
     format: "JSONEachRow",
+    clickhouse_settings: { wait_end_of_query: 1 },
   });
 }
 
