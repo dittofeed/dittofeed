@@ -438,7 +438,6 @@ model Feature {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name        String    @id
   enabled     Boolean   @default(false)
-  config      Json
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
