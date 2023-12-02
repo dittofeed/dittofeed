@@ -40,3 +40,5 @@ export const DEFAULT_SEGMENT_DEFINITION: SegmentDefinition = {
     },
   ],
 };
+
+export const FEATURE_INCREMENTAL_COMP = "incremental-comp" as const;

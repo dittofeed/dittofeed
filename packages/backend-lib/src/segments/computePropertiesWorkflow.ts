@@ -10,7 +10,8 @@ import * as wf from "@temporalio/workflow";
 
 import { EnrichedJourney } from "../types";
 // Only import the activity types
-import type * as activities from "./computePropertiesWorkflow/activities";
+import type * as activities from "../temporal/activities";
+import { FEATURE_INCREMENTAL_COMP } from "../constants";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -20,6 +21,7 @@ const {
   findAllUserProperties,
   computePropertiesIncremental,
   computePropertiesIncrementalArgs,
+  getFeature,
   config,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
@@ -85,6 +87,21 @@ async function processPollingPeriodIncremental({
   // TODO
 }
 
+async function useIncremental({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<boolean> {
+  if (!wf.patched(FEATURE_INCREMENTAL_COMP)) {
+    return false;
+  }
+
+  return getFeature({
+    workspaceId,
+    name: FEATURE_INCREMENTAL_COMP,
+  });
+}
+
 export async function computePropertiesWorkflow({
   tableVersion,
   workspaceId,
@@ -109,11 +126,21 @@ export async function computePropertiesWorkflow({
     ]);
 
     try {
-      await processPollingPeriod({
-        workspaceId,
-        tableVersion,
-        currentTime,
-      });
+      if (await useIncremental({ workspaceId })) {
+        const args = await computePropertiesIncrementalArgs({
+          workspaceId,
+        });
+        await computePropertiesIncremental({
+          ...args,
+          now: currentTime,
+        });
+      } else {
+        await processPollingPeriod({
+          workspaceId,
+          tableVersion,
+          currentTime,
+        });
+      }
     } catch (e) {
       logger.error("computePropertiesWorkflow failed to re-compute", {
         err: e,
