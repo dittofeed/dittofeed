@@ -6,7 +6,6 @@ import {
 } from "isomorphic-lib/src/constants";
 import { v5 as uuidv5 } from "uuid";
 
-import { segmentIdentifyEvent } from "./segmentIO";
 import { createWriteKey } from "./auth";
 import { getDefaultMessageTemplates } from "./bootstrap/messageTemplates";
 import { createClickhouseDb } from "./clickhouse";
@@ -17,6 +16,7 @@ import logger from "./logger";
 import { upsertMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
+import { segmentIdentifyEvent } from "./segmentIO";
 import {
   computePropertiesWorkflow,
   generateComputePropertiesId,

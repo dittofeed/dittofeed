@@ -4,7 +4,6 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { mapValues } from "remeda";
 import { Overwrite } from "utility-types";
 
-import { segmentIdentifyEvent, segmentTrackEvent } from "../../../segmentIO";
 import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
 import {
   EMAIL_EVENTS_UP_NAME,
@@ -13,6 +12,7 @@ import {
 import { EMAIL_EVENTS_UP_DEFINITION } from "../../../integrations/subscriptions";
 import { enrichJourney } from "../../../journeys";
 import prisma, { Prisma } from "../../../prisma";
+import { segmentIdentifyEvent, segmentTrackEvent } from "../../../segmentIO";
 import { buildSubscriptionChangeEventInner } from "../../../subscriptionGroups";
 import {
   ChannelType,
