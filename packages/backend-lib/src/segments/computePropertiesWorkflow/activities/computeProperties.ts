@@ -14,9 +14,15 @@ import {
 } from "../../../clickhouse";
 import config from "../../../config";
 import { HUBSPOT_INTEGRATION } from "../../../constants";
-import { findAllEnrichedIntegrations } from "../../../integrations";
+import {
+  findAllEnrichedIntegrations,
+  findAllIntegrationResources,
+} from "../../../integrations";
 import { startHubspotUserIntegrationWorkflow } from "../../../integrations/hubspot/signalUtils";
-import { getSubscribedSegments } from "../../../journeys";
+import {
+  findManyJourneyResourcesSafe,
+  getSubscribedSegments,
+} from "../../../journeys";
 import {
   segmentUpdateSignal,
   userJourneyWorkflow,
@@ -24,6 +30,7 @@ import {
 import logger from "../../../logger";
 import {
   findManyEnrichedSegments,
+  findManySegmentResourcesSafe,
   upsertBulkSegmentAssignments,
 } from "../../../segments";
 import { getContext } from "../../../temporal/activity";
@@ -38,8 +45,17 @@ import {
   SegmentUpdate,
 } from "../../../types";
 import { insertProcessedComputedProperties } from "../../../userEvents/clickhouse";
-import { upsertBulkUserPropertyAssignments } from "../../../userProperties";
+import {
+  findAllUserPropertyResources,
+  upsertBulkUserPropertyAssignments,
+} from "../../../userProperties";
 import writeAssignments from "./computeProperties/writeAssignments";
+import {
+  computeAssignments,
+  ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
+  computeState,
+  processAssignments,
+} from "../../../computedProperties/computePropertiesIncremental";
 
 async function signalJourney({
   segmentId,
@@ -739,4 +755,81 @@ export async function computePropertiesPeriod(
   }
 }
 
-// export async function computePropertiesPeriodIncremental({
+export async function computePropertiesIncrementalArgs({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<Omit<ComputePropertiesIncrementalArgs, "now">> {
+  const [journeys, userProperties, segments, integrations] = await Promise.all([
+    findManyJourneyResourcesSafe({
+      where: {
+        workspaceId,
+        status: "Running",
+      },
+    }),
+    findAllUserPropertyResources({
+      workspaceId,
+    }),
+    findManySegmentResourcesSafe({
+      workspaceId,
+    }),
+    findAllIntegrationResources({
+      workspaceId,
+    }),
+  ]);
+  return {
+    workspaceId,
+    segments: segments.flatMap((s) => {
+      if (s.isErr()) {
+        logger().error({ err: s.error }, "failed to enrich segment");
+        return [];
+      }
+      return s.value;
+    }),
+    userProperties: userProperties,
+    journeys: journeys.flatMap((j) => {
+      if (j.isErr()) {
+        logger().error({ err: j.error }, "failed to enrich journey");
+        return [];
+      }
+      return j.value;
+    }),
+    integrations: integrations.flatMap((i) => {
+      if (i.isErr()) {
+        logger().error({ err: i.error }, "failed to enrich integration");
+        return [];
+      }
+      return i.value;
+    }),
+  };
+}
+
+export async function computePropertiesIncremental({
+  workspaceId,
+  segments,
+  userProperties,
+  journeys,
+  integrations,
+  now,
+}: ComputePropertiesIncrementalArgs) {
+  await computeState({
+    workspaceId,
+    segments,
+    userProperties,
+    now,
+  });
+  await computeAssignments({
+    workspaceId,
+    segments,
+    userProperties,
+    now,
+  });
+  await processAssignments({
+    workspaceId,
+    segments,
+    userProperties,
+    now,
+    journeys,
+    integrations,
+  });
+}

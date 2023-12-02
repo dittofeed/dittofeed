@@ -9,6 +9,7 @@ import {
   Integration,
   IntegrationDefinition,
   IntegrationResource,
+  SavedIntegrationResource,
   UpsertIntegrationResource,
 } from "./types";
 
@@ -28,6 +29,21 @@ export function enrichIntegration(
   });
 }
 
+function toIntegrationResource(
+  integration: Integration
+): Result<SavedIntegrationResource, Error> {
+  return enrichIntegration(integration).map((i) => ({
+    workspaceId: i.workspaceId,
+    name: i.name,
+    id: i.id,
+    definition: i.definition,
+    enabled: i.enabled,
+    createdAt: i.createdAt.getTime(),
+    updatedAt: i.updatedAt.getTime(),
+    definitionUpdatedAt: i.definitionUpdatedAt.getTime(),
+  }));
+}
+
 export async function findAllEnrichedIntegrations(
   workspaceId: string
 ): Promise<Result<EnrichedIntegration[], Error>> {
@@ -44,6 +60,17 @@ export async function findAllEnrichedIntegrations(
     enriched.push(integrationResult.value);
   }
   return ok(enriched);
+}
+
+export async function findAllIntegrationResources({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<Result<SavedIntegrationResource, Error>[]> {
+  const dbVals = await prisma().integration.findMany({
+    where: { workspaceId, enabled: true },
+  });
+  return dbVals.map(toIntegrationResource);
 }
 
 export async function findEnrichedIntegration({

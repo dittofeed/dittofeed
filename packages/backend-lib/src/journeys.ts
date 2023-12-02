@@ -20,6 +20,7 @@ import {
   JourneyResource,
   JourneyStats,
   NodeStatsType,
+  SavedJourneyResource,
 } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
@@ -65,19 +66,33 @@ export async function findManyJourneys(
 
 export function toJourneyResource(
   journey: Journey
-): Result<JourneyResource, Error> {
+): Result<SavedJourneyResource, Error> {
   const result = enrichJourney(journey);
   if (result.isErr()) {
     return err(result.error);
   }
-  const { id, name, workspaceId, definition, status } = result.value;
+  const { id, name, workspaceId, definition, status, createdAt, updatedAt } =
+    result.value;
+
   return ok({
     id,
     name,
     workspaceId,
     status,
     definition,
+    createdAt: createdAt.getTime(),
+    updatedAt: updatedAt.getTime(),
   });
+}
+
+export async function findManyJourneyResourcesSafe(
+  params: FindManyParams
+): Promise<Result<SavedJourneyResource, Error>[]> {
+  const journeys = await prisma().journey.findMany(params);
+  const results: Result<SavedJourneyResource, Error>[] = journeys.map(
+    (journey) => toJourneyResource(journey)
+  );
+  return results;
 }
 
 // TODO don't use this method for activities. Don't want to retry failures typically.

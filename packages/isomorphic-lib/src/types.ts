@@ -1031,6 +1031,16 @@ export const JourneyResource = Type.Object({
 
 export type JourneyResource = Static<typeof JourneyResource>;
 
+export const SavedJourneyResource = Type.Composite([
+  JourneyResource,
+  Type.Object({
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+  }),
+]);
+
+export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
+
 export const UpsertJourneyResource = Type.Intersect([
   Type.Omit(Type.Partial(JourneyResource), ["id"]),
   Type.Pick(JourneyResource, ["id"]),

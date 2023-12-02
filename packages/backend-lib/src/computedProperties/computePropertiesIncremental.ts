@@ -40,6 +40,7 @@ import {
   PerformedSegmentNode,
   RelationalOperators,
   SavedIntegrationResource,
+  SavedJourneyResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
   SegmentNode,
@@ -1561,7 +1562,7 @@ function constructStateQuery({
 
 export interface ComputePropertiesArgs {
   integrations: SavedIntegrationResource[];
-  journeys: JourneyResource[];
+  journeys: SavedJourneyResource[];
   // timestamp in ms
   now: number;
   segments: SavedSegmentResource[];

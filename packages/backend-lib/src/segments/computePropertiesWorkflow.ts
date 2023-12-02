@@ -18,6 +18,8 @@ const {
   computePropertiesPeriod,
   findAllJourneysUnsafe,
   findAllUserProperties,
+  computePropertiesIncremental,
+  computePropertiesIncrementalArgs,
   config,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
@@ -107,7 +109,7 @@ export async function computePropertiesWorkflow({
     ]);
 
     try {
-      processPollingPeriod({
+      await processPollingPeriod({
         workspaceId,
         tableVersion,
         currentTime,

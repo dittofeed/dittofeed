@@ -14,6 +14,7 @@ import {
   EnrichedSegment,
   InternalEventType,
   Prisma,
+  PrismaClient,
   SavedSegmentResource,
   Segment,
   SegmentAssignment,
@@ -195,6 +196,38 @@ export async function findManyEnrichedSegments({
     });
   }
   return ok(enrichedSegments);
+}
+
+export async function findManySegmentResourcesSafe({
+  workspaceId,
+  segmentIds,
+  requireRunning = true,
+}: {
+  workspaceId: string;
+  segmentIds?: string[];
+  requireRunning?: boolean;
+}): Promise<Result<SavedSegmentResource, Error>[]> {
+  const segments = await prisma().segment.findMany({
+    where: {
+      workspaceId,
+      ...(segmentIds?.length
+        ? {
+            id: {
+              in: segmentIds,
+            },
+          }
+        : null),
+      ...(requireRunning && !segmentIds?.length
+        ? {
+            status: "Running",
+          }
+        : null),
+    },
+  });
+  const results: Result<SavedSegmentResource, Error>[] = segments.map(
+    (segment) => toSegmentResource(segment)
+  );
+  return results;
 }
 
 /**
