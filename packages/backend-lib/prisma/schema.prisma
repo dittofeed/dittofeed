@@ -436,7 +436,7 @@ model ComputedPropertyPeriod {
 model Feature {
   workspaceId String    @db.Uuid
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name        String    @id
+  name        String    
   enabled     Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
