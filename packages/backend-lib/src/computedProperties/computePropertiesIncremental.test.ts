@@ -41,8 +41,6 @@ import {
   computeAssignments,
   ComputedPropertyStep,
   computeState,
-  createTables,
-  dropTables,
   processAssignments,
   segmentNodeStateId,
   userPropertyStateId,
@@ -297,13 +295,6 @@ interface TableTest {
 }
 
 describe("computeProperties", () => {
-  beforeAll(async () => {
-    await createTables();
-  });
-  afterAll(async () => {
-    await dropTables();
-  });
-
   const tests: TableTest[] = [
     {
       description: "computes a trait user property",
