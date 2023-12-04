@@ -334,34 +334,12 @@ describe("end to end journeys", () => {
             ],
           });
 
-          // FIXME how is this different than above
-          // await insertUserEventsOld({
-          //   tableVersion,
-          //   workspaceId: workspace.id,
-          //   events: [
-          //     {
-          //       messageId: randomUUID(),
-          //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
-          //       messageRaw: segmentIdentifyEvent({
-          //         userId: userId1,
-          //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
-          //         traits: {
-          //           onboardingState: "step1",
-          //         },
-          //       }),
-          //     },
-          //   ],
-          // });
-          // throw new Error("stop");
-
           await segmentWorkflowHandle.result();
 
           const handle = testEnv.client.workflow.getHandle(
             userJourneyWorkflowId
           );
 
-          console.log("loc1 fixme");
-          // FIXME FAILING HERE
           await handle.result();
         });
 
@@ -376,24 +354,22 @@ describe("end to end journeys", () => {
 
     describe("when the user satisfies the wait for before the timeout", () => {
       it("sends them an email from the segment branch", async () => {
-        // await insertUserEvents({
-        //   tableVersion,
-        //   workspaceId: workspace.id,
-        //   events: [
-        //     {
-        //       messageId: randomUUID(),
-        //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
-        //       messageRaw: segmentIdentifyEvent({
-        //         userId: userId1,
-        //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
-        //         traits: {
-        //           onboardingState: "step1",
-        //         },
-        //       }),
-        //     },
-        //   ],
-        // });
-        // FIXME
+        await submitBatch({
+          workspaceId: workspace.id,
+          now: currentTimeMS,
+          data: [
+            {
+              userId: userId1,
+              type: EventType.Identify,
+              processingOffsetMs: -5000,
+              offsetMs: -10000,
+              traits: {
+                onboardingState: "step1",
+              },
+            },
+          ],
+        });
+
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
         await worker.runUntil(async () => {
@@ -416,24 +392,21 @@ describe("end to end journeys", () => {
 
           await testEnv.sleep(45000);
 
-          // FIXME
-          // await insertUserEvents({
-          //   tableVersion,
-          //   workspaceId: workspace.id,
-          //   events: [
-          //     {
-          //       messageId: randomUUID(),
-          //       processingTime: new Date(currentTimeMS - 1000).toISOString(),
-          //       messageRaw: segmentIdentifyEvent({
-          //         userId: userId1,
-          //         timestamp: new Date(currentTimeMS - 6000).toISOString(),
-          //         traits: {
-          //           plan: "paid",
-          //         },
-          //       }),
-          //     },
-          //   ],
-          // });
+          await submitBatch({
+            workspaceId: workspace.id,
+            now: currentTimeMS,
+            data: [
+              {
+                userId: userId1,
+                type: EventType.Identify,
+                processingOffsetMs: -1000,
+                offsetMs: -6000,
+                traits: {
+                  plan: "paid",
+                },
+              },
+            ],
+          });
 
           await segmentWorkflowHandle.result();
 
