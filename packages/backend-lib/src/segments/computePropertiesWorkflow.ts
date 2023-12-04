@@ -8,9 +8,10 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
-import { EnrichedJourney } from "../types";
+import { FEATURE_INCREMENTAL_COMP } from "../constants";
 // Only import the activity types
-import type * as activities from "./computePropertiesWorkflow/activities";
+import type * as activities from "../temporal/activities";
+import { EnrichedJourney } from "../types";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -18,6 +19,9 @@ const {
   computePropertiesPeriod,
   findAllJourneysUnsafe,
   findAllUserProperties,
+  computePropertiesIncremental,
+  computePropertiesIncrementalArgs,
+  getFeature,
   config,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
@@ -31,8 +35,6 @@ export function generateComputePropertiesId(workspaceId: string) {
   return `compute-properties-workflow-${workspaceId}`;
 }
 
-type JourneyMap = Map<string, boolean>;
-
 export const POLLING_JITTER_COEFFICIENT = 1000;
 
 export interface ComputedPropertiesWorkflowParams {
@@ -45,6 +47,51 @@ export interface ComputedPropertiesWorkflowParams {
   subscribedJourneys?: EnrichedJourney[];
 }
 
+async function processPollingPeriodBatch({
+  workspaceId,
+  tableVersion,
+  currentTime,
+}: {
+  workspaceId: string;
+  tableVersion: string;
+  currentTime: number;
+}) {
+  const [subscribedJourneys, userProperties] = await Promise.all([
+    findAllJourneysUnsafe({
+      where: {
+        workspaceId,
+        status: "Running",
+      },
+    }),
+    findAllUserProperties({
+      workspaceId,
+    }),
+  ]);
+
+  await computePropertiesPeriod({
+    tableVersion,
+    currentTime,
+    workspaceId,
+    subscribedJourneys,
+    userProperties,
+  });
+}
+
+async function useIncremental({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<boolean> {
+  if (!wf.patched(FEATURE_INCREMENTAL_COMP)) {
+    return false;
+  }
+
+  return getFeature({
+    workspaceId,
+    name: FEATURE_INCREMENTAL_COMP,
+  });
+}
+
 export async function computePropertiesWorkflow({
   tableVersion,
   workspaceId,
@@ -55,69 +102,42 @@ export async function computePropertiesWorkflow({
   pollingJitterCoefficient = POLLING_JITTER_COEFFICIENT,
   subscribedJourneys = [],
 }: ComputedPropertiesWorkflowParams): Promise<ComputedPropertiesWorkflowParams> {
-  let journeys = subscribedJourneys;
-
   for (let i = 0; i < maxPollingAttempts; i++) {
+    const currentTime = Date.now();
+
+    logger.info("segmentsNotificationWorkflow polling attempt", {
+      i,
+      currentTime,
+      maxPollingAttempts,
+    });
+
+    const { computePropertiesInterval } = await config([
+      "computePropertiesInterval",
+    ]);
+
     try {
-      const currentTime = Date.now();
-
-      logger.info("segmentsNotificationWorkflow polling attempt", {
-        i,
-        currentTime,
-        maxPollingAttempts,
-      });
-
-      /**
-       * scenarios, at query time:
-       *  1. new journey is NotStarted
-       *  2. new journey is Running
-       *  3. new journey is Paused
-       *
-       * handling:
-       *  1. NotStarted journeys should be filtered out with db query
-       *  2. Running journeys should be handled as normal
-       *  3. Paused journeys should be removed from subscribed journeys, so that on subsequent queries they are entirely refreshed
-       */
-      const [latestSubscribedJourneys, userProperties] = await Promise.all([
-        findAllJourneysUnsafe({
-          where: {
-            workspaceId,
-            status: "Running",
-          },
-        }),
-        findAllUserProperties({
+      if (await useIncremental({ workspaceId })) {
+        logger.info("Using incremental compute properties");
+        const args = await computePropertiesIncrementalArgs({
           workspaceId,
-        }),
-      ]);
-
-      const newJourneysDiff: JourneyMap =
-        latestSubscribedJourneys.reduce<JourneyMap>((memo, journey) => {
-          memo.set(journey.id, true);
-          return memo;
-        }, new Map());
-
-      journeys.forEach((j) => {
-        newJourneysDiff.delete(j.id);
-      });
-
-      journeys = latestSubscribedJourneys;
-
-      await computePropertiesPeriod({
-        tableVersion,
-        currentTime,
-        workspaceId,
-        subscribedJourneys: journeys,
-        userProperties,
-      });
+        });
+        await computePropertiesIncremental({
+          ...args,
+          now: currentTime,
+        });
+      } else {
+        logger.info("Using batch compute properties");
+        await processPollingPeriodBatch({
+          workspaceId,
+          tableVersion,
+          currentTime,
+        });
+      }
     } catch (e) {
       logger.error("computePropertiesWorkflow failed to re-compute", {
         err: e,
       });
     }
-
-    const { computePropertiesInterval } = await config([
-      "computePropertiesInterval",
-    ]);
 
     // only use override if shouldContinueAsNew is false, in order to allow value
     // to be reconfigured at deploy time
@@ -126,8 +146,18 @@ export async function computePropertiesWorkflow({
         ? computePropertiesInterval
         : basePollingPeriodOverride;
 
+    const period =
+      basePollingInterval + Math.random() * pollingJitterCoefficient;
+
+    logger.debug("segmentsNotificationWorkflow sleeping started", {
+      period,
+    });
     // sleep for 10 seconds + up to 1 seconds of jitter for next polling period
-    await sleep(basePollingInterval + Math.random() * pollingJitterCoefficient);
+    await sleep(period);
+
+    logger.debug("segmentsNotificationWorkflow sleeping completed", {
+      period,
+    });
   }
 
   const params: ComputedPropertiesWorkflowParams = {
@@ -135,7 +165,7 @@ export async function computePropertiesWorkflow({
     maxPollingAttempts,
     pollingJitterCoefficient,
     shouldContinueAsNew,
-    subscribedJourneys: journeys,
+    subscribedJourneys,
     tableVersion,
     workspaceId,
   };

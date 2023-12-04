@@ -201,9 +201,9 @@ export type IntegrationResource = Static<typeof IntegrationResource>;
 export const SavedIntegrationResource = Type.Composite([
   IntegrationResource,
   Type.Object({
-    createdAt: Type.String(),
-    updatedAt: Type.String(),
-    definitionUpdatedAt: Type.String(),
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+    definitionUpdatedAt: Type.Number(),
   }),
 ]);
 

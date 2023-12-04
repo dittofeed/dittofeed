@@ -78,6 +78,21 @@ export async function findAllUserProperties({
   return enrichedUserProperties;
 }
 
+export async function findAllUserPropertyResources({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<SavedUserPropertyResource[]> {
+  const userProperties = await findAllUserProperties({ workspaceId });
+
+  return userProperties.map((up) => ({
+    ...up,
+    definitionUpdatedAt: up.definitionUpdatedAt.getTime(),
+    createdAt: up.createdAt.getTime(),
+    updatedAt: up.updatedAt.getTime(),
+  }));
+}
+
 export type UserPropertyAssignments = Record<string, JSONValue>;
 
 export function assignmentAsString(

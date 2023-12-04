@@ -37,6 +37,7 @@ model Workspace {
   DefaultSmsProvider     DefaultSmsProvider?
   SmsProvider            SmsProvider[]
   ComputedPropertyPeriod ComputedPropertyPeriod[]
+  Feature                Feature[]
 
   @@unique([name])
 }
@@ -430,4 +431,15 @@ model ComputedPropertyPeriod {
   createdAt          DateTime             @default(now())
 
   @@index([workspaceId, type, computedPropertyId, to])
+}
+
+model Feature {
+  workspaceId String    @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String    
+  enabled     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, name])
 }

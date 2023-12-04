@@ -1,8 +1,6 @@
 import { clickhouseClient } from "../clickhouse";
 import config from "../config";
 import { NodeEnvEnum } from "../config/loader";
-import logger from "../logger";
-import prisma from "../prisma";
 import { ComputedPropertyAssignment, JSONValue } from "../types";
 
 const userEventsColumns = `
@@ -50,54 +48,6 @@ export async function insertProcessedComputedProperties({
   });
 }
 
-export async function insertUserEvents({
-  workspaceId,
-  tableVersion: tableVersionParam,
-  events,
-}: {
-  workspaceId: string;
-  tableVersion?: string;
-  events: InsertValue[];
-}) {
-  let tableVersion = tableVersionParam;
-  if (!tableVersion) {
-    const currentTable = await prisma().currentUserEventsTable.findUnique({
-      where: {
-        workspaceId,
-      },
-    });
-
-    if (!currentTable) {
-      return;
-    }
-    tableVersion = currentTable.version;
-  }
-  await clickhouseClient().insert({
-    table: `user_events_${tableVersion} (message_raw, processing_time, workspace_id, message_id)`,
-    values: events.map((e) => {
-      const value: {
-        message_raw: string;
-        processing_time: string | null;
-        workspace_id: string;
-        message_id: string;
-      } = {
-        workspace_id: workspaceId,
-        message_raw: JSON.stringify(e.messageRaw),
-        processing_time: e.processingTime ?? null,
-        message_id: e.messageId,
-      };
-      logger().debug(
-        {
-          event: value,
-        },
-        "inserted user event"
-      );
-      return value;
-    }),
-    format: "JSONEachRow",
-  });
-}
-
 export async function createUserEventsTables({
   tableVersion,
   ingressTopic,
@@ -138,6 +88,156 @@ export async function createUserEventsTables({
         ) Engine = ReplacingMergeTree()
         ORDER BY (workspace_id, computed_property_id, processed_for_type, processed_for, user_id);
       `,
+    `
+        CREATE TABLE IF NOT EXISTS user_events_v2 (
+          event_type Enum(
+            'identify' = 1,
+            'track' = 2,
+            'page' = 3,
+            'screen' = 4,
+            'group' = 5,
+            'alias' = 6
+          ) DEFAULT JSONExtract(
+            message_raw,
+            'type',
+            'Enum(\\'identify\\' = 1, \\'track\\' = 2, \\'page\\' = 3, \\'screen\\' = 4, \\'group\\' = 5, \\'alias\\' = 6)'
+          ),
+          event String DEFAULT JSONExtract(
+            message_raw,
+            'event',
+            'String'
+          ),
+          event_time DateTime64 DEFAULT assumeNotNull(
+            parseDateTime64BestEffortOrNull(
+              JSONExtractString(message_raw, 'timestamp'),
+              3
+            )
+          ),
+          message_id String,
+          user_id String DEFAULT JSONExtract(
+            message_raw,
+            'userId',
+            'String'
+          ),
+          anonymous_id String DEFAULT JSONExtract(
+            message_raw,
+            'anonymousId',
+            'String'
+          ),
+          user_or_anonymous_id String DEFAULT assumeNotNull(
+            coalesce(
+              JSONExtract(message_raw, 'userId', 'Nullable(String)'),
+              JSONExtract(message_raw, 'anonymousId', 'Nullable(String)')
+            )
+          ),
+          properties String DEFAULT assumeNotNull(
+            coalesce(
+              JSONExtract(message_raw, 'traits', 'Nullable(String)'),
+              JSONExtract(message_raw, 'properties', 'Nullable(String)')
+            )
+          ),
+          processing_time DateTime64(3) DEFAULT now64(3),
+          message_raw String,
+          workspace_id String,
+          INDEX message_id_idx message_id TYPE minmax GRANULARITY 4
+        )
+        ENGINE = MergeTree()
+        ORDER BY (
+          workspace_id,
+          processing_time,
+          user_or_anonymous_id,
+          event_time,
+          message_id
+      );
+      `,
+    `
+        CREATE TABLE IF NOT EXISTS computed_property_state (
+          workspace_id LowCardinality(String),
+          type Enum('user_property' = 1, 'segment' = 2),
+          computed_property_id LowCardinality(String),
+          state_id LowCardinality(String),
+          user_id String,
+          last_value AggregateFunction(argMax, String, DateTime64(3)),
+          unique_count AggregateFunction(uniq, String),
+          max_event_time AggregateFunction(max, DateTime64(3)),
+          grouped_message_ids AggregateFunction(groupArray, String),
+          computed_at DateTime64(3)
+        )
+        ENGINE = AggregatingMergeTree()
+        ORDER BY (
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id
+        );
+      `,
+    `
+        CREATE TABLE IF NOT EXISTS computed_property_assignments_v2 (
+          workspace_id LowCardinality(String),
+          type Enum('user_property' = 1, 'segment' = 2),
+          computed_property_id LowCardinality(String),
+          user_id String,
+          segment_value Boolean,
+          user_property_value String,
+          max_event_time DateTime64(3),
+          assigned_at DateTime64(3) DEFAULT now64(3),
+        )
+        ENGINE = ReplacingMergeTree()
+        ORDER BY (
+          workspace_id,
+          type,
+          computed_property_id,
+          user_id
+        );
+      `,
+    `
+        CREATE TABLE IF NOT EXISTS processed_computed_properties_v2 (
+          workspace_id LowCardinality(String),
+          user_id String,
+          type Enum('user_property' = 1, 'segment' = 2),
+          computed_property_id LowCardinality(String),
+          processed_for LowCardinality(String),
+          processed_for_type LowCardinality(String),
+          segment_value Boolean,
+          user_property_value String,
+          max_event_time DateTime64(3),
+          processed_at DateTime64(3) DEFAULT now64(3),
+        )
+        ENGINE = ReplacingMergeTree()
+        ORDER BY (
+          workspace_id,
+          computed_property_id,
+          processed_for_type,
+          processed_for,
+          user_id
+        );
+      `,
+    `
+        create table if not exists updated_computed_property_state(
+          workspace_id LowCardinality(String),
+          type Enum('user_property' = 1, 'segment' = 2),
+          computed_property_id LowCardinality(String),
+          state_id LowCardinality(String),
+          user_id String,
+          computed_at DateTime64(3)
+        ) Engine=MergeTree
+        partition by toYYYYMMDD(computed_at)
+        order by computed_at
+        TTL toStartOfDay(computed_at) + interval 100 day;
+      `,
+    `
+        create table if not exists updated_property_assignments_v2(
+          workspace_id LowCardinality(String),
+          type Enum('user_property' = 1, 'segment' = 2),
+          computed_property_id LowCardinality(String),
+          user_id String,
+          assigned_at DateTime64(3)
+        ) Engine=MergeTree
+        partition by toYYYYMMDD(assigned_at)
+        order by assigned_at
+        TTL toStartOfDay(assigned_at) + interval 100 day;
+      `,
   ];
 
   const kafkaBrokers =
@@ -169,17 +269,57 @@ export async function createUserEventsTables({
     )
   );
 
+  const mvQueries: string[] = [
+    `
+      create materialized view if not exists updated_property_assignments_v2_mv to updated_property_assignments_v2
+      as select
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id,
+        assigned_at
+      from computed_property_assignments_v2
+      group by
+        workspace_id,
+        type,
+        computed_property_id,
+        user_id,
+        assigned_at;
+    `,
+    `
+      create materialized view if not exists updated_computed_property_state_mv to updated_computed_property_state
+      as select
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id,
+        computed_at
+      from computed_property_state
+      group by
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id,
+        computed_at;
+    `,
+  ];
   if (ingressTopic) {
-    const mvQuery = `
+    mvQueries.push(`
       CREATE MATERIALIZED VIEW IF NOT EXISTS user_events_mv_${tableVersion}
       TO user_events_${tableVersion} AS
       SELECT *
       FROM user_events_queue_${tableVersion};
-    `;
-
-    await clickhouseClient().exec({
-      query: mvQuery,
-      clickhouse_settings: { wait_end_of_query: 1 },
-    });
+    `);
   }
+
+  await Promise.all(
+    mvQueries.map((query) =>
+      clickhouseClient().exec({
+        query,
+        clickhouse_settings: { wait_end_of_query: 1 },
+      })
+    )
+  );
 }

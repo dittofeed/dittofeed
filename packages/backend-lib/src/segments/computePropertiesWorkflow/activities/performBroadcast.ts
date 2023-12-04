@@ -4,6 +4,14 @@ import prisma from "../../../prisma";
 import { getCurrentUserEventsTable } from "../../../userEvents";
 import { computePropertiesPeriod } from "./computeProperties";
 
+/* TODO implement
+export async function performBroadcastV2({}: {
+  workspaceId: string;
+  broadcastId: string;
+}) {
+}
+*/
+
 export async function performBroadcast({
   workspaceId,
   broadcastId,
