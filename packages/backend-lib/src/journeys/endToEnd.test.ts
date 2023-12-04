@@ -429,7 +429,6 @@ describe("end to end journeys", () => {
 
   describe("onboarding journey", () => {
     let journey: EnrichedJourney;
-    let tableVersion: string;
     let workspace: Workspace;
     let userId1: string;
     let userId2: string;
@@ -538,37 +537,32 @@ describe("end to end journeys", () => {
 
         const currentTimeMS = await testEnv.currentTimeMs();
 
-        // await insertUserEvents({
-        //   tableVersion,
-        //   workspaceId: workspace.id,
-        //   events: [
-        //     {
-        //       messageId: randomUUID(),
-        //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
-        //       messageRaw: segmentIdentifyEvent({
-        //         userId: userId1,
-        //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
-        //         traits: {
-        //           plan: "free",
-        //           createdAt: new Date(currentTimeMS - 15000).toISOString(),
-        //         },
-        //       }),
-        //     },
-        //     {
-        //       messageId: randomUUID(),
-        //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
-        //       messageRaw: segmentIdentifyEvent({
-        //         userId: userId2,
-        //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
-        //         traits: {
-        //           plan: "paid",
-        //           createdAt: new Date(currentTimeMS - 15000).toISOString(),
-        //         },
-        //       }),
-        //     },
-        //   ],
-        // });
-        // FIXME
+        await submitBatch({
+          workspaceId: workspace.id,
+          now: currentTimeMS,
+          data: [
+            {
+              userId: userId1,
+              type: EventType.Identify,
+              processingOffsetMs: -5000,
+              offsetMs: -10000,
+              traits: {
+                plan: "free",
+                createdAt: new Date(currentTimeMS - 15000).toISOString(),
+              },
+            },
+            {
+              userId: userId2,
+              type: EventType.Identify,
+              processingOffsetMs: -5000,
+              offsetMs: -10000,
+              traits: {
+                plan: "paid",
+                createdAt: new Date(currentTimeMS - 15000).toISOString(),
+              },
+            },
+          ],
+        });
 
         userJourneyWorkflowId = `user-journey-${journey.id}-${userId1}`;
       });
@@ -582,7 +576,7 @@ describe("end to end journeys", () => {
             taskQueue: "default",
             args: [
               {
-                tableVersion,
+                tableVersion: config().defaultUserEventsTableVersion,
                 workspaceId: workspace.id,
                 maxPollingAttempts: 1,
                 shouldContinueAsNew: false,
@@ -708,7 +702,7 @@ describe("end to end journeys", () => {
                 taskQueue: "default",
                 args: [
                   {
-                    tableVersion,
+                    tableVersion: config().defaultUserEventsTableVersion,
                     workspaceId: workspace.id,
                     maxPollingAttempts: 1,
                     shouldContinueAsNew: false,
