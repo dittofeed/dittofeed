@@ -159,11 +159,15 @@ export async function computePropertiesWorkflow({
     const period =
       basePollingInterval + Math.random() * pollingJitterCoefficient;
 
-    logger.debug("segmentsNotificationWorkflow sleeping", {
+    logger.debug("segmentsNotificationWorkflow sleeping started", {
       period,
     });
     // sleep for 10 seconds + up to 1 seconds of jitter for next polling period
     await sleep(period);
+
+    logger.debug("segmentsNotificationWorkflow sleeping completed", {
+      period,
+    });
   }
 
   const params: ComputedPropertiesWorkflowParams = {

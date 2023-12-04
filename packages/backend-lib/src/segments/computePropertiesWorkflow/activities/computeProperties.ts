@@ -786,7 +786,7 @@ export async function computePropertiesIncrementalArgs({
       workspaceId,
     }),
   ]);
-  return {
+  const args = {
     workspaceId,
     segments: segments.flatMap((s) => {
       if (s.isErr()) {
@@ -811,6 +811,8 @@ export async function computePropertiesIncrementalArgs({
       return i.value;
     }),
   };
+  logger().debug({ args }, "computePropertiesIncrementalArgs");
+  return args;
 }
 
 export async function computePropertiesIncremental({

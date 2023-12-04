@@ -88,14 +88,13 @@ describe("end to end journeys", () => {
         data: { name: `workspace-${randomUUID()}` },
       });
 
-      // FIXME without this, the tests should succeed
-      // await prisma().feature.create({
-      //   data: {
-      //     workspaceId: workspace.id,
-      //     name: FEATURE_INCREMENTAL_COMP,
-      //     enabled: true,
-      //   },
-      // });
+      await prisma().feature.create({
+        data: {
+          workspaceId: workspace.id,
+          name: FEATURE_INCREMENTAL_COMP,
+          enabled: true,
+        },
+      });
       userId1 = `user1-${randomUUID()}`;
 
       const segmentDefinition1: SegmentDefinition = {
@@ -299,6 +298,7 @@ describe("end to end journeys", () => {
         });
 
         await worker.runUntil(async () => {
+          // recompute properties once
           await testEnv.client.workflow.start(computePropertiesWorkflow, {
             workflowId: segmentWorkflow1,
             taskQueue: "default",
@@ -306,8 +306,7 @@ describe("end to end journeys", () => {
               {
                 tableVersion: config().defaultUserEventsTableVersion,
                 workspaceId: workspace.id,
-                // poll multiple times to ensure we get segment update
-                maxPollingAttempts: 10,
+                maxPollingAttempts: 2,
                 shouldContinueAsNew: false,
               },
             ],
@@ -316,8 +315,7 @@ describe("end to end journeys", () => {
           const segmentWorkflowHandle =
             testEnv.client.workflow.getHandle(segmentWorkflow1);
 
-          await testEnv.sleep(45000);
-
+          // submit event to satisfy segment and trigger wait for journey node
           await submitBatch({
             workspaceId: workspace.id,
             now: currentTimeMS,
@@ -333,6 +331,9 @@ describe("end to end journeys", () => {
               },
             ],
           });
+
+          // wait for polling period sleep to finish, allowing recompute workflow to run a second time
+          await testEnv.sleep(45000);
 
           await segmentWorkflowHandle.result();
 
