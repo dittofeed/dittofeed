@@ -28,10 +28,8 @@ import {
   SubscriptionGroupType,
   UserPropertyDefinitionType,
 } from "./types";
-import {
-  createUserEventsTables,
-  insertUserEvents,
-} from "./userEvents/clickhouse";
+import { createUserEventsTables } from "./userEvents/clickhouse";
+import { insertUserEvents } from "./userEvents";
 
 async function bootstrapPostgres({
   workspaceName,
@@ -268,40 +266,45 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
   logger().debug("Inserting default events.");
 
   await insertUserEvents({
-    tableVersion: config().defaultUserEventsTableVersion,
     workspaceId,
-    events: [
+    userEvents: [
       {
         messageId: messageId1,
-        messageRaw: segmentIdentifyEvent({
-          messageId: messageId1,
-          userId: DEBUG_USER_ID1,
-          traits: {
-            status: "onboarding",
-            firstName: "Max",
-            lastName: "Gurewitz",
-            email: "max@email.com",
-            plan: "free",
-            phone: "8005551234",
-            // 1 day ago
-            createdAt: new Date(Date.now() - 8.64 * 1000000).toISOString(),
-          },
-        }),
+        messageRaw: JSON.stringify(
+          segmentIdentifyEvent({
+            messageId: messageId1,
+            userId: DEBUG_USER_ID1,
+            traits: {
+              status: "onboarding",
+              firstName: "Max",
+              lastName: "Gurewitz",
+              email: "max@email.com",
+              plan: "free",
+              phone: "8005551234",
+              // 1 day ago
+              createdAt: new Date(Date.now() - 8.64 * 1000000).toISOString(),
+            },
+          })
+        ),
       },
       {
         messageId: messageId2,
-        messageRaw: segmentIdentifyEvent({
-          messageId: messageId2,
-          traits: {
-            status: "onboarded",
-            firstName: "Chandler",
-            lastName: "Craig",
-            email: "chandler@email.com",
-            plan: "paid",
-            // 2 days ago
-            createdAt: new Date(Date.now() - 2 * 8.64 * 1000000).toISOString(),
-          },
-        }),
+        messageRaw: JSON.stringify(
+          segmentIdentifyEvent({
+            messageId: messageId2,
+            traits: {
+              status: "onboarded",
+              firstName: "Chandler",
+              lastName: "Craig",
+              email: "chandler@email.com",
+              plan: "paid",
+              // 2 days ago
+              createdAt: new Date(
+                Date.now() - 2 * 8.64 * 1000000
+              ).toISOString(),
+            },
+          })
+        ),
       },
     ],
   });

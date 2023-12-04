@@ -1,4 +1,4 @@
-import { Row } from "@clickhouse/client";
+import { ClickHouseClient, ClickHouseSettings, Row } from "@clickhouse/client";
 import { ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
@@ -7,6 +7,7 @@ import { kafkaProducer } from "./kafka";
 import prisma from "./prisma";
 import { InternalEventType, UserEvent } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
+import logger from "./logger";
 
 export interface InsertUserEvent {
   messageRaw: string;
@@ -37,37 +38,64 @@ async function insertUserEventsDirect({
   asyncInsert,
 }: InsertUserEventsParams & { asyncInsert?: boolean }) {
   const version = await getCurrentUserEventsTable({ workspaceId });
-  await clickhouseClient().insert({
-    table: `user_events_${version} (message_raw, processing_time, workspace_id, message_id)`,
-    values: userEvents.map((e) => {
-      const value: {
-        message_raw: string;
-        processing_time: string | null;
-        workspace_id: string;
-        message_id: string;
-      } = {
-        workspace_id: workspaceId,
-        message_raw: e.messageRaw,
-        processing_time: e.processingTime ?? null,
-        message_id: e.messageId,
-      };
-      return value;
-    }),
-    clickhouse_settings: {
-      async_insert: asyncInsert ? 1 : undefined,
-      wait_for_async_insert: asyncInsert ? 1 : undefined,
-      wait_end_of_query: asyncInsert ? undefined : 1,
-    },
-    format: "JSONEachRow",
+  const values = userEvents.map((e) => {
+    const value: {
+      message_raw: string;
+      processing_time: string | null;
+      workspace_id: string;
+      message_id: string;
+    } = {
+      workspace_id: workspaceId,
+      message_raw: e.messageRaw,
+      processing_time: e.processingTime ?? null,
+      message_id: e.messageId,
+    };
+    return value;
   });
+
+  const settings: ClickHouseSettings = {
+    async_insert: asyncInsert ? 1 : undefined,
+    wait_for_async_insert: asyncInsert ? 1 : undefined,
+    wait_end_of_query: asyncInsert ? undefined : 1,
+  };
+  logger().debug(
+    {
+      workspaceId,
+      values,
+      settings,
+    },
+    "inserting user events loc2"
+  );
+  await Promise.all([
+    clickhouseClient().insert({
+      table: `user_events_${version} (message_raw, processing_time, workspace_id, message_id)`,
+      values,
+      clickhouse_settings: settings,
+      format: "JSONEachRow",
+    }),
+    clickhouseClient().insert({
+      table: `user_events_v2 (message_raw, processing_time, workspace_id, message_id)`,
+      values,
+      clickhouse_settings: settings,
+      format: "JSONEachRow",
+    }),
+  ]);
 }
 
 export async function insertUserEvents({
   workspaceId,
   userEvents,
 }: InsertUserEventsParams): Promise<void> {
+  logger().debug(
+    {
+      workspaceId,
+      userEvents,
+    },
+    "inserting user events loc1"
+  );
   const { userEventsTopicName, writeMode } = config();
   switch (writeMode) {
+    // TODO migrate over to new table structure
     case "kafka": {
       await (
         await kafkaProducer()

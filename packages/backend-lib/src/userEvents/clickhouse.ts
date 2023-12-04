@@ -50,54 +50,6 @@ export async function insertProcessedComputedProperties({
   });
 }
 
-export async function insertUserEvents({
-  workspaceId,
-  tableVersion: tableVersionParam,
-  events,
-}: {
-  workspaceId: string;
-  tableVersion?: string;
-  events: InsertValue[];
-}) {
-  let tableVersion = tableVersionParam;
-  if (!tableVersion) {
-    const currentTable = await prisma().currentUserEventsTable.findUnique({
-      where: {
-        workspaceId,
-      },
-    });
-
-    if (!currentTable) {
-      return;
-    }
-    tableVersion = currentTable.version;
-  }
-  await clickhouseClient().insert({
-    table: `user_events_${tableVersion} (message_raw, processing_time, workspace_id, message_id)`,
-    values: events.map((e) => {
-      const value: {
-        message_raw: string;
-        processing_time: string | null;
-        workspace_id: string;
-        message_id: string;
-      } = {
-        workspace_id: workspaceId,
-        message_raw: JSON.stringify(e.messageRaw),
-        processing_time: e.processingTime ?? null,
-        message_id: e.messageId,
-      };
-      logger().debug(
-        {
-          event: value,
-        },
-        "inserted user event"
-      );
-      return value;
-    }),
-    format: "JSONEachRow",
-  });
-}
-
 export async function createUserEventsTables({
   tableVersion,
   ingressTopic,

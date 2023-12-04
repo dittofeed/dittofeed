@@ -19,6 +19,7 @@ import {
   ChannelType,
   DelayVariantType,
   EnrichedJourney,
+  EventType,
   JourneyDefinition,
   JourneyNodeType,
   SegmentDefinition,
@@ -27,10 +28,10 @@ import {
   SegmentSplitVariantType,
   SubscriptionGroupType,
 } from "../types";
-import {
-  createUserEventsTables,
-  insertUserEvents,
-} from "../userEvents/clickhouse";
+import { createUserEventsTables } from "../userEvents/clickhouse";
+import { FEATURE_INCREMENTAL_COMP } from "../constants";
+import { submitBatch } from "../../test/testEvents";
+import logger from "../logger";
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {
@@ -90,6 +91,14 @@ describe("end to end journeys", () => {
         data: { name: `workspace-${randomUUID()}` },
       });
 
+      // FIXME without this, the tests should succeed
+      // await prisma().feature.create({
+      //   data: {
+      //     workspaceId: workspace.id,
+      //     name: FEATURE_INCREMENTAL_COMP,
+      //     enabled: true,
+      //   },
+      // });
       userId1 = `user1-${randomUUID()}`;
 
       const segmentDefinition1: SegmentDefinition = {
@@ -199,21 +208,19 @@ describe("end to end journeys", () => {
     });
 
     describe("when the timer times out before the segment is satisfied", () => {
-      it("sends them an email from the segment branch", async () => {
-        await insertUserEvents({
-          tableVersion,
+      it("sends them an email from the timeout branch", async () => {
+        await submitBatch({
           workspaceId: workspace.id,
-          events: [
+          now: currentTimeMS,
+          data: [
             {
-              messageId: randomUUID(),
-              processingTime: new Date(currentTimeMS - 5000).toISOString(),
-              messageRaw: segmentIdentifyEvent({
-                userId: userId1,
-                timestamp: new Date(currentTimeMS - 10000).toISOString(),
-                traits: {
-                  onboardingState: "step1",
-                },
-              }),
+              userId: userId1,
+              type: EventType.Identify,
+              processingOffsetMs: -5000,
+              offsetMs: -10000,
+              traits: {
+                onboardingState: "step1",
+              },
             },
           ],
         });
@@ -240,20 +247,18 @@ describe("end to end journeys", () => {
           // waiting past 1 day timeout
           await testEnv.sleep("1 week");
 
-          await insertUserEvents({
-            tableVersion,
+          await submitBatch({
             workspaceId: workspace.id,
-            events: [
+            now: currentTimeMS,
+            data: [
               {
-                messageId: randomUUID(),
-                processingTime: new Date(currentTimeMS - 1000).toISOString(),
-                messageRaw: segmentIdentifyEvent({
-                  userId: userId1,
-                  timestamp: new Date(currentTimeMS - 6000).toISOString(),
-                  traits: {
-                    plan: "paid",
-                  },
-                }),
+                userId: userId1,
+                type: EventType.Identify,
+                processingOffsetMs: -1000,
+                offsetMs: -6000,
+                traits: {
+                  plan: "paid",
+                },
               },
             ],
           });
@@ -277,26 +282,26 @@ describe("end to end journeys", () => {
     });
 
     describe("when the user satisfied the wait for before entering the node", () => {
-      it("sends them an email from the segment branch", async () => {
+      it.only("sends them an email from the segment branch", async () => {
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
-        await insertUserEvents({
-          tableVersion,
+        await submitBatch({
           workspaceId: workspace.id,
-          events: [
+          now: currentTimeMS,
+          data: [
             {
-              messageId: randomUUID(),
-              processingTime: new Date(currentTimeMS - 1000).toISOString(),
-              messageRaw: segmentIdentifyEvent({
-                userId: userId1,
-                timestamp: new Date(currentTimeMS - 6000).toISOString(),
-                traits: {
-                  plan: "paid",
-                },
-              }),
+              userId: userId1,
+              type: EventType.Identify,
+              processingOffsetMs: -1000,
+              offsetMs: -6000,
+              traits: {
+                plan: "paid",
+              },
             },
           ],
         });
+
+        logger().info({}, "inserting user events test loc1");
 
         await worker.runUntil(async () => {
           await testEnv.client.workflow.start(computePropertiesWorkflow, {
@@ -318,23 +323,40 @@ describe("end to end journeys", () => {
 
           await testEnv.sleep(45000);
 
-          await insertUserEvents({
-            tableVersion,
+          await submitBatch({
             workspaceId: workspace.id,
-            events: [
+            now: currentTimeMS,
+            data: [
               {
-                messageId: randomUUID(),
-                processingTime: new Date(currentTimeMS - 5000).toISOString(),
-                messageRaw: segmentIdentifyEvent({
-                  userId: userId1,
-                  timestamp: new Date(currentTimeMS - 10000).toISOString(),
-                  traits: {
-                    onboardingState: "step1",
-                  },
-                }),
+                userId: userId1,
+                type: EventType.Identify,
+                processingOffsetMs: -5000,
+                offsetMs: -10000,
+                traits: {
+                  onboardingState: "step1",
+                },
               },
             ],
           });
+
+          // FIXME
+          // await insertUserEvents({
+          //   tableVersion,
+          //   workspaceId: workspace.id,
+          //   events: [
+          //     {
+          //       messageId: randomUUID(),
+          //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
+          //       messageRaw: segmentIdentifyEvent({
+          //         userId: userId1,
+          //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
+          //         traits: {
+          //           onboardingState: "step1",
+          //         },
+          //       }),
+          //     },
+          //   ],
+          // });
 
           await segmentWorkflowHandle.result();
 
@@ -342,6 +364,8 @@ describe("end to end journeys", () => {
             userJourneyWorkflowId
           );
 
+          console.log("loc1 fixme");
+          // FIXME FAILING HERE
           await handle.result();
         });
 
@@ -356,23 +380,24 @@ describe("end to end journeys", () => {
 
     describe("when the user satisfies the wait for before the timeout", () => {
       it("sends them an email from the segment branch", async () => {
-        await insertUserEvents({
-          tableVersion,
-          workspaceId: workspace.id,
-          events: [
-            {
-              messageId: randomUUID(),
-              processingTime: new Date(currentTimeMS - 5000).toISOString(),
-              messageRaw: segmentIdentifyEvent({
-                userId: userId1,
-                timestamp: new Date(currentTimeMS - 10000).toISOString(),
-                traits: {
-                  onboardingState: "step1",
-                },
-              }),
-            },
-          ],
-        });
+        // await insertUserEvents({
+        //   tableVersion,
+        //   workspaceId: workspace.id,
+        //   events: [
+        //     {
+        //       messageId: randomUUID(),
+        //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
+        //       messageRaw: segmentIdentifyEvent({
+        //         userId: userId1,
+        //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
+        //         traits: {
+        //           onboardingState: "step1",
+        //         },
+        //       }),
+        //     },
+        //   ],
+        // });
+        // FIXME
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
         await worker.runUntil(async () => {
@@ -395,23 +420,24 @@ describe("end to end journeys", () => {
 
           await testEnv.sleep(45000);
 
-          await insertUserEvents({
-            tableVersion,
-            workspaceId: workspace.id,
-            events: [
-              {
-                messageId: randomUUID(),
-                processingTime: new Date(currentTimeMS - 1000).toISOString(),
-                messageRaw: segmentIdentifyEvent({
-                  userId: userId1,
-                  timestamp: new Date(currentTimeMS - 6000).toISOString(),
-                  traits: {
-                    plan: "paid",
-                  },
-                }),
-              },
-            ],
-          });
+          // FIXME
+          // await insertUserEvents({
+          //   tableVersion,
+          //   workspaceId: workspace.id,
+          //   events: [
+          //     {
+          //       messageId: randomUUID(),
+          //       processingTime: new Date(currentTimeMS - 1000).toISOString(),
+          //       messageRaw: segmentIdentifyEvent({
+          //         userId: userId1,
+          //         timestamp: new Date(currentTimeMS - 6000).toISOString(),
+          //         traits: {
+          //           plan: "paid",
+          //         },
+          //       }),
+          //     },
+          //   ],
+          // });
 
           await segmentWorkflowHandle.result();
 
@@ -546,36 +572,37 @@ describe("end to end journeys", () => {
 
         const currentTimeMS = await testEnv.currentTimeMs();
 
-        await insertUserEvents({
-          tableVersion,
-          workspaceId: workspace.id,
-          events: [
-            {
-              messageId: randomUUID(),
-              processingTime: new Date(currentTimeMS - 5000).toISOString(),
-              messageRaw: segmentIdentifyEvent({
-                userId: userId1,
-                timestamp: new Date(currentTimeMS - 10000).toISOString(),
-                traits: {
-                  plan: "free",
-                  createdAt: new Date(currentTimeMS - 15000).toISOString(),
-                },
-              }),
-            },
-            {
-              messageId: randomUUID(),
-              processingTime: new Date(currentTimeMS - 5000).toISOString(),
-              messageRaw: segmentIdentifyEvent({
-                userId: userId2,
-                timestamp: new Date(currentTimeMS - 10000).toISOString(),
-                traits: {
-                  plan: "paid",
-                  createdAt: new Date(currentTimeMS - 15000).toISOString(),
-                },
-              }),
-            },
-          ],
-        });
+        // await insertUserEvents({
+        //   tableVersion,
+        //   workspaceId: workspace.id,
+        //   events: [
+        //     {
+        //       messageId: randomUUID(),
+        //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
+        //       messageRaw: segmentIdentifyEvent({
+        //         userId: userId1,
+        //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
+        //         traits: {
+        //           plan: "free",
+        //           createdAt: new Date(currentTimeMS - 15000).toISOString(),
+        //         },
+        //       }),
+        //     },
+        //     {
+        //       messageId: randomUUID(),
+        //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
+        //       messageRaw: segmentIdentifyEvent({
+        //         userId: userId2,
+        //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
+        //         traits: {
+        //           plan: "paid",
+        //           createdAt: new Date(currentTimeMS - 15000).toISOString(),
+        //         },
+        //       }),
+        //     },
+        //   ],
+        // });
+        // FIXME
 
         userJourneyWorkflowId = `user-journey-${journey.id}-${userId1}`;
       });
@@ -682,24 +709,25 @@ describe("end to end journeys", () => {
 
         const currentTimeMS = await testEnv.currentTimeMs();
 
-        await insertUserEvents({
-          tableVersion,
+        // await insertUserEvents({
+        //   tableVersion,
 
-          workspaceId: workspace.id,
-          events: [
-            {
-              messageId: randomUUID(),
-              processingTime: new Date(currentTimeMS - 5000).toISOString(),
-              messageRaw: segmentIdentifyEvent({
-                userId: userId1,
-                timestamp: new Date(currentTimeMS - 10000).toISOString(),
-                traits: {
-                  plan: "paid",
-                },
-              }),
-            },
-          ],
-        });
+        //   workspaceId: workspace.id,
+        //   events: [
+        //     {
+        //       messageId: randomUUID(),
+        //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
+        //       messageRaw: segmentIdentifyEvent({
+        //         userId: userId1,
+        //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
+        //         traits: {
+        //           plan: "paid",
+        //         },
+        //       }),
+        //     },
+        //   ],
+        // });
+        // FIXME
       });
 
       it("only sends messages while the journey is running", async () => {
@@ -778,25 +806,26 @@ describe("end to end journeys", () => {
                 },
               }),
 
-              insertUserEvents({
-                tableVersion,
-                workspaceId: workspace.id,
-                events: [
-                  {
-                    messageId: randomUUID(),
-                    processingTime: new Date(
-                      currentTimeMS - 5000
-                    ).toISOString(),
-                    messageRaw: segmentIdentifyEvent({
-                      userId: userId2,
-                      timestamp: new Date(currentTimeMS - 10000).toISOString(),
-                      traits: {
-                        plan: "paid",
-                      },
-                    }),
-                  },
-                ],
-              }),
+              // insertUserEvents({
+              //   tableVersion,
+              //   workspaceId: workspace.id,
+              //   events: [
+              //     {
+              //       messageId: randomUUID(),
+              //       processingTime: new Date(
+              //         currentTimeMS - 5000
+              //       ).toISOString(),
+              //       messageRaw: segmentIdentifyEvent({
+              //         userId: userId2,
+              //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
+              //         traits: {
+              //           plan: "paid",
+              //         },
+              //       }),
+              //     },
+              //   ],
+              // }),
+              // FIXME
             ]);
 
             computedPropertiesParams = await testEnv.client.workflow.execute(

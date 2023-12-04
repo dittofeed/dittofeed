@@ -552,6 +552,15 @@ export async function computePropertiesPeriodSafe({
     return err(integrationsResult.error);
   }
 
+  logger().debug(
+    {
+      userProperties,
+      segmentIds,
+      segments: segmentResult.value,
+    },
+    "computePropertiesPeriodSafe loc4"
+  );
+
   await writeAssignments({
     currentTime,
     segments: segmentResult.value,

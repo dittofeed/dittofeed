@@ -47,7 +47,7 @@ export interface ComputedPropertiesWorkflowParams {
   subscribedJourneys?: EnrichedJourney[];
 }
 
-async function processPollingPeriod({
+async function processPollingPeriodBatch({
   workspaceId,
   tableVersion,
   currentTime,
@@ -127,6 +127,7 @@ export async function computePropertiesWorkflow({
 
     try {
       if (await useIncremental({ workspaceId })) {
+        logger.info("Using incremental compute properties");
         const args = await computePropertiesIncrementalArgs({
           workspaceId,
         });
@@ -135,7 +136,8 @@ export async function computePropertiesWorkflow({
           now: currentTime,
         });
       } else {
-        await processPollingPeriod({
+        logger.info("Using batch compute properties");
+        await processPollingPeriodBatch({
           workspaceId,
           tableVersion,
           currentTime,
@@ -154,8 +156,14 @@ export async function computePropertiesWorkflow({
         ? computePropertiesInterval
         : basePollingPeriodOverride;
 
+    const period =
+      basePollingInterval + Math.random() * pollingJitterCoefficient;
+
+    logger.debug("segmentsNotificationWorkflow sleeping", {
+      period,
+    });
     // sleep for 10 seconds + up to 1 seconds of jitter for next polling period
-    await sleep(basePollingInterval + Math.random() * pollingJitterCoefficient);
+    await sleep(period);
   }
 
   const params: ComputedPropertiesWorkflowParams = {

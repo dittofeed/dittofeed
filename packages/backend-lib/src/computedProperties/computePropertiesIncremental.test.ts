@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { buildBatchUserEvents } from "../apps";
+import { submitBatch } from "../../test/testEvents";
 import {
   clickhouseClient,
   clickhouseDateToIso,
@@ -15,12 +15,9 @@ import logger from "../logger";
 import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
-  BatchAppData,
   ComputedPropertyAssignment,
   EventType,
   JSONValue,
-  KnownBatchIdentifyData,
-  KnownBatchTrackData,
   ParsedPerformedManyValueItem,
   RelationalOperators,
   SavedSegmentResource,
@@ -32,7 +29,6 @@ import {
   UserPropertyDefinitionType,
   UserPropertyResource,
 } from "../types";
-import { insertUserEvents } from "../userEvents";
 import {
   findAllUserPropertyAssignments,
   toUserPropertyResource,
@@ -45,6 +41,7 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
+import { TestEvent } from "../../test/testEvents";
 
 async function readAssignments({
   workspaceId,
@@ -109,56 +106,6 @@ async function readStates({
     })
   ).json()) as { data: State[] };
   return response.data;
-}
-
-type TableEventCommon<T> = Omit<T, "messageId" | "timestamp"> & {
-  offsetMs: number;
-};
-
-type TableEvent =
-  | TableEventCommon<KnownBatchIdentifyData>
-  | TableEventCommon<KnownBatchTrackData>;
-
-async function submitBatch({
-  workspaceId,
-  data,
-  now,
-}: {
-  workspaceId: string;
-  data: TableEvent[];
-  now: number;
-}) {
-  const processingTimes = data.map((e) =>
-    new Date(e.offsetMs + now).toISOString()
-  );
-  const batchAppData: BatchAppData = {
-    batch: data.map((e, i) => {
-      const processingTime = processingTimes[i];
-      if (!processingTime) {
-        throw new Error("processingTime not found");
-      }
-      return {
-        ...e,
-        messageId: randomUUID(),
-        timestamp: processingTime,
-      };
-    }),
-  };
-
-  const userEvents = buildBatchUserEvents(batchAppData).map((e, i) => {
-    const processingTime = processingTimes[i];
-    if (!processingTime) {
-      throw new Error("processingTime not found");
-    }
-    return {
-      ...e,
-      processingTime,
-    };
-  });
-  await insertUserEvents({
-    workspaceId,
-    userEvents,
-  });
 }
 
 interface TestState {
@@ -244,11 +191,11 @@ interface StepContext {
   now: number;
 }
 
-type EventBuilder = (ctx: StepContext) => TableEvent;
+type EventBuilder = (ctx: StepContext) => TestEvent;
 
 interface SubmitEventsStep {
   type: EventsStepType.SubmitEvents;
-  events: (TableEvent | EventBuilder)[];
+  events: (TestEvent | EventBuilder)[];
 }
 
 interface ComputePropertiesStep {
@@ -1705,7 +1652,7 @@ describe("computeProperties", () => {
       };
       switch (step.type) {
         case EventsStepType.SubmitEvents: {
-          const events: TableEvent[] = [];
+          const events: TestEvent[] = [];
           for (const event of step.events) {
             if (typeof event === "function") {
               events.push(await event(stepContext));
