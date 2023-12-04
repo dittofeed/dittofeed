@@ -9,7 +9,6 @@ import { createEnvAndWorker } from "../../test/temporal";
 import { clickhouseClient, getChCompatibleUuid } from "../clickhouse";
 import { enrichJourney } from "../journeys";
 import prisma from "../prisma";
-import { segmentIdentifyEvent } from "../segmentIO";
 import {
   ComputedPropertiesWorkflowParams,
   computePropertiesWorkflow,
@@ -28,10 +27,8 @@ import {
   SegmentSplitVariantType,
   SubscriptionGroupType,
 } from "../types";
-import { createUserEventsTables } from "../userEvents/clickhouse";
 import { FEATURE_INCREMENTAL_COMP } from "../constants";
-import { insertUserEventsOld, submitBatch } from "../../test/testEvents";
-import logger from "../logger";
+import { submitBatch } from "../../test/testEvents";
 import config from "../config";
 
 const paidSegmentDefinition: SegmentDefinition = {
@@ -382,7 +379,7 @@ describe("end to end journeys", () => {
                 tableVersion: config().defaultUserEventsTableVersion,
                 workspaceId: workspace.id,
                 // poll multiple times to ensure we get segment update
-                maxPollingAttempts: 10,
+                maxPollingAttempts: 2,
                 shouldContinueAsNew: false,
               },
             ],
@@ -390,8 +387,6 @@ describe("end to end journeys", () => {
 
           const segmentWorkflowHandle =
             testEnv.client.workflow.getHandle(segmentWorkflow1);
-
-          await testEnv.sleep(45000);
 
           await submitBatch({
             workspaceId: workspace.id,
@@ -408,6 +403,8 @@ describe("end to end journeys", () => {
               },
             ],
           });
+
+          await testEnv.sleep(45000);
 
           await segmentWorkflowHandle.result();
 
