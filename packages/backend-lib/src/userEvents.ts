@@ -78,13 +78,6 @@ export async function insertUserEvents({
   workspaceId,
   userEvents,
 }: InsertUserEventsParams): Promise<void> {
-  logger().debug(
-    {
-      workspaceId,
-      userEvents,
-    },
-    "inserting user events loc1"
-  );
   const { userEventsTopicName, writeMode } = config();
   switch (writeMode) {
     // TODO migrate over to new table structure
