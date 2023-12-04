@@ -1,13 +1,13 @@
-import { ClickHouseClient, ClickHouseSettings, Row } from "@clickhouse/client";
+import { ClickHouseSettings, Row } from "@clickhouse/client";
 import { ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
 import config from "./config";
 import { kafkaProducer } from "./kafka";
+import logger from "./logger";
 import prisma from "./prisma";
 import { InternalEventType, UserEvent } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
-import logger from "./logger";
 
 export interface InsertUserEvent {
   messageRaw: string;

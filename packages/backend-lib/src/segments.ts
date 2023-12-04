@@ -14,7 +14,6 @@ import {
   EnrichedSegment,
   InternalEventType,
   Prisma,
-  PrismaClient,
   SavedSegmentResource,
   Segment,
   SegmentAssignment,

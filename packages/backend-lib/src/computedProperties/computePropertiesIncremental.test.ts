@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { submitBatch } from "../../test/testEvents";
+import { submitBatch , TestEvent } from "../../test/testEvents";
 import {
   clickhouseClient,
   clickhouseDateToIso,
@@ -41,7 +41,6 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
-import { TestEvent } from "../../test/testEvents";
 
 async function readAssignments({
   workspaceId,

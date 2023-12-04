@@ -883,7 +883,6 @@ export default async function writeAssignments({
         ORDER BY latest_processing_time DESC
       ) sas
     `;
-    console.log("write query loc1", writeQuery);
 
     const queryId = randomUUID();
 

@@ -17,7 +17,6 @@ import {
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
-  JourneyResource,
   JourneyStats,
   NodeStatsType,
   SavedJourneyResource,

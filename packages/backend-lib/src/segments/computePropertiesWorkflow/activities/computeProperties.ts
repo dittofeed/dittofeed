@@ -12,6 +12,12 @@ import {
   createClickhouseClient,
   getChCompatibleUuid,
 } from "../../../clickhouse";
+import {
+  computeAssignments,
+  ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
+  computeState,
+  processAssignments,
+} from "../../../computedProperties/computePropertiesIncremental";
 import config from "../../../config";
 import { HUBSPOT_INTEGRATION } from "../../../constants";
 import {
@@ -50,12 +56,6 @@ import {
   upsertBulkUserPropertyAssignments,
 } from "../../../userProperties";
 import writeAssignments from "./computeProperties/writeAssignments";
-import {
-  computeAssignments,
-  ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
-  computeState,
-  processAssignments,
-} from "../../../computedProperties/computePropertiesIncremental";
 
 async function signalJourney({
   segmentId,
@@ -795,7 +795,7 @@ export async function computePropertiesIncrementalArgs({
       }
       return s.value;
     }),
-    userProperties: userProperties,
+    userProperties,
     journeys: journeys.flatMap((j) => {
       if (j.isErr()) {
         logger().error({ err: j.error }, "failed to enrich journey");

@@ -1,8 +1,6 @@
 import { clickhouseClient } from "../clickhouse";
 import config from "../config";
 import { NodeEnvEnum } from "../config/loader";
-import logger from "../logger";
-import prisma from "../prisma";
 import { ComputedPropertyAssignment, JSONValue } from "../types";
 
 const userEventsColumns = `

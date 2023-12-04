@@ -6,7 +6,10 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { createEnvAndWorker } from "../../test/temporal";
-import { clickhouseClient, getChCompatibleUuid } from "../clickhouse";
+import { submitBatch } from "../../test/testEvents";
+import { clickhouseClient } from "../clickhouse";
+import config from "../config";
+import { FEATURE_INCREMENTAL_COMP } from "../constants";
 import { enrichJourney } from "../journeys";
 import prisma from "../prisma";
 import {
@@ -27,9 +30,6 @@ import {
   SegmentSplitVariantType,
   SubscriptionGroupType,
 } from "../types";
-import { FEATURE_INCREMENTAL_COMP } from "../constants";
-import { submitBatch } from "../../test/testEvents";
-import config from "../config";
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {

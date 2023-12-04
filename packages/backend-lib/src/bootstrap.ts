@@ -28,8 +28,8 @@ import {
   SubscriptionGroupType,
   UserPropertyDefinitionType,
 } from "./types";
-import { createUserEventsTables } from "./userEvents/clickhouse";
 import { insertUserEvents } from "./userEvents";
+import { createUserEventsTables } from "./userEvents/clickhouse";
 
 async function bootstrapPostgres({
   workspaceName,

@@ -8,10 +8,10 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
-import { EnrichedJourney } from "../types";
+import { FEATURE_INCREMENTAL_COMP } from "../constants";
 // Only import the activity types
 import type * as activities from "../temporal/activities";
-import { FEATURE_INCREMENTAL_COMP } from "../constants";
+import { EnrichedJourney } from "../types";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -75,16 +75,6 @@ async function processPollingPeriodBatch({
     subscribedJourneys,
     userProperties,
   });
-}
-
-async function processPollingPeriodIncremental({
-  workspaceId,
-  currentTime,
-}: {
-  workspaceId: string;
-  currentTime: number;
-}) {
-  // TODO
 }
 
 async function useIncremental({
