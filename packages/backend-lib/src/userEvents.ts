@@ -58,14 +58,6 @@ async function insertUserEventsDirect({
     wait_for_async_insert: asyncInsert ? 1 : undefined,
     wait_end_of_query: asyncInsert ? undefined : 1,
   };
-  logger().debug(
-    {
-      workspaceId,
-      values,
-      settings,
-    },
-    "inserting user events loc2"
-  );
   await Promise.all([
     clickhouseClient().insert({
       table: `user_events_${version} (message_raw, processing_time, workspace_id, message_id)`,

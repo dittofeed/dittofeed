@@ -56,24 +56,24 @@ export function segmentIdentifyEvent(
 ): Record<string, JSONValue> {
   return deepmerge(
     {
-      anonymousId: randomUUID(),
-      channel: "browser",
-      context: {
-        ip: "8.8.8.8",
-        userAgent:
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.115 Safari/537.36",
-      },
-      integrations: {
-        All: false,
-        Mixpanel: true,
-        Salesforce: true,
-      },
+      // anonymousId: randomUUID(),
+      // channel: "browser",
+      // context: {
+      //   ip: "8.8.8.8",
+      //   userAgent:
+      //     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.115 Safari/537.36",
+      // },
+      // integrations: {
+      //   All: false,
+      //   Mixpanel: true,
+      //   Salesforce: true,
+      // },
       messageId: randomUUID(),
       traits: {},
       type: "identify",
       userId: randomUUID(),
-      version: "1.1",
-      ...getTimestamps(),
+      // version: "1.1",
+      // ...getTimestamps(),
     },
     overrides
   );

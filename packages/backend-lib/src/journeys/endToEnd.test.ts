@@ -30,8 +30,9 @@ import {
 } from "../types";
 import { createUserEventsTables } from "../userEvents/clickhouse";
 import { FEATURE_INCREMENTAL_COMP } from "../constants";
-import { submitBatch } from "../../test/testEvents";
+import { insertUserEventsOld, submitBatch } from "../../test/testEvents";
 import logger from "../logger";
+import config from "../config";
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {
@@ -75,7 +76,6 @@ describe("end to end journeys", () => {
 
   describe("wait for journey", () => {
     let journey: EnrichedJourney;
-    let tableVersion: string;
     let workspace: Workspace;
     let userId1: string;
     let userJourneyWorkflowId: string;
@@ -84,9 +84,6 @@ describe("end to end journeys", () => {
     let messageNode1: string;
     let messageNode2: string;
     beforeEach(async () => {
-      tableVersion = getChCompatibleUuid();
-      await createUserEventsTables({ tableVersion });
-
       workspace = await prisma().workspace.create({
         data: { name: `workspace-${randomUUID()}` },
       });
@@ -232,7 +229,7 @@ describe("end to end journeys", () => {
             taskQueue: "default",
             args: [
               {
-                tableVersion,
+                tableVersion: config().defaultUserEventsTableVersion,
                 workspaceId: workspace.id,
                 // poll multiple times to ensure we get segment update
                 maxPollingAttempts: 10,
@@ -282,7 +279,7 @@ describe("end to end journeys", () => {
     });
 
     describe("when the user satisfied the wait for before entering the node", () => {
-      it.only("sends them an email from the segment branch", async () => {
+      it("sends them an email from the segment branch", async () => {
         const segmentWorkflow1 = `segments-notification-workflow-${randomUUID()}`;
 
         await submitBatch({
@@ -301,15 +298,13 @@ describe("end to end journeys", () => {
           ],
         });
 
-        logger().info({}, "inserting user events test loc1");
-
         await worker.runUntil(async () => {
           await testEnv.client.workflow.start(computePropertiesWorkflow, {
             workflowId: segmentWorkflow1,
             taskQueue: "default",
             args: [
               {
-                tableVersion,
+                tableVersion: config().defaultUserEventsTableVersion,
                 workspaceId: workspace.id,
                 // poll multiple times to ensure we get segment update
                 maxPollingAttempts: 10,
@@ -339,8 +334,8 @@ describe("end to end journeys", () => {
             ],
           });
 
-          // FIXME
-          // await insertUserEvents({
+          // FIXME how is this different than above
+          // await insertUserEventsOld({
           //   tableVersion,
           //   workspaceId: workspace.id,
           //   events: [
@@ -357,6 +352,7 @@ describe("end to end journeys", () => {
           //     },
           //   ],
           // });
+          // throw new Error("stop");
 
           await segmentWorkflowHandle.result();
 
@@ -406,7 +402,7 @@ describe("end to end journeys", () => {
             taskQueue: "default",
             args: [
               {
-                tableVersion,
+                tableVersion: config().defaultUserEventsTableVersion,
                 workspaceId: workspace.id,
                 // poll multiple times to ensure we get segment update
                 maxPollingAttempts: 10,
@@ -467,9 +463,6 @@ describe("end to end journeys", () => {
     let userJourneyWorkflowId: string;
 
     beforeEach(async () => {
-      tableVersion = getChCompatibleUuid();
-      await createUserEventsTables({ tableVersion });
-
       workspace = await prisma().workspace.create({
         data: { name: `workspace-${randomUUID()}` },
       });
