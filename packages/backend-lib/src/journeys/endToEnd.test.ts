@@ -669,25 +669,21 @@ describe("end to end journeys", () => {
 
         const currentTimeMS = await testEnv.currentTimeMs();
 
-        // await insertUserEvents({
-        //   tableVersion,
-
-        //   workspaceId: workspace.id,
-        //   events: [
-        //     {
-        //       messageId: randomUUID(),
-        //       processingTime: new Date(currentTimeMS - 5000).toISOString(),
-        //       messageRaw: segmentIdentifyEvent({
-        //         userId: userId1,
-        //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
-        //         traits: {
-        //           plan: "paid",
-        //         },
-        //       }),
-        //     },
-        //   ],
-        // });
-        // FIXME
+        await submitBatch({
+          workspaceId: workspace.id,
+          now: currentTimeMS,
+          data: [
+            {
+              userId: userId1,
+              type: EventType.Identify,
+              processingOffsetMs: -5000,
+              offsetMs: -10000,
+              traits: {
+                plan: "paid",
+              },
+            },
+          ],
+        });
       });
 
       it("only sends messages while the journey is running", async () => {
@@ -766,26 +762,21 @@ describe("end to end journeys", () => {
                 },
               }),
 
-              // insertUserEvents({
-              //   tableVersion,
-              //   workspaceId: workspace.id,
-              //   events: [
-              //     {
-              //       messageId: randomUUID(),
-              //       processingTime: new Date(
-              //         currentTimeMS - 5000
-              //       ).toISOString(),
-              //       messageRaw: segmentIdentifyEvent({
-              //         userId: userId2,
-              //         timestamp: new Date(currentTimeMS - 10000).toISOString(),
-              //         traits: {
-              //           plan: "paid",
-              //         },
-              //       }),
-              //     },
-              //   ],
-              // }),
-              // FIXME
+              await submitBatch({
+                workspaceId: workspace.id,
+                now: currentTimeMS,
+                data: [
+                  {
+                    userId: userId2,
+                    type: EventType.Identify,
+                    processingOffsetMs: -5000,
+                    offsetMs: -10000,
+                    traits: {
+                      plan: "paid",
+                    },
+                  },
+                ],
+              }),
             ]);
 
             computedPropertiesParams = await testEnv.client.workflow.execute(
