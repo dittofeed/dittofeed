@@ -2,15 +2,67 @@ import { getBroadcast } from "../../../broadcasts";
 import logger from "../../../logger";
 import prisma from "../../../prisma";
 import { getCurrentUserEventsTable } from "../../../userEvents";
-import { computePropertiesPeriod } from "./computeProperties";
+import {
+  computePropertiesIncremental,
+  computePropertiesPeriod,
+} from "./computeProperties";
 
-/* TODO implement
-export async function performBroadcastV2({}: {
+export async function performBroadcastIncremental({
+  workspaceId,
+  broadcastId,
+}: {
   workspaceId: string;
   broadcastId: string;
 }) {
+  const broadcastResources = await getBroadcast({
+    workspaceId,
+    broadcastId,
+  });
+
+  if (!broadcastResources) {
+    logger().error(
+      {
+        broadcastId,
+      },
+      "Broadcast not found."
+    );
+    return null;
+  }
+
+  const { broadcast, segment, journey } = broadcastResources;
+
+  if (broadcast.triggeredAt) {
+    logger().info(
+      {
+        broadcast,
+      },
+      "broadcast already triggered"
+    );
+    return null;
+  }
+  const triggeredAt = new Date();
+
+  await computePropertiesIncremental({
+    workspaceId,
+    integrations: [],
+    segments: [segment],
+    journeys: [journey],
+    now: triggeredAt.getTime(),
+    userProperties: [],
+  });
+
+  await prisma().broadcast.update({
+    where: {
+      id: broadcast.id,
+    },
+    data: {
+      triggeredAt,
+      status: "Triggered",
+    },
+  });
+
+  return null;
 }
-*/
 
 export async function performBroadcast({
   workspaceId,

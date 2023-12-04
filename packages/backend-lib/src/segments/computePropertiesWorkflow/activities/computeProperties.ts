@@ -811,7 +811,6 @@ export async function computePropertiesIncrementalArgs({
       return i.value;
     }),
   };
-  logger().debug({ args }, "computePropertiesIncrementalArgs");
   return args;
 }
 
