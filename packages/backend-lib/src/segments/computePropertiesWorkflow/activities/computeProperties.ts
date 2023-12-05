@@ -548,18 +548,17 @@ export async function computePropertiesPeriodSafe({
     return err(new Error(JSON.stringify(segmentResult.error)));
   }
 
-  if (integrationsResult.isErr()) {
-    return err(integrationsResult.error);
-  }
-
   logger().debug(
     {
       userProperties,
-      segmentIds,
       segments: segmentResult.value,
     },
-    "computePropertiesPeriodSafe loc4"
+    "computePropertiesPeriodSafe"
   );
+
+  if (integrationsResult.isErr()) {
+    return err(integrationsResult.error);
+  }
 
   await writeAssignments({
     currentTime,
@@ -811,7 +810,6 @@ export async function computePropertiesIncrementalArgs({
       return i.value;
     }),
   };
-  logger().debug({ args }, "computePropertiesIncrementalArgs");
   return args;
 }
 
@@ -823,24 +821,31 @@ export async function computePropertiesIncremental({
   integrations,
   now,
 }: ComputePropertiesIncrementalArgs) {
-  await computeState({
-    workspaceId,
-    segments,
-    userProperties,
-    now,
-  });
-  await computeAssignments({
-    workspaceId,
-    segments,
-    userProperties,
-    now,
-  });
-  await processAssignments({
-    workspaceId,
-    segments,
-    userProperties,
-    now,
-    journeys,
-    integrations,
-  });
+  try {
+    await computeState({
+      workspaceId,
+      segments,
+      userProperties,
+      now,
+    });
+    await computeAssignments({
+      workspaceId,
+      segments,
+      userProperties,
+      now,
+    });
+    await processAssignments({
+      workspaceId,
+      segments,
+      userProperties,
+      now,
+      journeys,
+      integrations,
+    });
+  } catch (e) {
+    logger().error(
+      { err: e, workspaceId },
+      "failed to compute properties incrementally"
+    );
+  }
 }

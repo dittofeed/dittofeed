@@ -15,11 +15,12 @@ import { generateSecureHash } from "./crypto";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
+  EventType,
   InternalEventType,
-  JSONValue,
   SegmentDefinition,
   SegmentNodeType,
   SubscriptionChange,
+  SubscriptionChangeEvent,
   SubscriptionGroupResource,
   SubscriptionGroupType,
   SubscriptionParams,
@@ -268,12 +269,16 @@ export function buildSubscriptionChangeEventInner({
   subscriptionGroupId: string;
   timestamp: string;
   action: SubscriptionChange;
-}): Record<string, JSONValue> {
+}): {
+  userId: string;
+  timestamp: string;
+  messageId: string;
+} & SubscriptionChangeEvent {
   return {
     userId,
     timestamp,
     messageId,
-    type: "track",
+    type: EventType.Track,
     event: InternalEventType.SubscriptionChange,
     properties: {
       subscriptionId: subscriptionGroupId,

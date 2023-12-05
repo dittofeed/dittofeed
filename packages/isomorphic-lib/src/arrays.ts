@@ -5,3 +5,12 @@ export function idxUnsafe<I>(arr: I[], index: number): I {
   }
   return v;
 }
+
+export function arrayDefault<T>(...arrs: (T[] | undefined | null)[]): T[] {
+  for (const arr of arrs) {
+    if (arr && arr.length > 0) {
+      return arr;
+    }
+  }
+  return [];
+}

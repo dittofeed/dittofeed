@@ -1,22 +1,28 @@
 import { ClickHouseSettings, Row } from "@clickhouse/client";
+import { arrayDefault } from "isomorphic-lib/src/arrays";
 import { ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
 import config from "./config";
 import { kafkaProducer } from "./kafka";
-import logger from "./logger";
 import prisma from "./prisma";
 import { InternalEventType, UserEvent } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 export interface InsertUserEvent {
-  messageRaw: string;
+  messageRaw: string | Record<string, unknown>;
   processingTime?: string;
   messageId: string;
 }
+
+interface InsertUserEventInternal extends InsertUserEvent {
+  messageRaw: string;
+}
 export interface InsertUserEventsParams {
   workspaceId: string;
-  userEvents: InsertUserEvent[];
+  // README: for ease of backwards compatibility, we allow both userEvents and events
+  userEvents?: InsertUserEvent[];
+  events?: InsertUserEvent[];
 }
 
 export async function getCurrentUserEventsTable({
@@ -36,7 +42,10 @@ async function insertUserEventsDirect({
   workspaceId,
   userEvents,
   asyncInsert,
-}: InsertUserEventsParams & { asyncInsert?: boolean }) {
+}: Omit<InsertUserEventsParams, "events" | "userEvents"> & {
+  userEvents: InsertUserEventInternal[];
+  asyncInsert?: boolean;
+}) {
   const version = await getCurrentUserEventsTable({ workspaceId });
   const values = userEvents.map((e) => {
     const value: {
@@ -58,6 +67,7 @@ async function insertUserEventsDirect({
     wait_for_async_insert: asyncInsert ? 1 : undefined,
     wait_end_of_query: asyncInsert ? undefined : 1,
   };
+
   await Promise.all([
     clickhouseClient().insert({
       table: `user_events_${version} (message_raw, processing_time, workspace_id, message_id)`,
@@ -77,15 +87,20 @@ async function insertUserEventsDirect({
 export async function insertUserEvents({
   workspaceId,
   userEvents,
+  events,
 }: InsertUserEventsParams): Promise<void> {
-  logger().debug(
-    {
-      workspaceId,
-      userEvents,
-    },
-    "inserting user events loc1"
-  );
   const { userEventsTopicName, writeMode } = config();
+  const userEventsWithDefault: InsertUserEventInternal[] = arrayDefault(
+    userEvents,
+    events
+  ).map((e) => ({
+    ...e,
+    messageRaw:
+      typeof e.messageRaw === "string"
+        ? e.messageRaw
+        : JSON.stringify(e.messageRaw),
+  }));
+
   switch (writeMode) {
     // TODO migrate over to new table structure
     case "kafka": {
@@ -93,7 +108,7 @@ export async function insertUserEvents({
         await kafkaProducer()
       ).send({
         topic: userEventsTopicName,
-        messages: userEvents.map(
+        messages: userEventsWithDefault.map(
           ({ messageRaw, messageId, processingTime }) => ({
             key: messageId,
             value: JSON.stringify({
@@ -110,12 +125,15 @@ export async function insertUserEvents({
     case "ch-async":
       await insertUserEventsDirect({
         workspaceId,
-        userEvents,
+        userEvents: userEventsWithDefault,
         asyncInsert: true,
       });
       break;
     case "ch-sync": {
-      await insertUserEventsDirect({ workspaceId, userEvents });
+      await insertUserEventsDirect({
+        workspaceId,
+        userEvents: userEventsWithDefault,
+      });
       break;
     }
   }

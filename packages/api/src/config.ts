@@ -1,9 +1,6 @@
 import { Static, Type } from "@sinclair/typebox";
-import {
-  loadConfig,
-  NodeEnv,
-  setConfigOnEnv,
-} from "backend-lib/src/config/loader";
+import { loadConfig, setConfigOnEnv } from "backend-lib/src/config/loader";
+import { NodeEnv } from "backend-lib/src/types";
 import { Overwrite } from "utility-types";
 
 const RawConfigProps = {

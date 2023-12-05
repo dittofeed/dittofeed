@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { submitBatch , TestEvent } from "../../test/testEvents";
+import { submitBatch, TestEvent } from "../../test/testEvents";
 import {
   clickhouseClient,
   clickhouseDateToIso,
@@ -17,6 +17,7 @@ import { findAllSegmentAssignments, toSegmentResource } from "../segments";
 import {
   ComputedPropertyAssignment,
   EventType,
+  InternalEventType,
   JSONValue,
   ParsedPerformedManyValueItem,
   RelationalOperators,
@@ -26,6 +27,9 @@ import {
   SegmentNodeType,
   SegmentOperatorType,
   SegmentResource,
+  SubscriptionChange,
+  SubscriptionChangeEvent,
+  SubscriptionGroupType,
   UserPropertyDefinitionType,
   UserPropertyResource,
 } from "../types";
@@ -175,7 +179,7 @@ function toTestState(
 interface TableUser {
   id: string;
   properties?: Record<string, JSONValue>;
-  segments?: Record<string, boolean>;
+  segments?: Record<string, boolean | null>;
 }
 
 enum EventsStepType {
@@ -726,7 +730,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                stuckOnboarding: false,
+                stuckOnboarding: null,
               },
             },
           ],
@@ -1062,7 +1066,7 @@ describe("computeProperties", () => {
             {
               id: "user-3",
               segments: {
-                doubleNested: false,
+                doubleNested: null,
               },
             },
           ],
@@ -1182,13 +1186,13 @@ describe("computeProperties", () => {
             {
               id: "user-2",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
             {
               id: "user-3",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
           ],
@@ -1324,19 +1328,19 @@ describe("computeProperties", () => {
             {
               id: "user-2",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
             {
               id: "user-3",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
             {
               id: "user-4",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
           ],
@@ -1438,19 +1442,19 @@ describe("computeProperties", () => {
             {
               id: "user-2",
               segments: {
-                lastPerformed: false,
+                lastPerformed: null,
               },
             },
             {
               id: "user-3",
               segments: {
-                lastPerformed: false,
+                lastPerformed: null,
               },
             },
             {
               id: "user-4",
               segments: {
-                lastPerformed: false,
+                lastPerformed: null,
               },
             },
           ],
@@ -1588,7 +1592,130 @@ describe("computeProperties", () => {
         },
       ],
     },
-    // TODO subscription group
+    {
+      description: "with an opt out subscription group segment",
+      segments: [
+        {
+          name: "optOut",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.SubscriptionGroup,
+              id: "1",
+              subscriptionGroupId: "subscription-group-id",
+              subscriptionGroupType: SubscriptionGroupType.OptOut,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      userProperties: [
+        {
+          name: "email",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "email",
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Identify,
+              traits: {
+                email: "test@email.com",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is initially not opted out by default",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                optOut: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              offsetMs: -100,
+              userId: "user-1",
+              type: EventType.Track,
+              event: InternalEventType.SubscriptionChange,
+              properties: {
+                subscriptionId: "subscription-group-id",
+                action: SubscriptionChange.Unsubscribe,
+              },
+            } satisfies TestEvent & SubscriptionChangeEvent,
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is opted out after unsubscribing",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                optOut: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              offsetMs: -100,
+              userId: "user-1",
+              type: EventType.Track,
+              event: InternalEventType.SubscriptionChange,
+              properties: {
+                subscriptionId: "subscription-group-id",
+                action: SubscriptionChange.Subscribe,
+              },
+            } satisfies TestEvent & SubscriptionChangeEvent,
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is opted in after re subscribing",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                optOut: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
@@ -1728,14 +1855,14 @@ describe("computeProperties", () => {
                   ? findAllSegmentAssignments({
                       userId: user.id,
                       workspaceId,
-                    }).then((s) =>
+                    }).then((s) => {
                       expect(
                         s,
                         `${
                           step.description ? `${step.description}: ` : ""
                         }segments for: ${user.id}`
-                      ).toEqual(user.segments)
-                    )
+                      ).toEqual(user.segments);
+                    })
                   : null,
               ]);
             }) ?? []),

@@ -18,6 +18,14 @@ import { Overwrite } from "utility-types";
 
 export * from "isomorphic-lib/src/types";
 
+export enum NodeEnvEnum {
+  Development = "development",
+  Test = "test",
+  Production = "production",
+}
+
+export const NodeEnv = Type.Enum(NodeEnvEnum);
+
 export enum KafkaMessageTypes {
   JSON = "0",
 }

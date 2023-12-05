@@ -16,18 +16,61 @@ export function getChCompatibleUuid() {
   return uuid().replace(/-/g, "_");
 }
 
+/**
+ * Class to build ClickHouse queries.
+ */
 export class ClickHouseQueryBuilder {
   private queries: Record<string, unknown>;
 
-  constructor() {
+  private debug: boolean;
+
+  /**
+   * Constructs a new ClickHouseQueryBuilder.
+   *
+   * @param {Object} params - The constructor parameters.
+   * @param {boolean} params.debug - Whether to enable debug mode. In this mode
+   * values will not be sanitized, but will be rendered directly. Should not be
+   * used in production. Defaults to false.
+   */
+  constructor({ debug }: { debug?: boolean } = { debug: false }) {
+    this.debug = debug ?? false;
     this.queries = {};
   }
 
+  /**
+   * Returns the current queries.
+   *
+   * @returns {Record<string, unknown>} The current queries.
+   */
   getQueries() {
     return this.queries;
   }
 
+  /**
+   * Adds a value to the queries.
+   *
+   * @param {unknown} value - The value to add.
+   * @param {string} dataType - The data type of the value.
+   * @returns {string} The ID of the added value.
+   */
   addQueryValue(value: unknown, dataType: string): string {
+    if (this.debug) {
+      switch (dataType) {
+        case "String":
+          return `'${value}'`;
+        case "Int32":
+          return `${value}`;
+        case "Array(String)":
+          if (Array.isArray(value)) {
+            return `['${value.join("','")}']`;
+          }
+          return `['${value}']`;
+        default:
+          throw new Error(
+            `Unhandled data type in query builder debug mode: ${dataType}`
+          );
+      }
+    }
     const id = getChCompatibleUuid();
     this.queries[id] = value;
     return `{${id}:${dataType}}`;

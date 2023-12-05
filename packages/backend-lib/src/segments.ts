@@ -46,7 +46,7 @@ export async function findAllSegmentAssignments({
 }: {
   workspaceId: string;
   userId: string;
-}): Promise<Record<string, boolean>> {
+}): Promise<Record<string, boolean | null>> {
   const segments = await prisma().segment.findMany({
     where: {
       workspaceId,
@@ -59,8 +59,9 @@ export async function findAllSegmentAssignments({
       },
     },
   });
-  return segments.reduce<Record<string, boolean>>((memo, curr) => {
-    memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? false;
+
+  return segments.reduce<Record<string, boolean | null>>((memo, curr) => {
+    memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? null;
     return memo;
   }, {});
 }

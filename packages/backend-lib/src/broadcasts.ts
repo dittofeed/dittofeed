@@ -5,10 +5,10 @@ import {
   ChannelType,
   JourneyDefinition,
   JourneyNodeType,
-  JourneyResource,
   MessageTemplateResource,
+  SavedJourneyResource,
+  SavedSegmentResource,
   SegmentDefinition,
-  SegmentResource,
 } from "isomorphic-lib/src/types";
 
 import { WELCOME_TEMPLATE } from "./bootstrap/messageTemplates";
@@ -61,9 +61,9 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
 
 export interface BroadcastResources {
   broadcast: BroadcastResource;
-  segment: SegmentResource;
+  segment: SavedSegmentResource;
   messageTemplate: MessageTemplateResource;
-  journey: JourneyResource;
+  journey: SavedJourneyResource;
 }
 
 export async function getBroadcast({
@@ -129,9 +129,9 @@ export async function upsertBroadcast({
   subscriptionGroupId?: string;
 }): Promise<{
   broadcast: BroadcastResource;
-  segment: SegmentResource;
+  segment: SavedSegmentResource;
   messageTemplate: MessageTemplateResource;
-  journey: JourneyResource;
+  journey: SavedJourneyResource;
 }> {
   const segmentDefinition: SegmentDefinition = DEFAULT_SEGMENT_DEFINITION;
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
@@ -150,6 +150,7 @@ export async function upsertBroadcast({
         name: broadcastSegmentName,
         definition: segmentDefinition,
         resourceType: "Internal",
+        status: "NotStarted",
       },
       update: {},
     }),

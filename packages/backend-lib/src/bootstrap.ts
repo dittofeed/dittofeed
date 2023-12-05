@@ -242,6 +242,7 @@ export async function bootstrapWorker({
 }: {
   workspaceId: string;
 }) {
+  logger().info("Bootstrapping worker.");
   const temporalClient = await connectWorkflowClient();
   try {
     await temporalClient.start(computePropertiesWorkflow, {
