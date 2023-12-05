@@ -1862,10 +1862,6 @@ describe("computeProperties", () => {
                           step.description ? `${step.description}: ` : ""
                         }segments for: ${user.id}`
                       ).toEqual(user.segments);
-                      // for (const segmentName in s) {
-                      //   const segmentValue = s[segmentName];
-
-                      // }
                     })
                   : null,
               ]);

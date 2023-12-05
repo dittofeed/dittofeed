@@ -472,17 +472,6 @@ export function segmentNodeToStateSubQuery({
 
       const event = qb.addQueryValue(node.event, "String");
       const condition = `event_type == 'track' and event == ${event} ${wherePropertyClause}`;
-      // const condition = `event_type == 'track' and event == ${event}`;
-      // const condition = `event_type == 'track'`;
-      // const condition = `1=1`;
-      logger().debug(
-        {
-          condition,
-          propertyValues,
-          node,
-        },
-        "loc1"
-      );
       return [
         {
           condition,
