@@ -37,6 +37,7 @@ import {
   JourneyResource,
   LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
+  NodeEnvEnum,
   PerformedSegmentNode,
   RelationalOperators,
   SavedIntegrationResource,
@@ -1370,7 +1371,11 @@ export async function computeState({
   userProperties,
   now,
 }: PartialComputePropertiesArgs) {
-  const qb = new ClickHouseQueryBuilder();
+  const qb = new ClickHouseQueryBuilder({
+    debug:
+      config().nodeEnv === NodeEnvEnum.Development ||
+      config().nodeEnv === NodeEnvEnum.Test,
+  });
   let subQueryData: SubQueryData[] = [];
 
   for (const segment of segments) {

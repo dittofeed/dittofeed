@@ -1,4 +1,4 @@
-import { Static, TSchema, Type } from "@sinclair/typebox";
+import { Static, TSchema } from "@sinclair/typebox";
 import { constantCase } from "change-case";
 import dotenv from "dotenv";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -7,13 +7,7 @@ import path from "path";
 
 import { registerFormats } from "../formatRegistry";
 
-export enum NodeEnvEnum {
-  Development = "development",
-  Test = "test",
-  Production = "production",
-}
-
-export const NodeEnv = Type.Enum(NodeEnvEnum);
+export { NodeEnvEnum } from "../types";
 
 export type UnknownConfig = Record<string, unknown>;
 
