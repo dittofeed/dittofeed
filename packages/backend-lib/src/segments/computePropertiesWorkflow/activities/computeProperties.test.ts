@@ -4,7 +4,8 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { mapValues } from "remeda";
 import { Overwrite } from "utility-types";
 
-import { clickhouseClient, getChCompatibleUuid } from "../../../clickhouse";
+import { clickhouseClient } from "../../../clickhouse";
+import config from "../../../config";
 import {
   EMAIL_EVENTS_UP_NAME,
   HUBSPOT_INTEGRATION_DEFINITION,
@@ -44,7 +45,7 @@ import {
   UserPropertyAssignments,
 } from "../../../userProperties";
 import { computePropertiesPeriod } from "./computeProperties";
-import config from "../../../config";
+import logger from "../../../logger";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -1100,6 +1101,7 @@ describe("compute properties activities", () => {
           if (only !== null && only !== description) {
             return;
           }
+          logger().debug("table test loc1");
 
           userId = "user-id-1";
 
@@ -1197,6 +1199,7 @@ describe("compute properties activities", () => {
             });
           }
 
+          logger().debug("Waiting for promises to resolve loc4");
           await Promise.all(promises);
 
           await computePropertiesPeriod({
