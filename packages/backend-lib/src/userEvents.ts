@@ -1,4 +1,5 @@
 import { ClickHouseSettings, Row } from "@clickhouse/client";
+import { arrayDefault } from "isomorphic-lib/src/arrays";
 import { ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
@@ -41,7 +42,7 @@ async function insertUserEventsDirect({
   asyncInsert,
 }: InsertUserEventsParams & { asyncInsert?: boolean }) {
   const version = await getCurrentUserEventsTable({ workspaceId });
-  const values = (userEvents ?? events ?? []).map((e) => {
+  const values = arrayDefault(userEvents, events).map((e) => {
     const value: {
       message_raw: string;
       processing_time: string | null;
@@ -64,6 +65,15 @@ async function insertUserEventsDirect({
     wait_for_async_insert: asyncInsert ? 1 : undefined,
     wait_end_of_query: asyncInsert ? undefined : 1,
   };
+  logger().debug(
+    {
+      workspaceId,
+      version,
+      values,
+      settings,
+    },
+    "inserting user events loc1"
+  );
   await Promise.all([
     clickhouseClient().insert({
       table: `user_events_${version} (message_raw, processing_time, workspace_id, message_id)`,
@@ -85,6 +95,14 @@ export async function insertUserEvents({
   userEvents,
   events,
 }: InsertUserEventsParams): Promise<void> {
+  logger().debug(
+    {
+      workspaceId,
+      userEvents,
+      events,
+    },
+    "inserting user events loc2"
+  );
   const { userEventsTopicName, writeMode } = config();
   switch (writeMode) {
     // TODO migrate over to new table structure
@@ -93,7 +111,7 @@ export async function insertUserEvents({
         await kafkaProducer()
       ).send({
         topic: userEventsTopicName,
-        messages: (userEvents ?? events ?? []).map(
+        messages: arrayDefault(userEvents, events).map(
           ({ messageRaw, messageId, processingTime }) => ({
             key: messageId,
             value: JSON.stringify({
