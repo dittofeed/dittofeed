@@ -821,6 +821,7 @@ export default async function writeAssignments({
   workspaceId: string;
   userProperties: EnrichedUserProperty[];
 }) {
+  // FIXME failing to write assignments for user properties
   const segmentComputedProperties: ComputedProperty[] = segments.map(
     (segment) => {
       const p: SegmentComputedProperty = {
@@ -845,6 +846,12 @@ export default async function writeAssignments({
     userComputedProperties
   );
 
+  logger().debug(
+    {
+      computedProperties,
+    },
+    "write assignments loc1"
+  );
   if (computedProperties.length) {
     const writeReadChqb = new ClickHouseQueryBuilder();
 
@@ -885,6 +892,14 @@ export default async function writeAssignments({
     `;
 
     const queryId = randomUUID();
+    logger().debug(
+      {
+        queryId,
+        query: writeQuery,
+        query_params: writeReadChqb.getQueries(),
+      },
+      "write assignments query loc2"
+    );
 
     try {
       await clickhouseClient().command({

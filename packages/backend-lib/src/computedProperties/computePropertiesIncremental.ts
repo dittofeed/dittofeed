@@ -357,7 +357,7 @@ export function segmentNodeToStateSubQuery({
           }
           default:
             throw new Error(
-              `Unimplemented segment operator for performed node ${operatorType}`
+              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
             );
         }
       });
@@ -419,48 +419,77 @@ export function segmentNodeToStateSubQuery({
     }
     case SegmentNodeType.LastPerformed: {
       const stateId = segmentNodeStateId(segment, node.id);
-      const event = qb.addQueryValue(node.event, "String");
       const whereConditions = node.whereProperties?.map((property) => {
         const operatorType = property.operator.type;
+        const propertyValue = `visitParamExtractString(properties, ${qb.addQueryValue(
+          property.path,
+          "String"
+        )})`;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            return `visitParamExtractString(properties, ${qb.addQueryValue(
-              property.path,
+            return `${propertyValue} == ${qb.addQueryValue(
+              property.operator.value,
               "String"
-            )}) == ${qb.addQueryValue(property.operator.value, "String")}`;
+            )}`;
+          }
+          case SegmentOperatorType.NotEquals: {
+            return `${propertyValue} != ${qb.addQueryValue(
+              property.operator.value,
+              "String"
+            )}`;
           }
           default:
             throw new Error(
-              `Unimplemented segment operator for performed node ${operatorType}`
+              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
             );
         }
       });
       const wherePropertyClause = whereConditions?.length
         ? `and (${whereConditions.join(" and ")})`
         : "";
-      const propertyValues =
-        node.hasProperties.map((property) => {
-          const operatorType = property.operator.type;
-          switch (operatorType) {
-            case SegmentOperatorType.Equals: {
-              return `visitParamExtractString(properties, ${qb.addQueryValue(
-                property.path,
-                "String"
-              )})`;
-            }
-            default:
-              throw new Error(
-                `Unimplemented segment operator for performed node ${operatorType}`
-              );
+      const propertyValues = node.hasProperties.map((property) => {
+        const operatorType = property.operator.type;
+        switch (operatorType) {
+          case SegmentOperatorType.Equals: {
+            return `visitParamExtractString(properties, ${qb.addQueryValue(
+              property.path,
+              "String"
+            )})`;
           }
-        }) ?? [];
+          case SegmentOperatorType.NotEquals: {
+            return `visitParamExtractString(properties, ${qb.addQueryValue(
+              property.path,
+              "String"
+            )})`;
+          }
+          default:
+            throw new Error(
+              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
+            );
+        }
+      });
 
+      const event = qb.addQueryValue(node.event, "String");
+      const condition = `event_type == 'track' and event == ${event} ${wherePropertyClause}`;
+      // const condition = `event_type == 'track' and event == ${event}`;
+      // const condition = `event_type == 'track'`;
+      // const condition = `1=1`;
+      logger().debug(
+        {
+          condition,
+          propertyValues,
+          node,
+        },
+        "loc1"
+      );
       return [
         {
-          condition: `event_type == 'track' and event == ${event} ${wherePropertyClause}`,
+          condition,
           type: "segment",
           uniqValue: "''",
+          // FIXME right?
           argMaxValue: `toJSONString([${propertyValues.join(", ")}])`,
+          // FIXME needed?
           recordMessageId: true,
           computedPropertyId: segment.id,
           stateId,
@@ -998,16 +1027,24 @@ function segmentToAssignment({
           i === 0
             ? `(JSONExtract(${lastValue}, 'Array(String)') as ${varName})`
             : varName;
+        const indexedReference = `${reference}[${i + 1}]`;
+
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            return `${reference}[${i + 1}] == ${qb.addQueryValue(
+            return `${indexedReference} == ${qb.addQueryValue(
+              property.operator.value,
+              "String"
+            )}`;
+          }
+          case SegmentOperatorType.NotEquals: {
+            return `${indexedReference} != ${qb.addQueryValue(
               property.operator.value,
               "String"
             )}`;
           }
           default:
             throw new Error(
-              `Unimplemented segment operator for performed node ${operatorType}`
+              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
             );
         }
       });

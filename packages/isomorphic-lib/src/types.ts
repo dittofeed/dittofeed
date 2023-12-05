@@ -2213,3 +2213,12 @@ export const DeleteUsersRequest = Type.Object({
 });
 
 export type DeleteUsersRequest = Static<typeof DeleteUsersRequest>;
+
+export interface SubscriptionChangeEvent {
+  type: EventType.Track;
+  event: InternalEventType.SubscriptionChange;
+  properties: {
+    subscriptionId: string;
+    action: SubscriptionChange;
+  };
+}

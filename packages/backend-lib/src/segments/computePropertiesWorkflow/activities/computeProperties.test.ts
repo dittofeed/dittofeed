@@ -1101,8 +1101,6 @@ describe("compute properties activities", () => {
           if (only !== null && only !== description) {
             return;
           }
-          logger().debug("table test loc1");
-
           userId = "user-id-1";
 
           const eventPayloads: InsertValue[] = events.map(
@@ -1199,7 +1197,6 @@ describe("compute properties activities", () => {
             });
           }
 
-          logger().debug("Waiting for promises to resolve loc4");
           await Promise.all(promises);
 
           await computePropertiesPeriod({

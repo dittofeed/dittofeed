@@ -5,13 +5,15 @@ import {
   KnownBatchIdentifyData,
   KnownBatchTrackData,
 } from "isomorphic-lib/src/types";
-import { buildBatchUserEvents } from "../src/apps";
-import { insertUserEvents } from "../src/userEvents";
-import logger from "../src/logger";
 import { omit } from "remeda";
+
+import { buildBatchUserEvents } from "../src/apps";
+import logger from "../src/logger";
+import { insertUserEvents } from "../src/userEvents";
 
 export type TestEventCommon<T> = Omit<T, "messageId" | "timestamp"> & {
   offsetMs: number;
+  messageId?: string;
   processingOffsetMs?: number;
 };
 
@@ -28,18 +30,12 @@ export async function submitBatch({
   data: TestEvent[];
   now: number;
 }) {
-  logger().debug(
-    {
-      workspaceId,
-    },
-    "inserting user events loc-1"
-  );
   const batchAppData: BatchAppData = {
     batch: data.map((e) => {
       const timestamp = new Date(e.offsetMs + now).toISOString();
       return {
         ...(omit(e, ["processingOffsetMs", "offsetMs"]) as BatchItem),
-        messageId: randomUUID(),
+        messageId: e.messageId ?? randomUUID(),
         timestamp,
       };
     }),
