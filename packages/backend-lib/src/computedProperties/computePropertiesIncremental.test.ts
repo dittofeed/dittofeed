@@ -730,7 +730,7 @@ describe("computeProperties", () => {
             {
               id: "user-1",
               segments: {
-                stuckOnboarding: false,
+                stuckOnboarding: null,
               },
             },
           ],
@@ -1066,7 +1066,7 @@ describe("computeProperties", () => {
             {
               id: "user-3",
               segments: {
-                doubleNested: false,
+                doubleNested: null,
               },
             },
           ],
@@ -1186,13 +1186,13 @@ describe("computeProperties", () => {
             {
               id: "user-2",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
             {
               id: "user-3",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
           ],
@@ -1328,19 +1328,19 @@ describe("computeProperties", () => {
             {
               id: "user-2",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
             {
               id: "user-3",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
             {
               id: "user-4",
               segments: {
-                performed: false,
+                performed: null,
               },
             },
           ],
@@ -1350,7 +1350,6 @@ describe("computeProperties", () => {
     {
       description: "last performed segment",
       userProperties: [],
-      only: true,
       segments: [
         {
           name: "lastPerformed",
@@ -1455,7 +1454,7 @@ describe("computeProperties", () => {
             {
               id: "user-4",
               segments: {
-                lastPerformed: false,
+                lastPerformed: null,
               },
             },
           ],
@@ -1648,6 +1647,10 @@ describe("computeProperties", () => {
           ],
         },
         {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
           type: EventsStepType.SubmitEvents,
           events: [
             {
@@ -1668,23 +1671,48 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description: "user is opted out after unsubscribing",
-          states: [
+          users: [
             {
-              userId: "user-1",
-              type: "segment",
-              name: "optOut",
-              nodeId: "1",
-              lastValue: SubscriptionChange.Unsubscribe,
+              id: "user-1",
+              segments: {
+                optOut: null,
+              },
             },
           ],
-          // users: [
-          //   {
-          //     id: "user-1",
-          //     segments: {
-          //       optOut: false,
-          //     },
-          //   },
-          // ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              offsetMs: -100,
+              userId: "user-1",
+              type: EventType.Track,
+              event: InternalEventType.SubscriptionChange,
+              properties: {
+                subscriptionId: "subscription-group-id",
+                action: SubscriptionChange.Subscribe,
+              },
+            } satisfies TestEvent & SubscriptionChangeEvent,
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is opted in after re subscribing",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                optOut: true,
+              },
+            },
+          ],
         },
       ],
     },
