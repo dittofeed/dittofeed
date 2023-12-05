@@ -813,18 +813,6 @@ export async function computePropertiesIncrementalArgs({
   return args;
 }
 
-// isLocal: false
-// attempt: 19
-// namespace: "default"
-// taskToken: "CiQ0ZDYzYTcyMy1lNjkxLTRiMzgtODE4ZS0wYjg1MGM1NzZiMjYSQGNvbXB1dGUtcHJvcGVydGllcy13b3JrZmxvdy0yYTk0MGE1Mi04NzExLTQ0MTAtYjc2YS1jMGY2MjY1MWVkNjcaJDJlY2VkMmY1LWU4NjYtNGJkZC1hZjRlLWZlMjZlYzU4Mzg5YyCbDSgTMgMyNjRCHGNvbXB1dGVQcm9wZXJ0aWVzSW5jcmVtZW50YWxKCAgEEOyjQBgB"
-// workflowId: "compute-properties-workflow-2a940a52-8711-4410-b76a-c0f62651ed67"
-// workflowRunId: "2eced2f5-e866-4bdd-af4e-fe26ec58389c"
-// workflowType: "computePropertiesWorkflow"
-// activityId: "264"
-// activityType: "computePropertiesIncremental"
-// taskQueue: "default"
-// durationMs: 0
-// error: {}
 export async function computePropertiesIncremental({
   workspaceId,
   segments,

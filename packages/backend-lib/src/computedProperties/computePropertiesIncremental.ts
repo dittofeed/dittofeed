@@ -477,10 +477,7 @@ export function segmentNodeToStateSubQuery({
           condition,
           type: "segment",
           uniqValue: "''",
-          // FIXME right?
           argMaxValue: `toJSONString([${propertyValues.join(", ")}])`,
-          // FIXME needed?
-          recordMessageId: true,
           computedPropertyId: segment.id,
           stateId,
         },
