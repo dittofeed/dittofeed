@@ -10,13 +10,15 @@ import { InternalEventType, UserEvent } from "./types";
 import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 export interface InsertUserEvent {
-  messageRaw: string;
+  messageRaw: string | Record<string, unknown>;
   processingTime?: string;
   messageId: string;
 }
 export interface InsertUserEventsParams {
   workspaceId: string;
-  userEvents: InsertUserEvent[];
+  // README: for ease of backwards compatibility, we allow both userEvents and events
+  userEvents?: InsertUserEvent[];
+  events?: InsertUserEvent[];
 }
 
 export async function getCurrentUserEventsTable({
@@ -35,10 +37,11 @@ export async function getCurrentUserEventsTable({
 async function insertUserEventsDirect({
   workspaceId,
   userEvents,
+  events,
   asyncInsert,
 }: InsertUserEventsParams & { asyncInsert?: boolean }) {
   const version = await getCurrentUserEventsTable({ workspaceId });
-  const values = userEvents.map((e) => {
+  const values = (userEvents ?? events ?? []).map((e) => {
     const value: {
       message_raw: string;
       processing_time: string | null;
@@ -46,7 +49,10 @@ async function insertUserEventsDirect({
       message_id: string;
     } = {
       workspace_id: workspaceId,
-      message_raw: e.messageRaw,
+      message_raw:
+        typeof e.messageRaw === "string"
+          ? e.messageRaw
+          : JSON.stringify(e.messageRaw),
       processing_time: e.processingTime ?? null,
       message_id: e.messageId,
     };
@@ -77,6 +83,7 @@ async function insertUserEventsDirect({
 export async function insertUserEvents({
   workspaceId,
   userEvents,
+  events,
 }: InsertUserEventsParams): Promise<void> {
   const { userEventsTopicName, writeMode } = config();
   switch (writeMode) {
@@ -86,14 +93,17 @@ export async function insertUserEvents({
         await kafkaProducer()
       ).send({
         topic: userEventsTopicName,
-        messages: userEvents.map(
+        messages: (userEvents ?? events ?? []).map(
           ({ messageRaw, messageId, processingTime }) => ({
             key: messageId,
             value: JSON.stringify({
               processing_time: processingTime,
               workspace_id: workspaceId,
               message_id: messageId,
-              message_raw: messageRaw,
+              message_raw:
+                typeof messageRaw === "string"
+                  ? messageRaw
+                  : JSON.stringify(messageRaw),
             }),
           })
         ),

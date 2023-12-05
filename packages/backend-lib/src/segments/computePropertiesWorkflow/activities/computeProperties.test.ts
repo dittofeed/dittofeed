@@ -33,9 +33,9 @@ import {
   UserPropertyDefinition,
   UserPropertyDefinitionType,
 } from "../../../types";
+import { insertUserEvents } from "../../../userEvents";
 import {
   createUserEventsTables,
-  insertUserEvents,
   InsertValue,
 } from "../../../userEvents/clickhouse";
 import {
@@ -44,6 +44,7 @@ import {
   UserPropertyAssignments,
 } from "../../../userProperties";
 import { computePropertiesPeriod } from "./computeProperties";
+import config from "../../../config";
 
 const signalWithStart = jest.fn();
 const signal = jest.fn();
@@ -139,7 +140,7 @@ describe("compute properties activities", () => {
   beforeEach(async () => {
     userId = `user-${randomUUID()}`;
     anonymousId = `anon-${randomUUID()}`;
-    tableVersion = getChCompatibleUuid();
+    tableVersion = config().defaultUserEventsTableVersion;
     await createUserEventsTables({ tableVersion });
   });
 
@@ -1131,7 +1132,6 @@ describe("compute properties activities", () => {
           const userProperties: EnrichedUserProperty[] = [];
           const promises: (Promise<unknown> | null)[] = [
             insertUserEvents({
-              tableVersion,
               workspaceId: workspace.id,
               events: eventPayloads,
             }),
@@ -1317,7 +1317,6 @@ describe("compute properties activities", () => {
       describe("when the user has had the trait for longer than 24 hours", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -1366,7 +1365,6 @@ describe("compute properties activities", () => {
       describe("when the user has had the trait for less than 24 hours", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -1426,7 +1424,6 @@ describe("compute properties activities", () => {
       describe("when a user was created in the last 30 minutes", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -1601,7 +1598,6 @@ describe("compute properties activities", () => {
             });
 
             await insertUserEvents({
-              tableVersion,
               workspaceId: workspace.id,
               events: [
                 {
@@ -1636,7 +1632,6 @@ describe("compute properties activities", () => {
         describe.skip("when an unrelated identify event is submitted, which is missing a traits, or created at field", () => {
           beforeEach(async () => {
             await insertUserEvents({
-              tableVersion,
               workspaceId: workspace.id,
               events: [
                 {
@@ -1782,7 +1777,6 @@ describe("compute properties activities", () => {
             const currentTime = Date.parse("2022-01-01 00:15:45 UTC");
 
             await insertUserEvents({
-              tableVersion,
               workspaceId: workspace.id,
               events: [
                 {
@@ -1817,7 +1811,6 @@ describe("compute properties activities", () => {
             expect(signalWithStart).toBeCalledTimes(1);
 
             await insertUserEvents({
-              tableVersion,
               workspaceId: workspace.id,
               events: [
                 {
@@ -1858,7 +1851,6 @@ describe("compute properties activities", () => {
       describe("when a user is mistakenly labeled as having been created in the future", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -1895,7 +1887,6 @@ describe("compute properties activities", () => {
       describe("when a user was created in the last 30 minutes with a numeric createdAt in milliseconds", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -1943,7 +1934,6 @@ describe("compute properties activities", () => {
       describe("when a user was created in the last 30 minutes with a numeric createdAt as a unix timestamp in seconds", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -1989,7 +1979,6 @@ describe("compute properties activities", () => {
       describe("when the user event was sent in a previous polling period", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2028,7 +2017,6 @@ describe("compute properties activities", () => {
         beforeEach(async () => {
           await insertUserEvents({
             workspaceId: workspace.id,
-            tableVersion,
             events: [
               {
                 messageId: randomUUID(),
@@ -2070,7 +2058,6 @@ describe("compute properties activities", () => {
           lastProcessedAt = "2022-01-01 00:15:35";
 
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2191,7 +2178,6 @@ describe("compute properties activities", () => {
       describe("when a user has both traits", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2237,7 +2223,6 @@ describe("compute properties activities", () => {
       describe("when a user has only 1 required trait", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2315,7 +2300,6 @@ describe("compute properties activities", () => {
       describe("when a user has one of the listed traits", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2360,7 +2344,6 @@ describe("compute properties activities", () => {
       describe("when a user has none of the listed trait", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2416,7 +2399,6 @@ describe("compute properties activities", () => {
       describe("when has a paid plan", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2479,7 +2461,6 @@ describe("compute properties activities", () => {
       describe("when has a non-paid plan", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2554,7 +2535,6 @@ describe("compute properties activities", () => {
           expect(userPropertyAssignments).toEqual({});
 
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2599,7 +2579,6 @@ describe("compute properties activities", () => {
           expect(userPropertyAssignments).toEqual({ plan: "paid" });
 
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {
@@ -2672,7 +2651,6 @@ describe("compute properties activities", () => {
       describe("when a paid user was created recently", () => {
         beforeEach(async () => {
           await insertUserEvents({
-            tableVersion,
             workspaceId: workspace.id,
             events: [
               {

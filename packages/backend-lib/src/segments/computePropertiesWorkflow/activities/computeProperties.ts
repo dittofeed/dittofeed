@@ -548,6 +548,14 @@ export async function computePropertiesPeriodSafe({
     return err(new Error(JSON.stringify(segmentResult.error)));
   }
 
+  logger().debug(
+    {
+      userProperties,
+      segments: segmentResult.value,
+    },
+    "computePropertiesPeriodSafe"
+  );
+
   if (integrationsResult.isErr()) {
     return err(integrationsResult.error);
   }
