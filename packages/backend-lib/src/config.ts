@@ -3,12 +3,13 @@ import { hasProtocol } from "isomorphic-lib/src/urls";
 import { URL } from "url";
 import { Overwrite } from "utility-types";
 
-import { loadConfig, NodeEnvEnum, setConfigOnEnv } from "./config/loader";
+import { loadConfig, setConfigOnEnv } from "./config/loader";
 import {
   AuthMode,
   BoolStr,
   KafkaSaslMechanism,
   LogLevel,
+  NodeEnvEnum,
   SourceControlProvider,
   WriteMode,
 } from "./types";

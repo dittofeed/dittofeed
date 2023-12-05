@@ -1,9 +1,9 @@
 import { proxyActivities } from "@temporalio/workflow";
-
-// Only import the activity types
-import type * as activities from "./../temporal/activities";
 import * as wf from "@temporalio/workflow";
+
 import { FEATURE_INCREMENTAL_COMP } from "../constants";
+// Only import the activity types
+import type * as activities from "../temporal/activities";
 
 const { performBroadcast, getFeature, performBroadcastIncremental } =
   proxyActivities<typeof activities>({
