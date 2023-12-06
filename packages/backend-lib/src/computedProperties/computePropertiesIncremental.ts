@@ -6,8 +6,8 @@ import { mapValues } from "remeda";
 import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
 
 import {
-  clickhouseClient,
   ClickHouseQueryBuilder,
+  command,
   createClickhouseClient,
   getChCompatibleUuid,
   streamClickhouseQuery,
@@ -1504,7 +1504,7 @@ export async function computeState({
         ) inner2
       `;
 
-      await clickhouseClient().command({
+      await command({
         query,
         query_params: qb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
@@ -1574,7 +1574,7 @@ export async function computeAssignments({
     }
 
     queryies.push(
-      clickhouseClient().command({
+      command({
         query: stateQuery,
         query_params: qb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
@@ -1606,7 +1606,7 @@ export async function computeAssignments({
     }
 
     queryies.push(
-      clickhouseClient().command({
+      command({
         query: stateQuery,
         query_params: qb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
