@@ -822,18 +822,21 @@ export async function computePropertiesIncremental({
   now,
 }: ComputePropertiesIncrementalArgs) {
   try {
+    logger().info({ workspaceId }, "computing states incrementally");
     await computeState({
       workspaceId,
       segments,
       userProperties,
       now,
     });
+    logger().info({ workspaceId }, "computing assignments incrementally");
     await computeAssignments({
       workspaceId,
       segments,
       userProperties,
       now,
     });
+    logger().info({ workspaceId }, "processing assignments incrementally");
     await processAssignments({
       workspaceId,
       segments,
@@ -842,6 +845,10 @@ export async function computePropertiesIncremental({
       journeys,
       integrations,
     });
+    logger().info(
+      { workspaceId },
+      "finished computing properties incrementally"
+    );
   } catch (e) {
     logger().error(
       { err: e, workspaceId },
