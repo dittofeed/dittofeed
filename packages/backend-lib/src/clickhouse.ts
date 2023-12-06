@@ -171,3 +171,16 @@ export async function streamClickhouseQuery(
 export function clickhouseDateToIso(dateString: string): string {
   return `${dateString.replace(" ", "T")}Z`;
 }
+
+export const command: ClickHouseClient["command"] = async function command(
+  params
+) {
+  const queryId = params.query_id ?? getChCompatibleUuid();
+  try {
+    logger().debug({ queryId, params }, "Executing ClickHouse command.");
+    return clickhouseClient().command({ query_id: queryId, ...params });
+  } catch (e) {
+    logger().error({ queryId, params, error: e }, "ClickHouse command failed.");
+    throw e;
+  }
+};
