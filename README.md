@@ -14,26 +14,12 @@
 
 <br />
 
-<div align="center">
-<a href="https://docs.dittofeed.com/introduction">
-<img alt="Dittofeed Docs Badge" src="https://img.shields.io/badge/docs-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdocs.dittofeed.com%2Fintroduction">
-</a>
-<a href="https://demo.dittofeed.com/dashboard/journeys/">
-<img alt="Dittofeed Live Demo Badge" src="https://img.shields.io/badge/live_demo-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdemo.dittofeed.com%2Fdashboard%2Fjourneys">
-</a>
-<a href="https://dittofeed.com/">
-<img alt="Dittofeed Site Badge" src="https://img.shields.io/badge/site-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdittofeed.com%2F">
-</a>
-<a href="https://docs.dittofeed.com/contributing/running-locally">
-<img alt="Dittofeed Open-source Contributing Badge" src="https://img.shields.io/badge/contributing-dittofeed?color=%2349BBD4&link=https%3A%2F%2Fdocs.dittofeed.com%2Fcontributing%2Frunning-locally">
-</a>
-<a href="https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A">
-<img alt="Dittofeed Slack Community Badge" src="https://img.shields.io/badge/community-dittofeed?style=social&logo=slack&link=https%3A%2F%2Fjoin.slack.com%2Ft%2Fdittofeed-community%2Fshared_invite%2Fzt-1u3lyts83-P6npff1AbjniNRLVlrlM5A">
-</a>
-<a href="https://x.com/dittofeed">
-<img alt="Dittofeed X Twitter Social Badge" src="https://img.shields.io/badge/follow-dittofeed?style=social&logo=x&link=https%3A%2F%2Fx.com%2Fdittofeed">
-</a>
-</div>
+[![Dittofeed Docs Badge](https://img.shields.io/badge/docs-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdocs.dittofeed.com%2Fintroduction)](https://docs.dittofeed.com/introduction)
+[![Dittofeed Live Demo Badge](https://img.shields.io/badge/live_demo-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdemo.dittofeed.com%2Fdashboard%2Fjourneys)](https://demo.dittofeed.com/dashboard/journeys/)
+[![Dittofeed Site Badge](https://img.shields.io/badge/site-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdittofeed.com%2F)](https://dittofeed.com/)
+[![Dittofeed Open-source Contributing Badge](https://img.shields.io/badge/contributing-dittofeed?color=%2349BBD4&link=https%3A%2F%2Fdocs.dittofeed.com%2Fcontributing%2Frunning-locally)](https://docs.dittofeed.com/contributing/running-locally)
+[![Dittofeed Slack Community Badge](https://img.shields.io/badge/community-dittofeed?style=social&logo=slack&link=https%3A%2F%2Fjoin.slack.com%2Ft%2Fdittofeed-community%2Fshared_invite%2Fzt-1u3lyts83-P6npff1AbjniNRLVlrlM5A)](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A)
+[![Dittofeed X Twitter Social Badge](https://img.shields.io/badge/follow-dittofeed?style=social&logo=x&link=https%3A%2F%2Fx.com%2Fdittofeed)](https://x.com/dittofeed)
 
 <br />
 
