@@ -1811,7 +1811,6 @@ async function processRows({
 
   await insertProcessedComputedProperties({
     assignments: processedAssignments,
-    tableVersion: "v2",
   });
   return hasRows;
 }

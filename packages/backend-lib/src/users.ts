@@ -6,7 +6,6 @@ import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
-import config from "./config";
 import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import prisma from "./prisma";
@@ -18,7 +17,6 @@ import {
   GetUsersResponseItem,
   Prisma,
 } from "./types";
-import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 const UsersQueryItem = Type.Object({
   type: Type.Union([Type.Literal(0), Type.Literal(1)]),

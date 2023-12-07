@@ -16,8 +16,6 @@ import {
   SearchDeliveriesResponse,
   SearchDeliveriesResponseItem,
 } from "./types";
-import { getTableVersion } from "./userEvents";
-import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 export const SearchDeliveryRow = Type.Object({
   last_event: Type.String(),
@@ -111,7 +109,6 @@ export async function searchDeliveries({
   const queryBuilder = new ClickHouseQueryBuilder();
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
   const eventList = queryBuilder.addQueryValue(EmailEventList, "Array(String)");
-  const tableVersion = await getTableVersion({ workspaceId });
   const journeyIdClause = journeyId
     ? `AND JSONExtractString(properties, 'journeyId') = ${queryBuilder.addQueryValue(
         journeyId,
@@ -143,7 +140,7 @@ export async function searchDeliveries({
         if(event = '${
           InternalEventType.MessageSent
         }', message_id, JSON_VALUE(message_raw, '$.properties.messageId')) origin_message_id
-      FROM ${buildUserEventsTableName(tableVersion)} 
+      FROM user_events_v2
       WHERE
         event in ${eventList}
         AND workspace_id = ${workspaceIdParam}

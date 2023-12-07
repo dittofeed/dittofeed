@@ -812,12 +812,10 @@ export default async function writeAssignments({
   currentTime,
   segments,
   userProperties,
-  tableVersion,
   workspaceId,
 }: {
   currentTime: number;
   segments: EnrichedSegment[];
-  tableVersion: string;
   workspaceId: string;
   userProperties: EnrichedUserProperty[];
 }) {
@@ -878,7 +876,7 @@ export default async function writeAssignments({
           in_segment,
           user_property,
           latest_processing_time
-        FROM user_events_${tableVersion}
+        FROM user_events_v2
         WHERE workspace_id == '${workspaceId}' AND isNotNull(user_id)
         GROUP BY workspace_id, user_id
         ORDER BY latest_processing_time DESC

@@ -8,7 +8,6 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { err, ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
-import config from "./config";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -21,7 +20,6 @@ import {
   NodeStatsType,
   SavedJourneyResource,
 } from "./types";
-import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 export * from "isomorphic-lib/src/journeys";
 

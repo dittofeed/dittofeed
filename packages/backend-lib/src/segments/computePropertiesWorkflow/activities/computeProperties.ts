@@ -107,7 +107,7 @@ interface ComputePropertiesPeriodParams {
   subscribedJourneys: CompatibleJourney[];
   userProperties: EnrichedUserProperty[];
   workspaceId: string;
-  tableVersion: string;
+  tableVersion?: string;
 }
 
 function buildReadQuery({
@@ -563,7 +563,6 @@ export async function computePropertiesPeriodSafe({
   await writeAssignments({
     currentTime,
     segments: segmentResult.value,
-    tableVersion,
     userProperties,
     workspaceId,
   });
@@ -745,7 +744,7 @@ interface ComputePropertiesPeriodParams {
   subscribedJourneys: CompatibleJourney[];
   userProperties: EnrichedUserProperty[];
   workspaceId: string;
-  tableVersion: string;
+  tableVersion?: string;
   segmentIds?: string[];
 }
 

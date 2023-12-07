@@ -108,7 +108,6 @@ export async function performBroadcast({
     workspaceId,
     subscribedJourneys: [journey],
     segmentIds: [segment.id],
-    tableVersion: userEventsTable,
     currentTime: triggeredAt.getTime(),
     userProperties: [],
   });
