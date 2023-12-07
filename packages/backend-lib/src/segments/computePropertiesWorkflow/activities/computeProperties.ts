@@ -534,7 +534,6 @@ function limit() {
 export async function computePropertiesPeriodSafe({
   currentTime,
   subscribedJourneys,
-  tableVersion,
   workspaceId,
   userProperties,
   segmentIds,
