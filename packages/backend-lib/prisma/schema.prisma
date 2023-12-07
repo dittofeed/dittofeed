@@ -23,7 +23,6 @@ model Workspace {
   DefaultEmailProvider   DefaultEmailProvider?
   EmailTemplate          EmailTemplate[]
   SegmentIOConfiguration SegmentIOConfiguration?
-  CurrentUserEventsTable CurrentUserEventsTable?
   UserPropertyAssignment UserPropertyAssignment[]
   SegmentAssignment      SegmentAssignment[]
   Broadcast              Broadcast[]
@@ -426,7 +425,7 @@ model ComputedPropertyPeriod {
 model Feature {
   workspaceId String    @db.Uuid
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name        String    
+  name        String
   enabled     Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
