@@ -1,21 +1,19 @@
 import { Workspace } from "@prisma/client";
-import { segmentIdentifyEvent } from "backend-lib/test/factories/segmentIO";
 import { randomUUID } from "crypto";
 
 import { submitBatch } from "./apps";
 import config from "./config";
 import prisma from "./prisma";
+import { segmentIdentifyEvent } from "./segmentIO";
 import { EventType, InternalEventType } from "./types";
 import {
   findIdentifyTraits,
   findManyEvents,
+  insertUserEvents,
   submitBroadcast,
 } from "./userEvents";
-import {
-  createUserEventsTables,
-  insertUserEvents,
-} from "./userEvents/clickhouse";
 
+// FIXME run
 describe("userEvents", () => {
   let workspace: Workspace;
 
@@ -23,24 +21,11 @@ describe("userEvents", () => {
     workspace = await prisma().workspace.create({
       data: { name: `workspace-${randomUUID()}` },
     });
-
-    await Promise.all([
-      createUserEventsTables({
-        tableVersion: config().defaultUserEventsTableVersion,
-      }),
-      prisma().currentUserEventsTable.create({
-        data: {
-          workspaceId: workspace.id,
-          version: config().defaultUserEventsTableVersion,
-        },
-      }),
-    ]);
   });
 
   describe("findAllUserTraits", () => {
     beforeEach(async () => {
       await insertUserEvents({
-        tableVersion: config().defaultUserEventsTableVersion,
         workspaceId: workspace.id,
         events: [
           {
@@ -129,7 +114,6 @@ describe("userEvents", () => {
         messageId2 = randomUUID();
 
         await insertUserEvents({
-          tableVersion: config().defaultUserEventsTableVersion,
           workspaceId: workspace.id,
           events: [
             {
@@ -176,7 +160,6 @@ describe("userEvents", () => {
   describe("submitBroadcast", () => {
     beforeEach(async () => {
       await insertUserEvents({
-        tableVersion: config().defaultUserEventsTableVersion,
         workspaceId: workspace.id,
         events: [
           {

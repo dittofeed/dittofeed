@@ -219,16 +219,6 @@ model DefaultSmsProvider {
   @@unique([workspaceId])
 }
 
-model CurrentUserEventsTable {
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId String    @db.Uuid
-  version     String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@unique([workspaceId])
-}
-
 model EmailProvider {
   id                   String                 @id() @default(uuid()) @db.Uuid
   workspace            Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

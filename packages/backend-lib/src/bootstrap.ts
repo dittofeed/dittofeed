@@ -38,8 +38,6 @@ async function bootstrapPostgres({
   workspaceName: string;
   workspaceDomain?: string;
 }): Promise<{ workspaceId: string }> {
-  const { defaultUserEventsTableVersion } = config();
-
   await prismaMigrate();
 
   logger().info(
@@ -62,17 +60,6 @@ async function bootstrapPostgres({
     },
   });
   const workspaceId = workspace.id;
-
-  await prisma().currentUserEventsTable.upsert({
-    where: {
-      workspaceId,
-    },
-    create: {
-      workspaceId,
-      version: defaultUserEventsTableVersion,
-    },
-    update: {},
-  });
 
   const userProperties: Prisma.UserPropertyUncheckedCreateWithoutUserPropertyAssignmentInput[] =
     [
@@ -227,12 +214,9 @@ async function bootstrapKafka() {
 }
 
 async function bootstrapClickhouse() {
-  const { defaultUserEventsTableVersion } = config();
-
   await createClickhouseDb();
 
   await createUserEventsTables({
-    tableVersion: defaultUserEventsTableVersion,
     ingressTopic: config().userEventsTopicName,
   });
 }

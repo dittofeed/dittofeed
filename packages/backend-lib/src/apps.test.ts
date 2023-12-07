@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { submitBatch } from "./apps";
-import config from "./config";
 import prisma from "./prisma";
 import { EventType } from "./types";
 import { findManyEvents } from "./userEvents";
@@ -16,13 +15,6 @@ describe("apps", () => {
           data: {
             id: workspaceId,
             name: `test-${workspaceId}`,
-          },
-        });
-
-        await prisma().currentUserEventsTable.create({
-          data: {
-            workspaceId,
-            version: config().defaultUserEventsTableVersion,
           },
         });
 

@@ -1735,14 +1735,6 @@ describe("computeProperties", () => {
       },
     });
     const workspaceId = workspace.id;
-
-    await prisma().currentUserEventsTable.create({
-      data: {
-        workspaceId,
-        version: "v2",
-      },
-    });
-
     let now = Date.now();
 
     const [userProperties, segments] = await Promise.all([

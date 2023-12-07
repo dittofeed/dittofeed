@@ -125,16 +125,6 @@ export async function getJourneysStats({
   const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
-  const currentTable = buildUserEventsTableName(
-    (
-      await prisma().currentUserEventsTable.findUnique({
-        where: {
-          workspaceId,
-        },
-      })
-    )?.version ?? config().defaultUserEventsTableVersion
-  );
-
   const query = `
     select
         event,
@@ -159,7 +149,7 @@ export async function getJourneysStats({
                 '$.properties.messageId'
             ) message_id,
             event
-        from ${currentTable}
+        from user_events_v2
         where
             workspace_id = ${workspaceIdQuery}
             and journey_id in ${journeyIdsQuery}

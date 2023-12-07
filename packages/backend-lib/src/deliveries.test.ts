@@ -2,7 +2,6 @@ import { randomUUID } from "crypto";
 import { times } from "remeda";
 
 import { submitBatch } from "./apps";
-import config from "./config";
 import {
   parseSearchDeliveryRow,
   searchDeliveries,
@@ -29,12 +28,6 @@ describe("deliveries", () => {
         },
       });
       workspaceId = workspace.id;
-      await prisma().currentUserEventsTable.create({
-        data: {
-          workspaceId,
-          version: config().defaultUserEventsTableVersion,
-        },
-      });
     });
 
     describe("with two different messages from the same journey", () => {

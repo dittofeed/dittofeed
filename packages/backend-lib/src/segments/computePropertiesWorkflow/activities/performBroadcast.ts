@@ -1,7 +1,6 @@
 import { getBroadcast } from "../../../broadcasts";
 import logger from "../../../logger";
 import prisma from "../../../prisma";
-import { getCurrentUserEventsTable } from "../../../userEvents";
 import {
   computePropertiesIncremental,
   computePropertiesPeriod,
@@ -78,15 +77,10 @@ export async function performBroadcast({
     },
     "performing broadcast"
   );
-  const [broadcastResources, userEventsTable] = await Promise.all([
-    getBroadcast({
-      workspaceId,
-      broadcastId,
-    }),
-    getCurrentUserEventsTable({
-      workspaceId,
-    }),
-  ]);
+  const broadcastResources = await getBroadcast({
+    workspaceId,
+    broadcastId,
+  });
 
   if (!broadcastResources) {
     logger().error(
