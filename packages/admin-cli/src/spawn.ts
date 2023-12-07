@@ -1,4 +1,5 @@
 import spawn from "cross-spawn";
+import path from "path";
 
 /**
  * Spawns a shell command, with dittofeed's config exported as environment variables.
@@ -10,9 +11,10 @@ export function spawnWithEnv(argv: string[]): Promise<void> {
   if (!arg1) {
     process.exit(0);
   }
+  const cwd = path.join(process.cwd(), "..", "..");
 
   return new Promise((resolve) => {
-    spawn(arg1, argv.slice(1), { stdio: "inherit" }).on(
+    spawn(arg1, argv.slice(1), { stdio: "inherit", cwd }).on(
       "exit",
       (exitCode, signal) => {
         if (typeof exitCode === "number") {

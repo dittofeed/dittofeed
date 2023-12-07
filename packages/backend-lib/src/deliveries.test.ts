@@ -421,5 +421,28 @@ describe("deliveries", () => {
       const result = parseSearchDeliveryRow(row);
       expect(result).not.toBeNull();
     });
+
+    it.only("works", () => {
+      const row: SearchDeliveryRow = {
+        sent_at: "2023-08-01 01:41:18.585",
+        updated_at: "2023-08-01 01:41:18.585",
+        last_event: "DFInternalMessageSent",
+        origin_message_id: randomUUID(),
+        user_or_anonymous_id: randomUUID(),
+        workspace_id: randomUUID(),
+        properties: JSON.stringify({
+          email: "test@email.com",
+          journeyId: randomUUID(),
+          runId: randomUUID(),
+          messageId: randomUUID(),
+          userId: randomUUID(),
+          workspaceId: randomUUID(),
+          templateId: randomUUID(),
+          nodeId: randomUUID(),
+        }),
+      };
+      const result = parseSearchDeliveryRow(row);
+      expect(result).not.toBeNull();
+    });
   });
 });
