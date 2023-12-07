@@ -1159,7 +1159,7 @@ function segmentToAssignment({
   }
 }
 
-function constructStateQuery({
+function constructAssignmentsQuery({
   workspaceId,
   config: ac,
   computedPropertyId,
@@ -1560,7 +1560,7 @@ export async function computeAssignments({
     if (!ac) {
       continue;
     }
-    const stateQuery = constructStateQuery({
+    const stateQuery = constructAssignmentsQuery({
       workspaceId,
       computedPropertyId: segment.id,
       computedPropertyType: "segment",
@@ -1592,7 +1592,7 @@ export async function computeAssignments({
     if (!ac) {
       continue;
     }
-    const stateQuery = constructStateQuery({
+    const stateQuery = constructAssignmentsQuery({
       workspaceId,
       computedPropertyId: userProperty.id,
       computedPropertyType: "user_property",
