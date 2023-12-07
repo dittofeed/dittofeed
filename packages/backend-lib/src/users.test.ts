@@ -4,7 +4,6 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { submitBatch } from "./apps";
 import { clickhouseClient } from "./clickhouse";
-import config from "./config";
 import prisma from "./prisma";
 import {
   EventType,
@@ -13,7 +12,6 @@ import {
   SegmentOperatorType,
   UserPropertyDefinitionType,
 } from "./types";
-import { buildUserEventsTableName } from "./userEvents/clickhouse";
 import { deleteUsers, getUsers } from "./users";
 
 describe("getUsers", () => {
@@ -273,9 +271,7 @@ describe("getUsers", () => {
         workspaceId: workspace.id,
         userIds: [userIds[0]],
       });
-      const eventsQuery = `select * from ${buildUserEventsTableName(
-        config().defaultUserEventsTableVersion
-      )} where workspace_id = '${workspace.id}'`;
+      const eventsQuery = `select * from user_events_v2 where workspace_id = '${workspace.id}'`;
       const events: { data: unknown[] } = await (
         await clickhouseClient().query({
           query: eventsQuery,

@@ -7,7 +7,6 @@ import config from "./config";
 import { kafkaProducer } from "./kafka";
 import prisma from "./prisma";
 import { InternalEventType, UserEvent } from "./types";
-import { buildUserEventsTableName } from "./userEvents/clickhouse";
 
 export interface InsertUserEvent {
   messageRaw: string | Record<string, unknown>;
@@ -25,19 +24,6 @@ export interface InsertUserEventsParams {
   events?: InsertUserEvent[];
 }
 
-export async function getCurrentUserEventsTable({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<string> {
-  const currentTable = await prisma().currentUserEventsTable.findUnique({
-    where: {
-      workspaceId,
-    },
-  });
-  return currentTable?.version ?? config().defaultUserEventsTableVersion;
-}
-
 async function insertUserEventsDirect({
   workspaceId,
   userEvents,
@@ -46,7 +32,6 @@ async function insertUserEventsDirect({
   userEvents: InsertUserEventInternal[];
   asyncInsert?: boolean;
 }) {
-  const version = await getCurrentUserEventsTable({ workspaceId });
   const values = userEvents.map((e) => {
     const value: {
       message_raw: string;
@@ -68,20 +53,12 @@ async function insertUserEventsDirect({
     wait_end_of_query: asyncInsert ? undefined : 1,
   };
 
-  await Promise.all([
-    clickhouseClient().insert({
-      table: `user_events_${version} (message_raw, processing_time, workspace_id, message_id)`,
-      values,
-      clickhouse_settings: settings,
-      format: "JSONEachRow",
-    }),
-    clickhouseClient().insert({
-      table: `user_events_v2 (message_raw, processing_time, workspace_id, message_id)`,
-      values,
-      clickhouse_settings: settings,
-      format: "JSONEachRow",
-    }),
-  ]);
+  await clickhouseClient().insert({
+    table: `user_events_v2 (message_raw, processing_time, workspace_id, message_id)`,
+    values,
+    clickhouse_settings: settings,
+    format: "JSONEachRow",
+  });
 }
 
 export async function insertUserEvents({
@@ -139,29 +116,6 @@ export async function insertUserEvents({
   }
 }
 
-export async function getTableVersion({
-  workspaceId,
-  tableVersion: tableVersionParam,
-}: {
-  workspaceId: string;
-  tableVersion?: string;
-}): Promise<string> {
-  let tableVersion = tableVersionParam;
-  if (!tableVersion) {
-    const currentTable = await prisma().currentUserEventsTable.findUnique({
-      where: {
-        workspaceId,
-      },
-    });
-
-    if (!currentTable) {
-      return config().defaultUserEventsTableVersion;
-    }
-    tableVersion = currentTable.version;
-  }
-  return tableVersion;
-}
-
 type UserEventsWithTraits = UserEvent & {
   traits: string;
   properties: string;
@@ -171,25 +125,18 @@ export async function findManyEvents({
   workspaceId,
   limit,
   offset = 0,
-  tableVersion: tableVersionParam,
   startDate,
   endDate,
   userId,
 }: {
   workspaceId: string;
   userId?: string;
-  tableVersion?: string;
   limit?: number;
   offset?: number;
   // unix timestamp units ms
   startDate?: number;
   endDate?: number;
 }): Promise<UserEventsWithTraits[]> {
-  const tableVersion = await getTableVersion({
-    workspaceId,
-    tableVersion: tableVersionParam,
-  });
-
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
@@ -224,7 +171,7 @@ export async function findManyEvents({
     event,
     JSONExtractRaw(message_raw, 'traits') AS traits,
     JSONExtractRaw(message_raw, 'properties') AS properties
-  FROM ${buildUserEventsTableName(tableVersion)}
+  FROM user_events_v2
   WHERE workspace_id = ${workspaceIdParam}
   ${startDateClause}
   ${endDateClause}
@@ -250,19 +197,7 @@ export async function findManyInternalEvents({
   event: InternalEventType;
   workspaceId: string;
 }): Promise<UserEvent[]> {
-  const tableVersion = await prisma().currentUserEventsTable.findUnique({
-    where: {
-      workspaceId,
-    },
-  });
-
-  if (!tableVersion) {
-    return [];
-  }
-
-  const query = `SELECT * FROM ${buildUserEventsTableName(
-    tableVersion.version
-  )} WHERE event_type = 'track' AND event = {event:String} AND workspace_id = {workspaceId:String}`;
+  const query = `SELECT * FROM user_events_v2 WHERE event_type = 'track' AND event = {event:String} AND workspace_id = {workspaceId:String}`;
 
   const resultSet = await clickhouseClient().query({
     query,
@@ -312,85 +247,18 @@ export async function trackInternalEvents(props: {
   return ok(undefined);
 }
 
-// TODO in the future will want to broadcast only to the users who would have been in the segment absent the broadcast, not every user
-export async function submitBroadcast({
-  workspaceId,
-  segmentId,
-  broadcastId,
-  broadcastName,
-}: {
-  workspaceId: string;
-  broadcastId: string;
-  broadcastName: string;
-  segmentId: string;
-}) {
-  const tableVersion = await getTableVersion({
-    workspaceId,
-  });
-
-  const qb = new ClickHouseQueryBuilder();
-  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-  const timestamp = qb.addQueryValue(new Date().toISOString(), "String");
-  const segmentIdParam = qb.addQueryValue(segmentId, "String");
-  const broadcastIdParam = qb.addQueryValue(broadcastId, "String");
-  const broadcastNameParam = qb.addQueryValue(broadcastName, "String");
-  const eventName = qb.addQueryValue(
-    InternalEventType.SegmentBroadcast,
-    "String"
-  );
-
-  // this code sucks :(
-  const query = `
-    INSERT INTO ${buildUserEventsTableName(
-      tableVersion
-    )} (message_id, workspace_id, message_raw)
-    SELECT
-      generateUUIDv4() as message_id,
-      workspace_id,
-      '{' ||
-        '"userId": "' || toString(user_id) || '",' ||
-        '"timestamp": "' || toString(${timestamp}) || '",' ||
-        '"event": "' || ${eventName} || '",' ||
-        '"type": "track",' ||
-        '"properties": {' ||
-          '"segmentId": "' || toString(${segmentIdParam}) || '",' ||
-          '"broadcastName": "' || toString(${broadcastNameParam}) || '",' ||
-          '"broadcastId": "' || toString(${broadcastIdParam}) || '"' ||
-        '}' ||
-      '}' as message_raw
-    FROM ${buildUserEventsTableName(tableVersion)}
-    WHERE workspace_id = ${workspaceIdParam}
-    GROUP BY workspace_id, user_id
-  `;
-
-  await clickhouseClient().exec({
-    query,
-    query_params: qb.getQueries(),
-    clickhouse_settings: { wait_end_of_query: 1 },
-  });
-}
-
 export async function findEventsCount({
   workspaceId,
-  tableVersion: tableVersionParam,
   userId,
 }: {
   workspaceId: string;
-  tableVersion?: string;
   userId?: string;
   limit?: number;
   offset?: number;
 }): Promise<number> {
-  const tableVersion = await getTableVersion({
-    workspaceId,
-    tableVersion: tableVersionParam,
-  });
-
   const userIdClause = userId ? `AND user_id = {userId:String}` : "";
 
-  const query = `SELECT COUNT(message_id) AS event_count FROM ${buildUserEventsTableName(
-    tableVersion
-  )}
+  const query = `SELECT COUNT(message_id) AS event_count FROM user_events_v2 
   WHERE workspace_id = {workspaceId:String}
   ${userIdClause}
   GROUP BY workspace_id
@@ -411,19 +279,15 @@ export async function findEventsCount({
 
 export async function findIdentifyTraits({
   workspaceId,
-  tableVersion: tableVersionParam,
 }: {
   workspaceId: string;
-  tableVersion?: string;
 }): Promise<string[]> {
-  const tableVersion = await getTableVersion({
-    workspaceId,
-    tableVersion: tableVersionParam,
-  });
-
-  const query = `SELECT DISTINCT arrayJoin(JSONExtractKeys(message_raw, 'traits')) AS trait FROM ${buildUserEventsTableName(
-    tableVersion
-  )} WHERE workspace_id = {workspaceId:String}`;
+  const query = `
+    SELECT DISTINCT
+      arrayJoin(JSONExtractKeys(message_raw, 'traits')) AS trait
+    FROM user_events_v2
+    WHERE workspace_id = {workspaceId:String}
+  `;
 
   const resultSet = await clickhouseClient().query({
     query,
