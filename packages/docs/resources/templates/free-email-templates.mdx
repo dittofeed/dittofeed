@@ -4,6 +4,120 @@ title: "Free Email Templates"
 
 For a quick way to get started sending messages, copy/paste the code for these templates into any editor that is configured to render MJML, such as the Dittofeed template editor.
 
+## Styled Onboarding Email
+
+Use this template for a more styled approach to onboarding.
+
+Great onboarding emails give recipients straightforward instructions. To improve overall usage metrics for your app, focus these emails on a specific feature that your target user segment hasn't interacted with frequently (or at all).
+
+<Accordion title="Code.">
+```html styled-onboarding.mjml
+<mjml>
+  <mj-head>
+    <mj-style>
+      .header-link { 
+        color: #334155; 
+        text-decoration: none; 
+        font-weight: bold;
+      }
+       @media only screen and (max-width: 480px) {
+        .small-header-link {
+          font-size: 10px;
+        }
+      }
+    </mj-style>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif"/>
+      <mj-text font-size="12px" line-height="1.5"/>
+      <mj-section padding="20px"/>
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#ffffff">
+    
+    <!-- Header Section -->
+    <mj-section background-color="#ffffff">
+      <mj-group>
+      <mj-column width="50%">
+        <mj-image src="https://i.imgur.com/0jplLWS.png?1" alt="dittofeed logo" align="left" width="100px" css-class="logo-image"></mj-image>
+      </mj-column>
+      <mj-column width="50%">
+        <mj-text align="right">
+          <a href="#" class="header-link small-header-link">Log in to app →</a>
+        </mj-text>
+      </mj-column>
+        </mj-group>
+    </mj-section>
+    
+    <!-- Main Section -->
+    <mj-section border-radius="10px" background-color="#f1f5f9">
+      <mj-column>
+        <mj-text align="left" font-size="30px" font-weight="bold" color="#333333" font-family="Arial, sans-serif" line-height="1.25">
+          Get started segmenting customers!
+        </mj-text>
+        <mj-text align="left" color="#555555" font-family="Arial, sans-serif" line-height="1.5">
+          Segmenting users with Dittofeed is simple. Select traits from your CDP or database, then copy the trait names into a new Dittofeed segment.
+        </mj-text>
+        <mj-button background-color="#49BBD4" color="white" align="left" font-family="Arial, sans-serif" href="#">
+          Create your first segment
+        </mj-button>
+      </mj-column>
+    </mj-section>
+    
+    <!-- Steps Section -->
+    <mj-section background-color="#ffffff">
+      <mj-column>
+        <mj-text align="left" font-size="20px" font-weight="bold" color="#334155" font-family="Arial, sans-serif" line-height="1.25">
+          1️⃣ Connect customer data
+        </mj-text>
+        <mj-text align="left" css-class="steps-text" font-family="Arial, sans-serif" line-height="1.5">
+          Integrate Segment/Rudderstack CDP or submit events directly via the Dittofeed API.
+        </mj-text>
+        <mj-text align="left" padding-bottom="24px" css-class="header-link">
+          <a href="#" class="header-link">Integration docs →</a>
+        </mj-text>
+        <mj-text align="left" font-size="20px" font-weight="bold" color="#334155" font-family="Arial, sans-serif" line-height="1.25">
+          2️⃣ Create a new customer segment
+        </mj-text>
+        <mj-text align="left" css-class="steps-text" font-family="Arial, sans-serif" line-height="1.5">
+          From Dittofeed's segmentation page, create a segment with event names from your event logs.
+        </mj-text>
+        <mj-text align="left" padding-bottom="24px" css-class="header-link">
+          <a href="#" class="header-link">Segment node docs →</a>
+        </mj-text>
+        <mj-text align="left" font-size="20px" font-weight="bold" color="#334155" font-family="Arial, sans-serif" line-height="1.25">
+          3️⃣ Use segments in customer journeys
+        </mj-text>
+        <mj-text align="left" css-class="steps-text" font-family="Arial, sans-serif" line-height="1.5">
+          Load your segments into a new journey node to configure which customers receive messages.
+        </mj-text>
+        <mj-text align="left" padding-bottom="18px" css-class="header-link">
+          <a href="#" class="header-link">Journey docs →</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer Section -->
+    <mj-section border-radius="10px" background-color="#f1f5f9">
+      <mj-column>
+        <mj-text align="left" css-class="footer-text" font-family="Arial, sans-serif" line-height="1.5">
+        For help setting up segments <a href="#">contact support</a>, or <a href="#"> watch our video tutorial</a> on using Dittofeed segmentation.
+        </mj-text>
+        <mj-text align="left" css-class="footer-text" font-family="Arial, sans-serif" line-height="1.5">
+          Alternatively, you can <a href="#">join our Slack community</a> and post to the "help-and-questions" channel.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>
+
+````
+</Accordion>
+
+<Frame>![Styled Onboarding Email](/images/styled-onboarding-email.png)</Frame>
+
+
+
 ## Newsletter/Product Update
 
 Regularly informing your users about what's going on at your company with email newsletters and product updates is an important and simple way to keep them engaged.
@@ -91,7 +205,8 @@ San Francisco, CA 94114.</mj-text>
 
   </mj-body>
 </mjml>
-```
+````
+
 </Accordion>
 
 <Frame>
