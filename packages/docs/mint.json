@@ -55,7 +55,8 @@
             "deployment/self-hosted/render",
             "deployment/self-hosted/docker-compose",
             "deployment/self-hosted/kubernetes",
-            "deployment/self-hosted/cloudformation"
+            "deployment/self-hosted/cloudformation",
+            "deployment/self-hosted/auth-modes"
           ]
         },
         "deployment/cloud"
