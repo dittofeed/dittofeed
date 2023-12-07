@@ -322,10 +322,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     userEventsTopicName:
       rawConfig.userEventsTopicName ?? "dittofeed-user-events",
     temporalNamespace: rawConfig.temporalNamespace ?? "default",
-    // UUID with _ instead of - for clickhouse compatibility
+    // deprecated
     defaultUserEventsTableVersion:
-      rawConfig.defaultUserEventsTableVersion ??
-      "48221d18_bd04_4c6b_abf3_9d0a4f87f52f",
+      rawConfig.defaultUserEventsTableVersion ?? "",
     logConfig: rawConfig.logConfig === "true",
     bootstrapEvents: rawConfig.bootstrapEvents === "true",
     bootstrapWorker:
