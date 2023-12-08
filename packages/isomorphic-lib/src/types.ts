@@ -2177,7 +2177,7 @@ export const SearchDeliveriesResponseItem = Type.Union([
       to: Type.String(),
       channel: Type.Literal(ChannelType.Email),
     }),
-    EmailContents,
+    Type.Partial(EmailContents),
     BaseDeliveryItem,
   ]),
 ]);
