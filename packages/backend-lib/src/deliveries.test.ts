@@ -406,23 +406,23 @@ describe("deliveries", () => {
         user_or_anonymous_id: "3dae7dd0-cc99-4a76-b298-af33dd606b27",
         workspace_id: "4f0732c7-e505-45f1-b052-4d08e30e7c33",
         properties: JSON.stringify({
-          messageType: "Email",
-          emailProvider: "SendGrid",
-          nodeId: "60b133f1-9957-4aa8-a8df-8a26b8e577db",
-          to: "test1@email.com",
-          from: "test2@email.com",
-          subject: "subject",
           body: "body",
-          templateId: "bd9dad3b-7cc5-427c-8838-6aa5cbc4dd0b",
-          runId: "2dffde47-0438-423e-bc36-7c6f1d635677",
+          emailProvider: "SendGrid",
+          from: "test2@email.com",
           journeyId: "d2dd13d3-d905-4a83-b9c2-eeb9c1f4bea2",
+          messageType: "Email",
+          nodeId: "60b133f1-9957-4aa8-a8df-8a26b8e577db",
+          runId: "2dffde47-0438-423e-bc36-7c6f1d635677",
+          subject: "subject",
+          templateId: "bd9dad3b-7cc5-427c-8838-6aa5cbc4dd0b",
+          to: "test1@email.com",
         }),
       };
       const result = parseSearchDeliveryRow(row);
       expect(result).not.toBeNull();
     });
 
-    it.only("works", () => {
+    it("respects the deprecated format for deliveries events", () => {
       const row: SearchDeliveryRow = {
         sent_at: "2023-08-01 01:41:18.585",
         updated_at: "2023-08-01 01:41:18.585",
@@ -433,12 +433,12 @@ describe("deliveries", () => {
         properties: JSON.stringify({
           email: "test@email.com",
           journeyId: randomUUID(),
-          runId: randomUUID(),
           messageId: randomUUID(),
+          nodeId: randomUUID(),
+          runId: randomUUID(),
+          templateId: randomUUID(),
           userId: randomUUID(),
           workspaceId: randomUUID(),
-          templateId: randomUUID(),
-          nodeId: randomUUID(),
         }),
       };
       const result = parseSearchDeliveryRow(row);

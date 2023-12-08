@@ -1,6 +1,7 @@
 import { Static, Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { omit } from "remeda";
 
 import {
   clickhouseClient,
@@ -10,6 +11,7 @@ import {
 import logger from "./logger";
 import { deserializeCursor, serializeCursor } from "./pagination";
 import {
+  ChannelType,
   EmailEventList,
   InternalEventType,
   SearchDeliveriesRequest,
@@ -67,18 +69,20 @@ export function parseSearchDeliveryRow(
   const properties = row.properties.length
     ? (JSON.parse(row.properties) as Record<string, unknown>)
     : {};
-  const unvalidatedItem = {
-    sentAt: row.sent_at,
-    updatedAt: row.updated_at,
-    status: row.last_event,
-    originMessageId: row.origin_message_id,
-    userId: row.user_or_anonymous_id,
-    channel:
-      properties.messageType && !properties.channnel
-        ? properties.messageType
-        : undefined,
-    ...properties,
-  };
+  const unvalidatedItem = omit(
+    {
+      sentAt: row.sent_at,
+      updatedAt: row.updated_at,
+      status: row.last_event,
+      originMessageId: row.origin_message_id,
+      userId: row.user_or_anonymous_id,
+      channel:
+        properties.channnel ?? properties.messageType ?? ChannelType.Email,
+      to: properties.to ?? properties.email,
+      ...properties,
+    } as Record<string, unknown>,
+    ["email"]
+  );
 
   const itemResult = schemaValidateWithErr(
     unvalidatedItem,

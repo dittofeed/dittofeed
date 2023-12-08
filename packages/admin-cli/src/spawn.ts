@@ -11,7 +11,7 @@ export function spawnWithEnv(argv: string[]): Promise<void> {
   if (!arg1) {
     process.exit(0);
   }
-  const cwd = path.join(process.cwd(), "..", "..");
+  const cwd = path.join(__dirname, "..", "..", "..");
 
   return new Promise((resolve) => {
     spawn(arg1, argv.slice(1), { stdio: "inherit", cwd }).on(
