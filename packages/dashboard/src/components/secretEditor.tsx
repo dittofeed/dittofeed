@@ -1,3 +1,5 @@
+import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { IconButton, InputAdornment, TextField } from "@mui/material";
 import {
   CompletionStatus,
   EphemeralRequestStatus,
@@ -5,8 +7,6 @@ import {
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
-import { IconButton, InputAdornment, TextField } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 export enum SecretStateType {
   Saved = "Saved",
@@ -19,10 +19,12 @@ export interface SavedSecretState {
 }
 
 export interface SavedEditingSecretState {
+  value: string;
   type: SecretStateType.SavedEditing;
 }
 
 export interface UnSavedSecretState {
+  value: string;
   type: SecretStateType.UnSaved;
 }
 
@@ -51,12 +53,39 @@ function initialState(saved: boolean): SecretState {
     },
     editingState: saved
       ? { type: SecretStateType.Saved }
-      : { type: SecretStateType.UnSaved },
+      : { type: SecretStateType.UnSaved, value: "" },
   };
 }
 
 function toggleVisibility(state: SecretState) {
   state.showValue = !state.showValue;
+}
+
+function SecretTextField({
+  onVisibilityChange,
+  showValue,
+}: {
+  onVisibilityChange: () => void;
+  showValue: boolean;
+}) {
+  return (
+    <TextField
+      type={showValue ? "text" : "password"}
+      InputProps={{
+        endAdornment: (
+          <InputAdornment position="end">
+            <IconButton
+              aria-label="toggle secret visibility"
+              onClick={onVisibilityChange}
+              onMouseDown={onVisibilityChange}
+            >
+              {showValue ? <Visibility /> : <VisibilityOff />}
+            </IconButton>
+          </InputAdornment>
+        ),
+      }}
+    />
+  );
 }
 
 export default function SecretEditor({ name, saved, key }: SecretEditorProps) {
@@ -68,23 +97,32 @@ export default function SecretEditor({ name, saved, key }: SecretEditorProps) {
   if (workspaceResult.type !== CompletionStatus.Successful) {
     return null;
   }
-  return (
-    <div>
-      <TextField
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <IconButton
-                aria-label="toggle password visibility"
-                onClick={() => setState(toggleVisibility)}
-                onMouseDown={() => setState(toggleVisibility)}
-              >
-                {showValue ? <Visibility /> : <VisibilityOff />}
-              </IconButton>
-            </InputAdornment>
-          ),
-        }}
-      />
-    </div>
-  );
+  let field: React.ReactNode;
+  switch (editingState.type) {
+    case SecretStateType.Saved:
+      field = <>saved placeholder</>;
+      break;
+    case SecretStateType.SavedEditing:
+      field = (
+        <>
+          <SecretTextField
+            onVisibilityChange={() => setState(toggleVisibility)}
+            showValue={showValue}
+          />
+        </>
+      );
+      break;
+    case SecretStateType.UnSaved:
+      field = (
+        <>
+          <SecretTextField
+            onVisibilityChange={() => setState(toggleVisibility)}
+            showValue={showValue}
+          />
+        </>
+      );
+      break;
+  }
+
+  return <div>{field}</div>;
 }
