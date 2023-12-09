@@ -682,6 +682,11 @@ function SendGridConfig() {
               name: "SendGrid",
               fields: [
                 {
+                  id: "sendgrid-api-key-2",
+                  type: "secret",
+                  fieldProps: {},
+                },
+                {
                   id: "sendgrid-api-key",
                   type: "text",
                   fieldProps: {

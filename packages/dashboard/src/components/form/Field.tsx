@@ -5,13 +5,17 @@ import {
   FormControlLabelProps,
   Select,
   SwitchProps,
-} from "@mui/material"
-import React from "react"
+} from "@mui/material";
+import React from "react";
 
-import SimpleTextField from "./SimpleTextField"
-import SimpleToggle from "./SimpleToggle"
-import { ButtonField as ButtonFieldProps, FieldComponents, TextField as TextFieldProps } from "./types"
-
+import SecretEditor from "../secretEditor";
+import SimpleTextField from "./SimpleTextField";
+import SimpleToggle from "./SimpleToggle";
+import {
+  ButtonField as ButtonFieldProps,
+  FieldComponents,
+  TextField as TextFieldProps,
+} from "./types";
 
 const fieldComponents = {
   text: (fieldProps: TextFieldProps["fieldProps"]) => (
@@ -22,34 +26,42 @@ const fieldComponents = {
     labelProps,
     switchProps,
   }: {
-    labelProps: Omit<FormControlLabelProps, "control">
-    switchProps: SwitchProps
+    labelProps: Omit<FormControlLabelProps, "control">;
+    switchProps: SwitchProps;
   }) => (
     <FormControlLabel
       {...labelProps}
       sx={{
-        fontSize: 12
+        fontSize: 12,
       }}
       control={<SimpleToggle {...switchProps} />}
     />
   ),
   button: (props: ButtonFieldProps["fieldProps"]) => (
-    <Box display="flex" justifyContent="flex-end"><Button variant="contained" sx={{ justifySelf: "flex-end" }} {...props} /></Box>
-  )
-} as const
+    <Box display="flex" justifyContent="flex-end">
+      <Button variant="contained" sx={{ justifySelf: "flex-end" }} {...props} />
+    </Box>
+  ),
+} as const;
 
 function Field({ type, fieldProps }: FieldComponents) {
-  if (type === "button") {
-    return <fieldComponents.button {...fieldProps} />
-  }
-  if (type === "text") {
-    return <fieldComponents.text {...fieldProps} />
-  }
-  if (type === "toggle") {
-    return <fieldComponents.toggle {...fieldProps} />
+  let field: React.ReactElement;
+  switch (type) {
+    case "button":
+      field = <fieldComponents.button {...fieldProps} />;
+      break;
+    case "text":
+      field = <fieldComponents.text {...fieldProps} />;
+      break;
+    case "toggle":
+      field = <fieldComponents.toggle {...fieldProps} />;
+      break;
+    case "secret":
+      field = <SecretEditor {...fieldProps} />;
+      break;
   }
 
-  return null
+  return field;
 }
 
-export default Field
+export default Field;
