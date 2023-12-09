@@ -5,6 +5,8 @@ import {
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
+import { IconButton, InputAdornment, TextField } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 export enum SecretStateType {
   Saved = "Saved",
@@ -30,6 +32,7 @@ export type EditingSecretState =
   | SavedSecretState;
 
 export interface SecretState {
+  showValue: boolean;
   updateRequest: EphemeralRequestStatus<Error>;
   editingState: EditingSecretState;
 }
@@ -42,6 +45,7 @@ export interface SecretEditorProps {
 
 function initialState(saved: boolean): SecretState {
   return {
+    showValue: false,
     updateRequest: {
       type: CompletionStatus.NotStarted,
     },
@@ -51,19 +55,36 @@ function initialState(saved: boolean): SecretState {
   };
 }
 
+function toggleVisibility(state: SecretState) {
+  state.showValue = !state.showValue;
+}
+
 export default function SecretEditor({ name, saved, key }: SecretEditorProps) {
   const { workspace: workspaceResult } = useAppStorePick(["workspace"]);
 
-  const { editingState, updateRequest } = useImmer<SecretState>(() =>
-    initialState(saved)
-  );
+  const [{ editingState, updateRequest, showValue }, setState] =
+    useImmer<SecretState>(() => initialState(saved));
 
   if (workspaceResult.type !== CompletionStatus.Successful) {
     return null;
   }
   return (
     <div>
-      <p>secretEditor</p>
+      <TextField
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="toggle password visibility"
+                onClick={() => setState(toggleVisibility)}
+                onMouseDown={() => setState(toggleVisibility)}
+              >
+                {showValue ? <Visibility /> : <VisibilityOff />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+      />
     </div>
   );
 }
