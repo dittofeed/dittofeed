@@ -79,11 +79,8 @@ export type AppState = {
   writeKeys: WriteKeyResource[];
   secrets: SecretResource[];
   secretAvailability: SecretAvailabilityResource[];
-  defaultEmailProvider: RequestStatus<
-    DefaultEmailProviderResource | null,
-    Error
-  >;
-  emailProviders: RequestStatus<PersistedEmailProvider[], Error>;
+  defaultEmailProvider: DefaultEmailProviderResource | null;
+  emailProviders: PersistedEmailProvider[];
   smsProviders: SmsProviderConfig[];
   dataSourceConfigurations: RequestStatus<
     DataSourceConfigurationResource[],
@@ -127,6 +124,9 @@ export interface AppActions {
   upsertIntegration: (integrations: IntegrationResource) => void;
   upsertTraits: (traits: string[]) => void;
   setGetTraitsRequest: (request: EphemeralRequestStatus<Error>) => void;
+  setDefaultEmailProvider: (
+    defaultEmailProvider: DefaultEmailProviderResource
+  ) => void;
 }
 
 export interface SegmentIndexContent {

@@ -207,13 +207,9 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         dataSourceConfigurations: {
           type: CompletionStatus.NotStarted,
         },
-        defaultEmailProvider: {
-          type: CompletionStatus.NotStarted,
-        },
+        defaultEmailProvider: null,
         drawerOpen: true,
-        emailProviders: {
-          type: CompletionStatus.NotStarted,
-        },
+        emailProviders: [],
         smsProviders: [],
         traits: [],
         getTraitsRequest: {
@@ -613,23 +609,13 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           }),
         upsertEmailProvider: (emailProvider) =>
           set((state) => {
-            let { emailProviders } = state;
-
-            if (emailProviders.type !== CompletionStatus.Successful) {
-              emailProviders = {
-                type: CompletionStatus.Successful,
-                value: [],
-              };
-              state.emailProviders = emailProviders;
-            }
-
-            for (const existingProvider of emailProviders.value) {
+            for (const existingProvider of state.emailProviders) {
               if (emailProvider.id === existingProvider.id) {
                 Object.assign(existingProvider, emailProvider);
                 return state;
               }
             }
-            emailProviders.value.push(emailProvider);
+            state.emailProviders.push(emailProvider);
             return state;
           }),
 
@@ -884,9 +870,14 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           set((state) => {
             state.segmentUpdateRequest = request;
           }),
+        setDefaultEmailProvider: (emailProvider) =>
+          set((state) => {
+            state.defaultEmailProvider = emailProvider;
+          }),
         ...createJourneySlice(set, ...remaining),
         ...preloadedState,
       };
+
       return appContents;
     })
   );

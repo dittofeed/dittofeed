@@ -17,7 +17,9 @@ import {
   FormGroup,
   IconButton,
   InputAdornment,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Switch,
   TextField,
@@ -36,11 +38,14 @@ import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import { SENDGRID_SECRET } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
   DataSourceVariantType,
+  DefaultEmailProviderResource,
   EmailProviderType,
+  EmptyResponse,
   EphemeralRequestStatus,
   IntegrationResource,
   IntegrationType,
@@ -61,6 +66,7 @@ import {
 import { enqueueSnackbar } from "notistack";
 import { useMemo, useState } from "react";
 import { pick } from "remeda/dist/commonjs/pick";
+import { useImmer } from "use-immer";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -75,10 +81,10 @@ import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
-import { useSecretsEditor } from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
 
 function SectionHeader({
@@ -146,26 +152,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       smsProviders,
       secretAvailability,
     ] = await Promise.all([
-      (
-        await prisma().emailProvider.findMany({
-          where: { workspaceId },
-        })
-      ).map(({ id, type, apiKey }) => {
-        let providerType: EmailProviderType;
-        switch (type) {
-          case "SendGrid":
-            providerType = EmailProviderType.Sendgrid;
-            break;
-          default:
-            throw new Error("Unknown email provider type");
-        }
-        return {
-          type: providerType,
-          id,
-          apiKey: apiKey ?? undefined,
-          workspaceId,
-        };
-      }),
+      getOrCreateEmailProviders({ workspaceId }),
       prisma().defaultEmailProvider.findFirst({
         where: { workspaceId },
       }),
@@ -198,15 +185,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     ]);
 
     const serverInitialState: PreloadedState = {
-      emailProviders: {
-        type: CompletionStatus.Successful,
-        value: emailProviders,
-      },
+      emailProviders,
       secretAvailability,
-      defaultEmailProvider: {
-        type: CompletionStatus.Successful,
-        value: defaultEmailProviderRecord,
-      },
+      defaultEmailProvider: defaultEmailProviderRecord,
       integrations: unwrap(integrations).map((i) =>
         pick(i, ["id", "name", "workspaceId", "definition", "enabled"])
       ),
@@ -591,6 +572,67 @@ function SendGridConfig() {
 }
 
 function EmailChannelConfig() {
+  const {
+    emailProviders,
+    apiBase,
+    workspace,
+    defaultEmailProvider,
+    setDefaultEmailProvider,
+  } = useAppStorePick([
+    "apiBase",
+    "workspace",
+    "emailProviders",
+    "defaultEmailProvider",
+    "setDefaultEmailProvider",
+  ]);
+  const [{ defaultProvider, defaultProviderRequest }, setState] = useImmer<{
+    defaultProvider: string | null;
+    defaultProviderRequest: EphemeralRequestStatus<Error>;
+  }>({
+    defaultProvider: defaultEmailProvider?.emailProviderId ?? null,
+    defaultProviderRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+  });
+
+  const defaultHandler = (emailProviderId: string) => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return;
+    }
+    apiRequestHandlerFactory({
+      request: defaultProviderRequest,
+      setRequest: (request) => {
+        setState((state) => {
+          state.defaultProviderRequest = request;
+        });
+      },
+      responseSchema: EmptyResponse,
+      onSuccessNotice: "Set default email provider.",
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to set default email provider.`,
+      setResponse: () => {
+        if (!defaultProvider) {
+          return;
+        }
+        setDefaultEmailProvider({
+          workspaceId: workspace.value.id,
+          emailProviderId: defaultProvider,
+        });
+      },
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/settings/email-providers/default`,
+        data: {
+          workspaceId: workspace.value.id,
+          emailProviderId,
+        } satisfies DefaultEmailProviderResource,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+  };
+
   return (
     <>
       <SectionSubHeader
@@ -598,6 +640,34 @@ function EmailChannelConfig() {
         title="Email"
         description="In order to use email, at least 1 email provider must be configured."
       />
+      <Select
+        value={defaultProvider ?? ""}
+        onChange={(e) => {
+          setState((state) => {
+            state.defaultProvider = e.target.value as string;
+          });
+          defaultHandler(e.target.value as string);
+        }}
+      >
+        {emailProviders.map((ep) => {
+          let name: string;
+          switch (ep.type) {
+            case EmailProviderType.Sendgrid:
+              name = "SendGrid";
+              break;
+            default:
+              assertUnreachable(
+                ep.type,
+                `Unknown email provider type ${ep.type}`
+              );
+          }
+          return (
+            <MenuItem value={ep.id} key={ep.id}>
+              {name}
+            </MenuItem>
+          );
+        })}
+      </Select>
       <SendGridConfig />
     </>
   );

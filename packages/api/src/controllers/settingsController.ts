@@ -9,6 +9,7 @@ import { FastifyInstance } from "fastify";
 import {
   DataSourceConfigurationResource,
   DataSourceVariantType,
+  DefaultEmailProviderResource,
   DeleteWriteKeyResource,
   EmailProviderResource,
   EmailProviderType,
@@ -97,6 +98,37 @@ export default async function settingsController(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/email-providers/default",
+    {
+      schema: {
+        description: "Create or update email provider default",
+        body: DefaultEmailProviderResource,
+        response: {
+          201: EmptyResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, emailProviderId } = request.body;
+
+      await prisma().defaultEmailProvider.upsert({
+        where: {
+          workspaceId,
+        },
+        create: {
+          workspaceId,
+          emailProviderId,
+        },
+        update: {
+          emailProviderId,
+        },
+      });
+
+      return reply.status(201).send();
+    }
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/email-providers",
     {
       schema: {
@@ -109,8 +141,8 @@ export default async function settingsController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       let emailProvider: EmailProvider;
-      const { id, workspaceId, type, apiKey } = request.body;
-      const canCreate = workspaceId && type && apiKey;
+      const { id, workspaceId, type } = request.body;
+      const canCreate = workspaceId && type;
 
       if (workspaceId && type) {
         if (canCreate) {
@@ -125,12 +157,10 @@ export default async function settingsController(fastify: FastifyInstance) {
               id,
               workspaceId,
               type,
-              apiKey,
             },
             update: {
               workspaceId,
               type,
-              apiKey,
             },
           });
         } else {
@@ -145,7 +175,6 @@ export default async function settingsController(fastify: FastifyInstance) {
               id,
               workspaceId,
               type,
-              apiKey,
             },
           });
         }
@@ -158,7 +187,6 @@ export default async function settingsController(fastify: FastifyInstance) {
             id,
             workspaceId,
             type,
-            apiKey,
           },
         });
       } else {
@@ -192,7 +220,6 @@ export default async function settingsController(fastify: FastifyInstance) {
       const resource: EmailProviderResource = {
         id: emailProvider.id,
         type: recordType,
-        apiKey: emailProvider.apiKey,
         workspaceId: emailProvider.workspaceId,
       };
       return reply.status(200).send(resource);
