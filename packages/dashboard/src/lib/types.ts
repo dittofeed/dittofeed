@@ -17,6 +17,7 @@ import {
   MessageTemplateResource,
   PersistedEmailProvider,
   RequestStatus,
+  SecretAvailabilityResource,
   SecretResource,
   SegmentNode,
   SegmentNodeType,
@@ -77,11 +78,9 @@ export type AppState = {
   getTraitsRequest: EphemeralRequestStatus<Error>;
   writeKeys: WriteKeyResource[];
   secrets: SecretResource[];
-  defaultEmailProvider: RequestStatus<
-    DefaultEmailProviderResource | null,
-    Error
-  >;
-  emailProviders: RequestStatus<PersistedEmailProvider[], Error>;
+  secretAvailability: SecretAvailabilityResource[];
+  defaultEmailProvider: DefaultEmailProviderResource | null;
+  emailProviders: PersistedEmailProvider[];
   smsProviders: SmsProviderConfig[];
   dataSourceConfigurations: RequestStatus<
     DataSourceConfigurationResource[],
@@ -125,6 +124,9 @@ export interface AppActions {
   upsertIntegration: (integrations: IntegrationResource) => void;
   upsertTraits: (traits: string[]) => void;
   setGetTraitsRequest: (request: EphemeralRequestStatus<Error>) => void;
+  setDefaultEmailProvider: (
+    defaultEmailProvider: DefaultEmailProviderResource
+  ) => void;
 }
 
 export interface SegmentIndexContent {

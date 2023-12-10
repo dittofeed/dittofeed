@@ -4,8 +4,10 @@ import {
   SwitchProps,
   TextFieldProps,
 } from "@mui/material";
-import { SelectInputProps } from "@mui/material/Select/SelectInput";
 import { PropsWithChildren } from "react";
+
+import { SecretEditorProps } from "../secretEditor";
+import { SelectFieldProps } from "./select";
 
 type ID = string | number;
 
@@ -18,11 +20,6 @@ export interface Field {
 export interface TextField extends Field {
   type: "text";
   fieldProps: TextFieldProps;
-}
-
-export interface DropdownField extends Field {
-  type: "dropdown";
-  fieldProps: SelectInputProps;
 }
 
 export interface ToggleField extends Field {
@@ -38,11 +35,22 @@ export interface ButtonField extends Field {
   fieldProps: ButtonProps;
 }
 
+export interface SecretField extends Field {
+  type: "secret";
+  fieldProps: SecretEditorProps;
+}
+
+export interface SelectField extends Field {
+  type: "select";
+  fieldProps: SelectFieldProps;
+}
+
 export type FieldComponents =
   | TextField
-  | DropdownField
+  | SecretField
   | ToggleField
-  | ButtonField;
+  | ButtonField
+  | SelectField;
 
 export type FieldGroupProps = PropsWithChildren<{
   id: ID;

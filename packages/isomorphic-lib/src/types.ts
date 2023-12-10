@@ -929,7 +929,6 @@ export const SendgridEmailProvider = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
   type: Type.Literal(EmailProviderType.Sendgrid),
-  apiKey: Type.Optional(Type.String()),
 });
 
 export type SendgridEmailProvider = Static<typeof SendgridEmailProvider>;
@@ -1628,7 +1627,8 @@ export type DeleteWriteKeyResource = Static<typeof DeleteWriteKeyResource>;
 
 export const UpsertSecretRequest = Type.Object({
   name: Type.String(),
-  value: Type.String(),
+  value: Type.Optional(Type.String()),
+  configValue: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
   workspaceId: Type.String(),
 });
 
@@ -2221,4 +2221,16 @@ export interface SubscriptionChangeEvent {
     subscriptionId: string;
     action: SubscriptionChange;
   };
+}
+
+export interface SecretAvailabilityResource {
+  workspaceId: string;
+  name: string;
+  value: boolean;
+  configValue?: Record<string, boolean>;
+}
+
+export interface Resource {
+  workspaceId: string;
+  id: string;
 }

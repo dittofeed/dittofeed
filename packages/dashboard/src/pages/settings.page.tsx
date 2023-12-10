@@ -28,30 +28,31 @@ import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
 import logger from "backend-lib/src/logger";
+import { getSecretAvailability } from "backend-lib/src/secrets";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
-import { SENDGRID_WEBHOOK_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { SENDGRID_SECRET } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
   DataSourceVariantType,
-  EmailProviderResource,
+  DefaultEmailProviderResource,
   EmailProviderType,
+  EmptyResponse,
   EphemeralRequestStatus,
   IntegrationResource,
   IntegrationType,
-  PersistedEmailProvider,
   SegmentResource,
   SmsProviderConfig,
   SmsProviderType,
   SyncIntegration,
   TwilioSmsProvider,
   UpsertDataSourceConfigurationResource,
-  UpsertEmailProviderResource,
   UpsertIntegrationResource,
   UpsertSmsProviderRequest,
 } from "isomorphic-lib/src/types";
@@ -63,6 +64,7 @@ import {
 import { enqueueSnackbar } from "notistack";
 import { useMemo, useState } from "react";
 import { pick } from "remeda/dist/commonjs/pick";
+import { useImmer } from "use-immer";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
@@ -77,10 +79,10 @@ import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
-import { useSecretsEditor } from "../lib/secretEditor";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
 
 function SectionHeader({
@@ -146,27 +148,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       integrations,
       segments,
       smsProviders,
+      secretAvailability,
     ] = await Promise.all([
-      (
-        await prisma().emailProvider.findMany({
-          where: { workspaceId },
-        })
-      ).map(({ id, type, apiKey }) => {
-        let providerType: EmailProviderType;
-        switch (type) {
-          case "SendGrid":
-            providerType = EmailProviderType.Sendgrid;
-            break;
-          default:
-            throw new Error("Unknown email provider type");
-        }
-        return {
-          type: providerType,
-          id,
-          apiKey: apiKey ?? undefined,
-          workspaceId,
-        };
-      }),
+      getOrCreateEmailProviders({ workspaceId }),
       prisma().defaultEmailProvider.findFirst({
         where: { workspaceId },
       }),
@@ -192,17 +176,16 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           secret: true,
         },
       }),
+      getSecretAvailability({
+        workspaceId,
+        names: [SENDGRID_SECRET],
+      }),
     ]);
 
     const serverInitialState: PreloadedState = {
-      emailProviders: {
-        type: CompletionStatus.Successful,
-        value: emailProviders,
-      },
-      defaultEmailProvider: {
-        type: CompletionStatus.Successful,
-        value: defaultEmailProviderRecord,
-      },
+      emailProviders,
+      secretAvailability,
+      defaultEmailProvider: defaultEmailProviderRecord,
       integrations: unwrap(integrations).map((i) =>
         pick(i, ["id", "name", "workspaceId", "definition", "enabled"])
       ),
@@ -353,10 +336,6 @@ function SettingsLayout(
 }
 
 interface SettingsState {
-  sendgridProviderRequest: EphemeralRequestStatus<Error>;
-  sendgridProviderApiKey: string;
-  sendgridWebhookVerificationKeyRequest: EphemeralRequestStatus<Error>;
-  sendgridWebhookVerificationKey: string;
   upsertSmsProviderRequest: EphemeralRequestStatus<Error>;
   segmentIoRequest: EphemeralRequestStatus<Error>;
   segmentIoSharedSecret: string;
@@ -364,16 +343,8 @@ interface SettingsState {
 }
 
 interface SettingsActions {
-  updateSendgridProviderApiKey: (key: string) => void;
-  updateSendgridProviderRequest: (
-    request: EphemeralRequestStatus<Error>
-  ) => void;
   updateSegmentIoSharedSecret: (key: string) => void;
   updateSegmentIoRequest: (request: EphemeralRequestStatus<Error>) => void;
-  updateSendgridWebhookVerificationKey: (key: string) => void;
-  updateSendgridWebhookVerificationRequest: (
-    request: EphemeralRequestStatus<Error>
-  ) => void;
   updateUpsertIntegrationsRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
@@ -388,15 +359,6 @@ export const useSettingsStore = create(
       type: CompletionStatus.NotStarted,
     },
     segmentIoSharedSecret: "",
-    sendgridProviderRequest: {
-      type: CompletionStatus.NotStarted,
-    },
-    sendgridProviderApiKey: "",
-    sendgridFromEmail: "",
-    sendgridWebhookVerificationKey: "",
-    sendgridWebhookVerificationKeyRequest: {
-      type: CompletionStatus.NotStarted,
-    },
     upsertIntegrationsRequest: {
       type: CompletionStatus.NotStarted,
     },
@@ -406,26 +368,6 @@ export const useSettingsStore = create(
     updateUpsertIntegrationsRequest: (request) => {
       set((state) => {
         state.upsertIntegrationsRequest = request;
-      });
-    },
-    updateSendgridProviderApiKey: (key) => {
-      set((state) => {
-        state.sendgridProviderApiKey = key;
-      });
-    },
-    updateSendgridProviderRequest: (request) => {
-      set((state) => {
-        state.sendgridProviderRequest = request;
-      });
-    },
-    updateSendgridWebhookVerificationKey: (key) => {
-      set((state) => {
-        state.sendgridWebhookVerificationKey = key;
-      });
-    },
-    updateSendgridWebhookVerificationRequest: (request) => {
-      set((state) => {
-        state.sendgridWebhookVerificationKeyRequest = request;
       });
     },
     updateSegmentIoSharedSecret: (key) => {
@@ -576,100 +518,7 @@ function SegmentIoConfig() {
 }
 
 function SendGridConfig() {
-  const {
-    emailProviders,
-    apiBase,
-    workspace: workspaceResult,
-    upsertEmailProvider,
-  } = useAppStorePick([
-    "emailProviders",
-    "apiBase",
-    "workspace",
-    "upsertEmailProvider",
-  ]);
-  const apiKey = useSettingsStore((store) => store.sendgridProviderApiKey);
-  const sendgridProviderRequest = useSettingsStore(
-    (store) => store.sendgridProviderRequest
-  );
-  const updateSendgridProviderRequest = useSettingsStore(
-    (store) => store.updateSendgridProviderRequest
-  );
-  const updateSendgridProviderApiKey = useSettingsStore(
-    (store) => store.updateSendgridProviderApiKey
-  );
-  const workspace =
-    workspaceResult.type === CompletionStatus.Successful
-      ? workspaceResult.value
-      : null;
-
-  const savedSendgridProvider: EmailProviderResource | null = useMemo(() => {
-    if (emailProviders.type !== CompletionStatus.Successful || !workspace?.id) {
-      return null;
-    }
-    for (const emailProvider of emailProviders.value) {
-      if (
-        emailProvider.workspaceId === workspace.id &&
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        emailProvider.type === EmailProviderType.Sendgrid
-      ) {
-        return emailProvider;
-      }
-    }
-    return null;
-  }, [emailProviders, workspace]);
-  const webhookKeyEditor = useSecretsEditor({
-    secretName: SENDGRID_WEBHOOK_SECRET_NAME,
-  });
-
-  if (!workspace || !webhookKeyEditor) {
-    return null;
-  }
-
-  const body: UpsertEmailProviderResource = {
-    id: savedSendgridProvider?.id,
-    apiKey,
-    type: EmailProviderType.Sendgrid,
-    workspaceId: workspace.id,
-  };
-  const submitApiKey = apiRequestHandlerFactory({
-    request: sendgridProviderRequest,
-    setRequest: updateSendgridProviderRequest,
-    responseSchema: PersistedEmailProvider,
-    setResponse: upsertEmailProvider,
-    onSuccessNotice: "Updated sendgrid configuration.",
-    onFailureNoticeHandler: () =>
-      "API Error: Failed to update sendgrid configuration.",
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/settings/email-providers`,
-      data: body,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-
-  const {
-    showPassword: showWebhookKey,
-    secretValue: webhookKey,
-    setSecretValue: setWebhookKey,
-    secretApiHandler: submitWebhookKey,
-    handleClickShowPassword,
-    handleMouseDownPassword,
-    upsertSecretRequest,
-  } = webhookKeyEditor;
-  const requestInProgress =
-    sendgridProviderRequest.type === CompletionStatus.InProgress ||
-    upsertSecretRequest.type === CompletionStatus.InProgress;
-
-  const onSubmit = () => {
-    if (webhookKey) {
-      submitWebhookKey();
-    }
-    if (apiKey) {
-      submitApiKey();
-    }
-  };
+  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
 
   return (
     <Fields
@@ -683,47 +532,32 @@ function SendGridConfig() {
               fields: [
                 {
                   id: "sendgrid-api-key",
-                  type: "text",
+                  type: "secret",
                   fieldProps: {
-                    label: "API Key",
+                    name: SENDGRID_SECRET,
+                    secretKey: "apiKey",
+                    label: "Sendgrid API Key",
                     helperText:
                       "API key, used internally by Dittofeed to send emails via sendgrid.",
-                    onChange: (e) => {
-                      updateSendgridProviderApiKey(e.target.value);
-                    },
-                    value: apiKey,
+                    type: EmailProviderType.Sendgrid,
+                    saved:
+                      secretAvailability.find((s) => s.name === SENDGRID_SECRET)
+                        ?.configValue?.apiKey ?? false,
                   },
                 },
                 {
                   id: "sendgrid-webhook-key",
-                  type: "text",
+                  type: "secret",
                   fieldProps: {
+                    name: SENDGRID_SECRET,
+                    secretKey: "apiKey",
                     label: "Webhook Key",
                     helperText:
                       "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
-                    variant: "outlined",
-                    type: showWebhookKey ? "text" : "password",
-                    placeholder: showWebhookKey ? undefined : "**********",
-                    onChange: (e) => setWebhookKey(e.target.value),
-                    sx: { flex: 1 },
-                    value: webhookKey,
-                    InputProps: {
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle password visibility"
-                            onClick={handleClickShowPassword}
-                            onMouseDown={handleMouseDownPassword}
-                          >
-                            {showWebhookKey ? (
-                              <Visibility />
-                            ) : (
-                              <VisibilityOff />
-                            )}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    },
+                    type: EmailProviderType.Sendgrid,
+                    saved:
+                      secretAvailability.find((s) => s.name === SENDGRID_SECRET)
+                        ?.configValue?.webhookKey ?? false,
                   },
                 },
               ],
@@ -731,33 +565,128 @@ function SendGridConfig() {
           ],
         },
       ]}
-    >
-      {/* TODO make loading button */}
-      <Button
-        onClick={onSubmit}
-        variant="contained"
-        disabled={requestInProgress}
-        sx={{
-          alignSelf: {
-            xs: "start",
-            sm: "end",
-          },
-        }}
-      >
-        Save
-      </Button>
-    </Fields>
+    />
+  );
+}
+
+function DefaultEmailConfig() {
+  const {
+    emailProviders,
+    apiBase,
+    workspace,
+    defaultEmailProvider,
+    setDefaultEmailProvider,
+  } = useAppStorePick([
+    "apiBase",
+    "workspace",
+    "emailProviders",
+    "defaultEmailProvider",
+    "setDefaultEmailProvider",
+  ]);
+  const [{ defaultProvider, defaultProviderRequest }, setState] = useImmer<{
+    defaultProvider: string | null;
+    defaultProviderRequest: EphemeralRequestStatus<Error>;
+  }>({
+    defaultProvider: defaultEmailProvider?.emailProviderId ?? null,
+    defaultProviderRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+  });
+
+  const defaultHandler = (emailProviderId: string) => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return;
+    }
+    apiRequestHandlerFactory({
+      request: defaultProviderRequest,
+      setRequest: (request) => {
+        setState((state) => {
+          state.defaultProviderRequest = request;
+        });
+      },
+      responseSchema: EmptyResponse,
+      onSuccessNotice: "Set default email provider.",
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to set default email provider.`,
+      setResponse: () => {
+        if (!defaultProvider) {
+          return;
+        }
+        setDefaultEmailProvider({
+          workspaceId: workspace.value.id,
+          emailProviderId: defaultProvider,
+        });
+      },
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/settings/email-providers/default`,
+        data: {
+          workspaceId: workspace.value.id,
+          emailProviderId,
+        } satisfies DefaultEmailProviderResource,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+  };
+
+  const options = emailProviders.map((ep) => {
+    let name: string;
+    switch (ep.type) {
+      case EmailProviderType.Sendgrid:
+        name = "SendGrid";
+        break;
+      default:
+        assertUnreachable(ep.type, `Unknown email provider type ${ep.type}`);
+    }
+    return {
+      value: ep.id,
+      label: name,
+    };
+  });
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "default-email-section",
+          fieldGroups: [
+            {
+              id: "default-email-fields",
+              name: "Default Email Configuration",
+              fields: [
+                {
+                  id: "default-email-provider",
+                  type: "select",
+                  fieldProps: {
+                    label: "Default Email Provider",
+                    value: defaultProvider ?? "",
+                    onChange: (value) => {
+                      setState((state) => {
+                        state.defaultProvider = value;
+                      });
+                      defaultHandler(value);
+                    },
+                    options,
+                    helperText:
+                      "In order to use email, at least 1 email provider must be configured.",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
   );
 }
 
 function EmailChannelConfig() {
   return (
     <>
-      <SectionSubHeader
-        id={settingsSectionIds.emailChannel}
-        title="Email"
-        description="In order to use email, at least 1 email provider must be configured."
-      />
+      <SectionSubHeader id={settingsSectionIds.emailChannel} title="Email" />
+      <DefaultEmailConfig />
       <SendGridConfig />
     </>
   );

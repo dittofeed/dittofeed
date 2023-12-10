@@ -7384,6 +7384,7 @@ __metadata:
     typescript: ^5.2.2
     unidiff: ^1.0.2
     use-debounce: ^9.0.2
+    use-immer: ^0.9.0
     utility-types: ^3.10.0
     uuid: ^9.0.0
     zustand: ^4.1.4
@@ -15310,6 +15311,16 @@ __metadata:
   peerDependencies:
     react: ">=16.8.0"
   checksum: e9aa3b89abe28bd746cfb5e7edc281d786788b6afe4063cfd8e34c4fff58af212809f13bffa16ff291bead199abb497325330e66d1e772d1843853edbd4646ba
+  languageName: node
+  linkType: hard
+
+"use-immer@npm:^0.9.0":
+  version: 0.9.0
+  resolution: "use-immer@npm:0.9.0"
+  peerDependencies:
+    immer: ">=2.0.0"
+    react: ^16.8.0 || ^17.0.1 || ^18.0.0
+  checksum: 3f02e31d38f354125e6cffaaed0a08d9bf122b9df261aa7b38a25246813b3bd8b22bf97b192099d4e84adcfbbb07e69e14ba29520e0ac8d93f3991ef3a3652b4
   languageName: node
   linkType: hard
 
