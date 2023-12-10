@@ -2,9 +2,11 @@ import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma from "backend-lib/src/prisma";
 import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
+import { isObject } from "isomorphic-lib/src/objects";
 import {
   DeleteSecretRequest,
   EmptyResponse,
+  JSONValue,
   ListSecretsRequest,
   SecretResource,
   UpsertSecretRequest,
@@ -55,7 +57,8 @@ export default async function secretsController(fastify: FastifyInstance) {
     "/",
     {
       schema: {
-        description: "Create or update a secret.",
+        description:
+          "Create or update a secret. Will patch the secret definition if passed.",
 
         body: UpsertSecretRequest,
         response: {
@@ -64,23 +67,53 @@ export default async function secretsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { workspaceId, name, value } = request.body;
-      await prisma().secret.upsert({
-        where: {
-          workspaceId_name: {
+      const { workspaceId, name, value, configValue } = request.body;
+      await prisma().$transaction(async (pTx) => {
+        const secret = await pTx.secret.findUnique({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name,
+            },
+          },
+        });
+        const existingConfigValue = isObject(secret?.configValue)
+          ? secret?.configValue
+          : undefined;
+
+        let newConfig: Record<string, unknown> | undefined;
+        if (configValue) {
+          newConfig = {
+            ...existingConfigValue,
+            ...configValue,
+          };
+        } else {
+          newConfig = undefined;
+        }
+        const configValueToSave = newConfig as
+          | Record<string, JSONValue>
+          | undefined;
+
+        await pTx.secret.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name,
+            },
+          },
+          create: {
             workspaceId,
             name,
+            value,
+            configValue: configValueToSave,
           },
-        },
-        create: {
-          workspaceId,
-          name,
-          value,
-        },
-        update: {
-          value,
-        },
+          update: {
+            value,
+            configValue: configValueToSave,
+          },
+        });
       });
+
       return reply.status(204).send();
     }
   );

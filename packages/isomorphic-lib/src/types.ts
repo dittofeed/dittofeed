@@ -1628,7 +1628,8 @@ export type DeleteWriteKeyResource = Static<typeof DeleteWriteKeyResource>;
 
 export const UpsertSecretRequest = Type.Object({
   name: Type.String(),
-  value: Type.String(),
+  value: Type.Optional(Type.String()),
+  configValue: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
   workspaceId: Type.String(),
 });
 
@@ -2221,4 +2222,11 @@ export interface SubscriptionChangeEvent {
     subscriptionId: string;
     action: SubscriptionChange;
   };
+}
+
+export interface SecretAvailability {
+  workspaceId: string;
+  name: string;
+  value: boolean;
+  configValue?: Record<string, boolean>;
 }

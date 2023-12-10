@@ -32,7 +32,10 @@ import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
-import { SENDGRID_WEBHOOK_SECRET_NAME } from "isomorphic-lib/src/constants";
+import {
+  SENDGRID_SECRET,
+  SENDGRID_WEBHOOK_SECRET_NAME,
+} from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -684,7 +687,12 @@ function SendGridConfig() {
                 {
                   id: "sendgrid-api-key-2",
                   type: "secret",
-                  fieldProps: {},
+                  fieldProps: {
+                    name: SENDGRID_SECRET,
+                    key: "apiKey",
+                    title: "SendGrid API Key",
+                    saved: false,
+                  },
                 },
                 {
                   id: "sendgrid-api-key",
