@@ -33,29 +33,23 @@ import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
-import {
-  SENDGRID_SECRET,
-  SENDGRID_WEBHOOK_SECRET_NAME,
-} from "isomorphic-lib/src/constants";
+import { SENDGRID_SECRET } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
   DataSourceVariantType,
-  EmailProviderResource,
   EmailProviderType,
   EphemeralRequestStatus,
   IntegrationResource,
   IntegrationType,
-  PersistedEmailProvider,
   SegmentResource,
   SmsProviderConfig,
   SmsProviderType,
   SyncIntegration,
   TwilioSmsProvider,
   UpsertDataSourceConfigurationResource,
-  UpsertEmailProviderResource,
   UpsertIntegrationResource,
   UpsertSmsProviderRequest,
 } from "isomorphic-lib/src/types";
@@ -363,10 +357,6 @@ function SettingsLayout(
 }
 
 interface SettingsState {
-  sendgridProviderRequest: EphemeralRequestStatus<Error>;
-  sendgridProviderApiKey: string;
-  sendgridWebhookVerificationKeyRequest: EphemeralRequestStatus<Error>;
-  sendgridWebhookVerificationKey: string;
   upsertSmsProviderRequest: EphemeralRequestStatus<Error>;
   segmentIoRequest: EphemeralRequestStatus<Error>;
   segmentIoSharedSecret: string;
@@ -374,16 +364,8 @@ interface SettingsState {
 }
 
 interface SettingsActions {
-  updateSendgridProviderApiKey: (key: string) => void;
-  updateSendgridProviderRequest: (
-    request: EphemeralRequestStatus<Error>
-  ) => void;
   updateSegmentIoSharedSecret: (key: string) => void;
   updateSegmentIoRequest: (request: EphemeralRequestStatus<Error>) => void;
-  updateSendgridWebhookVerificationKey: (key: string) => void;
-  updateSendgridWebhookVerificationRequest: (
-    request: EphemeralRequestStatus<Error>
-  ) => void;
   updateUpsertIntegrationsRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
@@ -398,15 +380,6 @@ export const useSettingsStore = create(
       type: CompletionStatus.NotStarted,
     },
     segmentIoSharedSecret: "",
-    sendgridProviderRequest: {
-      type: CompletionStatus.NotStarted,
-    },
-    sendgridProviderApiKey: "",
-    sendgridFromEmail: "",
-    sendgridWebhookVerificationKey: "",
-    sendgridWebhookVerificationKeyRequest: {
-      type: CompletionStatus.NotStarted,
-    },
     upsertIntegrationsRequest: {
       type: CompletionStatus.NotStarted,
     },
@@ -416,26 +389,6 @@ export const useSettingsStore = create(
     updateUpsertIntegrationsRequest: (request) => {
       set((state) => {
         state.upsertIntegrationsRequest = request;
-      });
-    },
-    updateSendgridProviderApiKey: (key) => {
-      set((state) => {
-        state.sendgridProviderApiKey = key;
-      });
-    },
-    updateSendgridProviderRequest: (request) => {
-      set((state) => {
-        state.sendgridProviderRequest = request;
-      });
-    },
-    updateSendgridWebhookVerificationKey: (key) => {
-      set((state) => {
-        state.sendgridWebhookVerificationKey = key;
-      });
-    },
-    updateSendgridWebhookVerificationRequest: (request) => {
-      set((state) => {
-        state.sendgridWebhookVerificationKeyRequest = request;
       });
     },
     updateSegmentIoSharedSecret: (key) => {
