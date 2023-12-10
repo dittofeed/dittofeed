@@ -17,6 +17,7 @@ import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
+import SimpleTextField from "./form/SimpleTextField";
 
 export enum SecretStateType {
   Saved = "Saved",
@@ -57,9 +58,10 @@ export interface SecretEditorProps {
   // whether the secret is saved or not on page load
   saved: boolean;
   // used to describe the secret in the UI
-  title: string;
+  label: string;
   // type of secret, passed in payload
   type: string;
+  helperText?: string;
 }
 
 function initialState(saved: boolean): SecretState {
@@ -94,18 +96,24 @@ function SecretTextField({
   onVisibilityChange,
   autoFocus,
   onChange,
+  helperText,
+  label,
 }: {
   autoFocus?: boolean;
   onVisibilityChange: () => void;
   showValue: boolean;
+  label: string;
   onChange: React.ComponentProps<typeof TextField>["onChange"];
+  helperText?: string;
 }) {
   return (
-    <TextField
+    <SimpleTextField
       autoFocus={autoFocus}
       type={showValue ? "text" : "password"}
       sx={{ flex: 1 }}
+      label={label}
       onChange={onChange}
+      helperText={helperText}
       InputProps={{
         endAdornment: (
           <InputAdornment position="end">
@@ -133,8 +141,9 @@ export default function SecretEditor({
   name,
   saved,
   secretKey,
-  title,
+  label,
   type,
+  helperText,
 }: SecretEditorProps) {
   const { workspace: workspaceResult, apiBase } = useAppStorePick([
     "workspace",
@@ -154,7 +163,7 @@ export default function SecretEditor({
         request: updateRequest,
         setRequest: (request) => setState(setRequest(request)),
         responseSchema: EmptyResponse,
-        onSuccessNotice: `Successfully deleted ${title}`,
+        onSuccessNotice: `Successfully deleted ${label}`,
         setResponse: () => {
           setState((draft) => {
             draft.editingState = {
@@ -163,7 +172,7 @@ export default function SecretEditor({
             };
           });
         },
-        onFailureNoticeHandler: () => `API Error: Failed to update ${title}`,
+        onFailureNoticeHandler: () => `API Error: Failed to update ${label}`,
         requestConfig: {
           method: "PUT",
           url: `${apiBase}/api/secrets`,
@@ -182,7 +191,13 @@ export default function SecretEditor({
 
       field = (
         <>
-          <TextField disabled placeholder="**********" sx={{ flex: 1 }} />
+          <SimpleTextField
+            disabled
+            value="**********"
+            sx={{ flex: 1 }}
+            helperText={helperText}
+            label={label}
+          />
           <Button
             onClick={() => {
               setState((draft) => {
@@ -210,8 +225,8 @@ export default function SecretEditor({
         request: updateRequest,
         setRequest: (request) => setState(setRequest(request)),
         responseSchema: EmptyResponse,
-        onSuccessNotice: `Successfully updated ${title}`,
-        onFailureNoticeHandler: () => `API Error: Failed to update ${title}`,
+        onSuccessNotice: `Successfully updated ${label}`,
+        onFailureNoticeHandler: () => `API Error: Failed to update ${label}`,
         setResponse: () => {
           setState((draft) => {
             draft.editingState = {
@@ -237,6 +252,8 @@ export default function SecretEditor({
       field = (
         <>
           <SecretTextField
+            helperText={helperText}
+            label={label}
             onChange={(e) => {
               setState((draft) => {
                 if (draft.editingState.type !== SecretStateType.SavedEditing) {
@@ -265,8 +282,8 @@ export default function SecretEditor({
         request: updateRequest,
         setRequest: (request) => setState(setRequest(request)),
         responseSchema: EmptyResponse,
-        onSuccessNotice: `Successfully updated ${title}`,
-        onFailureNoticeHandler: () => `API Error: Failed to update ${title}`,
+        onSuccessNotice: `Successfully updated ${label}`,
+        onFailureNoticeHandler: () => `API Error: Failed to update ${label}`,
         setResponse: () => {
           setState((draft) => {
             draft.editingState = {
@@ -293,6 +310,8 @@ export default function SecretEditor({
       field = (
         <>
           <SecretTextField
+            label={label}
+            helperText={helperText}
             onVisibilityChange={() => setState(toggleVisibility)}
             onChange={(e) => {
               setState((draft) => {
@@ -306,6 +325,7 @@ export default function SecretEditor({
             showValue={showValue}
           />
           <LoadingButton
+            variant="contained"
             loading={updateRequest.type === CompletionStatus.InProgress}
             onClick={updateHandler}
           >

@@ -699,7 +699,9 @@ function SendGridConfig() {
                   fieldProps: {
                     name: SENDGRID_SECRET,
                     secretKey: "apiKey",
-                    title: "SendGrid API Key",
+                    label: "Sendgrid API Key",
+                    helperText:
+                      "API key, used internally by Dittofeed to send emails via sendgrid.",
                     type: EmailProviderType.Sendgrid,
                     saved:
                       secretAvailability.find((s) => s.name === SENDGRID_SECRET)
