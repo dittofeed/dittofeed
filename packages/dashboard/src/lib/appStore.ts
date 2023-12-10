@@ -202,6 +202,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         workspace: {
           type: CompletionStatus.NotStarted,
         },
+        secretAvailability: [],
         member: null,
         dataSourceConfigurations: {
           type: CompletionStatus.NotStarted,

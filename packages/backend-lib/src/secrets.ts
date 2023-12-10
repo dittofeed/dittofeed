@@ -1,7 +1,7 @@
 import { isStringPresent } from "isomorphic-lib/src/strings";
 
 import prisma from "./prisma";
-import { SecretAvailability } from "./types";
+import { SecretAvailabilityResource } from "./types";
 
 export async function getSecretAvailability({
   workspaceId,
@@ -9,7 +9,7 @@ export async function getSecretAvailability({
 }: {
   workspaceId: string;
   names?: string[];
-}): Promise<SecretAvailability[]> {
+}): Promise<SecretAvailabilityResource[]> {
   const secrets = await prisma().secret.findMany({
     where: {
       workspaceId,

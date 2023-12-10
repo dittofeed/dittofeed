@@ -28,6 +28,7 @@ import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
 import logger from "backend-lib/src/logger";
+import { getSecretAvailability } from "backend-lib/src/secrets";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
@@ -149,6 +150,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       integrations,
       segments,
       smsProviders,
+      secretAvailability,
     ] = await Promise.all([
       (
         await prisma().emailProvider.findMany({
@@ -195,6 +197,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           secret: true,
         },
       }),
+      getSecretAvailability({
+        workspaceId,
+        names: [SENDGRID_SECRET],
+      }),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -202,6 +208,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         type: CompletionStatus.Successful,
         value: emailProviders,
       },
+      secretAvailability,
       defaultEmailProvider: {
         type: CompletionStatus.Successful,
         value: defaultEmailProviderRecord,
@@ -584,11 +591,13 @@ function SendGridConfig() {
     apiBase,
     workspace: workspaceResult,
     upsertEmailProvider,
+    secretAvailability,
   } = useAppStorePick([
     "emailProviders",
     "apiBase",
     "workspace",
     "upsertEmailProvider",
+    "secretAvailability",
   ]);
   const apiKey = useSettingsStore((store) => store.sendgridProviderApiKey);
   const sendgridProviderRequest = useSettingsStore(
@@ -689,9 +698,12 @@ function SendGridConfig() {
                   type: "secret",
                   fieldProps: {
                     name: SENDGRID_SECRET,
-                    key: "apiKey",
+                    secretKey: "apiKey",
                     title: "SendGrid API Key",
-                    saved: false,
+                    type: EmailProviderType.Sendgrid,
+                    saved:
+                      secretAvailability.find((s) => s.name === SENDGRID_SECRET)
+                        ?.configValue?.apiKey ?? false,
                   },
                 },
                 {

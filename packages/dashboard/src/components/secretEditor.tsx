@@ -53,11 +53,13 @@ export interface SecretEditorProps {
   // the name of the secret config referenced by this component
   name: string;
   // the key within the secret config referenced by this component
-  key: string;
+  secretKey: string;
   // whether the secret is saved or not on page load
   saved: boolean;
   // used to describe the secret in the UI
   title: string;
+  // type of secret, passed in payload
+  type: string;
 }
 
 function initialState(saved: boolean): SecretState {
@@ -89,29 +91,21 @@ function disableSavedEditing(state: SecretState): SecretState {
 
 function SecretTextField({
   showValue,
-  onLeave,
   onVisibilityChange,
   autoFocus,
+  onChange,
 }: {
   autoFocus?: boolean;
   onVisibilityChange: () => void;
-  onLeave?: () => void;
   showValue: boolean;
+  onChange: React.ComponentProps<typeof TextField>["onChange"];
 }) {
   return (
     <TextField
       autoFocus={autoFocus}
       type={showValue ? "text" : "password"}
-      onBlur={() => {
-        if (onLeave) {
-          onLeave();
-        }
-      }}
-      onKeyUp={(e) => {
-        if (onLeave && (e.key === "Enter" || e.key === "Escape")) {
-          onLeave();
-        }
-      }}
+      sx={{ flex: 1 }}
+      onChange={onChange}
       InputProps={{
         endAdornment: (
           <InputAdornment position="end">
@@ -135,38 +129,12 @@ function setRequest(request: EphemeralRequestStatus<Error>) {
   };
 }
 
-// function generateHandler({config, onComplete, updateRequest}: {config: Record<string, string>, onComplete: () => void, updateRequest: EphemeralRequestStatus<Error>}) {
-//   return apiRequestHandlerFactory({
-//         request: updateRequest,
-//         setRequest: (request) => setState(setRequest(request)),
-//         responseSchema: EmptyResponse,
-//         setResponse: () => {
-//           setState((draft) => {
-//             draft.editingState = {
-//               type: SecretStateType.UnSaved,
-//               value: "",
-//             };
-//           });
-//         },
-//         requestConfig: {
-//           method: "PUT",
-//           url: `${apiBase}/api/secrets`,
-//           data: {
-//             [key]: "",
-//           },
-//           headers: {
-//             "Content-Type": "application/json",
-//           },
-//         },
-//       }
-
-// }
-
 export default function SecretEditor({
   name,
   saved,
-  key,
+  secretKey,
   title,
+  type,
 }: SecretEditorProps) {
   const { workspace: workspaceResult, apiBase } = useAppStorePick([
     "workspace",
@@ -203,7 +171,7 @@ export default function SecretEditor({
             workspaceId: workspaceResult.value.id,
             name,
             configValue: {
-              [key]: "",
+              [secretKey]: "",
             },
           } satisfies UpsertSecretRequest,
           headers: {
@@ -213,8 +181,8 @@ export default function SecretEditor({
       });
 
       field = (
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <TextField disabled placeholder="**********" />
+        <>
+          <TextField disabled placeholder="**********" sx={{ flex: 1 }} />
           <Button
             onClick={() => {
               setState((draft) => {
@@ -233,7 +201,7 @@ export default function SecretEditor({
           >
             Delete
           </LoadingButton>
-        </Stack>
+        </>
       );
       break;
     }
@@ -258,7 +226,7 @@ export default function SecretEditor({
             workspaceId: workspaceResult.value.id,
             name,
             configValue: {
-              [key]: editingState.value,
+              [secretKey]: editingState.value,
             },
           } satisfies UpsertSecretRequest,
           headers: {
@@ -267,11 +235,19 @@ export default function SecretEditor({
         },
       });
       field = (
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <>
           <SecretTextField
+            onChange={(e) => {
+              setState((draft) => {
+                if (draft.editingState.type !== SecretStateType.SavedEditing) {
+                  return;
+                }
+
+                draft.editingState.value = e.target.value;
+              });
+            }}
             onVisibilityChange={() => setState(toggleVisibility)}
             showValue={showValue}
-            onLeave={() => setState(disableSavedEditing)}
           />
           <LoadingButton
             loading={updateRequest.type === CompletionStatus.InProgress}
@@ -280,7 +256,7 @@ export default function SecretEditor({
             Save
           </LoadingButton>
           <Button onClick={() => setState(disableSavedEditing)}>Cancel</Button>
-        </Stack>
+        </>
       );
       break;
     }
@@ -305,7 +281,8 @@ export default function SecretEditor({
             workspaceId: workspaceResult.value.id,
             name,
             configValue: {
-              [key]: editingState.value,
+              type,
+              [secretKey]: editingState.value,
             },
           } satisfies UpsertSecretRequest,
           headers: {
@@ -314,9 +291,18 @@ export default function SecretEditor({
         },
       });
       field = (
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <>
           <SecretTextField
             onVisibilityChange={() => setState(toggleVisibility)}
+            onChange={(e) => {
+              setState((draft) => {
+                if (draft.editingState.type !== SecretStateType.UnSaved) {
+                  return;
+                }
+
+                draft.editingState.value = e.target.value;
+              });
+            }}
             showValue={showValue}
           />
           <LoadingButton
@@ -325,11 +311,21 @@ export default function SecretEditor({
           >
             Save
           </LoadingButton>
-        </Stack>
+        </>
       );
       break;
     }
   }
 
-  return field;
+  return (
+    <Stack
+      direction="row"
+      className="secret-editor"
+      alignItems="center"
+      spacing={1}
+      sx={{ width: "100%" }}
+    >
+      {field}
+    </Stack>
+  );
 }

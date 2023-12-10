@@ -2224,7 +2224,7 @@ export interface SubscriptionChangeEvent {
   };
 }
 
-export interface SecretAvailability {
+export interface SecretAvailabilityResource {
   workspaceId: string;
   name: string;
   value: boolean;

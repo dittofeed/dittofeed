@@ -17,6 +17,7 @@ import {
   MessageTemplateResource,
   PersistedEmailProvider,
   RequestStatus,
+  SecretAvailabilityResource,
   SecretResource,
   SegmentNode,
   SegmentNodeType,
@@ -77,6 +78,7 @@ export type AppState = {
   getTraitsRequest: EphemeralRequestStatus<Error>;
   writeKeys: WriteKeyResource[];
   secrets: SecretResource[];
+  secretAvailability: SecretAvailabilityResource[];
   defaultEmailProvider: RequestStatus<
     DefaultEmailProviderResource | null,
     Error
