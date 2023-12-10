@@ -694,7 +694,7 @@ function SendGridConfig() {
               name: "SendGrid",
               fields: [
                 {
-                  id: "sendgrid-api-key-2",
+                  id: "sendgrid-api-key",
                   type: "secret",
                   fieldProps: {
                     name: SENDGRID_SECRET,
@@ -709,48 +709,18 @@ function SendGridConfig() {
                   },
                 },
                 {
-                  id: "sendgrid-api-key",
-                  type: "text",
-                  fieldProps: {
-                    label: "API Key",
-                    helperText:
-                      "API key, used internally by Dittofeed to send emails via sendgrid.",
-                    onChange: (e) => {
-                      updateSendgridProviderApiKey(e.target.value);
-                    },
-                    value: apiKey,
-                  },
-                },
-                {
                   id: "sendgrid-webhook-key",
-                  type: "text",
+                  type: "secret",
                   fieldProps: {
+                    name: SENDGRID_SECRET,
+                    secretKey: "apiKey",
                     label: "Webhook Key",
                     helperText:
                       "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
-                    variant: "outlined",
-                    type: showWebhookKey ? "text" : "password",
-                    placeholder: showWebhookKey ? undefined : "**********",
-                    onChange: (e) => setWebhookKey(e.target.value),
-                    sx: { flex: 1 },
-                    value: webhookKey,
-                    InputProps: {
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle password visibility"
-                            onClick={handleClickShowPassword}
-                            onMouseDown={handleMouseDownPassword}
-                          >
-                            {showWebhookKey ? (
-                              <Visibility />
-                            ) : (
-                              <VisibilityOff />
-                            )}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    },
+                    type: EmailProviderType.Sendgrid,
+                    saved:
+                      secretAvailability.find((s) => s.name === SENDGRID_SECRET)
+                        ?.configValue?.webhookKey ?? false,
                   },
                 },
               ],
@@ -758,22 +728,7 @@ function SendGridConfig() {
           ],
         },
       ]}
-    >
-      {/* TODO make loading button */}
-      <Button
-        onClick={onSubmit}
-        variant="contained"
-        disabled={requestInProgress}
-        sx={{
-          alignSelf: {
-            xs: "start",
-            sm: "end",
-          },
-        }}
-      >
-        Save
-      </Button>
-    </Fields>
+    />
   );
 }
 
