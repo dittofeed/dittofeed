@@ -7,6 +7,7 @@ import {
 import { PropsWithChildren } from "react";
 
 import { SecretEditorProps } from "../secretEditor";
+import { SelectFieldProps } from "./select";
 
 type ID = string | number;
 
@@ -34,16 +35,22 @@ export interface ButtonField extends Field {
   fieldProps: ButtonProps;
 }
 
-interface SecretField extends Field {
+export interface SecretField extends Field {
   type: "secret";
   fieldProps: SecretEditorProps;
+}
+
+export interface SelectField extends Field {
+  type: "select";
+  fieldProps: SelectFieldProps;
 }
 
 export type FieldComponents =
   | TextField
   | SecretField
   | ToggleField
-  | ButtonField;
+  | ButtonField
+  | SelectField;
 
 export type FieldGroupProps = PropsWithChildren<{
   id: ID;

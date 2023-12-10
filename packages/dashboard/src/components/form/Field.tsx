@@ -9,6 +9,7 @@ import {
 import React from "react";
 
 import SecretEditor from "../secretEditor";
+import { SelectField } from "./select";
 import SimpleTextField from "./SimpleTextField";
 import SimpleToggle from "./SimpleToggle";
 import {
@@ -58,6 +59,9 @@ function Field({ type, fieldProps }: FieldComponents) {
       break;
     case "secret":
       field = <SecretEditor {...fieldProps} />;
+      break;
+    case "select":
+      field = <SelectField {...fieldProps} />;
       break;
   }
 

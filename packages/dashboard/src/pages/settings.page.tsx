@@ -17,9 +17,7 @@ import {
   FormGroup,
   IconButton,
   InputAdornment,
-  MenuItem,
   Paper,
-  Select,
   Stack,
   Switch,
   TextField,
@@ -571,7 +569,7 @@ function SendGridConfig() {
   );
 }
 
-function EmailChannelConfig() {
+function DefaultEmailConfig() {
   const {
     emailProviders,
     apiBase,
@@ -633,41 +631,62 @@ function EmailChannelConfig() {
     })();
   };
 
+  const options = emailProviders.map((ep) => {
+    let name: string;
+    switch (ep.type) {
+      case EmailProviderType.Sendgrid:
+        name = "SendGrid";
+        break;
+      default:
+        assertUnreachable(ep.type, `Unknown email provider type ${ep.type}`);
+    }
+    return {
+      value: ep.id,
+      label: name,
+    };
+  });
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "default-email-section",
+          fieldGroups: [
+            {
+              id: "default-email-fields",
+              name: "Default Email Configuration",
+              fields: [
+                {
+                  id: "default-email-provider",
+                  type: "select",
+                  fieldProps: {
+                    label: "Default Email Provider",
+                    value: defaultProvider ?? "",
+                    onChange: (value) => {
+                      setState((state) => {
+                        state.defaultProvider = value;
+                      });
+                      defaultHandler(value);
+                    },
+                    options,
+                    helperText:
+                      "In order to use email, at least 1 email provider must be configured.",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
+function EmailChannelConfig() {
   return (
     <>
-      <SectionSubHeader
-        id={settingsSectionIds.emailChannel}
-        title="Email"
-        description="In order to use email, at least 1 email provider must be configured."
-      />
-      <Select
-        value={defaultProvider ?? ""}
-        onChange={(e) => {
-          setState((state) => {
-            state.defaultProvider = e.target.value as string;
-          });
-          defaultHandler(e.target.value as string);
-        }}
-      >
-        {emailProviders.map((ep) => {
-          let name: string;
-          switch (ep.type) {
-            case EmailProviderType.Sendgrid:
-              name = "SendGrid";
-              break;
-            default:
-              assertUnreachable(
-                ep.type,
-                `Unknown email provider type ${ep.type}`
-              );
-          }
-          return (
-            <MenuItem value={ep.id} key={ep.id}>
-              {name}
-            </MenuItem>
-          );
-        })}
-      </Select>
+      <SectionSubHeader id={settingsSectionIds.emailChannel} title="Email" />
+      <DefaultEmailConfig />
       <SendGridConfig />
     </>
   );
