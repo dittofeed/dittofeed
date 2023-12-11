@@ -8,7 +8,6 @@ import {
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
 
-import { FEATURE_INCREMENTAL_COMP } from "../constants";
 // Only import the activity types
 import type * as activities from "../temporal/activities";
 import { EnrichedJourney } from "../types";
@@ -16,12 +15,8 @@ import { EnrichedJourney } from "../types";
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
 const {
-  computePropertiesPeriod,
-  findAllJourneysUnsafe,
-  findAllUserProperties,
   computePropertiesIncremental,
   computePropertiesIncrementalArgs,
-  getFeature,
   config,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "5 minutes",
@@ -45,51 +40,6 @@ export interface ComputedPropertiesWorkflowParams {
   basePollingPeriod?: number;
   pollingJitterCoefficient?: number;
   subscribedJourneys?: EnrichedJourney[];
-}
-
-async function processPollingPeriodBatch({
-  workspaceId,
-  tableVersion,
-  currentTime,
-}: {
-  workspaceId: string;
-  tableVersion: string;
-  currentTime: number;
-}) {
-  const [subscribedJourneys, userProperties] = await Promise.all([
-    findAllJourneysUnsafe({
-      where: {
-        workspaceId,
-        status: "Running",
-      },
-    }),
-    findAllUserProperties({
-      workspaceId,
-    }),
-  ]);
-
-  await computePropertiesPeriod({
-    tableVersion,
-    currentTime,
-    workspaceId,
-    subscribedJourneys,
-    userProperties,
-  });
-}
-
-async function useIncremental({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<boolean> {
-  if (!wf.patched(FEATURE_INCREMENTAL_COMP)) {
-    return false;
-  }
-
-  return getFeature({
-    workspaceId,
-    name: FEATURE_INCREMENTAL_COMP,
-  });
 }
 
 export async function computePropertiesWorkflow({
@@ -116,23 +66,13 @@ export async function computePropertiesWorkflow({
     ]);
 
     try {
-      if (await useIncremental({ workspaceId })) {
-        logger.info("Using incremental compute properties");
-        const args = await computePropertiesIncrementalArgs({
-          workspaceId,
-        });
-        await computePropertiesIncremental({
-          ...args,
-          now: currentTime,
-        });
-      } else {
-        logger.info("Using batch compute properties");
-        await processPollingPeriodBatch({
-          workspaceId,
-          tableVersion,
-          currentTime,
-        });
-      }
+      const args = await computePropertiesIncrementalArgs({
+        workspaceId,
+      });
+      await computePropertiesIncremental({
+        ...args,
+        now: currentTime,
+      });
     } catch (e) {
       logger.error("computePropertiesWorkflow failed to re-compute", {
         err: e,

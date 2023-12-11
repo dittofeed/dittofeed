@@ -1,14 +1,11 @@
 import { proxyActivities } from "@temporalio/workflow";
-import * as wf from "@temporalio/workflow";
 
-import { FEATURE_INCREMENTAL_COMP } from "../constants";
 // Only import the activity types
 import type * as activities from "../temporal/activities";
 
-const { performBroadcast, getFeature, performBroadcastIncremental } =
-  proxyActivities<typeof activities>({
-    startToCloseTimeout: "5 minutes",
-  });
+const { performBroadcastIncremental } = proxyActivities<typeof activities>({
+  startToCloseTimeout: "5 minutes",
+});
 
 export function generateBroadcastWorkflowId({
   workspaceId,
@@ -25,28 +22,9 @@ export interface BroadcastWorkflowParams {
   broadcastId: string;
 }
 
-async function useIncremental({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<boolean> {
-  if (!wf.patched(FEATURE_INCREMENTAL_COMP)) {
-    return false;
-  }
-
-  return getFeature({
-    workspaceId,
-    name: FEATURE_INCREMENTAL_COMP,
-  });
-}
-
 export async function broadcastWorkflow({
   workspaceId,
   broadcastId,
 }: BroadcastWorkflowParams): Promise<void> {
-  if (await useIncremental({ workspaceId })) {
-    await performBroadcastIncremental({ workspaceId, broadcastId });
-  } else {
-    await performBroadcast({ workspaceId, broadcastId });
-  }
+  await performBroadcastIncremental({ workspaceId, broadcastId });
 }
