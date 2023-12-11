@@ -22,8 +22,20 @@ export function loadConfig<S extends TSchema, C = Static<S>>({
 }): C {
   registerFormats();
 
-  dotenv.config();
-  dotenv.config({ path: path.join("/dittofeed-mnt", ".env") });
+  const splitCwd = process.cwd().split(path.sep);
+  let baseDirParts: string[] | null = null;
+  for (let i = splitCwd.length - 1; i >= 0; i--) {
+    const part = splitCwd[i];
+    if (part === "packages") {
+      baseDirParts = splitCwd.slice(0, i);
+      break;
+    }
+  }
+  if (baseDirParts === null) {
+    throw new Error("Unable to find packages directory");
+  }
+
+  dotenv.config({ path: path.join(...baseDirParts, ".env") });
 
   const unknownConfig: UnknownConfig = {};
 
