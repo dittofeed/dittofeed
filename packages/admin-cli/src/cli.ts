@@ -8,12 +8,7 @@ import {
   SENDGRID_WEBHOOK_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import {
-  ChannelType,
-  EmailProviderType,
-  EmailTemplateResource,
-  SendgridSecret,
-} from "isomorphic-lib/src/types";
+import { EmailProviderType, SendgridSecret } from "isomorphic-lib/src/types";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
