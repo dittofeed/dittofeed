@@ -1,3 +1,4 @@
+// TODO delete deprecated code for batch user properties
 /* eslint-disable no-await-in-loop */
 import { randomUUID } from "node:crypto";
 
