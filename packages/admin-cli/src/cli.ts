@@ -191,42 +191,6 @@ export async function cli() {
         });
       }
     )
-    .command(
-      "migrations email-templates",
-      "Runs migrations for email templates converting them to generic template model.",
-      () => {},
-      async () => {
-        const emailTemplates = await prisma().emailTemplate.findMany();
-        await Promise.all(
-          emailTemplates.map((emailTemplate) => {
-            const definition: EmailTemplateResource = {
-              type: ChannelType.Email,
-              from: emailTemplate.from,
-              subject: emailTemplate.subject,
-              replyTo: emailTemplate.replyTo ?? undefined,
-              body: emailTemplate.body,
-            };
-
-            return prisma().messageTemplate.upsert({
-              where: {
-                id: emailTemplate.id,
-              },
-              update: {
-                name: emailTemplate.name,
-                definition,
-                workspaceId: emailTemplate.workspaceId,
-              },
-              create: {
-                workspaceId: emailTemplate.workspaceId,
-                id: emailTemplate.id,
-                name: emailTemplate.name,
-                definition,
-              },
-            });
-          })
-        );
-      }
-    )
     .demandCommand(1, "# Please provide a valid command")
     .help()
     .parse();
