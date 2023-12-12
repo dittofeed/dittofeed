@@ -1,16 +1,15 @@
 /* eslint-disable no-await-in-loop */
+
 import { Prisma } from "@prisma/client";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import pLimit from "p-limit";
 import { mapValues } from "remeda";
-import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
+import { v5 as uuidv5 } from "uuid";
 
 import {
   ClickHouseQueryBuilder,
   command,
-  createClickhouseClient,
   getChCompatibleUuid,
-  query,
+  query as chQuery,
   streamClickhouseQuery,
 } from "../clickhouse";
 import config from "../config";
@@ -56,8 +55,6 @@ import {
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
-import { BaseResultSet } from "@clickhouse/client";
-import { Readable } from "node:stream";
 
 function broadcastSegmentToPerformed(
   segmentId: string,
@@ -1644,17 +1641,6 @@ export async function computeAssignments({
   });
 }
 
-// FIXME delete
-let LIMIT: pLimit.Limit | null = null;
-
-// FIXME dlete
-function limit() {
-  if (!LIMIT) {
-    LIMIT = pLimit(config().readQueryConcurrency);
-  }
-  return LIMIT;
-}
-
 async function processRows({
   rows,
   workspaceId,
@@ -1945,46 +1931,6 @@ export async function processAssignments({
 
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
-  // const tmpTableName = `computed_properties_to_process_${getChCompatibleUuid()}`;
-  // [00:32:11 UTC] INFO: ClickHouse session ID: 55f7ed85_de39_433d_af03_37b6a935d30f
-  // [00:32:11 UTC] DEBUG: Executing ClickHouse command.
-  //     queryId: "6bc1dd7a_1a95_4a72_9544_13af20e79a2f"
-  //     params: {
-  //       "query": "CREATE TEMPORARY TABLE IF NOT EXISTS computed_properties_to_process_6f37c8c2_3899_4911_9eda_b0b548bf6660;",
-  //       "clickhouse_settings": {
-  //         "wait_end_of_query": 1
-  //       }
-  //     }
-  // [00:32:12 UTC] INFO: cleanup temp table
-  //     workspaceId: "6706d16a-7ba2-4b26-a07d-ffcb9fa7e8fd"
-  //     queryId: "0755d00b-7912-4db8-a2b6-ee7e50bf35f5"
-  // [00:32:12 UTC] ERROR: failed to compute properties incrementally
-  //     workspaceId: "6706d16a-7ba2-4b26-a07d-ffcb9fa7e8fd"
-  //     err: {
-  //       "type": "ClickHouseError",
-  //       "message": "Incorrect CREATE query: required list of column descriptions or AS section or SELECT. ",
-  //       "stack":
-  //           Error: Incorrect CREATE query: required list of column descriptions or AS section or SELECT.
-  //               at parseError (/Users/maxwellgurewitz/dev/dittofeed/node_modules/packages/client-common/src/error/parse_error.ts:29:12)
-  //               at ClientRequest.onResponse (/Users/maxwellgurewitz/dev/dittofeed/node_modules/packages/client-node/src/connection/node_base_connection.ts:143:28)
-  //               at processTicksAndRejections (node:internal/process/task_queues:95:5)
-  //       "code": "80"
-  //     }
-  // const createTmpTableQuery = `
-  //   CREATE TEMPORARY TABLE IF NOT EXISTS ${tmpTableName}
-  //   (
-  //     workspace_id LowCardinality(String),
-  //     type Enum('user_property' = 1, 'segment' = 2),
-  //     computed_property_id LowCardinality(String),
-  //     user_id String,
-  //     segment_value Boolean,
-  //     user_property_value String,
-  //     max_assigned_at DateTime64(3),
-  //     processed_for LowCardinality(String),
-  //     processed_for_type LowCardinality(String)
-  //   );
-  // `;
-
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
    *
@@ -1997,101 +1943,6 @@ export async function processAssignments({
    * already been assigned.
    * 4. It filters out false segment assignments to journeys.
    */
-  // const insertIntoTmpTableQuery = `
-  //   INSERT INTO ${tmpTableName}
-  //   SELECT
-  //     cpa.workspace_id,
-  //     cpa.type,
-  //     cpa.computed_property_id,
-  //     cpa.user_id,
-  //     cpa.latest_segment_value,
-  //     cpa.latest_user_property_value,
-  //     cpa.max_assigned_at,
-  //     cpa.processed_for,
-  //     cpa.processed_for_type
-  //   FROM (
-  //     SELECT
-  //         workspace_id,
-  //         type,
-  //         computed_property_id,
-  //         user_id,
-  //         argMax(segment_value, assigned_at) latest_segment_value,
-  //         argMax(user_property_value, assigned_at) latest_user_property_value,
-  //         max(assigned_at) max_assigned_at,
-  //         arrayJoin(
-  //             arrayConcat(
-  //                 if(
-  //                     type = 'segment' AND indexOf(${subscribedJourneysKeysQuery}, computed_property_id) > 0,
-  //                     arrayMap(i -> ('journey', i), arrayElement(${subscribedJourneysValuesQuery}, indexOf(${subscribedJourneysKeysQuery}, computed_property_id))),
-  //                     []
-  //                 ),
-  //                 if(
-  //                     type = 'user_property' AND indexOf(${subscribedIntegrationsUserPropertyKeysQuery}, computed_property_id) > 0,
-  //                     arrayMap(i -> ('integration', i), arrayElement(${subscribedIntegrationsUserPropertyValuesQuery}, indexOf(${subscribedIntegrationsUserPropertyKeysQuery}, computed_property_id))),
-  //                     []
-  //                 ),
-  //                 if(
-  //                     type = 'segment' AND indexOf(${subscribedIntegrationsSegmentKeysQuery}, computed_property_id) > 0,
-  //                     arrayMap(i -> ('integration', i), arrayElement(${subscribedIntegrationsSegmentValuesQuery}, indexOf(${subscribedIntegrationsSegmentKeysQuery}, computed_property_id))),
-  //                     []
-  //                 ),
-  //                 [('pg', 'pg')]
-  //             )
-  //         ) as processed,
-  //         processed.1 as processed_for_type,
-  //         processed.2 as processed_for
-  //     FROM computed_property_assignments_v2
-  //     WHERE workspace_id = ${workspaceIdParam}
-  //     GROUP BY
-  //         workspace_id,
-  //         type,
-  //         computed_property_id,
-  //         user_id
-  //   ) cpa
-  //   LEFT JOIN (
-  //     SELECT
-  //       workspace_id,
-  //       computed_property_id,
-  //       user_id,
-  //       processed_for_type,
-  //       processed_for,
-  //       argMax(segment_value, processed_at) segment_value,
-  //       argMax(user_property_value, processed_at) user_property_value
-  //     FROM processed_computed_properties_v2
-  //     GROUP BY
-  //       workspace_id,
-  //       computed_property_id,
-  //       user_id,
-  //       processed_for_type,
-  //       processed_for
-  //   ) pcp
-  //   ON
-  //     cpa.workspace_id = pcp.workspace_id AND
-  //     cpa.computed_property_id = pcp.computed_property_id AND
-  //     cpa.user_id = pcp.user_id AND
-  //     cpa.processed_for = pcp.processed_for AND
-  //     cpa.processed_for_type = pcp.processed_for_type
-  //   WHERE (
-  //     cpa.latest_user_property_value != pcp.user_property_value
-  //     OR cpa.latest_segment_value != pcp.segment_value
-  //   )
-  //   AND (
-  //       (
-  //           cpa.type = 'user_property'
-  //           AND cpa.latest_user_property_value != '""'
-  //           AND cpa.latest_user_property_value != ''
-  //       )
-  //       OR (
-  //           cpa.type = 'segment'
-  //           AND cpa.latest_segment_value = true
-  //       )
-  //       OR (
-  //           pcp.workspace_id != ''
-  //           AND cpa.processed_for_type != 'journey'
-  //       )
-  //   )
-  // `;
-
   const selectQuery = `
     SELECT
       cpa.workspace_id,
@@ -2188,7 +2039,7 @@ export async function processAssignments({
 
   const pageQueryId = getChCompatibleUuid();
 
-  const resultSet = await query({
+  const resultSet = await chQuery({
     query: selectQuery,
     query_id: pageQueryId,
     query_params: qb.getQueries(),
@@ -2213,128 +2064,6 @@ export async function processAssignments({
       "failed to process rows"
     );
   }
-
-  // const ch = createClickhouseClient({
-  //   enableSession: true,
-  // });
-
-  // try {
-  //   await command(
-  //     {
-  //       query: createTmpTableQuery,
-  //       clickhouse_settings: { wait_end_of_query: 1 },
-  //     },
-  //     { clickhouseClient: ch }
-  //   );
-
-  //   const tmpTableQueryId = getChCompatibleUuid();
-  //   await command(
-  //     {
-  //       query: insertIntoTmpTableQuery,
-  //       query_params: qb.getQueries(),
-  //       query_id: tmpTableQueryId,
-  //       clickhouse_settings: { wait_end_of_query: 1 },
-  //     },
-  //     { clickhouseClient: ch }
-  //   );
-
-  //   const { readQueryPageSize } = config();
-
-  //   let offset = 0;
-  //   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-  //   while (true) {
-  //     const paginatedReadQuery = `SELECT * FROM ${tmpTableName} LIMIT ${readQueryPageSize} OFFSET ${offset}`;
-
-  //     let resultSet: Awaited<ReturnType<(typeof ch)["query"]>>;
-  //     const pageQueryId = uuidv4();
-
-  //     try {
-  //       let receivedRows = 0;
-  //       resultSet = await limit()(() =>
-  //         ch.query({
-  //           query: paginatedReadQuery,
-  //           query_id: pageQueryId,
-  //           format: "JSONEachRow",
-  //           clickhouse_settings: { wait_end_of_query: 1 },
-  //         })
-  //       );
-
-  //       try {
-  //         await streamClickhouseQuery(resultSet, async (rows) => {
-  //           receivedRows += rows.length;
-  //           await processRows({
-  //             rows,
-  //             workspaceId,
-  //             subscribedJourneys: journeys,
-  //           });
-  //         });
-  //       } catch (e) {
-  //         logger().error(
-  //           {
-  //             err: e,
-  //             pageQueryId,
-  //             tmpTableQueryId,
-  //           },
-  //           "failed to process rows"
-  //         );
-  //       }
-
-  //       // If no rows were fetched in this iteration, break out of the loop.
-  //       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  //       if (receivedRows < readQueryPageSize) {
-  //         break;
-  //       }
-
-  //       // Increment the offset by PAGE_SIZE to fetch the next set of rows in the next iteration.
-  //       offset += readQueryPageSize;
-  //     } catch (e) {
-  //       logger().error(
-  //         {
-  //           workspaceId,
-  //           queryId: pageQueryId,
-  //           err: e,
-  //           readQueryPageSize,
-  //           offset,
-  //         },
-  //         "failed read query page"
-  //       );
-  //       throw e;
-  //     }
-  //     logger().info(
-  //       {
-  //         workspaceId,
-  //         queryId: pageQueryId,
-  //         readQueryPageSize,
-  //         offset,
-  //       },
-  //       "read query page"
-  //     );
-  //   }
-  // } finally {
-  //   const queryId = uuidv4();
-  //   try {
-  //     await ch.command({
-  //       query: `DROP TABLE IF EXISTS ${tmpTableName}`,
-  //       query_id: queryId,
-  //     });
-  //   } catch (e) {
-  //     logger().error(
-  //       {
-  //         workspaceId,
-  //         queryId,
-  //         err: e,
-  //       },
-  //       "failed to cleanup temp table"
-  //     );
-  //   }
-  //   logger().info(
-  //     {
-  //       workspaceId,
-  //       queryId,
-  //     },
-  //     "cleanup temp table"
-  //   );
-  // }
 
   // TODO encorporate existing periods into query
   const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
