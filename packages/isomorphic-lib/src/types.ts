@@ -926,6 +926,7 @@ export const TestEmailProvider = Type.Object({
 
 export type TestEmailProvider = Static<typeof TestEmailProvider>;
 
+// FIXME
 export const SendgridEmailProvider = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
@@ -1862,6 +1863,7 @@ export const EmailSendgridSuccess = Type.Object({
   type: Type.Literal(EmailProviderType.Sendgrid),
 });
 
+// FIXME
 export type EmailSendgridSuccess = Static<typeof EmailSendgridSuccess>;
 
 export const EmailServiceProviderSuccess = Type.Union([
@@ -1980,6 +1982,7 @@ export type MessageSendBadConfiguration = Static<
   typeof MessageSendBadConfiguration
 >;
 
+// FIXME
 export const MessageSendgridServiceFailure = Type.Object({
   type: Type.Literal(EmailProviderType.Sendgrid),
   status: Type.Optional(Type.Number()),
