@@ -237,8 +237,8 @@ type TableStep =
 
 interface TableTest {
   description: string;
-  skip?: boolean;
-  only?: boolean;
+  skip?: true;
+  only?: true;
   userProperties: Pick<UserPropertyResource, "name" | "definition">[];
   segments: Pick<SegmentResource, "name" | "definition">[];
   steps: TableStep[];

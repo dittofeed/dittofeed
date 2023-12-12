@@ -33,7 +33,7 @@ export function loadConfig<S extends TSchema, C = Static<S>>({
     }
   }
   if (baseDirParts === null) {
-    throw new Error("Unable to find packages directory");
+    baseDirParts = splitCwd;
   }
   const baseDir = path.resolve(path.sep, ...baseDirParts, ".env");
   dotenv.config({ path: baseDir });

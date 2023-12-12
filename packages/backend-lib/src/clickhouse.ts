@@ -144,10 +144,10 @@ export function clickhouseClient() {
 }
 
 export async function streamClickhouseQuery(
-  query: BaseResultSet<Readable>,
+  q: BaseResultSet<Readable>,
   cb: (rows: unknown[]) => Promise<void> | void
 ): Promise<void> {
-  const stream = query.stream();
+  const stream = q.stream();
   const rowPromises: Promise<unknown>[] = [];
 
   stream.on("data", (rows: Row[]) => {
@@ -178,6 +178,7 @@ export async function command(
     clickhouseClient: client = clickhouseClient(),
   }: {
     clickhouseClient?: ClickHouseClient<Readable>;
+    queryId?: string;
   } = {}
 ): Promise<ReturnType<ClickHouseClient["command"]>> {
   const queryId = params.query_id ?? getChCompatibleUuid();
@@ -186,6 +187,25 @@ export async function command(
     return client.command({ query_id: queryId, ...params });
   } catch (e) {
     logger().error({ queryId, params, error: e }, "ClickHouse command failed.");
+    throw e;
+  }
+}
+
+export async function query(
+  params: Parameters<ClickHouseClient["query"]>[0],
+  {
+    clickhouseClient: client = clickhouseClient(),
+  }: {
+    clickhouseClient?: ClickHouseClient<Readable>;
+    queryId?: string;
+  } = {}
+): Promise<BaseResultSet<Readable>> {
+  const queryId = params.query_id ?? getChCompatibleUuid();
+  try {
+    logger().debug({ queryId, params }, "Executing ClickHouse query.");
+    return client.query({ query_id: queryId, ...params });
+  } catch (e) {
+    logger().error({ queryId, params, error: e }, "ClickHouse query failed.");
     throw e;
   }
 }
