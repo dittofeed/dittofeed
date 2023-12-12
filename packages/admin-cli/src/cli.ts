@@ -15,6 +15,7 @@ import yargs from "yargs/yargs";
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
+import { restartComputePropertiesWorkflow } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.
@@ -144,6 +145,12 @@ export async function cli() {
         if (backendConfig().authMode === "multi-tenant") {
           throw new Error("Not supported in multi-tenant mode.");
         }
+        const workspace = await prisma().workspace.findFirst();
+        if (!workspace) {
+          throw new Error("No workspace found.");
+        }
+        await restartComputePropertiesWorkflow({ workspaceId: workspace.id });
+        logger().info("Restarted compute properties workflow.");
       }
     )
     .command(
