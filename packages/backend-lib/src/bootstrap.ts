@@ -30,6 +30,7 @@ import {
 } from "./types";
 import { insertUserEvents } from "./userEvents";
 import { createUserEventsTables } from "./userEvents/clickhouse";
+import { startComputePropertiesWorkflow } from "./segments/computePropertiesWorkflow/lifecycle";
 
 async function bootstrapPostgres({
   workspaceName,
@@ -227,19 +228,8 @@ export async function bootstrapWorker({
   workspaceId: string;
 }) {
   logger().info("Bootstrapping worker.");
-  const temporalClient = await connectWorkflowClient();
   try {
-    await temporalClient.start(computePropertiesWorkflow, {
-      taskQueue: "default",
-      workflowId: generateComputePropertiesId(workspaceId),
-      args: [
-        {
-          tableVersion: config().defaultUserEventsTableVersion,
-          workspaceId,
-          shouldContinueAsNew: true,
-        },
-      ],
-    });
+    await startComputePropertiesWorkflow({ workspaceId });
   } catch (err) {
     logger().error({ err }, "Failed to bootstrap worker.");
   }

@@ -137,6 +137,16 @@ export async function cli() {
         hubspotSync({ workspaceId, email, from, updateEmail })
     )
     .command(
+      "reset-compute-properties",
+      "Resets compute properties workflow.",
+      () => {},
+      async () => {
+        if (backendConfig().authMode === "multi-tenant") {
+          throw new Error("Not supported in multi-tenant mode.");
+        }
+      }
+    )
+    .command(
       "config-print",
       "Prints the backend config used by dittofeed aplications.",
       () => {},
