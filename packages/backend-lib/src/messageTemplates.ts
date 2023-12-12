@@ -5,7 +5,8 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
-import { sendMail as sendEmailSendgrid } from "./destinations/sendgrid";
+import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
+import { sendMail as sendMailSmtp } from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
@@ -493,6 +494,13 @@ export async function sendEmail({
   switch (defaultEmailProvider.emailProvider.type) {
     // FIXME
     case EmailProviderType.Smtp: {
+      // const result = await sendMailSmtp({
+      //   from,
+      //   to,
+      //   subject,
+      //   replyTo,
+      //   body,
+      // });
       break;
     }
     case EmailProviderType.Sendgrid: {
@@ -529,13 +537,12 @@ export async function sendEmail({
         });
       }
 
-      const result = await sendEmailSendgrid({
+      const result = await sendMailSendgrid({
         mailData,
         apiKey: secretConfig.apiKey,
       });
 
       if (result.isErr()) {
-        // FIXME
         return err({
           type: InternalEventType.MessageFailure,
           variant: {

@@ -1,6 +1,12 @@
+import { err, ok, Result } from "neverthrow";
 import { createTransport } from "nodemailer";
 
-import { EmailConfiguration } from "../types";
+import {
+  EmailConfiguration,
+  EmailProviderType,
+  EmailSmtpSuccess,
+  MessageSmtpFailure,
+} from "../types";
 
 export async function sendEmail({
   host,
@@ -17,7 +23,7 @@ export async function sendEmail({
   port?: number;
   username?: string;
   password?: string;
-} & EmailConfiguration) {
+} & EmailConfiguration): Promise<Result<EmailSmtpSuccess, MessageSmtpFailure>> {
   const transport = createTransport({
     host,
     port,
@@ -29,11 +35,23 @@ export async function sendEmail({
           }
         : undefined,
   });
-  await transport.sendMail({
-    from,
-    to,
-    subject,
-    html: body,
-    replyTo,
-  });
+  try {
+    const response = await transport.sendMail({
+      from,
+      to,
+      subject,
+      html: body,
+      replyTo,
+    });
+
+    return ok({
+      type: EmailProviderType.Smtp,
+      messageId: response.messageId,
+    });
+  } catch (e) {
+    return err({
+      type: EmailProviderType.Smtp,
+      message: (e as Error).message,
+    });
+  }
 }

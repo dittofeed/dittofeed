@@ -1872,8 +1872,14 @@ export const EmailSendgridSuccess = Type.Object({
   type: Type.Literal(EmailProviderType.Sendgrid),
 });
 
-// FIXME
 export type EmailSendgridSuccess = Static<typeof EmailSendgridSuccess>;
+
+export const EmailSmtpSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.Smtp),
+  messageId: Type.String(),
+});
+
+export type EmailSmtpSuccess = Static<typeof EmailSmtpSuccess>;
 
 export const EmailServiceProviderSuccess = Type.Union([
   EmailSendgridSuccess,
@@ -1991,7 +1997,6 @@ export type MessageSendBadConfiguration = Static<
   typeof MessageSendBadConfiguration
 >;
 
-// FIXME
 export const MessageSendgridServiceFailure = Type.Object({
   type: Type.Literal(EmailProviderType.Sendgrid),
   status: Type.Optional(Type.Number()),
@@ -2002,8 +2007,16 @@ export type MessageSendgridServiceFailure = Static<
   typeof MessageSendgridServiceFailure
 >;
 
+export const MessageSmtpFailure = Type.Object({
+  type: Type.Literal(EmailProviderType.Smtp),
+  message: Type.String(),
+});
+
+export type MessageSmtpFailure = Static<typeof MessageSmtpFailure>;
+
 export const EmailServiceProviderFailure = Type.Union([
   MessageSendgridServiceFailure,
+  MessageSmtpFailure,
 ]);
 
 export type EmailServiceProviderFailure = Static<
