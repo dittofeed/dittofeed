@@ -164,6 +164,7 @@ export async function getOrCreateEmailProviders({
     switch (ep.type) {
       case EmailProviderType.Test:
         return [];
+      // FIXME
       case EmailProviderType.Sendgrid:
         type = EmailProviderType.Sendgrid;
         break;

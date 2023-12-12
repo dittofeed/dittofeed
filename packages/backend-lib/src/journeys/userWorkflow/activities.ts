@@ -627,6 +627,7 @@ async function sendEmailWithPayload(
       }
 
       switch (channelConfig.emailProvider.type) {
+        // FIXME
         case EmailProviderType.Sendgrid: {
           const headers: Record<string, string> = {};
           const mailData: MailDataRequired = {

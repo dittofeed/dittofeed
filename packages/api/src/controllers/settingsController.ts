@@ -205,6 +205,7 @@ export default async function settingsController(fastify: FastifyInstance) {
       });
 
       let recordType: EmailProviderType;
+      // FIXME
       switch (emailProvider.type) {
         case EmailProviderType.Sendgrid:
           recordType = EmailProviderType.Sendgrid;

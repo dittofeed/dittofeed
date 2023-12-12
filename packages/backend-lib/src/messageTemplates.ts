@@ -491,6 +491,7 @@ export async function sendEmail({
   const secretConfig = secretConfigResult.value;
 
   switch (defaultEmailProvider.emailProvider.type) {
+    // FIXME
     case EmailProviderType.Sendgrid: {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (secretConfig.type !== EmailProviderType.Sendgrid) {
@@ -531,6 +532,7 @@ export async function sendEmail({
       });
 
       if (result.isErr()) {
+        // FIXME
         return err({
           type: InternalEventType.MessageFailure,
           variant: {

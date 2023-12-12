@@ -160,6 +160,7 @@ export default async function contentController(fastify: FastifyInstance) {
       }
       if (result.error.type === InternalEventType.MessageFailure) {
         if (
+          // FIXME
           result.error.variant.type === ChannelType.Email &&
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           result.error.variant.provider.type === EmailProviderType.Sendgrid
