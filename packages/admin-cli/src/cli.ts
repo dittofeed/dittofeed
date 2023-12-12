@@ -3,6 +3,7 @@ import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
+import { restartComputePropertiesWorkflow } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 import {
   SENDGRID_SECRET,
   SENDGRID_WEBHOOK_SECRET_NAME,
@@ -15,7 +16,6 @@ import yargs from "yargs/yargs";
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
-import { restartComputePropertiesWorkflow } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.

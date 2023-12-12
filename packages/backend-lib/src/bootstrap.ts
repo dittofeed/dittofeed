@@ -17,12 +17,8 @@ import { upsertMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
 import { segmentIdentifyEvent } from "./segmentIO";
-import {
-  computePropertiesWorkflow,
-  generateComputePropertiesId,
-} from "./segments/computePropertiesWorkflow";
+import { startComputePropertiesWorkflow } from "./segments/computePropertiesWorkflow/lifecycle";
 import { upsertSubscriptionGroup } from "./subscriptionGroups";
-import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import {
   ChannelType,
   SubscriptionGroupType,
@@ -30,7 +26,6 @@ import {
 } from "./types";
 import { insertUserEvents } from "./userEvents";
 import { createUserEventsTables } from "./userEvents/clickhouse";
-import { startComputePropertiesWorkflow } from "./segments/computePropertiesWorkflow/lifecycle";
 
 async function bootstrapPostgres({
   workspaceName,
