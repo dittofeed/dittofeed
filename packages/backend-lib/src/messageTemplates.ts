@@ -492,6 +492,9 @@ export async function sendEmail({
 
   switch (defaultEmailProvider.emailProvider.type) {
     // FIXME
+    case EmailProviderType.Smtp: {
+      break;
+    }
     case EmailProviderType.Sendgrid: {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (secretConfig.type !== EmailProviderType.Sendgrid) {

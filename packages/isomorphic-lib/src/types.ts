@@ -796,6 +796,13 @@ export const EmailTemplateResource = Type.Composite([
 
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
+export const EmailConfiguration = Type.Composite([
+  EmailContents,
+  Type.Object({
+    to: Type.String(),
+  }),
+]);
+
 export const MobilePushTemplateResource = Type.Object({
   type: Type.Literal(ChannelType.MobilePush),
   title: Type.Optional(Type.String()),
