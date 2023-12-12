@@ -225,6 +225,12 @@ services:
       - prometheus-storage:/prometheus
     networks:
       - dittofeed-network-dev
+  smtp:
+    profiles: ["smtp"]
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web interface
 volumes:
   postgres:
   kafka:
