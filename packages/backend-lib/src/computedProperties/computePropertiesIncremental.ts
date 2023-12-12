@@ -1,15 +1,15 @@
 /* eslint-disable no-await-in-loop */
+
 import { Prisma } from "@prisma/client";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import pLimit from "p-limit";
 import { mapValues } from "remeda";
-import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
+import { v5 as uuidv5 } from "uuid";
 
 import {
   ClickHouseQueryBuilder,
   command,
-  createClickhouseClient,
   getChCompatibleUuid,
+  query as chQuery,
   streamClickhouseQuery,
 } from "../clickhouse";
 import config from "../config";
@@ -1641,15 +1641,6 @@ export async function computeAssignments({
   });
 }
 
-let LIMIT: pLimit.Limit | null = null;
-
-function limit() {
-  if (!LIMIT) {
-    LIMIT = pLimit(config().readQueryConcurrency);
-  }
-  return LIMIT;
-}
-
 async function processRows({
   rows,
   workspaceId,
@@ -1940,7 +1931,6 @@ export async function processAssignments({
 
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
-  const tmpTableName = `computed_properties_to_process_${getChCompatibleUuid()}`;
   /**
    * This query is a bit complicated, so here's a breakdown of what it does:
    *
@@ -1953,8 +1943,7 @@ export async function processAssignments({
    * already been assigned.
    * 4. It filters out false segment assignments to journeys.
    */
-  const query = `
-    CREATE TEMPORARY TABLE IF NOT EXISTS ${tmpTableName} AS
+  const selectQuery = `
     SELECT
       cpa.workspace_id,
       cpa.type,
@@ -2048,126 +2037,31 @@ export async function processAssignments({
     )
   `;
 
-  const ch = createClickhouseClient({
-    enableSession: true,
+  const pageQueryId = getChCompatibleUuid();
+
+  const resultSet = await chQuery({
+    query: selectQuery,
+    query_id: pageQueryId,
+    query_params: qb.getQueries(),
+    format: "JSONEachRow",
+    clickhouse_settings: { wait_end_of_query: 1 },
   });
 
-  const tmpTableQueryId = uuidv4();
   try {
-    try {
-      await ch.command({
-        query,
-        query_id: tmpTableQueryId,
-        query_params: qb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
-      });
-    } catch (e) {
-      logger().error(
-        {
-          workspaceId,
-          queryId: tmpTableQueryId,
-          err: e,
-        },
-        "failed read temp table"
-      );
-      throw e;
-    }
-
-    const { readQueryPageSize } = config();
-
-    let offset = 0;
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
-    while (true) {
-      const paginatedReadQuery = `SELECT * FROM ${tmpTableName} LIMIT ${readQueryPageSize} OFFSET ${offset}`;
-
-      let resultSet: Awaited<ReturnType<(typeof ch)["query"]>>;
-      const pageQueryId = uuidv4();
-
-      try {
-        let receivedRows = 0;
-        resultSet = await limit()(() =>
-          ch.query({
-            query: paginatedReadQuery,
-            query_id: pageQueryId,
-            format: "JSONEachRow",
-            clickhouse_settings: { wait_end_of_query: 1 },
-          })
-        );
-
-        try {
-          await streamClickhouseQuery(resultSet, async (rows) => {
-            receivedRows += rows.length;
-            await processRows({
-              rows,
-              workspaceId,
-              subscribedJourneys: journeys,
-            });
-          });
-        } catch (e) {
-          logger().error(
-            {
-              err: e,
-              pageQueryId,
-              tmpTableQueryId,
-            },
-            "failed to process rows"
-          );
-        }
-
-        // If no rows were fetched in this iteration, break out of the loop.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (receivedRows < readQueryPageSize) {
-          break;
-        }
-
-        // Increment the offset by PAGE_SIZE to fetch the next set of rows in the next iteration.
-        offset += readQueryPageSize;
-      } catch (e) {
-        logger().error(
-          {
-            workspaceId,
-            queryId: pageQueryId,
-            err: e,
-            readQueryPageSize,
-            offset,
-          },
-          "failed read query page"
-        );
-        throw e;
-      }
-      logger().info(
-        {
-          workspaceId,
-          queryId: pageQueryId,
-          readQueryPageSize,
-          offset,
-        },
-        "read query page"
-      );
-    }
-  } finally {
-    const queryId = uuidv4();
-    try {
-      await ch.command({
-        query: `DROP TABLE IF EXISTS ${tmpTableName}`,
-        query_id: queryId,
-      });
-    } catch (e) {
-      logger().error(
-        {
-          workspaceId,
-          queryId,
-          err: e,
-        },
-        "failed to cleanup temp table"
-      );
-    }
-    logger().info(
-      {
+    await streamClickhouseQuery(resultSet, async (rows) => {
+      await processRows({
+        rows,
         workspaceId,
-        queryId,
+        subscribedJourneys: journeys,
+      });
+    });
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+        pageQueryId,
       },
-      "cleanup temp table"
+      "failed to process rows"
     );
   }
 

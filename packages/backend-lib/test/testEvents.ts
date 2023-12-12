@@ -58,7 +58,7 @@ export async function submitBatch({
       workspaceId,
       userEvents,
     },
-    "inserting user events loc0"
+    "inserting user events"
   );
   await insertUserEvents({
     workspaceId,
