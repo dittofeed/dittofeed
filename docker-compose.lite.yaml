@@ -14,8 +14,8 @@ x-backend-app-env: &backend-app-env
   CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-http://clickhouse-server:8123}
   TEMPORAL_ADDRESS: ${TEMPORAL_ADDRESS:-temporal:7233}
   WORKSPACE_NAME: ${WORKSPACE_NAME:-Default}
-  # SECRET_KEY: ${SECRET_KEY:-}
-  # PASSWORD: ${PASSWORD:-}
+  SECRET_KEY: ${SECRET_KEY:-}
+  PASSWORD: ${PASSWORD:-}
 services:
   lite:
     image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.7.1}
