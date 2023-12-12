@@ -172,15 +172,20 @@ export function clickhouseDateToIso(dateString: string): string {
   return `${dateString.replace(" ", "T")}Z`;
 }
 
-export const command: ClickHouseClient["command"] = async function command(
-  params
-) {
+export async function command(
+  params: Parameters<ClickHouseClient["command"]>[0],
+  {
+    clickhouseClient: client = clickhouseClient(),
+  }: {
+    clickhouseClient?: ClickHouseClient<Readable>;
+  } = {}
+): Promise<ReturnType<ClickHouseClient["command"]>> {
   const queryId = params.query_id ?? getChCompatibleUuid();
   try {
     logger().debug({ queryId, params }, "Executing ClickHouse command.");
-    return clickhouseClient().command({ query_id: queryId, ...params });
+    return client.command({ query_id: queryId, ...params });
   } catch (e) {
     logger().error({ queryId, params, error: e }, "ClickHouse command failed.");
     throw e;
   }
-};
+}
