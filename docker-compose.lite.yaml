@@ -16,9 +16,7 @@ x-backend-app-env: &backend-app-env
   WORKSPACE_NAME: ${WORKSPACE_NAME:-Default}
 services:
   lite:
-    build:
-      context: .
-      dockerfile: ./packages/lite/Dockerfile
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.7.1}
     ports:
       - "3000:3000"
     depends_on:
@@ -27,7 +25,6 @@ services:
       - clickhouse-server
     environment:
       <<: *backend-app-env
-      LOG_LEVEL: debug
     networks:
       - dittofeed-network-lite
   temporal:
