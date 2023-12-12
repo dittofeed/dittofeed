@@ -803,6 +803,8 @@ export const EmailConfiguration = Type.Composite([
   }),
 ]);
 
+export type EmailConfiguration = Static<typeof EmailConfiguration>;
+
 export const MobilePushTemplateResource = Type.Object({
   type: Type.Literal(ChannelType.MobilePush),
   title: Type.Optional(Type.String()),
