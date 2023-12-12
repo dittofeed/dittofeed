@@ -3,6 +3,7 @@ import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
+import { restartComputePropertiesWorkflow } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 import {
   SENDGRID_SECRET,
   SENDGRID_WEBHOOK_SECRET_NAME,
@@ -135,6 +136,22 @@ export async function cli() {
         }),
       ({ workspaceId, email, from, updateEmail }) =>
         hubspotSync({ workspaceId, email, from, updateEmail })
+    )
+    .command(
+      "reset-compute-properties",
+      "Resets compute properties workflow.",
+      () => {},
+      async () => {
+        if (backendConfig().authMode === "multi-tenant") {
+          throw new Error("Not supported in multi-tenant mode.");
+        }
+        const workspace = await prisma().workspace.findFirst();
+        if (!workspace) {
+          throw new Error("No workspace found.");
+        }
+        await restartComputePropertiesWorkflow({ workspaceId: workspace.id });
+        logger().info("Restarted compute properties workflow.");
+      }
     )
     .command(
       "config-print",

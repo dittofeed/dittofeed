@@ -17,12 +17,8 @@ import { upsertMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
 import { segmentIdentifyEvent } from "./segmentIO";
-import {
-  computePropertiesWorkflow,
-  generateComputePropertiesId,
-} from "./segments/computePropertiesWorkflow";
+import { startComputePropertiesWorkflow } from "./segments/computePropertiesWorkflow/lifecycle";
 import { upsertSubscriptionGroup } from "./subscriptionGroups";
-import connectWorkflowClient from "./temporal/connectWorkflowClient";
 import {
   ChannelType,
   SubscriptionGroupType,
@@ -227,19 +223,8 @@ export async function bootstrapWorker({
   workspaceId: string;
 }) {
   logger().info("Bootstrapping worker.");
-  const temporalClient = await connectWorkflowClient();
   try {
-    await temporalClient.start(computePropertiesWorkflow, {
-      taskQueue: "default",
-      workflowId: generateComputePropertiesId(workspaceId),
-      args: [
-        {
-          tableVersion: config().defaultUserEventsTableVersion,
-          workspaceId,
-          shouldContinueAsNew: true,
-        },
-      ],
-    });
+    await startComputePropertiesWorkflow({ workspaceId });
   } catch (err) {
     logger().error({ err }, "Failed to bootstrap worker.");
   }
