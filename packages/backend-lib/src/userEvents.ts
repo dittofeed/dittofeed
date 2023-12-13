@@ -337,7 +337,7 @@ export async function findUserIdsByUserProperty({
 
   const query = `
     select user_id, user_property_value
-    from computed_property_assignments
+    from computed_property_assignments_v2
     where workspace_id = ${workspaceIdParam}
       and user_property_value in ${valueSetParam}
       and computed_property_id = ${computedPropertyId}
