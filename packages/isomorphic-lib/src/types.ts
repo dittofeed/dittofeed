@@ -2246,7 +2246,6 @@ export const SmtpSecret = Type.Object({
   port: Type.Optional(Type.Number()),
   username: Type.Optional(Type.String()),
   password: Type.Optional(Type.String()),
-  secure: Type.Optional(Type.Boolean()),
 });
 
 export type SmtpSecret = Static<typeof SmtpSecret>;

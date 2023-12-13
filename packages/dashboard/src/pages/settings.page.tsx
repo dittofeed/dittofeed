@@ -33,7 +33,10 @@ import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
-import { SENDGRID_SECRET } from "isomorphic-lib/src/constants";
+import {
+  SENDGRID_SECRET,
+  SMTP_SECRET_NAME,
+} from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -569,6 +572,89 @@ function SendGridConfig() {
   );
 }
 
+function SmtpConfig() {
+  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "smtp-section",
+          fieldGroups: [
+            {
+              id: "smtp-fields",
+              name: "SMTP",
+              description: "Send emails with a custom SMTP server.",
+              fields: [
+                {
+                  id: "smtp-host",
+                  type: "secret",
+                  fieldProps: {
+                    name: SMTP_SECRET_NAME,
+                    secretKey: "host",
+                    label: "SMTP host",
+                    helperText: "Host of SMTP server.",
+                    type: EmailProviderType.Smtp,
+                    saved:
+                      secretAvailability.find(
+                        (s) => s.name === SMTP_SECRET_NAME
+                      )?.configValue?.apiKey ?? false,
+                  },
+                },
+                {
+                  id: "smtp-port",
+                  type: "secret",
+                  fieldProps: {
+                    name: SMTP_SECRET_NAME,
+                    secretKey: "port",
+                    label: "SMTP port",
+                    helperText: "Port of SMTP server.",
+                    type: EmailProviderType.Smtp,
+                    saved:
+                      secretAvailability.find(
+                        (s) => s.name === SMTP_SECRET_NAME
+                      )?.configValue?.apiKey ?? false,
+                  },
+                },
+                {
+                  id: "smtp-user",
+                  type: "secret",
+                  fieldProps: {
+                    name: SMTP_SECRET_NAME,
+                    secretKey: "user",
+                    label: "SMTP Username",
+                    helperText: "Username used to authenticate SMTP server.",
+                    type: EmailProviderType.Smtp,
+                    saved:
+                      secretAvailability.find(
+                        (s) => s.name === SMTP_SECRET_NAME
+                      )?.configValue?.apiKey ?? false,
+                  },
+                },
+                {
+                  id: "smtp-password",
+                  type: "secret",
+                  fieldProps: {
+                    name: SMTP_SECRET_NAME,
+                    secretKey: "password",
+                    label: "SMTP Password",
+                    helperText: "Password used to authenticate SMTP server.",
+                    type: EmailProviderType.Smtp,
+                    saved:
+                      secretAvailability.find(
+                        (s) => s.name === SMTP_SECRET_NAME
+                      )?.configValue?.apiKey ?? false,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
 function DefaultEmailConfig() {
   const {
     emailProviders,
@@ -633,12 +719,16 @@ function DefaultEmailConfig() {
 
   const options = emailProviders.map((ep) => {
     let name: string;
-    switch (ep.type) {
+    const { type } = ep;
+    switch (type) {
       case EmailProviderType.Sendgrid:
         name = "SendGrid";
         break;
+      case EmailProviderType.Smtp:
+        name = "SMTP";
+        break;
       default:
-        assertUnreachable(ep.type, `Unknown email provider type ${ep.type}`);
+        assertUnreachable(type, `Unknown email provider type ${type}`);
     }
     return {
       value: ep.id,
@@ -688,6 +778,7 @@ function EmailChannelConfig() {
       <SectionSubHeader id={settingsSectionIds.emailChannel} title="Email" />
       <DefaultEmailConfig />
       <SendGridConfig />
+      <SmtpConfig />
     </>
   );
 }
