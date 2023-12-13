@@ -1,14 +1,24 @@
 import { err, ok, Result } from "neverthrow";
 import { createTransport } from "nodemailer";
+import { Overwrite } from "utility-types";
 
 import {
   EmailConfiguration,
   EmailProviderType,
   EmailSmtpSuccess,
   MessageSmtpFailure,
+  SmtpSecret,
 } from "../types";
 
-export async function sendEmail({
+export type SendSmtpMailParams = Overwrite<
+  SmtpSecret,
+  {
+    host: string;
+  }
+> &
+  EmailConfiguration;
+
+export async function sendMail({
   host,
   port,
   username,
@@ -18,12 +28,7 @@ export async function sendEmail({
   subject,
   body,
   replyTo,
-}: {
-  host: string;
-  port?: number;
-  username?: string;
-  password?: string;
-} & EmailConfiguration): Promise<Result<EmailSmtpSuccess, MessageSmtpFailure>> {
+}: SendSmtpMailParams): Promise<Result<EmailSmtpSuccess, MessageSmtpFailure>> {
   const transport = createTransport({
     host,
     port,

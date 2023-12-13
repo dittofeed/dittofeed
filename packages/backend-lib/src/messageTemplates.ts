@@ -447,16 +447,9 @@ export async function sendEmail({
   const { from, subject, body, replyTo } = renderedValuesResult.value;
   const to = identifier;
 
-  // FIXME secret is null
   const unvalidatedSecretConfig =
     defaultEmailProvider.emailProvider.secret?.configValue;
 
-  logger().debug(
-    {
-      defaultEmailProvider,
-    },
-    "default email provider"
-  );
   if (!unvalidatedSecretConfig) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -492,16 +485,59 @@ export async function sendEmail({
   const secretConfig = secretConfigResult.value;
 
   switch (defaultEmailProvider.emailProvider.type) {
-    // FIXME
     case EmailProviderType.Smtp: {
-      // const result = await sendMailSmtp({
-      //   from,
-      //   to,
-      //   subject,
-      //   replyTo,
-      //   body,
-      // });
-      break;
+      if (secretConfig.type !== EmailProviderType.Smtp) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `expected sendgrid secret config but got ${secretConfig.type}`,
+          },
+        });
+      }
+      const { host } = secretConfig;
+      if (!host) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing host in smtp host`,
+          },
+        });
+      }
+      const result = await sendMailSmtp({
+        ...secretConfig,
+        from,
+        to,
+        subject,
+        replyTo,
+        body,
+        host,
+      });
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Email,
+            provider: result.error,
+          },
+        });
+      }
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Email,
+          from,
+          body,
+          to,
+          subject,
+          replyTo,
+          provider: {
+            type: EmailProviderType.Smtp,
+            messageId: result.value.messageId,
+          },
+        },
+      });
     }
     case EmailProviderType.Sendgrid: {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

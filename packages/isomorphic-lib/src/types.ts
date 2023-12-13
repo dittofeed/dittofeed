@@ -944,7 +944,18 @@ export const SendgridEmailProvider = Type.Object({
 
 export type SendgridEmailProvider = Static<typeof SendgridEmailProvider>;
 
-export const PersistedEmailProvider = Type.Union([SendgridEmailProvider]);
+export const SmtpEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(EmailProviderType.Smtp),
+});
+
+export type SmtpEmailProvider = Static<typeof SmtpEmailProvider>;
+
+export const PersistedEmailProvider = Type.Union([
+  SendgridEmailProvider,
+  SmtpEmailProvider,
+]);
 
 export type PersistedEmailProvider = Static<typeof PersistedEmailProvider>;
 
@@ -1883,6 +1894,7 @@ export type EmailSmtpSuccess = Static<typeof EmailSmtpSuccess>;
 
 export const EmailServiceProviderSuccess = Type.Union([
   EmailSendgridSuccess,
+  EmailSmtpSuccess,
   EmailTestSuccess,
 ]);
 
@@ -2229,7 +2241,18 @@ export const SendgridSecret = Type.Object({
 
 export type SendgridSecret = Static<typeof SendgridSecret>;
 
-export const EmailProviderSecret = Type.Union([SendgridSecret]);
+export const SmtpSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.Smtp),
+  host: Type.Optional(Type.String()),
+  port: Type.Optional(Type.Number()),
+  username: Type.Optional(Type.String()),
+  password: Type.Optional(Type.String()),
+  secure: Type.Optional(Type.Boolean()),
+});
+
+export type SmtpSecret = Static<typeof SmtpSecret>;
+
+export const EmailProviderSecret = Type.Union([SendgridSecret, SmtpSecret]);
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
 
