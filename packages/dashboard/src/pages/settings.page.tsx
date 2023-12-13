@@ -34,6 +34,7 @@ import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups"
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
+  EMAIL_PROVIDER_TYPE_TO_SECRET_NAME,
   SENDGRID_SECRET,
   SMTP_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
@@ -181,7 +182,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
       getSecretAvailability({
         workspaceId,
-        names: [SENDGRID_SECRET],
+        names: Object.values(EMAIL_PROVIDER_TYPE_TO_SECRET_NAME),
       }),
     ]);
 
@@ -598,7 +599,7 @@ function SmtpConfig() {
                     saved:
                       secretAvailability.find(
                         (s) => s.name === SMTP_SECRET_NAME
-                      )?.configValue?.apiKey ?? false,
+                      )?.configValue?.host ?? false,
                   },
                 },
                 {
@@ -613,7 +614,7 @@ function SmtpConfig() {
                     saved:
                       secretAvailability.find(
                         (s) => s.name === SMTP_SECRET_NAME
-                      )?.configValue?.apiKey ?? false,
+                      )?.configValue?.port ?? false,
                   },
                 },
                 {
@@ -628,7 +629,7 @@ function SmtpConfig() {
                     saved:
                       secretAvailability.find(
                         (s) => s.name === SMTP_SECRET_NAME
-                      )?.configValue?.apiKey ?? false,
+                      )?.configValue?.user ?? false,
                   },
                 },
                 {
@@ -643,7 +644,7 @@ function SmtpConfig() {
                     saved:
                       secretAvailability.find(
                         (s) => s.name === SMTP_SECRET_NAME
-                      )?.configValue?.apiKey ?? false,
+                      )?.configValue?.password ?? false,
                   },
                 },
               ],

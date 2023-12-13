@@ -14,6 +14,7 @@ export type SendSmtpMailParams = Overwrite<
   SmtpSecret,
   {
     host: string;
+    port?: number;
   }
 > &
   EmailConfiguration;

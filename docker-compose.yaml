@@ -225,7 +225,7 @@ services:
       - prometheus-storage:/prometheus
     networks:
       - dittofeed-network-dev
-  smtp:
+  mail-server:
     profiles: ["smtp"]
     image: mailhog/mailhog
     ports:

@@ -495,13 +495,23 @@ export async function sendEmail({
           },
         });
       }
-      const { host } = secretConfig;
+      const { host, port } = secretConfig;
       if (!host) {
         return err({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
             message: `missing host in smtp host`,
+          },
+        });
+      }
+      const numPort = port?.length ? parseInt(port, 10) : undefined;
+      if (numPort && Number.isNaN(numPort)) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `invalid port in smtp host`,
           },
         });
       }
@@ -513,6 +523,7 @@ export async function sendEmail({
         replyTo,
         body,
         host,
+        port: numPort,
       });
       if (result.isErr()) {
         return err({

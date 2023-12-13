@@ -2243,7 +2243,7 @@ export type SendgridSecret = Static<typeof SendgridSecret>;
 export const SmtpSecret = Type.Object({
   type: Type.Literal(EmailProviderType.Smtp),
   host: Type.Optional(Type.String()),
-  port: Type.Optional(Type.Number()),
+  port: Type.Optional(Type.String()),
   username: Type.Optional(Type.String()),
   password: Type.Optional(Type.String()),
 });
