@@ -1,4 +1,4 @@
-import { ChannelType } from "./types";
+import { ChannelType, EmailProviderType } from "./types";
 
 export const WORKSPACE_ID_HEADER = "df-workspace-id" as const;
 export const SUBSRIPTION_GROUP_ID_HEADER = "df-subscription-group-id" as const;
@@ -14,6 +14,13 @@ export const TWILIO_SECRET_NAME = "twilio-key" as const;
 export const SENDGRID_WEBHOOK_SECRET_NAME = "sendgrid-webhook" as const;
 export const SENDGRID_SECRET = "sendgrid" as const;
 export const FCM_SECRET_NAME = "fcm-key" as const;
+export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
+  EmailProviderType,
+  string
+> = {
+  [EmailProviderType.Sendgrid]: SENDGRID_SECRET,
+  [EmailProviderType.Test]: "",
+};
 
 export const CHANNEL_NAMES: Record<ChannelType, string> = {
   [ChannelType.Sms]: "SMS",
