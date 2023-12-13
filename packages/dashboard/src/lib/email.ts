@@ -1,7 +1,10 @@
+import { EmailProvider } from "@prisma/client";
 import logger from "backend-lib/src/logger";
+import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
   ChannelType,
   CompletionStatus,
+  EmailProviderSecret,
   EmailProviderType,
   MessageTemplateResource,
   PersistedEmailProvider,
@@ -82,6 +85,52 @@ export function getEmailEditorState({
   return serverInitialState;
 }
 
+async function upserEmailProvider({
+  workspaceId,
+  type,
+}: {
+  workspaceId: string;
+  type: EmailProviderType;
+}): Promise<EmailProvider | null> {
+  if (type === EmailProviderType.Test) {
+    return null;
+  }
+  const secretName = EMAIL_PROVIDER_TYPE_TO_SECRET_NAME[type];
+  const secretConfig: EmailProviderSecret = {
+    type,
+  };
+  const secret = await prisma().secret.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: secretName,
+      },
+    },
+    create: {
+      workspaceId,
+      name: secretName,
+      configValue: secretConfig,
+    },
+    update: {},
+  });
+
+  const ep = await prisma().emailProvider.upsert({
+    where: {
+      workspaceId_type: {
+        workspaceId,
+        type,
+      },
+    },
+    create: {
+      workspaceId,
+      type,
+      secretId: secret.id,
+    },
+    update: {},
+  });
+  return ep;
+}
+
 export async function getOrCreateEmailProviders({
   workspaceId,
 }: {
@@ -98,21 +147,14 @@ export async function getOrCreateEmailProviders({
     const missing = emailProviders.find((ep) => ep.type === type) === undefined;
     if (missing) {
       upsertPromises.push(
-        prisma()
-          .emailProvider.upsert({
-            where: {
-              workspaceId_type: {
-                workspaceId,
-                type,
-              },
-            },
-            create: {
-              workspaceId,
-              type,
-            },
-            update: {},
-          })
-          .then((ep) => emailProviders.push(ep))
+        upserEmailProvider({
+          workspaceId,
+          type,
+        }).then((ep) => {
+          if (ep) {
+            emailProviders.push(ep);
+          }
+        })
       );
     }
   }

@@ -183,21 +183,37 @@ export default async function contentController(fastify: FastifyInstance) {
           });
         }
       }
-      if (
-        result.error.type === InternalEventType.BadWorkspaceConfiguration &&
-        (result.error.variant.type ===
-          BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured ||
+      if (result.error.type === InternalEventType.BadWorkspaceConfiguration) {
+        if (
           result.error.variant.type ===
-            BadWorkspaceConfigurationType.MessageServiceProviderNotFound)
-      ) {
-        return reply.status(200).send({
-          type: JsonResultType.Err,
-          err: {
-            suggestions: [
-              "Unable to send message, because Your message service provider is not configured correctly.",
-            ],
-          },
-        });
+          BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured
+        ) {
+          return reply.status(200).send({
+            type: JsonResultType.Err,
+            err: {
+              suggestions: [
+                [
+                  "Unable to send message, because your message service provider is not configured correctly",
+                  result.error.variant.message,
+                ].join(" - "),
+              ],
+            },
+          });
+        }
+
+        if (
+          result.error.variant.type ===
+          BadWorkspaceConfigurationType.MessageServiceProviderNotFound
+        ) {
+          return reply.status(200).send({
+            type: JsonResultType.Err,
+            err: {
+              suggestions: [
+                `Unable to send message, because you haven't configured a message service provider.`,
+              ],
+            },
+          });
+        }
       }
       logger().error(result.error, "Unexpected error sending test message");
       return reply.status(500);

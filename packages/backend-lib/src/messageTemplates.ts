@@ -18,6 +18,7 @@ import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
   ChannelType,
+  EmailProviderSecret,
   EmailProviderType,
   EmailTemplate,
   InternalEventType,
@@ -356,7 +357,13 @@ export async function sendEmail({
       where: {
         workspaceId,
       },
-      include: { emailProvider: true },
+      include: {
+        emailProvider: {
+          include: {
+            secret: true,
+          },
+        },
+      },
     }),
   ]);
   if (getSendModelsResult.isErr()) {
@@ -439,8 +446,62 @@ export async function sendEmail({
   const { from, subject, body, replyTo } = renderedValuesResult.value;
   const to = identifier;
 
+  // FIXME secret is null
+  const unvalidatedSecretConfig =
+    defaultEmailProvider.emailProvider.secret?.configValue;
+
+  logger().debug(
+    {
+      defaultEmailProvider,
+    },
+    "default email provider"
+  );
+  if (!unvalidatedSecretConfig) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+        message:
+          "Missing messaging service provider config. Configure in settings.",
+      },
+    });
+  }
+
+  const secretConfigResult = schemaValidateWithErr(
+    defaultEmailProvider.emailProvider.secret?.configValue,
+    EmailProviderSecret
+  );
+  if (secretConfigResult.isErr()) {
+    logger().error(
+      {
+        err: secretConfigResult.error,
+        unvalidatedSecretConfig,
+      },
+      "message service provider config malformed"
+    );
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+        message:
+          "Application error: message service provider config malformed.",
+      },
+    });
+  }
+  const secretConfig = secretConfigResult.value;
+
   switch (defaultEmailProvider.emailProvider.type) {
     case EmailProviderType.Sendgrid: {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (secretConfig.type !== EmailProviderType.Sendgrid) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `expected sendgrid secret config but got ${secretConfig.type}`,
+          },
+        });
+      }
       const mailData: MailDataRequired = {
         to,
         from,
@@ -454,13 +515,19 @@ export async function sendEmail({
         },
       };
 
-      if (!defaultEmailProvider.emailProvider.apiKey) {
-        throw new Error("missing sendgrid api key");
+      if (!secretConfig.apiKey) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing apiKey in sendgrid secret config`,
+          },
+        });
       }
 
       const result = await sendEmailSendgrid({
         mailData,
-        apiKey: defaultEmailProvider.emailProvider.apiKey,
+        apiKey: secretConfig.apiKey,
       });
 
       if (result.isErr()) {

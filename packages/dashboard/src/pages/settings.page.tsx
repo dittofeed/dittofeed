@@ -550,7 +550,7 @@ function SendGridConfig() {
                   type: "secret",
                   fieldProps: {
                     name: SENDGRID_SECRET,
-                    secretKey: "apiKey",
+                    secretKey: "webhookKey",
                     label: "Webhook Key",
                     helperText:
                       "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
