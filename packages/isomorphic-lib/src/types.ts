@@ -2198,7 +2198,6 @@ export type SearchDeliveriesResponse = Static<typeof SearchDeliveriesResponse>;
 export const SendgridSecret = Type.Object({
   type: Type.Literal(EmailProviderType.Sendgrid),
   apiKey: Type.Optional(Type.String()),
-  // FIXXME use new key
   webhookKey: Type.Optional(Type.String()),
 });
 

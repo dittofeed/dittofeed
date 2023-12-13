@@ -11,10 +11,11 @@ import { SendgridEvent } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import {
-  SENDGRID_WEBHOOK_SECRET_NAME,
+  SENDGRID_SECRET,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
-import { WorkspaceId } from "isomorphic-lib/src/types";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { SendgridSecret, WorkspaceId } from "isomorphic-lib/src/types";
 
 import { getWorkspaceId } from "../workspace";
 
@@ -48,13 +49,19 @@ export default async function webhookController(fastify: FastifyInstance) {
       const secret = await prisma().secret.findUnique({
         where: {
           workspaceId_name: {
-            name: SENDGRID_WEBHOOK_SECRET_NAME,
+            name: SENDGRID_SECRET,
             workspaceId,
           },
         },
       });
+      const webhookKey = schemaValidateWithErr(
+        secret?.configValue,
+        SendgridSecret
+      )
+        .map((val) => val.webhookKey)
+        .unwrapOr(null);
 
-      if (!secret?.value) {
+      if (!webhookKey) {
         logger().error(
           {
             workspaceId,
@@ -66,7 +73,7 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
-      const publicKey = `-----BEGIN PUBLIC KEY-----\n${secret.value}\n-----END PUBLIC KEY-----`;
+      const publicKey = `-----BEGIN PUBLIC KEY-----\n${webhookKey}\n-----END PUBLIC KEY-----`;
 
       if (!request.rawBody || typeof request.rawBody !== "string") {
         logger().error({ workspaceId }, "Missing rawBody on sendgrid webhook.");
