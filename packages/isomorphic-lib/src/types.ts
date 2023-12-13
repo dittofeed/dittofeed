@@ -935,7 +935,6 @@ export const TestEmailProvider = Type.Object({
 
 export type TestEmailProvider = Static<typeof TestEmailProvider>;
 
-// FIXME
 export const SendgridEmailProvider = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),

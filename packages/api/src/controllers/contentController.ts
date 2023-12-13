@@ -10,6 +10,7 @@ import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BadWorkspaceConfigurationType,
   ChannelType,
@@ -159,29 +160,44 @@ export default async function contentController(fastify: FastifyInstance) {
         });
       }
       if (result.error.type === InternalEventType.MessageFailure) {
-        if (
-          // FIXME
-          result.error.variant.type === ChannelType.Email &&
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          result.error.variant.provider.type === EmailProviderType.Sendgrid
-        ) {
-          const { body, status } = result.error.variant.provider;
-          const suggestions: string[] = [];
-          if (status) {
-            suggestions.push(`Sendgrid responded with status: ${status}`);
-            if (status === 403) {
-              suggestions.push(
-                "Is the configured email domain authorized in sengrid?"
-              );
+        if (result.error.variant.type === ChannelType.Email) {
+          const { type } = result.error.variant.provider;
+          switch (type) {
+            case EmailProviderType.Sendgrid: {
+              const { body, status } = result.error.variant.provider;
+              const suggestions: string[] = [];
+              if (status) {
+                suggestions.push(`Sendgrid responded with status: ${status}`);
+                if (status === 403) {
+                  suggestions.push(
+                    "Is the configured email domain authorized in sengrid?"
+                  );
+                }
+              }
+              return reply.status(200).send({
+                type: JsonResultType.Err,
+                err: {
+                  suggestions,
+                  responseData: body,
+                },
+              });
+            }
+            case EmailProviderType.Smtp: {
+              return reply.status(200).send({
+                type: JsonResultType.Err,
+                err: {
+                  suggestions: [
+                    "Failed to send email. Check your SMTP settings.",
+                  ],
+                  responseData: result.error.variant.provider.message,
+                },
+              });
+              break;
+            }
+            default: {
+              assertUnreachable(type);
             }
           }
-          return reply.status(200).send({
-            type: JsonResultType.Err,
-            err: {
-              suggestions,
-              responseData: body,
-            },
-          });
         }
       }
       if (result.error.type === InternalEventType.BadWorkspaceConfiguration) {
