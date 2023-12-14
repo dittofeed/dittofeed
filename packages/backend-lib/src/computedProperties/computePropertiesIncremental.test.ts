@@ -1854,7 +1854,6 @@ describe("computeProperties", () => {
       description:
         "when a performed segment is updated with a new performed count threshold",
       userProperties: [],
-      only: true,
       segments: [
         {
           name: "updatedPerformed",
@@ -1931,6 +1930,37 @@ describe("computeProperties", () => {
               id: "user-1",
               segments: {
                 updatedPerformed: false,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "after receiving another event user satisfies new segment definition",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: true,
               },
             },
           ],
