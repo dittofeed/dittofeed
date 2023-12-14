@@ -1,45 +1,79 @@
 ---
-title: "What is Dittofeed?"
+title: "Introduction"
+description: "Welcome to the Dittofeed documentation and help center."
 ---
 
-The first developer-centric, open-source, omni-channel customer engagement platform. It shares the value proposition of other omni-channel customer engagement platforms - Braze, Customer.io, One Signal, Segment Engage and others.
+Dittofeed is an open-source, omni-channel customer engagement platform for automating messages to customers via email, SMS, webhooks, and native mobile push notifications. Automatically send templated onboarding messages, cart abandonment reminders, product updates and more with event-based triggers and branching logic.
 
-Customer engagement platforms allow marketing and growth teams to automate messaging on channels like email, SMS, and in-app push notifications.
+## Start sending messages
+
+<CardGroup>
+  <Card title="Quick Start" icon="rabbit-running" color="#16a34a" href="quick-start">
+    Start sending messages in 10 minutes.
+  </Card>
+  <Card title="Video Walkthrough" icon="circle-video" color="#16a34a" href="video-walkthrough">
+    Watch us set up a Dittofeed workspace.
+  </Card>
+  <Card title="Integrations" icon="grid-2-plus" color="#16a34a" href="/integrations/sources">
+    See what data sources and destinations you can connect to Dittofeed.
+  </Card>
+  <Card title="API Reference" icon="plug" color="#16a34a" href="/api-reference/endpoints/apps/identify">
+    Learn how to use the Dittofeed API.
+  </Card>
+</CardGroup>
+
+## Get support
+
+<CardGroup>
+  <Card title="Join The Community" icon="slack" href="https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A">
+    Get fast support from the Dittofeed team and other community members.
+  </Card>
+  <Card title="Open An Issue" icon="bug" href="https://github.com/dittofeed/dittofeed/issues">
+    Report a bug or request a feature.
+  </Card>
+</CardGroup>
 
 ## What makes Dittofeed different?
 
-Dittofeed is built from the bottom up with growth, and marketing engineers in mind.
+Unlike Customer.io, OneSignal, and other customer engagement platforms, Dittofeed is built from the ground up with growth engineers in mind.
 
-**Open Source** 
+---
 
-Free and Open-Source forever. [More Info.](/guide/license)
+**✅ Open Source**
 
-**Git based workflows (coming soon)**
+Free and open-source forever. [Read our license](/guide/license).
+
+Leave us a ⭐[github star](https://github.com/dittofeed/dittofeed)⭐ if you like what we're doing. We couldn't do it without your support!
+
+---
+
+**☑️ Git based workflows (coming soon)**
 
 Check your messaging resources into git, make changes in a branch through the UI, and then submit a PR to github. Take advantage of the full power of git. [More Info.](/guide/git-workflows)
-
 
 <Accordion title="Git workflows demo.">
   <Snippet file="git-workflows-demo.mdx" />
 </Accordion>
 
-**Testing SDK (coming soon)**
+---
 
-A first-in-class Time-traveling test sdk for customer journeys. Catch regressions before they get deployed. [More Info.](/guide/testing)
+**☑️ Testing SDK (coming soon)**
+
+A first-in-class, time-traveling test sdk for customer journeys. Catch regressions before they get deployed. [More Info.](/guide/testing)
 
 <Accordion title="Test Example.">
 ```javascript src/bookmarkButton.test.tsx
 describe("When the bookmark button is clicked", () => {
   let df: DittofeedTestEnv;
 
-  beforeEach(async () => {
-    df = await Dittofeed.setupTestEnv();
-    ...
-  })
+beforeEach(async () => {
+df = await Dittofeed.setupTestEnv();
+...
+})
 
-  it("Emails the clicking user", async () => {
-    render(<BookmarkButton/>)
-    fireEvent.click(screen.getByText(/bookmark/i))
+it("Emails the clicking user", async () => {
+render(<BookmarkButton/>)
+fireEvent.click(screen.getByText(/bookmark/i))
 
     // Using simulated time.
     await df.sleep("1 week");
@@ -53,22 +87,9 @@ describe("When the bookmark button is clicked", () => {
         ...
       });
     ]);
-  });
+
 });
+});
+
 ```
 </Accordion>
-
-## Next Steps
-
-Let's head on to the getting started section to get up and running with Dittofeed.
-
-Alternatively check out our demo app!
-
-<CardGroup cols={2}>
-  <Card title="Getting Started" icon="square-1" color="#16a34a" href="/getting-started">
-    How to start using Dittofeed.
-  </Card>
-  <Card title="Demo App" icon="hand-wave" color="#0285c7" href="https://demo.dittofeed.com/dashboard/journeys/7abdc111-5743-495f-9365-7a2c37929279">
-    Check out our demo app with an example user journey.
-  </Card>
-</CardGroup>

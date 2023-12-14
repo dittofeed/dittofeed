@@ -19,31 +19,36 @@
   },
   "topbarLinks": [
     {
-      "name": "Demo App",
-      "url": "https://demo.dittofeed.com/dashboard/journeys/7abdc111-5743-495f-9365-7a2c37929279"
+      "name": "Community",
+      "url": "https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A"
     }
   ],
   "topbarCtaButton": {
-    "name": "Book a Call",
-    "url": "https://calendly.com/d/zy7-8d5-jdq/dittofeed-demo-founders"
+    "type": "github",
+    "url": "https://github.com/dittofeed/dittofeed"
   },
   "anchors": [
     {
-      "name": "Community",
+      "name": "Get Instant Help",
       "icon": "slack",
       "url": "https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A"
     },
     {
-      "name": "Github",
-      "icon": "github",
-      "url": "https://github.com/dittofeed/dittofeed"
+      "name": "Tutorial Videos",
+      "icon": "youtube",
+      "url": "https://www.youtube.com/@Dittofeed"
+    },
+    {
+      "name": "Demo App",
+      "icon": "bullseye-pointer",
+      "url": "https://demo.dittofeed.com/dashboard/journeys"
     }
   ],
   "navigation": [
     {
-      "group": "Home",
+      "group": "Getting Started",
 
-      "pages": ["introduction", "getting-started", "glossary"]
+      "pages": ["introduction", "quick-start", "video-walkthrough","glossary"]
     },
     {
       "group": "Deployment",
@@ -68,7 +73,11 @@
         "integrations/sources",
         {
           "group": "Data Source Types",
-          "pages": ["integrations/sources/segment", "integrations/sources/api", "integrations/sources/polytomic"]
+          "pages": [
+            "integrations/sources/segment",
+            "integrations/sources/api",
+            "integrations/sources/polytomic"
+          ]
         },
         "integrations/channels",
         {
