@@ -197,13 +197,46 @@ export enum ComputedPropertyStep {
   ProcessAssignments = "ProcessAssignments",
 }
 
-type PeriodByComputedPropertyId = Map<
+type PeriodByComputedPropertyIdMap = Map<
   string,
   Pick<
     AggregatedComputedPropertyPeriod,
     "maxTo" | "computedPropertyId" | "version"
   >
 >;
+
+class PeriodByComputedPropertyId {
+  private map: PeriodByComputedPropertyIdMap;
+
+  static getKey({
+    computedPropertyId,
+    version,
+  }: {
+    computedPropertyId: string;
+    version: string;
+  }) {
+    return `${computedPropertyId}-${version}`;
+  }
+
+  constructor(map: PeriodByComputedPropertyIdMap) {
+    this.map = map;
+  }
+
+  get({
+    computedPropertyId,
+    version,
+  }: {
+    computedPropertyId: string;
+    version: string;
+  }) {
+    return this.map.get(
+      PeriodByComputedPropertyId.getKey({
+        computedPropertyId,
+        version,
+      })
+    );
+  }
+}
 
 async function getPeriodsByComputedPropertyId({
   workspaceId,
@@ -228,20 +261,19 @@ async function getPeriodsByComputedPropertyId({
     periodsQuery
   );
 
-  const periodByComputedPropertyId = periods.reduce<PeriodByComputedPropertyId>(
-    (acc, period) => {
+  const periodByComputedPropertyId =
+    periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
       const { maxTo } = period;
-      acc.set(period.computedPropertyId, {
+      const key = PeriodByComputedPropertyId.getKey(period);
+      acc.set(key, {
         maxTo,
         computedPropertyId: period.computedPropertyId,
         version: period.version,
       });
       return acc;
-    },
-    new Map()
-  );
+    }, new Map());
 
-  return periodByComputedPropertyId;
+  return new PeriodByComputedPropertyId(periodByComputedPropertyId);
 }
 
 async function createPeriods({
@@ -262,7 +294,11 @@ async function createPeriods({
   const newPeriods: Prisma.ComputedPropertyPeriodCreateManyInput[] = [];
 
   for (const segment of segments) {
-    const previousPeriod = periodByComputedPropertyId.get(segment.id);
+    const version = segment.definitionUpdatedAt.toString();
+    const previousPeriod = periodByComputedPropertyId.get({
+      version,
+      computedPropertyId: segment.id,
+    });
     newPeriods.push({
       workspaceId,
       step,
@@ -270,12 +306,16 @@ async function createPeriods({
       computedPropertyId: segment.id,
       from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
       to: new Date(now),
-      version: segment.definitionUpdatedAt.toString(),
+      version,
     });
   }
 
   for (const userProperty of userProperties) {
-    const previousPeriod = periodByComputedPropertyId.get(userProperty.id);
+    const version = userProperty.definitionUpdatedAt.toString();
+    const previousPeriod = periodByComputedPropertyId.get({
+      version,
+      computedPropertyId: userProperty.id,
+    });
     newPeriods.push({
       workspaceId,
       step,
@@ -283,7 +323,7 @@ async function createPeriods({
       computedPropertyId: userProperty.id,
       from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
       to: new Date(now),
-      version: userProperty.definitionUpdatedAt.toString(),
+      version,
     });
   }
 
@@ -293,7 +333,7 @@ async function createPeriods({
   });
 }
 
-interface SubQueryData {
+interface FullSubQueryData {
   condition: string;
   type: "user_property" | "segment";
   computedPropertyId: string;
@@ -301,7 +341,10 @@ interface SubQueryData {
   argMaxValue?: string;
   uniqValue?: string;
   recordMessageId?: boolean;
+  version: string;
 }
+
+type SubQueryData = Omit<FullSubQueryData, "version">;
 
 type AggregatedComputedPropertyPeriod = Omit<
   ComputedPropertyPeriod,
@@ -1393,7 +1436,7 @@ export async function computeState({
       config().nodeEnv === NodeEnvEnum.Development ||
       config().nodeEnv === NodeEnvEnum.Test,
   });
-  let subQueryData: SubQueryData[] = [];
+  let subQueryData: FullSubQueryData[] = [];
 
   for (const segment of segments) {
     subQueryData = subQueryData.concat(
@@ -1401,7 +1444,10 @@ export async function computeState({
         segment,
         node: segment.definition.entryNode,
         qb,
-      })
+      }).map((subQuery) => ({
+        ...subQuery,
+        version: segment.definitionUpdatedAt.toString(),
+      }))
     );
   }
 
@@ -1410,7 +1456,10 @@ export async function computeState({
       userPropertyToSubQuery({
         userProperty,
         qb,
-      })
+      }).map((subQuery) => ({
+        ...subQuery,
+        version: userProperty.definitionUpdatedAt.toString(),
+      }))
     );
   }
   if (subQueryData.length === 0) {
@@ -1425,8 +1474,7 @@ export async function computeState({
   const subQueriesWithPeriods = subQueryData.reduce<
     Record<number, SubQueryData[]>
   >((memo, subQuery) => {
-    const period =
-      periodByComputedPropertyId.get(subQuery.computedPropertyId) ?? null;
+    const period = periodByComputedPropertyId.get(subQuery) ?? null;
     const periodKey = period?.maxTo.getTime() ?? 0;
     const subQueriesForPeriod = memo[periodKey] ?? [];
     memo[periodKey] = [...subQueriesForPeriod, subQuery];
