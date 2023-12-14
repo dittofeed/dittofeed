@@ -1228,7 +1228,8 @@ function constructAssignmentsQuery({
     segmentValue = ac.query;
   } else {
     segmentValue = "False";
-    userPropertyValue = `toJSONString(ifNull(${ac.query}, ''))`;
+    // userPropertyValue = `toJSONString(ifNull(${ac.query}, ''))`;
+    userPropertyValue = ac.query;
   }
   const query = `
     insert into computed_property_assignments_v2
