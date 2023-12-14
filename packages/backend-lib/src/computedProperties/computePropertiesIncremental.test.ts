@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { submitBatch, TestEvent } from "../../test/testEvents";
 import {
@@ -45,7 +46,6 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 async function readAssignments({
   workspaceId,
@@ -260,10 +260,12 @@ async function upsertComputedProperties({
   workspaceId,
   segments,
   userProperties,
+  now,
 }: {
   workspaceId: string;
   segments: TestSegment[];
   userProperties: TestUserProperty[];
+  now: number;
 }): Promise<{
   segments: SavedSegmentResource[];
   userProperties: SavedUserPropertyResource[];
@@ -282,10 +284,11 @@ async function upsertComputedProperties({
             workspaceId,
             name: up.name,
             definition: up.definition,
+            definitionUpdatedAt: new Date(now),
           },
           update: {
             definition: up.definition,
-            definitionUpdatedAt: new Date(),
+            definitionUpdatedAt: new Date(now),
           },
         });
         return unwrap(toUserPropertyResource(model));
@@ -304,10 +307,11 @@ async function upsertComputedProperties({
             workspaceId,
             name: s.name,
             definition: s.definition,
+            definitionUpdatedAt: new Date(now),
           },
           update: {
             definition: s.definition,
-            definitionUpdatedAt: new Date(),
+            definitionUpdatedAt: new Date(now),
           },
         });
         return unwrap(toSegmentResource(model));
@@ -1846,6 +1850,93 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description:
+        "when a performed segment is updated with a new performed count threshold",
+      userProperties: [],
+      only: true,
+      segments: [
+        {
+          name: "updatedPerformed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          segments: [
+            {
+              name: "updatedPerformed",
+              definition: {
+                entryNode: {
+                  type: SegmentNodeType.Performed,
+                  id: "1",
+                  event: "test",
+                  timesOperator: RelationalOperators.GreaterThanOrEqual,
+                  // updating times threshold to 2
+                  times: 2,
+                },
+                nodes: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment after its definition is updated",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
@@ -1871,6 +1962,7 @@ describe("computeProperties", () => {
       workspaceId,
       userProperties: test.userProperties,
       segments: test.segments,
+      now,
     });
 
     for (const step of test.steps) {
@@ -2052,6 +2144,7 @@ describe("computeProperties", () => {
         case EventsStepType.UpdateComputedProperty: {
           const computedProperties = await upsertComputedProperties({
             workspaceId,
+            now,
             userProperties: step.userProperties ?? [],
             segments: step.segments ?? [],
           });
