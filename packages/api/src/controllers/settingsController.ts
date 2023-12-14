@@ -4,21 +4,18 @@ import { Type } from "@sinclair/typebox";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import prisma from "backend-lib/src/prisma";
 import { upsertSmsProvider } from "backend-lib/src/smsProviders";
-import { EmailProvider, Prisma } from "backend-lib/src/types";
+import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import {
   DataSourceConfigurationResource,
   DataSourceVariantType,
   DefaultEmailProviderResource,
   DeleteWriteKeyResource,
-  EmailProviderResource,
-  EmailProviderType,
   EmptyResponse,
   ListWriteKeyRequest,
   ListWriteKeyResource,
   SmsProviderConfig,
   UpsertDataSourceConfigurationResource,
-  UpsertEmailProviderResource,
   UpsertSmsProviderRequest,
   UpsertWriteKeyResource,
   WriteKeyResource,
