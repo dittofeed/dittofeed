@@ -11,28 +11,66 @@ import {
   UserPropertyDefinitionType,
 } from "./types";
 
+function processPerformedManyValueV1(
+  definition: UserPropertyDefinition,
+  value: JSONValue
+): Result<JSONValue, Error> {
+  if (typeof value !== "string") {
+    return err(new Error("performed many value is not a string"));
+  }
+  const jsonParsedValue = jsonParseSafe(value);
+  if (jsonParsedValue.isErr()) {
+    return err(jsonParsedValue.error);
+  }
+  if (!(jsonParsedValue.value instanceof Array)) {
+    return err(new Error("performed many json parsed value is not an array"));
+  }
+
+  return ok(
+    jsonParsedValue.value.flatMap((item) => {
+      const result = schemaValidateWithErr(item, PerformedManyValueItem);
+      if (result.isErr()) {
+        return [];
+      }
+      const parsedProperties = jsonParseSafe(result.value.properties);
+      if (parsedProperties.isErr()) {
+        return [];
+      }
+      return {
+        ...result.value,
+        properties: parsedProperties.value,
+      };
+    })
+  );
+}
+
 function processUserProperty(
   definition: UserPropertyDefinition,
   value: JSONValue
 ): Result<JSONValue, Error> {
   switch (definition.type) {
     case UserPropertyDefinitionType.PerformedMany: {
-      if (typeof value !== "string") {
-        console.log("value", value);
-        return err(new Error("performed many value is not a string"));
+      let parsedValue: JSONValue;
+      // deprecated format for performedmany events
+      if (typeof value === "string") {
+        const jsonParsedValue = jsonParseSafe(value);
+        if (jsonParsedValue.isErr()) {
+          return err(jsonParsedValue.error);
+        }
+        parsedValue = jsonParsedValue.value;
+      } else {
+        // new format for performedmany user properties
+        parsedValue = value;
       }
-      const jsonParsedValue = jsonParseSafe(value);
-      if (jsonParsedValue.isErr()) {
-        return err(jsonParsedValue.error);
-      }
-      if (!(jsonParsedValue.value instanceof Array)) {
+
+      if (!(parsedValue instanceof Array)) {
         return err(
           new Error("performed many json parsed value is not an array")
         );
       }
 
       return ok(
-        jsonParsedValue.value.flatMap((item) => {
+        parsedValue.flatMap((item) => {
           const result = schemaValidateWithErr(item, PerformedManyValueItem);
           if (result.isErr()) {
             return [];

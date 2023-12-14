@@ -560,7 +560,6 @@ function leafUserPropertyToSubQuery({
       };
     }
     case UserPropertyDefinitionType.Performed: {
-      // FIXME test with nested
       const stateId = userPropertyStateId(userProperty, child.id);
       const path = qb.addQueryValue(child.path, "String");
       return {
@@ -882,7 +881,7 @@ function userPropertyToAssignment({
                   'timestamp',
                   formatDateTime(
                     event.2,
-                    '%Y-%m-%dT%H:%M:%S'
+                    '%Y-%m-%dT%H:%i:%S'
                   ),
                   'properties',
                   event.3
