@@ -57,7 +57,7 @@ export function parseUserProperty(
 ): Result<JSONValue, Error> {
   const parsed = jsonParseSafe(value);
   if (parsed.isErr()) {
-    return err(parsed.error);
+    return ok(value);
   }
   const processed = processUserProperty(definition, parsed.value);
   if (processed.isErr()) {
