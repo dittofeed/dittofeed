@@ -36,6 +36,8 @@ export function jsonParseSafe(s: string): Result<JSONValue, Error> {
   try {
     return ok(JSON.parse(s));
   } catch (e) {
-    return err(e as Error);
+    const error = new Error(`Failed to parse JSON: ${s}`);
+    error.cause = e;
+    return err(error);
   }
 }
