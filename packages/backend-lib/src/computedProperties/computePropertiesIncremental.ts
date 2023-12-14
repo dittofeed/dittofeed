@@ -536,18 +536,12 @@ function leafUserPropertyToSubQuery({
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): SubQueryData {
+}): SubQueryData | null {
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
-      // FIXME return null here
       if (child.path.length === 0) {
-        return {
-          condition: `0`,
-          type: "user_property",
-          stateId,
-          computedPropertyId: userProperty.id,
-        };
+        return null;
       }
       const path = qb.addQueryValue(`$.${child.path}`, "String");
       return {
@@ -612,22 +606,28 @@ function groupedUserPropertyToSubQuery({
       });
     }
     case UserPropertyDefinitionType.Trait: {
-      return [
-        leafUserPropertyToSubQuery({
-          userProperty,
-          child: node,
-          qb,
-        }),
-      ];
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: node,
+        qb,
+      });
+
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
     }
     case UserPropertyDefinitionType.Performed: {
-      return [
-        leafUserPropertyToSubQuery({
-          userProperty,
-          child: node,
-          qb,
-        }),
-      ];
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: node,
+        qb,
+      });
+
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
     }
   }
 }
@@ -642,22 +642,28 @@ function userPropertyToSubQuery({
   const stateId = userPropertyStateId(userProperty);
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
-      return [
-        leafUserPropertyToSubQuery({
-          userProperty,
-          child: userProperty.definition,
-          qb,
-        }),
-      ];
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: userProperty.definition,
+        qb,
+      });
+
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
     }
     case UserPropertyDefinitionType.Performed: {
-      return [
-        leafUserPropertyToSubQuery({
-          userProperty,
-          child: userProperty.definition,
-          qb,
-        }),
-      ];
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: userProperty.definition,
+        qb,
+      });
+
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
     }
     case UserPropertyDefinitionType.Group: {
       const entryId = userProperty.definition.entry;

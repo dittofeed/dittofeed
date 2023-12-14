@@ -45,6 +45,7 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 async function readAssignments({
   workspaceId,
@@ -188,6 +189,7 @@ enum EventsStepType {
   Assert = "Assert",
   Sleep = "Sleep",
   DebugAssignments = "DebugAssignments",
+  UpdateComputedProperty = "UpdateComputedProperty",
 }
 
 interface StepContext {
@@ -228,20 +230,94 @@ interface AssertStep {
   periods?: TestPeriod[];
 }
 
+type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
+type TestSegment = Pick<SegmentResource, "name" | "definition">;
+
+interface UpdateComputedPropertyStep {
+  type: EventsStepType.UpdateComputedProperty;
+  userProperties?: TestUserProperty[];
+  segments?: TestSegment[];
+}
+
 type TableStep =
   | SubmitEventsStep
   | ComputePropertiesStep
   | AssertStep
   | SleepStep
-  | DebugAssignmentsStep;
+  | DebugAssignmentsStep
+  | UpdateComputedPropertyStep;
 
 interface TableTest {
   description: string;
   skip?: true;
   only?: true;
-  userProperties: Pick<UserPropertyResource, "name" | "definition">[];
-  segments: Pick<SegmentResource, "name" | "definition">[];
+  userProperties: TestUserProperty[];
+  segments: TestSegment[];
   steps: TableStep[];
+}
+
+async function upsertComputedProperties({
+  workspaceId,
+  segments,
+  userProperties,
+}: {
+  workspaceId: string;
+  segments: TestSegment[];
+  userProperties: TestUserProperty[];
+}): Promise<{
+  segments: SavedSegmentResource[];
+  userProperties: SavedUserPropertyResource[];
+}> {
+  const [userPropertyResources, segmentResources] = await Promise.all([
+    Promise.all(
+      userProperties.map(async (up) => {
+        const model = await prisma().userProperty.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name: up.name,
+            },
+          },
+          create: {
+            workspaceId,
+            name: up.name,
+            definition: up.definition,
+          },
+          update: {
+            definition: up.definition,
+            definitionUpdatedAt: new Date(),
+          },
+        });
+        return unwrap(toUserPropertyResource(model));
+      })
+    ),
+    Promise.all(
+      segments.map(async (s) => {
+        const model = await prisma().segment.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name: s.name,
+            },
+          },
+          create: {
+            workspaceId,
+            name: s.name,
+            definition: s.definition,
+          },
+          update: {
+            definition: s.definition,
+            definitionUpdatedAt: new Date(),
+          },
+        });
+        return unwrap(toSegmentResource(model));
+      })
+    ),
+  ]);
+  return {
+    segments: segmentResources,
+    userProperties: userPropertyResources,
+  };
 }
 
 describe("computeProperties", () => {
@@ -1791,32 +1867,11 @@ describe("computeProperties", () => {
     const workspaceId = workspace.id;
     let now = Date.now();
 
-    const [userProperties, segments] = await Promise.all([
-      Promise.all(
-        test.userProperties.map(async (up) => {
-          const model = await prisma().userProperty.create({
-            data: {
-              workspaceId,
-              name: up.name,
-              definition: up.definition,
-            },
-          });
-          return unwrap(toUserPropertyResource(model));
-        })
-      ),
-      Promise.all(
-        test.segments.map(async (s) => {
-          const model = await prisma().segment.create({
-            data: {
-              workspaceId,
-              name: s.name,
-              definition: s.definition,
-            },
-          });
-          return unwrap(toSegmentResource(model));
-        })
-      ),
-    ]);
+    let { userProperties, segments } = await upsertComputedProperties({
+      workspaceId,
+      userProperties: test.userProperties,
+      segments: test.segments,
+    });
 
     for (const step of test.steps) {
       const stepContext: StepContext = {
@@ -1994,6 +2049,18 @@ describe("computeProperties", () => {
               : null,
           ]);
           break;
+        case EventsStepType.UpdateComputedProperty: {
+          const computedProperties = await upsertComputedProperties({
+            workspaceId,
+            userProperties: step.userProperties ?? [],
+            segments: step.segments ?? [],
+          });
+          segments = computedProperties.segments;
+          userProperties = computedProperties.userProperties;
+          break;
+        }
+        default:
+          assertUnreachable(step);
       }
     }
   });
