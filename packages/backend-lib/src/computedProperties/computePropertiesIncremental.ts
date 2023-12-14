@@ -341,6 +341,7 @@ interface FullSubQueryData {
   argMaxValue?: string;
   uniqValue?: string;
   recordMessageId?: boolean;
+  // used to force computed properties to refresh when definition changes
   version: string;
 }
 
@@ -777,7 +778,10 @@ interface AssignmentQueryConfig {
   unboundedStateIds: string[];
 }
 
-type OptionalAssignmentQueryConfig = AssignmentQueryConfig | null;
+type OptionalAssignmentQueryConfig = Omit<
+  AssignmentQueryConfig,
+  "version"
+> | null;
 
 function leafUserPropertyToAssignment({
   userProperty,
@@ -1613,17 +1617,6 @@ export async function computeAssignments({
   now,
 }: PartialComputePropertiesArgs): Promise<void> {
   const queryies: Promise<unknown>[] = [];
-  const assignmentConfig: AssignmentQueryConfig[] = [];
-  for (const userProperty of userProperties) {
-    const ac = userPropertyToAssignment({
-      userProperty,
-      qb: new ClickHouseQueryBuilder(),
-    });
-    if (!ac) {
-      continue;
-    }
-    assignmentConfig.push();
-  }
 
   const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
     workspaceId,
@@ -1631,7 +1624,11 @@ export async function computeAssignments({
   });
 
   for (const segment of segments) {
-    const period = periodByComputedPropertyId.get(segment.id);
+    const version = segment.definitionUpdatedAt.toString();
+    const period = periodByComputedPropertyId.get({
+      computedPropertyId: segment.id,
+      version,
+    });
     const qb = new ClickHouseQueryBuilder();
     const ac = segmentToAssignment({
       segment,
@@ -1665,7 +1662,11 @@ export async function computeAssignments({
   }
 
   for (const userProperty of userProperties) {
-    const period = periodByComputedPropertyId.get(userProperty.id);
+    const version = userProperty.definitionUpdatedAt.toString();
+    const period = periodByComputedPropertyId.get({
+      computedPropertyId: userProperty.id,
+      version,
+    });
     const qb = new ClickHouseQueryBuilder();
     const ac = userPropertyToAssignment({
       userProperty,
