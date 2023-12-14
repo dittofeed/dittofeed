@@ -796,6 +796,15 @@ export const EmailTemplateResource = Type.Composite([
 
 export type EmailTemplateResource = Static<typeof EmailTemplateResource>;
 
+export const EmailConfiguration = Type.Composite([
+  EmailContents,
+  Type.Object({
+    to: Type.String(),
+  }),
+]);
+
+export type EmailConfiguration = Static<typeof EmailConfiguration>;
+
 export const MobilePushTemplateResource = Type.Object({
   type: Type.Literal(ChannelType.MobilePush),
   title: Type.Optional(Type.String()),
@@ -916,6 +925,7 @@ export type RequestStatus<V, E> =
 
 export enum EmailProviderType {
   Sendgrid = "SendGrid",
+  Smtp = "Smtp",
   Test = "Test",
 }
 
@@ -933,7 +943,18 @@ export const SendgridEmailProvider = Type.Object({
 
 export type SendgridEmailProvider = Static<typeof SendgridEmailProvider>;
 
-export const PersistedEmailProvider = Type.Union([SendgridEmailProvider]);
+export const SmtpEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(EmailProviderType.Smtp),
+});
+
+export type SmtpEmailProvider = Static<typeof SmtpEmailProvider>;
+
+export const PersistedEmailProvider = Type.Union([
+  SendgridEmailProvider,
+  SmtpEmailProvider,
+]);
 
 export type PersistedEmailProvider = Static<typeof PersistedEmailProvider>;
 
@@ -1863,8 +1884,16 @@ export const EmailSendgridSuccess = Type.Object({
 
 export type EmailSendgridSuccess = Static<typeof EmailSendgridSuccess>;
 
+export const EmailSmtpSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.Smtp),
+  messageId: Type.String(),
+});
+
+export type EmailSmtpSuccess = Static<typeof EmailSmtpSuccess>;
+
 export const EmailServiceProviderSuccess = Type.Union([
   EmailSendgridSuccess,
+  EmailSmtpSuccess,
   EmailTestSuccess,
 ]);
 
@@ -1989,8 +2018,16 @@ export type MessageSendgridServiceFailure = Static<
   typeof MessageSendgridServiceFailure
 >;
 
+export const MessageSmtpFailure = Type.Object({
+  type: Type.Literal(EmailProviderType.Smtp),
+  message: Type.String(),
+});
+
+export type MessageSmtpFailure = Static<typeof MessageSmtpFailure>;
+
 export const EmailServiceProviderFailure = Type.Union([
   MessageSendgridServiceFailure,
+  MessageSmtpFailure,
 ]);
 
 export type EmailServiceProviderFailure = Static<
@@ -2203,7 +2240,17 @@ export const SendgridSecret = Type.Object({
 
 export type SendgridSecret = Static<typeof SendgridSecret>;
 
-export const EmailProviderSecret = Type.Union([SendgridSecret]);
+export const SmtpSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.Smtp),
+  host: Type.Optional(Type.String()),
+  port: Type.Optional(Type.String()),
+  username: Type.Optional(Type.String()),
+  password: Type.Optional(Type.String()),
+});
+
+export type SmtpSecret = Static<typeof SmtpSecret>;
+
+export const EmailProviderSecret = Type.Union([SendgridSecret, SmtpSecret]);
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
 

@@ -167,6 +167,9 @@ export async function getOrCreateEmailProviders({
       case EmailProviderType.Sendgrid:
         type = EmailProviderType.Sendgrid;
         break;
+      case EmailProviderType.Smtp:
+        type = EmailProviderType.Smtp;
+        break;
       default:
         logger().error(`Unknown email provider type: ${ep.type}`);
         return [];

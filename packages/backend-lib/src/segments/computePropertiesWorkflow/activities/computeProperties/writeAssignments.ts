@@ -819,7 +819,6 @@ export default async function writeAssignments({
   workspaceId: string;
   userProperties: EnrichedUserProperty[];
 }) {
-  // FIXME failing to write assignments for user properties
   const segmentComputedProperties: ComputedProperty[] = segments.map(
     (segment) => {
       const p: SegmentComputedProperty = {

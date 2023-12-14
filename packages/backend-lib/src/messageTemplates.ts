@@ -5,7 +5,8 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
-import { sendMail as sendEmailSendgrid } from "./destinations/sendgrid";
+import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
+import { sendMail as sendMailSmtp } from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
@@ -446,16 +447,9 @@ export async function sendEmail({
   const { from, subject, body, replyTo } = renderedValuesResult.value;
   const to = identifier;
 
-  // FIXME secret is null
   const unvalidatedSecretConfig =
     defaultEmailProvider.emailProvider.secret?.configValue;
 
-  logger().debug(
-    {
-      defaultEmailProvider,
-    },
-    "default email provider"
-  );
   if (!unvalidatedSecretConfig) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -491,6 +485,71 @@ export async function sendEmail({
   const secretConfig = secretConfigResult.value;
 
   switch (defaultEmailProvider.emailProvider.type) {
+    case EmailProviderType.Smtp: {
+      if (secretConfig.type !== EmailProviderType.Smtp) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `expected sendgrid secret config but got ${secretConfig.type}`,
+          },
+        });
+      }
+      const { host, port } = secretConfig;
+      if (!host) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing host in smtp host`,
+          },
+        });
+      }
+      const numPort = port?.length ? parseInt(port, 10) : undefined;
+      if (numPort && Number.isNaN(numPort)) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `invalid port in smtp host`,
+          },
+        });
+      }
+      const result = await sendMailSmtp({
+        ...secretConfig,
+        from,
+        to,
+        subject,
+        replyTo,
+        body,
+        host,
+        port: numPort,
+      });
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Email,
+            provider: result.error,
+          },
+        });
+      }
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Email,
+          from,
+          body,
+          to,
+          subject,
+          replyTo,
+          provider: {
+            type: EmailProviderType.Smtp,
+            messageId: result.value.messageId,
+          },
+        },
+      });
+    }
     case EmailProviderType.Sendgrid: {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (secretConfig.type !== EmailProviderType.Sendgrid) {
@@ -525,7 +584,7 @@ export async function sendEmail({
         });
       }
 
-      const result = await sendEmailSendgrid({
+      const result = await sendMailSendgrid({
         mailData,
         apiKey: secretConfig.apiKey,
       });
