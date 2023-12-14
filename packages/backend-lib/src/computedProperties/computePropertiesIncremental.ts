@@ -540,17 +540,27 @@ function leafUserPropertyToSubQuery({
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
-      const path = qb.addQueryValue(child.path, "String");
+      // FIXME return null here
+      if (child.path.length === 0) {
+        return {
+          condition: `0`,
+          type: "user_property",
+          stateId,
+          computedPropertyId: userProperty.id,
+        };
+      }
+      const path = qb.addQueryValue(`$.${child.path}`, "String");
       return {
         condition: `event_type == 'identify'`,
         type: "user_property",
         uniqValue: "''",
-        argMaxValue: `visitParamExtractString(properties, ${path})`,
+        argMaxValue: `JSON_VALUE(properties, ${path})`,
         computedPropertyId: userProperty.id,
         stateId,
       };
     }
     case UserPropertyDefinitionType.Performed: {
+      // FIXME test with nested
       const stateId = userPropertyStateId(userProperty, child.id);
       const path = qb.addQueryValue(child.path, "String");
       return {
@@ -1522,7 +1532,10 @@ export async function computeState({
       await command({
         query,
         query_params: qb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
+        clickhouse_settings: {
+          wait_end_of_query: 1,
+          function_json_value_return_type_allow_complex: 1,
+        },
       });
     })
   );
