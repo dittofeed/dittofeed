@@ -18,6 +18,7 @@ function processUserProperty(
   switch (definition.type) {
     case UserPropertyDefinitionType.PerformedMany: {
       if (typeof value !== "string") {
+        console.log("value", value);
         return err(new Error("performed many value is not a string"));
       }
       const jsonParsedValue = jsonParseSafe(value);

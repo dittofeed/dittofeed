@@ -1463,6 +1463,7 @@ describe("computeProperties", () => {
     },
     {
       description: "with a performed many user property",
+      only: true,
       userProperties: [
         {
           name: "performedMany",
@@ -1718,7 +1719,6 @@ describe("computeProperties", () => {
     },
     {
       description: "with a trait user property with a complex inner structure",
-      only: true,
       userProperties: [
         {
           name: "complex",
