@@ -1716,6 +1716,61 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "with a trait user property with a complex inner structure",
+      only: true,
+      userProperties: [
+        {
+          name: "complex",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "obj1",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Identify,
+              traits: {
+                obj1: {
+                  prop1: "value1",
+                  obj2: {
+                    prop2: "value2",
+                    prop3: ["value3", "value4"],
+                  },
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                complex: {
+                  prop1: "value1",
+                  obj2: {
+                    prop2: "value2",
+                    prop3: ["value3", "value4"],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
