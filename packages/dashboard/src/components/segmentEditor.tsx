@@ -303,23 +303,40 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   ];
 
   const propertyRows = node.properties?.map((property, i) => {
-    const key = `${property.path}-${property.operator.type}-${i}`;
+    const handlePropertyPathChange = (
+      e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.Performed) {
+          const newPath = e.target.value;
+          const existingProperty = n.properties?.[i];
+          if (!existingProperty) {
+            return;
+          }
+          existingProperty.path = newPath;
+        }
+      });
+    };
     return (
       <Stack
-        key={key}
+        // eslint-disable-next-line react/no-array-index-key
+        key={i}
         direction="row"
         sx={{
           alignItems: "center",
         }}
       >
-        {" "}
-        {property.path}
+        <TextField
+          label="Property Path"
+          value={property.path}
+          onChange={handlePropertyPathChange}
+        />
       </Stack>
     );
   });
 
   return (
-    <Stack direction="column" spacing={1}>
+    <Stack direction="column" spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
         <Box sx={{ width: selectorWidth }}>
           <TextField
