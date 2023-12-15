@@ -2,7 +2,7 @@
 title: "Trait - User Property"
 ---
 
-Trait user properties selects the last observed `trait` value of an `identify` event. It is the most basic and commonly used user property type.
+Trait user properties selects the last observed `trait` value of an `identify` event. It is the most basic and commonly used user property type. They can be used to render individual values, or to render arrays and objects.
 
 ## Example Use Case - Plan
 
@@ -32,7 +32,7 @@ You are subscribed to the {{ user.plan | default: "free" }} tier plan.
 
 ## Example Use Case - Recommendations
 
-Imagine you're running an e-commerce store, and you want to show recommendations to a user. You have a set of recommendations for each user that you've pre-calculated. You can create a `recommendations` trait, and use it to render a list of products.
+Let's say you're running an online store, and you want to show recommendations to a user. You have a set of recommendations for each user that you've pre-calculated. You can create a `recommendations` trait, and use it to render a list of products.
 
 ```json
 {
@@ -57,6 +57,8 @@ Imagine you're running an e-commerce store, and you want to show recommendations
 
 ```html
 {% for product in user.recommendations | default: empty %}
-  <mj-text href="https://example.com/product/{{ product.id }}">{{ product.name }}</mj-text>
+  <mj-text><a>href="https://example.com/product/{{ product.id }}">{{ product.name }}</a></mj-text>
 {% endfor %}
 ```
+
+This is a demonstration of how `Trait` user properties can be used to render arrays and objects in addition to strings.

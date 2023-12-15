@@ -881,6 +881,7 @@ export default function EmailEditor({
       );
     }
   }
+  // TODO render provider and user
 
   return (
     <>
