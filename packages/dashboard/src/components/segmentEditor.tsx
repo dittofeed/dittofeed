@@ -798,7 +798,7 @@ function SegmentNodeComponent({
     el = (
       <Stack spacing={3}>
         {/* <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}> */}
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <Stack direction="row" spacing={1}>
           {labelEl}
           {conditionSelect}
           <IconButton
@@ -818,7 +818,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Trait) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <TraitSelect node={node} />
@@ -827,7 +827,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Broadcast) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <Box>Actives when segment receives a broadcast.</Box>
@@ -836,7 +836,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.SubscriptionGroup) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <SubscriptionGroupSelect node={node} />
@@ -845,7 +845,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Performed) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <PerformedSelect node={node} />
