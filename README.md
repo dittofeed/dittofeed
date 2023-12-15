@@ -12,7 +12,7 @@
 
 [Dittofeed](https://dittofeed.com) is an omni-channel customer engagement platform. Create automated user journeys to message users along any channel: email, mobile push notifications, SMS, custom webhooks, Slack, and more. We're an open source, dev-friendly alternative to platforms like OneSignal, Customer.io, and Segment Engage.
 
-<br />
+<br>
 
 [![Dittofeed Docs Badge](https://img.shields.io/badge/docs-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdocs.dittofeed.com%2Fintroduction)](https://docs.dittofeed.com/introduction)
 [![Dittofeed Live Demo Badge](https://img.shields.io/badge/live_demo-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdemo.dittofeed.com%2Fdashboard%2Fjourneys)](https://demo.dittofeed.com/dashboard/journeys/)
@@ -21,7 +21,7 @@
 [![Dittofeed Slack Community Badge](https://img.shields.io/badge/community-dittofeed?style=social&logo=slack&link=https%3A%2F%2Fjoin.slack.com%2Ft%2Fdittofeed-community%2Fshared_invite%2Fzt-1u3lyts83-P6npff1AbjniNRLVlrlM5A)](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A)
 [![Dittofeed X Twitter Social Badge](https://img.shields.io/badge/follow-dittofeed?style=social&logo=x&link=https%3A%2F%2Fx.com%2Fdittofeed)](https://x.com/dittofeed)
 
-<br />
+<br>
 
 - 1️⃣ Connect user data via Segment, Reverse ETL, or the Dittofeed API ⛓️
 - 2️⃣ Create highly customizable user segments with multiple operators 🧍🏽‍♀️🧍🏻‍♂️🧍🏾
@@ -30,13 +30,13 @@
 - 5️⃣ Integrate with major ESPs like Sendgrid and Amazon SES 🏰
 - 6️⃣ Track and analyze message performance from the dashboard 🎯
 
-<br />
+<br>
 
 <a href="https://dittofeed.com/">
   <img src="packages/docs/images/github-readme-banner.png" alt="Dittofeed Admin Panel Banner" />
 </a>
 
-<br />
+<br>
 
 ### Dashboard Views
 
@@ -53,11 +53,29 @@
   <img alt="Messaging Templates" src="packages/docs/images/templates_github.png">
 </details>
 
-## Deployment
+For the full experience, play around with the [demo app](https://demo.dittofeed.com/dashboard).
+
+## Quick Deployment
 
 Click Deploy to Render below and follow the prompts to deploy Dittofeed on Render. See the "Self-Host with Render" [docs for more info](https://docs.dittofeed.com/deployment/self-hosted/render).
 
 <a href="https://render.com/deploy?repo=https://github.com/dittofeed/dittofeed" target="_blank" rel="nofollow"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy To Render"></a>
+
+## Roadmap
+
+*Updated monthly | ☑️ = in development | ✅ = in production
+
+| Feature                             | Purpose                                                                                                | Status |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------| ------ |
+| SMTP support                        | Use SMTP as an email provider                                                                          | ☑️     |
+| SES support                         | Use Amazon SES as an email provider                                                                    | ☑️     |
+| User property objects & arrays      | Store objects & arrays within user properties                                                          | ☑️     |
+| Segment node type                   | Expose segments as a node type within the journeys GUI                                                 | ☑️     |
+| Incrimental computed properties     | Rearchitect computed properties engine to incrementally recompute properties for greater scalability   | ✅     |
+| Reverse ETL                         | Add support for reverse ETL as a data source via Polytomic                                             | ✅     |
+| Twilio SMS support                  | Use Twilio as a SMS provider                                                                           | ✅     |
+| Broadcast UI                        | Improve functionality and usability of Broadcasts                                                      | ✅     |
+
 
 ## Developer-centric
 
@@ -70,19 +88,20 @@ Beyond having industry-standard GUI tools, we focus on developer happiness with 
 - Journey monitoring and alerting.
 
 More to come...
-  
-## License
 
-[MIT licensed](/LICENSE), and free forever.
-
-## Contact
+## Support
 
 If you're interested in trying us out, please get in touch!
 
-* [Slack](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1rwjkx7w1-Jj8MeB1wN~hiM7uuErLj1A)
-* [Email](mailto:support@dittofeed.com)
+* [Slack community](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1rwjkx7w1-Jj8MeB1wN~hiM7uuErLj1A)
+* [Email support](mailto:support@dittofeed.com)
 * [Open an issue](https://github.com/dittofeed/dittofeed/issues/new)
+* [Book a meeting](https://calendly.com/d/zy7-8d5-jdq/dittofeed-demo-founders)
 
 ## Contributing
 
 For instructions on how to run Dittofeed locally and contribute to this project, see Dittofeed's [contributing docs](https://docs.dittofeed.com/contributing/).
+
+## License
+
+[MIT licensed](/LICENSE), and free forever.
