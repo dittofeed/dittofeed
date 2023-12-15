@@ -317,11 +317,16 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         }
       });
     };
+    const operator = keyedOperatorOptions.get(property.operator.type);
+    if (!operator) {
+      return null;
+    }
     return (
       <Stack
         // eslint-disable-next-line react/no-array-index-key
         key={i}
         direction="row"
+        spacing={1}
         sx={{
           alignItems: "center",
         }}
@@ -331,6 +336,9 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           value={property.path}
           onChange={handlePropertyPathChange}
         />
+        <Select value={operator.id}>
+          <MenuItem value={operator.id}>{operator.label}</MenuItem>
+        </Select>
       </Stack>
     );
   });
