@@ -423,9 +423,6 @@ export default function SmsEditor({
       // eslint-disable-next-line guard-for-in
       for (const key in parsedObj) {
         const parsedVal = parsed[key];
-        if (typeof parsedVal !== "string") {
-          continue;
-        }
         props[key] = parsedVal;
       }
       replaceUserProperties(props);
