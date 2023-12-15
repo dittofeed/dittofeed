@@ -3,6 +3,7 @@ import { Delete } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
+  Button,
   FormControl,
   IconButton,
   InputLabel,
@@ -236,7 +237,6 @@ function DurationValueSelect({
   );
 }
 
-// TODO allow for segmenting on Track properties
 function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   const { disabled } = useContext(DisabledContext);
 
@@ -269,42 +269,159 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     });
   };
 
+  const handleAddProperty = () => {
+    updateSegmentNodeData(node.id, (n) => {
+      if (n.type === SegmentNodeType.Performed) {
+        let propertyPath: string | null = null;
+        // put arbtitrary limit on the number of properties
+        for (let i = 0; i < 100; i++) {
+          const propertyCount = n.properties?.length ?? 0;
+          const prospectivePath = `myPropertyPath${propertyCount + 1}`;
+          if (!n.properties?.find((p) => p.path === prospectivePath)) {
+            propertyPath = prospectivePath;
+            break;
+          }
+        }
+        if (propertyPath) {
+          n.properties = n.properties ?? [];
+          n.properties.push({
+            path: propertyPath,
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "myPropertyValue",
+            },
+          });
+        }
+      }
+    });
+  };
+
   const operators: [RelationalOperators, string][] = [
     [RelationalOperators.GreaterThanOrEqual, "At least (>=)"],
     [RelationalOperators.LessThan, "Less than (<)"],
     [RelationalOperators.Equals, "Exactly (=)"],
   ];
 
+  const propertyRows = node.properties?.map((property, i) => {
+    const handlePropertyPathChange = (
+      e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.Performed) {
+          const newPath = e.target.value;
+          const existingProperty = n.properties?.[i];
+          if (!existingProperty) {
+            return;
+          }
+          existingProperty.path = newPath;
+        }
+      });
+    };
+    const handlePropertyValueChange = (
+      e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.Performed) {
+          const newValue = e.target.value;
+          const existingProperty = n.properties?.[i];
+          if (
+            !existingProperty ||
+            existingProperty.operator.type !== SegmentOperatorType.Equals
+          ) {
+            return;
+          }
+          existingProperty.operator.value = newValue;
+        }
+      });
+    };
+    const operator = keyedOperatorOptions.get(property.operator.type);
+    const handleDelete = () => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.Performed) {
+          if (!n.properties) {
+            return;
+          }
+          n.properties = node.properties?.filter((_, index) => index !== i);
+        }
+      });
+    };
+    if (!operator) {
+      return null;
+    }
+    if (property.operator.type !== SegmentOperatorType.Equals) {
+      return null;
+    }
+    return (
+      <Stack
+        // eslint-disable-next-line react/no-array-index-key
+        key={i}
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+        }}
+      >
+        <TextField
+          label="Property Path"
+          value={property.path}
+          onChange={handlePropertyPathChange}
+        />
+        <Select value={operator.id}>
+          <MenuItem value={operator.id}>{operator.label}</MenuItem>
+        </Select>
+        <TextField
+          label="Property Value"
+          onChange={handlePropertyValueChange}
+          value={property.operator.value}
+        />
+        <IconButton
+          color="error"
+          size="large"
+          disabled={disabled}
+          onClick={handleDelete}
+        >
+          <Delete />
+        </IconButton>
+      </Stack>
+    );
+  });
+
   return (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-      <Box sx={{ width: selectorWidth }}>
+    <Stack direction="column" spacing={2}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <Box sx={{ width: selectorWidth }}>
+          <TextField
+            disabled={disabled}
+            label="Event Name"
+            value={node.event}
+            onChange={handleEventNameChange}
+          />
+        </Box>
+        <Select
+          onChange={handleTimesOperatorChange}
+          disabled={disabled}
+          value={node.timesOperator ?? RelationalOperators.Equals}
+        >
+          {operators.map(([operator, label]) => (
+            <MenuItem key={operator} value={operator}>
+              {label}
+            </MenuItem>
+          ))}
+        </Select>
         <TextField
           disabled={disabled}
-          label="Event Name"
-          value={node.event}
-          onChange={handleEventNameChange}
+          label="Times Performed"
+          InputProps={{
+            type: "number",
+          }}
+          value={String(node.times ?? 1)}
+          onChange={handleEventTimesChange}
         />
-      </Box>
-      <Select
-        onChange={handleTimesOperatorChange}
-        disabled={disabled}
-        value={node.timesOperator ?? RelationalOperators.Equals}
-      >
-        {operators.map(([operator, label]) => (
-          <MenuItem key={operator} value={operator}>
-            {label}
-          </MenuItem>
-        ))}
-      </Select>
-      <TextField
-        disabled={disabled}
-        label="Times Performed"
-        InputProps={{
-          type: "number",
-        }}
-        value={String(node.times ?? 1)}
-        onChange={handleEventTimesChange}
-      />
+        <Button variant="contained" onClick={() => handleAddProperty()}>
+          Add Property
+        </Button>
+      </Stack>
+      {propertyRows}
     </Stack>
   );
 }
@@ -669,6 +786,7 @@ function SegmentNodeComponent({
 
   const condition = keyedSegmentOptions[node.type];
 
+  // FIXME spacing
   const conditionSelect = (
     <Box sx={{ width: selectorWidth }}>
       <Autocomplete
@@ -747,7 +865,8 @@ function SegmentNodeComponent({
     });
     el = (
       <Stack spacing={3}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {/* <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}> */}
+        <Stack direction="row" spacing={1}>
           {labelEl}
           {conditionSelect}
           <IconButton
@@ -767,7 +886,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Trait) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <TraitSelect node={node} />
@@ -776,7 +895,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Broadcast) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <Box>Actives when segment receives a broadcast.</Box>
@@ -785,7 +904,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.SubscriptionGroup) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <SubscriptionGroupSelect node={node} />
@@ -794,7 +913,7 @@ function SegmentNodeComponent({
     );
   } else if (node.type === SegmentNodeType.Performed) {
     el = (
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <Stack direction="row" spacing={1}>
         {labelEl}
         {conditionSelect}
         <PerformedSelect node={node} />
