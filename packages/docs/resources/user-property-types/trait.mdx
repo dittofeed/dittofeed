@@ -17,9 +17,9 @@ As an example, imagine that you're running a SAAS business, where users can be s
   "type": "identify",
   "userId": "1234",
   "traits": {
+    "plan": "premium",
     "name": "John Doe",
-    "email": "john@email.com",
-    "plan": "premium"
+    "email": "john@email.com"
   }
 }
 ```
@@ -32,4 +32,31 @@ You are subscribed to the {{ user.plan | default: "free" }} tier plan.
 
 ## Example Use Case - Recommendations
 
-Imagine you're running an e-commerce store, and you want to show recommendations to a user. You have a set of recommendations for each user that you've pre-calculated. You can create a `recommendations` trait.
+Imagine you're running an e-commerce store, and you want to show recommendations to a user. You have a set of recommendations for each user that you've pre-calculated. You can create a `recommendations` trait, and use it to render a list of products.
+
+```json
+{
+  "type": "identify",
+  "userId": "1234",
+  "traits": {
+    "recommendations": [
+      {
+        "id": "123",
+        "name": "Laundry Detergent"
+      },
+      {
+        "id": "456",
+        "name": "Toothpaste"
+      }
+    ],
+    "name": "John Doe"
+  }
+}
+```
+
+
+```html
+{% for product in user.recommendations | default: empty %}
+  <mj-text href="https://example.com/product/{{ product.id }}">{{ product.name }}</mj-text>
+{% endfor %}
+```
