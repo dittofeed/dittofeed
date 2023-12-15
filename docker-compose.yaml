@@ -168,7 +168,7 @@ services:
     networks:
       - dittofeed-network-dev
   clickhouse-server:
-    image: clickhouse/clickhouse-server:22.9.5.25-alpine
+    image: clickhouse/clickhouse-server:23.8.8.20-alpine
     ports:
       - "8123:8123"
       - "9000:9000"

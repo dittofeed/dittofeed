@@ -197,13 +197,46 @@ export enum ComputedPropertyStep {
   ProcessAssignments = "ProcessAssignments",
 }
 
-type PeriodByComputedPropertyId = Map<
+type PeriodByComputedPropertyIdMap = Map<
   string,
   Pick<
     AggregatedComputedPropertyPeriod,
     "maxTo" | "computedPropertyId" | "version"
   >
 >;
+
+class PeriodByComputedPropertyId {
+  private map: PeriodByComputedPropertyIdMap;
+
+  static getKey({
+    computedPropertyId,
+    version,
+  }: {
+    computedPropertyId: string;
+    version: string;
+  }) {
+    return `${computedPropertyId}-${version}`;
+  }
+
+  constructor(map: PeriodByComputedPropertyIdMap) {
+    this.map = map;
+  }
+
+  get({
+    computedPropertyId,
+    version,
+  }: {
+    computedPropertyId: string;
+    version: string;
+  }) {
+    return this.map.get(
+      PeriodByComputedPropertyId.getKey({
+        computedPropertyId,
+        version,
+      })
+    );
+  }
+}
 
 async function getPeriodsByComputedPropertyId({
   workspaceId,
@@ -228,20 +261,19 @@ async function getPeriodsByComputedPropertyId({
     periodsQuery
   );
 
-  const periodByComputedPropertyId = periods.reduce<PeriodByComputedPropertyId>(
-    (acc, period) => {
+  const periodByComputedPropertyId =
+    periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
       const { maxTo } = period;
-      acc.set(period.computedPropertyId, {
+      const key = PeriodByComputedPropertyId.getKey(period);
+      acc.set(key, {
         maxTo,
         computedPropertyId: period.computedPropertyId,
         version: period.version,
       });
       return acc;
-    },
-    new Map()
-  );
+    }, new Map());
 
-  return periodByComputedPropertyId;
+  return new PeriodByComputedPropertyId(periodByComputedPropertyId);
 }
 
 async function createPeriods({
@@ -262,7 +294,11 @@ async function createPeriods({
   const newPeriods: Prisma.ComputedPropertyPeriodCreateManyInput[] = [];
 
   for (const segment of segments) {
-    const previousPeriod = periodByComputedPropertyId.get(segment.id);
+    const version = segment.definitionUpdatedAt.toString();
+    const previousPeriod = periodByComputedPropertyId.get({
+      version,
+      computedPropertyId: segment.id,
+    });
     newPeriods.push({
       workspaceId,
       step,
@@ -270,12 +306,16 @@ async function createPeriods({
       computedPropertyId: segment.id,
       from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
       to: new Date(now),
-      version: segment.definitionUpdatedAt.toString(),
+      version,
     });
   }
 
   for (const userProperty of userProperties) {
-    const previousPeriod = periodByComputedPropertyId.get(userProperty.id);
+    const version = userProperty.definitionUpdatedAt.toString();
+    const previousPeriod = periodByComputedPropertyId.get({
+      version,
+      computedPropertyId: userProperty.id,
+    });
     newPeriods.push({
       workspaceId,
       step,
@@ -283,7 +323,7 @@ async function createPeriods({
       computedPropertyId: userProperty.id,
       from: previousPeriod ? new Date(previousPeriod.maxTo) : null,
       to: new Date(now),
-      version: userProperty.definitionUpdatedAt.toString(),
+      version,
     });
   }
 
@@ -293,7 +333,7 @@ async function createPeriods({
   });
 }
 
-interface SubQueryData {
+interface FullSubQueryData {
   condition: string;
   type: "user_property" | "segment";
   computedPropertyId: string;
@@ -301,7 +341,11 @@ interface SubQueryData {
   argMaxValue?: string;
   uniqValue?: string;
   recordMessageId?: boolean;
+  // used to force computed properties to refresh when definition changes
+  version: string;
 }
+
+type SubQueryData = Omit<FullSubQueryData, "version">;
 
 type AggregatedComputedPropertyPeriod = Omit<
   ComputedPropertyPeriod,
@@ -536,16 +580,19 @@ function leafUserPropertyToSubQuery({
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): SubQueryData {
+}): SubQueryData | null {
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
-      const path = qb.addQueryValue(child.path, "String");
+      if (child.path.length === 0) {
+        return null;
+      }
+      const path = qb.addQueryValue(`$.${child.path}`, "String");
       return {
         condition: `event_type == 'identify'`,
         type: "user_property",
         uniqValue: "''",
-        argMaxValue: `visitParamExtractString(properties, ${path})`,
+        argMaxValue: `JSON_VALUE(properties, ${path})`,
         computedPropertyId: userProperty.id,
         stateId,
       };
@@ -603,22 +650,28 @@ function groupedUserPropertyToSubQuery({
       });
     }
     case UserPropertyDefinitionType.Trait: {
-      return [
-        leafUserPropertyToSubQuery({
-          userProperty,
-          child: node,
-          qb,
-        }),
-      ];
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: node,
+        qb,
+      });
+
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
     }
     case UserPropertyDefinitionType.Performed: {
-      return [
-        leafUserPropertyToSubQuery({
-          userProperty,
-          child: node,
-          qb,
-        }),
-      ];
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: node,
+        qb,
+      });
+
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
     }
   }
 }
@@ -633,22 +686,28 @@ function userPropertyToSubQuery({
   const stateId = userPropertyStateId(userProperty);
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
-      return [
-        leafUserPropertyToSubQuery({
-          userProperty,
-          child: userProperty.definition,
-          qb,
-        }),
-      ];
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: userProperty.definition,
+        qb,
+      });
+
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
     }
     case UserPropertyDefinitionType.Performed: {
-      return [
-        leafUserPropertyToSubQuery({
-          userProperty,
-          child: userProperty.definition,
-          qb,
-        }),
-      ];
+      const subQuery = leafUserPropertyToSubQuery({
+        userProperty,
+        child: userProperty.definition,
+        qb,
+      });
+
+      if (!subQuery) {
+        return [];
+      }
+      return [subQuery];
     }
     case UserPropertyDefinitionType.Group: {
       const entryId = userProperty.definition.entry;
@@ -719,7 +778,10 @@ interface AssignmentQueryConfig {
   unboundedStateIds: string[];
 }
 
-type OptionalAssignmentQueryConfig = AssignmentQueryConfig | null;
+type OptionalAssignmentQueryConfig = Omit<
+  AssignmentQueryConfig,
+  "version"
+> | null;
 
 function leafUserPropertyToAssignment({
   userProperty,
@@ -872,7 +934,7 @@ function userPropertyToAssignment({
                   'timestamp',
                   formatDateTime(
                     event.2,
-                    '%Y-%m-%dT%H:%M:%S'
+                    '%Y-%m-%dT%H:%i:%S'
                   ),
                   'properties',
                   event.3
@@ -1218,7 +1280,7 @@ function constructAssignmentsQuery({
     segmentValue = ac.query;
   } else {
     segmentValue = "False";
-    userPropertyValue = `toJSONString(ifNull(${ac.query}, ''))`;
+    userPropertyValue = ac.query;
   }
   const query = `
     insert into computed_property_assignments_v2
@@ -1377,7 +1439,7 @@ export async function computeState({
       config().nodeEnv === NodeEnvEnum.Development ||
       config().nodeEnv === NodeEnvEnum.Test,
   });
-  let subQueryData: SubQueryData[] = [];
+  let subQueryData: FullSubQueryData[] = [];
 
   for (const segment of segments) {
     subQueryData = subQueryData.concat(
@@ -1385,7 +1447,10 @@ export async function computeState({
         segment,
         node: segment.definition.entryNode,
         qb,
-      })
+      }).map((subQuery) => ({
+        ...subQuery,
+        version: segment.definitionUpdatedAt.toString(),
+      }))
     );
   }
 
@@ -1394,7 +1459,10 @@ export async function computeState({
       userPropertyToSubQuery({
         userProperty,
         qb,
-      })
+      }).map((subQuery) => ({
+        ...subQuery,
+        version: userProperty.definitionUpdatedAt.toString(),
+      }))
     );
   }
   if (subQueryData.length === 0) {
@@ -1409,8 +1477,7 @@ export async function computeState({
   const subQueriesWithPeriods = subQueryData.reduce<
     Record<number, SubQueryData[]>
   >((memo, subQuery) => {
-    const period =
-      periodByComputedPropertyId.get(subQuery.computedPropertyId) ?? null;
+    const period = periodByComputedPropertyId.get(subQuery) ?? null;
     const periodKey = period?.maxTo.getTime() ?? 0;
     const subQueriesForPeriod = memo[periodKey] ?? [];
     memo[periodKey] = [...subQueriesForPeriod, subQuery];
@@ -1522,7 +1589,10 @@ export async function computeState({
       await command({
         query,
         query_params: qb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
+        clickhouse_settings: {
+          wait_end_of_query: 1,
+          function_json_value_return_type_allow_complex: 1,
+        },
       });
     })
   );
@@ -1546,17 +1616,6 @@ export async function computeAssignments({
   now,
 }: PartialComputePropertiesArgs): Promise<void> {
   const queryies: Promise<unknown>[] = [];
-  const assignmentConfig: AssignmentQueryConfig[] = [];
-  for (const userProperty of userProperties) {
-    const ac = userPropertyToAssignment({
-      userProperty,
-      qb: new ClickHouseQueryBuilder(),
-    });
-    if (!ac) {
-      continue;
-    }
-    assignmentConfig.push();
-  }
 
   const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
     workspaceId,
@@ -1564,7 +1623,11 @@ export async function computeAssignments({
   });
 
   for (const segment of segments) {
-    const period = periodByComputedPropertyId.get(segment.id);
+    const version = segment.definitionUpdatedAt.toString();
+    const period = periodByComputedPropertyId.get({
+      computedPropertyId: segment.id,
+      version,
+    });
     const qb = new ClickHouseQueryBuilder();
     const ac = segmentToAssignment({
       segment,
@@ -1598,7 +1661,11 @@ export async function computeAssignments({
   }
 
   for (const userProperty of userProperties) {
-    const period = periodByComputedPropertyId.get(userProperty.id);
+    const version = userProperty.definitionUpdatedAt.toString();
+    const period = periodByComputedPropertyId.get({
+      computedPropertyId: userProperty.id,
+      version,
+    });
     const qb = new ClickHouseQueryBuilder();
     const ac = userPropertyToAssignment({
       userProperty,

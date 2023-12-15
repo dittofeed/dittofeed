@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { submitBatch, TestEvent } from "../../test/testEvents";
 import {
@@ -188,6 +189,7 @@ enum EventsStepType {
   Assert = "Assert",
   Sleep = "Sleep",
   DebugAssignments = "DebugAssignments",
+  UpdateComputedProperty = "UpdateComputedProperty",
 }
 
 interface StepContext {
@@ -228,20 +230,98 @@ interface AssertStep {
   periods?: TestPeriod[];
 }
 
+type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
+type TestSegment = Pick<SegmentResource, "name" | "definition">;
+
+interface UpdateComputedPropertyStep {
+  type: EventsStepType.UpdateComputedProperty;
+  userProperties?: TestUserProperty[];
+  segments?: TestSegment[];
+}
+
 type TableStep =
   | SubmitEventsStep
   | ComputePropertiesStep
   | AssertStep
   | SleepStep
-  | DebugAssignmentsStep;
+  | DebugAssignmentsStep
+  | UpdateComputedPropertyStep;
 
 interface TableTest {
   description: string;
   skip?: true;
   only?: true;
-  userProperties: Pick<UserPropertyResource, "name" | "definition">[];
-  segments: Pick<SegmentResource, "name" | "definition">[];
+  userProperties: TestUserProperty[];
+  segments: TestSegment[];
   steps: TableStep[];
+}
+
+async function upsertComputedProperties({
+  workspaceId,
+  segments,
+  userProperties,
+  now,
+}: {
+  workspaceId: string;
+  segments: TestSegment[];
+  userProperties: TestUserProperty[];
+  now: number;
+}): Promise<{
+  segments: SavedSegmentResource[];
+  userProperties: SavedUserPropertyResource[];
+}> {
+  const [userPropertyResources, segmentResources] = await Promise.all([
+    Promise.all(
+      userProperties.map(async (up) => {
+        const model = await prisma().userProperty.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name: up.name,
+            },
+          },
+          create: {
+            workspaceId,
+            name: up.name,
+            definition: up.definition,
+            definitionUpdatedAt: new Date(now),
+          },
+          update: {
+            definition: up.definition,
+            definitionUpdatedAt: new Date(now),
+          },
+        });
+        return unwrap(toUserPropertyResource(model));
+      })
+    ),
+    Promise.all(
+      segments.map(async (s) => {
+        const model = await prisma().segment.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name: s.name,
+            },
+          },
+          create: {
+            workspaceId,
+            name: s.name,
+            definition: s.definition,
+            definitionUpdatedAt: new Date(now),
+          },
+          update: {
+            definition: s.definition,
+            definitionUpdatedAt: new Date(now),
+          },
+        });
+        return unwrap(toSegmentResource(model));
+      })
+    ),
+  ]);
+  return {
+    segments: segmentResources,
+    userProperties: userPropertyResources,
+  };
 }
 
 describe("computeProperties", () => {
@@ -1716,6 +1796,177 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "with a trait user property with a complex inner structure",
+      userProperties: [
+        {
+          name: "complex",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "obj1",
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Identify,
+              traits: {
+                obj1: {
+                  prop1: "value1",
+                  obj2: {
+                    prop2: "value2",
+                    prop3: ["value3", "value4"],
+                  },
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                complex: {
+                  prop1: "value1",
+                  obj2: {
+                    prop2: "value2",
+                    prop3: ["value3", "value4"],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description:
+        "when a performed segment is updated with a new performed count threshold",
+      userProperties: [],
+      segments: [
+        {
+          name: "updatedPerformed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.UpdateComputedProperty,
+          segments: [
+            {
+              name: "updatedPerformed",
+              definition: {
+                entryNode: {
+                  type: SegmentNodeType.Performed,
+                  id: "1",
+                  event: "test",
+                  timesOperator: RelationalOperators.GreaterThanOrEqual,
+                  // updating times threshold to 2
+                  times: 2,
+                },
+                nodes: [],
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user is no longer in the segment after its definition is updated",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: false,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "after receiving another event user satisfies new segment definition",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                updatedPerformed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
@@ -1737,32 +1988,12 @@ describe("computeProperties", () => {
     const workspaceId = workspace.id;
     let now = Date.now();
 
-    const [userProperties, segments] = await Promise.all([
-      Promise.all(
-        test.userProperties.map(async (up) => {
-          const model = await prisma().userProperty.create({
-            data: {
-              workspaceId,
-              name: up.name,
-              definition: up.definition,
-            },
-          });
-          return unwrap(toUserPropertyResource(model));
-        })
-      ),
-      Promise.all(
-        test.segments.map(async (s) => {
-          const model = await prisma().segment.create({
-            data: {
-              workspaceId,
-              name: s.name,
-              definition: s.definition,
-            },
-          });
-          return unwrap(toSegmentResource(model));
-        })
-      ),
-    ]);
+    let { userProperties, segments } = await upsertComputedProperties({
+      workspaceId,
+      userProperties: test.userProperties,
+      segments: test.segments,
+      now,
+    });
 
     for (const step of test.steps) {
       const stepContext: StepContext = {
@@ -1940,6 +2171,19 @@ describe("computeProperties", () => {
               : null,
           ]);
           break;
+        case EventsStepType.UpdateComputedProperty: {
+          const computedProperties = await upsertComputedProperties({
+            workspaceId,
+            now,
+            userProperties: step.userProperties ?? [],
+            segments: step.segments ?? [],
+          });
+          segments = computedProperties.segments;
+          userProperties = computedProperties.userProperties;
+          break;
+        }
+        default:
+          assertUnreachable(step);
       }
     }
   });

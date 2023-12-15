@@ -17,21 +17,27 @@ function processUserProperty(
 ): Result<JSONValue, Error> {
   switch (definition.type) {
     case UserPropertyDefinitionType.PerformedMany: {
-      if (typeof value !== "string") {
-        return err(new Error("performed many value is not a string"));
+      let parsedValue: JSONValue;
+      // deprecated format for performedmany events
+      if (typeof value === "string") {
+        const jsonParsedValue = jsonParseSafe(value);
+        if (jsonParsedValue.isErr()) {
+          return err(jsonParsedValue.error);
+        }
+        parsedValue = jsonParsedValue.value;
+      } else {
+        // new format for performedmany user properties
+        parsedValue = value;
       }
-      const jsonParsedValue = jsonParseSafe(value);
-      if (jsonParsedValue.isErr()) {
-        return err(jsonParsedValue.error);
-      }
-      if (!(jsonParsedValue.value instanceof Array)) {
+
+      if (!(parsedValue instanceof Array)) {
         return err(
           new Error("performed many json parsed value is not an array")
         );
       }
 
       return ok(
-        jsonParsedValue.value.flatMap((item) => {
+        parsedValue.flatMap((item) => {
           const result = schemaValidateWithErr(item, PerformedManyValueItem);
           if (result.isErr()) {
             return [];
@@ -57,7 +63,7 @@ export function parseUserProperty(
 ): Result<JSONValue, Error> {
   const parsed = jsonParseSafe(value);
   if (parsed.isErr()) {
-    return err(parsed.error);
+    return ok(value);
   }
   const processed = processUserProperty(definition, parsed.value);
   if (processed.isErr()) {
