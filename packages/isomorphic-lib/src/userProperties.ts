@@ -11,39 +11,6 @@ import {
   UserPropertyDefinitionType,
 } from "./types";
 
-function processPerformedManyValueV1(
-  definition: UserPropertyDefinition,
-  value: JSONValue
-): Result<JSONValue, Error> {
-  if (typeof value !== "string") {
-    return err(new Error("performed many value is not a string"));
-  }
-  const jsonParsedValue = jsonParseSafe(value);
-  if (jsonParsedValue.isErr()) {
-    return err(jsonParsedValue.error);
-  }
-  if (!(jsonParsedValue.value instanceof Array)) {
-    return err(new Error("performed many json parsed value is not an array"));
-  }
-
-  return ok(
-    jsonParsedValue.value.flatMap((item) => {
-      const result = schemaValidateWithErr(item, PerformedManyValueItem);
-      if (result.isErr()) {
-        return [];
-      }
-      const parsedProperties = jsonParseSafe(result.value.properties);
-      if (parsedProperties.isErr()) {
-        return [];
-      }
-      return {
-        ...result.value,
-        properties: parsedProperties.value,
-      };
-    })
-  );
-}
-
 function processUserProperty(
   definition: UserPropertyDefinition,
   value: JSONValue
