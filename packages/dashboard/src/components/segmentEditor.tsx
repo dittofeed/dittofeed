@@ -317,8 +317,38 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         }
       });
     };
+    const handlePropertyValueChange = (
+      e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.Performed) {
+          const newValue = e.target.value;
+          const existingProperty = n.properties?.[i];
+          if (
+            !existingProperty ||
+            existingProperty.operator.type !== SegmentOperatorType.Equals
+          ) {
+            return;
+          }
+          existingProperty.operator.value = newValue;
+        }
+      });
+    };
     const operator = keyedOperatorOptions.get(property.operator.type);
+    const handleDelete = () => {
+      updateSegmentNodeData(node.id, (n) => {
+        if (n.type === SegmentNodeType.Performed) {
+          if (!n.properties) {
+            return;
+          }
+          n.properties = node.properties?.filter((_, index) => index !== i);
+        }
+      });
+    };
     if (!operator) {
+      return null;
+    }
+    if (property.operator.type !== SegmentOperatorType.Equals) {
       return null;
     }
     return (
@@ -339,6 +369,19 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
         <Select value={operator.id}>
           <MenuItem value={operator.id}>{operator.label}</MenuItem>
         </Select>
+        <TextField
+          label="Property Value"
+          onChange={handlePropertyValueChange}
+          value={property.operator.value}
+        />
+        <IconButton
+          color="error"
+          size="large"
+          disabled={disabled}
+          onClick={handleDelete}
+        >
+          <Delete />
+        </IconButton>
       </Stack>
     );
   });
