@@ -1280,7 +1280,6 @@ function constructAssignmentsQuery({
     segmentValue = ac.query;
   } else {
     segmentValue = "False";
-    // userPropertyValue = `toJSONString(ifNull(${ac.query}, ''))`;
     userPropertyValue = ac.query;
   }
   const query = `
