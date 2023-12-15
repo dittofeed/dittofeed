@@ -3,6 +3,7 @@ import { Delete } from "@mui/icons-material";
 import {
   Autocomplete,
   Box,
+  Button,
   FormControl,
   IconButton,
   InputLabel,
@@ -236,7 +237,6 @@ function DurationValueSelect({
   );
 }
 
-// TODO allow for segmenting on Track properties
 function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   const { disabled } = useContext(DisabledContext);
 
@@ -269,42 +269,91 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     });
   };
 
+  const handleAddProperty = () => {
+    updateSegmentNodeData(node.id, (n) => {
+      if (n.type === SegmentNodeType.Performed) {
+        let propertyPath: string | null = null;
+        // put arbtitrary limit on the number of properties
+        for (let i = 0; i < 100; i++) {
+          const propertyCount = n.properties?.length ?? 0;
+          const prospectivePath = `myPropertyPath${propertyCount + 1}`;
+          if (!n.properties?.find((p) => p.path === prospectivePath)) {
+            propertyPath = prospectivePath;
+            break;
+          }
+        }
+        if (propertyPath) {
+          n.properties = n.properties ?? [];
+          n.properties.push({
+            path: propertyPath,
+            operator: {
+              type: SegmentOperatorType.Equals,
+              value: "myPropertyValue",
+            },
+          });
+        }
+      }
+    });
+  };
+
   const operators: [RelationalOperators, string][] = [
     [RelationalOperators.GreaterThanOrEqual, "At least (>=)"],
     [RelationalOperators.LessThan, "Less than (<)"],
     [RelationalOperators.Equals, "Exactly (=)"],
   ];
 
+  const propertyRows = node.properties?.map((property, i) => {
+    const key = `${property.path}-${property.operator.type}-${i}`;
+    return (
+      <Stack
+        key={key}
+        direction="row"
+        sx={{
+          alignItems: "center",
+        }}
+      >
+        {" "}
+        {property.path}
+      </Stack>
+    );
+  });
+
   return (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-      <Box sx={{ width: selectorWidth }}>
+    <Stack direction="column" spacing={1}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <Box sx={{ width: selectorWidth }}>
+          <TextField
+            disabled={disabled}
+            label="Event Name"
+            value={node.event}
+            onChange={handleEventNameChange}
+          />
+        </Box>
+        <Select
+          onChange={handleTimesOperatorChange}
+          disabled={disabled}
+          value={node.timesOperator ?? RelationalOperators.Equals}
+        >
+          {operators.map(([operator, label]) => (
+            <MenuItem key={operator} value={operator}>
+              {label}
+            </MenuItem>
+          ))}
+        </Select>
         <TextField
           disabled={disabled}
-          label="Event Name"
-          value={node.event}
-          onChange={handleEventNameChange}
+          label="Times Performed"
+          InputProps={{
+            type: "number",
+          }}
+          value={String(node.times ?? 1)}
+          onChange={handleEventTimesChange}
         />
-      </Box>
-      <Select
-        onChange={handleTimesOperatorChange}
-        disabled={disabled}
-        value={node.timesOperator ?? RelationalOperators.Equals}
-      >
-        {operators.map(([operator, label]) => (
-          <MenuItem key={operator} value={operator}>
-            {label}
-          </MenuItem>
-        ))}
-      </Select>
-      <TextField
-        disabled={disabled}
-        label="Times Performed"
-        InputProps={{
-          type: "number",
-        }}
-        value={String(node.times ?? 1)}
-        onChange={handleEventTimesChange}
-      />
+        <Button variant="contained" onClick={() => handleAddProperty()}>
+          Add Property
+        </Button>
+      </Stack>
+      {propertyRows}
     </Stack>
   );
 }
@@ -669,6 +718,7 @@ function SegmentNodeComponent({
 
   const condition = keyedSegmentOptions[node.type];
 
+  // FIXME spacing
   const conditionSelect = (
     <Box sx={{ width: selectorWidth }}>
       <Autocomplete
@@ -747,6 +797,7 @@ function SegmentNodeComponent({
     });
     el = (
       <Stack spacing={3}>
+        {/* <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}> */}
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           {labelEl}
           {conditionSelect}
