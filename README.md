@@ -53,7 +53,14 @@
   <img alt="Messaging Templates" src="packages/docs/images/templates_github.png">
 </details>
 
-For the full experience, play around with the [demo app](https://demo.dittofeed.com/dashboard).
+### Architecture
+
+<details>
+  <summary><b>Visual Diagram</b></summary>
+  <img alt="Architecture" src="packages/docs/images/architecture-readme.png">
+</details>
+
+For the full dashboard experience, play around with the [demo app](https://demo.dittofeed.com/dashboard).
 
 ## Quick Deployment
 
@@ -65,16 +72,16 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 *Updated monthly | ☑️ = in development | ✅ = in production
 
-| Feature                             | Purpose                                                                                                | Status |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------| ------ |
-| SMTP support                        | Use SMTP as an email provider                                                                          | ☑️     |
-| SES support                         | Use Amazon SES as an email provider                                                                    | ☑️     |
-| User property objects & arrays      | Store objects & arrays within user properties                                                          | ☑️     |
-| Segment node type                   | Expose segments as a node type within the journeys GUI                                                 | ☑️     |
-| Incrimental computed properties     | Rearchitect computed properties engine to incrementally recompute properties for greater scalability   | ✅     |
-| Reverse ETL                         | Add support for reverse ETL as a data source via Polytomic                                             | ✅     |
-| Twilio SMS support                  | Use Twilio as a SMS provider                                                                           | ✅     |
-| Broadcast UI                        | Improve functionality and usability of Broadcasts                                                      | ✅     |
+| Feature                         | Purpose                                                                                              | Status |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------- | ------ |
+| SMTP support                    | Use SMTP as an email provider                                                                        | ☑️      |
+| SES support                     | Use Amazon SES as an email provider                                                                  | ☑️      |
+| User property objects & arrays  | Store objects & arrays within user properties                                                        | ☑️      |
+| Segment node type               | Expose segments as a node type within the journeys GUI                                               | ☑️      |
+| Incrimental computed properties | Rearchitect computed properties engine to incrementally recompute properties for greater scalability | ✅      |
+| Reverse ETL                     | Add support for reverse ETL as a data source via Polytomic                                           | ✅      |
+| Twilio SMS support              | Use Twilio as a SMS provider                                                                         | ✅      |
+| Broadcast UI                    | Improve functionality and usability of Broadcasts                                                    | ✅      |
 
 
 ## Developer-centric
