@@ -188,6 +188,7 @@
       "group": "Contributing",
       "pages": [
         "contributing/running-locally",
+        "contributing/architecture",
         "contributing/updating-api-docs"
       ]
     }
