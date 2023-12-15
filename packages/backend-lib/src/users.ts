@@ -2,6 +2,7 @@ import { Sql } from "@prisma/client/runtime/library";
 import { Static, Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { parseUserProperty } from "isomorphic-lib/src/userProperties";
 import { err, ok, Result } from "neverthrow";
 import { validate as validateUuid } from "uuid";
 
@@ -16,6 +17,8 @@ import {
   GetUsersResponse,
   GetUsersResponseItem,
   Prisma,
+  UserProperty,
+  UserPropertyDefinition,
 } from "./types";
 
 const UsersQueryItem = Type.Object({
@@ -196,7 +199,21 @@ export async function getUsers({
       ORDER BY "userId" ASC;
     `;
 
-  const results = await prisma().$queryRaw(query);
+  const [results, userProperties] = await Promise.all([
+    prisma().$queryRaw(query),
+    prisma().userProperty.findMany({
+      where: {
+        workspaceId,
+      },
+    }),
+  ]);
+  const userPropertyMap = userProperties.reduce<Map<string, UserProperty>>(
+    (acc, property) => {
+      acc.set(property.id, property);
+      return acc;
+    },
+    new Map()
+  );
 
   const userMap = new Map<string, GetUsersResponseItem>();
   const parsedResult = unwrap(schemaValidate(results, UsersQueryResult));
@@ -213,12 +230,27 @@ export async function getUsers({
         name: result.computedPropertyName,
       });
     } else {
-      let value: string;
-      try {
-        value = JSON.parse(result.userPropertyValue);
-      } catch (e) {
-        value = result.userPropertyValue;
+      const userProperty = userPropertyMap.get(result.computedPropertyId);
+      if (!userProperty) {
+        continue;
       }
+      const parsedUp = parseUserProperty(
+        userProperty.definition as UserPropertyDefinition,
+        result.userPropertyValue
+      );
+      if (parsedUp.isErr()) {
+        logger().error(
+          {
+            err: parsedUp.error,
+            userPropertyId: userProperty.id,
+            userPropertyValue: result.userPropertyValue,
+          },
+          "failed to parse user property value"
+        );
+        continue;
+      }
+      const { value } = parsedUp;
+
       user.properties[result.computedPropertyId] = {
         name: result.computedPropertyName,
         value,

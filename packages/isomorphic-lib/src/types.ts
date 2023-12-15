@@ -1144,7 +1144,7 @@ const GetUsersResponseItem = Type.Object({
     Type.String(),
     Type.Object({
       name: Type.String(),
-      value: Type.String(),
+      value: Type.Any(),
     })
   ),
   segments: Type.Array(
