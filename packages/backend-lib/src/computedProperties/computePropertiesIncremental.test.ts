@@ -1967,6 +1967,119 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "when a performed segment has a within condition",
+      only: true,
+      userProperties: [
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [
+        {
+          name: "recentlyPerformed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+              withinSeconds: 5,
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -6000,
+              type: EventType.Track,
+              event: "test",
+            },
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Identify,
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "when the tracked event occurred outside of the required window, does not set segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                recentlyPerformed: null,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "when the tracked event then later occurs within the required window, user is in segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                recentlyPerformed: true,
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 6000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "then after waiting long enough without receiving the event again the user exits the segment",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                recentlyPerformed: false,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
