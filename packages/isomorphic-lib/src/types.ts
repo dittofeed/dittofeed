@@ -1328,7 +1328,7 @@ export const RenderMessageTemplateRequest = Type.Object({
       mjml: Type.Optional(Type.Boolean()),
     })
   ),
-  userProperties: Type.Record(Type.String(), Type.String()),
+  userProperties: Type.Record(Type.String(), Type.Any()),
 });
 
 export type RenderMessageTemplateRequest = Static<
