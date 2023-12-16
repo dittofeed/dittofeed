@@ -85,6 +85,7 @@
           "pages": [
             "integrations/channels/email",
             "integrations/channels/sendgrid",
+            "integrations/channels/smtp",
             "integrations/channels/sms",
             "integrations/channels/twilio"
           ]

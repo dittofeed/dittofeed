@@ -1,0 +1,21 @@
+---
+title: Send Email with a SMTP Server
+---
+
+Dittofeed can integrate with basic SMTP servers to send emails. Many third-party email services exist for testing the quality and deliverability of your emails, such as [Mailtrap](https://mailtrap.io/). Using SMTP as an email provider is useful for integrating with these services.
+
+Note that we don't recommend using SMTP for production email delivery. With a plain SMTP server, you'd lose access to spam and delivery rate metrics, which dedicated email service providers are able to provide via their relationships with ISPs.
+
+## Integration Instructions
+
+Navigate to the [/dashboard/settings](https://dittofeed.com/dashboard/settings) page SMTP section.
+
+<Frame>
+![SMTP Config](/images/smtp-config.png)
+</Frame>
+
+Configure your SMTP server settings, including your host, port, username, and password. Then select SMTP as the default email provider.
+
+<Frame>
+![SMTP Provider](/images/smtp-provider.png)
+</Frame>
