@@ -89,6 +89,7 @@ model Journey {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   resourceType     DBResourceType     @default(Declarative)
+  canRunMultiple   Boolean            @default(false)
   UserJourneyEvent UserJourneyEvent[]
   Broadcast        Broadcast[]
 

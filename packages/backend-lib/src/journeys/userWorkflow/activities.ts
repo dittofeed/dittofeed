@@ -815,14 +815,21 @@ export async function isRunnable({
   journeyId: string;
   userId: string;
 }): Promise<boolean> {
-  const previousExitEvent = await prisma().userJourneyEvent.findFirst({
-    where: {
-      journeyId,
-      userId,
-      type: JourneyNodeType.ExitNode,
-    },
-  });
-  return previousExitEvent === null;
+  const [previousExitEvent, journey] = await Promise.all([
+    prisma().userJourneyEvent.findFirst({
+      where: {
+        journeyId,
+        userId,
+        type: JourneyNodeType.ExitNode,
+      },
+    }),
+    prisma().journey.findUnique({
+      where: {
+        id: journeyId,
+      },
+    }),
+  ]);
+  return previousExitEvent === null || !!journey?.canRunMultiple;
 }
 
 export async function onNodeProcessed({
