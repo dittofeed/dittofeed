@@ -44,6 +44,7 @@ import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { GroupedOption } from "../lib/types";
 import useLoadTraits from "../lib/useLoadTraits";
 import DurationSelect from "./durationSelect";
+import { SubtleHeader } from "./headers";
 
 type SegmentGroupedOption = GroupedOption<SegmentNodeType>;
 
@@ -155,6 +156,12 @@ const keyedOperatorOptions = new Map<SegmentOperatorType, Option>([
   [SegmentOperatorType.HasBeen, hasBeenOperatorOption],
   [SegmentOperatorType.Exists, existsOperatorOption],
 ]);
+
+const relationalOperatorNames: [RelationalOperators, string][] = [
+  [RelationalOperators.GreaterThanOrEqual, "At least (>=)"],
+  [RelationalOperators.LessThan, "Less than (<)"],
+  [RelationalOperators.Equals, "Exactly (=)"],
+];
 
 type Group = SegmentNodeType.And | SegmentNodeType.Or;
 
@@ -295,12 +302,13 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
       }
     });
   };
-
-  const operators: [RelationalOperators, string][] = [
-    [RelationalOperators.GreaterThanOrEqual, "At least (>=)"],
-    [RelationalOperators.LessThan, "Less than (<)"],
-    [RelationalOperators.Equals, "Exactly (=)"],
-  ];
+  const handleAddTimeWindow = () => {
+    updateSegmentNodeData(node.id, (n) => {
+      if (n.type === SegmentNodeType.Performed) {
+        n.withinSeconds = n.withinSeconds ?? 30 * 60;
+      }
+    });
+  };
 
   const propertyRows = node.properties?.map((property, i) => {
     const handlePropertyPathChange = (
@@ -386,6 +394,40 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
     );
   });
 
+  const withinEl =
+    node.withinSeconds !== undefined ? (
+      <>
+        <SubtleHeader>Time Window</SubtleHeader>
+        <Stack direction="row" spacing={1}>
+          <DurationSelect
+            value={node.withinSeconds}
+            inputLabel="Event Occurred Within The Last"
+            onChange={(seconds) => {
+              updateSegmentNodeData(node.id, (n) => {
+                if (n.type === SegmentNodeType.Performed) {
+                  n.withinSeconds = seconds;
+                }
+              });
+            }}
+          />
+          <IconButton
+            color="error"
+            size="large"
+            disabled={disabled}
+            onClick={() => {
+              updateSegmentNodeData(node.id, (n) => {
+                if (n.type === SegmentNodeType.Performed) {
+                  n.withinSeconds = undefined;
+                }
+              });
+            }}
+          >
+            <Delete />
+          </IconButton>
+        </Stack>
+      </>
+    ) : null;
+
   return (
     <Stack direction="column" spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -402,7 +444,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           disabled={disabled}
           value={node.timesOperator ?? RelationalOperators.Equals}
         >
-          {operators.map(([operator, label]) => (
+          {relationalOperatorNames.map(([operator, label]) => (
             <MenuItem key={operator} value={operator}>
               {label}
             </MenuItem>
@@ -418,10 +460,15 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
           onChange={handleEventTimesChange}
         />
         <Button variant="contained" onClick={() => handleAddProperty()}>
-          Add Property
+          Property
+        </Button>
+        <Button variant="contained" onClick={() => handleAddTimeWindow()}>
+          Time Window
         </Button>
       </Stack>
+      {propertyRows?.length ? <SubtleHeader>Properties</SubtleHeader> : null}
       {propertyRows}
+      {withinEl}
     </Stack>
   );
 }
