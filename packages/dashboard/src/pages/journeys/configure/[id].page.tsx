@@ -1,5 +1,6 @@
 import { DittofeedSdk as sdk } from "@dittofeed/sdk-web";
 import {
+  Box,
   Button,
   FormControlLabel,
   Stack,
@@ -19,6 +20,7 @@ import { useState } from "react";
 import { DeliveriesTable } from "../../../components/deliveriesTable";
 import EditableName from "../../../components/editableName";
 import { SubtleHeader } from "../../../components/headers";
+import InfoBox from "../../../components/infoBox";
 import InfoTooltip from "../../../components/infoTooltip";
 import JourneyLayout from "../../../components/journeys/layout";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
@@ -210,6 +212,7 @@ function JourneyConfigure() {
           name={journeyName}
           onChange={(e) => setJourneyName(e.target.value)}
         />
+        <SubtleHeader>Can Be Run Multiple Times</SubtleHeader>
         <FormControlLabel
           control={
             <Switch
@@ -223,18 +226,22 @@ function JourneyConfigure() {
               : "Journey can only run once per user."
           }
         />
-        <InfoTooltip title={statusValue.currentDescription}>
-          <Typography variant="h5">Status: {statusValue.label}</Typography>
-        </InfoTooltip>
-        <InfoTooltip title={statusValue.nextDescription}>
-          <Button
-            variant="contained"
-            disabled={statusValue.disabled}
-            onClick={handleChangeStatus}
-          >
-            {statusValue.nextStatusLabel}
-          </Button>
-        </InfoTooltip>
+        <SubtleHeader>Journey Status</SubtleHeader>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography variant="h5">{statusValue.label}</Typography>
+          <InfoTooltip title={statusValue.nextDescription}>
+            <Button
+              variant="contained"
+              disabled={statusValue.disabled}
+              onClick={handleChangeStatus}
+            >
+              {statusValue.nextStatusLabel}
+            </Button>
+          </InfoTooltip>
+        </Stack>
+        <Box sx={{ width: "fit-content" }}>
+          <InfoBox>{statusValue.currentDescription}</InfoBox>
+        </Box>
         {journey?.status !== "NotStarted" && (
           <Stack sx={{ flex: 1, width: "100%" }} spacing={1}>
             <SubtleHeader>Deliveries</SubtleHeader>
