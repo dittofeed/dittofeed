@@ -91,6 +91,7 @@ export default function apiRequestHandlerFactory<D, S extends TSchema>({
   setResponse,
   onFailureNoticeHandler,
   onSuccessNotice,
+  onFailure,
 }: {
   requestConfig: AxiosRequestConfig<D>;
   request: EphemeralRequestStatus<Error>;
@@ -99,6 +100,7 @@ export default function apiRequestHandlerFactory<D, S extends TSchema>({
   setResponse: (response: Static<S>, requestData?: D) => void;
   responseSchema: S;
   setRequest: (request: EphemeralRequestStatus<Error>) => void;
+  onFailure?: (e: Error) => void;
 }) {
   return async function apiRequestHandler() {
     if (request.type === CompletionStatus.InProgress) {
@@ -126,6 +128,7 @@ export default function apiRequestHandlerFactory<D, S extends TSchema>({
           anchorOrigin: noticeAnchorOrigin,
         });
       }
+      onFailure?.(error);
       return;
     }
     const parsedResponse = schemaValidate(response.data, responseSchema);
