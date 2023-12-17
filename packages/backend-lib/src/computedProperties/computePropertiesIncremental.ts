@@ -1064,11 +1064,27 @@ function segmentToAssignment({
     case SegmentNodeType.Performed: {
       const operator: string = node.timesOperator ?? RelationalOperators.Equals;
       const times = node.times === undefined ? 1 : node.times;
+      let isUnbounded = false;
+
+      const queries: string[] = [
+        `${uniqCount} ${operator} ${qb.addQueryValue(times, "Int32")}`,
+      ];
+      if (node.withinSeconds !== undefined && node.withinSeconds) {
+        isUnbounded = true;
+        const lowerBound = Math.max(nowSeconds - node.withinSeconds, 0);
+        queries.push(`${maxEventTime} >= toDateTime64(${lowerBound}, 3)`);
+      }
+
+      const stateIds = isUnbounded ? [] : [stateId];
+      const unboundedStateIds = isUnbounded ? [stateId] : [];
+      const query =
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        queries.length === 1 ? queries[0]! : `(${queries.join(" and ")})`;
 
       return {
-        query: `${uniqCount} ${operator} ${qb.addQueryValue(times, "Int32")}`,
-        stateIds: [stateId],
-        unboundedStateIds: [],
+        query,
+        stateIds,
+        unboundedStateIds,
       };
     }
     case SegmentNodeType.LastPerformed: {
