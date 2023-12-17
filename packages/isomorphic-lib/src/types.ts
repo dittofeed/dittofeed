@@ -1048,6 +1048,7 @@ export const JourneyResource = Type.Object({
   name: Type.String(),
   status: JourneyResourceStatus,
   definition: JourneyDefinition,
+  canRunMultiple: Type.Optional(Type.Boolean()),
 });
 
 export type JourneyResource = Static<typeof JourneyResource>;
@@ -1062,7 +1063,7 @@ export const SavedJourneyResource = Type.Composite([
 
 export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
 
-export const UpsertJourneyResource = Type.Intersect([
+export const UpsertJourneyResource = Type.Composite([
   Type.Omit(Type.Partial(JourneyResource), ["id"]),
   Type.Pick(JourneyResource, ["id"]),
 ]);
