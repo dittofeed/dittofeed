@@ -1,4 +1,6 @@
+import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { Result } from "neverthrow";
@@ -21,12 +23,6 @@ export type JourneyGetServerSideProps =
 
 export const journeyGetServerSideProps: JourneyGetServerSideProps =
   requestContext(async (ctx, dfContext) => {
-    // Dynamically import to avoid transitively importing backend config at build time.
-    const [{ toJourneyResource }, { toSegmentResource }] = await Promise.all([
-      import("backend-lib/src/journeys"),
-      import("backend-lib/src/segments"),
-    ]);
-
     const id = ctx.params?.id;
 
     if (typeof id !== "string" || !validate(id)) {

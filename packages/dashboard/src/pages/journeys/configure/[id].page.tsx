@@ -217,7 +217,11 @@ function JourneyConfigure() {
               onChange={(e) => handleChangeRunMultiple(e.target.checked)}
             />
           }
-          label="Journey can run multiple times."
+          label={
+            canRunMultiple
+              ? "Journey can run multiple times per user."
+              : "Journey can only run once per user."
+          }
         />
         <InfoTooltip title={statusValue.currentDescription}>
           <Typography variant="h5">Status: {statusValue.label}</Typography>
