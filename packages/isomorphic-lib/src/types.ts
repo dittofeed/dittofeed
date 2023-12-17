@@ -193,6 +193,7 @@ export const PerformedSegmentNode = Type.Object({
   event: Type.String(),
   times: Type.Optional(Type.Number()),
   timesOperator: Type.Optional(Type.Enum(RelationalOperators)),
+  withinSeconds: Type.Optional(Type.Number()),
   properties: Type.Optional(
     Type.Array(
       Type.Object({
