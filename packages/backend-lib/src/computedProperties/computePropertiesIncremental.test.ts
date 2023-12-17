@@ -2077,6 +2077,37 @@ describe("computeProperties", () => {
             },
           ],
         },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "then after resubmitting the event the user enters the segment a second time",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                recentlyPerformed: true,
+              },
+            },
+          ],
+        },
       ],
     },
   ];
