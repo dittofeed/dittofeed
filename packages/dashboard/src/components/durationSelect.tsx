@@ -17,6 +17,7 @@ export default function DurationSelect({
   disabled,
   onChange,
 }: {
+  // seconds
   value: number | undefined;
   disabled?: boolean;
   inputLabel: string;
