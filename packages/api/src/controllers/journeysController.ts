@@ -31,7 +31,8 @@ export default async function journeysController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       let journey: Journey;
-      const { id, name, definition, workspaceId, status } = request.body;
+      const { id, name, definition, workspaceId, status, canRunMultiple } =
+        request.body;
       const canCreate = workspaceId && name && definition;
 
       /*
@@ -51,12 +52,14 @@ export default async function journeysController(fastify: FastifyInstance) {
             name,
             definition,
             status,
+            canRunMultiple,
           },
           update: {
             workspaceId,
             name,
             definition,
             status,
+            canRunMultiple,
           },
         });
       } else {
@@ -69,6 +72,7 @@ export default async function journeysController(fastify: FastifyInstance) {
             name,
             definition,
             status,
+            canRunMultiple,
           },
         });
       }

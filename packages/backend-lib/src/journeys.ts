@@ -68,8 +68,16 @@ export function toJourneyResource(
   if (result.isErr()) {
     return err(result.error);
   }
-  const { id, name, workspaceId, definition, status, createdAt, updatedAt } =
-    result.value;
+  const {
+    id,
+    name,
+    workspaceId,
+    definition,
+    status,
+    createdAt,
+    updatedAt,
+    canRunMultiple,
+  } = result.value;
 
   return ok({
     id,
@@ -77,6 +85,7 @@ export function toJourneyResource(
     workspaceId,
     status,
     definition,
+    canRunMultiple,
     createdAt: createdAt.getTime(),
     updatedAt: updatedAt.getTime(),
   });

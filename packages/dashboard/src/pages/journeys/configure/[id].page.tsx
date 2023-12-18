@@ -1,5 +1,12 @@
 import { DittofeedSdk as sdk } from "@dittofeed/sdk-web";
-import { Button, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  FormControlLabel,
+  Stack,
+  Switch,
+  Typography,
+} from "@mui/material";
 import {
   CompletionStatus,
   JourneyResource,
@@ -8,10 +15,12 @@ import {
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
+import { useState } from "react";
 
 import { DeliveriesTable } from "../../../components/deliveriesTable";
 import EditableName from "../../../components/editableName";
 import { SubtleHeader } from "../../../components/headers";
+import InfoBox from "../../../components/infoBox";
 import InfoTooltip from "../../../components/infoTooltip";
 import JourneyLayout from "../../../components/journeys/layout";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
@@ -104,6 +113,10 @@ function JourneyConfigure() {
       ? journeys.value.find((j) => j.id === id) ?? null
       : null;
 
+  const [canRunMultiple, setCanRunMultiple] = useState(
+    !!journey?.canRunMultiple
+  );
+
   if (journey?.status === "Broadcast") {
     throw new Error("Broadcast journeys cannot be configured.");
   }
@@ -120,38 +133,72 @@ function JourneyConfigure() {
   if (!id || workspace.type !== CompletionStatus.Successful) {
     return null;
   }
-  const journeyUpdate: UpsertJourneyResource = {
-    id,
-    workspaceId: workspace.value.id,
-    status: statusValue.nextStatus,
-  };
 
-  const handleChangeStatus = apiRequestHandlerFactory({
-    request: journeyUpdateRequest,
-    setRequest: setJourneyUpdateRequest,
-    responseSchema: JourneyResource,
-    setResponse: (response) => {
-      upsertJourney(response);
-      if (member) {
-        trackStatusChange({
-          journeyId: id,
-          member,
-          status: response.status,
-        });
-      }
-    },
-    onSuccessNotice: `Updated status for journey ${journeyName} to ${statusValue.nextStatus}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to update status for journey ${journeyName} to ${statusValue.nextStatus}.`,
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/journeys`,
-      data: journeyUpdate,
-      headers: {
-        "Content-Type": "application/json",
+  const handleChangeStatus = () => {
+    const journeyUpdate: UpsertJourneyResource = {
+      id,
+      workspaceId: workspace.value.id,
+      status: statusValue.nextStatus,
+    };
+    apiRequestHandlerFactory({
+      request: journeyUpdateRequest,
+      setRequest: setJourneyUpdateRequest,
+      responseSchema: JourneyResource,
+      setResponse: (response) => {
+        upsertJourney(response);
+        if (member) {
+          trackStatusChange({
+            journeyId: id,
+            member,
+            status: response.status,
+          });
+        }
       },
-    },
-  });
+      onSuccessNotice: `Updated status for journey ${journeyName} to ${statusValue.nextStatus}.`,
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to update status for journey ${journeyName} to ${statusValue.nextStatus}.`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/journeys`,
+        data: journeyUpdate,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+  };
+  const handleChangeRunMultiple = (newValue: boolean) => {
+    const previousValue = canRunMultiple;
+    setCanRunMultiple(newValue);
+
+    const journeyUpdate: UpsertJourneyResource = {
+      id,
+      workspaceId: workspace.value.id,
+      canRunMultiple: newValue,
+    };
+    apiRequestHandlerFactory({
+      request: journeyUpdateRequest,
+      setRequest: setJourneyUpdateRequest,
+      responseSchema: JourneyResource,
+      setResponse: upsertJourney,
+      onFailure: () => {
+        setCanRunMultiple(previousValue);
+      },
+      onSuccessNotice: newValue
+        ? `Journey ${journeyName} can now run multiple times.`
+        : `Journey ${journeyName} can now only run once.`,
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to update journey ${journeyName} to ${statusValue.nextStatus}.`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/journeys`,
+        data: journeyUpdate,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+  };
 
   return (
     <JourneyLayout journeyId={id}>
@@ -165,18 +212,36 @@ function JourneyConfigure() {
           name={journeyName}
           onChange={(e) => setJourneyName(e.target.value)}
         />
-        <InfoTooltip title={statusValue.currentDescription}>
-          <Typography variant="h5">Status: {statusValue.label}</Typography>
-        </InfoTooltip>
-        <InfoTooltip title={statusValue.nextDescription}>
-          <Button
-            variant="contained"
-            disabled={statusValue.disabled}
-            onClick={handleChangeStatus}
-          >
-            {statusValue.nextStatusLabel}
-          </Button>
-        </InfoTooltip>
+        <SubtleHeader>Can Be Run Multiple Times</SubtleHeader>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={canRunMultiple}
+              onChange={(e) => handleChangeRunMultiple(e.target.checked)}
+            />
+          }
+          label={
+            canRunMultiple
+              ? "Journey can run multiple times per user."
+              : "Journey can only run once per user."
+          }
+        />
+        <SubtleHeader>Journey Status</SubtleHeader>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography variant="h5">{statusValue.label}</Typography>
+          <InfoTooltip title={statusValue.nextDescription}>
+            <Button
+              variant="contained"
+              disabled={statusValue.disabled}
+              onClick={handleChangeStatus}
+            >
+              {statusValue.nextStatusLabel}
+            </Button>
+          </InfoTooltip>
+        </Stack>
+        <Box sx={{ width: "fit-content" }}>
+          <InfoBox>{statusValue.currentDescription}</InfoBox>
+        </Box>
         {journey?.status !== "NotStarted" && (
           <Stack sx={{ flex: 1, width: "100%" }} spacing={1}>
             <SubtleHeader>Deliveries</SubtleHeader>
