@@ -1,4 +1,5 @@
-FROM node:20-slim AS builder
+# use buster in the build step, lite in the production step
+FROM node:20-buster AS builder
 
 WORKDIR /app
 
