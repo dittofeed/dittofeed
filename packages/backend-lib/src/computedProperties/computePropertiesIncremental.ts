@@ -599,7 +599,10 @@ function leafUserPropertyToSubQuery({
     }
     case UserPropertyDefinitionType.Performed: {
       const stateId = userPropertyStateId(userProperty, child.id);
-      const path = qb.addQueryValue(child.path, "String");
+      if (child.path.length === 0) {
+        return null;
+      }
+      const path = qb.addQueryValue(`$.${child.path}`, "String");
       return {
         condition: `event_type == 'track' and event = ${qb.addQueryValue(
           child.event,
@@ -607,7 +610,7 @@ function leafUserPropertyToSubQuery({
         )}`,
         type: "user_property",
         uniqValue: "''",
-        argMaxValue: `visitParamExtractString(properties, ${path})`,
+        argMaxValue: `JSON_VALUE(properties, ${path})`,
         computedPropertyId: userProperty.id,
         stateId,
       };
