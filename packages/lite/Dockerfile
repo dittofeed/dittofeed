@@ -1,4 +1,4 @@
-FROM node:20-slim AS builder
+FROM node:20-buster AS builder
 
 WORKDIR /service
 
