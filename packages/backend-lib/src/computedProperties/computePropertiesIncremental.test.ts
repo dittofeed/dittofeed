@@ -2000,7 +2000,6 @@ describe("computeProperties", () => {
     },
     {
       description: "when a performed segment has a within condition",
-      only: true,
       userProperties: [
         {
           name: "id",
@@ -2063,6 +2062,12 @@ describe("computeProperties", () => {
               },
             },
           ],
+          journeys: [
+            {
+              journeyName: "test",
+              times: 0,
+            },
+          ],
         },
         {
           type: EventsStepType.Sleep,
@@ -2118,6 +2123,12 @@ describe("computeProperties", () => {
               segments: {
                 recentlyPerformed: false,
               },
+            },
+          ],
+          journeys: [
+            {
+              journeyName: "test",
+              times: 1,
             },
           ],
         },
@@ -2416,16 +2427,21 @@ describe("computeProperties", () => {
                 assertedJourney.times
               );
             }
-            expect(signalWithStart).toHaveBeenCalledWith(
-              expect.any(Function),
-              expect.objectContaining({
-                args: [
-                  expect.objectContaining({
-                    journeyId: journey.id,
-                  }),
-                ],
-              })
-            );
+            if (
+              assertedJourney.times === undefined ||
+              assertedJourney.times > 0
+            ) {
+              expect(signalWithStart).toHaveBeenCalledWith(
+                expect.any(Function),
+                expect.objectContaining({
+                  args: [
+                    expect.objectContaining({
+                      journeyId: journey.id,
+                    }),
+                  ],
+                })
+              );
+            }
           }
           break;
         case EventsStepType.UpdateComputedProperty: {

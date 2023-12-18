@@ -1776,6 +1776,9 @@ async function processRows({
     } else if (assignment.processed_for_type === "integration") {
       assignmentCategory = integrationAssignments;
     } else {
+      if (!assignment.latest_segment_value) {
+        continue;
+      }
       assignmentCategory = journeySegmentAssignments;
     }
     assignmentCategory.push(assignment);
@@ -2114,9 +2117,7 @@ export async function processAssignments({
             AND cpa.latest_segment_value = true
         )
         OR (
-          -- FIXME
             pcp.workspace_id != ''
-            AND cpa.processed_for_type != 'journey'
         )
     )
   `;
