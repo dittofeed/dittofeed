@@ -2151,6 +2151,12 @@ describe("computeProperties", () => {
               },
             },
           ],
+          journeys: [
+            {
+              journeyName: "test",
+              times: 2,
+            },
+          ],
         },
       ],
     },
