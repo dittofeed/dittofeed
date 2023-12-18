@@ -142,15 +142,18 @@ export async function cli() {
       "Resets compute properties workflow.",
       () => {},
       async () => {
-        if (backendConfig().authMode === "multi-tenant") {
-          throw new Error("Not supported in multi-tenant mode.");
-        }
-        const workspace = await prisma().workspace.findFirst();
-        if (!workspace) {
-          throw new Error("No workspace found.");
-        }
-        await restartComputePropertiesWorkflow({ workspaceId: workspace.id });
-        logger().info("Restarted compute properties workflow.");
+        const workspaces = await prisma().workspace.findMany();
+        await Promise.all(
+          workspaces.map(async (workspace) => {
+            await restartComputePropertiesWorkflow({
+              workspaceId: workspace.id,
+            });
+            logger().info(
+              `Restarted compute properties workflow for workspace ${workspace.name} ${workspace.id}.`
+            );
+          })
+        );
+        logger().info("Done.");
       }
     )
     .command(
