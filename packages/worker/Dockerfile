@@ -1,5 +1,5 @@
 # Rebuild the source code only when needed
-FROM node:20-buster AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /service
 
