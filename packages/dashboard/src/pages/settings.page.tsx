@@ -54,6 +54,7 @@ import {
   SegmentResource,
   SmsProviderConfig,
   SmsProviderType,
+  SmtpSecretKey,
   SyncIntegration,
   TwilioSmsProvider,
   UpsertDataSourceConfigurationResource,
@@ -74,7 +75,7 @@ import { immer } from "zustand/middleware/immer";
 
 import ExternalLink from "../components/externalLink";
 import Fields from "../components/form/Fields";
-import { FieldComponents } from "../components/form/types";
+import { FieldComponents, SecretField } from "../components/form/types";
 import { HubspotIcon } from "../components/icons/hubspotIcon";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
@@ -573,8 +574,49 @@ function SendGridConfig() {
   );
 }
 
+const SMTP_SECRET_FIELDS: {
+  helperText: string;
+  label: string;
+  key: SmtpSecretKey;
+}[] = [
+  {
+    key: "host",
+    label: "SMTP host",
+    helperText: "Host of SMTP server.",
+  },
+  {
+    key: "port",
+    label: "SMTP port",
+    helperText: "Port of SMTP server.",
+  },
+  {
+    key: "username",
+    label: "SMTP Username",
+    helperText: "Username used to authenticate SMTP server.",
+  },
+  {
+    key: "password",
+    label: "SMTP Password",
+    helperText: "Password used to authenticate SMTP server.",
+  },
+];
+
 function SmtpConfig() {
   const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+  const fields: SecretField[] = SMTP_SECRET_FIELDS.map((field) => ({
+    id: `smtp-${field.key}`,
+    type: "secret",
+    fieldProps: {
+      name: SMTP_SECRET_NAME,
+      secretKey: field.key,
+      label: field.label,
+      helperText: field.helperText,
+      type: EmailProviderType.Smtp,
+      saved:
+        secretAvailability.find((s) => s.name === SMTP_SECRET_NAME)
+          ?.configValue?.[field.key] ?? false,
+    },
+  }));
 
   return (
     <Fields
@@ -586,68 +628,7 @@ function SmtpConfig() {
               id: "smtp-fields",
               name: "SMTP",
               description: "Send emails with a custom SMTP server.",
-              fields: [
-                {
-                  id: "smtp-host",
-                  type: "secret",
-                  fieldProps: {
-                    name: SMTP_SECRET_NAME,
-                    secretKey: "host",
-                    label: "SMTP host",
-                    helperText: "Host of SMTP server.",
-                    type: EmailProviderType.Smtp,
-                    saved:
-                      secretAvailability.find(
-                        (s) => s.name === SMTP_SECRET_NAME
-                      )?.configValue?.host ?? false,
-                  },
-                },
-                {
-                  id: "smtp-port",
-                  type: "secret",
-                  fieldProps: {
-                    name: SMTP_SECRET_NAME,
-                    secretKey: "port",
-                    label: "SMTP port",
-                    helperText: "Port of SMTP server.",
-                    type: EmailProviderType.Smtp,
-                    saved:
-                      secretAvailability.find(
-                        (s) => s.name === SMTP_SECRET_NAME
-                      )?.configValue?.port ?? false,
-                  },
-                },
-                {
-                  id: "smtp-user",
-                  type: "secret",
-                  fieldProps: {
-                    name: SMTP_SECRET_NAME,
-                    secretKey: "user",
-                    label: "SMTP Username",
-                    helperText: "Username used to authenticate SMTP server.",
-                    type: EmailProviderType.Smtp,
-                    saved:
-                      secretAvailability.find(
-                        (s) => s.name === SMTP_SECRET_NAME
-                      )?.configValue?.user ?? false,
-                  },
-                },
-                {
-                  id: "smtp-password",
-                  type: "secret",
-                  fieldProps: {
-                    name: SMTP_SECRET_NAME,
-                    secretKey: "password",
-                    label: "SMTP Password",
-                    helperText: "Password used to authenticate SMTP server.",
-                    type: EmailProviderType.Smtp,
-                    saved:
-                      secretAvailability.find(
-                        (s) => s.name === SMTP_SECRET_NAME
-                      )?.configValue?.password ?? false,
-                  },
-                },
-              ],
+              fields,
             },
           ],
         },
