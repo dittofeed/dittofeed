@@ -159,23 +159,25 @@ export async function findManyEvents({
     ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
     : "";
 
+  // TODO exclude event_time from group by
   const query = `SELECT
     workspace_id,
-    event_type,
+    any(event_type) event_type,
     user_id,
-    anonymous_id,
-    user_or_anonymous_id,
+    any(anonymous_id) anonymous_id,
+    any(user_or_anonymous_id) user_or_anonymous_id,
     message_id,
     event_time,
-    processing_time,
-    event,
-    JSONExtractRaw(message_raw, 'traits') AS traits,
-    JSONExtractRaw(message_raw, 'properties') AS properties
+    any(processing_time) processing_time,
+    any(event) event,
+    JSONExtractRaw(any(message_raw), 'traits') AS traits,
+    JSONExtractRaw(any(message_raw), 'properties') AS properties
   FROM user_events_v2
   WHERE workspace_id = ${workspaceIdParam}
   ${startDateClause}
   ${endDateClause}
   ${userIdClause}
+  GROUP BY workspace_id, user_id, message_id, event_time
   ORDER BY event_time DESC, message_id
   ${paginationClause}`;
 

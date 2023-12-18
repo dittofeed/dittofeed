@@ -12,6 +12,7 @@ import {
   clickhouseDateToIso,
   ClickHouseQueryBuilder,
 } from "../clickhouse";
+import { toJourneyResource } from "../journeys";
 import logger from "../logger";
 import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
@@ -19,9 +20,12 @@ import {
   ComputedPropertyAssignment,
   EventType,
   InternalEventType,
+  JourneyDefinition,
+  JourneyNodeType,
   JSONValue,
   ParsedPerformedManyValueItem,
   RelationalOperators,
+  SavedJourneyResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
@@ -46,6 +50,22 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
+
+const signalWithStart = jest.fn();
+const signal = jest.fn();
+
+const getHandle = jest.fn(() => ({
+  signal,
+}));
+
+jest.mock("../temporal/activity", () => ({
+  getContext: () => ({
+    workflowClient: {
+      signalWithStart,
+      getHandle,
+    },
+  }),
+}));
 
 async function readAssignments({
   workspaceId,
@@ -222,16 +242,26 @@ interface TestPeriod {
   step: ComputedPropertyStep;
 }
 
+interface TestSignals {
+  journeyName: string;
+  times?: number;
+}
+
 interface AssertStep {
   type: EventsStepType.Assert;
   description?: string;
   users?: (TableUser | ((ctx: StepContext) => TableUser))[];
   states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: TestPeriod[];
+  journeys?: TestSignals[];
 }
 
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
 type TestSegment = Pick<SegmentResource, "name" | "definition">;
+interface TestJourney {
+  name: string;
+  entrySegmentName: string;
+}
 
 interface UpdateComputedPropertyStep {
   type: EventsStepType.UpdateComputedProperty;
@@ -253,6 +283,7 @@ interface TableTest {
   only?: true;
   userProperties: TestUserProperty[];
   segments: TestSegment[];
+  journeys?: TestJourney[];
   steps: TableStep[];
 }
 
@@ -1993,6 +2024,12 @@ describe("computeProperties", () => {
           },
         },
       ],
+      journeys: [
+        {
+          name: "test",
+          entrySegmentName: "recentlyPerformed",
+        },
+      ],
       steps: [
         {
           type: EventsStepType.SubmitEvents,
@@ -2023,6 +2060,12 @@ describe("computeProperties", () => {
               segments: {
                 recentlyPerformed: null,
               },
+            },
+          ],
+          journeys: [
+            {
+              journeyName: "test",
+              times: 0,
             },
           ],
         },
@@ -2056,6 +2099,12 @@ describe("computeProperties", () => {
               },
             },
           ],
+          journeys: [
+            {
+              journeyName: "test",
+              times: 1,
+            },
+          ],
         },
         {
           type: EventsStepType.Sleep,
@@ -2074,6 +2123,49 @@ describe("computeProperties", () => {
               segments: {
                 recentlyPerformed: false,
               },
+            },
+          ],
+          journeys: [
+            {
+              journeyName: "test",
+              times: 1,
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1000,
+        },
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              userId: "user-1",
+              offsetMs: -100,
+              type: EventType.Track,
+              event: "test",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "then after resubmitting the event the user enters the segment a second time",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                recentlyPerformed: true,
+              },
+            },
+          ],
+          journeys: [
+            {
+              journeyName: "test",
+              times: 2,
             },
           ],
         },
@@ -2106,6 +2198,45 @@ describe("computeProperties", () => {
       segments: test.segments,
       now,
     });
+
+    const journeys = await Promise.all(
+      test.journeys?.map(({ name, entrySegmentName }) => {
+        const segment = segments.find((s) => s.name === entrySegmentName);
+        if (!segment) {
+          throw new Error(
+            `could not find segment with name: ${entrySegmentName}`
+          );
+        }
+        const definition: JourneyDefinition = {
+          entryNode: {
+            type: JourneyNodeType.EntryNode,
+            segment: segment.id,
+            child: JourneyNodeType.ExitNode,
+          },
+          nodes: [],
+          exitNode: {
+            type: JourneyNodeType.ExitNode,
+          },
+        };
+        return prisma().journey.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name,
+            },
+          },
+          create: {
+            workspaceId,
+            name,
+            definition,
+          },
+          update: {},
+        });
+      }) ?? []
+    );
+    const journeyResources: SavedJourneyResource[] = journeys.map((j) =>
+      unwrap(toJourneyResource(j))
+    );
 
     for (const step of test.steps) {
       const stepContext: StepContext = {
@@ -2155,7 +2286,7 @@ describe("computeProperties", () => {
             workspaceId,
             segments,
             integrations: [],
-            journeys: [],
+            journeys: journeyResources,
             userProperties,
             now,
           });
@@ -2282,6 +2413,36 @@ describe("computeProperties", () => {
                 })()
               : null,
           ]);
+          for (const assertedJourney of step.journeys ?? []) {
+            const journey = journeyResources.find(
+              (j) => j.name === assertedJourney.journeyName
+            );
+            if (!journey) {
+              throw new Error(
+                `could not find journey with name: ${assertedJourney.journeyName}`
+              );
+            }
+            if (assertedJourney.times !== undefined) {
+              expect(signalWithStart).toHaveBeenCalledTimes(
+                assertedJourney.times
+              );
+            }
+            if (
+              assertedJourney.times === undefined ||
+              assertedJourney.times > 0
+            ) {
+              expect(signalWithStart).toHaveBeenCalledWith(
+                expect.any(Function),
+                expect.objectContaining({
+                  args: [
+                    expect.objectContaining({
+                      journeyId: journey.id,
+                    }),
+                  ],
+                })
+              );
+            }
+          }
           break;
         case EventsStepType.UpdateComputedProperty: {
           const computedProperties = await upsertComputedProperties({

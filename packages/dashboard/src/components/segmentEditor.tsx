@@ -305,7 +305,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   const handleAddTimeWindow = () => {
     updateSegmentNodeData(node.id, (n) => {
       if (n.type === SegmentNodeType.Performed) {
-        n.withinSeconds = n.withinSeconds ?? 30 * 60;
+        n.withinSeconds = n.withinSeconds ?? 5 * 60;
       }
     });
   };

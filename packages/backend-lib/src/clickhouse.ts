@@ -183,7 +183,6 @@ export async function command(
 ): Promise<ReturnType<ClickHouseClient["command"]>> {
   const queryId = params.query_id ?? getChCompatibleUuid();
   try {
-    logger().debug({ queryId, params }, "Executing ClickHouse command.");
     return client.command({ query_id: queryId, ...params });
   } catch (e) {
     logger().error({ queryId, params, error: e }, "ClickHouse command failed.");
@@ -202,7 +201,6 @@ export async function query(
 ): Promise<BaseResultSet<Readable>> {
   const queryId = params.query_id ?? getChCompatibleUuid();
   try {
-    logger().debug({ queryId, params }, "Executing ClickHouse query.");
     return client.query({ query_id: queryId, ...params });
   } catch (e) {
     logger().error({ queryId, params, error: e }, "ClickHouse query failed.");
