@@ -25,6 +25,7 @@ import {
   JSONValue,
   ParsedPerformedManyValueItem,
   RelationalOperators,
+  SavedJourneyResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
@@ -241,12 +242,18 @@ interface TestPeriod {
   step: ComputedPropertyStep;
 }
 
+interface TestSignals {
+  journeyName: string;
+  times?: number;
+}
+
 interface AssertStep {
   type: EventsStepType.Assert;
   description?: string;
   users?: (TableUser | ((ctx: StepContext) => TableUser))[];
   states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: TestPeriod[];
+  journeys?: TestSignals[];
 }
 
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
@@ -2087,6 +2094,12 @@ describe("computeProperties", () => {
               },
             },
           ],
+          journeys: [
+            {
+              journeyName: "test",
+              times: 1,
+            },
+          ],
         },
         {
           type: EventsStepType.Sleep,
@@ -2204,7 +2217,9 @@ describe("computeProperties", () => {
         });
       }) ?? []
     );
-    const journeyResources = journeys.map((j) => unwrap(toJourneyResource(j)));
+    const journeyResources: SavedJourneyResource[] = journeys.map((j) =>
+      unwrap(toJourneyResource(j))
+    );
 
     for (const step of test.steps) {
       const stepContext: StepContext = {
@@ -2381,6 +2396,31 @@ describe("computeProperties", () => {
                 })()
               : null,
           ]);
+          for (const assertedJourney of step.journeys ?? []) {
+            const journey = journeyResources.find(
+              (j) => j.name === assertedJourney.journeyName
+            );
+            if (!journey) {
+              throw new Error(
+                `could not find journey with name: ${assertedJourney.journeyName}`
+              );
+            }
+            if (assertedJourney.times !== undefined) {
+              expect(signalWithStart).toHaveBeenCalledTimes(
+                assertedJourney.times
+              );
+            }
+            expect(signalWithStart).toHaveBeenCalledWith(
+              expect.any(Function),
+              expect.objectContaining({
+                args: [
+                  expect.objectContaining({
+                    journeyId: journey.id,
+                  }),
+                ],
+              })
+            );
+          }
           break;
         case EventsStepType.UpdateComputedProperty: {
           const computedProperties = await upsertComputedProperties({
