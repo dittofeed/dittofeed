@@ -19,6 +19,9 @@ import {
   ComputedPropertyAssignment,
   EventType,
   InternalEventType,
+  JourneyDefinition,
+  JourneyNodeType,
+  JourneyResource,
   JSONValue,
   ParsedPerformedManyValueItem,
   RelationalOperators,
@@ -46,6 +49,7 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
+import { toJourneyResource } from "../journeys";
 
 async function readAssignments({
   workspaceId,
@@ -232,6 +236,10 @@ interface AssertStep {
 
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
 type TestSegment = Pick<SegmentResource, "name" | "definition">;
+interface TestJourney {
+  name: string;
+  entrySegmentName: string;
+}
 
 interface UpdateComputedPropertyStep {
   type: EventsStepType.UpdateComputedProperty;
@@ -253,6 +261,7 @@ interface TableTest {
   only?: true;
   userProperties: TestUserProperty[];
   segments: TestSegment[];
+  journeys?: TestJourney[];
   steps: TableStep[];
 }
 
@@ -1969,6 +1978,7 @@ describe("computeProperties", () => {
     },
     {
       description: "when a performed segment has a within condition",
+      only: true,
       userProperties: [
         {
           name: "id",
@@ -1991,6 +2001,12 @@ describe("computeProperties", () => {
             },
             nodes: [],
           },
+        },
+      ],
+      journeys: [
+        {
+          name: "test",
+          entrySegmentName: "recentlyPerformed",
         },
       ],
       steps: [
@@ -2138,6 +2154,43 @@ describe("computeProperties", () => {
       now,
     });
 
+    const journeys = await Promise.all(
+      test.journeys?.map(({ name, entrySegmentName }) => {
+        const segment = segments.find((s) => s.name === entrySegmentName);
+        if (!segment) {
+          throw new Error(
+            `could not find segment with name: ${entrySegmentName}`
+          );
+        }
+        const definition: JourneyDefinition = {
+          entryNode: {
+            type: JourneyNodeType.EntryNode,
+            segment: segment.id,
+            child: JourneyNodeType.ExitNode,
+          },
+          nodes: [],
+          exitNode: {
+            type: JourneyNodeType.ExitNode,
+          },
+        };
+        return prisma().journey.upsert({
+          where: {
+            workspaceId_name: {
+              workspaceId,
+              name,
+            },
+          },
+          create: {
+            workspaceId,
+            name,
+            definition,
+          },
+          update: {},
+        });
+      }) ?? []
+    );
+    const journeyResources = journeys.map((j) => unwrap(toJourneyResource(j)));
+
     for (const step of test.steps) {
       const stepContext: StepContext = {
         now,
@@ -2186,7 +2239,7 @@ describe("computeProperties", () => {
             workspaceId,
             segments,
             integrations: [],
-            journeys: [],
+            journeys: journeyResources,
             userProperties,
             now,
           });
