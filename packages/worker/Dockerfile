@@ -3,6 +3,9 @@ FROM node:20-buster AS builder
 
 WORKDIR /service
 
+RUN apt-get update -y && \
+    apt-get install -y openssl
+
 COPY *.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
 COPY ./packages/worker/*.json ./packages/worker/

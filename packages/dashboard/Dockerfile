@@ -3,6 +3,9 @@ FROM node:20-buster AS builder
 
 WORKDIR /app
 
+RUN apt-get update -y && \
+    apt-get install -y openssl
+
 COPY . .
 
 RUN yarn workspaces focus isomorphic-lib && \
