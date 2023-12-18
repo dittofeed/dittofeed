@@ -1,6 +1,7 @@
 import { WorkflowClient } from "@temporalio/client";
 
 import config from "../../config";
+import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
   computePropertiesWorkflow,
@@ -33,9 +34,30 @@ export async function restartComputePropertiesWorkflow({
   workspaceId: string;
 }) {
   const client = await connectWorkflowClient();
-  await client.getHandle(generateComputePropertiesId(workspaceId)).terminate();
-  await startComputePropertiesWorkflow({
-    workspaceId,
-    client,
-  });
+  try {
+    await client
+      .getHandle(generateComputePropertiesId(workspaceId))
+      .terminate();
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+      },
+      "Failed to terminate compute properties workflow."
+    );
+  }
+
+  try {
+    await startComputePropertiesWorkflow({
+      workspaceId,
+      client,
+    });
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+      },
+      "Failed to start compute properties workflow."
+    );
+  }
 }
