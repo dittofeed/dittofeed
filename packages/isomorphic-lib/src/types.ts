@@ -2252,6 +2252,8 @@ export const SmtpSecret = Type.Object({
 
 export type SmtpSecret = Static<typeof SmtpSecret>;
 
+export type SmtpSecretKey = keyof Omit<SmtpSecret, "type">;
+
 export const EmailProviderSecret = Type.Union([SendgridSecret, SmtpSecret]);
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
