@@ -21,7 +21,7 @@ RUN yarn workspace backend-lib prisma generate && \
     yarn workspace api build
 
 # Production image
-FROM node:18.4.0 AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /service
 

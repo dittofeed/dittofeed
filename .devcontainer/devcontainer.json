@@ -9,7 +9,7 @@
     "ghcr.io/devcontainers-contrib/features/postgres-asdf:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "18.4.0"
+      "version": "20-slim"
     }
   },
 

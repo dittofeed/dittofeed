@@ -18,7 +18,7 @@ RUN yarn workspace isomorphic-lib build && \
     yarn workspace dashboard build
 
 # Production image, copy all the files and run next
-FROM node:18.4.0 AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
