@@ -12,6 +12,7 @@ import {
   clickhouseDateToIso,
   ClickHouseQueryBuilder,
 } from "../clickhouse";
+import { toJourneyResource } from "../journeys";
 import logger from "../logger";
 import prisma from "../prisma";
 import { findAllSegmentAssignments, toSegmentResource } from "../segments";
@@ -21,7 +22,6 @@ import {
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
-  JourneyResource,
   JSONValue,
   ParsedPerformedManyValueItem,
   RelationalOperators,
@@ -49,7 +49,22 @@ import {
   segmentNodeStateId,
   userPropertyStateId,
 } from "./computePropertiesIncremental";
-import { toJourneyResource } from "../journeys";
+
+const signalWithStart = jest.fn();
+const signal = jest.fn();
+
+const getHandle = jest.fn(() => ({
+  signal,
+}));
+
+jest.mock("../temporal/activity", () => ({
+  getContext: () => ({
+    workflowClient: {
+      signalWithStart,
+      getHandle,
+    },
+  }),
+}));
 
 async function readAssignments({
   workspaceId,
