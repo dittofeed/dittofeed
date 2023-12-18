@@ -1,5 +1,5 @@
 # Rebuild the source code only when needed
-FROM node:20-slim AS builder
+FROM node:20-buster AS builder
 
 WORKDIR /service
 
@@ -24,6 +24,9 @@ RUN yarn workspace backend-lib prisma generate && \
 FROM node:20-slim AS runner
 
 WORKDIR /service
+
+RUN apt-get update -y && \
+    apt-get install -y openssl
 
 COPY --from=builder /service/production_node_modules ./node_modules
 COPY --from=builder /service/node_modules/.prisma ./node_modules/.prisma

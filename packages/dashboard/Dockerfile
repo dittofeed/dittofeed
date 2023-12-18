@@ -23,6 +23,9 @@ FROM node:20-slim AS runner
 
 WORKDIR /app
 
+RUN apt-get update -y && \
+    apt-get install -y openssl
+
 ENV NODE_ENV=production
 
 # https://nextjs.org/docs/advanced-features/output-file-tracing
