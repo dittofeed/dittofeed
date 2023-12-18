@@ -1,7 +1,11 @@
 # use buster in the build step, lite in the production step
-FROM node:20-buster AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
+
+RUN apt-get update -y && \
+    apt-get install -y openssl && \
+    apt-get install -y curl
 
 COPY . .
 

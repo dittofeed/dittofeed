@@ -1,7 +1,10 @@
 # Rebuild the source code only when needed
-FROM node:20-buster AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /service
+
+RUN apt-get update -y && \
+    apt-get install -y openssl
 
 COPY *.json yarn.lock .yarnrc.yml ./
 COPY .yarn .yarn
