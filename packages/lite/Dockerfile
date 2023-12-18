@@ -33,7 +33,7 @@ COPY ./packages/lite/ ./packages/lite
 RUN yarn workspace lite build
 
 # Production image
-FROM node:18.4.0 AS runner
+FROM node:20-slim AS runner
 
 ARG WORKSPACE_NAME='Default'
 
