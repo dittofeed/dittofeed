@@ -51,7 +51,7 @@ export function inSubscriptionGroup(
   if (details.action === null && details.type === SubscriptionGroupType.OptIn) {
     return false;
   }
-  return details.action !== UserSubscriptionAction.Unsubscribe;
+  return details.action !== SubscriptionChange.Unsubscribe;
 }
 
 export function getSubscriptionGroupDetails(

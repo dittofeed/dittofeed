@@ -189,18 +189,10 @@ async function getSendMessageModels({
 > {
   if (
     subscriptionGroupDetails &&
-    inSubscriptionGroup(subscriptionGroupDetails)
+    !inSubscriptionGroup(subscriptionGroupDetails)
   ) {
     const { type: subscriptionGroupType, action: subscriptionGroupAction } =
       subscriptionGroupDetails;
-
-    logger().debug(
-      {
-        subscriptionGroupDetails,
-      },
-      "message skipped because user is in subscription group"
-    );
-
     return err({
       type: InternalEventType.MessageSkipped,
       variant: {
