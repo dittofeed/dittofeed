@@ -1831,7 +1831,6 @@ describe("computeProperties", () => {
     },
     {
       description: "when segmenting on email opens",
-      only: true,
       segments: [
         {
           name: "emailOpened",
