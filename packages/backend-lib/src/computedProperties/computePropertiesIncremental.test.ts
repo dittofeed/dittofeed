@@ -281,8 +281,8 @@ interface TableTest {
   description: string;
   skip?: true;
   only?: true;
-  userProperties: TestUserProperty[];
-  segments: TestSegment[];
+  userProperties?: TestUserProperty[];
+  segments?: TestSegment[];
   journeys?: TestJourney[];
   steps: TableStep[];
 }
@@ -1827,6 +1827,40 @@ describe("computeProperties", () => {
         },
       ],
     },
+
+    // FIXME
+    {
+      description: "when segmenting on email opens",
+      segments: [
+        {
+          name: "emailOpened",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Email,
+              event: InternalEventType.EmailOpened,
+              times: 1,
+              templateId: "my-template-id",
+              id: "1",
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              offsetMs: -100,
+              userId: "user-1",
+              type: EventType.Track,
+              event: InternalEventType.EmailOpened,
+              properties: {},
+            },
+          ],
+        },
+      ],
+    },
     {
       description:
         "with a performed user property with a complex inner structure",
@@ -2251,8 +2285,8 @@ describe("computeProperties", () => {
 
     let { userProperties, segments } = await upsertComputedProperties({
       workspaceId,
-      userProperties: test.userProperties,
-      segments: test.segments,
+      userProperties: test.userProperties ?? [],
+      segments: test.segments ?? [],
       now,
     });
 
