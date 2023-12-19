@@ -504,6 +504,7 @@ export type WaitForNode = Static<typeof WaitForNode>;
 
 export enum DelayVariantType {
   Second = "Second",
+  LocalTime = "LocalTime",
 }
 
 export const SecondsDelayVariant = Type.Object({
@@ -511,7 +512,18 @@ export const SecondsDelayVariant = Type.Object({
   seconds: Type.Number(),
 });
 
-export const DelayVariant = Type.Union([SecondsDelayVariant]);
+export const LocalTimeDelayVariant = Type.Object({
+  type: Type.Literal(DelayVariantType.LocalTime),
+  minute: Type.Optional(Type.Number()),
+  hour: Type.Optional(Type.Number()),
+  day: Type.Optional(Type.Number()),
+  year: Type.Optional(Type.Number()),
+});
+
+export const DelayVariant = Type.Union([
+  SecondsDelayVariant,
+  LocalTimeDelayVariant,
+]);
 
 export const DelayNode = Type.Object(
   {
