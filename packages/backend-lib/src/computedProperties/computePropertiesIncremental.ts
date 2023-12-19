@@ -78,10 +78,7 @@ function broadcastSegmentToPerformed(
   };
 }
 
-function emailSegmentToPerformed(
-  segmentId: string,
-  node: EmailSegmentNode
-): PerformedSegmentNode {
+function emailSegmentToPerformed(node: EmailSegmentNode): PerformedSegmentNode {
   return {
     id: node.id,
     type: SegmentNodeType.Performed,
@@ -93,7 +90,7 @@ function emailSegmentToPerformed(
         path: "templateId",
         operator: {
           type: SegmentOperatorType.Equals,
-          value: segmentId,
+          value: node.templateId,
         },
       },
     ],
@@ -539,10 +536,7 @@ export function segmentNodeToStateSubQuery({
       });
     }
     case SegmentNodeType.Email: {
-      const performedNode: PerformedSegmentNode = emailSegmentToPerformed(
-        segment.id,
-        node
-      );
+      const performedNode: PerformedSegmentNode = emailSegmentToPerformed(node);
       return segmentNodeToStateSubQuery({
         node: performedNode,
         segment,
@@ -1218,10 +1212,7 @@ function segmentToAssignment({
       });
     }
     case SegmentNodeType.Email: {
-      const performedNode: PerformedSegmentNode = emailSegmentToPerformed(
-        segment.id,
-        node
-      );
+      const performedNode: PerformedSegmentNode = emailSegmentToPerformed(node);
       return segmentToAssignment({
         node: performedNode,
         segment,
