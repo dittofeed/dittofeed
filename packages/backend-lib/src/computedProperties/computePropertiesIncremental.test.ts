@@ -37,6 +37,7 @@ import {
   SubscriptionGroupType,
   UserPropertyDefinitionType,
   UserPropertyResource,
+  Workspace,
 } from "../types";
 import {
   findAllUserPropertyAssignments,
@@ -214,6 +215,7 @@ enum EventsStepType {
 
 interface StepContext {
   now: number;
+  workspace: Workspace;
 }
 
 type EventBuilder = (ctx: StepContext) => TestEvent;
@@ -1827,10 +1829,9 @@ describe("computeProperties", () => {
         },
       ],
     },
-
-    // FIXME
     {
       description: "when segmenting on email opens",
+      only: true,
       segments: [
         {
           name: "emailOpened",
@@ -1850,12 +1851,35 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.SubmitEvents,
           events: [
-            {
+            ({ workspace }) => ({
               offsetMs: -100,
               userId: "user-1",
               type: EventType.Track,
               event: InternalEventType.EmailOpened,
-              properties: {},
+              properties: {
+                email: "test@email.com",
+                journeyId: "my-journey-id",
+                runId: "my-run-id",
+                messageId: "my-original-message-id",
+                userId: "user-1",
+                workspaceId: workspace.id,
+                templateId: "my-template-id",
+                nodeId: "my-message-node-id",
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                emailOpened: true,
+              },
             },
           ],
         },
@@ -2331,6 +2355,7 @@ describe("computeProperties", () => {
 
     for (const step of test.steps) {
       const stepContext: StepContext = {
+        workspace,
         now,
       };
       switch (step.type) {
