@@ -19,7 +19,7 @@ import {
   SegmentUpdate,
   WaitForNode,
 } from "../types";
-import type * as activities from "./userWorkflow/activities";
+import * as activities from "./userWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -144,8 +144,16 @@ export async function userJourneyWorkflow({
             delay = currentNode.variant.seconds * 1000;
             break;
           }
+          case DelayVariantType.LocalTime: {
+            const { latLon } = await activities.findAllUserPropertyAssignments({
+              workspaceId,
+              userId,
+              userProperties: ["latLon"],
+            });
+            break;
+          }
         }
-        await sleep(delay);
+        // await sleep(delay);
         nextNode = nodes.get(currentNode.child) ?? null;
         if (!nextNode) {
           logger.error("missing delay node child", {

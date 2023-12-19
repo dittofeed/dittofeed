@@ -53,6 +53,7 @@ import {
   findAllUserPropertyAssignments,
 } from "../../userProperties";
 
+export { findNextLocalizedTime } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
 
 type SendWithTrackingValue = [boolean, KnownTrackData | null];

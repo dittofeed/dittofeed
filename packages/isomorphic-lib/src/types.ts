@@ -512,13 +512,18 @@ export const SecondsDelayVariant = Type.Object({
   seconds: Type.Number(),
 });
 
+export type SecondsDelayVariant = Static<typeof SecondsDelayVariant>;
+
 export const LocalTimeDelayVariant = Type.Object({
   type: Type.Literal(DelayVariantType.LocalTime),
   minute: Type.Optional(Type.Number()),
   hour: Type.Optional(Type.Number()),
   day: Type.Optional(Type.Number()),
-  year: Type.Optional(Type.Number()),
 });
+
+export type LocalTimeDelayVariant = Static<typeof LocalTimeDelayVariant>;
+
+export type LocalTimeDelayVariantFields = Omit<LocalTimeDelayVariant, "type">;
 
 export const DelayVariant = Type.Union([
   SecondsDelayVariant,
