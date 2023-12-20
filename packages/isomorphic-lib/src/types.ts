@@ -543,6 +543,8 @@ export const DelayVariant = Type.Union([
   LocalTimeDelayVariant,
 ]);
 
+export type DelayVariant = Static<typeof DelayVariant>;
+
 export const DelayNode = Type.Object(
   {
     ...BaseNode,

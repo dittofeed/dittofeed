@@ -323,20 +323,32 @@ function journeyDefinitionFromStateBranch(
         break;
       }
       case JourneyNodeType.DelayNode: {
-        if (!uiNode.seconds) {
-          return err({
-            message: "Delay node must have a timeout",
-            nodeId: nId,
-          });
+        let variant: DelayNode["variant"];
+        switch (uiNode.variant.type) {
+          case DelayVariantType.Second: {
+            if (!uiNode.variant.seconds) {
+              return err({
+                message: "Delay node must have a timeout",
+                nodeId: nId,
+              });
+            }
+            variant = {
+              type: DelayVariantType.Second,
+              seconds: uiNode.variant.seconds,
+            };
+            break;
+          }
+          case DelayVariantType.LocalTime: {
+            throw new Error("LocalTime is not implemented");
+          }
+          default:
+            assertUnreachable(uiNode.variant);
         }
         const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
         const node: DelayNode = {
           type: JourneyNodeType.DelayNode,
           id: nId,
-          variant: {
-            type: DelayVariantType.Second,
-            seconds: uiNode.seconds,
-          },
+          variant,
           child,
         };
         nodes.push(node);
@@ -1026,7 +1038,10 @@ export function journeyBranchToState(
           case DelayVariantType.Second: {
             const delayNode: DelayNodeProps = {
               type: JourneyNodeType.DelayNode,
-              seconds: node.variant.seconds,
+              variant: {
+                type: DelayVariantType.Second,
+                seconds: node.variant.seconds,
+              },
             };
             nodesState.push(buildJourneyNode(nId, delayNode));
             nextNodeId = node.child;

@@ -5,6 +5,8 @@ import {
   ChannelType,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
+  DelayVariant,
+  DelayVariantType,
   DFRequestContext,
   EntryNode,
   EphemeralRequestStatus,
@@ -14,9 +16,11 @@ import {
   JourneyResource,
   JourneyStats,
   JourneyStatsResponse,
+  LocalTimeDelayVariant,
   MessageTemplateResource,
   PersistedEmailProvider,
   RequestStatus,
+  SecondsDelayVariant,
   SecretAvailabilityResource,
   SecretResource,
   SegmentNode,
@@ -344,9 +348,16 @@ export interface MessageNodeProps {
   channel: ChannelType;
   subscriptionGroupId?: string;
 }
+
+type UiDelayVariant<T, TD> = Partial<Omit<T, "type">> & {
+  type: TD;
+};
+
 export interface DelayNodeProps {
   type: JourneyNodeType.DelayNode;
-  seconds?: number;
+  variant:
+    | UiDelayVariant<LocalTimeDelayVariant, DelayVariantType.LocalTime>
+    | UiDelayVariant<SecondsDelayVariant, DelayVariantType.Second>;
 }
 
 export interface SegmentSplitNodeProps {

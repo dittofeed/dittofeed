@@ -15,7 +15,12 @@ import {
   useTheme,
 } from "@mui/material";
 import { round } from "isomorphic-lib/src/numbers";
-import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import {
+  CompletionStatus,
+  DelayVariantType,
+  JourneyNodeType,
+} from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { Handle, NodeProps, Position } from "reactflow";
 
@@ -65,7 +70,17 @@ export function isNodeComplete(
     case JourneyNodeType.MessageNode:
       return Boolean(props.templateId);
     case JourneyNodeType.DelayNode:
-      return Boolean(props.seconds);
+      switch (props.variant.type) {
+        case DelayVariantType.Second: {
+          return Boolean(props.variant.seconds);
+        }
+        case DelayVariantType.LocalTime: {
+          throw new Error("Not implemented");
+        }
+        default:
+          assertUnreachable(props.variant);
+      }
+      break;
     case JourneyNodeType.SegmentSplitNode:
       return Boolean(props.segmentId);
     case JourneyNodeType.WaitForNode: {
@@ -143,12 +158,24 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
       };
     }
     case JourneyNodeType.DelayNode:
-      return {
-        sidebarColor: "#F77520",
-        icon: journeyNodeIcon(JourneyNodeType.DelayNode),
-        title: journeyNodeLabel(JourneyNodeType.DelayNode),
-        body: <DurationDescription durationSeconds={props.seconds} />,
-      };
+      switch (props.variant.type) {
+        case DelayVariantType.Second: {
+          const body = (
+            <DurationDescription durationSeconds={props.variant.seconds} />
+          );
+          return {
+            sidebarColor: "#F77520",
+            icon: journeyNodeIcon(JourneyNodeType.DelayNode),
+            title: journeyNodeLabel(JourneyNodeType.DelayNode),
+            body,
+          };
+        }
+        case DelayVariantType.LocalTime:
+          throw new Error("Not implemented");
+        default:
+          assertUnreachable(props.variant);
+      }
+      break;
     case JourneyNodeType.SegmentSplitNode: {
       const body = <SegmentDescriptionBody segmentId={props.segmentId} />;
       return {

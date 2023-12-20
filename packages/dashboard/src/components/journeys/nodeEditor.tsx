@@ -17,6 +17,7 @@ import { SelectInputProps } from "@mui/material/Select/SelectInput";
 import {
   ChannelType,
   CompletionStatus,
+  DelayVariantType,
   JourneyNodeType,
   MessageTemplateResource,
   SegmentResource,
@@ -258,24 +259,36 @@ function DelayNodeFields({
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData
   );
+  let variant: React.ReactElement;
+  switch (nodeProps.variant.type) {
+    case DelayVariantType.Second: {
+      const handleDurationChange = (seconds: number) => {
+        updateJourneyNodeData(nodeId, (node) => {
+          const props = node.data.nodeTypeProps;
+          if (
+            props.type === JourneyNodeType.DelayNode &&
+            props.variant.type === DelayVariantType.Second
+          ) {
+            props.variant.seconds = seconds;
+          }
+        });
+      };
+      variant = (
+        <DurationSelect
+          value={nodeProps.variant.seconds}
+          onChange={handleDurationChange}
+          description="Will wait"
+          inputLabel="Duration"
+        />
+      );
+      break;
+    }
+    case DelayVariantType.LocalTime: {
+      throw new Error("Not implemented");
+    }
+  }
 
-  const handleDurationChange = (seconds: number) => {
-    updateJourneyNodeData(nodeId, (node) => {
-      const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.DelayNode) {
-        props.seconds = seconds;
-      }
-    });
-  };
-
-  return (
-    <DurationSelect
-      value={nodeProps.seconds}
-      onChange={handleDurationChange}
-      description="Will wait"
-      inputLabel="Duration"
-    />
-  );
+  return <>{variant}</>;
 }
 
 function WaitForNodeFields({
