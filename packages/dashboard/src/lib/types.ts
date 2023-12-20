@@ -353,11 +353,13 @@ type UiDelayVariant<T, TD> = Partial<Omit<T, "type">> & {
   type: TD;
 };
 
+export type UIDelayVariant =
+  | UiDelayVariant<LocalTimeDelayVariant, DelayVariantType.LocalTime>
+  | UiDelayVariant<SecondsDelayVariant, DelayVariantType.Second>;
+
 export interface DelayNodeProps {
   type: JourneyNodeType.DelayNode;
-  variant:
-    | UiDelayVariant<LocalTimeDelayVariant, DelayVariantType.LocalTime>
-    | UiDelayVariant<SecondsDelayVariant, DelayVariantType.Second>;
+  variant: UIDelayVariant;
 }
 
 export interface SegmentSplitNodeProps {
