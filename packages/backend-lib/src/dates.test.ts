@@ -12,9 +12,6 @@ describe("findNextLocalizedTimeInner", () => {
         now,
         hour: 20,
       });
-      if (result === null) {
-        throw new Error("result is null");
-      }
       expect(result).toBeGreaterThan(now);
       expect(differenceInHours(result, now)).toBe(4);
     });
@@ -30,9 +27,6 @@ describe("findNextLocalizedTimeInner", () => {
         now,
         hour: 5,
       });
-      if (result === null) {
-        throw new Error("result is null");
-      }
       expect(result).toBeGreaterThan(now);
       expect(differenceInHours(result, now)).toBe(20);
     });
@@ -47,9 +41,6 @@ describe("findNextLocalizedTimeInner", () => {
           hour: 5,
           allowedDaysOfWeek: [4],
         });
-        if (result === null) {
-          throw new Error("result is null");
-        }
         expect(result).toBeGreaterThan(now);
         expect(differenceInHours(result, now)).toBe(44);
       });
@@ -65,9 +56,6 @@ describe("findNextLocalizedTimeInner", () => {
       now,
       hour: 5,
     });
-    if (result === null) {
-      throw new Error("result is null");
-    }
     expect(result).toBeGreaterThan(now);
     expect(differenceInHours(result, now)).toBe(20);
   });
