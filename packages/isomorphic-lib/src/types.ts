@@ -521,13 +521,13 @@ export const LocalTimeDelayVariant = Type.Object({
   allowedDaysOfWeek: Type.Optional(
     Type.Array(
       Type.Union([
+        Type.Literal(0),
         Type.Literal(1),
         Type.Literal(2),
         Type.Literal(3),
         Type.Literal(4),
         Type.Literal(5),
         Type.Literal(6),
-        Type.Literal(7),
       ])
     )
   ),
