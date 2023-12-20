@@ -39,6 +39,10 @@ function modDiff(a: number, b: number, mod: number): number {
   return diff;
 }
 
+function padWithLeadingZeros(number: number) {
+  return String(number).padStart(2, "0");
+}
+
 export function findNextLocalizedTimeInner({
   latLon,
   now,
@@ -69,19 +73,24 @@ export function findNextLocalizedTimeInner({
   //   minutes: minute,
   //   hours: hour,
   // });
-  let zoned = add(
-    utcToZonedTime(new Date(now).setUTCHours(hour, minute, 0, 0), timezone),
-    { days: -1 }
+  let zoned = new Date(offset + now);
+  let adjusted = new Date(
+    format(
+      zoned,
+      `yyyy-MM-dd'T'${padWithLeadingZeros(hour)}:${padWithLeadingZeros(
+        minute
+      )}:00.000'Z'`
+    )
   );
-  console.log({
-    adjustedUtc: new Date(
-      new Date(now).setUTCHours(hour, minute, 0, 0)
-    ).toISOString(),
-    zoned: zoned.toISOString(),
-    zonedHours: zoned.getHours(),
-    offset: offset / (1000 * 60 * 60),
-    timezone,
-  });
+  // console.log({
+  //   adjustedUtc: new Date(
+  //     new Date(now).setUTCHours(hour, minute, 0, 0)
+  //   ).toISOString(),
+  //   zoned: zoned.toISOString(),
+  //   zonedHours: zoned.getHours(),
+  //   offset: offset / (1000 * 60 * 60),
+  //   timezone,
+  // });
   // hour = zoned - diff -> diff = zoned - hour
   // (zoned + diff) % 23 = hour
   // const hourDiff = modDiff(hour, zoned.getUTCHours(), 23);
@@ -121,10 +130,13 @@ export function findNextLocalizedTimeInner({
     : EVERY_DAY_IN_WEEK;
 
   for (let i = 0; i < 8; i++) {
-    if (zoned.getTime() > now && allowedDays.has(zoned.getDay())) {
-      return zoned.getTime();
+    if (
+      adjusted.getTime() > zoned.getTime() &&
+      allowedDays.has(adjusted.getDay())
+    ) {
+      return adjusted.getTime() - offset;
     }
-    zoned = add(zoned, { days: 1 });
+    adjusted = add(adjusted, { days: 1 });
   }
 
   throw new Error("Could not find next localized time");
