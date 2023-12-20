@@ -517,8 +517,21 @@ export type SecondsDelayVariant = Static<typeof SecondsDelayVariant>;
 export const LocalTimeDelayVariant = Type.Object({
   type: Type.Literal(DelayVariantType.LocalTime),
   minute: Type.Optional(Type.Number()),
-  hour: Type.Optional(Type.Number()),
-  day: Type.Optional(Type.Number()),
+  hour: Type.Number(),
+  allowedDaysOfWeek: Type.Optional(
+    Type.Array(
+      Type.Union([
+        Type.Literal(1),
+        Type.Literal(2),
+        Type.Literal(3),
+        Type.Literal(4),
+        Type.Literal(5),
+        Type.Literal(6),
+        Type.Literal(7),
+      ])
+    )
+  ),
+  // TODO support additional time units
 });
 
 export type LocalTimeDelayVariant = Static<typeof LocalTimeDelayVariant>;
