@@ -58,22 +58,8 @@ export function findNextLocalizedTimeInner({
   }
   const timezone =
     typeof latLon === "string" ? getTimezone({ latLon }) : DEFAULT_TIMEZONE;
-
-  // const nowDate = set(new Date(now), {
-  //   milliseconds: 0,
-  //   seconds: 0,
-  // });
-
-  // invalid
-  // let zoned = utcToZonedTime(nowDate, timezone);
   const offset = getTimezoneOffset(timezone);
-  // let zoned = set(new Date(now + offset), {
-  //   milliseconds: 0,
-  //   seconds: 0,
-  //   minutes: minute,
-  //   hours: hour,
-  // });
-  let zoned = new Date(offset + now);
+  const zoned = new Date(offset + now);
   let adjusted = new Date(
     format(
       zoned,
@@ -82,48 +68,6 @@ export function findNextLocalizedTimeInner({
       )}:00.000'Z'`
     )
   );
-  // console.log({
-  //   adjustedUtc: new Date(
-  //     new Date(now).setUTCHours(hour, minute, 0, 0)
-  //   ).toISOString(),
-  //   zoned: zoned.toISOString(),
-  //   zonedHours: zoned.getHours(),
-  //   offset: offset / (1000 * 60 * 60),
-  //   timezone,
-  // });
-  // hour = zoned - diff -> diff = zoned - hour
-  // (zoned + diff) % 23 = hour
-  // const hourDiff = modDiff(hour, zoned.getUTCHours(), 23);
-  // const minuteDiff = modDiff(minute, zoned.getUTCMinutes(), 60);
-  // let adjustedNow = add(nowDate, {
-  //   hours: hourDiff,
-  //   minutes: minuteDiff,
-  // });
-
-  // console.log("times", {
-  //   now,
-  //   zonedTime: zoned.getTime(),
-  //   nowDate: new Date(now),
-  //   zoned,
-  //   minute,
-  //   hour,
-  //   timezone,
-  //   zonedHour: zoned.getHours(),
-  //   zonedDay: zoned.getDay(),
-  //   nowFormatted: format(new Date(now), "yyyy-MM-dd HH:mm:ssxxx", {
-  //     timeZone: timezone,
-  //   }),
-  //   zonedFormatted: format(zoned, "yyyy-MM-dd HH:mm:ssxxx", {
-  //     timeZone: timezone,
-  //   }),
-  // });
-  // zoned = set(zoned, {
-  //   hours: hour,
-  //   minutes: minute,
-  //   seconds: 0,
-  //   milliseconds: 0,
-  // });
-  // zoned = add(zoned, { days: -1 });
 
   const allowedDays = allowedDaysOfWeek
     ? new Set(allowedDaysOfWeek)
@@ -141,29 +85,3 @@ export function findNextLocalizedTimeInner({
 
   throw new Error("Could not find next localized time");
 }
-
-// export type FindNextLocalizedTimeParams = {
-//   workspaceId: string;
-//   userId: string;
-//   now: number;
-// } & LocalTimeDelayVariantFields;
-
-// export async function findNextLocalizedTime({
-//   workspaceId,
-//   userId,
-//   ...rest
-// }: FindNextLocalizedTimeParams): Promise<number | null> {
-//   // TODO support ip lookup
-//   const { latLon } = await findAllUserPropertyAssignments({
-//     workspaceId,
-//     userId,
-//     userProperties: ["latLon"],
-//   });
-//   const latLonStr = typeof latLon === "string" ? latLon : undefined;
-//   return findNextLocalizedTimeInner({ latLon: latLonStr, ...rest });
-// }
-
-/*
-
-
-*/

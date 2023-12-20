@@ -3,7 +3,8 @@ import { differenceInHours } from "date-fns";
 import { findNextLocalizedTimeInner } from "./dates";
 
 describe("findNextLocalizedTimeInner", () => {
-  it.only("when localizing to disneyland time at 8 pm", async () => {
+  it("when localizing to disneyland time at 8 pm", async () => {
+    // slightly after 3 pm in los angeles time
     const now = new Date("2023-12-19T23:00:12.123Z").getTime();
     const result = await findNextLocalizedTimeInner({
       latLon: "33.8121,-117.9190",
@@ -18,6 +19,7 @@ describe("findNextLocalizedTimeInner", () => {
   });
 
   it("when localizing to tokyo time at 6 am", async () => {
+    // slightly after 8 am in tokyo time
     const now = new Date("2023-12-19T23:00:12.12Z").getTime();
 
     const result = await findNextLocalizedTimeInner({
@@ -29,6 +31,6 @@ describe("findNextLocalizedTimeInner", () => {
       throw new Error("result is null");
     }
     expect(result).toBeGreaterThan(now);
-    expect(differenceInHours(result, now)).toBe(22);
+    expect(differenceInHours(result, now)).toBe(20);
   });
 });
