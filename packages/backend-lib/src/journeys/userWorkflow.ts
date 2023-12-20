@@ -19,7 +19,7 @@ import {
   SegmentUpdate,
   WaitForNode,
 } from "../types";
-import type * as activities from "./userWorkflow/activities";
+import * as activities from "./userWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
 
@@ -37,6 +37,7 @@ const {
   sendMobilePush,
   sendSms,
   sendMessageV2,
+  findNextLocalizedTime,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: "2 minutes",
 });
@@ -138,10 +139,18 @@ export async function userJourneyWorkflow({
         break;
       }
       case JourneyNodeType.DelayNode: {
-        let delay: string | number;
+        let delay: number;
         switch (currentNode.variant.type) {
           case DelayVariantType.Second: {
             delay = currentNode.variant.seconds * 1000;
+            break;
+          }
+          case DelayVariantType.LocalTime: {
+            delay = await findNextLocalizedTime({
+              workspaceId,
+              userId,
+              now: Date.now(),
+            });
             break;
           }
         }
