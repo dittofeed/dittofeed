@@ -31,10 +31,7 @@ export function findNextLocalizedTimeInner({
 }: LocalTimeDelayVariantFields & {
   latLon?: string;
   now: number;
-}): number | null {
-  if (Number.isNaN(now)) {
-    return null;
-  }
+}): number {
   const timezone =
     typeof latLon === "string" ? getTimezone({ latLon }) : DEFAULT_TIMEZONE;
   const offset = getTimezoneOffset(timezone);
@@ -64,7 +61,7 @@ export async function findNextLocalizedTime({
   workspaceId: string;
   userId: string;
   now: number;
-}): Promise<number | null> {
+}): Promise<number> {
   const { latLon } = await findAllUserPropertyAssignments({
     workspaceId,
     userId,
