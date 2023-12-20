@@ -174,7 +174,7 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
           const { hour, minute } = props.variant;
           // year, month, and day are arbitrary
           const time = format(new Date(2000, 0, 1, hour, minute), "h:mm a");
-          body = <>Delay until {time}</>;
+          body = <>Delay until {time} in user local time.</>;
           break;
         }
         default:

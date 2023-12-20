@@ -4,6 +4,8 @@ import {
   CacheProvider as EmotionCacheProvider,
   EmotionCache,
 } from "@emotion/react";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { enableMapSet } from "immer";
 import type { AppProps } from "next/app";
 import Head from "next/head";
@@ -230,7 +232,9 @@ export default function App({
           </Head>
           <ThemeCustomization>
             <SnackbarProvider preventDuplicate>
-              <Component {...pageProps} />
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <Component {...pageProps} />
+              </LocalizationProvider>
             </SnackbarProvider>
           </ThemeCustomization>
         </EmotionCacheProvider>

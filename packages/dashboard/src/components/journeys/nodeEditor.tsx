@@ -14,6 +14,8 @@ import {
   useTheme,
 } from "@mui/material";
 import { SelectInputProps } from "@mui/material/Select/SelectInput";
+import { MultiSectionDigitalClock } from "@mui/x-date-pickers/MultiSectionDigitalClock";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
@@ -284,11 +286,69 @@ function DelayNodeFields({
       break;
     }
     case DelayVariantType.LocalTime: {
-      throw new Error("Not implemented");
+      variant = (
+        <MultiSectionDigitalClock
+          value={
+            new Date(0, 0, 0, nodeProps.variant.hour, nodeProps.variant.minute)
+          }
+          onChange={(newValue) =>
+            updateJourneyNodeData(nodeId, (node) => {
+              const props = node.data.nodeTypeProps;
+              if (
+                props.type === JourneyNodeType.DelayNode &&
+                props.variant.type === DelayVariantType.LocalTime &&
+                newValue
+              ) {
+                props.variant.hour = newValue.getHours();
+                props.variant.minute = newValue.getMinutes();
+              }
+            })
+          }
+        />
+      );
+      break;
     }
   }
 
-  return <>{variant}</>;
+  return (
+    <>
+      <Select
+        value={nodeProps.variant.type}
+        onChange={(e) => {
+          updateJourneyNodeData(nodeId, (node) => {
+            const props = node.data.nodeTypeProps;
+            if (props.type !== JourneyNodeType.DelayNode) {
+              return;
+            }
+            const type = e.target.value as DelayVariantType;
+            if (props.variant.type === type) {
+              return;
+            }
+            switch (type) {
+              case DelayVariantType.Second:
+                props.variant = {
+                  type: DelayVariantType.Second,
+                };
+                break;
+              case DelayVariantType.LocalTime:
+                props.variant = {
+                  type: DelayVariantType.LocalTime,
+                  minute: 0,
+                  hour: 8,
+                };
+                break;
+              default:
+                assertUnreachable(type);
+            }
+          });
+        }}
+      >
+        <MenuItem value={DelayVariantType.Second}>Hardcoded Delay</MenuItem>
+        <MenuItem value={DelayVariantType.LocalTime}>Localized Delay</MenuItem>
+      </Select>
+      {variant}
+    </>
+  );
 }
 
 function WaitForNodeFields({
