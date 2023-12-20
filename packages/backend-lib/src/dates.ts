@@ -3,6 +3,7 @@ import { getTimezoneOffset } from "date-fns-tz";
 import { find as findTz } from "geo-tz";
 
 import { LocalTimeDelayVariantFields } from "./types";
+import { findAllUserPropertyAssignments } from "./userProperties";
 
 const DEFAULT_TIMEZONE = "UTC";
 const EVERY_DAY_IN_WEEK = new Set([0, 1, 2, 3, 4, 5, 6]);
@@ -46,11 +47,32 @@ export function findNextLocalizedTimeInner({
     : EVERY_DAY_IN_WEEK;
 
   for (let i = 0; i < 8; i++) {
-    if (adjusted.getTime() > zoned && allowedDays.has(adjusted.getDay())) {
+    if (adjusted.getTime() > zoned && allowedDays.has(adjusted.getUTCDay())) {
       return adjusted.getTime() - offset;
     }
     adjusted = add(adjusted, { days: 1 });
   }
 
   throw new Error("Could not find next localized time");
+}
+
+export async function findNextLocalizedTime({
+  workspaceId,
+  userId,
+  now,
+}: {
+  workspaceId: string;
+  userId: string;
+  now: number;
+}): Promise<number | null> {
+  const { latLon } = await findAllUserPropertyAssignments({
+    workspaceId,
+    userId,
+    userProperties: ["latLon"],
+  });
+  return findNextLocalizedTimeInner({
+    latLon: typeof latLon === "string" ? latLon : undefined,
+    now,
+    hour: 5,
+  });
 }
