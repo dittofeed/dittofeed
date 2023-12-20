@@ -1022,19 +1022,29 @@ export function journeyBranchToState(
         break;
       }
       case JourneyNodeType.DelayNode: {
-        const delayNode: DelayNodeProps = {
-          type: JourneyNodeType.DelayNode,
-          seconds: node.variant.seconds,
-        };
-        nodesState.push(buildJourneyNode(nId, delayNode));
-        nextNodeId = node.child;
+        switch (node.variant.type) {
+          case DelayVariantType.Second: {
+            const delayNode: DelayNodeProps = {
+              type: JourneyNodeType.DelayNode,
+              seconds: node.variant.seconds,
+            };
+            nodesState.push(buildJourneyNode(nId, delayNode));
+            nextNodeId = node.child;
 
-        if (nextNodeId === terminateBefore) {
-          return {
-            terminalNode: nId,
-          };
+            if (nextNodeId === terminateBefore) {
+              return {
+                terminalNode: nId,
+              };
+            }
+            edgesState.push(buildWorkflowEdge(nId, node.child));
+            break;
+          }
+          case DelayVariantType.LocalTime: {
+            throw new Error("LocalTime is not implemented");
+          }
+          default:
+            assertUnreachable(node.variant);
         }
-        edgesState.push(buildWorkflowEdge(nId, node.child));
         break;
       }
       case JourneyNodeType.MessageNode: {
