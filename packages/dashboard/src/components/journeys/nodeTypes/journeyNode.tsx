@@ -14,6 +14,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { format } from "date-fns";
 import { round } from "isomorphic-lib/src/numbers";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -75,7 +76,10 @@ export function isNodeComplete(
           return Boolean(props.variant.seconds);
         }
         case DelayVariantType.LocalTime: {
-          throw new Error("Not implemented");
+          return (
+            props.variant.minute !== undefined &&
+            props.variant.hour !== undefined
+          );
         }
         default:
           assertUnreachable(props.variant);
@@ -157,25 +161,34 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
         body,
       };
     }
-    case JourneyNodeType.DelayNode:
+    case JourneyNodeType.DelayNode: {
+      let body: React.ReactElement;
       switch (props.variant.type) {
         case DelayVariantType.Second: {
-          const body = (
+          body = (
             <DurationDescription durationSeconds={props.variant.seconds} />
           );
-          return {
-            sidebarColor: "#F77520",
-            icon: journeyNodeIcon(JourneyNodeType.DelayNode),
-            title: journeyNodeLabel(JourneyNodeType.DelayNode),
-            body,
-          };
+          break;
         }
-        case DelayVariantType.LocalTime:
-          throw new Error("Not implemented");
+        case DelayVariantType.LocalTime: {
+          const { hour, minute } = props.variant;
+          // year, month, and day are arbitrary
+          const time = format(new Date(2000, 0, 1, hour, minute), "h:mm a");
+          body = <>Delay until {time}</>;
+          break;
+        }
         default:
           assertUnreachable(props.variant);
       }
+
+      return {
+        sidebarColor: "#F77520",
+        icon: journeyNodeIcon(JourneyNodeType.DelayNode),
+        title: journeyNodeLabel(JourneyNodeType.DelayNode),
+        body,
+      };
       break;
+    }
     case JourneyNodeType.SegmentSplitNode: {
       const body = <SegmentDescriptionBody segmentId={props.segmentId} />;
       return {
