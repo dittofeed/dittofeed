@@ -62,17 +62,26 @@ export function findNextLocalizedTimeInner({
 
   // invalid
   // let zoned = utcToZonedTime(nowDate, timezone);
-  // const offset = getTimezoneOffset(timezone);
+  const offset = getTimezoneOffset(timezone);
   // let zoned = set(new Date(now + offset), {
   //   milliseconds: 0,
   //   seconds: 0,
   //   minutes: minute,
   //   hours: hour,
   // });
-  let zoned = utcToZonedTime(
-    new Date(now).setUTCHours(hour, minute, 0, 0),
-    timezone
+  let zoned = add(
+    utcToZonedTime(new Date(now).setUTCHours(hour, minute, 0, 0), timezone),
+    { days: -1 }
   );
+  console.log({
+    adjustedUtc: new Date(
+      new Date(now).setUTCHours(hour, minute, 0, 0)
+    ).toISOString(),
+    zoned: zoned.toISOString(),
+    zonedHours: zoned.getHours(),
+    offset: offset / (1000 * 60 * 60),
+    timezone,
+  });
   // hour = zoned - diff -> diff = zoned - hour
   // (zoned + diff) % 23 = hour
   // const hourDiff = modDiff(hour, zoned.getUTCHours(), 23);
@@ -111,55 +120,8 @@ export function findNextLocalizedTimeInner({
     ? new Set(allowedDaysOfWeek)
     : EVERY_DAY_IN_WEEK;
 
-  // console.log({ nowDate, hourDiff, minuteDiff, zoned });
-
-  for (let i = 0; i < 7; i++) {
-    // console.log("zoned i", zoned, i);
-    // console.log(
-    //   "zoned formatted",
-    //   format(zoned, "yyyy-MM-dd HH:mm:ssxxx", {
-    //     timeZone: timezone,
-    //   })
-    // );
-    // console.log("zoned day", zoned.getDay());
-    // console.log("zoned hour", zoned.getHours());
-    // console.log("zoned iso ", zoned.toISOString());
-    // console.log("zoned time", zoned.getTime());
-    // console.log("zoned greater ", zoned.getTime() > now);
-    // console.log({
-    //   adjustedNow,
-    // });
-    // const day = utcToZonedTime(adjustedNow, timezone).getDay();
-    // if (adjustedNow.getTime() > now && allowedDays.has(day)) {
-    //   return adjustedNow.getTime();
-    // }
-    // adjustedNow = add(adjustedNow, { days: 1 });
+  for (let i = 0; i < 8; i++) {
     if (zoned.getTime() > now && allowedDays.has(zoned.getDay())) {
-      console.log("found next localized time", {
-        zoned: zoned.toISOString(),
-        //     formattedZoned: format(zoned, "yyyy-MM-dd HH:mm:ssxxx", {
-        //       timeZone: timezone,
-        //     }),
-        //     // when timezone is Asia/Tokyo
-        //     // and now is '2023-12-19T23:00:12.123Z'
-        //     // would expect this to show 8 am but is showing 3 pm
-        //     // '2023-12-19 15:00:12+09:00'
-        //     // format(new Date(now), "yyyy-MM-dd HH:mm:ssxxx", {
-        //     //   timeZone: timezone,
-        //     // }),
-        //     now: new Date(now).toISOString(),
-        //     // fixme invalid time value
-        //     formattedNow: formatInTimeZone(
-        //       new Date(now),
-        //       "yyyy-MM-dd HH:mm:ssxxx",
-        //       timezone
-        //     ),
-        //     // formattedNow: format(now, "yyyy-MM-dd HH:mm:ssxxx", {
-        //     //   timeZone: timezone,
-        //     // }),
-        //     zone: timezone,
-        //     offset: offset / (60 * 60 * 1000),
-      });
       return zoned.getTime();
     }
     zoned = add(zoned, { days: 1 });
