@@ -1,4 +1,5 @@
 import { differenceInHours } from "date-fns";
+import { format } from "date-fns-tz";
 
 import { findNextLocalizedTimeInner } from "./dates";
 
@@ -18,7 +19,17 @@ describe("findNextLocalizedTimeInner", () => {
   });
 
   it.only("when localizing to tokyo time at 6 am", async () => {
-    const now = new Date("2023-12-19T23:00:12.123Z").getTime();
+    const now = new Date("2023-12-19T23:00:12.12Z").getTime();
+
+    const now2 = new Date("2023-12-19T23:00:12.123Z");
+    const timezone = "Asia/Tokyo";
+
+    const formattedTime = format(now2, "yyyy-MM-dd HH:mm:ssxxx", {
+      timeZone: timezone,
+    });
+
+    console.log("loc2", formattedTime); // Expected output: '2023-12-20 08:00:12+09:00'
+
     const result = await findNextLocalizedTimeInner({
       latLon: "35.6764,139.6500",
       now,
