@@ -146,11 +146,13 @@ export async function userJourneyWorkflow({
             break;
           }
           case DelayVariantType.LocalTime: {
-            delay = await findNextLocalizedTime({
+            const now = Date.now();
+            const nexTime = await findNextLocalizedTime({
               workspaceId,
               userId,
-              now: Date.now(),
+              now,
             });
+            delay = nexTime - now;
             break;
           }
         }
