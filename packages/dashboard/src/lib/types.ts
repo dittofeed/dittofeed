@@ -5,7 +5,6 @@ import {
   ChannelType,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
-  DelayVariant,
   DelayVariantType,
   DFRequestContext,
   EntryNode,
