@@ -10,13 +10,20 @@ import {
   Select,
   Stack,
   TextField,
+  ToggleButton,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
 import { SelectInputProps } from "@mui/material/Select/SelectInput";
+import { MultiSectionDigitalClock } from "@mui/x-date-pickers/MultiSectionDigitalClock";
+import { DAY_INDICES } from "isomorphic-lib/src/constants";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
+  AllowedDayIndices,
   ChannelType,
   CompletionStatus,
+  DelayVariantType,
   JourneyNodeType,
   MessageTemplateResource,
   SegmentResource,
@@ -35,6 +42,7 @@ import {
   WaitForNodeProps,
 } from "../../lib/types";
 import DurationSelect from "../durationSelect";
+import { SubtleHeader } from "../headers";
 import SubscriptionGroupAutocomplete from "../subscriptionGroupAutocomplete";
 import findJourneyNode from "./findJourneyNode";
 import journeyNodeLabel from "./journeyNodeLabel";
@@ -248,6 +256,37 @@ function MessageNodeFields({
   );
 }
 
+const DAYS: { letter: string; day: string }[] = [
+  {
+    letter: "S",
+    day: "Sunday",
+  },
+  {
+    letter: "M",
+    day: "Monday",
+  },
+  {
+    letter: "T",
+    day: "Tuesday",
+  },
+  {
+    letter: "W",
+    day: "Wednesday",
+  },
+  {
+    letter: "T",
+    day: "Thursday",
+  },
+  {
+    letter: "F",
+    day: "Friday",
+  },
+  {
+    letter: "S",
+    day: "Saturday",
+  },
+];
+
 function DelayNodeFields({
   nodeId,
   nodeProps,
@@ -258,23 +297,150 @@ function DelayNodeFields({
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData
   );
-
-  const handleDurationChange = (seconds: number) => {
-    updateJourneyNodeData(nodeId, (node) => {
-      const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.DelayNode) {
-        props.seconds = seconds;
-      }
-    });
-  };
+  let variant: React.ReactElement;
+  switch (nodeProps.variant.type) {
+    case DelayVariantType.Second: {
+      const handleDurationChange = (seconds: number) => {
+        updateJourneyNodeData(nodeId, (node) => {
+          const props = node.data.nodeTypeProps;
+          if (
+            props.type === JourneyNodeType.DelayNode &&
+            props.variant.type === DelayVariantType.Second
+          ) {
+            props.variant.seconds = seconds;
+          }
+        });
+      };
+      variant = (
+        <DurationSelect
+          value={nodeProps.variant.seconds}
+          onChange={handleDurationChange}
+          description="Will wait"
+          inputLabel="Duration"
+        />
+      );
+      break;
+    }
+    case DelayVariantType.LocalTime: {
+      const allowedDaysOfWeek = new Set(
+        nodeProps.variant.allowedDaysOfWeek ?? DAY_INDICES
+      );
+      const dayEls = DAYS.map((day, i) => {
+        const index = i as AllowedDayIndices;
+        return (
+          <Tooltip key={day.day} title={day.day}>
+            <ToggleButton
+              value={index}
+              sx={{
+                width: 1,
+                height: 1,
+                borderRadius: "50%",
+              }}
+              selected={allowedDaysOfWeek.has(index)}
+              onChange={() => {
+                updateJourneyNodeData(nodeId, (node) => {
+                  const props = node.data.nodeTypeProps;
+                  if (
+                    props.type !== JourneyNodeType.DelayNode ||
+                    props.variant.type !== DelayVariantType.LocalTime
+                  ) {
+                    return;
+                  }
+                  if (allowedDaysOfWeek.has(index)) {
+                    props.variant.allowedDaysOfWeek = (
+                      props.variant.allowedDaysOfWeek ?? DAY_INDICES
+                    ).filter((dayOfWeek) => dayOfWeek !== i);
+                  } else {
+                    const newAllowedDaysOfWeek: AllowedDayIndices[] = [
+                      ...(props.variant.allowedDaysOfWeek ?? []),
+                      index,
+                    ];
+                    newAllowedDaysOfWeek.sort();
+                    props.variant.allowedDaysOfWeek = newAllowedDaysOfWeek;
+                  }
+                });
+              }}
+            >
+              {day.letter}
+            </ToggleButton>
+          </Tooltip>
+        );
+      });
+      variant = (
+        <>
+          <SubtleHeader>User Local Time</SubtleHeader>
+          <MultiSectionDigitalClock
+            value={
+              new Date(
+                0,
+                0,
+                0,
+                nodeProps.variant.hour,
+                nodeProps.variant.minute
+              )
+            }
+            onChange={(newValue) =>
+              updateJourneyNodeData(nodeId, (node) => {
+                const props = node.data.nodeTypeProps;
+                if (
+                  props.type === JourneyNodeType.DelayNode &&
+                  props.variant.type === DelayVariantType.LocalTime &&
+                  newValue
+                ) {
+                  props.variant.hour = newValue.getHours();
+                  props.variant.minute = newValue.getMinutes();
+                }
+              })
+            }
+          />
+          <SubtleHeader>Allowed Days of the Week</SubtleHeader>
+          <Stack direction="row" spacing={1}>
+            {dayEls}
+          </Stack>
+        </>
+      );
+      break;
+    }
+  }
 
   return (
-    <DurationSelect
-      value={nodeProps.seconds}
-      onChange={handleDurationChange}
-      description="Will wait"
-      inputLabel="Duration"
-    />
+    <>
+      <Select
+        value={nodeProps.variant.type}
+        onChange={(e) => {
+          updateJourneyNodeData(nodeId, (node) => {
+            const props = node.data.nodeTypeProps;
+            if (props.type !== JourneyNodeType.DelayNode) {
+              return;
+            }
+            const type = e.target.value as DelayVariantType;
+            if (props.variant.type === type) {
+              return;
+            }
+            switch (type) {
+              case DelayVariantType.Second:
+                props.variant = {
+                  type: DelayVariantType.Second,
+                };
+                break;
+              case DelayVariantType.LocalTime:
+                props.variant = {
+                  type: DelayVariantType.LocalTime,
+                  minute: 0,
+                  hour: 8,
+                };
+                break;
+              default:
+                assertUnreachable(type);
+            }
+          });
+        }}
+      >
+        <MenuItem value={DelayVariantType.Second}>Hardcoded Delay</MenuItem>
+        <MenuItem value={DelayVariantType.LocalTime}>Localized Delay</MenuItem>
+      </Select>
+      {variant}
+    </>
   );
 }
 

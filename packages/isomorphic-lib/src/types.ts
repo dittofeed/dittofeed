@@ -514,23 +514,23 @@ export const SecondsDelayVariant = Type.Object({
 
 export type SecondsDelayVariant = Static<typeof SecondsDelayVariant>;
 
+export const AllowedDayIndices = Type.Union([
+  Type.Literal(0),
+  Type.Literal(1),
+  Type.Literal(2),
+  Type.Literal(3),
+  Type.Literal(4),
+  Type.Literal(5),
+  Type.Literal(6),
+]);
+
+export type AllowedDayIndices = Static<typeof AllowedDayIndices>;
+
 export const LocalTimeDelayVariant = Type.Object({
   type: Type.Literal(DelayVariantType.LocalTime),
   minute: Type.Optional(Type.Number()),
   hour: Type.Number(),
-  allowedDaysOfWeek: Type.Optional(
-    Type.Array(
-      Type.Union([
-        Type.Literal(0),
-        Type.Literal(1),
-        Type.Literal(2),
-        Type.Literal(3),
-        Type.Literal(4),
-        Type.Literal(5),
-        Type.Literal(6),
-      ])
-    )
-  ),
+  allowedDaysOfWeek: Type.Optional(Type.Array(AllowedDayIndices)),
   // TODO support additional time units
 });
 
@@ -542,6 +542,8 @@ export const DelayVariant = Type.Union([
   SecondsDelayVariant,
   LocalTimeDelayVariant,
 ]);
+
+export type DelayVariant = Static<typeof DelayVariant>;
 
 export const DelayNode = Type.Object(
   {

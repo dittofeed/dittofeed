@@ -30,6 +30,7 @@
     "@mui/lab": "^5.0.0-alpha.125",
     "@mui/material": "^5.11.4",
     "@mui/x-data-grid": "^6.0.0",
+    "@mui/x-date-pickers": "^6.18.5",
     "@prisma/client": "^5.4.1",
     "@sinclair/typebox": "^0.31.5",
     "@uiw/react-codemirror": "^4.19.5",

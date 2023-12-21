@@ -1,4 +1,8 @@
-import { ChannelType, JourneyNodeType } from "isomorphic-lib/src/types";
+import {
+  ChannelType,
+  DelayVariantType,
+  JourneyNodeType,
+} from "isomorphic-lib/src/types";
 import { Node } from "reactflow";
 import { v4 as uuid } from "uuid";
 
@@ -35,6 +39,9 @@ export default function defaultNodeTypeProps(
     case JourneyNodeType.DelayNode:
       return {
         type,
+        variant: {
+          type: DelayVariantType.Second,
+        },
       };
     case JourneyNodeType.SegmentSplitNode:
       return {

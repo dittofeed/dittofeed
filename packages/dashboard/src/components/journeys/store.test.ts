@@ -620,7 +620,13 @@ describe("journeyDefinitionFromState", () => {
           id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
           data: {
             type: "JourneyNode",
-            nodeTypeProps: { type: JourneyNodeType.DelayNode, seconds: 1800 },
+            nodeTypeProps: {
+              type: JourneyNodeType.DelayNode,
+              variant: {
+                type: DelayVariantType.Second,
+                seconds: 1800,
+              },
+            },
           },
           position: { x: 400, y: 500 },
           type: "journey",

@@ -14,8 +14,14 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { format } from "date-fns";
 import { round } from "isomorphic-lib/src/numbers";
-import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import {
+  CompletionStatus,
+  DelayVariantType,
+  JourneyNodeType,
+} from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { Handle, NodeProps, Position } from "reactflow";
 
@@ -65,7 +71,20 @@ export function isNodeComplete(
     case JourneyNodeType.MessageNode:
       return Boolean(props.templateId);
     case JourneyNodeType.DelayNode:
-      return Boolean(props.seconds);
+      switch (props.variant.type) {
+        case DelayVariantType.Second: {
+          return Boolean(props.variant.seconds);
+        }
+        case DelayVariantType.LocalTime: {
+          return (
+            props.variant.minute !== undefined &&
+            props.variant.hour !== undefined
+          );
+        }
+        default:
+          assertUnreachable(props.variant);
+      }
+      break;
     case JourneyNodeType.SegmentSplitNode:
       return Boolean(props.segmentId);
     case JourneyNodeType.WaitForNode: {
@@ -142,13 +161,34 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
         body,
       };
     }
-    case JourneyNodeType.DelayNode:
+    case JourneyNodeType.DelayNode: {
+      let body: React.ReactElement;
+      switch (props.variant.type) {
+        case DelayVariantType.Second: {
+          body = (
+            <DurationDescription durationSeconds={props.variant.seconds} />
+          );
+          break;
+        }
+        case DelayVariantType.LocalTime: {
+          const { hour, minute } = props.variant;
+          // year, month, and day are arbitrary
+          const time = format(new Date(2000, 0, 1, hour, minute), "h:mm a");
+          body = <>Delay until {time} in user local time.</>;
+          break;
+        }
+        default:
+          assertUnreachable(props.variant);
+      }
+
       return {
         sidebarColor: "#F77520",
         icon: journeyNodeIcon(JourneyNodeType.DelayNode),
         title: journeyNodeLabel(JourneyNodeType.DelayNode),
-        body: <DurationDescription durationSeconds={props.seconds} />,
+        body,
       };
+      break;
+    }
     case JourneyNodeType.SegmentSplitNode: {
       const body = <SegmentDescriptionBody segmentId={props.segmentId} />;
       return {

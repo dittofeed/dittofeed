@@ -29,3 +29,5 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
   [ChannelType.Email]: "Email",
   [ChannelType.MobilePush]: "Push Notification",
 };
+
+export const DAY_INDICES = [0, 1, 2, 3, 4, 5, 6] as const;

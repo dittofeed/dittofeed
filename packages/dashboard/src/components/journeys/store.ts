@@ -50,6 +50,7 @@ import {
   NodeTypeProps,
   NonJourneyNodeData,
   SegmentSplitNodeProps,
+  UIDelayVariant,
   WaitForNodeProps,
 } from "../../lib/types";
 import { durationDescription } from "../durationDescription";
@@ -323,20 +324,50 @@ function journeyDefinitionFromStateBranch(
         break;
       }
       case JourneyNodeType.DelayNode: {
-        if (!uiNode.seconds) {
-          return err({
-            message: "Delay node must have a timeout",
-            nodeId: nId,
-          });
+        let variant: DelayNode["variant"];
+        switch (uiNode.variant.type) {
+          case DelayVariantType.Second: {
+            if (!uiNode.variant.seconds) {
+              return err({
+                message: "Delay node must have a timeout",
+                nodeId: nId,
+              });
+            }
+            variant = {
+              type: DelayVariantType.Second,
+              seconds: uiNode.variant.seconds,
+            };
+            break;
+          }
+          case DelayVariantType.LocalTime: {
+            if (!uiNode.variant.hour) {
+              return err({
+                message: "Local time delay node must have an hour",
+                nodeId: nId,
+              });
+            }
+            if (!uiNode.variant.minute) {
+              return err({
+                message: "Local time delay node must have a minute",
+                nodeId: nId,
+              });
+            }
+            variant = {
+              type: DelayVariantType.LocalTime,
+              minute: uiNode.variant.minute,
+              hour: uiNode.variant.hour,
+              allowedDaysOfWeek: uiNode.variant.allowedDaysOfWeek,
+            };
+            break;
+          }
+          default:
+            assertUnreachable(uiNode.variant);
         }
         const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
         const node: DelayNode = {
           type: JourneyNodeType.DelayNode,
           id: nId,
-          variant: {
-            type: DelayVariantType.Second,
-            seconds: uiNode.seconds,
-          },
+          variant,
           child,
         };
         nodes.push(node);
@@ -1022,29 +1053,42 @@ export function journeyBranchToState(
         break;
       }
       case JourneyNodeType.DelayNode: {
+        let variant: UIDelayVariant;
         switch (node.variant.type) {
           case DelayVariantType.Second: {
-            const delayNode: DelayNodeProps = {
-              type: JourneyNodeType.DelayNode,
+            variant = {
+              type: DelayVariantType.Second,
               seconds: node.variant.seconds,
             };
-            nodesState.push(buildJourneyNode(nId, delayNode));
-            nextNodeId = node.child;
-
-            if (nextNodeId === terminateBefore) {
-              return {
-                terminalNode: nId,
-              };
-            }
-            edgesState.push(buildWorkflowEdge(nId, node.child));
             break;
           }
           case DelayVariantType.LocalTime: {
-            throw new Error("LocalTime is not implemented");
+            variant = {
+              type: DelayVariantType.LocalTime,
+              hour: node.variant.hour,
+              minute: node.variant.minute,
+              allowedDaysOfWeek: node.variant.allowedDaysOfWeek,
+            };
+            break;
           }
           default:
             assertUnreachable(node.variant);
         }
+
+        const delayNode: DelayNodeProps = {
+          type: JourneyNodeType.DelayNode,
+          variant,
+        };
+
+        nodesState.push(buildJourneyNode(nId, delayNode));
+        nextNodeId = node.child;
+
+        if (nextNodeId === terminateBefore) {
+          return {
+            terminalNode: nId,
+          };
+        }
+        edgesState.push(buildWorkflowEdge(nId, node.child));
         break;
       }
       case JourneyNodeType.MessageNode: {
