@@ -356,6 +356,7 @@ function journeyDefinitionFromStateBranch(
               type: DelayVariantType.LocalTime,
               minute: uiNode.variant.minute,
               hour: uiNode.variant.hour,
+              allowedDaysOfWeek: uiNode.variant.allowedDaysOfWeek,
             };
             break;
           }
