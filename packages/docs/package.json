@@ -2,5 +2,8 @@
   "name": "docs",
   "version": "0.0.3",
   "private": true,
-  "license": "LicenseRef-LICENSE"
+  "license": "LicenseRef-LICENSE",
+  "scripts": {
+    "dev": "mintlify dev"
+  }
 }

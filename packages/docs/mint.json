@@ -6,7 +6,12 @@
     "light": "/logo/light.png"
   },
   "api": {
-    "baseUrl": "https://demo.dittofeed.com",
+    "baseUrl": "http://localhost:3001",
+    "auth": {
+      "method": "key",
+      "name": "Authorization",
+      "inputPrefix": "ApiKey"
+    },
     "playground": {
       "mode": "show"
     }
@@ -42,6 +47,12 @@
       "name": "Demo App",
       "icon": "bullseye-pointer",
       "url": "https://demo.dittofeed.com/dashboard/journeys"
+    }
+  ],
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
     }
   ],
   "navigation": [
