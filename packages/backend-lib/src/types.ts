@@ -176,7 +176,7 @@ export const SendgridEvent = Type.Intersect([
       })
     ),
   }),
-  Type.Record(Type.String(), Type.String()),
+  Type.Record(Type.String(), Type.Any()),
 ]);
 
 export type SendgridEvent = Static<typeof SendgridEvent>;

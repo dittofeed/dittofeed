@@ -136,12 +136,21 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const messageTags: Record<string, string> = {
+        channel: request.body.channel,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const userId = request.body.userProperties.id;
+      if (typeof userId === "string") {
+        messageTags.userId = userId;
+      }
       const result = await sendMessage({
         workspaceId: request.body.workspaceId,
         templateId: request.body.templateId,
         userPropertyAssignments: request.body.userProperties,
         channel: request.body.channel,
         useDraft: true,
+        messageTags,
       });
       if (result.isOk()) {
         return reply.status(200).send({
