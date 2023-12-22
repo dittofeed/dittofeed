@@ -13,6 +13,7 @@ export default async function integrationsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Create or update an integration.",
+        tags: ["Integrations"],
         body: UpsertIntegrationResource,
         response: {
           200: IntegrationResource,

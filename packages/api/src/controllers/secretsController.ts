@@ -20,6 +20,7 @@ export default async function secretsController(fastify: FastifyInstance) {
       schema: {
         description: "List secrets.",
         querystring: ListSecretsRequest,
+        tags: ["Secrets"],
         response: {
           200: Type.Array(SecretResource),
         },
@@ -59,7 +60,7 @@ export default async function secretsController(fastify: FastifyInstance) {
       schema: {
         description:
           "Create or update a secret. Will patch the secret definition if passed.",
-
+        tags: ["Secrets"],
         body: UpsertSecretRequest,
         response: {
           204: EmptyResponse,
@@ -123,7 +124,7 @@ export default async function secretsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Delete a secret.",
-
+        tags: ["Secrets"],
         body: DeleteSecretRequest,
         response: {
           204: EmptyResponse,

@@ -17,7 +17,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Create or update a user segment.",
-
+        tags: ["Segments"],
         body: UpsertSegmentResource,
         response: {
           200: SegmentResource,
@@ -35,6 +35,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Delete a segment.",
+        tags: ["Segments"],
         body: DeleteSegmentRequest,
         response: {
           204: EmptyResponse,
@@ -77,6 +78,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Download a csv containing segment assignments.",
+        tags: ["Segments"],
         querystring: Type.Object({
           workspaceId: Type.String(),
         }),

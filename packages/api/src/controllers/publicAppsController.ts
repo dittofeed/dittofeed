@@ -28,6 +28,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       schema: {
         description:
           "The Identify call lets you tie a user to their actions and record traits about them. It includes a unique User ID and any optional traits you know about the user, like their email, name, and more.",
+        tags: ["Public Apps"],
         body: IdentifyData,
         headers: Type.Object({
           authorization: Type.String(),
@@ -63,6 +64,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       schema: {
         description:
           "The Track call is how you record any actions your users perform, along with any properties that describe the action.",
+        tags: ["Public Apps"],
         body: TrackData,
         headers: Type.Object({
           authorization: Type.String(),
@@ -98,6 +100,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       schema: {
         description:
           "The page call lets you record whenever a user sees a page of your website, along with any optional properties about the page.",
+        tags: ["Public Apps"],
         body: PageData,
         headers: Type.Object({
           authorization: Type.String(),
@@ -133,6 +136,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       schema: {
         description:
           "The screen call lets you record whenever a user sees a screen, the mobile equivalent of page, in your mobile app, along with any properties about the screen",
+        tags: ["Public Apps"],
         body: ScreenData,
         headers: Type.Object({
           authorization: Type.String(),
@@ -165,7 +169,9 @@ export default async function publicAppsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/group",
     {
-      schema: {},
+      schema: {
+        tags: ["Public Apps"],
+      },
     },
     async (request, reply) => {
       logger().warn("Client is calling unimplemented endpoint /group");
@@ -179,7 +185,9 @@ export default async function publicAppsController(fastify: FastifyInstance) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/alias",
     {
-      schema: {},
+      schema: {
+        tags: ["Public Apps"],
+      },
     },
     async (request, reply) => {
       logger().warn("Client is calling unimplemented endpoint /alias");
@@ -196,6 +204,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       schema: {
         description:
           "The batch method lets you send a series of identify, group, track, page and screen requests in a single batch, saving on outbound requests.",
+        tags: ["Public Apps"],
         body: BatchAppData,
         headers: Type.Object({
           authorization: Type.String(),

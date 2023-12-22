@@ -37,6 +37,7 @@ export default async function contentController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Render message template.",
+        tags: ["Content"],
         body: RenderMessageTemplateRequest,
         response: {
           200: RenderMessageTemplateResponse,
@@ -109,6 +110,7 @@ export default async function contentController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Create or update message template",
+        tags: ["Content"],
         body: UpsertMessageTemplateResource,
         response: {
           200: MessageTemplateResource,
@@ -126,6 +128,7 @@ export default async function contentController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Send a test message for a message template.",
+        tags: ["Content"],
         body: MessageTemplateTestRequest,
         response: {
           200: MessageTemplateTestResponse,
@@ -242,6 +245,7 @@ export default async function contentController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Delete a message template.",
+        tags: ["Content"],
         body: DeleteMessageTemplateRequest,
         response: {
           204: EmptyResponse,

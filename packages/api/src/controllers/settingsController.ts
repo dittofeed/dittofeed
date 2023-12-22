@@ -28,6 +28,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Create or update email provider settings",
+        tags: ["Settings"],
         body: UpsertDataSourceConfigurationResource,
         response: {
           200: DataSourceConfigurationResource,
@@ -82,6 +83,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Create or update sms provider settings",
+        tags: ["Settings"],
         body: UpsertSmsProviderRequest,
         response: {
           200: SmsProviderConfig,
@@ -99,6 +101,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Create or update email provider default",
+        tags: ["Settings"],
         body: DefaultEmailProviderResource,
         response: {
           201: EmptyResponse,
@@ -130,6 +133,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Create a write key.",
+        tags: ["Settings"],
         body: UpsertWriteKeyResource,
         response: {
           200: WriteKeyResource,
@@ -153,6 +157,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Get write keys.",
+        tags: ["Settings"],
         querystring: ListWriteKeyRequest,
         response: {
           200: ListWriteKeyResource,
@@ -172,6 +177,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Delete a write key.",
+        tags: ["Settings"],
         body: DeleteWriteKeyResource,
         response: {
           204: EmptyResponse,

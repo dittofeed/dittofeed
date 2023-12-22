@@ -23,6 +23,7 @@ export default async function journeysController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Create or update a journey.",
+        tags: ["Journeys"],
         body: UpsertJourneyResource,
         response: {
           200: JourneyResource,
@@ -105,6 +106,7 @@ export default async function journeysController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Delete a journey.",
+        tags: ["Journeys"],
         body: DeleteJourneyRequest,
         response: {
           204: EmptyResponse,
@@ -143,6 +145,7 @@ export default async function journeysController(fastify: FastifyInstance) {
       schema: {
         description:
           "Retrieve stats regarding one or more journey's performance.",
+        tags: ["Journeys"],
         querystring: JourneyStatsRequest,
         response: {
           200: JourneyStatsResponse,

@@ -13,6 +13,7 @@ export default async function deliveriesController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Search through deliveries.",
+        tags: ["Deliveries"],
         querystring: SearchDeliveriesRequest,
         response: {
           200: SearchDeliveriesResponse,
