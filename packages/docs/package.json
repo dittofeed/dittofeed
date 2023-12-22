@@ -5,8 +5,5 @@
   "license": "LicenseRef-LICENSE",
   "scripts": {
     "dev": "mintlify dev"
-  },
-  "devDependencies": {
-    "mintlify": "4.0.56"
   }
 }
