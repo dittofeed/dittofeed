@@ -6,6 +6,13 @@
     "version": "0.0.0"
   },
   "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    },
     "schemas": {}
   },
   "paths": {
@@ -6769,16 +6776,6 @@
             }
           }
         },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "header",
-            "name": "authorization",
-            "required": true
-          }
-        ],
         "responses": {
           "204": {
             "description": "An empty String",
@@ -6885,16 +6882,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "header",
-            "name": "authorization",
-            "required": true
-          }
-        ],
+        
         "responses": {
           "204": {
             "description": "An empty String",
@@ -6999,16 +6987,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "header",
-            "name": "authorization",
-            "required": true
-          }
-        ],
+        
         "responses": {
           "204": {
             "description": "An empty String",
@@ -7113,16 +7092,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "header",
-            "name": "authorization",
-            "required": true
-          }
-        ],
+        
         "responses": {
           "204": {
             "description": "An empty String",
@@ -7492,16 +7462,7 @@
           },
           "required": true
         },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "header",
-            "name": "authorization",
-            "required": true
-          }
-        ],
+        
         "responses": {
           "204": {
             "description": "An empty String",
