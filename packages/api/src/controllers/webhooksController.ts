@@ -26,7 +26,7 @@ export default async function webhookController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Used to consume sendgrid webhook payloads.",
-        tags: ["Webhook"],
+        tags: ["Webhooks"],
         headers: Type.Object({
           "x-twilio-email-event-webhook-signature": Type.String(),
           "x-twilio-email-event-webhook-timestamp": Type.String(),
@@ -114,7 +114,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       schema: {
         description:
           "Used to consume segment.io webhook payloads. Must be exposed publicly to the internet.",
-        tags: ["Webhook"],
+        tags: ["Webhooks"],
         body: Type.Object(
           {
             messageId: Type.String(),
