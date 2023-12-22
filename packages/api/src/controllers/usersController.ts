@@ -16,6 +16,7 @@ export default async function usersController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Get list of users",
+        tags: ["Users"],
         querystring: GetUsersRequest,
         response: {
           200: GetUsersResponse,
@@ -50,6 +51,7 @@ export default async function usersController(fastify: FastifyInstance) {
       schema: {
         description:
           "Delete events, and computed properties and segments for specific users.",
+        tags: ["Users"],
         body: DeleteUsersRequest,
         response: {
           204: EmptyResponse,

@@ -20,6 +20,7 @@ export default async function eventsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Get list of events",
+        tags: ["Events"],
         querystring: GetEventsRequest,
         response: {
           200: GetEventsResponse,
@@ -89,6 +90,7 @@ export default async function eventsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Get list of traits available on identify calls",
+        tags: ["Events"],
         querystring: GetTraitsRequest,
         response: {
           200: GetTraitsResponse,

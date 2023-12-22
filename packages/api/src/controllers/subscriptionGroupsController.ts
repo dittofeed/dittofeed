@@ -50,6 +50,7 @@ export default async function subscriptionGroupsController(
     {
       schema: {
         description: "Create or update a subscription group.",
+        tags: ["Subscription Groups"],
         body: UpsertSubscriptionGroupResource,
         response: {
           200: SubscriptionGroupResource,
@@ -79,6 +80,7 @@ export default async function subscriptionGroupsController(
       {
         schema: {
           // TODO upload files to S3 and use a presigned URL
+          tags: ["Subscription Groups"],
           body: Type.Object({
             csv: Type.String(),
           }),
@@ -240,6 +242,7 @@ export default async function subscriptionGroupsController(
       schema: {
         description:
           "Delete a subscription group and its corresponding segment.",
+        tags: ["Subscription Groups"],
         body: DeleteSubscriptionGroupRequest,
         response: {
           204: EmptyResponse,

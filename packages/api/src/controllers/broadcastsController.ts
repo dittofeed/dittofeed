@@ -21,6 +21,7 @@ export default async function broadcastsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Update a broadcast.",
+        tags: ["Broadcasts"],
         body: UpdateBroadcastRequest,
         response: {
           200: BroadcastResource,
@@ -45,6 +46,7 @@ export default async function broadcastsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Trigger a broadcast.",
+        tags: ["Broadcasts"],
         body: TriggerBroadcastRequest,
         response: {
           200: BroadcastResource,

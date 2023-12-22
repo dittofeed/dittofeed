@@ -21,7 +21,7 @@ export default async function userPropertiesController(
     {
       schema: {
         description: "Create or update a user property.",
-
+        tags: ["User Properties"],
         body: UpsertUserPropertyResource,
         response: {
           200: UserPropertyResource,
@@ -96,6 +96,7 @@ export default async function userPropertiesController(
     {
       schema: {
         description: "Delete a user property.",
+        tags: ["User Properties"],
         body: DeleteUserPropertyRequest,
         response: {
           204: EmptyResponse,
