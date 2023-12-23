@@ -338,6 +338,7 @@ interface FullSubQueryData {
   argMaxValue?: string;
   uniqValue?: string;
   recordMessageId?: boolean;
+  customComputedAt?: string;
   // used to force computed properties to refresh when definition changes
   version: string;
 }
@@ -372,6 +373,7 @@ export function segmentNodeToStateSubQuery({
 }): SubQueryData[] {
   switch (node.type) {
     case SegmentNodeType.Trait: {
+      // fixme customer computed at
       const stateId = segmentNodeStateId(segment, node.id);
       const path = qb.addQueryValue(node.path, "String");
       return [
@@ -772,6 +774,7 @@ interface AssignmentQueryConfig {
   // ids of states to aggregate that need to fall within bounded time window
   stateIds: string[];
   // ids of states to aggregate that don't need to fall within bounded time window
+  // FIXME remove
   unboundedStateIds: string[];
 }
 
@@ -983,6 +986,7 @@ function segmentToAssignment({
   now: number;
   qb: ClickHouseQueryBuilder;
 }): OptionalAssignmentQueryConfig {
+  // FIXME take stateid version
   const stateId = segmentNodeStateId(segment, node.id);
   const nowSeconds = now / 1000;
   const stateIdQueryValue = qb.addQueryValue(stateId, "String");
@@ -1011,6 +1015,7 @@ function segmentToAssignment({
             unboundedStateIds: [],
           };
         }
+        // fixme
         case SegmentOperatorType.Within: {
           const lowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
@@ -1502,6 +1507,7 @@ export async function computeState({
           ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
           : ``;
 
+      // fixme add custom computed at
       const subQueries = periodSubQueries
         .map(
           (subQuery) => `
