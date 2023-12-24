@@ -769,13 +769,20 @@ function userPropertyToSubQuery({
   }
 }
 
+interface CustomBoundedStateId {
+  stateId: string;
+  toIndexedQuery: string;
+  from: string;
+  to: string;
+}
 interface AssignmentQueryConfig {
   query: string;
   // ids of states to aggregate that need to fall within bounded time window
-  stateIds: string[];
+  stateIds?: string[];
   // ids of states to aggregate that don't need to fall within bounded time window
   // FIXME remove
-  unboundedStateIds: string[];
+  unboundedStateIds?: string[];
+  customBoundedStateIds?: CustomBoundedStateId[];
 }
 
 type OptionalAssignmentQueryConfig = Omit<
@@ -863,8 +870,8 @@ function groupedUserPropertyToAssignment({
         .join(", ")})`;
       return {
         query,
-        stateIds: childNodes.flatMap((c) => c.stateIds),
-        unboundedStateIds: childNodes.flatMap((c) => c.unboundedStateIds),
+        stateIds: childNodes.flatMap((c) => c.stateIds ?? []),
+        unboundedStateIds: childNodes.flatMap((c) => c.unboundedStateIds ?? []),
       };
     }
     case UserPropertyDefinitionType.Trait: {
@@ -1021,20 +1028,28 @@ function segmentToAssignment({
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
           );
           const name = getChCompatibleUuid();
-          const query = `
-              and(
-                not(
-                  isNull(
-                    parseDateTime64BestEffortOrNull(${lastValue}) as ${name}
-                  )
-                ),
-                ${name} >= toDateTime64(${lowerBound}, 3)
-              )
-            `;
+          const query = "True";
+          // const query = `
+          //     and(
+          //       not(
+          //         isNull(
+          //           parseDateTime64BestEffortOrNull(${lastValue}) as ${name}
+          //         )
+          //       ),
+          //       ${name} >= toDateTime64(${lowerBound}, 3)
+          //     )
+          //   `;
           return {
             query,
-            stateIds: [],
             unboundedStateIds: [stateId],
+            customBoundedStateIds: [
+              {
+                stateId,
+                toIndexedQuery: "",
+                from: `${qb.addQueryValue(lowerBound, "Int64")}`,
+                to: `${qb.addQueryValue(nowSeconds, "Int64")}`,
+              },
+            ],
           };
         }
         case SegmentOperatorType.Exists: {
@@ -1162,8 +1177,10 @@ function segmentToAssignment({
       const query = `(${childQueries.map((c) => c.query).join(" and ")})`;
       return {
         query,
-        stateIds: childQueries.flatMap((c) => c.stateIds),
-        unboundedStateIds: childQueries.flatMap((c) => c.unboundedStateIds),
+        stateIds: childQueries.flatMap((c) => c.stateIds ?? []),
+        unboundedStateIds: childQueries.flatMap(
+          (c) => c.unboundedStateIds ?? []
+        ),
       };
     }
     case SegmentNodeType.Or: {
@@ -1200,8 +1217,10 @@ function segmentToAssignment({
       const query = `(${childQueries.map((c) => c.query).join(" or ")})`;
       return {
         query,
-        stateIds: childQueries.flatMap((c) => c.stateIds),
-        unboundedStateIds: childQueries.flatMap((c) => c.unboundedStateIds),
+        stateIds: childQueries.flatMap((c) => c.stateIds ?? []),
+        unboundedStateIds: childQueries.flatMap(
+          (c) => c.unboundedStateIds ?? []
+        ),
       };
     }
     case SegmentNodeType.Broadcast: {
@@ -1263,7 +1282,7 @@ function constructAssignmentsQuery({
       : "";
 
   const stateIdClauses: string[] = [];
-  if (ac.stateIds.length > 0) {
+  if (ac.stateIds?.length) {
     stateIdClauses.push(
       `(state_id in ${qb.addQueryValue(
         ac.stateIds,
@@ -1271,7 +1290,7 @@ function constructAssignmentsQuery({
       )} ${lowerBoundClause})`
     );
   }
-  if (ac.unboundedStateIds.length > 0) {
+  if (ac.unboundedStateIds?.length) {
     stateIdClauses.push(
       `state_id in ${qb.addQueryValue(ac.unboundedStateIds, "Array(String)")}`
     );

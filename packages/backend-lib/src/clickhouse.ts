@@ -60,6 +60,8 @@ export class ClickHouseQueryBuilder {
           return `'${value}'`;
         case "Int32":
           return `${value}`;
+        case "Int64":
+          return `${value}`;
         case "Array(String)":
           if (Array.isArray(value)) {
             return `['${value.join("','")}']`;

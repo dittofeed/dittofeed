@@ -116,6 +116,7 @@ export async function createUserEventsTables({
     `
       CREATE TABLE IF NOT EXISTS computed_property_state_index (
         workspace_id LowCardinality(String),
+        type,
         computed_property_id LowCardinality(String),
         state_id LowCardinality(String),
         user_id String,
@@ -125,6 +126,7 @@ export async function createUserEventsTables({
       ENGINE = ReplacingMergeTree()
       ORDER BY (
         workspace_id,
+        type,
         computed_property_id,
         state_id,
         user_id
