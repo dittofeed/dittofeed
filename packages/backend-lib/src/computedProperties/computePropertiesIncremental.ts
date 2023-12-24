@@ -1642,14 +1642,12 @@ export async function computeAssignments({
     workspaceId,
     step: ComputedPropertyStep.ComputeAssignments,
   });
-  // const assignmentConfig: AssignmentQueryConfig[] = [];
   const queries: {
     stateIndex?: string;
     stateIndexQb?: ClickHouseQueryBuilder;
     assignment: string;
     assignmentQb: ClickHouseQueryBuilder;
   }[] = [];
-  // FIXME add two queries
 
   for (const segment of segments) {
     const version = segment.definitionUpdatedAt.toString();

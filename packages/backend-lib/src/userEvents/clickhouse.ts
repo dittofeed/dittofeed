@@ -114,23 +114,23 @@ export async function createUserEventsTables({
         );
       `,
     `
-      CREATE TABLE IF NOT EXISTS computed_property_state_index (
-        workspace_id LowCardinality(String),
-        type,
-        computed_property_id LowCardinality(String),
-        state_id LowCardinality(String),
-        user_id String,
-        indexed_value Int64,
-        INDEX primary_idx indexed_value TYPE minmax GRANULARITY 4
-      )
-      ENGINE = ReplacingMergeTree()
-      ORDER BY (
-        workspace_id,
-        type,
-        computed_property_id,
-        state_id,
-        user_id
-      );
+        CREATE TABLE IF NOT EXISTS computed_property_state_index (
+          workspace_id LowCardinality(String),
+          type Enum('user_property' = 1, 'segment' = 2),
+          computed_property_id LowCardinality(String),
+          state_id LowCardinality(String),
+          user_id String,
+          indexed_value Int64,
+          INDEX primary_idx indexed_value TYPE minmax GRANULARITY 4
+        )
+        ENGINE = ReplacingMergeTree()
+        ORDER BY (
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id
+        );
       `,
     `
         CREATE TABLE IF NOT EXISTS computed_property_assignments_v2 (
