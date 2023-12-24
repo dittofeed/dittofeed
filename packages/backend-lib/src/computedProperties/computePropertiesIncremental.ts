@@ -993,7 +993,6 @@ function segmentToAssignment({
   now: number;
   qb: ClickHouseQueryBuilder;
 }): OptionalAssignmentQueryConfig {
-  // FIXME take stateid version
   const stateId = segmentNodeStateId(segment, node.id);
   const nowSeconds = now / 1000;
   const stateIdQueryValue = qb.addQueryValue(stateId, "String");
@@ -1283,6 +1282,7 @@ function constructAssignmentsQuery({
       `state_id in ${qb.addQueryValue(ac.unboundedStateIds, "Array(String)")}`
     );
   }
+  // FIXME
   if (stateIdClauses.length === 0) {
     logger().error(
       {
@@ -1514,7 +1514,6 @@ export async function computeState({
           ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
           : ``;
 
-      // fixme add custom computed at
       const subQueries = periodSubQueries
         .map(
           (subQuery) => `
@@ -1643,12 +1642,9 @@ export async function computeAssignments({
     step: ComputedPropertyStep.ComputeAssignments,
   });
   const queries: {
-    index?: {
-      query: string;
-      qb: ClickHouseQueryBuilder;
-    };
+    indexQuery?: string;
     assignmentQuery: string;
-    assignmentQb: ClickHouseQueryBuilder;
+    qb: ClickHouseQueryBuilder;
   }[] = [];
 
   for (const segment of segments) {
@@ -1680,17 +1676,38 @@ export async function computeAssignments({
     if (!stateQuery) {
       continue;
     }
+
+    let indexQuery: string | null = null;
+    // fixme
+    if (ac.customBoundedStateIds?.length) {
+      indexQuery = `
+        insert into computed_property_state_index
+        select
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id,
+          multiIf(
+            ${ac.customBoundedStateIds.map(
+              ({ stateId, toIndexedQuery }) =>
+                `state_id == ${qb.addQueryValue(stateId, "String")},
+                ${toIndexedQuery}`
+            )}
+          ) indexed_value
+        from computed_property_state
+        where
+          state_id in ${qb.addQueryValue(
+            ac.customBoundedStateIds.map((c) => c.stateId),
+            "Array(String)"
+          )}
+      `;
+    }
     queries.push({
       assignmentQuery: stateQuery,
-      assignmentQb: qb,
+      indexQuery: indexQuery ?? undefined,
+      qb,
     });
-    // queryies.push(
-    //   command({
-    //     query: stateQuery,
-    //     query_params: qb.getQueries(),
-    //     clickhouse_settings: { wait_end_of_query: 1 },
-    //   })
-    // );
   }
 
   for (const userProperty of userProperties) {
@@ -1721,23 +1738,15 @@ export async function computeAssignments({
     }
     queries.push({
       assignmentQuery: stateQuery,
-      assignmentQb: qb,
+      qb,
     });
-    // queryies.push(
-    //   command({
-    //     query: stateQuery,
-    //     query_params: qb.getQueries(),
-    //     clickhouse_settings: { wait_end_of_query: 1 },
-    //   })
-    // );
   }
 
   await Promise.all(
-    queries.map(async ({ assignmentQuery, assignmentQb, index }) => {
-      if (index) {
-        const { query, qb } = index;
+    queries.map(async ({ assignmentQuery, qb, indexQuery }) => {
+      if (indexQuery) {
         await command({
-          query,
+          query: indexQuery,
           query_params: qb.getQueries(),
           clickhouse_settings: { wait_end_of_query: 1 },
         });
@@ -1745,7 +1754,7 @@ export async function computeAssignments({
 
       await command({
         query: assignmentQuery,
-        query_params: assignmentQb.getQueries(),
+        query_params: qb.getQueries(),
         clickhouse_settings: { wait_end_of_query: 1 },
       });
     })

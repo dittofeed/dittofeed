@@ -677,7 +677,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes within operator trait segment",
-      skip: true,
+      only: true,
       userProperties: [],
       segments: [
         {
