@@ -1022,30 +1022,18 @@ function segmentToAssignment({
             unboundedStateIds: [],
           };
         }
-        // fixme
         case SegmentOperatorType.Within: {
           const lowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
           );
-          const name = getChCompatibleUuid();
           const query = "True";
-          // const query = `
-          //     and(
-          //       not(
-          //         isNull(
-          //           parseDateTime64BestEffortOrNull(${lastValue}) as ${name}
-          //         )
-          //       ),
-          //       ${name} >= toDateTime64(${lowerBound}, 3)
-          //     )
-          //   `;
           return {
             query,
-            unboundedStateIds: [stateId],
             customBoundedStateIds: [
               {
                 stateId,
-                toIndexedQuery: "",
+                toIndexedQuery:
+                  "toUnixTimestamp(parseDateTimeBestEffortOrZero(argMaxMerge(last_value)))",
                 from: `${qb.addQueryValue(lowerBound, "Int64")}`,
                 to: `${qb.addQueryValue(nowSeconds, "Int64")}`,
               },
