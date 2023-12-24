@@ -1643,9 +1643,11 @@ export async function computeAssignments({
     step: ComputedPropertyStep.ComputeAssignments,
   });
   const queries: {
-    stateIndex?: string;
-    stateIndexQb?: ClickHouseQueryBuilder;
-    assignment: string;
+    index?: {
+      query: string;
+      qb: ClickHouseQueryBuilder;
+    };
+    assignmentQuery: string;
     assignmentQb: ClickHouseQueryBuilder;
   }[] = [];
 
@@ -1679,7 +1681,7 @@ export async function computeAssignments({
       continue;
     }
     queries.push({
-      assignment: stateQuery,
+      assignmentQuery: stateQuery,
       assignmentQb: qb,
     });
     // queryies.push(
@@ -1718,7 +1720,7 @@ export async function computeAssignments({
       continue;
     }
     queries.push({
-      assignment: stateQuery,
+      assignmentQuery: stateQuery,
       assignmentQb: qb,
     });
     // queryies.push(
@@ -1731,23 +1733,22 @@ export async function computeAssignments({
   }
 
   await Promise.all(
-    queries.map(
-      async ({ assignment, assignmentQb, stateIndex, stateIndexQb }) => {
-        if (stateIndex && stateIndexQb) {
-          await command({
-            query: stateIndex,
-            query_params: stateIndexQb.getQueries(),
-            clickhouse_settings: { wait_end_of_query: 1 },
-          });
-        }
-
+    queries.map(async ({ assignmentQuery, assignmentQb, index }) => {
+      if (index) {
+        const { query, qb } = index;
         await command({
-          query: assignment,
-          query_params: assignmentQb.getQueries(),
+          query,
+          query_params: qb.getQueries(),
           clickhouse_settings: { wait_end_of_query: 1 },
         });
       }
-    )
+
+      await command({
+        query: assignmentQuery,
+        query_params: assignmentQb.getQueries(),
+        clickhouse_settings: { wait_end_of_query: 1 },
+      });
+    })
   );
 
   await createPeriods({
