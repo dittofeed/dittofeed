@@ -1638,12 +1638,18 @@ export async function computeAssignments({
   userProperties,
   now,
 }: PartialComputePropertiesArgs): Promise<void> {
-  const queryies: Promise<unknown>[] = [];
-
   const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
     workspaceId,
     step: ComputedPropertyStep.ComputeAssignments,
   });
+  // const assignmentConfig: AssignmentQueryConfig[] = [];
+  const queries: {
+    stateIndex?: string;
+    stateIndexQb?: ClickHouseQueryBuilder;
+    assignment: string;
+    assignmentQb: ClickHouseQueryBuilder;
+  }[] = [];
+  // FIXME add two queries
 
   for (const segment of segments) {
     const version = segment.definitionUpdatedAt.toString();
@@ -1661,6 +1667,7 @@ export async function computeAssignments({
     if (!ac) {
       continue;
     }
+
     const stateQuery = constructAssignmentsQuery({
       workspaceId,
       computedPropertyId: segment.id,
@@ -1673,14 +1680,17 @@ export async function computeAssignments({
     if (!stateQuery) {
       continue;
     }
-
-    queryies.push(
-      command({
-        query: stateQuery,
-        query_params: qb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
-      })
-    );
+    queries.push({
+      assignment: stateQuery,
+      assignmentQb: qb,
+    });
+    // queryies.push(
+    //   command({
+    //     query: stateQuery,
+    //     query_params: qb.getQueries(),
+    //     clickhouse_settings: { wait_end_of_query: 1 },
+    //   })
+    // );
   }
 
   for (const userProperty of userProperties) {
@@ -1709,17 +1719,38 @@ export async function computeAssignments({
     if (!stateQuery) {
       continue;
     }
-
-    queryies.push(
-      command({
-        query: stateQuery,
-        query_params: qb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
-      })
-    );
+    queries.push({
+      assignment: stateQuery,
+      assignmentQb: qb,
+    });
+    // queryies.push(
+    //   command({
+    //     query: stateQuery,
+    //     query_params: qb.getQueries(),
+    //     clickhouse_settings: { wait_end_of_query: 1 },
+    //   })
+    // );
   }
 
-  await Promise.all(queryies);
+  await Promise.all(
+    queries.map(
+      async ({ assignment, assignmentQb, stateIndex, stateIndexQb }) => {
+        if (stateIndex && stateIndexQb) {
+          await command({
+            query: stateIndex,
+            query_params: stateIndexQb.getQueries(),
+            clickhouse_settings: { wait_end_of_query: 1 },
+          });
+        }
+
+        await command({
+          query: assignment,
+          query_params: assignmentQb.getQueries(),
+          clickhouse_settings: { wait_end_of_query: 1 },
+        });
+      }
+    )
+  );
 
   await createPeriods({
     workspaceId,
