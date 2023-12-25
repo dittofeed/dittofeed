@@ -373,7 +373,6 @@ export function segmentNodeToStateSubQuery({
 }): SubQueryData[] {
   switch (node.type) {
     case SegmentNodeType.Trait: {
-      // fixme customer computed at
       const stateId = segmentNodeStateId(segment, node.id);
       const path = qb.addQueryValue(node.path, "String");
       return [
@@ -1270,6 +1269,7 @@ function constructAssignmentsQuery({
       periodBound && periodBound !== 0
         ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
         : "";
+    // FIXME
     boundedQuery = `
       select
         workspace_id,
@@ -1285,11 +1285,9 @@ function constructAssignmentsQuery({
           computedPropertyId,
           "String"
         )}
+        and state_id in ${qb.addQueryValue(ac.stateIds, "Array(String)")}
         and computed_at <= toDateTime64(${nowSeconds}, 3)
-        (state_id in ${qb.addQueryValue(
-          ac.stateIds,
-          "Array(String)"
-        )} ${lowerBoundClause})
+        ${lowerBoundClause}
     `;
   } else if (ac.customBoundedStateIds?.length) {
     const boundConditions: string[] = ac.customBoundedStateIds.map(
@@ -1318,8 +1316,8 @@ function constructAssignmentsQuery({
           computedPropertyId,
           "String"
         )}
-        and (${boundedClause})
     `;
+    // and (${boundedClause})
   } else {
     logger().error(
       {
