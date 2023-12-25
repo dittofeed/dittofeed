@@ -104,7 +104,7 @@ interface IndexedState {
   computed_property_id: string;
   state_id: string;
   user_id: string;
-  indexed_value: number;
+  indexed_value: string;
 }
 
 async function readStates({
@@ -189,6 +189,7 @@ function toTestIndexedState(
   userProperties: SavedUserPropertyResource[],
   segments: SavedSegmentResource[]
 ): TestIndexedState {
+  const indexedValue = parseInt(indexedState.indexed_value, 10);
   switch (indexedState.type) {
     case "segment": {
       const segment = segments.find(
@@ -210,7 +211,7 @@ function toTestIndexedState(
         name: segment.name,
         nodeId,
         userId: indexedState.user_id,
-        indexedValue: indexedState.indexed_value,
+        indexedValue,
       };
     }
     case "user_property": {
@@ -233,7 +234,7 @@ function toTestIndexedState(
         name: userProperty.name,
         userId: indexedState.user_id,
         nodeId,
-        indexedValue: indexedState.indexed_value,
+        indexedValue,
       };
     }
   }
@@ -352,7 +353,7 @@ interface AssertStep {
   states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: TestPeriod[];
   journeys?: TestSignals[];
-  indexedIndexedStates?: (
+  indexedStates?: (
     | TestIndexedState
     | ((ctx: StepContext) => TestIndexedState)
   )[];
@@ -816,14 +817,23 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description: "user is initially within segment window",
-          users: [
-            {
-              id: "user-1",
-              segments: {
-                newUsers: true,
-              },
-            },
+          indexedStates: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "1",
+              indexedValue: Math.floor((now - 100) / 1000),
+            }),
           ],
+          // users: [
+          //   {
+          //     id: "user-1",
+          //     segments: {
+          //       newUsers: true,
+          //     },
+          //   },
+          // ],
           states: [
             ({ now }) => ({
               type: "segment",
@@ -2602,13 +2612,14 @@ describe("computeProperties", () => {
                   }
                 })()
               : null,
-            step.indexedIndexedStates
+            step.indexedStates
               ? (async () => {
                   const indexedStates = await readIndexed({ workspaceId });
+                  console.log("loc3 indexedStates", indexedStates);
                   const actualTestStates = indexedStates.map((s) =>
                     toTestIndexedState(s, userProperties, segments)
                   );
-                  for (const expected of step.indexedIndexedStates ?? []) {
+                  for (const expected of step.indexedStates ?? []) {
                     const expectedState =
                       typeof expected === "function"
                         ? expected(stepContext)
