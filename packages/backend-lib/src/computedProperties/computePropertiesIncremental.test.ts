@@ -99,6 +99,14 @@ interface State {
   grouped_message_ids: string[];
 }
 
+interface IndexedState {
+  type: "segment" | "user_property";
+  computed_property_id: string;
+  state_id: string;
+  user_id: string;
+  indexed_value: number;
+}
+
 async function readStates({
   workspaceId,
 }: {
@@ -133,6 +141,31 @@ async function readStates({
   return response.data;
 }
 
+async function readIndexed({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<IndexedState[]> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select
+      type,
+      computed_property_id,
+      state_id,
+      user_id,
+      indexed_value
+    from computed_property_state_index
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = (await (
+    await clickhouseClient().query({
+      query,
+      query_params: qb.getQueries(),
+    })
+  ).json()) as { data: IndexedState[] };
+  return response.data;
+}
+
 interface TestState {
   type: "segment" | "user_property";
   userId: string;
@@ -141,6 +174,69 @@ interface TestState {
   lastValue?: string;
   uniqueCount?: number;
   maxEventTime?: string;
+}
+
+interface TestIndexedState {
+  type: "segment" | "user_property";
+  userId: string;
+  name: string;
+  nodeId?: string;
+  indexedValue: number;
+}
+
+function toTestIndexedState(
+  indexedState: IndexedState,
+  userProperties: SavedUserPropertyResource[],
+  segments: SavedSegmentResource[]
+): TestIndexedState {
+  switch (indexedState.type) {
+    case "segment": {
+      const segment = segments.find(
+        (s) => s.id === indexedState.computed_property_id
+      );
+      if (!segment) {
+        throw new Error("segment not found");
+      }
+      const nodeId = [
+        segment.definition.entryNode,
+        ...segment.definition.nodes,
+      ].find((n) => {
+        const stateId = segmentNodeStateId(segment, n.id);
+        return indexedState.state_id === stateId;
+      })?.id;
+
+      return {
+        type: "segment",
+        name: segment.name,
+        nodeId,
+        userId: indexedState.user_id,
+        indexedValue: indexedState.indexed_value,
+      };
+    }
+    case "user_property": {
+      const userProperty: SavedUserPropertyResource | undefined =
+        userProperties.find(
+          (up) => up.id === indexedState.computed_property_id
+        );
+      if (!userProperty) {
+        throw new Error("userProperty not found");
+      }
+      let nodeId: string | undefined;
+      if (userProperty.definition.type === UserPropertyDefinitionType.Group) {
+        nodeId = userProperty.definition.nodes.find(
+          (n) =>
+            userPropertyStateId(userProperty, n.id) === indexedState.state_id
+        )?.id;
+      }
+      return {
+        type: "user_property",
+        name: userProperty.name,
+        userId: indexedState.user_id,
+        nodeId,
+        indexedValue: indexedState.indexed_value,
+      };
+    }
+  }
 }
 
 function toTestState(
@@ -256,6 +352,10 @@ interface AssertStep {
   states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: TestPeriod[];
   journeys?: TestSignals[];
+  indexedIndexedStates?: (
+    | TestIndexedState
+    | ((ctx: StepContext) => TestIndexedState)
+  )[];
 }
 
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
@@ -2499,6 +2599,47 @@ describe("computeProperties", () => {
                         expectedState.maxEventTime
                       );
                     }
+                  }
+                })()
+              : null,
+            step.indexedIndexedStates
+              ? (async () => {
+                  const indexedStates = await readIndexed({ workspaceId });
+                  const actualTestStates = indexedStates.map((s) =>
+                    toTestIndexedState(s, userProperties, segments)
+                  );
+                  for (const expected of step.indexedIndexedStates ?? []) {
+                    const expectedState =
+                      typeof expected === "function"
+                        ? expected(stepContext)
+                        : expected;
+
+                    const actualState = actualTestStates.find(
+                      (s) =>
+                        s.userId === expectedState.userId &&
+                        s.name === expectedState.name &&
+                        s.type === expectedState.type &&
+                        s.nodeId === expectedState.nodeId
+                    );
+                    expect(
+                      actualState,
+                      `${["expected indexed state", step.description]
+                        .filter((s) => !!s)
+                        .join(" - ")}:\n\n${JSON.stringify(
+                        expectedState,
+                        null,
+                        2
+                      )}\n\nto be found in actual indexed states:\n\n${JSON.stringify(
+                        actualTestStates,
+                        null,
+                        2
+                      )}`
+                    ).not.toBeUndefined();
+
+                    expect(actualState, step.description).toHaveProperty(
+                      "indexedValue",
+                      expectedState.indexedValue
+                    );
                   }
                 })()
               : null,

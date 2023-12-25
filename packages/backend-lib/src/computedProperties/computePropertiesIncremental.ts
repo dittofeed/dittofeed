@@ -1701,9 +1701,10 @@ export async function computeAssignments({
     // fixme
     if (ac.customBoundedStateIds?.length) {
       const nowSeconds = now / 1000;
+      // const lowerBoundClause = "";
       const lowerBoundClause =
         periodBound && periodBound !== 0
-          ? `and computed_at >= toDateTime64(${nowSeconds}, 3)`
+          ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
           : "";
 
       indexQuery = `
@@ -1738,6 +1739,7 @@ export async function computeAssignments({
           user_id
       `;
     }
+    // console.log("indexQuery", indexQuery);
     queries.push({
       assignmentQuery: stateQuery,
       indexQuery: indexQuery ?? undefined,
@@ -1780,6 +1782,7 @@ export async function computeAssignments({
   await Promise.all(
     queries.map(async ({ assignmentQuery, qb, indexQuery }) => {
       if (indexQuery) {
+        console.log("loc2 indexQuery", indexQuery);
         await command({
           query: indexQuery,
           query_params: qb.getQueries(),
