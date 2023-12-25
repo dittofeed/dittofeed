@@ -1263,27 +1263,64 @@ function constructAssignmentsQuery({
   config: AssignmentQueryConfig;
 }): string | null {
   const nowSeconds = now / 1000;
-  const lowerBoundClause =
-    periodBound && periodBound !== 0
-      ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
-      : "";
 
-  const stateIdClauses: string[] = [];
+  let boundedQuery: string | null = null;
   if (ac.stateIds?.length) {
-    stateIdClauses.push(
-      `(state_id in ${qb.addQueryValue(
-        ac.stateIds,
-        "Array(String)"
-      )} ${lowerBoundClause})`
+    const lowerBoundClause =
+      periodBound && periodBound !== 0
+        ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
+        : "";
+    boundedQuery = `
+      select
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id
+      from updated_computed_property_state
+      where
+        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+        and type = '${computedPropertyType}'
+        and computed_property_id = ${qb.addQueryValue(
+          computedPropertyId,
+          "String"
+        )}
+        and computed_at <= toDateTime64(${nowSeconds}, 3)
+        (state_id in ${qb.addQueryValue(
+          ac.stateIds,
+          "Array(String)"
+        )} ${lowerBoundClause})
+    `;
+  } else if (ac.customBoundedStateIds?.length) {
+    const boundConditions: string[] = ac.customBoundedStateIds.map(
+      (bound) => `
+        (
+          state_id = ${qb.addQueryValue(bound.stateId, "String")}
+          and indexed_value >= ${bound.from}
+          and indexed_value <= ${bound.from}
+        )
+      `
     );
-  }
-  if (ac.unboundedStateIds?.length) {
-    stateIdClauses.push(
-      `state_id in ${qb.addQueryValue(ac.unboundedStateIds, "Array(String)")}`
-    );
-  }
-  // FIXME
-  if (stateIdClauses.length === 0) {
+    const boundedClause = boundConditions.join(" or ");
+
+    boundedQuery = `
+      select
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id
+      from computed_property_state_index
+      where
+        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+        and type = '${computedPropertyType}'
+        and computed_property_id = ${qb.addQueryValue(
+          computedPropertyId,
+          "String"
+        )}
+        and (${boundedClause})
+    `;
+  } else {
     logger().error(
       {
         config: ac,
@@ -1294,7 +1331,6 @@ function constructAssignmentsQuery({
     );
     return null;
   }
-  const stateIdClause = `and (${stateIdClauses.join(" or ")})`;
   let segmentValue: string;
   let userPropertyValue: string;
   if (computedPropertyType === "segment") {
@@ -1375,24 +1411,7 @@ function constructAssignmentsQuery({
                 computed_property_id,
                 state_id,
                 user_id
-              ) in (
-                select
-                  workspace_id,
-                  type,
-                  computed_property_id,
-                  state_id,
-                  user_id
-                from updated_computed_property_state
-                where
-                  workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-                  and type = '${computedPropertyType}'
-                  and computed_property_id = ${qb.addQueryValue(
-                    computedPropertyId,
-                    "String"
-                  )}
-                  and computed_at <= toDateTime64(${nowSeconds}, 3)
-                  ${stateIdClause}
-              )
+              ) in (${boundedQuery})
             group by
               workspace_id,
               type,
@@ -1653,6 +1672,7 @@ export async function computeAssignments({
       computedPropertyId: segment.id,
       version,
     });
+    const periodBound = period?.maxTo.getTime();
     const qb = new ClickHouseQueryBuilder();
     const ac = segmentToAssignment({
       segment,
@@ -1671,7 +1691,7 @@ export async function computeAssignments({
       config: ac,
       qb,
       now,
-      periodBound: period?.maxTo.getTime(),
+      periodBound,
     });
     if (!stateQuery) {
       continue;
@@ -1680,6 +1700,12 @@ export async function computeAssignments({
     let indexQuery: string | null = null;
     // fixme
     if (ac.customBoundedStateIds?.length) {
+      const nowSeconds = now / 1000;
+      const lowerBoundClause =
+        periodBound && periodBound !== 0
+          ? `and computed_at >= toDateTime64(${nowSeconds}, 3)`
+          : "";
+
       indexQuery = `
         insert into computed_property_state_index
         select
@@ -1693,7 +1719,8 @@ export async function computeAssignments({
               ({ stateId, toIndexedQuery }) =>
                 `state_id == ${qb.addQueryValue(stateId, "String")},
                 ${toIndexedQuery}`
-            )}
+            )},
+            0
           ) indexed_value
         from computed_property_state
         where
@@ -1701,6 +1728,14 @@ export async function computeAssignments({
             ac.customBoundedStateIds.map((c) => c.stateId),
             "Array(String)"
           )}
+          and computed_at <= toDateTime64(${nowSeconds}, 3)
+          ${lowerBoundClause}
+        group by
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id
       `;
     }
     queries.push({
