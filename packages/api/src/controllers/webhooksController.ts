@@ -34,8 +34,6 @@ export default async function webhookController(fastify: FastifyInstance) {
         body: Type.Array(SendgridEvent),
       },
     },
-    // disabling lint rule because we need to accept any typed values from sendgrid
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
     async (request, reply) => {
       logger().debug({ body: request.body }, "Received sendgrid events.");
       // TODO allow for multiple workspaces on a single sendgrid account
@@ -108,7 +106,6 @@ export default async function webhookController(fastify: FastifyInstance) {
       });
       return reply.status(200).send();
     }
-    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(

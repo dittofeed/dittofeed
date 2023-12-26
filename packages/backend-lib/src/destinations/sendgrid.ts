@@ -61,11 +61,11 @@ export function sendgridEventToDF({
   const properties: Record<string, string> = R.merge(
     { email },
     R.pick(sendgridEvent, [
+      "workspaceId",
       "journeyId",
       "runId",
       "messageId",
       "userId",
-      "workspaceId",
       "templateId",
       "nodeId",
     ])
