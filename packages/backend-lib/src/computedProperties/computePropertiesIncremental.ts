@@ -1021,12 +1021,13 @@ function segmentToAssignment({
           };
         }
         case SegmentOperatorType.Within: {
+          // FIXME
           const lowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
           );
-          const query = "True";
           return {
-            query,
+            // FIXME shouldn't be constant true, should be true if within custom date range, and false if outside of date range but currently in segment.
+            query: "True",
             customBoundedStateIds: [
               {
                 stateId,
