@@ -1748,11 +1748,11 @@ export async function computeAssignments({
         : "";
 
     // FIXME hardcoded
-    const withinLowerBound = Math.round(Math.max(nowSeconds - 60, 0));
     const entryStateId = segmentNodeStateId(
       segment,
       segment.definition.entryNode.id
     );
+    const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
     const indexQuery = `
       insert into computed_property_state_index
@@ -1769,7 +1769,8 @@ export async function computeAssignments({
         ) indexed_value
       from computed_property_state
       where
-        state_id in ${qb.addQueryValue([entryStateId], "Array(String)")}
+        workspace_id = ${workspaceIdParam}
+        and state_id in ${qb.addQueryValue([entryStateId], "Array(String)")}
         and computed_at <= toDateTime64(${nowSeconds}, 3)
         ${lowerBoundClause}
       group by
@@ -1779,7 +1780,37 @@ export async function computeAssignments({
         state_id,
         user_id
     `;
+
+    const withinLowerBound = Math.round(Math.max(nowSeconds - 60, 0));
     const stateQuery = `
+      insert into resolved_segment_state
+      select 
+          workspace_id,
+          segment_id,
+          state_id,
+          user_id,
+          cpsi.indexed_value > ${qb.addQueryValue(
+            withinLowerBound,
+            "Int32"
+          )} within_range,
+          now64(3) as computed_at
+      from default.computed_property_state_index cpsi
+      full outer join default.resolved_segment_state rss on
+          rss.workspace_id  = cpsi.workspace_id
+          and cpsi.computed_property_id = 'segment'
+          and rss.segment_id  = cpsi.computed_property_id
+          and rss.state_id  = cpsi.state_id
+          and rss.user_id  = cpsi.user_id
+      where
+        workspace_id = ${workspaceIdParam}
+        and (
+              within_range
+              and (
+                  rss.workspace_id = ''
+                  or rss.segment_state_value = False
+              )
+          )
+          or rss.segment_state_value == True
     `;
     const assignmentQuery = `
     `;
