@@ -1264,191 +1264,193 @@ function constructAssignmentsQuery({
 }): string | null {
   const nowSeconds = now / 1000;
 
-  let boundedQuery: string | null = null;
-  if (ac.stateIds?.length) {
-    const lowerBoundClause =
-      periodBound && periodBound !== 0
-        ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
-        : "";
-    // FIXME
-    boundedQuery = `
-      select
-        workspace_id,
-        type,
-        computed_property_id,
-        state_id,
-        user_id
-      from updated_computed_property_state
-      where
-        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-        and type = '${computedPropertyType}'
-        and computed_property_id = ${qb.addQueryValue(
-          computedPropertyId,
-          "String"
-        )}
-        and state_id in ${qb.addQueryValue(ac.stateIds, "Array(String)")}
-        and computed_at <= toDateTime64(${nowSeconds}, 3)
-        ${lowerBoundClause}
-    `;
-  } else if (ac.customBoundedStateIds?.length) {
-    const boundConditions: string[] = ac.customBoundedStateIds.map(
-      (bound) => `
-        (
-          state_id = ${qb.addQueryValue(bound.stateId, "String")}
-          and indexed_value >= ${bound.from}
-          and indexed_value <= ${bound.from}
-        )
-      `
-    );
-    const boundedClause = boundConditions.join(" or ");
+  // let boundedQuery: string | null = null;
+  // if (ac.stateIds?.length) {
+  //   const lowerBoundClause =
+  //     periodBound && periodBound !== 0
+  //       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
+  //       : "";
+  //   // FIXME
+  //   boundedQuery = `
+  //     select
+  //       workspace_id,
+  //       type,
+  //       computed_property_id,
+  //       state_id,
+  //       user_id
+  //     from updated_computed_property_state
+  //     where
+  //       workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  //       and type = '${computedPropertyType}'
+  //       and computed_property_id = ${qb.addQueryValue(
+  //         computedPropertyId,
+  //         "String"
+  //       )}
+  //       and state_id in ${qb.addQueryValue(ac.stateIds, "Array(String)")}
+  //       and computed_at <= toDateTime64(${nowSeconds}, 3)
+  //       ${lowerBoundClause}
+  //   `;
+  // } else if (ac.customBoundedStateIds?.length) {
+  //   const boundConditions: string[] = ac.customBoundedStateIds.map(
+  //     (bound) => `
+  //       (
+  //         state_id = ${qb.addQueryValue(bound.stateId, "String")}
+  //         and indexed_value >= ${bound.from}
+  //         and indexed_value <= ${bound.from}
+  //       )
+  //     `
+  //   );
+  //   const boundedClause = boundConditions.join(" or ");
 
-    boundedQuery = `
-      select
-        workspace_id,
-        type,
-        computed_property_id,
-        state_id,
-        user_id
-      from computed_property_state_index
-      where
-        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-        and type = '${computedPropertyType}'
-        and computed_property_id = ${qb.addQueryValue(
-          computedPropertyId,
-          "String"
-        )}
-    `;
-    // and (${boundedClause})
-  } else {
-    logger().error(
-      {
-        config: ac,
-        computedPropertyId,
-        computedPropertyType,
-      },
-      "missing state id clauses while assigning computed property"
-    );
-    return null;
-  }
-  let segmentValue: string;
-  let userPropertyValue: string;
-  if (computedPropertyType === "segment") {
-    userPropertyValue = "''";
-    segmentValue = ac.query;
-  } else {
-    segmentValue = "False";
-    userPropertyValue = ac.query;
-  }
+  //   boundedQuery = `
+  //     select
+  //       workspace_id,
+  //       type,
+  //       computed_property_id,
+  //       state_id,
+  //       user_id
+  //     from computed_property_state_index
+  //     where
+  //       workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  //       and type = '${computedPropertyType}'
+  //       and computed_property_id = ${qb.addQueryValue(
+  //         computedPropertyId,
+  //         "String"
+  //       )}
+  //   `;
+  //   // and (${boundedClause})
+  // } else {
+  //   logger().error(
+  //     {
+  //       config: ac,
+  //       computedPropertyId,
+  //       computedPropertyType,
+  //     },
+  //     "missing state id clauses while assigning computed property"
+  //   );
+  //   return null;
+  // }
+  // let segmentValue: string;
+  // let userPropertyValue: string;
+  // if (computedPropertyType === "segment") {
+  //   userPropertyValue = "''";
+  //   segmentValue = ac.query;
+  // } else {
+  //   segmentValue = "False";
+  //   userPropertyValue = ac.query;
+  // }
+  // const query = `
+  //   insert into computed_property_assignments_v2
+  //   select
+  //     workspace_id,
+  //     type,
+  //     computed_property_id,
+  //     user_id,
+  //     ${segmentValue} as segment_value,
+  //     ${userPropertyValue} as user_property_value,
+  //     arrayReduce('max', mapValues(max_event_time)),
+  //     toDateTime64(${nowSeconds}, 3) as assigned_at
+  //   from (
+  //     select
+  //       workspace_id,
+  //       type,
+  //       computed_property_id,
+  //       user_id,
+  //       CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
+  //       CAST((groupArray(state_id), groupArray(unique_count)), 'Map(String, Int32)') as unique_count,
+  //       CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time,
+  //       CAST(
+  //         (
+  //           groupArray(state_id),
+  //           groupArray(events)
+  //         ),
+  //         'Map(String, Array(Tuple(String, DateTime64(3), String)))'
+  //       ) as grouped_events
+  //     from (
+  //       select
+  //         inner2.workspace_id as workspace_id,
+  //         inner2.type as type,
+  //         inner2.computed_property_id as computed_property_id,
+  //         inner2.state_id as state_id,
+  //         inner2.user_id as user_id,
+  //         inner2.last_value as last_value,
+  //         inner2.unique_count as unique_count,
+  //         inner2.max_event_time as max_event_time,
+  //         groupArray((inner2.event, inner2.event_time, inner2.properties)) as events
+  //       from (
+  //         select
+  //           inner1.workspace_id as workspace_id,
+  //           inner1.type as type,
+  //           inner1.computed_property_id as computed_property_id,
+  //           inner1.state_id as state_id,
+  //           inner1.user_id as user_id,
+  //           inner1.last_value as last_value,
+  //           inner1.unique_count as unique_count,
+  //           inner1.max_event_time as max_event_time,
+  //           ue.event as event,
+  //           ue.event_time as event_time,
+  //           ue.properties as properties
+  //         from user_events_v2 ue
+  //         right any join (
+  //           select
+  //             workspace_id,
+  //             type,
+  //             computed_property_id,
+  //             state_id,
+  //             user_id,
+  //             argMaxMerge(last_value) last_value,
+  //             uniqMerge(unique_count) unique_count,
+  //             maxMerge(max_event_time) max_event_time,
+  //             arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_id
+  //           from computed_property_state cps
+  //           where
+  //             (
+  //               workspace_id,
+  //               type,
+  //               computed_property_id,
+  //               state_id,
+  //               user_id
+  //             ) in (${boundedQuery})
+  //           group by
+  //             workspace_id,
+  //             type,
+  //             computed_property_id,
+  //             state_id,
+  //             user_id
+  //         ) as inner1 on
+  //           inner1.message_id != ''
+  //           and inner1.message_id = ue.message_id
+  //         group by
+  //           workspace_id,
+  //           type,
+  //           computed_property_id,
+  //           state_id,
+  //           user_id,
+  //           last_value,
+  //           unique_count,
+  //           max_event_time,
+  //           event,
+  //           event_time,
+  //           properties
+  //       ) inner2
+  //       group by
+  //         workspace_id,
+  //         type,
+  //         computed_property_id,
+  //         state_id,
+  //         user_id,
+  //         last_value,
+  //         unique_count,
+  //         max_event_time
+  //     ) inner3
+  //     group by
+  //       workspace_id,
+  //       type,
+  //       computed_property_id,
+  //       user_id
+  //   ) inner4
+  // `;
   const query = `
-    insert into computed_property_assignments_v2
-    select
-      workspace_id,
-      type,
-      computed_property_id,
-      user_id,
-      ${segmentValue} as segment_value,
-      ${userPropertyValue} as user_property_value,
-      arrayReduce('max', mapValues(max_event_time)),
-      toDateTime64(${nowSeconds}, 3) as assigned_at
-    from (
-      select
-        workspace_id,
-        type,
-        computed_property_id,
-        user_id,
-        CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
-        CAST((groupArray(state_id), groupArray(unique_count)), 'Map(String, Int32)') as unique_count,
-        CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time,
-        CAST(
-          (
-            groupArray(state_id),
-            groupArray(events)
-          ),
-          'Map(String, Array(Tuple(String, DateTime64(3), String)))'
-        ) as grouped_events
-      from (
-        select
-          inner2.workspace_id as workspace_id,
-          inner2.type as type,
-          inner2.computed_property_id as computed_property_id,
-          inner2.state_id as state_id,
-          inner2.user_id as user_id,
-          inner2.last_value as last_value,
-          inner2.unique_count as unique_count,
-          inner2.max_event_time as max_event_time,
-          groupArray((inner2.event, inner2.event_time, inner2.properties)) as events
-        from (
-          select
-            inner1.workspace_id as workspace_id,
-            inner1.type as type,
-            inner1.computed_property_id as computed_property_id,
-            inner1.state_id as state_id,
-            inner1.user_id as user_id,
-            inner1.last_value as last_value,
-            inner1.unique_count as unique_count,
-            inner1.max_event_time as max_event_time,
-            ue.event as event,
-            ue.event_time as event_time,
-            ue.properties as properties
-          from user_events_v2 ue
-          right any join (
-            select
-              workspace_id,
-              type,
-              computed_property_id,
-              state_id,
-              user_id,
-              argMaxMerge(last_value) last_value,
-              uniqMerge(unique_count) unique_count,
-              maxMerge(max_event_time) max_event_time,
-              arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_id
-            from computed_property_state cps
-            where
-              (
-                workspace_id,
-                type,
-                computed_property_id,
-                state_id,
-                user_id
-              ) in (${boundedQuery})
-            group by
-              workspace_id,
-              type,
-              computed_property_id,
-              state_id,
-              user_id
-          ) as inner1 on
-            inner1.message_id != ''
-            and inner1.message_id = ue.message_id
-          group by
-            workspace_id,
-            type,
-            computed_property_id,
-            state_id,
-            user_id,
-            last_value,
-            unique_count,
-            max_event_time,
-            event,
-            event_time,
-            properties
-        ) inner2
-        group by
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id,
-          last_value,
-          unique_count,
-          max_event_time
-      ) inner3
-      group by
-        workspace_id,
-        type,
-        computed_property_id,
-        user_id
-    ) inner4
   `;
   return query;
 }
@@ -1659,9 +1661,8 @@ export async function computeAssignments({
     workspaceId,
     step: ComputedPropertyStep.ComputeAssignments,
   });
-  const queries: {
-    indexQuery?: string;
-    assignmentQuery: string;
+  const queryValues: {
+    queries: string[];
     qb: ClickHouseQueryBuilder;
   }[] = [];
 
@@ -1673,75 +1674,119 @@ export async function computeAssignments({
     });
     const periodBound = period?.maxTo.getTime();
     const qb = new ClickHouseQueryBuilder();
-    const ac = segmentToAssignment({
+    // const ac = segmentToAssignment({
+    //   segment,
+    //   node: segment.definition.entryNode,
+    //   now,
+    //   qb,
+    // });
+    // if (!ac) {
+    //   continue;
+    // }
+
+    // const stateQuery = constructAssignmentsQuery({
+    //   workspaceId,
+    //   computedPropertyId: segment.id,
+    //   computedPropertyType: "segment",
+    //   config: ac,
+    //   qb,
+    //   now,
+    //   periodBound,
+    // });
+    // if (!stateQuery) {
+    //   continue;
+    // }
+
+    // let indexQuery: string | null = null;
+    // // fixme
+    // if (ac.customBoundedStateIds?.length) {
+    //   const nowSeconds = now / 1000;
+    //   // const lowerBoundClause = "";
+    //   const lowerBoundClause =
+    //     periodBound && periodBound !== 0
+    //       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
+    //       : "";
+
+    //   indexQuery = `
+    //     insert into computed_property_state_index
+    //     select
+    //       workspace_id,
+    //       type,
+    //       computed_property_id,
+    //       state_id,
+    //       user_id,
+    //       multiIf(
+    //         ${ac.customBoundedStateIds.map(
+    //           ({ stateId, toIndexedQuery }) =>
+    //             `state_id == ${qb.addQueryValue(stateId, "String")},
+    //             ${toIndexedQuery}`
+    //         )},
+    //         0
+    //       ) indexed_value
+    //     from computed_property_state
+    //     where
+    //       state_id in ${qb.addQueryValue(
+    //         ac.customBoundedStateIds.map((c) => c.stateId),
+    //         "Array(String)"
+    //       )}
+    //       and computed_at <= toDateTime64(${nowSeconds}, 3)
+    //       ${lowerBoundClause}
+    //     group by
+    //       workspace_id,
+    //       type,
+    //       computed_property_id,
+    //       state_id,
+    //       user_id
+    //   `;
+    // }
+
+    const nowSeconds = now / 1000;
+
+    const lowerBoundClause =
+      periodBound && periodBound !== 0
+        ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
+        : "";
+
+    // FIXME hardcoded
+    const withinLowerBound = Math.round(Math.max(nowSeconds - 60, 0));
+    const entryStateId = segmentNodeStateId(
       segment,
-      node: segment.definition.entryNode,
-      now,
-      qb,
-    });
-    if (!ac) {
-      continue;
-    }
+      segment.definition.entryNode.id
+    );
 
-    const stateQuery = constructAssignmentsQuery({
-      workspaceId,
-      computedPropertyId: segment.id,
-      computedPropertyType: "segment",
-      config: ac,
-      qb,
-      now,
-      periodBound,
-    });
-    if (!stateQuery) {
-      continue;
-    }
+    const indexQuery = `
+      insert into computed_property_state_index
+      select
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id,
+        multiIf(
+          state_id == ${qb.addQueryValue(entryStateId, "String")},
+          toUnixTimestamp(parseDateTimeBestEffortOrZero(argMaxMerge(last_value))),
+          0
+        ) indexed_value
+      from computed_property_state
+      where
+        state_id in ${qb.addQueryValue([entryStateId], "Array(String)")}
+        and computed_at <= toDateTime64(${nowSeconds}, 3)
+        ${lowerBoundClause}
+      group by
+        workspace_id,
+        type,
+        computed_property_id,
+        state_id,
+        user_id
+    `;
+    const stateQuery = `
+    `;
+    const assignmentQuery = `
+    `;
+    const queries = [indexQuery, stateQuery, assignmentQuery];
 
-    let indexQuery: string | null = null;
-    // fixme
-    if (ac.customBoundedStateIds?.length) {
-      const nowSeconds = now / 1000;
-      // const lowerBoundClause = "";
-      const lowerBoundClause =
-        periodBound && periodBound !== 0
-          ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
-          : "";
-
-      indexQuery = `
-        insert into computed_property_state_index
-        select
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id,
-          multiIf(
-            ${ac.customBoundedStateIds.map(
-              ({ stateId, toIndexedQuery }) =>
-                `state_id == ${qb.addQueryValue(stateId, "String")},
-                ${toIndexedQuery}`
-            )},
-            0
-          ) indexed_value
-        from computed_property_state
-        where
-          state_id in ${qb.addQueryValue(
-            ac.customBoundedStateIds.map((c) => c.stateId),
-            "Array(String)"
-          )}
-          and computed_at <= toDateTime64(${nowSeconds}, 3)
-          ${lowerBoundClause}
-        group by
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id
-      `;
-    }
-    // console.log("indexQuery", indexQuery);
-    queries.push({
-      assignmentQuery: stateQuery,
-      indexQuery: indexQuery ?? undefined,
+    queryValues.push({
+      queries,
       qb,
     });
   }
@@ -1772,28 +1817,21 @@ export async function computeAssignments({
     if (!stateQuery) {
       continue;
     }
-    queries.push({
-      assignmentQuery: stateQuery,
+    queryValues.push({
+      queries: [stateQuery],
       qb,
     });
   }
 
   await Promise.all(
-    queries.map(async ({ assignmentQuery, qb, indexQuery }) => {
-      if (indexQuery) {
-        console.log("loc2 indexQuery", indexQuery);
+    queryValues.map(async ({ queries, qb }) => {
+      for (const query of queries) {
         await command({
-          query: indexQuery,
+          query,
           query_params: qb.getQueries(),
           clickhouse_settings: { wait_end_of_query: 1 },
         });
       }
-
-      await command({
-        query: assignmentQuery,
-        query_params: qb.getQueries(),
-        clickhouse_settings: { wait_end_of_query: 1 },
-      });
     })
   );
 
