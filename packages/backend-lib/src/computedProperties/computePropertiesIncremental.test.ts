@@ -826,14 +826,14 @@ describe("computeProperties", () => {
               indexedValue: Math.floor((now - 100) / 1000),
             }),
           ],
-          // users: [
-          //   {
-          //     id: "user-1",
-          //     segments: {
-          //       newUsers: true,
-          //     },
-          //   },
-          // ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: true,
+              },
+            },
+          ],
           states: [
             ({ now }) => ({
               type: "segment",
@@ -2615,7 +2615,6 @@ describe("computeProperties", () => {
             step.indexedStates
               ? (async () => {
                   const indexedStates = await readIndexed({ workspaceId });
-                  console.log("loc3 indexedStates", indexedStates);
                   const actualTestStates = indexedStates.map((s) =>
                     toTestIndexedState(s, userProperties, segments)
                   );

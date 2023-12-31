@@ -1782,7 +1782,6 @@ export async function computeAssignments({
     `;
 
     const withinLowerBound = Math.round(Math.max(nowSeconds - 60, 0));
-    // FIXME loc1
     const stateQuery = `
       insert into resolved_segment_state
       select 
@@ -1798,29 +1797,28 @@ export async function computeAssignments({
           toDateTime64(${nowSeconds}, 3) as assigned_at
       from computed_property_state_index cpsi
       full outer join resolved_segment_state rss on
-          rss.workspace_id  = cpsi.workspace_id
-          and cpsi.computed_property_id = 'segment'
-          and rss.segment_id  = cpsi.computed_property_id
-          and rss.state_id  = cpsi.state_id
-          and rss.user_id  = cpsi.user_id
-    left join (
-      select
-        workspace_id,
-        type,
-        computed_property_id,
-        state_id,
-        user_id,
-        maxMerge(max_event_time) merged_max_event_time
-      from dittofeed.computed_property_state
-      where
-        type = 'segment'
-      group by 
-        workspace_id,
-        type,
-        computed_property_id,
-        state_id,
-        user_id
-    ) state on
+        rss.workspace_id  = cpsi.workspace_id
+        and rss.segment_id  = cpsi.computed_property_id
+        and rss.state_id  = cpsi.state_id
+        and rss.user_id  = cpsi.user_id
+      left join (
+        select
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id,
+          maxMerge(max_event_time) merged_max_event_time
+        from dittofeed.computed_property_state
+        where
+          type = 'segment'
+        group by 
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id
+      ) state on
         state.workspace_id = cpsi.workspace_id
         and state.type = cpsi.type
         and state.computed_property_id = cpsi.computed_property_id
@@ -1828,14 +1826,18 @@ export async function computeAssignments({
         and state.user_id = cpsi.user_id
       where
         cpsi.workspace_id = ${workspaceIdParam}
+        and cpsi.type = 'segment'
         and (
+          (
+              -- removing this condition fixes
               within_range
               and (
                   rss.workspace_id = ''
                   or rss.segment_state_value = False
               )
           )
-          or rss.segment_state_value == True
+          or rss.segment_state_value = True
+        )
     `;
     const assignmentQuery = `
       insert into computed_property_assignments_v2
@@ -1849,13 +1851,15 @@ export async function computeAssignments({
           "String"
         )}] as segment_value,
         '',
+        max_state_event_time,
         toDateTime64(${nowSeconds}, 3) as assigned_at
       from (
         select
           workspace_id,
           segment_id,
           user_id,
-          CAST((groupArray(state_id), groupArray(segment_state_value)), 'Map(String, DateTime64(3))') as state_values
+          CAST((groupArray(state_id), groupArray(segment_state_value)), 'Map(String, Boolean)') as state_values,
+          max(max_event_time) as max_state_event_time
         from resolved_segment_state
         where
           workspace_id = ${workspaceIdParam}
