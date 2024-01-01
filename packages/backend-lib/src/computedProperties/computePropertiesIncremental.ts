@@ -1123,13 +1123,11 @@ function resolvedSegmentToAssignment({
   node: SegmentNode;
   qb: ClickHouseQueryBuilder;
 }): AssignedSegmentConfig {
-  const stateId = qb.addQueryValue(
-    segmentNodeStateId(segment, node.id),
-    "String"
-  );
+  const stateId = segmentNodeStateId(segment, node.id);
+  const stateIdParam = qb.addQueryValue(stateId, "String");
   switch (node.type) {
     case SegmentNodeType.Trait: {
-      const expression = `state_values[${stateId}]`;
+      const expression = `state_values[${stateIdParam}]`;
       return {
         stateIds: [stateId],
         expression,
@@ -1987,12 +1985,12 @@ export async function computeAssignments({
         from resolved_segment_state
         where
           workspace_id = ${workspaceIdParam}
+          and computed_at <= toDateTime64(${nowSeconds}, 3)
           and segment_id = ${qb.addQueryValue(segment.id, "String")}
           and state_id in ${qb.addQueryValue(
             assignmentConfig.stateIds,
             "Array(String)"
           )}
-          and computed_at <= toDateTime64(${nowSeconds}, 3)
           ${lowerBoundClause}
         group by
           workspace_id,
