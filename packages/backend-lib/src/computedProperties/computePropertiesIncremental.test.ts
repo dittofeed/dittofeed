@@ -646,6 +646,8 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait segment",
+      // FIXME
+      // only: true,
       userProperties: [],
       segments: [
         {

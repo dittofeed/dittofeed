@@ -55,6 +55,7 @@ import {
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 function broadcastSegmentToPerformed(
   segmentId: string,
@@ -1010,16 +1011,19 @@ function segmentToIndexed({
           ];
         }
         default:
-          throw new Error(
-            `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
-          );
+          return [];
       }
+      break;
     }
     default:
-      throw new Error(
-        `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
-      );
+      return [];
   }
+}
+
+function getLowerBoundClause(periodBound?: number): string {
+  return periodBound && periodBound !== 0
+    ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
+    : "";
 }
 
 function segmentToResolvedState({
@@ -1028,18 +1032,21 @@ function segmentToResolvedState({
   now,
   node,
   qb,
+  periodBound,
 }: {
   workspaceId: string;
   segment: SavedSegmentResource;
   now: number;
   node: SegmentNode;
+  periodBound?: number;
   qb: ClickHouseQueryBuilder;
 }): string[] {
+  const nowSeconds = now / 1000;
+  const stateId = segmentNodeStateId(segment, node.id);
   switch (node.type) {
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
-          const nowSeconds = now / 1000;
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
           );
@@ -1088,6 +1095,11 @@ function segmentToResolvedState({
             where
               cpsi.workspace_id = ${qb.addQueryValue(workspaceId, "String")}
               and cpsi.type = 'segment'
+              and cpsi.computed_property_id = ${qb.addQueryValue(
+                segment.id,
+                "String"
+              )}
+              and cpsi.state_id = ${qb.addQueryValue(stateId, "String")}
               and (
                 (
                     within_range
@@ -1098,6 +1110,32 @@ function segmentToResolvedState({
                 )
                 or rss.segment_state_value = True
               )
+          `;
+          return [query];
+        }
+        case SegmentOperatorType.Equals: {
+          /// FIXME
+          const query = `
+            insert into resolved_segment_state
+            select
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id,
+              True,
+              state.merged_max_event_time,
+              toDateTime64(${nowSeconds}, 3) as assigned_at
+            where
+              workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+              and type = 'segment'
+              and computed_property_id = ${qb.addQueryValue(
+                segment.id,
+                "String"
+              )}
+              and state_id = ${qb.addQueryValue(
+                segmentNodeStateId(segment, node.id),
+                "String"
+              )}
           `;
           return [query];
         }
@@ -1825,7 +1863,6 @@ export async function computeAssignments({
     qb: ClickHouseQueryBuilder;
   }[] = [];
 
-  const segmentAssignments: AssignedSegmentConfig[] = [];
   for (const segment of segments) {
     const version = segment.definitionUpdatedAt.toString();
     const period = periodByComputedPropertyId.get({
@@ -1902,11 +1939,7 @@ export async function computeAssignments({
 
     const nowSeconds = now / 1000;
 
-    const lowerBoundClause =
-      periodBound && periodBound !== 0
-        ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
-        : "";
-
+    const lowerBoundClause = getLowerBoundClause(periodBound);
     const indexedConfig = segmentToIndexed({
       segment,
       node: segment.definition.entryNode,
@@ -1919,6 +1952,7 @@ export async function computeAssignments({
       node: segment.definition.entryNode,
       now,
       qb,
+      periodBound,
     });
     const assignmentConfig = resolvedSegmentToAssignment({
       segment,
