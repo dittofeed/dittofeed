@@ -789,17 +789,15 @@ type OptionalAssignmentQueryConfig = Omit<
   "version"
 > | null;
 
-interface ResolvedStateConfig {
-  stateId: string;
-  query: string;
-}
-
 interface IndexedStateConfig {
   stateId: string;
   expression: string;
 }
 
-interface AssignedSegmentConfig {}
+interface AssignedSegmentConfig {
+  stateIds: string[];
+  expression: string;
+}
 
 function leafUserPropertyToAssignment({
   userProperty,
@@ -1025,26 +1023,83 @@ function segmentToIndexed({
 }
 
 function segmentToResolvedState({
+  workspaceId,
   segment,
   now,
   node,
   qb,
 }: {
+  workspaceId: string;
   segment: SavedSegmentResource;
   now: number;
   node: SegmentNode;
   qb: ClickHouseQueryBuilder;
-}): ResolvedStateConfig[] {
+}): string[] {
   switch (node.type) {
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
-          return [
-            {
-              stateId: segmentNodeStateId(segment, node.id),
-              query: ``,
-            },
-          ];
+          const nowSeconds = now / 1000;
+          const withinLowerBound = Math.round(
+            Math.max(nowSeconds - node.operator.windowSeconds, 0)
+          );
+          const query = `
+            insert into resolved_segment_state
+            select
+                cpsi.workspace_id,
+                cpsi.computed_property_id,
+                cpsi.state_id,
+                cpsi.user_id,
+                cpsi.indexed_value > ${qb.addQueryValue(
+                  withinLowerBound,
+                  "Int32"
+                )} within_range,
+                state.merged_max_event_time,
+                toDateTime64(${nowSeconds}, 3) as assigned_at
+            from computed_property_state_index cpsi
+            full outer join resolved_segment_state rss on
+              rss.workspace_id  = cpsi.workspace_id
+              and rss.segment_id  = cpsi.computed_property_id
+              and rss.state_id  = cpsi.state_id
+              and rss.user_id  = cpsi.user_id
+            left join (
+              select
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id,
+                maxMerge(max_event_time) merged_max_event_time
+              from dittofeed.computed_property_state
+              where
+                type = 'segment'
+              group by
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+            ) state on
+              state.workspace_id = cpsi.workspace_id
+              and state.type = cpsi.type
+              and state.computed_property_id = cpsi.computed_property_id
+              and state.state_id = cpsi.state_id
+              and state.user_id = cpsi.user_id
+            where
+              cpsi.workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+              and cpsi.type = 'segment'
+              and (
+                (
+                    within_range
+                    and (
+                        rss.workspace_id = ''
+                        or rss.segment_state_value = False
+                    )
+                )
+                or rss.segment_state_value = True
+              )
+          `;
+          return [query];
         }
         default:
           throw new Error(
@@ -1067,14 +1122,18 @@ function resolvedSegmentToAssignment({
   segment: SavedSegmentResource;
   node: SegmentNode;
   qb: ClickHouseQueryBuilder;
-}): string | null {
+}): AssignedSegmentConfig {
   const stateId = qb.addQueryValue(
     segmentNodeStateId(segment, node.id),
     "String"
   );
   switch (node.type) {
     case SegmentNodeType.Trait: {
-      return `state_values[${stateId}]`;
+      const expression = `state_values[${stateId}]`;
+      return {
+        stateIds: [stateId],
+        expression,
+      };
     }
     default:
       throw new Error(
@@ -1764,10 +1823,11 @@ export async function computeAssignments({
     step: ComputedPropertyStep.ComputeAssignments,
   });
   const queryValues: {
-    queries: string[];
+    queries: (string | string[])[];
     qb: ClickHouseQueryBuilder;
   }[] = [];
 
+  const segmentAssignments: AssignedSegmentConfig[] = [];
   for (const segment of segments) {
     const version = segment.definitionUpdatedAt.toString();
     const period = periodByComputedPropertyId.get({
@@ -1855,8 +1915,9 @@ export async function computeAssignments({
     });
 
     // fixme loc1
-    const resolvedConfig = segmentToResolvedState({
+    const resolvedQueries = segmentToResolvedState({
       segment,
+      workspaceId,
       node: segment.definition.entryNode,
       now,
       qb,
@@ -1867,13 +1928,7 @@ export async function computeAssignments({
       qb,
     });
 
-    // FIXME hardcoded
-    const entryStateId = segmentNodeStateId(
-      segment,
-      segment.definition.entryNode.id
-    );
     const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-
     const indexQuery = `
       insert into computed_property_state_index
       select
@@ -1911,63 +1966,6 @@ export async function computeAssignments({
         user_id
     `;
 
-    const withinLowerBound = Math.round(Math.max(nowSeconds - 60, 0));
-    const stateQuery = `
-      insert into resolved_segment_state
-      select 
-          cpsi.workspace_id,
-          cpsi.computed_property_id,
-          cpsi.state_id,
-          cpsi.user_id,
-          cpsi.indexed_value > ${qb.addQueryValue(
-            withinLowerBound,
-            "Int32"
-          )} within_range,
-          state.merged_max_event_time,
-          toDateTime64(${nowSeconds}, 3) as assigned_at
-      from computed_property_state_index cpsi
-      full outer join resolved_segment_state rss on
-        rss.workspace_id  = cpsi.workspace_id
-        and rss.segment_id  = cpsi.computed_property_id
-        and rss.state_id  = cpsi.state_id
-        and rss.user_id  = cpsi.user_id
-      left join (
-        select
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id,
-          maxMerge(max_event_time) merged_max_event_time
-        from dittofeed.computed_property_state
-        where
-          type = 'segment'
-        group by 
-          workspace_id,
-          type,
-          computed_property_id,
-          state_id,
-          user_id
-      ) state on
-        state.workspace_id = cpsi.workspace_id
-        and state.type = cpsi.type
-        and state.computed_property_id = cpsi.computed_property_id
-        and state.state_id = cpsi.state_id
-        and state.user_id = cpsi.user_id
-      where
-        cpsi.workspace_id = ${workspaceIdParam}
-        and cpsi.type = 'segment'
-        and (
-          (
-              within_range
-              and (
-                  rss.workspace_id = ''
-                  or rss.segment_state_value = False
-              )
-          )
-          or rss.segment_state_value = True
-        )
-    `;
     const assignmentQuery = `
       insert into computed_property_assignments_v2
       select
@@ -1975,10 +1973,7 @@ export async function computeAssignments({
         'segment',
         segment_id,
         user_id,
-        state_values[${qb.addQueryValue(
-          entryStateId,
-          "String"
-        )}] as segment_value,
+        ${assignmentConfig.expression} as segment_value,
         '',
         max_state_event_time,
         toDateTime64(${nowSeconds}, 3) as assigned_at
@@ -1992,13 +1987,20 @@ export async function computeAssignments({
         from resolved_segment_state
         where
           workspace_id = ${workspaceIdParam}
-          and computed_at >= toDateTime64(${withinLowerBound}, 3)
+          and segment_id = ${qb.addQueryValue(segment.id, "String")}
+          and state_id in ${qb.addQueryValue(
+            assignmentConfig.stateIds,
+            "Array(String)"
+          )}
+          and computed_at <= toDateTime64(${nowSeconds}, 3)
+          ${lowerBoundClause}
         group by
           workspace_id,
           segment_id,
           user_id
       )
     `;
+
     //   `
     //   insert into computed_property_assignments_v2
     //   select
@@ -2110,7 +2112,7 @@ export async function computeAssignments({
     //       user_id
     //   ) inner4
     // `;
-    const queries = [indexQuery, stateQuery, assignmentQuery];
+    const queries = [indexQuery, resolvedQueries, assignmentQuery];
 
     queryValues.push({
       queries,
@@ -2153,15 +2155,34 @@ export async function computeAssignments({
   await Promise.all(
     queryValues.map(async ({ queries, qb }) => {
       for (const query of queries) {
-        console.log("query", query);
-        await command({
-          query,
-          query_params: qb.getQueries(),
-          clickhouse_settings: { wait_end_of_query: 1 },
-        });
+        if (Array.isArray(query)) {
+          await Promise.all(
+            query.map(async (q) => {
+              console.log("loc2", q);
+              await command({
+                query: q,
+                query_params: qb.getQueries(),
+                clickhouse_settings: { wait_end_of_query: 1 },
+              });
+            })
+          );
+        } else {
+          console.log("loc3", query);
+          await command({
+            query,
+            query_params: qb.getQueries(),
+            clickhouse_settings: { wait_end_of_query: 1 },
+          });
+        }
       }
     })
   );
+  // fixme better parallelize with up
+
+  // await command({
+  //   query: `
+  //   `,
+  // });
 
   await createPeriods({
     workspaceId,
