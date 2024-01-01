@@ -789,6 +789,18 @@ type OptionalAssignmentQueryConfig = Omit<
   "version"
 > | null;
 
+interface ResolvedStateConfig {
+  stateId: string;
+  query: string;
+}
+
+interface IndexedStateConfig {
+  stateId: string;
+  expression: string;
+}
+
+interface AssignedSegmentConfig {}
+
 function leafUserPropertyToAssignment({
   userProperty,
   child,
@@ -978,6 +990,96 @@ function userPropertyToAssignment({
         qb,
       });
     }
+  }
+}
+function segmentToIndexed({
+  segment,
+  node,
+}: {
+  segment: SavedSegmentResource;
+  node: SegmentNode;
+}): IndexedStateConfig[] {
+  const stateId = segmentNodeStateId(segment, node.id);
+  switch (node.type) {
+    case SegmentNodeType.Trait: {
+      switch (node.operator.type) {
+        case SegmentOperatorType.Within: {
+          return [
+            {
+              stateId,
+              expression: `toUnixTimestamp(parseDateTimeBestEffortOrZero(argMaxMerge(last_value)))`,
+            },
+          ];
+        }
+        default:
+          throw new Error(
+            `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
+          );
+      }
+    }
+    default:
+      throw new Error(
+        `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
+      );
+  }
+}
+
+function segmentToResolvedState({
+  segment,
+  now,
+  node,
+  qb,
+}: {
+  segment: SavedSegmentResource;
+  now: number;
+  node: SegmentNode;
+  qb: ClickHouseQueryBuilder;
+}): ResolvedStateConfig[] {
+  switch (node.type) {
+    case SegmentNodeType.Trait: {
+      switch (node.operator.type) {
+        case SegmentOperatorType.Within: {
+          return [
+            {
+              stateId: segmentNodeStateId(segment, node.id),
+              query: ``,
+            },
+          ];
+        }
+        default:
+          throw new Error(
+            `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
+          );
+      }
+    }
+    default:
+      throw new Error(
+        `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
+      );
+  }
+}
+
+function resolvedSegmentToAssignment({
+  segment,
+  qb,
+  node,
+}: {
+  segment: SavedSegmentResource;
+  node: SegmentNode;
+  qb: ClickHouseQueryBuilder;
+}): string | null {
+  const stateId = qb.addQueryValue(
+    segmentNodeStateId(segment, node.id),
+    "String"
+  );
+  switch (node.type) {
+    case SegmentNodeType.Trait: {
+      return `state_values[${stateId}]`;
+    }
+    default:
+      throw new Error(
+        `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
+      );
   }
 }
 
@@ -1747,6 +1849,24 @@ export async function computeAssignments({
         ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
         : "";
 
+    const indexedConfig = segmentToIndexed({
+      segment,
+      node: segment.definition.entryNode,
+    });
+
+    // fixme loc1
+    const resolvedConfig = segmentToResolvedState({
+      segment,
+      node: segment.definition.entryNode,
+      now,
+      qb,
+    });
+    const assignmentConfig = resolvedSegmentToAssignment({
+      segment,
+      node: segment.definition.entryNode,
+      qb,
+    });
+
     // FIXME hardcoded
     const entryStateId = segmentNodeStateId(
       segment,
@@ -1763,14 +1883,24 @@ export async function computeAssignments({
         state_id,
         user_id,
         multiIf(
-          state_id == ${qb.addQueryValue(entryStateId, "String")},
-          toUnixTimestamp(parseDateTimeBestEffortOrZero(argMaxMerge(last_value))),
+          ${indexedConfig
+            .map(
+              ({ stateId, expression }) =>
+                `state_id == ${qb.addQueryValue(
+                  stateId,
+                  "String"
+                )}, ${expression}`
+            )
+            .join(",")},
           0
         ) indexed_value
       from computed_property_state
       where
         workspace_id = ${workspaceIdParam}
-        and state_id in ${qb.addQueryValue([entryStateId], "Array(String)")}
+        and state_id in ${qb.addQueryValue(
+          indexedConfig.map((c) => c.stateId),
+          "Array(String)"
+        )}
         and computed_at <= toDateTime64(${nowSeconds}, 3)
         ${lowerBoundClause}
       group by
@@ -1829,7 +1959,6 @@ export async function computeAssignments({
         and cpsi.type = 'segment'
         and (
           (
-              -- removing this condition fixes
               within_range
               and (
                   rss.workspace_id = ''
