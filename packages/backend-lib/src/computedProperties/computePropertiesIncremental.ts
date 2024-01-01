@@ -1010,6 +1010,14 @@ function segmentToIndexed({
             },
           ];
         }
+        case SegmentOperatorType.HasBeen: {
+          return [
+            {
+              stateId,
+              expression: `toUnixTimestamp(maxMerge(max_event_time))`,
+            },
+          ];
+        }
         default:
           return [];
       }
@@ -1097,6 +1105,7 @@ function segmentToResolvedState({
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
           );
+          // FIXME add group by
           const query = `
             insert into resolved_segment_state
             select
@@ -1124,7 +1133,7 @@ function segmentToResolvedState({
                 state_id,
                 user_id,
                 maxMerge(max_event_time) merged_max_event_time
-              from dittofeed.computed_property_state
+              from computed_property_state
               where
                 type = 'segment'
               group by
@@ -1157,6 +1166,102 @@ function segmentToResolvedState({
                 )
                 or rss.segment_state_value = True
               )
+          `;
+          return [query];
+        }
+        case SegmentOperatorType.HasBeen: {
+          const upperBound = Math.round(
+            Math.max(nowSeconds - node.operator.windowSeconds, 0)
+          );
+
+          // fails with after remaining onboarding for over a week the user is stuck onboarding
+          //       cpsi.indexed_value <= ${qb.addQueryValue(
+          //         lowerBound,
+          //         "Int32"
+          //       )} and state.merged_last_value == ${qb.addQueryValue(
+          //   node.operator.value,
+          //   "String"
+          // )} has_been,
+
+          // fails with is no longer stuck onboarding when status changes to active
+          // cpsi.indexed_value <= ${qb.addQueryValue(
+          //   upperBound,
+          //   "Int32"
+          // )} has_been,
+          const upperBoundParam = qb.addQueryValue(upperBound, "Int32");
+          const lastValueParam = qb.addQueryValue(
+            node.operator.value,
+            "String"
+          );
+          console.log("node.operator.value", node.operator.value);
+
+          const query = `
+            insert into resolved_segment_state
+            select
+                cpsi.workspace_id,
+                cpsi.computed_property_id,
+                cpsi.state_id,
+                cpsi.user_id,
+                (
+                  max(cpsi.indexed_value) <= ${upperBoundParam} 
+                  and argMax(state.merged_last_value, state.merged_max_event_time) == ${lastValueParam}
+                ) has_been,
+                max(state.merged_max_event_time),
+                toDateTime64(${nowSeconds}, 3) as assigned_at
+            from computed_property_state_index cpsi
+            full outer join resolved_segment_state rss on
+              rss.workspace_id  = cpsi.workspace_id
+              and rss.segment_id  = cpsi.computed_property_id
+              and rss.state_id  = cpsi.state_id
+              and rss.user_id  = cpsi.user_id
+            left join (
+              select
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id,
+                argMaxMerge(last_value) merged_last_value,
+                maxMerge(max_event_time) merged_max_event_time
+              from computed_property_state
+              where
+                type = 'segment'
+              group by
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+            ) state on
+              state.workspace_id = cpsi.workspace_id
+              and state.type = cpsi.type
+              and state.computed_property_id = cpsi.computed_property_id
+              and state.state_id = cpsi.state_id
+              and state.user_id = cpsi.user_id
+            where
+              cpsi.workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+              and cpsi.type = 'segment'
+              and cpsi.computed_property_id = ${qb.addQueryValue(
+                segment.id,
+                "String"
+              )}
+              and cpsi.state_id = ${qb.addQueryValue(stateId, "String")}
+              and (
+                (
+                    cpsi.indexed_value <= ${upperBoundParam}
+                    -- and state.merged_last_value == ${lastValueParam}
+                    and (
+                        rss.workspace_id = ''
+                        or rss.segment_state_value = False
+                    )
+                )
+                or rss.segment_state_value = True
+              )
+            group by
+              cpsi.workspace_id,
+              cpsi.computed_property_id,
+              cpsi.state_id,
+              cpsi.user_id;
           `;
           return [query];
         }

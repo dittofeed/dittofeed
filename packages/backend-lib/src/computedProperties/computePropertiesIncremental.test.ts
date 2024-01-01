@@ -138,6 +138,7 @@ async function readStates({
       query_params: qb.getQueries(),
     })
   ).json()) as { data: State[] };
+  console.log("states response", response);
   return response.data;
 }
 
