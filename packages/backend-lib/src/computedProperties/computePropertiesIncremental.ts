@@ -1114,7 +1114,6 @@ function segmentToResolvedState({
           return [query];
         }
         case SegmentOperatorType.Equals: {
-          /// FIXME
           const query = `
             insert into resolved_segment_state
             select
@@ -1122,9 +1121,13 @@ function segmentToResolvedState({
               computed_property_id,
               state_id,
               user_id,
-              True,
-              state.merged_max_event_time,
+              argMaxMerge(last_value) == ${qb.addQueryValue(
+                node.operator.value,
+                "String"
+              )},
+              maxMerge(max_event_time),
               toDateTime64(${nowSeconds}, 3) as assigned_at
+            from computed_property_state
             where
               workspace_id = ${qb.addQueryValue(workspaceId, "String")}
               and type = 'segment'
@@ -1136,6 +1139,11 @@ function segmentToResolvedState({
                 segmentNodeStateId(segment, node.id),
                 "String"
               )}
+            group by
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id
           `;
           return [query];
         }
@@ -1961,44 +1969,6 @@ export async function computeAssignments({
     });
 
     const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-    const indexQuery = `
-      insert into computed_property_state_index
-      select
-        workspace_id,
-        type,
-        computed_property_id,
-        state_id,
-        user_id,
-        multiIf(
-          ${indexedConfig
-            .map(
-              ({ stateId, expression }) =>
-                `state_id == ${qb.addQueryValue(
-                  stateId,
-                  "String"
-                )}, ${expression}`
-            )
-            .join(",")},
-          0
-        ) indexed_value
-      from computed_property_state
-      where
-        workspace_id = ${workspaceIdParam}
-        and type = 'segment'
-        and computed_property_id = ${qb.addQueryValue(segment.id, "String")}
-        and state_id in ${qb.addQueryValue(
-          indexedConfig.map((c) => c.stateId),
-          "Array(String)"
-        )}
-        and computed_at <= toDateTime64(${nowSeconds}, 3)
-        ${lowerBoundClause}
-      group by
-        workspace_id,
-        type,
-        computed_property_id,
-        state_id,
-        user_id
-    `;
 
     const assignmentQuery = `
       insert into computed_property_assignments_v2
@@ -2146,7 +2116,49 @@ export async function computeAssignments({
     //       user_id
     //   ) inner4
     // `;
-    const queries = [indexQuery, resolvedQueries, assignmentQuery];
+    const queries = [resolvedQueries, assignmentQuery];
+
+    if (indexedConfig.length) {
+      const indexQuery = `
+        insert into computed_property_state_index
+        select
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id,
+          multiIf(
+            ${indexedConfig
+              .map(
+                ({ stateId, expression }) =>
+                  `state_id == ${qb.addQueryValue(
+                    stateId,
+                    "String"
+                  )}, ${expression}`
+              )
+              .join(",")},
+            0
+          ) indexed_value
+        from computed_property_state
+        where
+          workspace_id = ${workspaceIdParam}
+          and type = 'segment'
+          and computed_property_id = ${qb.addQueryValue(segment.id, "String")}
+          and state_id in ${qb.addQueryValue(
+            indexedConfig.map((c) => c.stateId),
+            "Array(String)"
+          )}
+          and computed_at <= toDateTime64(${nowSeconds}, 3)
+          ${lowerBoundClause}
+        group by
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id
+      `;
+      queries.unshift(indexQuery);
+    }
 
     queryValues.push({
       queries,
