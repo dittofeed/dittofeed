@@ -1984,6 +1984,8 @@ export async function computeAssignments({
       from computed_property_state
       where
         workspace_id = ${workspaceIdParam}
+        and type = 'segment'
+        and computed_property_id = ${qb.addQueryValue(segment.id, "String")}
         and state_id in ${qb.addQueryValue(
           indexedConfig.map((c) => c.stateId),
           "Array(String)"
