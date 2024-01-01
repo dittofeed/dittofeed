@@ -462,7 +462,6 @@ describe("computeProperties", () => {
   const tests: TableTest[] = [
     {
       description: "computes a trait user property",
-      only: true,
       userProperties: [
         {
           name: "email",
@@ -659,6 +658,105 @@ describe("computeProperties", () => {
               operator: {
                 type: SegmentOperatorType.Equals,
                 value: "test",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes a negative trait segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: "env",
+              operator: {
+                type: SegmentOperatorType.NotEquals,
+                value: "prod",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes an exists trait segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: "env",
+              operator: {
+                type: SegmentOperatorType.Exists,
               },
             },
             nodes: [],
@@ -905,6 +1003,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes HasBeen operator trait segment",
+      only: true,
       userProperties: [],
       segments: [
         {

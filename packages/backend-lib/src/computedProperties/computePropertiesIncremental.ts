@@ -1026,6 +1026,53 @@ function getLowerBoundClause(periodBound?: number): string {
     : "";
 }
 
+function buildRecentUpdateSegmentQuery({
+  workspaceId,
+  stateId,
+  expression,
+  segmentId,
+  now,
+  periodBound,
+  qb,
+}: {
+  workspaceId: string;
+  now: number;
+  segmentId: string;
+  periodBound?: number;
+  stateId: string;
+  expression: string;
+  qb: ClickHouseQueryBuilder;
+}): string {
+  const nowSeconds = now / 1000;
+  const lowerBoundClause = getLowerBoundClause(periodBound);
+
+  const query = `
+    insert into resolved_segment_state
+    select
+      workspace_id,
+      computed_property_id,
+      state_id,
+      user_id,
+      ${expression},
+      maxMerge(max_event_time),
+      toDateTime64(${nowSeconds}, 3) as assigned_at
+    from computed_property_state
+    where
+      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+      and type = 'segment'
+      and computed_property_id = ${qb.addQueryValue(segmentId, "String")}
+      and state_id = ${qb.addQueryValue(stateId, "String")}
+      and computed_at <= toDateTime64(${nowSeconds}, 3)
+      ${lowerBoundClause}
+    group by
+      workspace_id,
+      computed_property_id,
+      state_id,
+      user_id
+  `;
+  return query;
+}
+
 function segmentToResolvedState({
   workspaceId,
   segment,
@@ -1057,7 +1104,7 @@ function segmentToResolvedState({
                 cpsi.computed_property_id,
                 cpsi.state_id,
                 cpsi.user_id,
-                cpsi.indexed_value > ${qb.addQueryValue(
+                cpsi.indexed_value >= ${qb.addQueryValue(
                   withinLowerBound,
                   "Int32"
                 )} within_range,
@@ -1113,43 +1160,50 @@ function segmentToResolvedState({
           `;
           return [query];
         }
-        // FIXME can the queries be combined using a multi if?
         case SegmentOperatorType.Equals: {
-          const lowerBoundClause = getLowerBoundClause(periodBound);
-          const query = `
-            insert into resolved_segment_state
-            select
-              workspace_id,
-              computed_property_id,
-              state_id,
-              user_id,
-              argMaxMerge(last_value) == ${qb.addQueryValue(
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `argMaxMerge(last_value) == ${qb.addQueryValue(
                 node.operator.value,
                 "String"
-              )},
-              maxMerge(max_event_time),
-              toDateTime64(${nowSeconds}, 3) as assigned_at
-            from computed_property_state
-            where
-              workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-              and type = 'segment'
-              and computed_property_id = ${qb.addQueryValue(
-                segment.id,
+              )}`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
+        }
+        case SegmentOperatorType.NotEquals: {
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `argMaxMerge(last_value) != ${qb.addQueryValue(
+                node.operator.value,
                 "String"
-              )}
-              and state_id = ${qb.addQueryValue(
-                segmentNodeStateId(segment, node.id),
-                "String"
-              )}
-              and computed_at <= toDateTime64(${nowSeconds}, 3)
-              ${lowerBoundClause}
-            group by
-              workspace_id,
-              computed_property_id,
-              state_id,
-              user_id
-          `;
-          return [query];
+              )}`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
+        }
+        case SegmentOperatorType.Exists: {
+          return [
+            buildRecentUpdateSegmentQuery({
+              workspaceId,
+              stateId,
+              expression: `argMaxMerge(last_value) != ''`,
+              segmentId: segment.id,
+              now,
+              periodBound,
+              qb,
+            }),
+          ];
         }
         default:
           throw new Error(
