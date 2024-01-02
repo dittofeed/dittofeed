@@ -1104,9 +1104,9 @@ function segmentToResolvedState({
       const periodLowerBoundClause = getLowerBoundClause(periodBound);
       // FIXME needs to involve event time
       // need to find
-      const nodeLowerBoundClause =
+      const eventTimeLowerBoundClause =
         node.withinSeconds && node.withinSeconds > 0
-          ? `and computed_at >= toDateTime64(${Math.round(
+          ? `and event_time >= toDateTime64(${Math.round(
               Math.max(nowSeconds - node.withinSeconds, 0)
             )}, 3)`
           : "";
@@ -1114,7 +1114,7 @@ function segmentToResolvedState({
       const operator: string = node.timesOperator ?? RelationalOperators.Equals;
       const times = node.times === undefined ? 1 : node.times;
 
-      console.log("nodeLowerBoundClause", nodeLowerBoundClause);
+      // FIXME
       const query = `
         insert into resolved_segment_state
         select
@@ -1150,7 +1150,7 @@ function segmentToResolvedState({
               and computed_at <= toDateTime64(${nowSeconds}, 3)
               ${periodLowerBoundClause}
           )
-          ${nodeLowerBoundClause}
+          ${eventTimeLowerBoundClause}
         group by
           workspace_id,
           computed_property_id,
@@ -1826,7 +1826,7 @@ function constructAssignmentsQuery({
               user_id,
               argMaxMerge(last_value) last_value,
               uniqMerge(unique_count) unique_count,
-              max(max_event_time) max_event_time,
+              max(event_time) max_event_time,
               arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_id
             from computed_property_state cps
             where

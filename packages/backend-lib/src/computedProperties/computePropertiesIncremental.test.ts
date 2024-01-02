@@ -647,7 +647,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -2325,7 +2324,7 @@ describe("computeProperties", () => {
     },
     {
       description: "when a performed segment has a within condition",
-      // only: true,
+      only: true,
       userProperties: [
         {
           name: "id",
