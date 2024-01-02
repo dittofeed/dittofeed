@@ -1102,14 +1102,36 @@ function segmentToResolvedState({
   switch (node.type) {
     case SegmentNodeType.Performed: {
       const periodLowerBoundClause = getLowerBoundClause(periodBound);
-      // FIXME needs to involve event time
-      // need to find
-      const eventTimeLowerBoundClause =
-        node.withinSeconds && node.withinSeconds > 0
-          ? `and event_time >= toDateTime64(${Math.round(
-              Math.max(nowSeconds - node.withinSeconds, 0)
-            )}, 3)`
-          : "";
+      //
+
+      let eventTimeLowerBoundClause: string;
+      let eventTimeJoinClause: string;
+      if (node.withinSeconds && node.withinSeconds > 0) {
+        eventTimeLowerBoundClause = `
+          and (
+            (
+              event_time >= toDateTime64(${Math.round(
+                Math.max(nowSeconds - node.withinSeconds, 0)
+              )}, 3)
+              and (
+                rss.workspace_id = ''
+                or rss.segment_state_value = False
+              )
+            )
+            or rss.segment_state_value = True
+          )
+        `;
+        eventTimeJoinClause = `
+          full outer join resolved_segment_state rss on
+            rss.workspace_id  = cps.workspace_id
+            and rss.segment_id  = cps.computed_property_id
+            and rss.state_id  = cps.state_id
+            and rss.user_id  = cps.user_id
+        `;
+      } else {
+        eventTimeLowerBoundClause = "";
+        eventTimeJoinClause = "";
+      }
 
       const operator: string = node.timesOperator ?? RelationalOperators.Equals;
       const times = node.times === undefined ? 1 : node.times;
@@ -1118,14 +1140,15 @@ function segmentToResolvedState({
       const query = `
         insert into resolved_segment_state
         select
-          workspace_id,
-          computed_property_id,
-          state_id,
-          user_id,
-          uniqMerge(unique_count) ${operator} ${times},
-          max(event_time),
+          cps.workspace_id,
+          cps.computed_property_id,
+          cps.state_id,
+          cps.user_id,
+          uniqMerge(cps.unique_count) ${operator} ${times},
+          max(cps.event_time),
           toDateTime64(${nowSeconds}, 3) as assigned_at
-        from computed_property_state
+        from computed_property_state cps
+        ${eventTimeJoinClause}
         where
           (
             workspace_id,
