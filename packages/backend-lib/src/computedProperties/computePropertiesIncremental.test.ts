@@ -1004,7 +1004,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes HasBeen operator trait segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -2325,6 +2324,7 @@ describe("computeProperties", () => {
     },
     {
       description: "when a performed segment has a within condition",
+      only: true,
       userProperties: [
         {
           name: "id",

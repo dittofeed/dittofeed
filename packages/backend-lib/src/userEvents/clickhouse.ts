@@ -102,7 +102,7 @@ export async function createUserEventsTables({
           unique_count AggregateFunction(uniq, String),
           max_event_time AggregateFunction(max, DateTime64(3)),
           grouped_message_ids AggregateFunction(groupArray, String),
-          computed_at DateTime64(3)
+          computed_at DateTime64(3),
         )
         ENGINE = AggregatingMergeTree()
         ORDER BY (

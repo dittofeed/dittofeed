@@ -1028,9 +1028,9 @@ function segmentToIndexed({
   }
 }
 
-function getLowerBoundClause(periodBound?: number): string {
-  return periodBound && periodBound !== 0
-    ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
+function getLowerBoundClause(bound?: number): string {
+  return bound && bound > 0
+    ? `and computed_at >= toDateTime64(${bound / 1000}, 3)`
     : "";
 }
 
@@ -1054,6 +1054,7 @@ function buildRecentUpdateSegmentQuery({
   const nowSeconds = now / 1000;
   const lowerBoundClause = getLowerBoundClause(periodBound);
 
+  // FIXME filter on updated table
   const query = `
     insert into resolved_segment_state
     select
@@ -1099,13 +1100,69 @@ function segmentToResolvedState({
   const nowSeconds = now / 1000;
   const stateId = segmentNodeStateId(segment, node.id);
   switch (node.type) {
+    case SegmentNodeType.Performed: {
+      const periodLowerBoundClause = getLowerBoundClause(periodBound);
+      const nodeLowerBoundClause =
+        node.withinSeconds && node.withinSeconds > 0
+          ? `and computed_at >= toDateTime64(${Math.round(
+              Math.max(nowSeconds - node.withinSeconds, 0)
+            )}, 3)`
+          : "";
+
+      const operator: string = node.timesOperator ?? RelationalOperators.Equals;
+      const times = node.times === undefined ? 1 : node.times;
+
+      // fixme
+      const query = `
+        insert into resolved_segment_state
+        select
+          workspace_id,
+          computed_property_id,
+          state_id,
+          user_id,
+          uniqMerge(unique_count) ${operator} ${times},
+          maxMerge(max_event_time),
+          toDateTime64(${nowSeconds}, 3) as assigned_at
+        from computed_property_state
+        where
+          (
+            workspace_id,
+            computed_property_id,
+            state_id,
+            user_id
+          ) in (
+            select
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id
+            from updated_computed_property_state
+            where
+              workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+              and type = 'segment'
+              and computed_property_id = ${qb.addQueryValue(
+                segment.id,
+                "String"
+              )}
+              and state_id = ${qb.addQueryValue(stateId, "String")}
+              and computed_at <= toDateTime64(${nowSeconds}, 3)
+              ${periodLowerBoundClause}
+          )
+          ${nodeLowerBoundClause}
+        group by
+          workspace_id,
+          computed_property_id,
+          state_id,
+          user_id
+      `;
+      return [query];
+    }
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
           );
-          // FIXME add group by
           const query = `
             insert into resolved_segment_state
             select
@@ -1113,11 +1170,11 @@ function segmentToResolvedState({
                 cpsi.computed_property_id,
                 cpsi.state_id,
                 cpsi.user_id,
-                cpsi.indexed_value >= ${qb.addQueryValue(
+                argMax(cpsi.indexed_value, state.merged_max_event_time) >= ${qb.addQueryValue(
                   withinLowerBound,
                   "Int32"
                 )} within_range,
-                state.merged_max_event_time,
+                max(state.merged_max_event_time),
                 toDateTime64(${nowSeconds}, 3) as assigned_at
             from computed_property_state_index cpsi
             full outer join resolved_segment_state rss on
@@ -1158,7 +1215,10 @@ function segmentToResolvedState({
               and cpsi.state_id = ${qb.addQueryValue(stateId, "String")}
               and (
                 (
-                    within_range
+                    cpsi.indexed_value >= ${qb.addQueryValue(
+                      withinLowerBound,
+                      "Int32"
+                    )}
                     and (
                         rss.workspace_id = ''
                         or rss.segment_state_value = False
@@ -1166,6 +1226,11 @@ function segmentToResolvedState({
                 )
                 or rss.segment_state_value = True
               )
+           group by 
+              cpsi.workspace_id,
+              cpsi.computed_property_id,
+              cpsi.state_id,
+              cpsi.user_id;
           `;
           return [query];
         }
@@ -1174,26 +1239,11 @@ function segmentToResolvedState({
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
           );
 
-          // fails with after remaining onboarding for over a week the user is stuck onboarding
-          //       cpsi.indexed_value <= ${qb.addQueryValue(
-          //         lowerBound,
-          //         "Int32"
-          //       )} and state.merged_last_value == ${qb.addQueryValue(
-          //   node.operator.value,
-          //   "String"
-          // )} has_been,
-
-          // fails with is no longer stuck onboarding when status changes to active
-          // cpsi.indexed_value <= ${qb.addQueryValue(
-          //   upperBound,
-          //   "Int32"
-          // )} has_been,
           const upperBoundParam = qb.addQueryValue(upperBound, "Int32");
           const lastValueParam = qb.addQueryValue(
             node.operator.value,
             "String"
           );
-          console.log("node.operator.value", node.operator.value);
 
           const query = `
             insert into resolved_segment_state
@@ -1249,7 +1299,6 @@ function segmentToResolvedState({
               and (
                 (
                     cpsi.indexed_value <= ${upperBoundParam}
-                    -- and state.merged_last_value == ${lastValueParam}
                     and (
                         rss.workspace_id = ''
                         or rss.segment_state_value = False
@@ -1336,6 +1385,13 @@ function resolvedSegmentToAssignment({
   const stateIdParam = qb.addQueryValue(stateId, "String");
   switch (node.type) {
     case SegmentNodeType.Trait: {
+      const expression = `state_values[${stateIdParam}]`;
+      return {
+        stateIds: [stateId],
+        expression,
+      };
+    }
+    case SegmentNodeType.Performed: {
       const expression = `state_values[${stateIdParam}]`;
       return {
         stateIds: [stateId],
@@ -2366,20 +2422,12 @@ export async function computeAssignments({
     );
   }
 
-  // FIXME just an array with a single empty string with a newline
-  logger().warn(
-    {
-      queryValues,
-    },
-    "loc4"
-  );
   await Promise.all(
     queryValues.map(async ({ queries, qb }) => {
       for (const query of queries) {
         if (Array.isArray(query)) {
           await Promise.all(
             query.map(async (q) => {
-              console.log("loc2", q);
               await command({
                 query: q,
                 query_params: qb.getQueries(),
@@ -2388,7 +2436,6 @@ export async function computeAssignments({
             })
           );
         } else {
-          console.log("loc3", query);
           await command({
             query,
             query_params: qb.getQueries(),
