@@ -100,7 +100,8 @@ export async function createUserEventsTables({
           user_id String,
           last_value AggregateFunction(argMax, String, DateTime64(3)),
           unique_count AggregateFunction(uniq, String),
-          max_event_time AggregateFunction(max, DateTime64(3)),
+          event_time DateTime64(3),
+          INDEX event_time_idx event_time TYPE minmax GRANULARITY 4,
           grouped_message_ids AggregateFunction(groupArray, String),
           computed_at DateTime64(3),
         )

@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { mapValues } from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
@@ -55,7 +56,6 @@ import {
 } from "../types";
 import { insertProcessedComputedProperties } from "../userEvents/clickhouse";
 import { upsertBulkUserPropertyAssignments } from "../userProperties";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 function broadcastSegmentToPerformed(
   segmentId: string,
@@ -1014,7 +1014,7 @@ function segmentToIndexed({
           return [
             {
               stateId,
-              expression: `toUnixTimestamp(maxMerge(max_event_time))`,
+              expression: `toUnixTimestamp(max(max_event_time))`,
             },
           ];
         }
@@ -1063,7 +1063,7 @@ function buildRecentUpdateSegmentQuery({
       state_id,
       user_id,
       ${expression},
-      maxMerge(max_event_time),
+      max(event_time),
       toDateTime64(${nowSeconds}, 3) as assigned_at
     from computed_property_state
     where
@@ -1102,6 +1102,8 @@ function segmentToResolvedState({
   switch (node.type) {
     case SegmentNodeType.Performed: {
       const periodLowerBoundClause = getLowerBoundClause(periodBound);
+      // FIXME needs to involve event time
+      // need to find
       const nodeLowerBoundClause =
         node.withinSeconds && node.withinSeconds > 0
           ? `and computed_at >= toDateTime64(${Math.round(
@@ -1112,7 +1114,7 @@ function segmentToResolvedState({
       const operator: string = node.timesOperator ?? RelationalOperators.Equals;
       const times = node.times === undefined ? 1 : node.times;
 
-      // fixme
+      console.log("nodeLowerBoundClause", nodeLowerBoundClause);
       const query = `
         insert into resolved_segment_state
         select
@@ -1121,7 +1123,7 @@ function segmentToResolvedState({
           state_id,
           user_id,
           uniqMerge(unique_count) ${operator} ${times},
-          maxMerge(max_event_time),
+          max(event_time),
           toDateTime64(${nowSeconds}, 3) as assigned_at
         from computed_property_state
         where
@@ -1174,7 +1176,7 @@ function segmentToResolvedState({
                   withinLowerBound,
                   "Int32"
                 )} within_range,
-                max(state.merged_max_event_time),
+                max(state.max_event_time),
                 toDateTime64(${nowSeconds}, 3) as assigned_at
             from computed_property_state_index cpsi
             full outer join resolved_segment_state rss on
@@ -1189,7 +1191,7 @@ function segmentToResolvedState({
                 computed_property_id,
                 state_id,
                 user_id,
-                maxMerge(max_event_time) merged_max_event_time
+                max(event_time) max_event_time
               from computed_property_state
               where
                 type = 'segment'
@@ -1256,7 +1258,7 @@ function segmentToResolvedState({
                   max(cpsi.indexed_value) <= ${upperBoundParam} 
                   and argMax(state.merged_last_value, state.merged_max_event_time) == ${lastValueParam}
                 ) has_been,
-                max(state.merged_max_event_time),
+                max(state.max_event_time),
                 toDateTime64(${nowSeconds}, 3) as assigned_at
             from computed_property_state_index cpsi
             full outer join resolved_segment_state rss on
@@ -1272,7 +1274,7 @@ function segmentToResolvedState({
                 state_id,
                 user_id,
                 argMaxMerge(last_value) merged_last_value,
-                maxMerge(max_event_time) merged_max_event_time
+                max(event_time) max_event_time
               from computed_property_state
               where
                 type = 'segment'
@@ -1824,7 +1826,7 @@ function constructAssignmentsQuery({
               user_id,
               argMaxMerge(last_value) last_value,
               uniqMerge(unique_count) unique_count,
-              maxMerge(max_event_time) max_event_time,
+              max(max_event_time) max_event_time,
               arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_id
             from computed_property_state cps
             where
@@ -1984,7 +1986,7 @@ export async function computeState({
           inner2.user_id,
           inner2.last_value,
           inner2.unique_count,
-          inner2.max_event_time,
+          inner2.event_time,
           inner2.grouped_message_ids,
           toDateTime64(${nowSeconds}, 3) as computed_at
         from (
@@ -1996,7 +1998,7 @@ export async function computeState({
             inner1.user_id as user_id,
             argMaxState(inner1.last_value, inner1.event_time) as last_value,
             uniqState(inner1.unique_count) as unique_count,
-            maxState(inner1.event_time) as max_event_time,
+            inner1.event_time as event_time,
             groupArrayState(inner1.grouped_message_id) as grouped_message_ids,
             argMaxMerge(cps.last_value) as existing_last_value,
             uniqMerge(cps.unique_count) as existing_unique_count
