@@ -1114,9 +1114,20 @@ function segmentToResolvedState({
 
       if (node.withinSeconds && node.withinSeconds > 0) {
         eventTimeLowerBoundClause = `
-          where event_time >= toDateTime64(${Math.round(
-            Math.max(nowSeconds - node.withinSeconds, 0)
-          )}, 3)
+          where
+            cps.event_time >= toDateTime64(${Math.round(
+              Math.max(nowSeconds - node.withinSeconds, 0)
+            )}, 3)
+            and (
+              (
+                segment_state_value
+                and (
+                  rss.workspace_id = ''
+                  or rss.segment_state_value = False
+                )
+              )
+              or rss.segment_state_value = True
+            )
         `;
         // eventTimeLowerBoundClause = `
         //   and event_time >= toDateTime64(${Math.round(
@@ -1125,19 +1136,19 @@ function segmentToResolvedState({
         // `;
 
         // FIXME not right. what if condition is users who equal 0
-        eventTimeConditionClause = "";
-        // eventTimeConditionClause = `
-        //   (
-        //     (
-        //       segment_state_value
-        //       and (
-        //         rss.workspace_id = ''
-        //         or rss.segment_state_value = False
-        //       )
-        //     )
-        //     or rss.segment_state_value = True
-        //   )
-        // `;
+        // eventTimeConditionClause = "";
+        eventTimeConditionClause = `
+          (
+            (
+              segment_state_value
+              and (
+                rss.workspace_id = ''
+                or rss.segment_state_value = False
+              )
+            )
+            or rss.segment_state_value = True
+          )
+        `;
         eventTimeJoinClause = `
           full outer join resolved_segment_state rss on
             rss.workspace_id  = inner.workspace_id
@@ -1158,56 +1169,6 @@ function segmentToResolvedState({
         write values regardless of whether true or false
       */
 
-      const query4 = `
-        select
-          ucps.workspace_id,
-          ucps.computed_property_id,
-          ucps.state_id,
-          ucps.user_id
-        from updated_computed_property_state as ucps
-        where
-          workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-          and type = 'segment'
-          and computed_property_id = ${qb.addQueryValue(segment.id, "String")}
-          and state_id = ${qb.addQueryValue(stateId, "String")}
-          and computed_at <= toDateTime64(${nowSeconds}, 3)
-          ${periodLowerBoundClause}
-        select
-          cps.workspace_id,
-          cps.computed_property_id,
-          cps.state_id,
-          cps.user_id,
-          True,
-          -- uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value,
-          max(cps.event_time) as max_event_time,
-          toDateTime64(${nowSeconds}, 3) as assigned_at
-        from computed_property_state cps
-        right join (
-          select
-            workspace_id,
-            computed_property_id,
-            state_id,
-            user_id
-          from updated_computed_property_state
-          where
-            workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-            and type = 'segment'
-            and computed_property_id = ${qb.addQueryValue(segment.id, "String")}
-            and state_id = ${qb.addQueryValue(stateId, "String")}
-            and computed_at <= toDateTime64(${nowSeconds}, 3)
-            ${periodLowerBoundClause}
-          ) as updated on
-              updated.workspace_id = cps.workspace_id
-              and updated.computed_property_id = cps.computed_property_id
-              and updated.state_id = cps.state_id
-              and updated.user_id = cps.user_id
-        ${eventTimeLowerBoundClause}
-        group by
-          workspace_id,
-          computed_property_id,
-          state_id,
-          user_id
-      `;
       const query = `
         insert into resolved_segment_state
         select
@@ -1215,12 +1176,11 @@ function segmentToResolvedState({
           cps.computed_property_id,
           cps.state_id,
           cps.user_id,
-          -- True,
           uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value,
           max(cps.event_time) as max_event_time,
           toDateTime64(${nowSeconds}, 3) as assigned_at
         from computed_property_state cps
-        right join (
+        right any join (
           select
             workspace_id,
             computed_property_id,
