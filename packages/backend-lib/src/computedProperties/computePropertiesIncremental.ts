@@ -1143,7 +1143,7 @@ function segmentToResolvedState({
             within_range.segment_state_value,
             multiIf(
               notEmpty(within_range.workspace_id), within_range.max_event_time,
-              notEmpty(deduped_rss.workspace_id), deduped_rss.latest_max_event_time,
+              notEmpty(deduped_rss.workspace_id), deduped_rss.max_event_time,
               toDateTime64(0, 3)
             ) default_max_event_time,
             toDateTime64(${nowSeconds}, 3)
@@ -1153,8 +1153,8 @@ function segmentToResolvedState({
               segment_id,
               state_id,
               user_id,
-              argMax(segment_state_value, max_event_time) as segment_state_value,
-              argMax(max_event_time, computed_at) as latest_max_event_time
+              argMax(segment_state_value, computed_at) as segment_state_value,
+              max(max_event_time) as max_event_time
             from resolved_segment_state rss
             where
               rss.workspace_id = ${workspaceIdParam}
@@ -1454,6 +1454,7 @@ function segmentToResolvedState({
             "String"
           );
 
+          // FIXME deduple resolved segment state
           const query = `
             insert into resolved_segment_state
             select
