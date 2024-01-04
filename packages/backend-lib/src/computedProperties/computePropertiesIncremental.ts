@@ -1108,27 +1108,125 @@ function segmentToResolvedState({
 
       //
 
-      let eventTimeLowerBoundClause: string;
+      let eventTimeBoundClause: string;
       let eventTimeJoinClause: string;
       let eventTimeConditionClause: string;
 
+      const segmentIdParam = qb.addQueryValue(segment.id, "String");
+      const stateIdParam = qb.addQueryValue(stateId, "String");
+      const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
       if (node.withinSeconds && node.withinSeconds > 0) {
-        eventTimeLowerBoundClause = `
-          where
-            cps.event_time >= toDateTime64(${Math.round(
-              Math.max(nowSeconds - node.withinSeconds, 0)
-            )}, 3)
-            and (
-              (
-                segment_state_value
-                and (
-                  rss.workspace_id = ''
-                  or rss.segment_state_value = False
-                )
-              )
-              or rss.segment_state_value = True
-            )
+        // FIXME try using union
+        const query = `
+          insert into resolved_segment_state
+          select
+            multiIf(
+              notEmpty(within_range.workspace_id), within_range.workspace_id,
+              notEmpty(deduped_rss.workspace_id), deduped_rss.workspace_id,
+              ''
+            ) default_workspace_id,
+            multiIf(
+              notEmpty(within_range.computed_property_id), within_range.computed_property_id,
+              notEmpty(deduped_rss.segment_id), deduped_rss.segment_id,
+              ''
+            ) default_segment_id,
+            multiIf(
+              notEmpty(within_range.state_id), within_range.state_id,
+              notEmpty(deduped_rss.state_id), deduped_rss.state_id,
+              ''
+            ) default_state_id,
+            multiIf(
+              notEmpty(within_range.user_id), within_range.user_id,
+              notEmpty(deduped_rss.user_id), deduped_rss.user_id,
+              ''
+            ) default_user_id,
+            within_range.segment_state_value,
+            multiIf(
+              notEmpty(within_range.workspace_id), within_range.max_event_time,
+              notEmpty(deduped_rss.workspace_id), deduped_rss.latest_max_event_time,
+              toDateTime64(0, 3)
+            ) default_max_event_time,
+            toDateTime64(${nowSeconds}, 3)
+          from (
+            select
+              workspace_id,
+              segment_id,
+              state_id,
+              user_id,
+              argMax(segment_state_value, max_event_time) as segment_state_value,
+              argMax(max_event_time, computed_at) as latest_max_event_time
+            from resolved_segment_state rss
+            where
+              rss.workspace_id = ${workspaceIdParam}
+              and rss.segment_id = ${segmentIdParam}
+              and rss.state_id = ${stateIdParam}
+              and rss.segment_state_value = True
+            group by
+              workspace_id,
+              segment_id,
+              state_id,
+              user_id
+          ) as deduped_rss
+          full outer join (
+            select
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id,
+              uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value,
+              max(cps.event_time) as max_event_time
+            from computed_property_state cps
+            where
+              cps.workspace_id = ${workspaceIdParam}
+              and cps.type = 'segment'
+              and cps.computed_property_id = ${segmentIdParam}
+              and cps.state_id = ${stateIdParam}
+              and cps.event_time >= toDateTime64(${Math.round(
+                Math.max(nowSeconds - node.withinSeconds, 0)
+              )}, 3)
+            group by
+              workspace_id,
+              computed_property_id,
+              state_id,
+              user_id
+          ) as within_range on
+            within_range.workspace_id = deduped_rss.workspace_id
+            and within_range.computed_property_id = deduped_rss.segment_id
+            and within_range.state_id = deduped_rss.state_id
+            and within_range.user_id = deduped_rss.user_id
         `;
+
+        return [query];
+        // eventTimeBoundClause = `
+        //   -- FIXME empty when cps is empty, due to full outer join
+        //   (
+        //     (
+        //       cps.workspace_id = ${workspaceIdParam}
+        //       and cps.type = 'segment'
+        //       and cps.computed_property_id = ${segmentIdParam}
+        //       and cps.state_id = ${stateIdParam}
+        //     )
+        //     or (
+        //       rss.workspace_id = ${workspaceIdParam}
+        //       and rss.segment_id = ${segmentIdParam}
+        //       and rss.state_id = ${stateIdParam}
+        //     )
+        //   )
+        //   -- breaks test for some reason
+        //   -- and cps.event_time <= toDateTime64(${Math.round(nowSeconds)}, 3)
+        //   and (
+        //     (
+        //       cps.event_time >= toDateTime64(${Math.round(
+        //         Math.max(nowSeconds - node.withinSeconds, 0)
+        //       )}, 3)
+        //       -- and (
+        //       --  rss.workspace_id = ''
+        //       --  or rss.segment_state_value = False
+        //       -- )
+        //     )
+        //     or rss.segment_state_value = True
+        //   )
+        // `;
         // eventTimeLowerBoundClause = `
         //   and event_time >= toDateTime64(${Math.round(
         //     Math.max(nowSeconds - node.withinSeconds, 0)
@@ -1150,118 +1248,123 @@ function segmentToResolvedState({
           )
         `;
         eventTimeJoinClause = `
-          full outer join resolved_segment_state rss on
-            rss.workspace_id  = inner.workspace_id
-            and rss.segment_id  = inner.computed_property_id
-            and rss.state_id  = inner.state_id
-            and rss.user_id  = inner.user_id
+          full outer join resolved_segment_state as rss on
+            rss.workspace_id  = cps.workspace_id
+            and rss.segment_id  = cps.computed_property_id
+            and rss.state_id  = cps.state_id
+            and rss.user_id  = cps.user_id
         `;
       } else {
-        eventTimeLowerBoundClause = "";
-        eventTimeConditionClause = "";
-        eventTimeJoinClause = "";
+        throw new Error("Unimplemented");
+        // eventTimeBoundClause = "";
+        // eventTimeConditionClause = "";
+        // eventTimeJoinClause = "";
       }
 
       // FIXME
       /* FIXME
-        select from updated users
-        left join on state
-        write values regardless of whether true or false
+
+        get values from computed property state
+        get new ids from updated
+        get out of date ids resolved state 
+
+        or
+
+        just lookup all from cps where event_time >= lower bound, so either use event_time or updated
       */
 
-      const query = `
-        insert into resolved_segment_state
-        select
-          cps.workspace_id,
-          cps.computed_property_id,
-          cps.state_id,
-          cps.user_id,
-          uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value,
-          max(cps.event_time) as max_event_time,
-          toDateTime64(${nowSeconds}, 3) as assigned_at
-        from computed_property_state cps
-        right any join (
-          select
-            workspace_id,
-            computed_property_id,
-            state_id,
-            user_id
-          from updated_computed_property_state
-          where
-            workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-            and type = 'segment'
-            and computed_property_id = ${qb.addQueryValue(segment.id, "String")}
-            and state_id = ${qb.addQueryValue(stateId, "String")}
-            and computed_at <= toDateTime64(${nowSeconds}, 3)
-            ${periodLowerBoundClause}
-          ) as updated on
-              updated.workspace_id = cps.workspace_id
-              and updated.computed_property_id = cps.computed_property_id
-              and updated.state_id = cps.state_id
-              and updated.user_id = cps.user_id
-        ${eventTimeLowerBoundClause}
-        group by
-          workspace_id,
-          computed_property_id,
-          state_id,
-          user_id
-      `;
-      const query2 = `
-        insert into resolved_segment_state
-        select
-          inner.workspace_id,
-          inner.computed_property_id,
-          inner.state_id,
-          inner.user_id,
-          inner.merged_unique_count ${operator} ${times} as segment_state_value,
-          inner.max_event_time,
-          toDateTime64(${nowSeconds}, 3) as assigned_at
-        from (
-          select
-            cps.workspace_id,
-            cps.computed_property_id,
-            cps.state_id,
-            cps.user_id,
-            uniqMerge(cps.unique_count) as merged_unique_count,
-            max(cps.event_time) as max_event_time
-          from computed_property_state cps
-          where
-            (
-              workspace_id,
-              computed_property_id,
-              state_id,
-              user_id
-            ) in (
-              select
-                workspace_id,
-                computed_property_id,
-                state_id,
-                user_id
-              from updated_computed_property_state
-              where
-                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-                and type = 'segment'
-                and computed_property_id = ${qb.addQueryValue(
-                  segment.id,
-                  "String"
-                )}
-                and state_id = ${qb.addQueryValue(stateId, "String")}
-                and computed_at <= toDateTime64(${nowSeconds}, 3)
-                ${periodLowerBoundClause}
-            )
-            ${eventTimeLowerBoundClause}
-          group by
-            workspace_id,
-            computed_property_id,
-            state_id,
-            user_id
-        ) as inner
-        ${eventTimeJoinClause}
-        where
-          ${eventTimeConditionClause}
-      `;
-      console.log("loc6", query);
-      return [query];
+      // const query3 = `
+      //   insert into resolved_segment_state
+      //   select
+      //     multiIf(
+      //       notEmpty(cps.workspace_id), cps.workspace_id,
+      //       notEmpty(rss.workspace_id), rss.workspace_id,
+      //       ''
+      //     ) default_workspace_id,
+      //     multiIf(
+      //       notEmpty(cps.computed_property_id), cps.computed_property_id,
+      //       notEmpty(rss.segment_id), rss.segment_id,
+      //       ''
+      //     ) default_segment_id,
+      //     multiIf(
+      //       notEmpty(cps.state_id), cps.state_id,
+      //       notEmpty(rss.state_id), rss.state_id,
+      //       ''
+      //     ) default_state_id,
+      //     multiIf(
+      //       notEmpty(cps.user_id), cps.user_id,
+      //       notEmpty(rss.user_id), rss.user_id,
+      //       ''
+      //     ) default_user_id,
+      //     uniqMerge(cps.unique_count) ${operator} ${times},
+      //     max(cps.event_time),
+      //     toDateTime64(${nowSeconds}, 3)
+      //   from computed_property_state cps
+      //   ${eventTimeJoinClause}
+      //   where
+      //     ${eventTimeBoundClause}
+      //   group by
+      //     default_workspace_id,
+      //     default_segment_id,
+      //     default_state_id,
+      //     default_user_id
+      // `;
+      // const query2 = `
+      //   insert into resolved_segment_state
+      //   select
+      //     inner.workspace_id,
+      //     inner.computed_property_id,
+      //     inner.state_id,
+      //     inner.user_id,
+      //     inner.merged_unique_count ${operator} ${times} as segment_state_value,
+      //     inner.max_event_time,
+      //     toDateTime64(${nowSeconds}, 3) as assigned_at
+      //   from (
+      //     select
+      //       cps.workspace_id,
+      //       cps.computed_property_id,
+      //       cps.state_id,
+      //       cps.user_id,
+      //       uniqMerge(cps.unique_count) as merged_unique_count,
+      //       max(cps.event_time) as max_event_time
+      //     from computed_property_state cps
+      //     where
+      //       (
+      //         workspace_id,
+      //         computed_property_id,
+      //         state_id,
+      //         user_id
+      //       ) in (
+      //         select
+      //           workspace_id,
+      //           computed_property_id,
+      //           state_id,
+      //           user_id
+      //         from updated_computed_property_state
+      //         where
+      //           workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+      //           and type = 'segment'
+      //           and computed_property_id = ${qb.addQueryValue(
+      //             segment.id,
+      //             "String"
+      //           )}
+      //           and state_id = ${qb.addQueryValue(stateId, "String")}
+      //           and computed_at <= toDateTime64(${nowSeconds}, 3)
+      //           ${periodLowerBoundClause}
+      //       )
+      //       ${eventTimeBoundClause}
+      //     group by
+      //       defalut_workspace_id,
+      //       computed_property_id,
+      //       state_id,
+      //       user_id
+      //   ) as inner
+      //   ${eventTimeJoinClause}
+      //   where
+      //     ${eventTimeConditionClause}
+      // `;
+      // console.log("loc6", query);
+      // return [query];
     }
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
@@ -2310,23 +2413,39 @@ export async function computeAssignments({
           segment_id,
           user_id,
           CAST((groupArray(state_id), groupArray(segment_state_value)), 'Map(String, Boolean)') as state_values,
-          max(max_event_time) as max_state_event_time
-        from resolved_segment_state
-        where
-          workspace_id = ${workspaceIdParam}
-          and segment_id = ${qb.addQueryValue(segment.id, "String")}
-          and state_id in ${qb.addQueryValue(
-            assignmentConfig.stateIds,
-            "Array(String)"
-          )}
-          and computed_at <= toDateTime64(${nowSeconds}, 3)
-          ${lowerBoundClause}
+          max_state_event_time
+        from  (
+          select
+            workspace_id,
+            segment_id,
+            state_id,
+            user_id,
+            argMax(segment_state_value, computed_at) segment_state_value,
+            max(max_event_time) as max_state_event_time
+          from resolved_segment_state
+          where
+            workspace_id = ${workspaceIdParam}
+            and segment_id = ${qb.addQueryValue(segment.id, "String")}
+            and state_id in ${qb.addQueryValue(
+              assignmentConfig.stateIds,
+              "Array(String)"
+            )}
+            and computed_at <= toDateTime64(${nowSeconds}, 3)
+            ${lowerBoundClause}
+          group by
+            workspace_id,
+            segment_id,
+            user_id,
+            state_id
+        )
         group by
           workspace_id,
           segment_id,
-          user_id
+          user_id,
+          max_state_event_time
       )
     `;
+    console.log("loc5 assignmentQuery", assignmentQuery);
 
     //   `
     //   insert into computed_property_assignments_v2

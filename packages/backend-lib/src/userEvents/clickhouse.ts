@@ -103,7 +103,7 @@ export async function createUserEventsTables({
           event_time DateTime64(3),
           INDEX event_time_idx event_time TYPE minmax GRANULARITY 4,
           grouped_message_ids AggregateFunction(groupArray, String),
-          computed_at DateTime64(3),
+          computed_at DateTime64(3)
         )
         ENGINE = AggregatingMergeTree()
         ORDER BY (
