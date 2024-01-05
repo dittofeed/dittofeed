@@ -795,7 +795,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes an AND segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -1672,6 +1671,7 @@ describe("computeProperties", () => {
     },
     {
       description: "last performed segment",
+      only: true,
       userProperties: [],
       segments: [
         {

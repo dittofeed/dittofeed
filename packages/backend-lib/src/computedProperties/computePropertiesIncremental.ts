@@ -1488,10 +1488,79 @@ function segmentToResolvedState({
         });
       });
     }
+    case SegmentNodeType.Broadcast: {
+      logger().error("broadcast segment is deprecated");
+      return [];
+    }
+    case SegmentNodeType.Email: {
+      const performedNode = emailSegmentToPerformed(node);
+      return segmentToResolvedState({
+        node: performedNode,
+        segment,
+        now,
+        periodBound,
+        workspaceId,
+        qb,
+      });
+    }
+    case SegmentNodeType.SubscriptionGroup: {
+      const performedNode = subscriptionChangeToPerformed(node);
+      return segmentToResolvedState({
+        node: performedNode,
+        segment,
+        now,
+        periodBound,
+        workspaceId,
+        qb,
+      });
+    }
+    case SegmentNodeType.LastPerformed: {
+      const varName = getChCompatibleUuid();
+      const hasPropertyConditions = node.hasProperties.map((property, i) => {
+        const operatorType = property.operator.type;
+        const reference =
+          i === 0
+            ? `(JSONExtract(argMaxMerge(last_value), 'Array(String)') as ${varName})`
+            : varName;
+        const indexedReference = `${reference}[${i + 1}]`;
+
+        switch (operatorType) {
+          case SegmentOperatorType.Equals: {
+            return `${indexedReference} == ${qb.addQueryValue(
+              property.operator.value,
+              "String"
+            )}`;
+          }
+          case SegmentOperatorType.NotEquals: {
+            return `${indexedReference} != ${qb.addQueryValue(
+              property.operator.value,
+              "String"
+            )}`;
+          }
+          default:
+            throw new Error(
+              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
+            );
+        }
+      });
+      const expression = hasPropertyConditions.length
+        ? `(${hasPropertyConditions.join(" and ")})`
+        : `1=1`;
+
+      return [
+        buildRecentUpdateSegmentQuery({
+          workspaceId,
+          stateId,
+          expression,
+          segmentId: segment.id,
+          now,
+          periodBound,
+          qb,
+        }),
+      ];
+    }
     default:
-      throw new Error(
-        `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
-      );
+      assertUnreachable(node);
   }
 }
 
@@ -1506,19 +1575,18 @@ function resolvedSegmentToAssignment({
 }): AssignedSegmentConfig {
   const stateId = segmentNodeStateId(segment, node.id);
   const stateIdParam = qb.addQueryValue(stateId, "String");
+  const stateValue = `state_values[${stateIdParam}]`;
   switch (node.type) {
     case SegmentNodeType.Trait: {
-      const expression = `state_values[${stateIdParam}]`;
       return {
         stateIds: [stateId],
-        expression,
+        expression: stateValue,
       };
     }
     case SegmentNodeType.Performed: {
-      const expression = `state_values[${stateIdParam}]`;
       return {
         stateIds: [stateId],
-        expression,
+        expression: stateValue,
       };
     }
     case SegmentNodeType.And: {
@@ -1556,10 +1624,72 @@ function resolvedSegmentToAssignment({
         expression: `(${children.map((c) => c.expression).join(" and ")})`,
       };
     }
+    case SegmentNodeType.Or: {
+      const children = node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "OR child node not found"
+          );
+          return [];
+        }
+        return resolvedSegmentToAssignment({
+          node: childNode,
+          segment,
+          qb,
+        });
+      });
+      if (children.length === 0) {
+        return {
+          stateIds: [],
+          expression: "False",
+        };
+      }
+      const child = children[0];
+      if (children.length === 1 && child) {
+        return child;
+      }
+      return {
+        stateIds: children.flatMap((c) => c.stateIds),
+        expression: `(${children.map((c) => c.expression).join(" or ")})`,
+      };
+    }
+    case SegmentNodeType.Broadcast: {
+      logger().error("broadcast segment is deprecated");
+      return {
+        stateIds: [],
+        expression: "False",
+      };
+    }
+    case SegmentNodeType.Email: {
+      const performedNode = emailSegmentToPerformed(node);
+      return resolvedSegmentToAssignment({
+        node: performedNode,
+        segment,
+        qb,
+      });
+    }
+    case SegmentNodeType.SubscriptionGroup: {
+      const performedNode = subscriptionChangeToPerformed(node);
+      return resolvedSegmentToAssignment({
+        node: performedNode,
+        segment,
+        qb,
+      });
+    }
+    case SegmentNodeType.LastPerformed: {
+      return {
+        stateIds: [stateId],
+        expression: stateValue,
+      };
+    }
     default:
-      throw new Error(
-        `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
-      );
+      assertUnreachable(node);
   }
 }
 
