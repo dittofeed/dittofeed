@@ -772,8 +772,7 @@ function userPropertyToSubQuery({
 interface AssignmentQueryConfig {
   query: string;
   // ids of states to aggregate that need to fall within bounded time window
-  stateIds?: string[];
-  // ids of states to aggregate that don't need to fall within bounded time window
+  stateIds: string[];
 }
 
 type OptionalAssignmentQueryConfig = Omit<
