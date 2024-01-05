@@ -878,6 +878,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes within operator trait segment",
+      only: true,
       userProperties: [],
       segments: [
         {
@@ -1004,7 +1005,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes HasBeen operator trait segment",
-      only: true,
+      // only: true,
       userProperties: [],
       segments: [
         {

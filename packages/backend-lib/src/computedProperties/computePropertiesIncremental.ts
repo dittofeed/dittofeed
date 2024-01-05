@@ -1252,24 +1252,7 @@ function segmentToResolvedState({
               and rss.segment_id  = cpsi.computed_property_id
               and rss.state_id  = cpsi.state_id
               and rss.user_id  = cpsi.user_id
-            left join (
-              select
-                workspace_id,
-                type,
-                computed_property_id,
-                state_id,
-                user_id,
-                max(event_time) max_event_time
-              from computed_property_state
-              where
-                type = 'segment'
-              group by
-                workspace_id,
-                type,
-                computed_property_id,
-                state_id,
-                user_id
-            ) state on
+            left join computed_property_state state on
               state.workspace_id = cpsi.workspace_id
               and state.type = cpsi.type
               and state.computed_property_id = cpsi.computed_property_id
@@ -1313,6 +1296,12 @@ function segmentToResolvedState({
           );
 
           // FIXME deduple resolved segment state
+          const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+          const computedPropertyIdParam = qb.addQueryValue(
+            segment.id,
+            "String"
+          );
+          const stateIdParam = qb.addQueryValue(stateId, "String");
           const query = `
             insert into resolved_segment_state
             select
@@ -1327,7 +1316,25 @@ function segmentToResolvedState({
                 max(state.max_event_time),
                 toDateTime64(${nowSeconds}, 3) as assigned_at
             from computed_property_state_index cpsi
-            full outer join resolved_segment_state rss on
+            full outer join (
+              select
+                workspace_id,
+                segment_id,
+                state_id,
+                user_id,
+                argMax(segment_state_value, computed_at) as segment_state_value,
+                max(max_event_time) as max_event_time
+              from resolved_segment_state
+              where
+                workspace_id = ${workspaceIdParam}
+                and segment_id = ${computedPropertyIdParam}
+                and state_id = ${stateIdParam}
+              group by
+                workspace_id,
+                segment_id,
+                state_id,
+                user_id
+            ) as rss on
               rss.workspace_id  = cpsi.workspace_id
               and rss.segment_id  = cpsi.computed_property_id
               and rss.state_id  = cpsi.state_id
@@ -1357,13 +1364,10 @@ function segmentToResolvedState({
               and state.state_id = cpsi.state_id
               and state.user_id = cpsi.user_id
             where
-              cpsi.workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+              cpsi.workspace_id = ${workspaceIdParam}
               and cpsi.type = 'segment'
-              and cpsi.computed_property_id = ${qb.addQueryValue(
-                segment.id,
-                "String"
-              )}
-              and cpsi.state_id = ${qb.addQueryValue(stateId, "String")}
+              and cpsi.computed_property_id = ${computedPropertyIdParam}
+              and cpsi.state_id = ${stateIdParam}
               and (
                 (
                     cpsi.indexed_value <= ${upperBoundParam}
