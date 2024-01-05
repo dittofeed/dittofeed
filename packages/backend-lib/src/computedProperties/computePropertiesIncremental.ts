@@ -1440,6 +1440,54 @@ function segmentToResolvedState({
           );
       }
     }
+    case SegmentNodeType.And: {
+      return node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "AND child node not found"
+          );
+          return [];
+        }
+        return segmentToResolvedState({
+          node: childNode,
+          segment,
+          now,
+          periodBound,
+          workspaceId,
+          qb,
+        });
+      });
+    }
+    case SegmentNodeType.Or: {
+      return node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "OR child node not found"
+          );
+          return [];
+        }
+        return segmentToResolvedState({
+          node: childNode,
+          segment,
+          now,
+          periodBound,
+          workspaceId,
+          qb,
+        });
+      });
+    }
     default:
       throw new Error(
         `Unimplemented segment node type ${node.type} for segment: ${segment.id} and node: ${node.id}`
@@ -1471,6 +1519,41 @@ function resolvedSegmentToAssignment({
       return {
         stateIds: [stateId],
         expression,
+      };
+    }
+    case SegmentNodeType.And: {
+      const children = node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "AND child node not found"
+          );
+          return [];
+        }
+        return resolvedSegmentToAssignment({
+          node: childNode,
+          segment,
+          qb,
+        });
+      });
+      if (children.length === 0) {
+        return {
+          stateIds: [],
+          expression: "False",
+        };
+      }
+      const child = children[0];
+      if (children.length === 1 && child) {
+        return child;
+      }
+      return {
+        stateIds: children.flatMap((c) => c.stateIds),
+        expression: `(${children.map((c) => c.expression).join(" and ")})`,
       };
     }
     default:
