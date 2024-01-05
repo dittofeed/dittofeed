@@ -1684,11 +1684,10 @@ function resolvedSegmentToAssignment({
   }
 }
 
-function constructAssignmentsQuery({
+function assignUserPropertiesQuery({
   workspaceId,
   config: ac,
-  computedPropertyId,
-  computedPropertyType,
+  userPropertyId,
   periodBound,
   qb,
   now,
@@ -1697,8 +1696,7 @@ function constructAssignmentsQuery({
   now: number;
   qb: ClickHouseQueryBuilder;
   periodBound?: number;
-  computedPropertyId: string;
-  computedPropertyType: "user_property" | "segment";
+  userPropertyId: string;
   config: AssignmentQueryConfig;
 }): string | null {
   const nowSeconds = now / 1000;
@@ -1709,7 +1707,6 @@ function constructAssignmentsQuery({
       periodBound && periodBound !== 0
         ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
         : "";
-    // FIXME
     boundedQuery = `
       select
         workspace_id,
@@ -1720,26 +1717,13 @@ function constructAssignmentsQuery({
       from updated_computed_property_state
       where
         workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-        and type = '${computedPropertyType}'
-        and computed_property_id = ${qb.addQueryValue(
-          computedPropertyId,
-          "String"
-        )}
+        and type = 'user_property'
+        and computed_property_id = ${qb.addQueryValue(userPropertyId, "String")}
         and state_id in ${qb.addQueryValue(ac.stateIds, "Array(String)")}
         and computed_at <= toDateTime64(${nowSeconds}, 3)
         ${lowerBoundClause}
     `;
   }
-  let segmentValue: string;
-  let userPropertyValue: string;
-  if (computedPropertyType === "segment") {
-    userPropertyValue = "''";
-    segmentValue = ac.query;
-  } else {
-    segmentValue = "False";
-    userPropertyValue = ac.query;
-  }
-  // fixme
   const query = `
     insert into computed_property_assignments_v2
     select
@@ -1747,8 +1731,8 @@ function constructAssignmentsQuery({
       type,
       computed_property_id,
       user_id,
-      ${segmentValue} as segment_value,
-      ${userPropertyValue} as user_property_value,
+      False as segment_value,
+      ${ac.query} as user_property_value,
       arrayReduce('max', mapValues(max_event_time)),
       toDateTime64(${nowSeconds}, 3) as assigned_at
     from (
@@ -1951,7 +1935,6 @@ export async function computeState({
           `
         )
         .join(", ");
-      // fixme state
       const query = `
         insert into computed_property_state_v2
         select
@@ -2083,7 +2066,6 @@ export async function computeAssignments({
       node: segment.definition.entryNode,
     });
 
-    // fixme loc1
     const resolvedQueries = segmentToResolvedState({
       segment,
       workspaceId,
@@ -2097,9 +2079,7 @@ export async function computeAssignments({
       node: segment.definition.entryNode,
       qb,
     });
-
     const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-
     const assignmentQuery = `
       insert into computed_property_assignments_v2
       select
@@ -2214,10 +2194,9 @@ export async function computeAssignments({
     if (!ac) {
       continue;
     }
-    const stateQuery = constructAssignmentsQuery({
+    const stateQuery = assignUserPropertiesQuery({
       workspaceId,
-      computedPropertyId: userProperty.id,
-      computedPropertyType: "user_property",
+      userPropertyId: userProperty.id,
       config: ac,
       qb,
       now,
@@ -2255,7 +2234,6 @@ export async function computeAssignments({
       }
     })
   );
-  // fixme better parallelize with up
 
   await createPeriods({
     workspaceId,

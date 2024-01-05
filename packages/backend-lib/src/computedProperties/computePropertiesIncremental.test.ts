@@ -44,9 +44,9 @@ import {
   toUserPropertyResource,
 } from "../userProperties";
 import {
+  computeAssignments,
   ComputedPropertyStep,
   computeState,
-  computeUserPropertyAssignments,
   processAssignments,
   segmentNodeStateId,
   userPropertyStateId,
@@ -2605,7 +2605,7 @@ describe("computeProperties", () => {
             now,
             userProperties,
           });
-          await computeUserPropertyAssignments({
+          await computeAssignments({
             workspaceId,
             segments,
             userProperties,

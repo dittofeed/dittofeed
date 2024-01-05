@@ -14,9 +14,9 @@ import {
   getChCompatibleUuid,
 } from "../../../clickhouse";
 import {
+  computeAssignments,
   ComputePropertiesArgs as ComputePropertiesIncrementalArgs,
   computeState,
-  computeUserPropertyAssignments,
   processAssignments,
 } from "../../../computedProperties/computePropertiesIncremental";
 import config from "../../../config";
@@ -829,7 +829,7 @@ export async function computePropertiesIncremental({
       now,
     });
     logger().info({ workspaceId }, "computing assignments incrementally");
-    await computeUserPropertyAssignments({
+    await computeAssignments({
       workspaceId,
       segments,
       userProperties,
