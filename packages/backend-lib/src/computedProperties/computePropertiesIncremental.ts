@@ -1057,7 +1057,7 @@ function buildRecentUpdateSegmentQuery({
       ${expression},
       max(event_time),
       toDateTime64(${nowSeconds}, 3) as assigned_at
-    from computed_property_state
+    from computed_property_state as cps
     where
       (
         workspace_id,
@@ -1194,14 +1194,18 @@ function segmentToResolvedState({
         `;
 
         return [query];
-      } else {
-        const periodLowerBoundClause = getLowerBoundClause(periodBound);
-
-        throw new Error("Unimplemented");
-        // eventTimeBoundClause = "";
-        // eventTimeConditionClause = "";
-        // eventTimeJoinClause = "";
       }
+      return [
+        buildRecentUpdateSegmentQuery({
+          segmentId: segment.id,
+          periodBound,
+          now,
+          workspaceId,
+          stateId,
+          expression: `uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value`,
+          qb,
+        }),
+      ];
     }
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
@@ -1295,7 +1299,6 @@ function segmentToResolvedState({
             "String"
           );
 
-          // FIXME deduple resolved segment state
           const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
           const computedPropertyIdParam = qb.addQueryValue(
             segment.id,

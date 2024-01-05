@@ -878,7 +878,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes within operator trait segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -1005,7 +1004,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes HasBeen operator trait segment",
-      // only: true,
       userProperties: [],
       segments: [
         {
@@ -2211,7 +2209,6 @@ describe("computeProperties", () => {
       description:
         "when a performed segment is updated with a new performed count threshold",
       userProperties: [],
-      // only: true,
       segments: [
         {
           name: "updatedPerformed",
