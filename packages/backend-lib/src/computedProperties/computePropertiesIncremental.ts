@@ -774,8 +774,6 @@ interface AssignmentQueryConfig {
   // ids of states to aggregate that need to fall within bounded time window
   stateIds?: string[];
   // ids of states to aggregate that don't need to fall within bounded time window
-  // FIXME remove
-  unboundedStateIds?: string[];
 }
 
 type OptionalAssignmentQueryConfig = Omit<
@@ -808,7 +806,6 @@ function leafUserPropertyToAssignment({
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
     case UserPropertyDefinitionType.Performed: {
@@ -816,7 +813,6 @@ function leafUserPropertyToAssignment({
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
   }
@@ -874,7 +870,6 @@ function groupedUserPropertyToAssignment({
       return {
         query,
         stateIds: childNodes.flatMap((c) => c.stateIds ?? []),
-        unboundedStateIds: childNodes.flatMap((c) => c.unboundedStateIds ?? []),
       };
     }
     case UserPropertyDefinitionType.Trait: {
@@ -956,7 +951,6 @@ function userPropertyToAssignment({
             )
           )`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
     case UserPropertyDefinitionType.AnonymousId: {
@@ -964,7 +958,6 @@ function userPropertyToAssignment({
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
     case UserPropertyDefinitionType.Id: {
@@ -972,7 +965,6 @@ function userPropertyToAssignment({
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
     case UserPropertyDefinitionType.Performed: {
@@ -1014,7 +1006,6 @@ function segmentToIndexed({
         default:
           return [];
       }
-      break;
     }
     default:
       return [];
@@ -1693,261 +1684,6 @@ function resolvedSegmentToAssignment({
   }
 }
 
-function segmentToAssignment({
-  segment,
-  node,
-  now,
-  qb,
-}: {
-  segment: SavedSegmentResource;
-  node: SegmentNode;
-  now: number;
-  qb: ClickHouseQueryBuilder;
-}): OptionalAssignmentQueryConfig {
-  const stateId = segmentNodeStateId(segment, node.id);
-  const nowSeconds = now / 1000;
-  const stateIdQueryValue = qb.addQueryValue(stateId, "String");
-  const lastValue = `last_value[${stateIdQueryValue}]`;
-  const uniqCount = `unique_count[${stateIdQueryValue}]`;
-  const maxEventTime = `max_event_time[${stateIdQueryValue}]`;
-
-  switch (node.type) {
-    case SegmentNodeType.Trait: {
-      switch (node.operator.type) {
-        case SegmentOperatorType.Equals: {
-          const value = qb.addQueryValue(node.operator.value, "String");
-          const query = `${lastValue} == ${value}`;
-          return {
-            query,
-            stateIds: [stateId],
-            unboundedStateIds: [],
-          };
-        }
-        case SegmentOperatorType.NotEquals: {
-          const value = qb.addQueryValue(node.operator.value, "String");
-          const query = `${lastValue} != ${value}`;
-          return {
-            query,
-            stateIds: [stateId],
-            unboundedStateIds: [],
-          };
-        }
-        case SegmentOperatorType.Within: {
-          // FIXME
-          const lowerBound = Math.round(
-            Math.max(nowSeconds - node.operator.windowSeconds, 0)
-          );
-          return {
-            // FIXME shouldn't be constant true, should be true if within custom date range, and false if outside of date range but currently in segment.
-            query: "True",
-          };
-        }
-        case SegmentOperatorType.Exists: {
-          const query = `${lastValue} != '""'`;
-          return {
-            query,
-            stateIds: [stateId],
-            unboundedStateIds: [],
-          };
-        }
-        case SegmentOperatorType.HasBeen: {
-          const upperBound = Math.max(
-            nowSeconds - node.operator.windowSeconds,
-            0
-          );
-          const query = `${maxEventTime} < toDateTime64(${upperBound}, 3) and ${lastValue} == ${qb.addQueryValue(
-            node.operator.value,
-            "String"
-          )}`;
-          return {
-            query,
-            stateIds: [],
-            unboundedStateIds: [stateId],
-          };
-        }
-      }
-      break;
-    }
-    case SegmentNodeType.Performed: {
-      const operator: string = node.timesOperator ?? RelationalOperators.Equals;
-      const times = node.times === undefined ? 1 : node.times;
-      let isUnbounded = false;
-
-      const queries: string[] = [
-        `${uniqCount} ${operator} ${qb.addQueryValue(times, "Int32")}`,
-      ];
-      if (node.withinSeconds !== undefined && node.withinSeconds) {
-        isUnbounded = true;
-        const lowerBound = Math.max(nowSeconds - node.withinSeconds, 0);
-        queries.push(`${maxEventTime} >= toDateTime64(${lowerBound}, 3)`);
-      }
-
-      const stateIds = isUnbounded ? [] : [stateId];
-      const unboundedStateIds = isUnbounded ? [stateId] : [];
-      const query =
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        queries.length === 1 ? queries[0]! : `(${queries.join(" and ")})`;
-
-      return {
-        query,
-        stateIds,
-        unboundedStateIds,
-      };
-    }
-    case SegmentNodeType.LastPerformed: {
-      const varName = getChCompatibleUuid();
-      const hasPropertyConditions = node.hasProperties.map((property, i) => {
-        const operatorType = property.operator.type;
-        const reference =
-          i === 0
-            ? `(JSONExtract(${lastValue}, 'Array(String)') as ${varName})`
-            : varName;
-        const indexedReference = `${reference}[${i + 1}]`;
-
-        switch (operatorType) {
-          case SegmentOperatorType.Equals: {
-            return `${indexedReference} == ${qb.addQueryValue(
-              property.operator.value,
-              "String"
-            )}`;
-          }
-          case SegmentOperatorType.NotEquals: {
-            return `${indexedReference} != ${qb.addQueryValue(
-              property.operator.value,
-              "String"
-            )}`;
-          }
-          default:
-            throw new Error(
-              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
-            );
-        }
-      });
-      const query = hasPropertyConditions.length
-        ? `(${hasPropertyConditions.join(" and ")})`
-        : `1=1`;
-
-      return {
-        query,
-        stateIds: [stateId],
-        unboundedStateIds: [],
-      };
-    }
-    case SegmentNodeType.And: {
-      const childQueries = node.children.flatMap((child) => {
-        const childNode = segment.definition.nodes.find((n) => n.id === child);
-        if (!childNode) {
-          logger().error(
-            {
-              segment,
-              child,
-              node,
-            },
-            "AND child node not found"
-          );
-          return [];
-        }
-        const assignment = segmentToAssignment({
-          node: childNode,
-          segment,
-          now,
-          qb,
-        });
-        if (!assignment) {
-          return [];
-        }
-        return assignment;
-      });
-      if (childQueries.length === 0) {
-        return null;
-      }
-      if (childQueries.length === 1 && childQueries[0]) {
-        return childQueries[0];
-      }
-      const query = `(${childQueries.map((c) => c.query).join(" and ")})`;
-      return {
-        query,
-        stateIds: childQueries.flatMap((c) => c.stateIds ?? []),
-        unboundedStateIds: childQueries.flatMap(
-          (c) => c.unboundedStateIds ?? []
-        ),
-      };
-    }
-    case SegmentNodeType.Or: {
-      const childQueries = node.children.flatMap((child) => {
-        const childNode = segment.definition.nodes.find((n) => n.id === child);
-        if (!childNode) {
-          logger().error(
-            {
-              segment,
-              child,
-              node,
-            },
-            "Or child node not found"
-          );
-          return [];
-        }
-        const assignment = segmentToAssignment({
-          node: childNode,
-          segment,
-          now,
-          qb,
-        });
-        if (!assignment) {
-          return [];
-        }
-        return assignment;
-      });
-      if (childQueries.length === 0) {
-        return null;
-      }
-      if (childQueries.length === 1 && childQueries[0]) {
-        return childQueries[0];
-      }
-      const query = `(${childQueries.map((c) => c.query).join(" or ")})`;
-      return {
-        query,
-        stateIds: childQueries.flatMap((c) => c.stateIds ?? []),
-        unboundedStateIds: childQueries.flatMap(
-          (c) => c.unboundedStateIds ?? []
-        ),
-      };
-    }
-    case SegmentNodeType.Broadcast: {
-      const performedNode: PerformedSegmentNode = broadcastSegmentToPerformed(
-        segment.id,
-        node
-      );
-      return segmentToAssignment({
-        node: performedNode,
-        segment,
-        now,
-        qb,
-      });
-    }
-    case SegmentNodeType.Email: {
-      const performedNode: PerformedSegmentNode = emailSegmentToPerformed(node);
-      return segmentToAssignment({
-        node: performedNode,
-        segment,
-        now,
-        qb,
-      });
-    }
-    case SegmentNodeType.SubscriptionGroup: {
-      const lastPerformedNode: LastPerformedSegmentNode =
-        subscriptionChangeToPerformed(node);
-
-      return segmentToAssignment({
-        node: lastPerformedNode,
-        segment,
-        now,
-        qb,
-      });
-    }
-  }
-}
-
 function constructAssignmentsQuery({
   workspaceId,
   config: ac,
@@ -2338,71 +2074,6 @@ export async function computeAssignments({
     });
     const periodBound = period?.maxTo.getTime();
     const qb = new ClickHouseQueryBuilder();
-    // const ac = segmentToAssignment({
-    //   segment,
-    //   node: segment.definition.entryNode,
-    //   now,
-    //   qb,
-    // });
-    // if (!ac) {
-    //   continue;
-    // }
-
-    // const stateQuery = constructAssignmentsQuery({
-    //   workspaceId,
-    //   computedPropertyId: segment.id,
-    //   computedPropertyType: "segment",
-    //   config: ac,
-    //   qb,
-    //   now,
-    //   periodBound,
-    // });
-    // if (!stateQuery) {
-    //   continue;
-    // }
-
-    // let indexQuery: string | null = null;
-    // // fixme
-    // if (ac.customBoundedStateIds?.length) {
-    //   const nowSeconds = now / 1000;
-    //   // const lowerBoundClause = "";
-    //   const lowerBoundClause =
-    //     periodBound && periodBound !== 0
-    //       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
-    //       : "";
-
-    //   indexQuery = `
-    //     insert into computed_property_state_index
-    //     select
-    //       workspace_id,
-    //       type,
-    //       computed_property_id,
-    //       state_id,
-    //       user_id,
-    //       multiIf(
-    //         ${ac.customBoundedStateIds.map(
-    //           ({ stateId, toIndexedQuery }) =>
-    //             `state_id == ${qb.addQueryValue(stateId, "String")},
-    //             ${toIndexedQuery}`
-    //         )},
-    //         0
-    //       ) indexed_value
-    //     from computed_property_state
-    //     where
-    //       state_id in ${qb.addQueryValue(
-    //         ac.customBoundedStateIds.map((c) => c.stateId),
-    //         "Array(String)"
-    //       )}
-    //       and computed_at <= toDateTime64(${nowSeconds}, 3)
-    //       ${lowerBoundClause}
-    //     group by
-    //       workspace_id,
-    //       type,
-    //       computed_property_id,
-    //       state_id,
-    //       user_id
-    //   `;
-    // }
 
     const nowSeconds = now / 1000;
 
@@ -2605,7 +2276,6 @@ async function processRows({
   workspaceId: string;
   subscribedJourneys: JourneyResource[];
 }): Promise<boolean> {
-  console.log("processRows");
   logger().debug(
     {
       rows,
@@ -2759,7 +2429,6 @@ async function processRows({
       ...assignment,
     }));
 
-  console.log("processRows insertProcessedComputedProperties");
   await insertProcessedComputedProperties({
     assignments: processedAssignments,
   });
