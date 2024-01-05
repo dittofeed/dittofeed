@@ -1057,7 +1057,7 @@ function buildRecentUpdateSegmentQuery({
       ${expression},
       max(event_time),
       toDateTime64(${nowSeconds}, 3) as assigned_at
-    from computed_property_state as cps
+    from computed_property_state_v2 as cps
     where
       (
         workspace_id,
@@ -1172,7 +1172,7 @@ function segmentToResolvedState({
               user_id,
               uniqMerge(cps.unique_count) ${operator} ${times} as segment_state_value,
               max(cps.event_time) as max_event_time
-            from computed_property_state cps
+            from computed_property_state_v2 cps
             where
               cps.workspace_id = ${workspaceIdParam}
               and cps.type = 'segment'
@@ -1256,7 +1256,7 @@ function segmentToResolvedState({
               and rss.segment_id  = cpsi.computed_property_id
               and rss.state_id  = cpsi.state_id
               and rss.user_id  = cpsi.user_id
-            left join computed_property_state state on
+            left join computed_property_state_v2 state on
               state.workspace_id = cpsi.workspace_id
               and state.type = cpsi.type
               and state.computed_property_id = cpsi.computed_property_id
@@ -1351,7 +1351,7 @@ function segmentToResolvedState({
                 user_id,
                 argMaxMerge(last_value) merged_last_value,
                 max(event_time) max_event_time
-              from computed_property_state
+              from computed_property_state_v2
               where
                 type = 'segment'
               group by
@@ -2067,7 +2067,7 @@ function constructAssignmentsQuery({
               uniqMerge(unique_count) unique_count,
               max(event_time) max_event_time,
               arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_id
-            from computed_property_state cps
+            from computed_property_state_v2 cps
             where
               (
                 workspace_id,
@@ -2215,8 +2215,9 @@ export async function computeState({
           `
         )
         .join(", ");
+      // fixme state
       const query = `
-        insert into computed_property_state
+        insert into computed_property_state_v2
         select
           inner2.workspace_id,
           inner2.type,
@@ -2268,7 +2269,7 @@ export async function computeState({
               and processing_time <= toDateTime64(${nowSeconds}, 3)
               ${lowerBoundClause}
           ) as inner1
-          left join computed_property_state cps on
+          left join computed_property_state_v2 cps on
             inner1.workspace_id = cps.workspace_id
             and inner1.type = cps.type
             and inner1.computed_property_id = cps.computed_property_id
@@ -2477,7 +2478,6 @@ export async function computeAssignments({
           max_state_event_time
       )
     `;
-    console.log("loc5 assignmentQuery", assignmentQuery);
 
     const queries = [resolvedQueries, assignmentQuery];
 
@@ -2502,7 +2502,7 @@ export async function computeAssignments({
               .join(",")},
             0
           ) indexed_value
-        from computed_property_state
+        from computed_property_state_v2
         where
           workspace_id = ${workspaceIdParam}
           and type = 'segment'
@@ -2559,14 +2559,11 @@ export async function computeAssignments({
       queries: [stateQuery],
       qb,
     });
-
-    console.log("stateQUery", stateQuery);
   }
 
   await Promise.all(
     queryValues.map(async ({ queries, qb }) => {
       for (const query of queries) {
-        console.log("loc6 query", query);
         if (Array.isArray(query)) {
           await Promise.all(
             query.map(async (q) => {
@@ -2999,7 +2996,6 @@ export async function processAssignments({
     )
   `;
 
-  console.log("loc1", selectQuery);
   const pageQueryId = getChCompatibleUuid();
 
   const resultSet = await chQuery({

@@ -124,8 +124,9 @@ async function readStates({
       uniqMerge(unique_count) as unique_count,
       max(event_time) as max_event_time,
       groupArrayMerge(grouped_message_ids) as grouped_message_ids,
-      max(computed_at)
-    from computed_property_state
+      max(computed_at),
+      groupArray(event_time) as event_times
+    from computed_property_state_v2
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
     group by
       workspace_id,
@@ -1005,8 +1006,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes HasBeen operator trait segment",
-      // FIXME only fails when not only
-      // only: true,
       userProperties: [],
       segments: [
         {
@@ -1135,6 +1134,7 @@ describe("computeProperties", () => {
               nodeId: "1",
               name: "stuckOnboarding",
               lastValue: "onboarding",
+              // last event shouldn't update maxEventTime because has same "onboarding" value
               maxEventTime: new Date(
                 now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100
               ).toISOString(),
@@ -2380,7 +2380,6 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
-          // FIXME
           description:
             "when the tracked event occurred outside of the required window, does not set segment",
           users: [

@@ -92,7 +92,7 @@ export async function createUserEventsTables({
       );
       `,
     `
-        CREATE TABLE IF NOT EXISTS computed_property_state (
+        CREATE TABLE IF NOT EXISTS computed_property_state_v2 (
           workspace_id LowCardinality(String),
           type Enum('user_property' = 1, 'segment' = 2),
           computed_property_id LowCardinality(String),
@@ -101,7 +101,6 @@ export async function createUserEventsTables({
           last_value AggregateFunction(argMax, String, DateTime64(3)),
           unique_count AggregateFunction(uniq, String),
           event_time DateTime64(3),
-          INDEX event_time_idx event_time TYPE minmax GRANULARITY 4,
           grouped_message_ids AggregateFunction(groupArray, String),
           computed_at DateTime64(3)
         )
@@ -111,7 +110,8 @@ export async function createUserEventsTables({
           type,
           computed_property_id,
           state_id,
-          user_id
+          user_id,
+          event_time
         );
       `,
     `
@@ -276,7 +276,7 @@ export async function createUserEventsTables({
         state_id,
         user_id,
         computed_at
-      from computed_property_state
+      from computed_property_state_v2
       group by
         workspace_id,
         type,
