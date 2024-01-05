@@ -121,7 +121,7 @@ async function readStates({
       user_id,
       argMaxMerge(last_value) as last_value,
       uniqMerge(unique_count) as unique_count,
-      maxMerge(max_event_time) as max_event_time,
+      max(event_time) as max_event_time,
       groupArrayMerge(grouped_message_ids) as grouped_message_ids,
       max(computed_at)
     from computed_property_state
@@ -878,6 +878,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes within operator trait segment",
+      only: true,
       userProperties: [],
       segments: [
         {
@@ -2209,6 +2210,7 @@ describe("computeProperties", () => {
       description:
         "when a performed segment is updated with a new performed count threshold",
       userProperties: [],
+      // only: true,
       segments: [
         {
           name: "updatedPerformed",
@@ -2324,7 +2326,6 @@ describe("computeProperties", () => {
     },
     {
       description: "when a performed segment has a within condition",
-      only: true,
       userProperties: [
         {
           name: "id",

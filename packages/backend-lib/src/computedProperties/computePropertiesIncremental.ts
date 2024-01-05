@@ -782,6 +782,7 @@ interface AssignmentQueryConfig {
   // ids of states to aggregate that don't need to fall within bounded time window
   // FIXME remove
   unboundedStateIds?: string[];
+  // FIXME remove
   customBoundedStateIds?: CustomBoundedStateId[];
 }
 
@@ -1054,7 +1055,6 @@ function buildRecentUpdateSegmentQuery({
   const nowSeconds = now / 1000;
   const lowerBoundClause = getLowerBoundClause(periodBound);
 
-  // FIXME filter on updated table
   const query = `
     insert into resolved_segment_state
     select
@@ -1067,12 +1067,26 @@ function buildRecentUpdateSegmentQuery({
       toDateTime64(${nowSeconds}, 3) as assigned_at
     from computed_property_state
     where
-      workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-      and type = 'segment'
-      and computed_property_id = ${qb.addQueryValue(segmentId, "String")}
-      and state_id = ${qb.addQueryValue(stateId, "String")}
-      and computed_at <= toDateTime64(${nowSeconds}, 3)
-      ${lowerBoundClause}
+      (
+        workspace_id,
+        computed_property_id,
+        state_id,
+        user_id
+      ) in (
+        select
+          workspace_id,
+          computed_property_id,
+          state_id,
+          user_id
+        from updated_computed_property_state
+        where
+          workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+          and type = 'segment'
+          and computed_property_id = ${qb.addQueryValue(segmentId, "String")}
+          and state_id = ${qb.addQueryValue(stateId, "String")}
+          and computed_at <= toDateTime64(${nowSeconds}, 3)
+          ${lowerBoundClause}
+      )
     group by
       workspace_id,
       computed_property_id,
@@ -1101,22 +1115,13 @@ function segmentToResolvedState({
   const stateId = segmentNodeStateId(segment, node.id);
   switch (node.type) {
     case SegmentNodeType.Performed: {
-      const periodLowerBoundClause = getLowerBoundClause(periodBound);
-
       const operator: string = node.timesOperator ?? RelationalOperators.Equals;
       const times = node.times === undefined ? 1 : node.times;
-
-      //
-
-      let eventTimeBoundClause: string;
-      let eventTimeJoinClause: string;
-      let eventTimeConditionClause: string;
 
       const segmentIdParam = qb.addQueryValue(segment.id, "String");
       const stateIdParam = qb.addQueryValue(stateId, "String");
       const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
       if (node.withinSeconds && node.withinSeconds > 0) {
-        // FIXME try using union
         const query = `
           insert into resolved_segment_state
           select
@@ -1197,174 +1202,14 @@ function segmentToResolvedState({
         `;
 
         return [query];
-        // eventTimeBoundClause = `
-        //   -- FIXME empty when cps is empty, due to full outer join
-        //   (
-        //     (
-        //       cps.workspace_id = ${workspaceIdParam}
-        //       and cps.type = 'segment'
-        //       and cps.computed_property_id = ${segmentIdParam}
-        //       and cps.state_id = ${stateIdParam}
-        //     )
-        //     or (
-        //       rss.workspace_id = ${workspaceIdParam}
-        //       and rss.segment_id = ${segmentIdParam}
-        //       and rss.state_id = ${stateIdParam}
-        //     )
-        //   )
-        //   -- breaks test for some reason
-        //   -- and cps.event_time <= toDateTime64(${Math.round(nowSeconds)}, 3)
-        //   and (
-        //     (
-        //       cps.event_time >= toDateTime64(${Math.round(
-        //         Math.max(nowSeconds - node.withinSeconds, 0)
-        //       )}, 3)
-        //       -- and (
-        //       --  rss.workspace_id = ''
-        //       --  or rss.segment_state_value = False
-        //       -- )
-        //     )
-        //     or rss.segment_state_value = True
-        //   )
-        // `;
-        // eventTimeLowerBoundClause = `
-        //   and event_time >= toDateTime64(${Math.round(
-        //     Math.max(nowSeconds - node.withinSeconds, 0)
-        //   )}, 3)
-        // `;
-
-        // FIXME not right. what if condition is users who equal 0
-        // eventTimeConditionClause = "";
-        eventTimeConditionClause = `
-          (
-            (
-              segment_state_value
-              and (
-                rss.workspace_id = ''
-                or rss.segment_state_value = False
-              )
-            )
-            or rss.segment_state_value = True
-          )
-        `;
-        eventTimeJoinClause = `
-          full outer join resolved_segment_state as rss on
-            rss.workspace_id  = cps.workspace_id
-            and rss.segment_id  = cps.computed_property_id
-            and rss.state_id  = cps.state_id
-            and rss.user_id  = cps.user_id
-        `;
       } else {
+        const periodLowerBoundClause = getLowerBoundClause(periodBound);
+
         throw new Error("Unimplemented");
         // eventTimeBoundClause = "";
         // eventTimeConditionClause = "";
         // eventTimeJoinClause = "";
       }
-
-      // FIXME
-      /* FIXME
-
-        get values from computed property state
-        get new ids from updated
-        get out of date ids resolved state 
-
-        or
-
-        just lookup all from cps where event_time >= lower bound, so either use event_time or updated
-      */
-
-      // const query3 = `
-      //   insert into resolved_segment_state
-      //   select
-      //     multiIf(
-      //       notEmpty(cps.workspace_id), cps.workspace_id,
-      //       notEmpty(rss.workspace_id), rss.workspace_id,
-      //       ''
-      //     ) default_workspace_id,
-      //     multiIf(
-      //       notEmpty(cps.computed_property_id), cps.computed_property_id,
-      //       notEmpty(rss.segment_id), rss.segment_id,
-      //       ''
-      //     ) default_segment_id,
-      //     multiIf(
-      //       notEmpty(cps.state_id), cps.state_id,
-      //       notEmpty(rss.state_id), rss.state_id,
-      //       ''
-      //     ) default_state_id,
-      //     multiIf(
-      //       notEmpty(cps.user_id), cps.user_id,
-      //       notEmpty(rss.user_id), rss.user_id,
-      //       ''
-      //     ) default_user_id,
-      //     uniqMerge(cps.unique_count) ${operator} ${times},
-      //     max(cps.event_time),
-      //     toDateTime64(${nowSeconds}, 3)
-      //   from computed_property_state cps
-      //   ${eventTimeJoinClause}
-      //   where
-      //     ${eventTimeBoundClause}
-      //   group by
-      //     default_workspace_id,
-      //     default_segment_id,
-      //     default_state_id,
-      //     default_user_id
-      // `;
-      // const query2 = `
-      //   insert into resolved_segment_state
-      //   select
-      //     inner.workspace_id,
-      //     inner.computed_property_id,
-      //     inner.state_id,
-      //     inner.user_id,
-      //     inner.merged_unique_count ${operator} ${times} as segment_state_value,
-      //     inner.max_event_time,
-      //     toDateTime64(${nowSeconds}, 3) as assigned_at
-      //   from (
-      //     select
-      //       cps.workspace_id,
-      //       cps.computed_property_id,
-      //       cps.state_id,
-      //       cps.user_id,
-      //       uniqMerge(cps.unique_count) as merged_unique_count,
-      //       max(cps.event_time) as max_event_time
-      //     from computed_property_state cps
-      //     where
-      //       (
-      //         workspace_id,
-      //         computed_property_id,
-      //         state_id,
-      //         user_id
-      //       ) in (
-      //         select
-      //           workspace_id,
-      //           computed_property_id,
-      //           state_id,
-      //           user_id
-      //         from updated_computed_property_state
-      //         where
-      //           workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-      //           and type = 'segment'
-      //           and computed_property_id = ${qb.addQueryValue(
-      //             segment.id,
-      //             "String"
-      //           )}
-      //           and state_id = ${qb.addQueryValue(stateId, "String")}
-      //           and computed_at <= toDateTime64(${nowSeconds}, 3)
-      //           ${periodLowerBoundClause}
-      //       )
-      //       ${eventTimeBoundClause}
-      //     group by
-      //       defalut_workspace_id,
-      //       computed_property_id,
-      //       state_id,
-      //       user_id
-      //   ) as inner
-      //   ${eventTimeJoinClause}
-      //   where
-      //     ${eventTimeConditionClause}
-      // `;
-      // console.log("loc6", query);
-      // return [query];
     }
     case SegmentNodeType.Trait: {
       switch (node.operator.type) {
@@ -1372,6 +1217,7 @@ function segmentToResolvedState({
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
           );
+          // FIXME dedup
           const query = `
             insert into resolved_segment_state
             select
@@ -1379,7 +1225,7 @@ function segmentToResolvedState({
                 cpsi.computed_property_id,
                 cpsi.state_id,
                 cpsi.user_id,
-                argMax(cpsi.indexed_value, state.merged_max_event_time) >= ${qb.addQueryValue(
+                argMax(cpsi.indexed_value, state.max_event_time) >= ${qb.addQueryValue(
                   withinLowerBound,
                   "Int32"
                 )} within_range,
@@ -1973,6 +1819,7 @@ function constructAssignmentsQuery({
     segmentValue = "False";
     userPropertyValue = ac.query;
   }
+  // fixme
   const query = `
     insert into computed_property_assignments_v2
     select
@@ -2448,117 +2295,6 @@ export async function computeAssignments({
     `;
     console.log("loc5 assignmentQuery", assignmentQuery);
 
-    //   `
-    //   insert into computed_property_assignments_v2
-    //   select
-    //     workspace_id,
-    //     type,
-    //     computed_property_id,
-    //     user_id,
-    //     ${segmentValue} as segment_value,
-    //     ${userPropertyValue} as user_property_value,
-    //     arrayReduce('max', mapValues(max_event_time)),
-    //     toDateTime64(${nowSeconds}, 3) as assigned_at
-    //   from (
-    //     select
-    //       workspace_id,
-    //       type,
-    //       computed_property_id,
-    //       user_id,
-    //       CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
-    //       CAST((groupArray(state_id), groupArray(unique_count)), 'Map(String, Int32)') as unique_count,
-    //       CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time,
-    //       CAST(
-    //         (
-    //           groupArray(state_id),
-    //           groupArray(events)
-    //         ),
-    //         'Map(String, Array(Tuple(String, DateTime64(3), String)))'
-    //       ) as grouped_events
-    //     from (
-    //       select
-    //         inner2.workspace_id as workspace_id,
-    //         inner2.type as type,
-    //         inner2.computed_property_id as computed_property_id,
-    //         inner2.state_id as state_id,
-    //         inner2.user_id as user_id,
-    //         inner2.last_value as last_value,
-    //         inner2.unique_count as unique_count,
-    //         inner2.max_event_time as max_event_time,
-    //         groupArray((inner2.event, inner2.event_time, inner2.properties)) as events
-    //       from (
-    //         select
-    //           inner1.workspace_id as workspace_id,
-    //           inner1.type as type,
-    //           inner1.computed_property_id as computed_property_id,
-    //           inner1.state_id as state_id,
-    //           inner1.user_id as user_id,
-    //           inner1.last_value as last_value,
-    //           inner1.unique_count as unique_count,
-    //           inner1.max_event_time as max_event_time,
-    //           ue.event as event,
-    //           ue.event_time as event_time,
-    //           ue.properties as properties
-    //         from user_events_v2 ue
-    //         right any join (
-    //           select
-    //             workspace_id,
-    //             type,
-    //             computed_property_id,
-    //             state_id,
-    //             user_id,
-    //             argMaxMerge(last_value) last_value,
-    //             uniqMerge(unique_count) unique_count,
-    //             maxMerge(max_event_time) max_event_time,
-    //             arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_id
-    //           from computed_property_state cps
-    //           where
-    //             (
-    //               workspace_id,
-    //               type,
-    //               computed_property_id,
-    //               state_id,
-    //               user_id
-    //             ) in (${boundedQuery})
-    //           group by
-    //             workspace_id,
-    //             type,
-    //             computed_property_id,
-    //             state_id,
-    //             user_id
-    //         ) as inner1 on
-    //           inner1.message_id != ''
-    //           and inner1.message_id = ue.message_id
-    //         group by
-    //           workspace_id,
-    //           type,
-    //           computed_property_id,
-    //           state_id,
-    //           user_id,
-    //           last_value,
-    //           unique_count,
-    //           max_event_time,
-    //           event,
-    //           event_time,
-    //           properties
-    //       ) inner2
-    //       group by
-    //         workspace_id,
-    //         type,
-    //         computed_property_id,
-    //         state_id,
-    //         user_id,
-    //         last_value,
-    //         unique_count,
-    //         max_event_time
-    //     ) inner3
-    //     group by
-    //       workspace_id,
-    //       type,
-    //       computed_property_id,
-    //       user_id
-    //   ) inner4
-    // `;
     const queries = [resolvedQueries, assignmentQuery];
 
     if (indexedConfig.length) {
@@ -2646,6 +2382,7 @@ export async function computeAssignments({
   await Promise.all(
     queryValues.map(async ({ queries, qb }) => {
       for (const query of queries) {
+        console.log("loc6 query", query);
         if (Array.isArray(query)) {
           await Promise.all(
             query.map(async (q) => {
@@ -2668,11 +2405,6 @@ export async function computeAssignments({
   );
   // fixme better parallelize with up
 
-  // await command({
-  //   query: `
-  //   `,
-  // });
-
   await createPeriods({
     workspaceId,
     userProperties,
@@ -2692,6 +2424,7 @@ async function processRows({
   workspaceId: string;
   subscribedJourneys: JourneyResource[];
 }): Promise<boolean> {
+  console.log("processRows");
   logger().debug(
     {
       rows,
@@ -2845,6 +2578,7 @@ async function processRows({
       ...assignment,
     }));
 
+  console.log("processRows insertProcessedComputedProperties");
   await insertProcessedComputedProperties({
     assignments: processedAssignments,
   });
@@ -3081,6 +2815,7 @@ export async function processAssignments({
     )
   `;
 
+  console.log("loc1", selectQuery);
   const pageQueryId = getChCompatibleUuid();
 
   const resultSet = await chQuery({
