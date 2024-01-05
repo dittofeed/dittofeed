@@ -42,7 +42,9 @@ export function getWorkspaceIdFromReq(req: FastifyRequest): string | null {
   return null;
 }
 
-export async function getWorkspaceId(req: FastifyRequest): Promise<string> {
+export async function getWorkspaceId(
+  req: FastifyRequest
+): Promise<string | null> {
   const bodyParam = schemaValidate(req.body, withWorkspaceId).unwrapOr(
     null
   )?.workspaceId;
@@ -73,7 +75,7 @@ export async function getWorkspaceId(req: FastifyRequest): Promise<string> {
   logger().debug("No workspaceId found in request.");
 
   if (backendConfig().authMode === "multi-tenant") {
-    throw new Error("No workspaceId found in request.");
+    return null;
   }
   return (await prisma().workspace.findFirstOrThrow()).id;
 }
