@@ -115,6 +115,7 @@ async function readStates({
   const qb = new ClickHouseQueryBuilder();
   const query = `
     select
+      workspace_id,
       type,
       computed_property_id,
       state_id,
@@ -127,6 +128,7 @@ async function readStates({
     from computed_property_state
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
     group by
+      workspace_id,
       type,
       computed_property_id,
       state_id,
@@ -1003,6 +1005,8 @@ describe("computeProperties", () => {
     },
     {
       description: "computes HasBeen operator trait segment",
+      // FIXME only fails when not only
+      // only: true,
       userProperties: [],
       segments: [
         {
@@ -1180,6 +1184,7 @@ describe("computeProperties", () => {
               nodeId: "1",
               name: "stuckOnboarding",
               lastValue: "active",
+              // is one week behind
               maxEventTime: new Date(
                 now - 1000 * 60 * 60 * 24 * 7 - 100
               ).toISOString(),
@@ -1671,7 +1676,6 @@ describe("computeProperties", () => {
     },
     {
       description: "last performed segment",
-      only: true,
       userProperties: [],
       segments: [
         {
