@@ -769,12 +769,6 @@ function userPropertyToSubQuery({
   }
 }
 
-interface CustomBoundedStateId {
-  stateId: string;
-  toIndexedQuery: string;
-  from: string;
-  to: string;
-}
 interface AssignmentQueryConfig {
   query: string;
   // ids of states to aggregate that need to fall within bounded time window
@@ -782,8 +776,6 @@ interface AssignmentQueryConfig {
   // ids of states to aggregate that don't need to fall within bounded time window
   // FIXME remove
   unboundedStateIds?: string[];
-  // FIXME remove
-  customBoundedStateIds?: CustomBoundedStateId[];
 }
 
 type OptionalAssignmentQueryConfig = Omit<
@@ -1015,7 +1007,7 @@ function segmentToIndexed({
           return [
             {
               stateId,
-              expression: `toUnixTimestamp(max(max_event_time))`,
+              expression: `toUnixTimestamp(max(event_time))`,
             },
           ];
         }
@@ -1230,11 +1222,11 @@ function segmentToResolvedState({
                 cpsi.computed_property_id,
                 cpsi.state_id,
                 cpsi.user_id,
-                argMax(cpsi.indexed_value, state.max_event_time) >= ${qb.addQueryValue(
+                argMax(cpsi.indexed_value, state.event_time) >= ${qb.addQueryValue(
                   withinLowerBound,
                   "Int32"
                 )} within_range,
-                max(state.max_event_time),
+                max(state.event_time),
                 toDateTime64(${nowSeconds}, 3) as assigned_at
             from computed_property_state_index cpsi
             full outer join (
@@ -1330,7 +1322,7 @@ function segmentToResolvedState({
                 cpsi.user_id,
                 (
                   max(cpsi.indexed_value) <= ${upperBoundParam} 
-                  and argMax(state.merged_last_value, state.merged_max_event_time) == ${lastValueParam}
+                  and argMax(state.merged_last_value, state.max_event_time) == ${lastValueParam}
                 ) has_been,
                 max(state.max_event_time),
                 toDateTime64(${nowSeconds}, 3) as assigned_at
@@ -1528,15 +1520,6 @@ function segmentToAssignment({
           return {
             // FIXME shouldn't be constant true, should be true if within custom date range, and false if outside of date range but currently in segment.
             query: "True",
-            customBoundedStateIds: [
-              {
-                stateId,
-                toIndexedQuery:
-                  "toUnixTimestamp(parseDateTimeBestEffortOrZero(argMaxMerge(last_value)))",
-                from: `${qb.addQueryValue(lowerBound, "Int64")}`,
-                to: `${qb.addQueryValue(nowSeconds, "Int64")}`,
-              },
-            ],
           };
         }
         case SegmentOperatorType.Exists: {
@@ -1790,45 +1773,6 @@ function constructAssignmentsQuery({
         and computed_at <= toDateTime64(${nowSeconds}, 3)
         ${lowerBoundClause}
     `;
-  } else if (ac.customBoundedStateIds?.length) {
-    const boundConditions: string[] = ac.customBoundedStateIds.map(
-      (bound) => `
-        (
-          state_id = ${qb.addQueryValue(bound.stateId, "String")}
-          and indexed_value >= ${bound.from}
-          and indexed_value <= ${bound.from}
-        )
-      `
-    );
-    const boundedClause = boundConditions.join(" or ");
-
-    boundedQuery = `
-      select
-        workspace_id,
-        type,
-        computed_property_id,
-        state_id,
-        user_id
-      from computed_property_state_index
-      where
-        workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-        and type = '${computedPropertyType}'
-        and computed_property_id = ${qb.addQueryValue(
-          computedPropertyId,
-          "String"
-        )}
-    `;
-    // and (${boundedClause})
-  } else {
-    logger().error(
-      {
-        config: ac,
-        computedPropertyId,
-        computedPropertyType,
-      },
-      "missing state id clauses while assigning computed property"
-    );
-    return null;
   }
   let segmentValue: string;
   let userPropertyValue: string;
