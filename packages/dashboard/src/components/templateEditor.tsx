@@ -3,6 +3,7 @@ import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { Fullscreen, FullscreenExit } from "@mui/icons-material";
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -18,13 +19,26 @@ import {
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { UserPropertyAssignments } from "isomorphic-lib/src/types";
+import {
+  ChannelType,
+  CompletionStatus,
+  EphemeralRequestStatus,
+  InternalEventType,
+  JsonResultType,
+  MessageTemplateTestRequest,
+  MessageTemplateTestResponse,
+  UserPropertyAssignments,
+  WorkspaceMemberResource,
+} from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 import { useImmer } from "use-immer";
 
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
+import { useAppStore, useAppStorePick } from "../lib/appStore";
 import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
+import { LoremIpsum } from "lorem-ipsum";
 
 const USER_PROPERTIES_TOOLTIP =
   "Edit an example user's properties to see the edits reflected in the rendered template. Properties are computed from user Identify traits and Track events.";
@@ -64,38 +78,169 @@ export interface TemplateState {
   fullscreen: "preview" | "editor" | null;
   userProperties: UserPropertyAssignments;
   userPropertiesJSON: string;
+  title: string | null;
+  messageTestRequest: EphemeralRequestStatus<Error>;
+  testResponse: MessageTemplateTestResponse | null;
 }
 
 interface PreviewComponentProps {
   userProperties: UserPropertyAssignments;
 }
 
+const LOREM = new LoremIpsum({
+  sentencesPerParagraph: {
+    max: 8,
+    min: 4,
+  },
+  wordsPerSentence: {
+    max: 16,
+    min: 4,
+  },
+});
+
 export default function TemplateEditor({
+  templateId,
   renderEditorBody,
   renderEditorHeader,
   renderPreviewBody,
   renderPreviewHeader,
-  title,
   onTitleChange,
   onPublish,
-  initialUserProperties = {},
+  disabled,
+  member,
+  hideTitle,
 }: {
+  templateId: string;
+  disabled?: boolean;
+  hideTitle?: boolean;
+  member?: WorkspaceMemberResource;
   renderPreviewHeader: (props: PreviewComponentProps) => React.ReactNode;
   renderPreviewBody: (props: PreviewComponentProps) => React.ReactNode;
   renderEditorHeader: () => React.ReactNode;
   renderEditorBody: () => React.ReactNode;
-  title?: string;
-  initialUserProperties?: TemplateState["userProperties"];
   onTitleChange?: (title: string) => void;
   onPublish?: () => void;
 }) {
   const theme = useTheme();
-  const [{ fullscreen, userProperties, userPropertiesJSON }, setState] =
-    useImmer<TemplateState>({
-      fullscreen: null,
-      userProperties: initialUserProperties,
-      userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
-    });
+  const {
+    apiBase,
+    messages,
+    workspace: workspaceResult,
+    userProperties: userPropertiesResult,
+  } = useAppStorePick(["apiBase", "messages", "workspace", "userProperties"]);
+  const template =
+    messages.type === CompletionStatus.Successful
+      ? messages.value.find((m) => m.id === templateId)
+      : undefined;
+  const initialUserProperties = useMemo(() => {
+    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+      return {};
+    }
+    const userPropertyAssignments: UserPropertyAssignments = {};
+    for (const userProperty of userPropertiesResult.value) {
+      let value: string;
+      if (userProperty.name === "email" && member?.email) {
+        value = member.email;
+      } else {
+        value = LOREM.generateWords(1);
+      }
+
+      userPropertyAssignments[userProperty.name] = value;
+    }
+    debugger;
+    return userPropertyAssignments;
+  }, [userPropertiesResult, member]);
+
+  const [
+    {
+      fullscreen,
+      userProperties,
+      userPropertiesJSON,
+      title,
+      testResponse,
+      messageTestRequest,
+    },
+    setState,
+  ] = useImmer<TemplateState>({
+    fullscreen: null,
+    title: template?.name ?? "",
+    userProperties: initialUserProperties,
+    userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
+    testResponse: null,
+    messageTestRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+  });
+  if (workspaceResult.type !== CompletionStatus.Successful) {
+    return null;
+  }
+  const workspace = workspaceResult.value;
+
+  const submitTestData: MessageTemplateTestRequest = {
+    channel: ChannelType.Email,
+    workspaceId: workspace.id,
+    templateId,
+    userProperties,
+  };
+
+  const submitTest = apiRequestHandlerFactory({
+    request: messageTestRequest,
+    setRequest: (request) =>
+      setState((draft) => {
+        draft.messageTestRequest = request;
+      }),
+    responseSchema: MessageTemplateTestResponse,
+    setResponse: (response) =>
+      setState((draft) => {
+        draft.testResponse = response;
+      }),
+    onSuccessNotice: `Attempted test message.`,
+    onFailureNoticeHandler: () => `API Error: Failed to attempt test message.`,
+    requestConfig: {
+      method: "POST",
+      url: `${apiBase}/api/content/templates/test`,
+      data: submitTestData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  });
+
+  let testResponseEl: React.ReactNode = null;
+  if (testResponse) {
+    if (
+      testResponse.type === JsonResultType.Ok &&
+      testResponse.value.type === InternalEventType.MessageSent &&
+      testResponse.value.variant.type === ChannelType.Email
+    ) {
+      const { to } = testResponse.value.variant;
+      testResponseEl = (
+        <Alert severity="success">Message was sent successfully to {to}</Alert>
+      );
+    } else if (testResponse.type === JsonResultType.Err) {
+      testResponseEl = (
+        <Stack spacing={1}>
+          <Alert severity="error">
+            Failed to send test message. Suggestions:
+          </Alert>
+          {testResponse.err.suggestions.map((suggestion, i) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <Alert key={i} severity="warning">
+              {suggestion}
+            </Alert>
+          ))}
+          <Typography
+            sx={{
+              fontFamily: "monospace",
+              backgroundColor: theme.palette.grey[100],
+            }}
+          >
+            <code>{testResponse.err.responseData}</code>
+          </Typography>
+        </Stack>
+      );
+    }
+  }
 
   const handleFullscreenClose = () => {
     setState((draft) => {
@@ -189,7 +334,7 @@ export default function TemplateEditor({
             boxShadow: theme.shadows[2],
           }}
         >
-          {title && onTitleChange && (
+          {title !== null && !hideTitle && onTitleChange && (
             <EditableName
               name={title}
               variant="h4"
@@ -238,10 +383,14 @@ export default function TemplateEditor({
           )}
           <LoadingModal
             openTitle="Send Test Message"
-            onSubmit={() => {}}
-            onClose={() => {}}
+            onSubmit={submitTest}
+            onClose={() =>
+              setState((draft) => {
+                draft.testResponse = null;
+              })
+            }
           >
-            Test Response
+            {testResponseEl}
           </LoadingModal>
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>

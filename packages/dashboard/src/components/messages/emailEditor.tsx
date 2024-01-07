@@ -59,6 +59,7 @@ import { useUpdateEffect } from "../../lib/useUpdateEffect";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 import LoadingModal from "../loadingModal";
+import TemplateEditor from "../templateEditor";
 import defaultEmailBody from "./defaultEmailBody";
 
 function TransitionInner(
@@ -260,15 +261,6 @@ export default function EmailEditor({
   const [previewSubject, setRenderedSubject] = useState<string>("");
   const [previewEmailFrom, setRenderedFrom] = useState<string>("");
   const [previewEmailReplyTo, setRenderedReplyTo] = useState<string>("");
-  const messageTestRequest = useEmailEditorStore(
-    (store) => store.messageTestRequest
-  );
-  const setMessageTestRequest = useEmailEditorStore(
-    (store) => store.setMessageTestRequest
-  );
-  const testResponse = useEmailEditorStore((store) => store.testResponse);
-  const setTestResponse = useEmailEditorStore((store) => store.setTestResponse);
-  const [fullscreen, setFullscreen] = useState<Fullscreen>(null);
   const {
     apiBase,
     emailMessageBody: emailBody,
@@ -277,13 +269,9 @@ export default function EmailEditor({
     emailMessageTitle,
     emailMessageUpdateRequest,
     emailMessageUserProperties: mockUserProperties,
-    emailMessageUserPropertiesJSON: userPropertiesJSON,
     emailMessageReplyTo,
-    replaceEmailMessageProps: replaceUserProperties,
     setEmailMessageBody: setEmailBody,
     setEmailMessageFrom: setEmailFrom,
-    setEmailMessageTitle,
-    setEmailMessagePropsJSON: setUserPropertiesJSON,
     setEmailMessageSubject: setSubject,
     setEmailMessageUpdateRequest,
     upsertMessage,
@@ -330,18 +318,6 @@ export default function EmailEditor({
     workspaceRequest.type === CompletionStatus.Successful
       ? workspaceRequest.value
       : null;
-
-  const handleEditorFullscreenOpen = () => {
-    setFullscreen("editor");
-  };
-
-  const handleFullscreenClose = () => {
-    setFullscreen(null);
-  };
-
-  const handlePreviewFullscreenOpen = () => {
-    setFullscreen("preview");
-  };
 
   const disabledStyles: SxProps<Theme> = {
     "& .MuiInputBase-input.Mui-disabled": {
@@ -604,128 +580,88 @@ export default function EmailEditor({
     setEmailBody(val);
   };
 
-  const jsonCodeMirrorHandleChange = (val: string) => {
-    setUserPropertiesJSON(val);
-    try {
-      const parsed = JSON.parse(val);
-      if (!(typeof parsed === "object" && parsed !== null)) {
-        return;
-      }
-      const parsedObj: Record<string, unknown> = parsed;
-      const props: Record<string, string> = {};
-
-      // eslint-disable-next-line guard-for-in
-      for (const key in parsedObj) {
-        const parsedVal = parsed[key];
-        props[key] = parsedVal;
-      }
-      replaceUserProperties(props);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
-  };
-
-  const editor = (
-    <Stack
-      sx={{
-        width: "100%",
-        height: "100%",
-      }}
-      spacing={1}
-    >
-      <Stack>
-        <TextField
-          disabled
-          required
-          label="To"
-          variant="filled"
-          value={USER_TO}
-          sx={disabledStyles}
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopRightRadius: 0,
-            },
-          }}
-        />
-        <TextField
-          disabled={disabled}
-          label="From"
-          variant="filled"
-          onChange={(e) => {
-            setEmailFrom(e.target.value);
-          }}
-          required
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopRightRadius: 0,
-            },
-          }}
-          value={emailFrom}
-        />
-        <TextField
-          label="Subject"
-          required
-          disabled={disabled}
-          variant="filled"
-          onChange={(e) => {
-            setSubject(e.target.value);
-          }}
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopRightRadius: 0,
-            },
-          }}
-          value={emailSubject}
-        />
-        <TextField
-          label="Reply-To"
-          variant="filled"
-          disabled={disabled}
-          onChange={(e) => {
-            setEmailMessageReplyTo(e.target.value);
-          }}
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopRightRadius: 0,
-            },
-          }}
-          value={emailMessageReplyTo}
-        />
-      </Stack>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
-        {fullscreen === null ? (
-          <IconButton size="small" onClick={handleEditorFullscreenOpen}>
-            <Fullscreen />
-          </IconButton>
-        ) : (
-          <IconButton size="small" onClick={handleFullscreenClose}>
-            <FullscreenExit />
-          </IconButton>
-        )}
-      </Stack>
-
-      <BodyBox sx={{ padding: 1, fontFamily: "monospace" }} direction="left">
-        <ReactCodeMirror
-          value={emailBody}
-          onChange={htmlCodeMirrorHandleChange}
-          readOnly={disabled}
-          extensions={[
-            html(),
-            EditorView.theme({
-              "&": {
-                fontFamily: theme.typography.fontFamily,
-              },
-            }),
-            EditorView.lineWrapping,
-            lintGutter(),
-          ]}
-        />
-      </BodyBox>
+  const editorHeader = (
+    <Stack>
+      <TextField
+        disabled
+        required
+        label="To"
+        variant="filled"
+        value={USER_TO}
+        sx={disabledStyles}
+        InputProps={{
+          sx: {
+            fontSize: ".75rem",
+            borderTopRightRadius: 0,
+          },
+        }}
+      />
+      <TextField
+        disabled={disabled}
+        label="From"
+        variant="filled"
+        onChange={(e) => {
+          setEmailFrom(e.target.value);
+        }}
+        required
+        InputProps={{
+          sx: {
+            fontSize: ".75rem",
+            borderTopRightRadius: 0,
+          },
+        }}
+        value={emailFrom}
+      />
+      <TextField
+        label="Subject"
+        required
+        disabled={disabled}
+        variant="filled"
+        onChange={(e) => {
+          setSubject(e.target.value);
+        }}
+        InputProps={{
+          sx: {
+            fontSize: ".75rem",
+            borderTopRightRadius: 0,
+          },
+        }}
+        value={emailSubject}
+      />
+      <TextField
+        label="Reply-To"
+        variant="filled"
+        disabled={disabled}
+        onChange={(e) => {
+          setEmailMessageReplyTo(e.target.value);
+        }}
+        InputProps={{
+          sx: {
+            fontSize: ".75rem",
+            borderTopRightRadius: 0,
+          },
+        }}
+        value={emailMessageReplyTo}
+      />
     </Stack>
+  );
+
+  const editorBody = (
+    <ReactCodeMirror
+      value={emailBody}
+      onChange={htmlCodeMirrorHandleChange}
+      readOnly={disabled}
+      extensions={[
+        html(),
+        EditorView.theme({
+          "&": {
+            fontFamily: theme.typography.fontFamily,
+          },
+        }),
+        EditorView.lineWrapping,
+        lintGutter(),
+      ]}
+    />
   );
 
   const previewHeader = (
@@ -800,193 +736,16 @@ export default function EmailEditor({
     />
   );
 
-  const preview = (
-    <Stack
-      sx={{
-        width: "100%",
-        height: "100%",
-      }}
-      spacing={1}
-    >
-      <Stack>{previewHeader}</Stack>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <FormLabel sx={{ paddingLeft: 1 }}>Body Preview</FormLabel>
-        {fullscreen === null ? (
-          <IconButton size="small" onClick={handlePreviewFullscreenOpen}>
-            <Fullscreen />
-          </IconButton>
-        ) : (
-          <IconButton size="small" onClick={handleFullscreenClose}>
-            <FullscreenExit />
-          </IconButton>
-        )}
-      </Stack>
-      <BodyBox direction="right">{previewBody}</BodyBox>
-    </Stack>
-  );
-
-  const submitTestData: MessageTemplateTestRequest = {
-    channel: ChannelType.Email,
-    workspaceId: workspace.id,
-    templateId: messageId,
-    userProperties: mockUserProperties,
-  };
-
-  const submitTest = apiRequestHandlerFactory({
-    request: messageTestRequest,
-    setRequest: setMessageTestRequest,
-    responseSchema: MessageTemplateTestResponse,
-    setResponse: setTestResponse,
-    onSuccessNotice: `Attempted test message.`,
-    onFailureNoticeHandler: () => `API Error: Failed to attempt test message.`,
-    requestConfig: {
-      method: "POST",
-      url: `${apiBase}/api/content/templates/test`,
-      data: submitTestData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-
-  let testResponseEl: React.ReactNode = null;
-  if (testResponse) {
-    if (
-      testResponse.type === JsonResultType.Ok &&
-      testResponse.value.type === InternalEventType.MessageSent &&
-      testResponse.value.variant.type === ChannelType.Email
-    ) {
-      const { to } = testResponse.value.variant;
-      testResponseEl = (
-        <Alert severity="success">Message was sent successfully to {to}</Alert>
-      );
-    } else if (testResponse.type === JsonResultType.Err) {
-      testResponseEl = (
-        <Stack spacing={1}>
-          <Alert severity="error">
-            Failed to send test message. Suggestions:
-          </Alert>
-          {testResponse.err.suggestions.map((suggestion, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <Alert key={i} severity="warning">
-              {suggestion}
-            </Alert>
-          ))}
-          <Typography
-            sx={{
-              fontFamily: "monospace",
-              backgroundColor: theme.palette.grey[100],
-            }}
-          >
-            <code>{testResponse.err.responseData}</code>
-          </Typography>
-        </Stack>
-      );
-    }
-  }
   // TODO render provider and user
-
   return (
-    <>
-      <Stack
-        direction="row"
-        sx={{
-          height: "100%",
-          width: "100%",
-          paddingRight: 2,
-          paddingTop: 2,
-        }}
-        spacing={1}
-      >
-        <Stack
-          direction="column"
-          spacing={2}
-          sx={{
-            borderTopRightRadius: 1,
-            width: "25%",
-            padding: 1,
-            border: `1px solid ${theme.palette.grey[200]}`,
-            boxShadow: theme.shadows[2],
-          }}
-        >
-          {!hideTitle && (
-            <EditableName
-              name={emailMessageTitle}
-              variant="h4"
-              onChange={(e) => {
-                setEmailMessageTitle(e.target.value);
-              }}
-            />
-          )}
-          <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
-            <Typography variant="h5">User Properties</Typography>
-          </InfoTooltip>
-          <ReactCodeMirror
-            value={userPropertiesJSON}
-            onChange={jsonCodeMirrorHandleChange}
-            extensions={[
-              codeMirrorJson(),
-              linter(jsonParseLinter()),
-              EditorView.lineWrapping,
-              EditorView.theme({
-                "&": {
-                  fontFamily: theme.typography.fontFamily,
-                },
-              }),
-              lintGutter(),
-            ]}
-          />
-          {!hideSaveButton && (
-            <Button
-              variant="contained"
-              onClick={() => handleSave({})}
-              disabled={errors.size > 0}
-            >
-              Publish Changes
-            </Button>
-          )}
-          <LoadingModal
-            openTitle="Send Test Message"
-            onSubmit={submitTest}
-            onClose={() => setTestResponse(null)}
-          >
-            {testResponseEl}
-          </LoadingModal>
-        </Stack>
-        <Stack direction="row" sx={{ flex: 1 }}>
-          <Box
-            sx={{
-              width: "50%",
-            }}
-          >
-            {editor}
-          </Box>
-          <Divider orientation="vertical" />
-          <Box
-            sx={{
-              width: "50%",
-            }}
-          >
-            {preview}
-          </Box>
-        </Stack>
-      </Stack>
-      <Dialog
-        fullScreen
-        open={fullscreen === "editor"}
-        onClose={handleFullscreenClose}
-        TransitionComponent={Transition}
-      >
-        {editor}
-      </Dialog>
-      <Dialog
-        fullScreen
-        open={fullscreen === "preview"}
-        onClose={handleFullscreenClose}
-        TransitionComponent={Transition}
-      >
-        {preview}
-      </Dialog>
-    </>
+    <TemplateEditor
+      templateId={messageId}
+      disabled={disabled}
+      hideTitle={hideTitle}
+      renderEditorHeader={() => editorHeader}
+      renderEditorBody={() => editorBody}
+      renderPreviewBody={() => previewBody}
+      renderPreviewHeader={() => previewHeader}
+    />
   );
 }
