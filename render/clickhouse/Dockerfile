@@ -1,1 +1,1 @@
-FROM clickhouse/clickhouse-server:22.9.5.25
+FROM clickhouse/clickhouse-server:23.8.8.20-alpine
