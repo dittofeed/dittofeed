@@ -78,7 +78,6 @@ export default function TemplateEditor({
   title,
   onTitleChange,
   onPublish,
-  onSave,
   initialUserProperties = {},
 }: {
   renderPreviewHeader: (props: PreviewComponentProps) => React.ReactNode;
@@ -88,7 +87,6 @@ export default function TemplateEditor({
   title?: string;
   initialUserProperties?: TemplateState["userProperties"];
   onTitleChange?: (title: string) => void;
-  onSave?: () => void;
   onPublish?: () => void;
 }) {
   const theme = useTheme();
@@ -104,6 +102,70 @@ export default function TemplateEditor({
       draft.fullscreen = null;
     });
   };
+  const editor = (
+    <Stack
+      sx={{
+        width: "100%",
+        height: "100%",
+      }}
+      spacing={1}
+    >
+      <Stack>{renderEditorHeader()}</Stack>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
+        {fullscreen === null ? (
+          <IconButton
+            size="small"
+            onClick={() =>
+              setState((draft) => {
+                draft.fullscreen = "editor";
+              })
+            }
+          >
+            <Fullscreen />
+          </IconButton>
+        ) : (
+          <IconButton size="small" onClick={handleFullscreenClose}>
+            <FullscreenExit />
+          </IconButton>
+        )}
+      </Stack>
+      <BodyBox direction="left">{renderEditorBody()}</BodyBox>
+    </Stack>
+  );
+  const preview = (
+    <Stack
+      sx={{
+        width: "100%",
+        height: "100%",
+      }}
+      spacing={1}
+    >
+      <Stack>{renderPreviewHeader({ userProperties })}</Stack>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <FormLabel sx={{ paddingLeft: 1 }}>Body Preview</FormLabel>
+        {fullscreen === null ? (
+          <IconButton
+            size="small"
+            onClick={() =>
+              setState((draft) => {
+                draft.fullscreen = "preview";
+              })
+            }
+          >
+            <Fullscreen />
+          </IconButton>
+        ) : (
+          <IconButton size="small" onClick={handleFullscreenClose}>
+            <FullscreenExit />
+          </IconButton>
+        )}
+      </Stack>
+      <BodyBox direction="right">
+        {renderPreviewBody({ userProperties })}
+      </BodyBox>
+    </Stack>
+  );
   return (
     <>
       <Stack
@@ -188,39 +250,7 @@ export default function TemplateEditor({
               width: "50%",
             }}
           >
-            <Stack
-              sx={{
-                width: "100%",
-                height: "100%",
-              }}
-              spacing={1}
-            >
-              <Stack>{renderEditorHeader()}</Stack>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
-                {fullscreen === null ? (
-                  <IconButton
-                    size="small"
-                    onClick={() =>
-                      setState((draft) => {
-                        draft.fullscreen = "editor";
-                      })
-                    }
-                  >
-                    <Fullscreen />
-                  </IconButton>
-                ) : (
-                  <IconButton size="small" onClick={handleFullscreenClose}>
-                    <FullscreenExit />
-                  </IconButton>
-                )}
-              </Stack>
-              <BodyBox direction="left">{renderEditorBody()}</BodyBox>
-            </Stack>
+            {editor}
           </Box>
           <Divider orientation="vertical" />
           <Box
@@ -228,41 +258,7 @@ export default function TemplateEditor({
               width: "50%",
             }}
           >
-            <Stack
-              sx={{
-                width: "100%",
-                height: "100%",
-              }}
-              spacing={1}
-            >
-              <Stack>{renderPreviewHeader({ userProperties })}</Stack>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <FormLabel sx={{ paddingLeft: 1 }}>Body Preview</FormLabel>
-                {fullscreen === null ? (
-                  <IconButton
-                    size="small"
-                    onClick={() =>
-                      setState((draft) => {
-                        draft.fullscreen = "preview";
-                      })
-                    }
-                  >
-                    <Fullscreen />
-                  </IconButton>
-                ) : (
-                  <IconButton size="small" onClick={handleFullscreenClose}>
-                    <FullscreenExit />
-                  </IconButton>
-                )}
-              </Stack>
-              <BodyBox direction="right">
-                {renderPreviewBody({ userProperties })}
-              </BodyBox>
-            </Stack>
+            {preview}
           </Box>
         </Stack>
       </Stack>
@@ -272,7 +268,7 @@ export default function TemplateEditor({
         onClose={handleFullscreenClose}
         TransitionComponent={Transition}
       >
-        Editor
+        {editor}
       </Dialog>
       <Dialog
         fullScreen
