@@ -370,10 +370,14 @@ export type PerformedManyUserPropertyDefinition = Static<
   typeof PerformedManyUserPropertyDefinition
 >;
 
+export const UserPropertyAssignments = Type.Record(Type.String(), Type.Any());
+
+export type UserPropertyAssignments = Static<typeof UserPropertyAssignments>;
+
 export const ParsedPerformedManyValueItem = Type.Object({
   event: Type.String(),
   timestamp: Type.String(),
-  properties: Type.Record(Type.String(), Type.Any()),
+  properties: UserPropertyAssignments,
 });
 
 export type ParsedPerformedManyValueItem = Static<

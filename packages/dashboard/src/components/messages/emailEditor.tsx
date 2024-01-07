@@ -728,6 +728,78 @@ export default function EmailEditor({
     </Stack>
   );
 
+  const previewHeader = (
+    <>
+      <TextField
+        required
+        label="To"
+        variant="filled"
+        disabled
+        InputProps={{
+          sx: {
+            fontSize: ".75rem",
+            borderTopLeftRadius: 0,
+          },
+        }}
+        sx={disabledStyles}
+        value={previewEmailTo}
+      />
+      <TextField
+        required
+        label="From"
+        variant="filled"
+        disabled
+        InputProps={{
+          sx: {
+            fontSize: ".75rem",
+            borderTopLeftRadius: 0,
+          },
+        }}
+        sx={disabledStyles}
+        value={previewEmailFrom}
+      />
+      <TextField
+        required
+        label="Subject"
+        variant="filled"
+        disabled
+        InputProps={{
+          sx: {
+            fontSize: ".75rem",
+            borderTopLeftRadius: 0,
+          },
+        }}
+        sx={disabledStyles}
+        value={previewSubject}
+      />
+      <TextField
+        label="Reply-To"
+        variant="filled"
+        disabled
+        InputProps={{
+          sx: {
+            fontSize: ".75rem",
+            borderTopLeftRadius: 0,
+          },
+        }}
+        sx={disabledStyles}
+        value={previewEmailReplyTo}
+      />
+    </>
+  );
+  const previewBody = (
+    <iframe
+      srcDoc={`<!DOCTYPE html>${previewBodyHtml}`}
+      title="email-body-preview"
+      style={{
+        border: "none",
+        height: "100%",
+        width: "100%",
+        padding: theme.spacing(1),
+      }}
+    />
+  );
+
   const preview = (
     <Stack
       sx={{
@@ -736,64 +808,7 @@ export default function EmailEditor({
       }}
       spacing={1}
     >
-      <Stack>
-        <TextField
-          required
-          label="To"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={previewEmailTo}
-        />
-        <TextField
-          required
-          label="From"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={previewEmailFrom}
-        />
-        <TextField
-          required
-          label="Subject"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={previewSubject}
-        />
-        <TextField
-          label="Reply-To"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={previewEmailReplyTo}
-        />
-      </Stack>
-
+      <Stack>{previewHeader}</Stack>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <FormLabel sx={{ paddingLeft: 1 }}>Body Preview</FormLabel>
         {fullscreen === null ? (
@@ -806,19 +821,7 @@ export default function EmailEditor({
           </IconButton>
         )}
       </Stack>
-      <BodyBox direction="right">
-        {/* TODO use window postmessage to re-render */}
-        <iframe
-          srcDoc={`<!DOCTYPE html>${previewBodyHtml}`}
-          title="email-body-preview"
-          style={{
-            border: "none",
-            height: "100%",
-            width: "100%",
-            padding: theme.spacing(1),
-          }}
-        />
-      </BodyBox>
+      <BodyBox direction="right">{previewBody}</BodyBox>
     </Stack>
   );
 
