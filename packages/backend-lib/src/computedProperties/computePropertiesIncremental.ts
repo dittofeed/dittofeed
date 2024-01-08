@@ -324,10 +324,22 @@ async function createPeriods({
     });
   }
 
-  await prisma().computedPropertyPeriod.createMany({
-    data: newPeriods,
-    skipDuplicates: true,
-  });
+  await Promise.all([
+    prisma().computedPropertyPeriod.createMany({
+      data: newPeriods,
+      skipDuplicates: true,
+    }),
+    prisma().computedPropertyPeriod.deleteMany({
+      where: {
+        workspaceId,
+        step,
+        to: {
+          // 5 minutes retention
+          lt: new Date(now - 60 * 1000 * 5),
+        },
+      },
+    }),
+  ]);
 }
 
 interface FullSubQueryData {
