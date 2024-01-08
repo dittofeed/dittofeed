@@ -1,3 +1,3 @@
 #!/bin/bash
 docker compose -f docker-compose.prod.yaml exec \
-    admin-cli bash -c 'yarn workspace admin-cli cli "$@"' _ "$@"
+    admin-cli bash -c './admin.sh "$@"' _ "$@"
