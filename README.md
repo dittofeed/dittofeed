@@ -18,7 +18,8 @@
 [![Dittofeed Live Demo Badge](https://img.shields.io/badge/live_demo-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdemo.dittofeed.com%2Fdashboard%2Fjourneys)](https://demo.dittofeed.com/dashboard/journeys/)
 [![Dittofeed Site Badge](https://img.shields.io/badge/site-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdittofeed.com%2F)](https://dittofeed.com/)
 [![Dittofeed Open-source Contributing Badge](https://img.shields.io/badge/contributing-dittofeed?color=%2349BBD4&link=https%3A%2F%2Fdocs.dittofeed.com%2Fcontributing%2Frunning-locally)](https://docs.dittofeed.com/contributing/running-locally)
-[![Dittofeed Slack Community Badge](https://img.shields.io/badge/community-dittofeed?style=social&logo=slack&link=https%3A%2F%2Fjoin.slack.com%2Ft%2Fdittofeed-community%2Fshared_invite%2Fzt-1u3lyts83-P6npff1AbjniNRLVlrlM5A)](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A)
+[![Dittofeed Discord Community Badge](https://img.shields.io/discord/1182801141046726706?style=social&logo=discord&label=Community&link=https%3A%2F%2Fdiscord.gg%2FHajPkCG4Mm
+)
 [![Dittofeed X Twitter Social Badge](https://img.shields.io/badge/follow-dittofeed?style=social&logo=x&link=https%3A%2F%2Fx.com%2Fdittofeed)](https://x.com/dittofeed)
 
 <br>
