@@ -74,9 +74,9 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 | Feature                         | Purpose                                                                                              | Status |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------- | ------ |
-| SMTP support                    | Use SMTP as an email provider                                                                        | ☑️      |
+| SMTP support                    | Use SMTP as an email provider                                                                        | ✅      |
 | SES support                     | Use Amazon SES as an email provider                                                                  | ☑️      |
-| User property objects & arrays  | Store objects & arrays within user properties                                                        | ☑️      |
+| User property objects & arrays  | Store objects & arrays within user properties                                                        | ✅      |
 | Segment node type               | Expose segments as a node type within the journeys GUI                                               | ☑️      |
 | Incrimental computed properties | Rearchitect computed properties engine to incrementally recompute properties for greater scalability | ✅      |
 | Reverse ETL                     | Add support for reverse ETL as a data source via Polytomic                                           | ✅      |
