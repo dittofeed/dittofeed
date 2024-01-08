@@ -89,10 +89,6 @@ export interface TemplateState {
   updateRequest: EphemeralRequestStatus<Error>;
 }
 
-interface PreviewComponentProps {
-  userProperties: UserPropertyAssignments;
-}
-
 const LOREM = new LoremIpsum({
   sentencesPerParagraph: {
     max: 8,
@@ -103,6 +99,25 @@ const LOREM = new LoremIpsum({
     min: 4,
   },
 });
+
+export interface RenderPreviewParams {
+  rendered: Record<string, string>;
+}
+
+export type RenderPreviewSection = (
+  args: RenderPreviewParams
+) => React.ReactNode;
+
+export type SetDefinition = (
+  definition: MessageTemplateResourceDefinition
+) => void;
+
+export interface RenderEditorParams {
+  setDefinition: SetDefinition;
+  definition: MessageTemplateResourceDefinition;
+}
+
+export type RenderEditorSection = (args: RenderEditorParams) => React.ReactNode;
 
 export default function TemplateEditor({
   templateId,
@@ -123,10 +138,10 @@ export default function TemplateEditor({
   hideSaveButton?: boolean;
   saveOnUpdate?: boolean;
   member?: WorkspaceMemberResource;
-  renderPreviewHeader: (props: PreviewComponentProps) => React.ReactNode;
-  renderPreviewBody: (props: PreviewComponentProps) => React.ReactNode;
-  renderEditorHeader: () => React.ReactNode;
-  renderEditorBody: () => React.ReactNode;
+  renderPreviewHeader: RenderPreviewSection;
+  renderPreviewBody: RenderPreviewSection;
+  renderEditorHeader: RenderEditorSection;
+  renderEditorBody: RenderEditorSection;
   onTitleChange?: (title: string) => void;
 }) {
   const theme = useTheme();
@@ -329,6 +344,17 @@ export default function TemplateEditor({
       draft.fullscreen = null;
     });
   };
+  const renderEditorParams: RenderEditorParams | null =
+    definition !== null
+      ? {
+          definition,
+          setDefinition: (dfn) =>
+            setState((draft) => {
+              draft.definition = dfn;
+            }),
+        }
+      : null;
+
   const editor = (
     <Stack
       sx={{
@@ -337,7 +363,9 @@ export default function TemplateEditor({
       }}
       spacing={1}
     >
-      <Stack>{renderEditorHeader()}</Stack>
+      <Stack>
+        {renderEditorParams && renderEditorHeader(renderEditorParams)}
+      </Stack>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
         {fullscreen === null ? (
@@ -357,7 +385,9 @@ export default function TemplateEditor({
           </IconButton>
         )}
       </Stack>
-      <BodyBox direction="left">{renderEditorBody()}</BodyBox>
+      <BodyBox direction="left">
+        {renderEditorParams ? renderEditorBody(renderEditorParams) : null}
+      </BodyBox>
     </Stack>
   );
   const preview = (
