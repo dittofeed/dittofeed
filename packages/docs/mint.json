@@ -25,7 +25,7 @@
   "topbarLinks": [
     {
       "name": "Community",
-      "url": "https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A"
+      "url": "https://discord.gg/HajPkCG4Mm"
     }
   ],
   "topbarCtaButton": {
@@ -35,8 +35,8 @@
   "anchors": [
     {
       "name": "Get Instant Help",
-      "icon": "slack",
-      "url": "https://join.slack.com/t/dittofeed-community/shared_invite/zt-1u3lyts83-P6npff1AbjniNRLVlrlM5A"
+      "icon": "discord",
+      "url": "https://discord.gg/HajPkCG4Mm"
     },
     {
       "name": "Tutorial Videos",

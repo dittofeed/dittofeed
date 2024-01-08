@@ -9,7 +9,7 @@ import { GetServerSideProps, NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 
-import SlackLink from "../components/slackLink";
+import DiscordLink from "../components/discordLink";
 import SupportEmailLink from "../components/supportEmailLink";
 import { PropsWithInitialState } from "../lib/types";
 
@@ -103,8 +103,8 @@ const WaitingRoom: NextPage<WaitingRoomProps> = function WaitingRoom({
               <SupportEmailLink />
             </Stack>
             <Stack direction="row" spacing={1} sx={{ fontSize: "1rem" }}>
-              <Typography variant="subtitle1">Reach out on slack:</Typography>
-              <SlackLink>Dittofeed Slack community</SlackLink>
+              <Typography variant="subtitle1">Reach out on Discord:</Typography>
+              <DiscordLink>Dittofeed Discord community</DiscordLink>
             </Stack>
             {signOutUrl ? (
               <Box>
