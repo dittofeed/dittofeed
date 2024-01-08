@@ -19,7 +19,7 @@
 [![Dittofeed Site Badge](https://img.shields.io/badge/site-dittofeed-1?color=%2349BBD4&link=https%3A%2F%2Fdittofeed.com%2F)](https://dittofeed.com/)
 [![Dittofeed Open-source Contributing Badge](https://img.shields.io/badge/contributing-dittofeed?color=%2349BBD4&link=https%3A%2F%2Fdocs.dittofeed.com%2Fcontributing%2Frunning-locally)](https://docs.dittofeed.com/contributing/running-locally)
 [![Dittofeed Discord Community Badge](https://img.shields.io/discord/1182801141046726706?style=social&logo=discord&label=Community&link=https%3A%2F%2Fdiscord.gg%2FHajPkCG4Mm
-)]
+)](https://discord.gg/HajPkCG4Mm)
 [![Dittofeed X Twitter Social Badge](https://img.shields.io/badge/follow-dittofeed?style=social&logo=x&link=https%3A%2F%2Fx.com%2Fdittofeed)](https://x.com/dittofeed)
 
 <br>
