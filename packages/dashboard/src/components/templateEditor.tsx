@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import axios from "axios";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   ChannelType,
@@ -29,16 +30,22 @@ import {
   MessageTemplateResourceDefinition,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
+  RenderMessageTemplateRequest,
+  RenderMessageTemplateRequestContents,
+  RenderMessageTemplateResponse,
   UpsertMessageTemplateResource,
   UserPropertyAssignments,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { LoremIpsum } from "lorem-ipsum";
+import { enqueueSnackbar } from "notistack";
 import React, { useCallback, useEffect, useMemo } from "react";
+import { useDebounce } from "use-debounce";
 import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
+import { noticeAnchorOrigin } from "../lib/notices";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
 import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
@@ -87,6 +94,7 @@ export interface TemplateState {
   definition: MessageTemplateResourceDefinition | null;
   testResponse: MessageTemplateTestResponse | null;
   updateRequest: EphemeralRequestStatus<Error>;
+  rendered: Record<string, string>;
 }
 
 const LOREM = new LoremIpsum({
@@ -131,6 +139,7 @@ export default function TemplateEditor({
   member,
   hideTitle,
   saveOnUpdate = false,
+  definitionToPreview,
 }: {
   templateId: string;
   disabled?: boolean;
@@ -142,6 +151,9 @@ export default function TemplateEditor({
   renderPreviewBody: RenderPreviewSection;
   renderEditorHeader: RenderEditorSection;
   renderEditorBody: RenderEditorSection;
+  definitionToPreview: (
+    dfn: MessageTemplateResourceDefinition
+  ) => RenderMessageTemplateRequestContents;
   onTitleChange?: (title: string) => void;
 }) {
   const theme = useTheme();
@@ -162,6 +174,11 @@ export default function TemplateEditor({
     messages.type === CompletionStatus.Successful
       ? messages.value.find((m) => m.id === templateId)
       : undefined;
+
+  const workspace =
+    workspaceResult.type === CompletionStatus.Successful
+      ? workspaceResult.value
+      : null;
   const initialUserProperties = useMemo(() => {
     if (userPropertiesResult.type !== CompletionStatus.Successful) {
       return {};
@@ -205,6 +222,7 @@ export default function TemplateEditor({
     updateRequest: {
       type: CompletionStatus.NotStarted,
     },
+    rendered: {},
   });
   const handleSave = useCallback(
     ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {
@@ -267,15 +285,54 @@ export default function TemplateEditor({
     });
   }, [handleSave, saveOnUpdate]);
 
-  useEffect(() => {
-    (async () => {})();
-  });
+  const [debouncedUserProperties] = useDebounce(userProperties, 300);
 
-  if (workspaceResult.type !== CompletionStatus.Successful) {
+  useEffect(() => {
+    (async () => {
+      if (!workspace || !definition) {
+        return;
+      }
+      const data: RenderMessageTemplateRequest = {
+        workspaceId: workspace.id,
+        channel: ChannelType.Email,
+        userProperties: debouncedUserProperties,
+        contents: definitionToPreview(definition),
+      };
+
+      try {
+        const response = await axios({
+          method: "POST",
+          url: `${apiBase}/api/content/templates/render`,
+          data,
+        });
+
+        const { contents } = response.data as RenderMessageTemplateResponse;
+
+        for (const contentKey in contents) {
+          const content = contents[contentKey];
+          if (content === undefined) {
+            continue;
+          }
+        }
+      } catch (err) {
+        enqueueSnackbar("API Error: failed to render template preview.", {
+          variant: "error",
+          autoHideDuration: 3000,
+          anchorOrigin: noticeAnchorOrigin,
+        });
+      }
+    })();
+  }, [
+    apiBase,
+    debouncedUserProperties,
+    definition,
+    definitionToPreview,
+    workspace,
+  ]);
+
+  if (!workspace) {
     return null;
   }
-
-  const workspace = workspaceResult.value;
 
   const submitTestData: MessageTemplateTestRequest = {
     channel: ChannelType.Email,

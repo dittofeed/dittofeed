@@ -1355,12 +1355,18 @@ export const UserSubscriptionsUpdate = Type.Intersect([
 
 export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
 
+const RenderMessageTemplateRequestContent = Type.Object({
+  value: Type.String(),
+  mjml: Type.Optional(Type.Boolean()),
+});
+
+export type RenderMessageTemplateRequestContent = Static<
+  typeof RenderMessageTemplateRequestContent
+>;
+
 export const RenderMessageTemplateRequestContents = Type.Record(
   Type.String(),
-  Type.Object({
-    value: Type.String(),
-    mjml: Type.Optional(Type.Boolean()),
-  })
+  RenderMessageTemplateRequestContent
 );
 
 export type RenderMessageTemplateRequestContents = Static<
