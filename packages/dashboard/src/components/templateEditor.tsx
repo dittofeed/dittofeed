@@ -25,20 +25,24 @@ import {
   EphemeralRequestStatus,
   InternalEventType,
   JsonResultType,
+  MessageTemplateResource,
+  MessageTemplateResourceDefinition,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
+  UpsertMessageTemplateResource,
   UserPropertyAssignments,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
-import React, { useMemo } from "react";
+import { LoremIpsum } from "lorem-ipsum";
+import React, { useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { useAppStorePick } from "../lib/appStore";
+import { useUpdateEffect } from "../lib/useUpdateEffect";
 import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
-import { LoremIpsum } from "lorem-ipsum";
 
 const USER_PROPERTIES_TOOLTIP =
   "Edit an example user's properties to see the edits reflected in the rendered template. Properties are computed from user Identify traits and Track events.";
@@ -79,8 +83,10 @@ export interface TemplateState {
   userProperties: UserPropertyAssignments;
   userPropertiesJSON: string;
   title: string | null;
-  messageTestRequest: EphemeralRequestStatus<Error>;
+  testRequest: EphemeralRequestStatus<Error>;
+  definition: MessageTemplateResourceDefinition | null;
   testResponse: MessageTemplateTestResponse | null;
+  updateRequest: EphemeralRequestStatus<Error>;
 }
 
 interface PreviewComponentProps {
@@ -105,21 +111,23 @@ export default function TemplateEditor({
   renderPreviewBody,
   renderPreviewHeader,
   onTitleChange,
-  onPublish,
+  hideSaveButton,
   disabled,
   member,
   hideTitle,
+  saveOnUpdate = false,
 }: {
   templateId: string;
   disabled?: boolean;
   hideTitle?: boolean;
+  hideSaveButton?: boolean;
+  saveOnUpdate?: boolean;
   member?: WorkspaceMemberResource;
   renderPreviewHeader: (props: PreviewComponentProps) => React.ReactNode;
   renderPreviewBody: (props: PreviewComponentProps) => React.ReactNode;
   renderEditorHeader: () => React.ReactNode;
   renderEditorBody: () => React.ReactNode;
   onTitleChange?: (title: string) => void;
-  onPublish?: () => void;
 }) {
   const theme = useTheme();
   const {
@@ -127,7 +135,14 @@ export default function TemplateEditor({
     messages,
     workspace: workspaceResult,
     userProperties: userPropertiesResult,
-  } = useAppStorePick(["apiBase", "messages", "workspace", "userProperties"]);
+    upsertMessage,
+  } = useAppStorePick([
+    "apiBase",
+    "messages",
+    "workspace",
+    "userProperties",
+    "upsertMessage",
+  ]);
   const template =
     messages.type === CompletionStatus.Successful
       ? messages.value.find((m) => m.id === templateId)
@@ -147,7 +162,6 @@ export default function TemplateEditor({
 
       userPropertyAssignments[userProperty.name] = value;
     }
-    debugger;
     return userPropertyAssignments;
   }, [userPropertiesResult, member]);
 
@@ -157,23 +171,91 @@ export default function TemplateEditor({
       userProperties,
       userPropertiesJSON,
       title,
+      definition,
       testResponse,
-      messageTestRequest,
+      testRequest,
+      updateRequest,
     },
     setState,
   ] = useImmer<TemplateState>({
     fullscreen: null,
+    definition: template?.draft ?? template?.definition ?? null,
     title: template?.name ?? "",
     userProperties: initialUserProperties,
     userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
     testResponse: null,
-    messageTestRequest: {
+    testRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+    updateRequest: {
       type: CompletionStatus.NotStarted,
     },
   });
+  const handleSave = useCallback(
+    ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {
+      if (
+        disabled ||
+        workspaceResult.type !== CompletionStatus.Successful ||
+        !definition
+      ) {
+        return;
+      }
+      const workspaceId = workspaceResult.value.id;
+
+      const updateData: UpsertMessageTemplateResource = {
+        id: templateId,
+        workspaceId,
+        name: title ?? undefined,
+        draft: definition,
+      };
+
+      if (!saveAsDraft) {
+        updateData.definition = definition;
+      }
+
+      apiRequestHandlerFactory({
+        request: updateRequest,
+        setRequest: (request) =>
+          setState((draft) => {
+            draft.updateRequest = request;
+          }),
+        responseSchema: MessageTemplateResource,
+        setResponse: upsertMessage,
+        onSuccessNotice: `Saved template.`,
+        onFailureNoticeHandler: () => `API Error: Failed to save template.`,
+        requestConfig: {
+          method: "PUT",
+          url: `${apiBase}/api/content/templates`,
+          data: updateData,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      })();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      disabled,
+      workspaceResult,
+      definition,
+      templateId,
+      title,
+      upsertMessage,
+      apiBase,
+      setState,
+    ]
+  );
+
+  useUpdateEffect(() => {
+    handleSave({
+      saveAsDraft: !saveOnUpdate,
+    });
+  }, [handleSave, saveOnUpdate]);
+
   if (workspaceResult.type !== CompletionStatus.Successful) {
     return null;
   }
+
   const workspace = workspaceResult.value;
 
   const submitTestData: MessageTemplateTestRequest = {
@@ -184,10 +266,10 @@ export default function TemplateEditor({
   };
 
   const submitTest = apiRequestHandlerFactory({
-    request: messageTestRequest,
+    request: testRequest,
     setRequest: (request) =>
       setState((draft) => {
-        draft.messageTestRequest = request;
+        draft.testRequest = request;
       }),
     responseSchema: MessageTemplateTestResponse,
     setResponse: (response) =>
@@ -372,10 +454,11 @@ export default function TemplateEditor({
               lintGutter(),
             ]}
           />
-          {onPublish && (
+          {!hideSaveButton && (
             <Button
               variant="contained"
-              onClick={() => onPublish()}
+              onClick={() => handleSave()}
+              // FIXME errors.size
               disabled={false}
             >
               Publish Changes

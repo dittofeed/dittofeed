@@ -221,6 +221,7 @@ export interface SegmentEditorContents extends SegmentEditorState {
   setSegmentUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
+// FIXME remove
 export interface EmailMessageEditorState {
   emailMessageSubject: string;
   emailMessageFrom: string;
@@ -232,6 +233,7 @@ export interface EmailMessageEditorState {
   emailMessageUpdateRequest: EphemeralRequestStatus<Error>;
 }
 
+// FIXME remove
 export interface EmailMessageEditorContents extends EmailMessageEditorState {
   setEmailMessageSubject: (subject: string) => void;
   setEmailMessageBody: (body: string) => void;
@@ -245,6 +247,7 @@ export interface EmailMessageEditorContents extends EmailMessageEditorState {
   ) => void;
 }
 
+// FIXME remove
 export interface SmsMessageEditorState {
   smsMessageTitle: string;
   smsMessageBody: string;
@@ -253,6 +256,7 @@ export interface SmsMessageEditorState {
   smsMessageUpdateRequest: EphemeralRequestStatus<Error>;
 }
 
+// FIXME remove
 export interface SmsMessageEditorContents extends SmsMessageEditorState {
   setSmsMessageTitle: (title: string) => void;
   setSmsMessageBody: (body: string) => void;
@@ -261,6 +265,7 @@ export interface SmsMessageEditorContents extends SmsMessageEditorState {
   setSmsMessageUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
+// FIXME remove
 export interface MobilePushMessageEditorState {
   mobilePushMessageTitle: string;
   mobilePushMessageBody: string;
