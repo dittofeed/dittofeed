@@ -101,7 +101,7 @@ More to come...
 
 If you're interested in trying us out, please get in touch!
 
-* [Slack community](https://join.slack.com/t/dittofeed-community/shared_invite/zt-1rwjkx7w1-Jj8MeB1wN~hiM7uuErLj1A)
+* [Discord community](https://discord.gg/HajPkCG4Mm)
 * [Email support](mailto:support@dittofeed.com)
 * [Open an issue](https://github.com/dittofeed/dittofeed/issues/new)
 * [Book a meeting](https://calendly.com/d/zy7-8d5-jdq/dittofeed-demo-founders)
