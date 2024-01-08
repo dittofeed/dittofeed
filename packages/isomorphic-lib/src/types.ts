@@ -1355,17 +1355,23 @@ export const UserSubscriptionsUpdate = Type.Intersect([
 
 export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
 
+export const RenderMessageTemplateRequestContents = Type.Record(
+  Type.String(),
+  Type.Object({
+    value: Type.String(),
+    mjml: Type.Optional(Type.Boolean()),
+  })
+);
+
+export type RenderMessageTemplateRequestContents = Static<
+  typeof RenderMessageTemplateRequestContents
+>;
+
 export const RenderMessageTemplateRequest = Type.Object({
   workspaceId: Type.String(),
   channel: Type.Enum(ChannelType),
   subscriptionGroupId: Type.Optional(Type.String()),
-  contents: Type.Record(
-    Type.String(),
-    Type.Object({
-      value: Type.String(),
-      mjml: Type.Optional(Type.Boolean()),
-    })
-  ),
+  contents: RenderMessageTemplateRequestContents,
   userProperties: Type.Record(Type.String(), Type.Any()),
 });
 

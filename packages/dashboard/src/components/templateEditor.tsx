@@ -34,7 +34,7 @@ import {
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { LoremIpsum } from "lorem-ipsum";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
@@ -266,6 +266,10 @@ export default function TemplateEditor({
       saveAsDraft: !saveOnUpdate,
     });
   }, [handleSave, saveOnUpdate]);
+
+  useEffect(() => {
+    (async () => {})();
+  });
 
   if (workspaceResult.type !== CompletionStatus.Successful) {
     return null;

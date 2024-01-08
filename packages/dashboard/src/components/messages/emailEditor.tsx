@@ -116,8 +116,6 @@ export const useEmailEditorStore = create(
   }))
 );
 
-type Fullscreen = "editor" | "preview" | null;
-
 enum NotifyKey {
   RenderBodyError = "RenderBodyError",
   RenderFromError = "RenderFromError",
