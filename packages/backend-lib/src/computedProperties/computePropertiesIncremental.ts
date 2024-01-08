@@ -324,12 +324,12 @@ async function createPeriods({
     });
   }
 
-  await Promise.all([
-    prisma().computedPropertyPeriod.createMany({
+  await prisma().$transaction(async (tx) => {
+    await tx.computedPropertyPeriod.createMany({
       data: newPeriods,
       skipDuplicates: true,
-    }),
-    prisma().computedPropertyPeriod.deleteMany({
+    });
+    await tx.computedPropertyPeriod.deleteMany({
       where: {
         workspaceId,
         step,
@@ -338,8 +338,8 @@ async function createPeriods({
           lt: new Date(now - 60 * 1000 * 5),
         },
       },
-    }),
-  ]);
+    });
+  });
 }
 
 interface FullSubQueryData {
