@@ -594,6 +594,58 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "computes a nested trait segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: "a.b",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "c",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                a: {
+                  b: "c",
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes an AND segment",
       userProperties: [],
       segments: [
@@ -1461,6 +1513,78 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "performed segment with nested properties",
+      userProperties: [],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+              properties: [
+                {
+                  path: "level1.level2.level3",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "value1",
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                level1: {
+                  level2: {
+                    level3: "value1",
+                  },
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "checks nested values",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "performed",
+              nodeId: "1",
+              uniqueCount: 1,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "last performed segment",
       userProperties: [],
       segments: [
@@ -1568,6 +1692,76 @@ describe("computeProperties", () => {
               id: "user-4",
               segments: {
                 lastPerformed: null,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "last performed segment with nested properties",
+      userProperties: [],
+      segments: [
+        {
+          name: "lastPerformed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.LastPerformed,
+              id: "1",
+              event: "test",
+              whereProperties: [
+                {
+                  path: "a.b",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "c",
+                  },
+                },
+              ],
+              hasProperties: [
+                {
+                  path: "x.y",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "z",
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              userId: "user-1",
+              event: "test",
+              offsetMs: -100,
+              properties: {
+                a: {
+                  b: "c",
+                },
+                x: {
+                  y: "z",
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                lastPerformed: true,
               },
             },
           ],

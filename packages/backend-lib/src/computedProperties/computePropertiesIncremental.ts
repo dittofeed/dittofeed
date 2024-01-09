@@ -385,13 +385,13 @@ export function segmentNodeToStateSubQuery({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const stateId = segmentNodeStateId(segment, node.id);
-      const path = qb.addQueryValue(node.path, "String");
+      const path = qb.addQueryValue(`$.${node.path}`, "String");
       return [
         {
           condition: `event_type == 'identify'`,
           type: "segment",
           uniqValue: "''",
-          argMaxValue: `visitParamExtractString(properties, ${path})`,
+          argMaxValue: `JSON_VALUE(properties, ${path})`,
           computedPropertyId: segment.id,
           stateId,
         },
@@ -404,10 +404,11 @@ export function segmentNodeToStateSubQuery({
         const operatorType = property.operator.type;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            return `visitParamExtractString(properties, ${qb.addQueryValue(
-              property.path,
+            const path = qb.addQueryValue(`$.${property.path}`, "String");
+            return `JSON_VALUE(properties, ${path}) == ${qb.addQueryValue(
+              property.operator.value,
               "String"
-            )}) == ${qb.addQueryValue(property.operator.value, "String")}`;
+            )}`;
           }
           default:
             throw new Error(
@@ -475,10 +476,8 @@ export function segmentNodeToStateSubQuery({
       const stateId = segmentNodeStateId(segment, node.id);
       const whereConditions = node.whereProperties?.map((property) => {
         const operatorType = property.operator.type;
-        const propertyValue = `visitParamExtractString(properties, ${qb.addQueryValue(
-          property.path,
-          "String"
-        )})`;
+        const path = qb.addQueryValue(`$.${property.path}`, "String");
+        const propertyValue = `JSON_VALUE(properties, ${path})`;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
             return `${propertyValue} == ${qb.addQueryValue(
@@ -502,25 +501,8 @@ export function segmentNodeToStateSubQuery({
         ? `and (${whereConditions.join(" and ")})`
         : "";
       const propertyValues = node.hasProperties.map((property) => {
-        const operatorType = property.operator.type;
-        switch (operatorType) {
-          case SegmentOperatorType.Equals: {
-            return `visitParamExtractString(properties, ${qb.addQueryValue(
-              property.path,
-              "String"
-            )})`;
-          }
-          case SegmentOperatorType.NotEquals: {
-            return `visitParamExtractString(properties, ${qb.addQueryValue(
-              property.path,
-              "String"
-            )})`;
-          }
-          default:
-            throw new Error(
-              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
-            );
-        }
+        const path = qb.addQueryValue(`$.${property.path}`, "String");
+        return `JSON_VALUE(properties, ${path})`;
       });
 
       const event = qb.addQueryValue(node.event, "String");
