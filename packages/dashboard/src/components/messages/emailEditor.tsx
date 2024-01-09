@@ -91,6 +91,21 @@ export function defaultEmailMessageState(
   };
 }
 
+function fieldToReadable(field: string) {
+  switch (field) {
+    case "body":
+      return "Body";
+    case "from":
+      return "From";
+    case "subject":
+      return "Subject";
+    case "replyTo":
+      return "Reply-To";
+    default:
+      return null;
+  }
+}
+
 interface EmailEditorStore {
   messageTestRequest: EphemeralRequestStatus<Error>;
   setMessageTestRequest: (request: EphemeralRequestStatus<Error>) => void;
@@ -612,6 +627,7 @@ export default function EmailEditor({
       renderPreviewBody={() => previewBody}
       renderPreviewHeader={() => previewHeader}
       definitionToPreview={definitionToPreview}
+      fieldToReadable={fieldToReadable}
     />
   );
 }
