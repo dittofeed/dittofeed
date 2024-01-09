@@ -37,6 +37,7 @@ import {
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
   RenderMessageTemplateRequest,
+  RenderMessageTemplateRequestContents,
   RenderMessageTemplateResponse,
   UpsertMessageTemplateResource,
 } from "isomorphic-lib/src/types";
@@ -59,7 +60,7 @@ import { useUpdateEffect } from "../../lib/useUpdateEffect";
 import EditableName from "../editableName";
 import InfoTooltip from "../infoTooltip";
 import LoadingModal from "../loadingModal";
-import TemplateEditor from "../templateEditor";
+import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
 import defaultEmailBody from "./defaultEmailBody";
 
 const USER_TO = "{{user.email}}";
@@ -129,6 +130,30 @@ function errorHash(key: NotifyKey, message: string) {
 }
 
 const errorBodyHtml = '<div style="color:red;">Render Error</div>';
+
+const definitionToPreview: DefinitionToPreview = (definition) => {
+  if (definition.type !== ChannelType.Email) {
+    throw new Error("Invalid channel type");
+  }
+  const content: RenderMessageTemplateRequestContents = {
+    from: {
+      value: definition.from,
+    },
+    subject: {
+      value: definition.subject,
+    },
+    body: {
+      mjml: true,
+      value: definition.body,
+    },
+  };
+  if (definition.replyTo) {
+    content.replyTo = {
+      value: definition.replyTo,
+    };
+  }
+  return content;
+};
 
 export default function EmailEditor({
   hideSaveButton,
@@ -586,6 +611,7 @@ export default function EmailEditor({
       renderEditorBody={() => editorBody}
       renderPreviewBody={() => previewBody}
       renderPreviewHeader={() => previewHeader}
+      definitionToPreview={definitionToPreview}
     />
   );
 }
