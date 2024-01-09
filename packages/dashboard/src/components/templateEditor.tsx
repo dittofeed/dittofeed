@@ -19,6 +19,7 @@ import {
 import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import axios from "axios";
+import hash from "fnv1a";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   ChannelType,
@@ -38,18 +39,24 @@ import {
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { LoremIpsum } from "lorem-ipsum";
-import { enqueueSnackbar } from "notistack";
+import { useRouter } from "next/router";
+import { closeSnackbar, enqueueSnackbar } from "notistack";
 import React, { useCallback, useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
-import { noticeAnchorOrigin } from "../lib/notices";
+import {
+  noticeAnchorOrigin as anchorOrigin,
+  noticeAnchorOrigin,
+} from "../lib/notices";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
 import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
+
+const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
 const USER_PROPERTIES_TOOLTIP =
   "Edit an example user's properties to see the edits reflected in the rendered template. Properties are computed from user Identify traits and Track events.";
@@ -88,6 +95,7 @@ const BodyBox = styled(Box, {
 export interface TemplateState {
   fullscreen: "preview" | "editor" | null;
   userProperties: UserPropertyAssignments;
+  errors: Map<string, string>;
   userPropertiesJSON: string;
   title: string | null;
   testRequest: EphemeralRequestStatus<Error>;
@@ -127,6 +135,10 @@ export interface RenderEditorParams {
 
 export type RenderEditorSection = (args: RenderEditorParams) => React.ReactNode;
 
+function errorHash(key: string, message: string) {
+  return hash(`${key}-${message}`);
+}
+
 export default function TemplateEditor({
   templateId,
   renderEditorBody,
@@ -139,6 +151,7 @@ export default function TemplateEditor({
   member,
   hideTitle,
   saveOnUpdate = false,
+  fieldToReadable,
   definitionToPreview,
 }: {
   templateId: string;
@@ -154,9 +167,11 @@ export default function TemplateEditor({
   definitionToPreview: (
     dfn: MessageTemplateResourceDefinition
   ) => RenderMessageTemplateRequestContents;
+  fieldToReadable: (field: string) => string | null;
   onTitleChange?: (title: string) => void;
 }) {
   const theme = useTheme();
+  const router = useRouter();
   const {
     apiBase,
     messages,
@@ -204,6 +219,8 @@ export default function TemplateEditor({
       userPropertiesJSON,
       title,
       definition,
+      errors,
+      rendered,
       testResponse,
       testRequest,
       updateRequest,
@@ -213,6 +230,7 @@ export default function TemplateEditor({
     fullscreen: null,
     definition: template?.draft ?? template?.definition ?? null,
     title: template?.name ?? "",
+    errors: new Map(),
     userProperties: initialUserProperties,
     userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
     testResponse: null,
@@ -308,12 +326,42 @@ export default function TemplateEditor({
 
         const { contents } = response.data as RenderMessageTemplateResponse;
 
+        const newRendered: Record<string, string> = {};
+        const newErrors = new Map(errors);
+
         for (const contentKey in contents) {
           const content = contents[contentKey];
           if (content === undefined) {
             continue;
           }
+          const existingErr = errors.get(contentKey);
+          if (content.type === JsonResultType.Ok) {
+            rendered[contentKey] = content.value;
+            if (existingErr) {
+              closeSnackbar(errorHash(contentKey, existingErr));
+              newErrors.delete(contentKey);
+            }
+            continue;
+          }
+          const readable = fieldToReadable(contentKey) ?? contentKey;
+          const message = `${readable} Error: ${content.err}`;
+
+          if (existingErr && existingErr !== message) {
+            closeSnackbar(errorHash(contentKey, existingErr));
+          }
+          enqueueSnackbar(message, {
+            variant: "error",
+            persist: true,
+            key: errorHash(contentKey, message),
+            anchorOrigin,
+          });
+          newErrors.set(contentKey, content.err);
         }
+
+        setState((draft) => {
+          draft.rendered = newRendered;
+          draft.errors = newErrors;
+        });
       } catch (err) {
         enqueueSnackbar("API Error: failed to render template preview.", {
           variant: "error",
@@ -327,8 +375,67 @@ export default function TemplateEditor({
     debouncedUserProperties,
     definition,
     definitionToPreview,
+    errors,
+    fieldToReadable,
+    rendered,
+    setState,
     workspace,
   ]);
+
+  useEffect(() => {
+    const exitingFunction = () => {
+      errors.forEach((e, key) => {
+        closeSnackbar(errorHash(key, e));
+      });
+    };
+
+    router.events.on("routeChangeStart", exitingFunction);
+
+    return () => {
+      router.events.off("routeChangeStart", exitingFunction);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [errors]);
+
+  useEffect(() => {
+    let missingUserProperty: string | null = null;
+    const userPropertySet = new Set(
+      userPropertiesResult.type === CompletionStatus.Successful
+        ? userPropertiesResult.value.map((p) => p.name)
+        : []
+    );
+    for (const userProperty in userProperties) {
+      if (!userPropertySet.has(userProperty)) {
+        missingUserProperty = userProperty;
+        break;
+      }
+    }
+    const existingMsg = errors.get(USER_PROPERTY_WARNING_KEY);
+    if (!missingUserProperty) {
+      if (existingMsg) {
+        closeSnackbar(errorHash(USER_PROPERTY_WARNING_KEY, existingMsg));
+      }
+
+      setState((draft) => {
+        draft.errors.delete(USER_PROPERTY_WARNING_KEY);
+      });
+      return;
+    }
+
+    const message = `User property named "${missingUserProperty}" is not configured.`;
+    if (existingMsg && existingMsg !== message) {
+      closeSnackbar(errorHash(USER_PROPERTY_WARNING_KEY, existingMsg));
+    }
+    enqueueSnackbar(message, {
+      variant: "warning",
+      persist: true,
+      key: errorHash(USER_PROPERTY_WARNING_KEY, message),
+      anchorOrigin,
+    });
+    setState((draft) => {
+      draft.errors.set(USER_PROPERTY_WARNING_KEY, message);
+    });
+  }, [errors, setState, userProperties, userPropertiesResult]);
 
   if (!workspace) {
     return null;
@@ -459,7 +566,7 @@ export default function TemplateEditor({
       }}
       spacing={1}
     >
-      <Stack>{renderPreviewHeader({ userProperties })}</Stack>
+      <Stack>{renderPreviewHeader({ rendered })}</Stack>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <FormLabel sx={{ paddingLeft: 1 }}>Body Preview</FormLabel>
         {fullscreen === null ? (
@@ -479,9 +586,7 @@ export default function TemplateEditor({
           </IconButton>
         )}
       </Stack>
-      <BodyBox direction="right">
-        {renderPreviewBody({ userProperties })}
-      </BodyBox>
+      <BodyBox direction="right">{renderPreviewBody({ rendered })}</BodyBox>
     </Stack>
   );
   return (
