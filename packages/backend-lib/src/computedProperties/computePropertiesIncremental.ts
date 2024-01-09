@@ -385,13 +385,13 @@ export function segmentNodeToStateSubQuery({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const stateId = segmentNodeStateId(segment, node.id);
-      const path = qb.addQueryValue(node.path, "String");
+      const path = qb.addQueryValue(`$.${node.path}`, "String");
       return [
         {
           condition: `event_type == 'identify'`,
           type: "segment",
           uniqValue: "''",
-          argMaxValue: `visitParamExtractString(properties, ${path})`,
+          argMaxValue: `JSON_VALUE(properties, ${path})`,
           computedPropertyId: segment.id,
           stateId,
         },

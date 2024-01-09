@@ -594,6 +594,58 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "computes a nested trait segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: "a.b",
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "c",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                a: {
+                  b: "c",
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes an AND segment",
       userProperties: [],
       segments: [
