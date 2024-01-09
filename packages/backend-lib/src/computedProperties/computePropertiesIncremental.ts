@@ -404,10 +404,11 @@ export function segmentNodeToStateSubQuery({
         const operatorType = property.operator.type;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            return `visitParamExtractString(properties, ${qb.addQueryValue(
-              property.path,
+            const path = qb.addQueryValue(`$.${property.path}`, "String");
+            return `JSON_VALUE(properties, ${path}) == ${qb.addQueryValue(
+              property.operator.value,
               "String"
-            )}) == ${qb.addQueryValue(property.operator.value, "String")}`;
+            )}`;
           }
           default:
             throw new Error(

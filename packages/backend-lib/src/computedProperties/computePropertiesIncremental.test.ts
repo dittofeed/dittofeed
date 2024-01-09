@@ -1461,6 +1461,78 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "performed segment with nested properties",
+      userProperties: [],
+      segments: [
+        {
+          name: "performed",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Performed,
+              id: "1",
+              event: "test",
+              timesOperator: RelationalOperators.GreaterThanOrEqual,
+              times: 1,
+              properties: [
+                {
+                  path: "level1.level2.level3",
+                  operator: {
+                    type: SegmentOperatorType.Equals,
+                    value: "value1",
+                  },
+                },
+              ],
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Track,
+              offsetMs: -100,
+              userId: "user-1",
+              event: "test",
+              properties: {
+                level1: {
+                  level2: {
+                    level3: "value1",
+                  },
+                },
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "checks nested values",
+          states: [
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "performed",
+              nodeId: "1",
+              uniqueCount: 1,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                performed: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "last performed segment",
       userProperties: [],
       segments: [
