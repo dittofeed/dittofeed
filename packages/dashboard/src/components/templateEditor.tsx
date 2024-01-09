@@ -118,6 +118,7 @@ const LOREM = new LoremIpsum({
 
 export interface RenderPreviewParams {
   rendered: Record<string, string>;
+  userProperties: UserPropertyAssignments;
 }
 
 export type RenderPreviewSection = (
@@ -138,6 +139,10 @@ export type RenderEditorSection = (args: RenderEditorParams) => React.ReactNode;
 function errorHash(key: string, message: string) {
   return hash(`${key}-${message}`);
 }
+
+export type DefinitionToPreview = (
+  dfn: MessageTemplateResourceDefinition
+) => RenderMessageTemplateRequestContents;
 
 export default function TemplateEditor({
   templateId,
@@ -164,9 +169,7 @@ export default function TemplateEditor({
   renderPreviewBody: RenderPreviewSection;
   renderEditorHeader: RenderEditorSection;
   renderEditorBody: RenderEditorSection;
-  definitionToPreview: (
-    dfn: MessageTemplateResourceDefinition
-  ) => RenderMessageTemplateRequestContents;
+  definitionToPreview: DefinitionToPreview;
   fieldToReadable: (field: string) => string | null;
   onTitleChange?: (title: string) => void;
 }) {

@@ -542,78 +542,6 @@ export default function EmailEditor({
     />
   );
 
-  const previewHeader = (
-    <>
-      <TextField
-        required
-        label="To"
-        variant="filled"
-        disabled
-        InputProps={{
-          sx: {
-            fontSize: ".75rem",
-            borderTopLeftRadius: 0,
-          },
-        }}
-        sx={disabledStyles}
-        value={previewEmailTo}
-      />
-      <TextField
-        required
-        label="From"
-        variant="filled"
-        disabled
-        InputProps={{
-          sx: {
-            fontSize: ".75rem",
-            borderTopLeftRadius: 0,
-          },
-        }}
-        sx={disabledStyles}
-        value={previewEmailFrom}
-      />
-      <TextField
-        required
-        label="Subject"
-        variant="filled"
-        disabled
-        InputProps={{
-          sx: {
-            fontSize: ".75rem",
-            borderTopLeftRadius: 0,
-          },
-        }}
-        sx={disabledStyles}
-        value={previewSubject}
-      />
-      <TextField
-        label="Reply-To"
-        variant="filled"
-        disabled
-        InputProps={{
-          sx: {
-            fontSize: ".75rem",
-            borderTopLeftRadius: 0,
-          },
-        }}
-        sx={disabledStyles}
-        value={previewEmailReplyTo}
-      />
-    </>
-  );
-  const previewBody = (
-    <iframe
-      srcDoc={`<!DOCTYPE html>${previewBodyHtml}`}
-      title="email-body-preview"
-      style={{
-        border: "none",
-        height: "100%",
-        width: "100%",
-        padding: theme.spacing(1),
-      }}
-    />
-  );
-
   // TODO render provider and user
   return (
     <TemplateEditor
@@ -624,8 +552,77 @@ export default function EmailEditor({
       saveOnUpdate={saveOnUpdate}
       renderEditorHeader={() => editorHeader}
       renderEditorBody={() => editorBody}
-      renderPreviewBody={() => previewBody}
-      renderPreviewHeader={() => previewHeader}
+      renderPreviewHeader={({ rendered, userProperties: up }) => (
+        <>
+          <TextField
+            required
+            label="To"
+            variant="filled"
+            disabled
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopLeftRadius: 0,
+              },
+            }}
+            sx={disabledStyles}
+            value={up.email}
+          />
+          <TextField
+            required
+            label="From"
+            variant="filled"
+            disabled
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopLeftRadius: 0,
+              },
+            }}
+            sx={disabledStyles}
+            value={rendered.from}
+          />
+          <TextField
+            required
+            label="Subject"
+            variant="filled"
+            disabled
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopLeftRadius: 0,
+              },
+            }}
+            sx={disabledStyles}
+            value={rendered.subject}
+          />
+          <TextField
+            label="Reply-To"
+            variant="filled"
+            disabled
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopLeftRadius: 0,
+              },
+            }}
+            sx={disabledStyles}
+            value={rendered.replyTo}
+          />
+        </>
+      )}
+      renderPreviewBody={({ rendered }) => (
+        <iframe
+          srcDoc={`<!DOCTYPE html>${rendered.body}`}
+          title="email-body-preview"
+          style={{
+            border: "none",
+            height: "100%",
+            width: "100%",
+            padding: theme.spacing(1),
+          }}
+        />
+      )}
       definitionToPreview={definitionToPreview}
       fieldToReadable={fieldToReadable}
     />
