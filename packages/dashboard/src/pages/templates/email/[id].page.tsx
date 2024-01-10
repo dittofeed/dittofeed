@@ -1,6 +1,12 @@
 import { enrichMessageTemplate } from "backend-lib/src/messageTemplates";
+import { MessageTemplate } from "backend-lib/src/types";
 import { enrichUserProperty } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import {
+  ChannelType,
+  CompletionStatus,
+  EmailTemplateResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -8,12 +14,12 @@ import React from "react";
 import { validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import defaultEmailBody from "../../../components/messages/defaultEmailBody";
 import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
-import { getEmailEditorState } from "../../../lib/email";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
-import { PropsWithInitialState } from "../../../lib/types";
+import { AppState, PropsWithInitialState } from "../../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -39,21 +45,39 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     ]);
 
-    const serverInitialState = getEmailEditorState({
-      emailTemplate: emailTemplate
-        ? unwrap(enrichMessageTemplate(emailTemplate))
-        : null,
-      userProperties: userProperties.flatMap((p) =>
-        unwrap(enrichUserProperty(p))
-      ),
-      memberEmail: dfContext.member.email,
-      templateId,
-    });
-    if (!serverInitialState) {
-      return {
-        notFound: true,
-      };
+    let emailTemplateWithDefault: MessageTemplate;
+    if (!emailTemplate) {
+      emailTemplateWithDefault = await prisma().messageTemplate.upsert({
+        where: { id: templateId },
+        create: {
+          workspaceId,
+          name: `New Email Message - ${templateId}`,
+          id: templateId,
+          definition: {
+            type: ChannelType.Email,
+            subject: "Hi {{ user.firstName | default: 'there'}}!",
+            from: '{{ user.accountManager | default: "hello@company.com"}}',
+            replyTo: "",
+            body: defaultEmailBody,
+          } satisfies EmailTemplateResource,
+        },
+        update: {},
+      });
+    } else {
+      emailTemplateWithDefault = emailTemplate;
     }
+
+    const serverInitialState: Partial<AppState> = {
+      messages: {
+        type: CompletionStatus.Successful,
+        value: [unwrap(enrichMessageTemplate(emailTemplateWithDefault))],
+      },
+      userProperties: {
+        type: CompletionStatus.Successful,
+        value: userProperties.flatMap((p) => unwrap(enrichUserProperty(p))),
+      },
+    };
+
     return {
       props: addInitialStateToProps({
         dfContext,

@@ -195,6 +195,7 @@ export default function TemplateEditor({
       ? messages.value.find((m) => m.id === templateId)
       : undefined;
 
+  console.log("template loc2", template);
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
       ? workspaceResult.value
@@ -309,17 +310,18 @@ export default function TemplateEditor({
   }, [handleSave, saveOnUpdate]);
 
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
+  const [debouncedDefinition] = useDebounce(definition, 300);
 
   useEffect(() => {
     (async () => {
-      if (!workspace || !definition) {
+      if (!workspace || !debouncedDefinition) {
         return;
       }
       const data: RenderMessageTemplateRequest = {
         workspaceId: workspace.id,
         channel: ChannelType.Email,
         userProperties: debouncedUserProperties,
-        contents: definitionToPreview(definition),
+        contents: definitionToPreview(debouncedDefinition),
       };
 
       try {
@@ -330,6 +332,7 @@ export default function TemplateEditor({
         });
 
         const { contents } = response.data as RenderMessageTemplateResponse;
+        // FIXME errors not closing correctly
 
         const newRendered: Record<string, string> = {};
         const newErrors = new Map(errors);
@@ -341,7 +344,7 @@ export default function TemplateEditor({
           }
           const existingErr = errors.get(contentKey);
           if (content.type === JsonResultType.Ok) {
-            rendered[contentKey] = content.value;
+            newRendered[contentKey] = content.value;
             if (existingErr) {
               closeSnackbar(errorHash(contentKey, existingErr));
               newErrors.delete(contentKey);
@@ -375,14 +378,13 @@ export default function TemplateEditor({
         });
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     apiBase,
     debouncedUserProperties,
-    definition,
+    debouncedDefinition,
     definitionToPreview,
-    errors,
     fieldToReadable,
-    rendered,
     setState,
     workspace,
   ]);
