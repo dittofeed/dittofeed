@@ -241,19 +241,6 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         enableMobilePush: preloadedState.enableMobilePush ?? false,
         integrations: [],
 
-        // email message state
-        emailMessageBody: "",
-        emailMessageTitle: "",
-        emailMessageSubject: "",
-        emailMessageFrom: "",
-        emailMessageUserProperties: {},
-        emailMessageUserPropertiesJSON: "",
-        emailMessageReplyTo: "",
-
-        emailMessageUpdateRequest: {
-          type: CompletionStatus.NotStarted,
-        },
-
         // mobile push message state
         mobilePushMessageTitle: "",
         mobilePushMessageBody: "",
@@ -262,24 +249,6 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         mobilePushMessageUserPropertiesJSON: "",
         mobilePushMessageUpdateRequest: {
           type: CompletionStatus.NotStarted,
-        },
-
-        // sms message state
-        smsMessageBody: "",
-        smsMessageUpdateRequest: {
-          type: CompletionStatus.NotStarted,
-        },
-        smsMessageUserPropertiesJSON: "",
-        smsMessageUserProperties: {},
-        smsMessageTitle: "",
-        setSmsMessageTitle: (title) =>
-          set((state) => {
-            state.smsMessageTitle = title;
-          }),
-        setSmsUserProperties(properties) {
-          set((state) => {
-            state.smsMessageUserProperties = properties;
-          });
         },
 
         messageTemplateDeleteRequest: {
@@ -671,38 +640,6 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             journeys.value.push(journey);
             return state;
           }),
-        setEmailMessageTitle: (title) =>
-          set((state) => {
-            state.emailMessageTitle = title;
-          }),
-        setEmailMessageReplyTo: (replyTo) =>
-          set((state) => {
-            state.emailMessageReplyTo = replyTo;
-          }),
-        replaceEmailMessageProps: (p) =>
-          set((state) => {
-            state.emailMessageUserProperties = p;
-          }),
-        setEmailMessagePropsJSON: (jsonString) =>
-          set((state) => {
-            state.emailMessageUserPropertiesJSON = jsonString;
-          }),
-        setEmailMessageSubject: (subject) =>
-          set((state) => {
-            state.emailMessageSubject = subject;
-          }),
-        setEmailMessageBody: (body) =>
-          set((state) => {
-            state.emailMessageBody = body;
-          }),
-        setEmailMessageFrom: (from) =>
-          set((state) => {
-            state.emailMessageFrom = from;
-          }),
-        setEmailMessageUpdateRequest: (request) =>
-          set((state) => {
-            state.emailMessageUpdateRequest = request;
-          }),
         setMobilePushMessageImageUrl: (imageUrl) =>
           set((state) => {
             state.mobilePushMesssageImageUrl = imageUrl;
@@ -722,19 +659,6 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setMobilePushMessageUpdateRequest: (request) =>
           set((state) => {
             state.mobilePushMessageUpdateRequest = request;
-          }),
-
-        setSmsMessageBody: (body) =>
-          set((state) => {
-            state.smsMessageBody = body;
-          }),
-        setSmsMessagePropsJSON: (jsonString) =>
-          set((state) => {
-            state.smsMessageUserPropertiesJSON = jsonString;
-          }),
-        setSmsMessageUpdateRequest: (request) =>
-          set((state) => {
-            state.smsMessageUpdateRequest = request;
           }),
         addEditableSegmentChild: (parentId) =>
           set((state) => {

@@ -195,7 +195,6 @@ export default function TemplateEditor({
       ? messages.value.find((m) => m.id === templateId)
       : undefined;
 
-  console.log("template loc2", template);
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
       ? workspaceResult.value
@@ -248,6 +247,32 @@ export default function TemplateEditor({
     },
     rendered: {},
   });
+
+  // following two hooks allow for client side navigation, and for local state
+  // to become synced with zustand store
+  useEffect(() => {
+    if (
+      Object.keys(initialUserProperties).length === 0 ||
+      Object.keys(userProperties).length > 0
+    ) {
+      return;
+    }
+    setState((draft) => {
+      draft.userProperties = initialUserProperties;
+      draft.userPropertiesJSON = JSON.stringify(initialUserProperties, null, 2);
+    });
+  }, [initialUserProperties, setState, userProperties]);
+
+  useEffect(() => {
+    if (definition || title || !template) {
+      return;
+    }
+    setState((draft) => {
+      draft.title = template.name;
+      draft.definition = template.draft ?? template.definition ?? null;
+    });
+  }, [template, setState, definition, title]);
+
   const handleSave = useCallback(
     ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {
       if (
@@ -444,7 +469,7 @@ export default function TemplateEditor({
     });
   }, [errors, setState, userProperties, userPropertiesResult]);
 
-  if (!workspace) {
+  if (!workspace || !template) {
     return null;
   }
 

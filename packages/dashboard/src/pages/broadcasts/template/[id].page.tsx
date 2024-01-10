@@ -38,10 +38,8 @@ import SubscriptionGroupAutocomplete from "../../../components/subscriptionGroup
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../../lib/appStore";
-import { getEmailEditorState } from "../../../lib/email";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
-import { getSmsEditorState } from "../../../lib/sms";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
 import { useUpdateEffect } from "../../../lib/useUpdateEffect";
 import { BroadcastLayout } from "../broadcastLayout";
@@ -55,14 +53,10 @@ function getChannel(routeChannel: unknown): ChannelType {
 
 async function getChannelState({
   workspaceId,
-  channel,
   template,
-  memberEmail,
 }: {
   template: MessageTemplateResource;
   workspaceId: string;
-  channel: ChannelType;
-  memberEmail: string;
 }): Promise<Partial<AppState> | null> {
   const userProperties = (
     await prisma().userProperty.findMany({
@@ -71,30 +65,16 @@ async function getChannelState({
       },
     })
   ).flatMap((up) => unwrap(toUserPropertyResource(up)));
-
-  switch (channel) {
-    case ChannelType.Email: {
-      const state = getEmailEditorState({
-        emailTemplate: template,
-        userProperties,
-        templateId: template.id,
-        memberEmail,
-      });
-      return state;
-    }
-    case ChannelType.Sms: {
-      const state = await getSmsEditorState({
-        smsTemplate: template,
-        userProperties,
-        templateId: template.id,
-      });
-      return state;
-    }
-    case ChannelType.MobilePush:
-      throw new Error("MobilePush not implemented");
-    default:
-      assertUnreachable(channel);
-  }
+  return {
+    userProperties: {
+      type: CompletionStatus.Successful,
+      value: userProperties,
+    },
+    messages: {
+      type: CompletionStatus.Successful,
+      value: [template],
+    },
+  };
 }
 
 interface BroadcastTemplateProps {
@@ -126,8 +106,6 @@ export const getServerSideProps: GetServerSideProps<
       }),
     ]);
 
-  const channel = getChannel(ctx.query.channel);
-
   const baseAppState = getBroadcastAppState({ broadcast });
   if (broadcast.workspaceId !== dfContext.workspace.id) {
     return {
@@ -135,10 +113,8 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
   const channelState = await getChannelState({
-    channel,
     template: messageTemplate,
     workspaceId: dfContext.workspace.id,
-    memberEmail: dfContext.member.email,
   });
 
   const appState: Partial<AppState> = {

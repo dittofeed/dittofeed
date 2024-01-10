@@ -222,24 +222,6 @@ export interface SegmentEditorContents extends SegmentEditorState {
 }
 
 // FIXME remove
-export interface SmsMessageEditorState {
-  smsMessageTitle: string;
-  smsMessageBody: string;
-  smsMessageUserProperties: Record<string, string>;
-  smsMessageUserPropertiesJSON: string;
-  smsMessageUpdateRequest: EphemeralRequestStatus<Error>;
-}
-
-// FIXME remove
-export interface SmsMessageEditorContents extends SmsMessageEditorState {
-  setSmsMessageTitle: (title: string) => void;
-  setSmsMessageBody: (body: string) => void;
-  setSmsUserProperties: (properties: Record<string, string>) => void;
-  setSmsMessagePropsJSON: (jsonString: string) => void;
-  setSmsMessageUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
-}
-
-// FIXME remove
 export interface MobilePushMessageEditorState {
   mobilePushMessageTitle: string;
   mobilePushMessageBody: string;
@@ -299,7 +281,6 @@ export interface JourneyContent extends JourneyState {
 }
 
 export type PageStoreContents = MobilePushMessageEditorContents &
-  SmsMessageEditorContents &
   SegmentEditorContents &
   SegmentIndexContent &
   UserPropertyIndexContent &
