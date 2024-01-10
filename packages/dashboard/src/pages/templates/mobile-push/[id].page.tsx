@@ -7,3 +7,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, _dfContext) => ({
     notFound: true,
   }));
+
+export default function MessageEditor() {
+  return <>placeholder</>;
+}
