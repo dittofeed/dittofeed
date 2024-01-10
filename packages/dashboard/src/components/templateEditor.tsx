@@ -363,7 +363,7 @@ export default function TemplateEditor({
             key: errorHash(contentKey, message),
             anchorOrigin,
           });
-          newErrors.set(contentKey, content.err);
+          newErrors.set(contentKey, message);
         }
 
         setState((draft) => {
