@@ -357,7 +357,6 @@ export default function TemplateEditor({
         });
 
         const { contents } = response.data as RenderMessageTemplateResponse;
-        // FIXME errors not closing correctly
 
         const newRendered: Record<string, string> = {};
         const newErrors = new Map(errors);
@@ -692,8 +691,7 @@ export default function TemplateEditor({
             <Button
               variant="contained"
               onClick={() => handleSave()}
-              // FIXME errors.size
-              disabled={false}
+              disabled={errors.size > 0}
             >
               Publish Changes
             </Button>

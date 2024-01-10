@@ -833,7 +833,6 @@ function SegmentNodeComponent({
 
   const condition = keyedSegmentOptions[node.type];
 
-  // FIXME spacing
   const conditionSelect = (
     <Box sx={{ width: selectorWidth }}>
       <Autocomplete

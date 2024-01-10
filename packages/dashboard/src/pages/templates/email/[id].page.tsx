@@ -58,18 +58,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         },
         update: {},
       });
-      logger().debug(
-        { emailTemplateWithDefault },
-        "emailTemplateWithDefault loc1"
-      );
     } else {
       emailTemplateWithDefault = emailTemplate;
-      logger().debug(
-        { emailTemplateWithDefault },
-        "emailTemplateWithDefault loc2"
-      );
     }
-    // FIXME not loading/creating on new, but works on page reload
 
     const serverInitialState: Partial<AppState> = {
       messages: {
@@ -81,12 +72,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         value: userProperties.flatMap((p) => unwrap(enrichUserProperty(p))),
       },
     };
-    logger().debug(
-      {
-        serverInitialState,
-      },
-      "serverInitialState loc3"
-    );
 
     // for some reason, new messages are not being merged into existing
     return {
