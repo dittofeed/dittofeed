@@ -454,10 +454,6 @@ export default function EmailEditor({
     setRenderedBody(errorBodyHtml);
   }, [errors, mockUserProperties, userPropertySet]);
 
-  const htmlCodeMirrorHandleChange = (val: string) => {
-    setEmailBody(val);
-  };
-
   const editorHeader = (
     <Stack>
       <TextField
@@ -524,24 +520,6 @@ export default function EmailEditor({
     </Stack>
   );
 
-  const editorBody = (
-    <ReactCodeMirror
-      value={emailBody}
-      onChange={htmlCodeMirrorHandleChange}
-      readOnly={disabled}
-      extensions={[
-        html(),
-        EditorView.theme({
-          "&": {
-            fontFamily: theme.typography.fontFamily,
-          },
-        }),
-        EditorView.lineWrapping,
-        lintGutter(),
-      ]}
-    />
-  );
-
   // TODO render provider and user
   return (
     <TemplateEditor
@@ -551,7 +529,36 @@ export default function EmailEditor({
       hideSaveButton={hideSaveButton}
       saveOnUpdate={saveOnUpdate}
       renderEditorHeader={() => editorHeader}
-      renderEditorBody={() => editorBody}
+      renderEditorBody={({ definition, setDefinition }) => {
+        if (definition.type !== ChannelType.Email) {
+          return null;
+        }
+        return (
+          <ReactCodeMirror
+            value={definition.body}
+            onChange={(value) => {
+              setDefinition((defn) => {
+                if (defn.type !== ChannelType.Email) {
+                  return defn;
+                }
+                defn.body = value;
+                return defn;
+              });
+            }}
+            readOnly={disabled}
+            extensions={[
+              html(),
+              EditorView.theme({
+                "&": {
+                  fontFamily: theme.typography.fontFamily,
+                },
+              }),
+              EditorView.lineWrapping,
+              lintGutter(),
+            ]}
+          />
+        );
+      }}
       renderPreviewHeader={({ rendered, userProperties: up }) => (
         <>
           <TextField

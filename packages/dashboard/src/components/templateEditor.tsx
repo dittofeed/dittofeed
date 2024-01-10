@@ -126,7 +126,9 @@ export type RenderPreviewSection = (
 ) => React.ReactNode;
 
 export type SetDefinition = (
-  definition: MessageTemplateResourceDefinition
+  setter: (
+    dfn: MessageTemplateResourceDefinition
+  ) => MessageTemplateResourceDefinition
 ) => void;
 
 export interface RenderEditorParams {
@@ -519,9 +521,13 @@ export default function TemplateEditor({
     definition !== null
       ? {
           definition,
-          setDefinition: (dfn) =>
+          setDefinition: (setter) =>
             setState((draft) => {
-              draft.definition = dfn;
+              if (draft.definition === null) {
+                return draft;
+              }
+              draft.definition = setter(draft.definition);
+              return draft;
             }),
         }
       : null;
@@ -569,7 +575,7 @@ export default function TemplateEditor({
       }}
       spacing={1}
     >
-      <Stack>{renderPreviewHeader({ rendered })}</Stack>
+      <Stack>{renderPreviewHeader({ rendered, userProperties })}</Stack>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <FormLabel sx={{ paddingLeft: 1 }}>Body Preview</FormLabel>
         {fullscreen === null ? (
@@ -589,7 +595,9 @@ export default function TemplateEditor({
           </IconButton>
         )}
       </Stack>
-      <BodyBox direction="right">{renderPreviewBody({ rendered })}</BodyBox>
+      <BodyBox direction="right">
+        {renderPreviewBody({ rendered, userProperties })}
+      </BodyBox>
     </Stack>
   );
   return (
