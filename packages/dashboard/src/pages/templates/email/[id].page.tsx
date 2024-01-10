@@ -1,3 +1,4 @@
+import logger from "backend-lib/src/logger";
 import { enrichMessageTemplate } from "backend-lib/src/messageTemplates";
 import { MessageTemplate } from "backend-lib/src/types";
 import { enrichUserProperty } from "backend-lib/src/userProperties";
@@ -20,7 +21,6 @@ import { useAppStorePick } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
-import logger from "backend-lib/src/logger";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {

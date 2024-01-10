@@ -241,16 +241,6 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         enableMobilePush: preloadedState.enableMobilePush ?? false,
         integrations: [],
 
-        // mobile push message state
-        mobilePushMessageTitle: "",
-        mobilePushMessageBody: "",
-        mobilePushMesssageImageUrl: "",
-        mobilePushMessageUserProperties: {},
-        mobilePushMessageUserPropertiesJSON: "",
-        mobilePushMessageUpdateRequest: {
-          type: CompletionStatus.NotStarted,
-        },
-
         messageTemplateDeleteRequest: {
           type: CompletionStatus.NotStarted,
         },
@@ -639,26 +629,6 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             }
             journeys.value.push(journey);
             return state;
-          }),
-        setMobilePushMessageImageUrl: (imageUrl) =>
-          set((state) => {
-            state.mobilePushMesssageImageUrl = imageUrl;
-          }),
-        setMobilePushMessageTitle: (title) =>
-          set((state) => {
-            state.mobilePushMessageTitle = title;
-          }),
-        setMobilePushMessageBody: (body) =>
-          set((state) => {
-            state.mobilePushMessageBody = body;
-          }),
-        setMobilePushMessagePropsJSON: (jsonString) =>
-          set((state) => {
-            state.mobilePushMessageUserPropertiesJSON = jsonString;
-          }),
-        setMobilePushMessageUpdateRequest: (request) =>
-          set((state) => {
-            state.mobilePushMessageUpdateRequest = request;
           }),
         addEditableSegmentChild: (parentId) =>
           set((state) => {

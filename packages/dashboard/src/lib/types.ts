@@ -221,28 +221,6 @@ export interface SegmentEditorContents extends SegmentEditorState {
   setSegmentUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
-// FIXME remove
-export interface MobilePushMessageEditorState {
-  mobilePushMessageTitle: string;
-  mobilePushMessageBody: string;
-  mobilePushMesssageImageUrl: string;
-  mobilePushMessageUserProperties: Record<string, string>;
-  mobilePushMessageUserPropertiesJSON: string;
-  mobilePushMessageUpdateRequest: EphemeralRequestStatus<Error>;
-}
-
-// FIXME remove
-export interface MobilePushMessageEditorContents
-  extends MobilePushMessageEditorState {
-  setMobilePushMessageTitle: (title: string) => void;
-  setMobilePushMessageBody: (body: string) => void;
-  setMobilePushMessageImageUrl: (imageUrl: string) => void;
-  setMobilePushMessagePropsJSON: (jsonString: string) => void;
-  setMobilePushMessageUpdateRequest: (
-    request: EphemeralRequestStatus<Error>
-  ) => void;
-}
-
 export interface JourneyState {
   journeyName: string;
   journeyDraggedComponentType: JourneyNodeType | null;
@@ -280,8 +258,7 @@ export interface JourneyContent extends JourneyState {
   upsertJourneyStats: (stats: JourneyStatsResponse) => void;
 }
 
-export type PageStoreContents = MobilePushMessageEditorContents &
-  SegmentEditorContents &
+export type PageStoreContents = SegmentEditorContents &
   SegmentIndexContent &
   UserPropertyIndexContent &
   JourneyIndexContent &
