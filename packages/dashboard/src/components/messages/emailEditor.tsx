@@ -6,34 +6,14 @@ import ReactCodeMirror from "@uiw/react-codemirror";
 import escapeHTML from "escape-html";
 import {
   ChannelType,
-  CompletionStatus,
   RenderMessageTemplateRequestContents,
+  WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import React from "react";
 
-import { EmailMessageEditorState } from "../../lib/types";
 import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
-import defaultEmailBody from "./defaultEmailBody";
 
 const USER_TO = "{{user.email}}";
-
-export function defaultEmailMessageState(
-  id: string
-): Omit<
-  EmailMessageEditorState,
-  "emailMessageUserPropertiesJSON" | "emailMessageUserProperties"
-> {
-  return {
-    emailMessageBody: defaultEmailBody,
-    emailMessageTitle: `New Email Message - ${id}`,
-    emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
-    emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
-    emailMessageReplyTo: "",
-    emailMessageUpdateRequest: {
-      type: CompletionStatus.NotStarted,
-    },
-  };
-}
 
 function fieldToReadable(field: string) {
   switch (field) {
@@ -80,12 +60,14 @@ export default function EmailEditor({
   templateId: messageId,
   saveOnUpdate,
   disabled,
+  member,
 }: {
   templateId: string;
   hideSaveButton?: boolean;
   hideTitle?: boolean;
   saveOnUpdate?: boolean;
   disabled?: boolean;
+  member?: WorkspaceMemberResource;
 }) {
   const theme = useTheme();
   const disabledStyles: SxProps<Theme> = {
@@ -98,10 +80,10 @@ export default function EmailEditor({
     },
   };
 
-  // TODO render provider and user
   return (
     <TemplateEditor
       templateId={messageId}
+      member={member}
       disabled={disabled}
       hideTitle={hideTitle}
       hideSaveButton={hideSaveButton}

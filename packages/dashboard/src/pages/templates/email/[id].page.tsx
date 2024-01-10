@@ -3,7 +3,6 @@ import { MessageTemplate } from "backend-lib/src/types";
 import { enrichUserProperty } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
-  ChannelType,
   CompletionStatus,
   EmailTemplateResource,
 } from "isomorphic-lib/src/types";
@@ -14,9 +13,10 @@ import React from "react";
 import { validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
-import defaultEmailBody from "../../../components/messages/defaultEmailBody";
+import { defaultEmailDefinition } from "../../../components/messages/email";
 import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
+import { useAppStorePick } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../../lib/types";
@@ -53,13 +53,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId,
           name: `New Email Message - ${templateId}`,
           id: templateId,
-          definition: {
-            type: ChannelType.Email,
-            subject: "Hi {{ user.firstName | default: 'there'}}!",
-            from: '{{ user.accountManager | default: "hello@company.com"}}',
-            replyTo: "",
-            body: defaultEmailBody,
-          } satisfies EmailTemplateResource,
+          definition: defaultEmailDefinition() satisfies EmailTemplateResource,
         },
         update: {},
       });
@@ -89,6 +83,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
 export default function MessageEditor() {
   const router = useRouter();
+  const { member } = useAppStorePick(["member"]);
 
   const messageId =
     typeof router.query.id === "string" ? router.query.id : null;
@@ -104,7 +99,7 @@ export default function MessageEditor() {
       </Head>
       <main>
         <MainLayout>
-          <EmailEditor templateId={messageId} />
+          <EmailEditor templateId={messageId} member={member ?? undefined} />
         </MainLayout>
       </main>
     </>
