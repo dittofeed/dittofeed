@@ -454,72 +454,6 @@ export default function EmailEditor({
     setRenderedBody(errorBodyHtml);
   }, [errors, mockUserProperties, userPropertySet]);
 
-  const editorHeader = (
-    <Stack>
-      <TextField
-        disabled
-        required
-        label="To"
-        variant="filled"
-        value={USER_TO}
-        sx={disabledStyles}
-        InputProps={{
-          sx: {
-            fontSize: ".75rem",
-            borderTopRightRadius: 0,
-          },
-        }}
-      />
-      <TextField
-        disabled={disabled}
-        label="From"
-        variant="filled"
-        onChange={(e) => {
-          setEmailFrom(e.target.value);
-        }}
-        required
-        InputProps={{
-          sx: {
-            fontSize: ".75rem",
-            borderTopRightRadius: 0,
-          },
-        }}
-        value={emailFrom}
-      />
-      <TextField
-        label="Subject"
-        required
-        disabled={disabled}
-        variant="filled"
-        onChange={(e) => {
-          setSubject(e.target.value);
-        }}
-        InputProps={{
-          sx: {
-            fontSize: ".75rem",
-            borderTopRightRadius: 0,
-          },
-        }}
-        value={emailSubject}
-      />
-      <TextField
-        label="Reply-To"
-        variant="filled"
-        disabled={disabled}
-        onChange={(e) => {
-          setEmailMessageReplyTo(e.target.value);
-        }}
-        InputProps={{
-          sx: {
-            fontSize: ".75rem",
-            borderTopRightRadius: 0,
-          },
-        }}
-        value={emailMessageReplyTo}
-      />
-    </Stack>
-  );
-
   // TODO render provider and user
   return (
     <TemplateEditor
@@ -528,7 +462,94 @@ export default function EmailEditor({
       hideTitle={hideTitle}
       hideSaveButton={hideSaveButton}
       saveOnUpdate={saveOnUpdate}
-      renderEditorHeader={() => editorHeader}
+      renderEditorHeader={({ definition, setDefinition }) => {
+        if (definition.type !== ChannelType.Email) {
+          return null;
+        }
+        return (
+          <Stack>
+            <TextField
+              disabled
+              required
+              label="To"
+              variant="filled"
+              value={USER_TO}
+              sx={disabledStyles}
+              InputProps={{
+                sx: {
+                  fontSize: ".75rem",
+                  borderTopRightRadius: 0,
+                },
+              }}
+            />
+            <TextField
+              disabled={disabled}
+              label="From"
+              variant="filled"
+              onChange={(e) => {
+                setDefinition((defn) => {
+                  if (defn.type !== ChannelType.Email) {
+                    return defn;
+                  }
+                  defn.from = e.target.value;
+                  return defn;
+                });
+              }}
+              required
+              InputProps={{
+                sx: {
+                  fontSize: ".75rem",
+                  borderTopRightRadius: 0,
+                },
+              }}
+              value={definition.from}
+            />
+            <TextField
+              label="Subject"
+              required
+              disabled={disabled}
+              variant="filled"
+              onChange={(e) => {
+                setDefinition((defn) => {
+                  if (defn.type !== ChannelType.Email) {
+                    return defn;
+                  }
+                  defn.subject = e.target.value;
+                  return defn;
+                });
+              }}
+              InputProps={{
+                sx: {
+                  fontSize: ".75rem",
+                  borderTopRightRadius: 0,
+                },
+              }}
+              value={definition.subject}
+            />
+            <TextField
+              label="Reply-To"
+              variant="filled"
+              disabled={disabled}
+              onChange={(e) => {
+                setDefinition((defn) => {
+                  if (defn.type !== ChannelType.Email) {
+                    return defn;
+                  }
+                  defn.replyTo = e.target.value;
+                  return defn;
+                });
+              }}
+              InputProps={{
+                sx: {
+                  fontSize: ".75rem",
+                  borderTopRightRadius: 0,
+                },
+              }}
+              value={definition.replyTo}
+            />
+          </Stack>
+        );
+      }}
       renderEditorBody={({ definition, setDefinition }) => {
         if (definition.type !== ChannelType.Email) {
           return null;
