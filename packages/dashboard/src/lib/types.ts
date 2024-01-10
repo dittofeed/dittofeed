@@ -222,32 +222,6 @@ export interface SegmentEditorContents extends SegmentEditorState {
 }
 
 // FIXME remove
-export interface EmailMessageEditorState {
-  emailMessageSubject: string;
-  emailMessageFrom: string;
-  emailMessageTitle: string;
-  emailMessageBody: string;
-  emailMessageReplyTo: string;
-  emailMessageUserProperties: Record<string, string>;
-  emailMessageUserPropertiesJSON: string;
-  emailMessageUpdateRequest: EphemeralRequestStatus<Error>;
-}
-
-// FIXME remove
-export interface EmailMessageEditorContents extends EmailMessageEditorState {
-  setEmailMessageSubject: (subject: string) => void;
-  setEmailMessageBody: (body: string) => void;
-  setEmailMessageFrom: (to: string) => void;
-  setEmailMessageReplyTo: (replyTo: string) => void;
-  replaceEmailMessageProps: (properties: Record<string, string>) => void;
-  setEmailMessagePropsJSON: (jsonString: string) => void;
-  setEmailMessageTitle: (title: string) => void;
-  setEmailMessageUpdateRequest: (
-    request: EphemeralRequestStatus<Error>
-  ) => void;
-}
-
-// FIXME remove
 export interface SmsMessageEditorState {
   smsMessageTitle: string;
   smsMessageBody: string;
@@ -275,6 +249,7 @@ export interface MobilePushMessageEditorState {
   mobilePushMessageUpdateRequest: EphemeralRequestStatus<Error>;
 }
 
+// FIXME remove
 export interface MobilePushMessageEditorContents
   extends MobilePushMessageEditorState {
   setMobilePushMessageTitle: (title: string) => void;
@@ -323,8 +298,7 @@ export interface JourneyContent extends JourneyState {
   upsertJourneyStats: (stats: JourneyStatsResponse) => void;
 }
 
-export type PageStoreContents = EmailMessageEditorContents &
-  MobilePushMessageEditorContents &
+export type PageStoreContents = MobilePushMessageEditorContents &
   SmsMessageEditorContents &
   SegmentEditorContents &
   SegmentIndexContent &
