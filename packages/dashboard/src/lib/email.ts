@@ -2,90 +2,14 @@ import { EmailProvider } from "@prisma/client";
 import logger from "backend-lib/src/logger";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import {
-  ChannelType,
-  CompletionStatus,
   EmailProviderSecret,
   EmailProviderType,
-  MessageTemplateResource,
   PersistedEmailProvider,
-  UserPropertyResource,
 } from "isomorphic-lib/src/types";
-import { LoremIpsum } from "lorem-ipsum";
 
-import {
-  defaultEmailMessageState,
-  defaultInitialUserProperties,
-} from "../components/messages/emailEditor";
 import prisma from "./prisma";
-import { AppState } from "./types";
 
-export function getEmailEditorState({
-  emailTemplate,
-  templateId,
-  userProperties,
-  memberEmail,
-}: {
-  emailTemplate: MessageTemplateResource | null;
-  memberEmail: string;
-  templateId: string;
-  userProperties: UserPropertyResource[];
-}): Partial<AppState> | null {
-  const lorem = new LoremIpsum({
-    sentencesPerParagraph: {
-      max: 8,
-      min: 4,
-    },
-    wordsPerSentence: {
-      max: 16,
-      min: 4,
-    },
-  });
-
-  const emailMessageUserProperties = {
-    ...userProperties.reduce<Record<string, string>>((memo, up) => {
-      memo[up.name] = lorem.generateWords(1);
-      return memo;
-    }, {}),
-    ...defaultInitialUserProperties,
-    email: memberEmail,
-  };
-  const emailMessageUserPropertiesJSON = JSON.stringify(
-    emailMessageUserProperties,
-    null,
-    2
-  );
-
-  const serverInitialState: Partial<AppState> = {
-    emailMessageUserProperties,
-    emailMessageUserPropertiesJSON,
-  };
-
-  serverInitialState.userProperties = {
-    type: CompletionStatus.Successful,
-    value: userProperties,
-  };
-
-  if (emailTemplate) {
-    const definition = emailTemplate.draft ?? emailTemplate.definition;
-    if (definition && definition.type === ChannelType.Email) {
-      const { from, subject, body, replyTo } = definition;
-      serverInitialState.emailMessageTitle = emailTemplate.name;
-      serverInitialState.emailMessageFrom = from;
-      serverInitialState.emailMessageSubject = subject;
-      serverInitialState.emailMessageBody = body;
-
-      if (replyTo) {
-        serverInitialState.emailMessageReplyTo = replyTo;
-      }
-    }
-  } else {
-    Object.assign(serverInitialState, defaultEmailMessageState(templateId));
-  }
-
-  return serverInitialState;
-}
-
-async function upserEmailProvider({
+async function upsertEmailProvider({
   workspaceId,
   type,
 }: {
@@ -147,7 +71,7 @@ export async function getOrCreateEmailProviders({
     const missing = emailProviders.find((ep) => ep.type === type) === undefined;
     if (missing) {
       upsertPromises.push(
-        upserEmailProvider({
+        upsertEmailProvider({
           workspaceId,
           type,
         }).then((ep) => {

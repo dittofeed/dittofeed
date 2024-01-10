@@ -1,4 +1,6 @@
-const defaultEmailBody = `<!DOCTYPE html>
+import { ChannelType, EmailTemplateResource } from "isomorphic-lib/src/types";
+
+export const defaultEmailBody = `<!DOCTYPE html>
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -478,4 +480,13 @@ const defaultEmailBody = `<!DOCTYPE html>
     </table>
   </body>
 </html>`;
-export default defaultEmailBody;
+
+export function defaultEmailDefinition(): EmailTemplateResource {
+  return {
+    type: ChannelType.Email,
+    subject: "Hi {{ user.firstName | default: 'there'}}!",
+    from: '{{ user.accountManager | default: "hello@company.com"}}',
+    replyTo: "",
+    body: defaultEmailBody,
+  };
+}

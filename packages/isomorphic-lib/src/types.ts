@@ -370,10 +370,14 @@ export type PerformedManyUserPropertyDefinition = Static<
   typeof PerformedManyUserPropertyDefinition
 >;
 
+export const UserPropertyAssignments = Type.Record(Type.String(), Type.Any());
+
+export type UserPropertyAssignments = Static<typeof UserPropertyAssignments>;
+
 export const ParsedPerformedManyValueItem = Type.Object({
   event: Type.String(),
   timestamp: Type.String(),
-  properties: Type.Record(Type.String(), Type.Any()),
+  properties: UserPropertyAssignments,
 });
 
 export type ParsedPerformedManyValueItem = Static<
@@ -1351,17 +1355,29 @@ export const UserSubscriptionsUpdate = Type.Intersect([
 
 export type UserSubscriptionsUpdate = Static<typeof UserSubscriptionsUpdate>;
 
+const RenderMessageTemplateRequestContent = Type.Object({
+  value: Type.String(),
+  mjml: Type.Optional(Type.Boolean()),
+});
+
+export type RenderMessageTemplateRequestContent = Static<
+  typeof RenderMessageTemplateRequestContent
+>;
+
+export const RenderMessageTemplateRequestContents = Type.Record(
+  Type.String(),
+  RenderMessageTemplateRequestContent
+);
+
+export type RenderMessageTemplateRequestContents = Static<
+  typeof RenderMessageTemplateRequestContents
+>;
+
 export const RenderMessageTemplateRequest = Type.Object({
   workspaceId: Type.String(),
   channel: Type.Enum(ChannelType),
   subscriptionGroupId: Type.Optional(Type.String()),
-  contents: Type.Record(
-    Type.String(),
-    Type.Object({
-      value: Type.String(),
-      mjml: Type.Optional(Type.Boolean()),
-    })
-  ),
+  contents: RenderMessageTemplateRequestContents,
   userProperties: Type.Record(Type.String(), Type.Any()),
 });
 

@@ -1,6 +1,11 @@
 import { enrichMessageTemplate } from "backend-lib/src/messageTemplates";
+import { MessageTemplate } from "backend-lib/src/types";
 import { enrichUserProperty } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
+import {
+  CompletionStatus,
+  EmailTemplateResource,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -8,12 +13,13 @@ import React from "react";
 import { validate } from "uuid";
 
 import MainLayout from "../../../components/mainLayout";
+import { defaultEmailDefinition } from "../../../components/messages/email";
 import EmailEditor from "../../../components/messages/emailEditor";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
-import { getEmailEditorState } from "../../../lib/email";
+import { useAppStorePick } from "../../../lib/appStore";
 import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
-import { PropsWithInitialState } from "../../../lib/types";
+import { AppState, PropsWithInitialState } from "../../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (ctx, dfContext) => {
@@ -39,21 +45,34 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     ]);
 
-    const serverInitialState = getEmailEditorState({
-      emailTemplate: emailTemplate
-        ? unwrap(enrichMessageTemplate(emailTemplate))
-        : null,
-      userProperties: userProperties.flatMap((p) =>
-        unwrap(enrichUserProperty(p))
-      ),
-      memberEmail: dfContext.member.email,
-      templateId,
-    });
-    if (!serverInitialState) {
-      return {
-        notFound: true,
-      };
+    let emailTemplateWithDefault: MessageTemplate;
+    if (!emailTemplate) {
+      emailTemplateWithDefault = await prisma().messageTemplate.upsert({
+        where: { id: templateId },
+        create: {
+          workspaceId,
+          name: `New Email Message - ${templateId}`,
+          id: templateId,
+          definition: defaultEmailDefinition() satisfies EmailTemplateResource,
+        },
+        update: {},
+      });
+    } else {
+      emailTemplateWithDefault = emailTemplate;
     }
+
+    const serverInitialState: Partial<AppState> = {
+      messages: {
+        type: CompletionStatus.Successful,
+        value: [unwrap(enrichMessageTemplate(emailTemplateWithDefault))],
+      },
+      userProperties: {
+        type: CompletionStatus.Successful,
+        value: userProperties.flatMap((p) => unwrap(enrichUserProperty(p))),
+      },
+    };
+
+    // for some reason, new messages are not being merged into existing
     return {
       props: addInitialStateToProps({
         dfContext,
@@ -65,6 +84,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
 export default function MessageEditor() {
   const router = useRouter();
+  const { member } = useAppStorePick(["member"]);
 
   const messageId =
     typeof router.query.id === "string" ? router.query.id : null;
@@ -80,7 +100,7 @@ export default function MessageEditor() {
       </Head>
       <main>
         <MainLayout>
-          <EmailEditor templateId={messageId} />
+          <EmailEditor templateId={messageId} member={member ?? undefined} />
         </MainLayout>
       </main>
     </>

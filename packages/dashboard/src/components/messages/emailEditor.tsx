@@ -1,244 +1,58 @@
 import { html } from "@codemirror/lang-html";
-import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
-import { linter, lintGutter } from "@codemirror/lint";
+import { lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Fullscreen, FullscreenExit } from "@mui/icons-material";
-import {
-  Alert,
-  Box,
-  Button,
-  Dialog,
-  Divider,
-  FormLabel,
-  IconButton,
-  Slide,
-  Stack,
-  styled,
-  SxProps,
-  TextField,
-  Theme,
-  Typography,
-  useTheme,
-} from "@mui/material";
-import { TransitionProps } from "@mui/material/transitions";
+import { Stack, SxProps, TextField, Theme, useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
-import axios from "axios";
-import escapeHtml from "escape-html";
-import hash from "fnv1a";
-import { produce } from "immer";
+import escapeHTML from "escape-html";
 import {
   ChannelType,
-  CompletionStatus,
-  EmailTemplateResource,
-  EphemeralRequestStatus,
-  InternalEventType,
-  JsonResultType,
-  MessageTemplateResource,
-  MessageTemplateTestRequest,
-  MessageTemplateTestResponse,
-  RenderMessageTemplateRequest,
-  RenderMessageTemplateResponse,
-  UpsertMessageTemplateResource,
+  RenderMessageTemplateRequestContents,
+  WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
-import { useRouter } from "next/router";
-import { closeSnackbar, enqueueSnackbar } from "notistack";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useDebounce } from "use-debounce";
-import { create } from "zustand";
-import { immer } from "zustand/middleware/immer";
-import { shallow } from "zustand/shallow";
+import React from "react";
 
-import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../../lib/appStore";
-import {
-  noticeAnchorOrigin as anchorOrigin,
-  noticeAnchorOrigin,
-} from "../../lib/notices";
-import { AppContents, EmailMessageEditorState } from "../../lib/types";
-import { useUpdateEffect } from "../../lib/useUpdateEffect";
-import EditableName from "../editableName";
-import InfoTooltip from "../infoTooltip";
-import LoadingModal from "../loadingModal";
-import defaultEmailBody from "./defaultEmailBody";
-
-function TransitionInner(
-  props: TransitionProps & {
-    children: React.ReactElement;
-  },
-  ref: React.Ref<unknown>
-) {
-  return <Slide direction="up" ref={ref} {...props} />;
-}
-
-const Transition = React.forwardRef(TransitionInner);
+import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
 
 const USER_TO = "{{user.email}}";
-const USER_PROPERTIES_TOOLTIP =
-  "Edit an example user's properties to see the edits reflected in the rendered template. Properties are computed from user Identify traits and Track events.";
 
-export const defaultInitialUserProperties = {
-  email: "test@email.com",
-  id: "ad44fb62-91a4-4ec7-be24-7f9364e331b1",
-  phone: "2025550161",
-  language: "en-US",
-  anonymousId: "0b0d3a71-0a86-4e60-892a-d27f0b290c81",
+function fieldToReadable(field: string) {
+  switch (field) {
+    case "body":
+      return "Body";
+    case "from":
+      return "From";
+    case "subject":
+      return "Subject";
+    case "replyTo":
+      return "Reply-To";
+    default:
+      return null;
+  }
+}
+
+const definitionToPreview: DefinitionToPreview = (definition) => {
+  if (definition.type !== ChannelType.Email) {
+    throw new Error("Invalid channel type");
+  }
+  const content: RenderMessageTemplateRequestContents = {
+    from: {
+      value: definition.from,
+    },
+    subject: {
+      value: definition.subject,
+    },
+    body: {
+      mjml: true,
+      value: definition.body,
+    },
+  };
+  if (definition.replyTo) {
+    content.replyTo = {
+      value: definition.replyTo,
+    };
+  }
+  return content;
 };
-
-export function defaultEmailMessageState(
-  id: string
-): Omit<
-  EmailMessageEditorState,
-  "emailMessageUserPropertiesJSON" | "emailMessageUserProperties"
-> {
-  return {
-    emailMessageBody: defaultEmailBody,
-    emailMessageTitle: `New Email Message - ${id}`,
-    emailMessageSubject: 'Hi {{ user.firstName | default: "there"}}!',
-    emailMessageFrom: '{{ user.accountManager | default: "hello@company.com"}}',
-    emailMessageReplyTo: "",
-    emailMessageUpdateRequest: {
-      type: CompletionStatus.NotStarted,
-    },
-  };
-}
-
-const BodyBox = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "direction",
-})<{ direction: "left" | "right" } & React.ComponentProps<typeof Box>>(
-  ({ theme, direction }) => ({
-    flex: 1,
-    flexBasis: 0,
-    overflow: "scroll",
-    border: `1px solid ${theme.palette.grey[200]}`,
-    ...(direction === "left"
-      ? {
-          borderTopLeftRadius: theme.shape.borderRadius * 1,
-          borderBottomLeftRadius: theme.shape.borderRadius * 1,
-        }
-      : {
-          borderTopRightRadius: theme.shape.borderRadius * 1,
-          borderBottomRightRadius: theme.shape.borderRadius * 1,
-        }),
-  })
-);
-
-interface EmailEditorStore {
-  messageTestRequest: EphemeralRequestStatus<Error>;
-  setMessageTestRequest: (request: EphemeralRequestStatus<Error>) => void;
-  testResponse: MessageTemplateTestResponse | null;
-  setTestResponse: (response: MessageTemplateTestResponse | null) => void;
-}
-
-export const useEmailEditorStore = create(
-  immer<EmailEditorStore>((set) => ({
-    messageTestRequest: {
-      type: CompletionStatus.NotStarted,
-    },
-    setMessageTestRequest: (request) => {
-      set((state) => {
-        state.messageTestRequest = request;
-      });
-    },
-    testResponse: null,
-    setTestResponse: (response) => {
-      set((state) => {
-        state.testResponse = response;
-      });
-    },
-  }))
-);
-
-function upsert({
-  workspaceId,
-  messageId,
-  emailFrom,
-  emailBody,
-  emailSubject,
-  emailMessageReplyTo,
-  apiBase,
-  emailMessageUpdateRequest,
-  setEmailMessageUpdateRequest,
-  emailMessageTitle,
-  upsertMessage,
-  saveAsDraft = false,
-}: {
-  workspaceId?: string;
-  saveAsDraft?: boolean;
-  messageId: string | null;
-  emailMessageTitle: string;
-  emailFrom: string;
-  emailBody: string;
-  emailSubject: string;
-  emailMessageReplyTo: string;
-  apiBase: string;
-  upsertMessage: AppContents["upsertMessage"];
-  emailMessageUpdateRequest: AppContents["emailMessageUpdateRequest"];
-  setEmailMessageUpdateRequest: AppContents["setEmailMessageUpdateRequest"];
-}) {
-  if (
-    !workspaceId ||
-    !messageId ||
-    emailMessageTitle.length === 0 ||
-    emailBody.length === 0 ||
-    emailSubject.length === 0
-  ) {
-    return;
-  }
-  const upsertEmailDefinition: EmailTemplateResource = {
-    type: ChannelType.Email,
-    from: emailFrom,
-    body: emailBody,
-    subject: emailSubject,
-  };
-
-  if (emailMessageReplyTo.length) {
-    upsertEmailDefinition.replyTo = emailMessageReplyTo;
-  }
-
-  const updateData: UpsertMessageTemplateResource = {
-    id: messageId,
-    workspaceId,
-    name: emailMessageTitle,
-    draft: upsertEmailDefinition,
-  };
-
-  if (!saveAsDraft) {
-    updateData.definition = upsertEmailDefinition;
-  }
-
-  apiRequestHandlerFactory({
-    request: emailMessageUpdateRequest,
-    setRequest: setEmailMessageUpdateRequest,
-    responseSchema: MessageTemplateResource,
-    setResponse: upsertMessage,
-    onSuccessNotice: `Saved template.`,
-    onFailureNoticeHandler: () => `API Error: Failed to save template.`,
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/content/templates`,
-      data: updateData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  })();
-}
-
-type Fullscreen = "editor" | "preview" | null;
-
-enum NotifyKey {
-  RenderBodyError = "RenderBodyError",
-  RenderFromError = "RenderFromError",
-  RenderSubjectError = "RenderSubjectError",
-  RenderReplyToError = "RenderReplyToError",
-  UserPropertyWarning = "UserPropertyWarning",
-}
-
-function errorHash(key: NotifyKey, message: string) {
-  return hash(`${key}-${message}`);
-}
-
-const errorBodyHtml = '<div style="color:red;">Render Error</div>';
 
 export default function EmailEditor({
   hideSaveButton,
@@ -246,103 +60,16 @@ export default function EmailEditor({
   templateId: messageId,
   saveOnUpdate,
   disabled,
+  member,
 }: {
   templateId: string;
   hideSaveButton?: boolean;
   hideTitle?: boolean;
   saveOnUpdate?: boolean;
   disabled?: boolean;
+  member?: WorkspaceMemberResource;
 }) {
   const theme = useTheme();
-  const router = useRouter();
-  const [errors, setErrors] = useState<Map<NotifyKey, string>>(new Map());
-  const [previewBodyHtml, setRenderedBody] = useState<string>("");
-  const [previewSubject, setRenderedSubject] = useState<string>("");
-  const [previewEmailFrom, setRenderedFrom] = useState<string>("");
-  const [previewEmailReplyTo, setRenderedReplyTo] = useState<string>("");
-  const messageTestRequest = useEmailEditorStore(
-    (store) => store.messageTestRequest
-  );
-  const setMessageTestRequest = useEmailEditorStore(
-    (store) => store.setMessageTestRequest
-  );
-  const testResponse = useEmailEditorStore((store) => store.testResponse);
-  const setTestResponse = useEmailEditorStore((store) => store.setTestResponse);
-  const [fullscreen, setFullscreen] = useState<Fullscreen>(null);
-  const {
-    apiBase,
-    emailMessageBody: emailBody,
-    emailMessageFrom: emailFrom,
-    emailMessageSubject: emailSubject,
-    emailMessageTitle,
-    emailMessageUpdateRequest,
-    emailMessageUserProperties: mockUserProperties,
-    emailMessageUserPropertiesJSON: userPropertiesJSON,
-    emailMessageReplyTo,
-    replaceEmailMessageProps: replaceUserProperties,
-    setEmailMessageBody: setEmailBody,
-    setEmailMessageFrom: setEmailFrom,
-    setEmailMessageTitle,
-    setEmailMessagePropsJSON: setUserPropertiesJSON,
-    setEmailMessageSubject: setSubject,
-    setEmailMessageUpdateRequest,
-    upsertMessage,
-    userProperties,
-    setEmailMessageReplyTo,
-    workspace: workspaceRequest,
-  } = useAppStore(
-    (state) => ({
-      apiBase: state.apiBase,
-      emailMessageBody: state.emailMessageBody,
-      emailMessageFrom: state.emailMessageFrom,
-      emailMessageSubject: state.emailMessageSubject,
-      emailMessageTitle: state.emailMessageTitle,
-      emailMessageUpdateRequest: state.emailMessageUpdateRequest,
-      emailMessageUserProperties: state.emailMessageUserProperties,
-      emailMessageUserPropertiesJSON: state.emailMessageUserPropertiesJSON,
-      emailMessageReplyTo: state.emailMessageReplyTo,
-      replaceEmailMessageProps: state.replaceEmailMessageProps,
-      setEmailMessageBody: state.setEmailMessageBody,
-      setEmailMessageFrom: state.setEmailMessageFrom,
-      setEmailMessageTitle: state.setEmailMessageTitle,
-      setEmailMessageReplyTo: state.setEmailMessageReplyTo,
-      setEmailMessagePropsJSON: state.setEmailMessagePropsJSON,
-      setEmailMessageSubject: state.setEmailMessageSubject,
-      setEmailMessageUpdateRequest: state.setEmailMessageUpdateRequest,
-      upsertMessage: state.upsertMessage,
-      userProperties: state.userProperties,
-      workspace: state.workspace,
-    }),
-    shallow
-  );
-
-  const userPropertySet: Set<string> = useMemo(
-    () =>
-      new Set(
-        userProperties.type === CompletionStatus.Successful
-          ? new Set(userProperties.value.map((up) => up.name))
-          : []
-      ),
-    [userProperties]
-  );
-
-  const workspace =
-    workspaceRequest.type === CompletionStatus.Successful
-      ? workspaceRequest.value
-      : null;
-
-  const handleEditorFullscreenOpen = () => {
-    setFullscreen("editor");
-  };
-
-  const handleFullscreenClose = () => {
-    setFullscreen(null);
-  };
-
-  const handlePreviewFullscreenOpen = () => {
-    setFullscreen("preview");
-  };
-
   const disabledStyles: SxProps<Theme> = {
     "& .MuiInputBase-input.Mui-disabled": {
       WebkitTextFillColor: theme.palette.grey[600],
@@ -353,463 +80,194 @@ export default function EmailEditor({
     },
   };
 
-  const [debouncedEmailBody] = useDebounce(emailBody, 300);
-  const [debouncedEmailSubject] = useDebounce(emailSubject, 300);
-  const [debouncedUserProperties] = useDebounce(mockUserProperties, 300);
-  const [debouncedEmailFrom] = useDebounce(emailFrom, 300);
-  const [debouncedReplyTo] = useDebounce(emailMessageReplyTo, 300);
-
-  useEffect(() => {
-    const exitingFunction = () => {
-      errors.forEach((e, key) => {
-        closeSnackbar(errorHash(key, e));
-      });
-    };
-
-    router.events.on("routeChangeStart", exitingFunction);
-
-    return () => {
-      router.events.off("routeChangeStart", exitingFunction);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [errors]);
-
-  const previewEmailTo = debouncedUserProperties.email;
-
-  useEffect(() => {
-    (async () => {
-      if (!workspace) {
-        return;
-      }
-
-      const data: RenderMessageTemplateRequest = {
-        workspaceId: workspace.id,
-        channel: ChannelType.Email,
-        userProperties: debouncedUserProperties,
-        contents: {
-          from: {
-            value: debouncedEmailFrom,
-          },
-          subject: {
-            value: debouncedEmailSubject,
-          },
-          body: {
-            mjml: true,
-            value: debouncedEmailBody,
-          },
-        },
-      };
-      if (debouncedReplyTo.length) {
-        data.contents.replyTo = {
-          value: debouncedReplyTo,
-        };
-      }
-
-      try {
-        const response = await axios({
-          method: "POST",
-          url: `${apiBase}/api/content/templates/render`,
-          data,
-        });
-
-        const { contents } = response.data as RenderMessageTemplateResponse;
-        for (const contentKey in contents) {
-          const content = contents[contentKey];
-          if (content === undefined) {
-            continue;
-          }
-          let setter: ((value: string) => void) | null = null;
-          let errorKey: NotifyKey | null = null;
-
-          switch (contentKey) {
-            case "body":
-              setter = setRenderedBody;
-              errorKey = NotifyKey.RenderBodyError;
-              break;
-            case "subject":
-              setter = (c: string) => setRenderedSubject(escapeHtml(c));
-              errorKey = NotifyKey.RenderSubjectError;
-              break;
-            case "from":
-              setter = (c: string) => setRenderedFrom(escapeHtml(c));
-              errorKey = NotifyKey.RenderFromError;
-              break;
-            case "replyTo":
-              setter = (c: string) => setRenderedReplyTo(escapeHtml(c));
-              errorKey = NotifyKey.RenderReplyToError;
-              break;
-          }
-
-          if (errorKey && setter) {
-            const existingErr = errors.get(errorKey);
-
-            if (content.type === JsonResultType.Ok) {
-              if (existingErr) {
-                closeSnackbar(errorHash(errorKey, existingErr));
-              }
-              setter(content.value);
-              setErrors(
-                produce((errorMap) => {
-                  if (errorKey) {
-                    errorMap.delete(errorKey);
-                  }
-                })
-              );
-            } else {
-              let message: string;
-              switch (errorKey) {
-                case NotifyKey.RenderBodyError:
-                  message = `Body Error: ${content.err}`;
-                  break;
-                case NotifyKey.RenderSubjectError:
-                  message = `Subject Error: ${content.err}`;
-                  break;
-                case NotifyKey.RenderFromError:
-                  message = `From Error: ${content.err}`;
-                  break;
-                case NotifyKey.RenderReplyToError:
-                  message = `Reply-To Error: ${content.err}`;
-                  break;
-              }
-
-              if (existingErr && existingErr !== message) {
-                closeSnackbar(errorHash(errorKey, existingErr));
-              }
-
-              enqueueSnackbar(message, {
-                variant: "error",
-                persist: true,
-                key: errorHash(errorKey, message),
-                anchorOrigin,
-              });
-              setErrors(
-                produce((errorMap) => {
-                  if (errorKey) {
-                    errorMap.set(errorKey, message);
-                  }
-                })
-              );
-            }
-          }
+  return (
+    <TemplateEditor
+      templateId={messageId}
+      member={member}
+      disabled={disabled}
+      hideTitle={hideTitle}
+      hideSaveButton={hideSaveButton}
+      saveOnUpdate={saveOnUpdate}
+      renderEditorHeader={({ definition, setDefinition }) => {
+        if (definition.type !== ChannelType.Email) {
+          return null;
         }
-      } catch (e) {
-        console.error(e);
-        enqueueSnackbar("API Error: failed to render template preview.", {
-          variant: "error",
-          autoHideDuration: 3000,
-          anchorOrigin: noticeAnchorOrigin,
-        });
-      }
-    })();
-  }, [
-    apiBase,
-    debouncedEmailBody,
-    debouncedEmailFrom,
-    debouncedReplyTo,
-    debouncedEmailSubject,
-    debouncedUserProperties,
-    errors,
-    workspace,
-  ]);
-
-  useEffect(() => {
-    let missingUserProperty: string | null = null;
-    for (const userProperty in mockUserProperties) {
-      if (!userPropertySet.has(userProperty)) {
-        missingUserProperty = userProperty;
-        break;
-      }
-    }
-    const existingMsg = errors.get(NotifyKey.UserPropertyWarning);
-    if (!missingUserProperty) {
-      if (existingMsg) {
-        closeSnackbar(errorHash(NotifyKey.UserPropertyWarning, existingMsg));
-      }
-
-      setErrors(
-        produce((errorMap) => {
-          errorMap.delete(NotifyKey.UserPropertyWarning);
-        })
-      );
-      return;
-    }
-
-    const message = `User property named "${missingUserProperty}" is not configured.`;
-    if (existingMsg && existingMsg !== message) {
-      closeSnackbar(errorHash(NotifyKey.UserPropertyWarning, existingMsg));
-    }
-    enqueueSnackbar(message, {
-      variant: "warning",
-      persist: true,
-      key: errorHash(NotifyKey.UserPropertyWarning, message),
-      anchorOrigin,
-    });
-    setErrors(
-      produce((errorMap) => {
-        errorMap.set(NotifyKey.UserPropertyWarning, message);
-      })
-    );
-
-    setRenderedBody(errorBodyHtml);
-  }, [errors, mockUserProperties, userPropertySet]);
-
-  const handleSave = useCallback(
-    ({ saveAsDraft = false }: { saveAsDraft?: boolean }) => {
-      if (disabled) {
-        return;
-      }
-      upsert({
-        workspaceId: workspace?.id,
-        messageId,
-        emailBody: debouncedEmailBody,
-        emailFrom: debouncedEmailFrom,
-        emailSubject: debouncedEmailSubject,
-        emailMessageReplyTo: debouncedReplyTo,
-        emailMessageUpdateRequest,
-        saveAsDraft,
-        setEmailMessageUpdateRequest,
-        upsertMessage,
-        apiBase,
-        emailMessageTitle,
-      });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      // README don't update on emailMessageUpdateRequest change
-      apiBase,
-      disabled,
-      debouncedEmailBody,
-      debouncedEmailFrom,
-      debouncedEmailSubject,
-      debouncedReplyTo,
-      emailMessageTitle,
-      messageId,
-      setEmailMessageUpdateRequest,
-      upsertMessage,
-      workspace?.id,
-    ]
-  );
-
-  useUpdateEffect(() => {
-    handleSave({
-      saveAsDraft: !saveOnUpdate,
-    });
-  }, [handleSave, saveOnUpdate]);
-
-  if (!workspace || !messageId) {
-    return null;
-  }
-
-  const htmlCodeMirrorHandleChange = (val: string) => {
-    setEmailBody(val);
-  };
-
-  const jsonCodeMirrorHandleChange = (val: string) => {
-    setUserPropertiesJSON(val);
-    try {
-      const parsed = JSON.parse(val);
-      if (!(typeof parsed === "object" && parsed !== null)) {
-        return;
-      }
-      const parsedObj: Record<string, unknown> = parsed;
-      const props: Record<string, string> = {};
-
-      // eslint-disable-next-line guard-for-in
-      for (const key in parsedObj) {
-        const parsedVal = parsed[key];
-        props[key] = parsedVal;
-      }
-      replaceUserProperties(props);
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
-  };
-
-  const editor = (
-    <Stack
-      sx={{
-        width: "100%",
-        height: "100%",
+        return (
+          <Stack>
+            <TextField
+              disabled
+              required
+              label="To"
+              variant="filled"
+              value={USER_TO}
+              sx={disabledStyles}
+              InputProps={{
+                sx: {
+                  fontSize: ".75rem",
+                  borderTopRightRadius: 0,
+                },
+              }}
+            />
+            <TextField
+              disabled={disabled}
+              label="From"
+              variant="filled"
+              onChange={(e) => {
+                setDefinition((defn) => {
+                  if (defn.type !== ChannelType.Email) {
+                    return defn;
+                  }
+                  defn.from = e.target.value;
+                  return defn;
+                });
+              }}
+              required
+              InputProps={{
+                sx: {
+                  fontSize: ".75rem",
+                  borderTopRightRadius: 0,
+                },
+              }}
+              value={definition.from}
+            />
+            <TextField
+              label="Subject"
+              required
+              disabled={disabled}
+              variant="filled"
+              onChange={(e) => {
+                setDefinition((defn) => {
+                  if (defn.type !== ChannelType.Email) {
+                    return defn;
+                  }
+                  defn.subject = e.target.value;
+                  return defn;
+                });
+              }}
+              InputProps={{
+                sx: {
+                  fontSize: ".75rem",
+                  borderTopRightRadius: 0,
+                },
+              }}
+              value={definition.subject}
+            />
+            <TextField
+              label="Reply-To"
+              variant="filled"
+              disabled={disabled}
+              onChange={(e) => {
+                setDefinition((defn) => {
+                  if (defn.type !== ChannelType.Email) {
+                    return defn;
+                  }
+                  defn.replyTo = e.target.value;
+                  return defn;
+                });
+              }}
+              InputProps={{
+                sx: {
+                  fontSize: ".75rem",
+                  borderTopRightRadius: 0,
+                },
+              }}
+              value={definition.replyTo ?? ""}
+            />
+          </Stack>
+        );
       }}
-      spacing={1}
-    >
-      <Stack>
-        <TextField
-          disabled
-          required
-          label="To"
-          variant="filled"
-          value={USER_TO}
-          sx={disabledStyles}
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopRightRadius: 0,
-            },
-          }}
-        />
-        <TextField
-          disabled={disabled}
-          label="From"
-          variant="filled"
-          onChange={(e) => {
-            setEmailFrom(e.target.value);
-          }}
-          required
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopRightRadius: 0,
-            },
-          }}
-          value={emailFrom}
-        />
-        <TextField
-          label="Subject"
-          required
-          disabled={disabled}
-          variant="filled"
-          onChange={(e) => {
-            setSubject(e.target.value);
-          }}
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopRightRadius: 0,
-            },
-          }}
-          value={emailSubject}
-        />
-        <TextField
-          label="Reply-To"
-          variant="filled"
-          disabled={disabled}
-          onChange={(e) => {
-            setEmailMessageReplyTo(e.target.value);
-          }}
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopRightRadius: 0,
-            },
-          }}
-          value={emailMessageReplyTo}
-        />
-      </Stack>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
-        {fullscreen === null ? (
-          <IconButton size="small" onClick={handleEditorFullscreenOpen}>
-            <Fullscreen />
-          </IconButton>
-        ) : (
-          <IconButton size="small" onClick={handleFullscreenClose}>
-            <FullscreenExit />
-          </IconButton>
-        )}
-      </Stack>
-
-      <BodyBox sx={{ padding: 1, fontFamily: "monospace" }} direction="left">
-        <ReactCodeMirror
-          value={emailBody}
-          onChange={htmlCodeMirrorHandleChange}
-          readOnly={disabled}
-          extensions={[
-            html(),
-            EditorView.theme({
-              "&": {
-                fontFamily: theme.typography.fontFamily,
+      renderEditorBody={({ definition, setDefinition }) => {
+        if (definition.type !== ChannelType.Email) {
+          return null;
+        }
+        return (
+          <ReactCodeMirror
+            value={definition.body}
+            onChange={(value) => {
+              setDefinition((defn) => {
+                if (defn.type !== ChannelType.Email) {
+                  return defn;
+                }
+                defn.body = value;
+                return defn;
+              });
+            }}
+            readOnly={disabled}
+            extensions={[
+              html(),
+              EditorView.theme({
+                "&": {
+                  fontFamily: theme.typography.fontFamily,
+                },
+              }),
+              EditorView.lineWrapping,
+              lintGutter(),
+            ]}
+          />
+        );
+      }}
+      renderPreviewHeader={({ rendered, userProperties: up }) => (
+        <>
+          <TextField
+            required
+            label="To"
+            variant="filled"
+            disabled
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopLeftRadius: 0,
               },
-            }),
-            EditorView.lineWrapping,
-            lintGutter(),
-          ]}
-        />
-      </BodyBox>
-    </Stack>
-  );
-
-  const preview = (
-    <Stack
-      sx={{
-        width: "100%",
-        height: "100%",
-      }}
-      spacing={1}
-    >
-      <Stack>
-        <TextField
-          required
-          label="To"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={previewEmailTo}
-        />
-        <TextField
-          required
-          label="From"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={previewEmailFrom}
-        />
-        <TextField
-          required
-          label="Subject"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={previewSubject}
-        />
-        <TextField
-          label="Reply-To"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={previewEmailReplyTo}
-        />
-      </Stack>
-
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <FormLabel sx={{ paddingLeft: 1 }}>Body Preview</FormLabel>
-        {fullscreen === null ? (
-          <IconButton size="small" onClick={handlePreviewFullscreenOpen}>
-            <Fullscreen />
-          </IconButton>
-        ) : (
-          <IconButton size="small" onClick={handleFullscreenClose}>
-            <FullscreenExit />
-          </IconButton>
-        )}
-      </Stack>
-      <BodyBox direction="right">
-        {/* TODO use window postmessage to re-render */}
+            }}
+            sx={disabledStyles}
+            value={escapeHTML(up.email ?? "")}
+          />
+          <TextField
+            required
+            label="From"
+            variant="filled"
+            disabled
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopLeftRadius: 0,
+              },
+            }}
+            sx={disabledStyles}
+            value={escapeHTML(rendered.from ?? "")}
+          />
+          <TextField
+            required
+            label="Subject"
+            variant="filled"
+            disabled
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopLeftRadius: 0,
+              },
+            }}
+            sx={disabledStyles}
+            value={escapeHTML(rendered.subject ?? "")}
+          />
+          <TextField
+            label="Reply-To"
+            variant="filled"
+            disabled
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopLeftRadius: 0,
+              },
+            }}
+            sx={disabledStyles}
+            value={escapeHTML(rendered.replyTo ?? "")}
+          />
+        </>
+      )}
+      renderPreviewBody={({ rendered }) => (
         <iframe
-          srcDoc={`<!DOCTYPE html>${previewBodyHtml}`}
+          srcDoc={`<!DOCTYPE html>${rendered.body}`}
           title="email-body-preview"
           style={{
             border: "none",
@@ -818,172 +276,9 @@ export default function EmailEditor({
             padding: theme.spacing(1),
           }}
         />
-      </BodyBox>
-    </Stack>
-  );
-
-  const submitTestData: MessageTemplateTestRequest = {
-    channel: ChannelType.Email,
-    workspaceId: workspace.id,
-    templateId: messageId,
-    userProperties: mockUserProperties,
-  };
-
-  const submitTest = apiRequestHandlerFactory({
-    request: messageTestRequest,
-    setRequest: setMessageTestRequest,
-    responseSchema: MessageTemplateTestResponse,
-    setResponse: setTestResponse,
-    onSuccessNotice: `Attempted test message.`,
-    onFailureNoticeHandler: () => `API Error: Failed to attempt test message.`,
-    requestConfig: {
-      method: "POST",
-      url: `${apiBase}/api/content/templates/test`,
-      data: submitTestData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-
-  let testResponseEl: React.ReactNode = null;
-  if (testResponse) {
-    if (
-      testResponse.type === JsonResultType.Ok &&
-      testResponse.value.type === InternalEventType.MessageSent &&
-      testResponse.value.variant.type === ChannelType.Email
-    ) {
-      const { to } = testResponse.value.variant;
-      testResponseEl = (
-        <Alert severity="success">Message was sent successfully to {to}</Alert>
-      );
-    } else if (testResponse.type === JsonResultType.Err) {
-      testResponseEl = (
-        <Stack spacing={1}>
-          <Alert severity="error">
-            Failed to send test message. Suggestions:
-          </Alert>
-          {testResponse.err.suggestions.map((suggestion, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <Alert key={i} severity="warning">
-              {suggestion}
-            </Alert>
-          ))}
-          <Typography
-            sx={{
-              fontFamily: "monospace",
-              backgroundColor: theme.palette.grey[100],
-            }}
-          >
-            <code>{testResponse.err.responseData}</code>
-          </Typography>
-        </Stack>
-      );
-    }
-  }
-  // TODO render provider and user
-
-  return (
-    <>
-      <Stack
-        direction="row"
-        sx={{
-          height: "100%",
-          width: "100%",
-          paddingRight: 2,
-          paddingTop: 2,
-        }}
-        spacing={1}
-      >
-        <Stack
-          direction="column"
-          spacing={2}
-          sx={{
-            borderTopRightRadius: 1,
-            width: "25%",
-            padding: 1,
-            border: `1px solid ${theme.palette.grey[200]}`,
-            boxShadow: theme.shadows[2],
-          }}
-        >
-          {!hideTitle && (
-            <EditableName
-              name={emailMessageTitle}
-              variant="h4"
-              onChange={(e) => {
-                setEmailMessageTitle(e.target.value);
-              }}
-            />
-          )}
-          <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
-            <Typography variant="h5">User Properties</Typography>
-          </InfoTooltip>
-          <ReactCodeMirror
-            value={userPropertiesJSON}
-            onChange={jsonCodeMirrorHandleChange}
-            extensions={[
-              codeMirrorJson(),
-              linter(jsonParseLinter()),
-              EditorView.lineWrapping,
-              EditorView.theme({
-                "&": {
-                  fontFamily: theme.typography.fontFamily,
-                },
-              }),
-              lintGutter(),
-            ]}
-          />
-          {!hideSaveButton && (
-            <Button
-              variant="contained"
-              onClick={() => handleSave({})}
-              disabled={errors.size > 0}
-            >
-              Publish Changes
-            </Button>
-          )}
-          <LoadingModal
-            openTitle="Send Test Message"
-            onSubmit={submitTest}
-            onClose={() => setTestResponse(null)}
-          >
-            {testResponseEl}
-          </LoadingModal>
-        </Stack>
-        <Stack direction="row" sx={{ flex: 1 }}>
-          <Box
-            sx={{
-              width: "50%",
-            }}
-          >
-            {editor}
-          </Box>
-          <Divider orientation="vertical" />
-          <Box
-            sx={{
-              width: "50%",
-            }}
-          >
-            {preview}
-          </Box>
-        </Stack>
-      </Stack>
-      <Dialog
-        fullScreen
-        open={fullscreen === "editor"}
-        onClose={handleFullscreenClose}
-        TransitionComponent={Transition}
-      >
-        {editor}
-      </Dialog>
-      <Dialog
-        fullScreen
-        open={fullscreen === "preview"}
-        onClose={handleFullscreenClose}
-        TransitionComponent={Transition}
-      >
-        {preview}
-      </Dialog>
-    </>
+      )}
+      definitionToPreview={definitionToPreview}
+      fieldToReadable={fieldToReadable}
+    />
   );
 }

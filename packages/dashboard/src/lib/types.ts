@@ -221,66 +221,6 @@ export interface SegmentEditorContents extends SegmentEditorState {
   setSegmentUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
-export interface EmailMessageEditorState {
-  emailMessageSubject: string;
-  emailMessageFrom: string;
-  emailMessageTitle: string;
-  emailMessageBody: string;
-  emailMessageReplyTo: string;
-  emailMessageUserProperties: Record<string, string>;
-  emailMessageUserPropertiesJSON: string;
-  emailMessageUpdateRequest: EphemeralRequestStatus<Error>;
-}
-
-export interface EmailMessageEditorContents extends EmailMessageEditorState {
-  setEmailMessageSubject: (subject: string) => void;
-  setEmailMessageBody: (body: string) => void;
-  setEmailMessageFrom: (to: string) => void;
-  setEmailMessageReplyTo: (replyTo: string) => void;
-  replaceEmailMessageProps: (properties: Record<string, string>) => void;
-  setEmailMessagePropsJSON: (jsonString: string) => void;
-  setEmailMessageTitle: (title: string) => void;
-  setEmailMessageUpdateRequest: (
-    request: EphemeralRequestStatus<Error>
-  ) => void;
-}
-
-export interface SmsMessageEditorState {
-  smsMessageTitle: string;
-  smsMessageBody: string;
-  smsMessageUserProperties: Record<string, string>;
-  smsMessageUserPropertiesJSON: string;
-  smsMessageUpdateRequest: EphemeralRequestStatus<Error>;
-}
-
-export interface SmsMessageEditorContents extends SmsMessageEditorState {
-  setSmsMessageTitle: (title: string) => void;
-  setSmsMessageBody: (body: string) => void;
-  setSmsUserProperties: (properties: Record<string, string>) => void;
-  setSmsMessagePropsJSON: (jsonString: string) => void;
-  setSmsMessageUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
-}
-
-export interface MobilePushMessageEditorState {
-  mobilePushMessageTitle: string;
-  mobilePushMessageBody: string;
-  mobilePushMesssageImageUrl: string;
-  mobilePushMessageUserProperties: Record<string, string>;
-  mobilePushMessageUserPropertiesJSON: string;
-  mobilePushMessageUpdateRequest: EphemeralRequestStatus<Error>;
-}
-
-export interface MobilePushMessageEditorContents
-  extends MobilePushMessageEditorState {
-  setMobilePushMessageTitle: (title: string) => void;
-  setMobilePushMessageBody: (body: string) => void;
-  setMobilePushMessageImageUrl: (imageUrl: string) => void;
-  setMobilePushMessagePropsJSON: (jsonString: string) => void;
-  setMobilePushMessageUpdateRequest: (
-    request: EphemeralRequestStatus<Error>
-  ) => void;
-}
-
 export interface JourneyState {
   journeyName: string;
   journeyDraggedComponentType: JourneyNodeType | null;
@@ -318,10 +258,7 @@ export interface JourneyContent extends JourneyState {
   upsertJourneyStats: (stats: JourneyStatsResponse) => void;
 }
 
-export type PageStoreContents = EmailMessageEditorContents &
-  MobilePushMessageEditorContents &
-  SmsMessageEditorContents &
-  SegmentEditorContents &
+export type PageStoreContents = SegmentEditorContents &
   SegmentIndexContent &
   UserPropertyIndexContent &
   JourneyIndexContent &

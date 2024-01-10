@@ -1,3 +1,4 @@
+/*
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
@@ -336,3 +337,4 @@ export function defaultMobilePushMessageState(
     },
   };
 }
+*/
