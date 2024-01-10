@@ -1,4 +1,3 @@
-import logger from "backend-lib/src/logger";
 import { enrichMessageTemplate } from "backend-lib/src/messageTemplates";
 import { MessageTemplate } from "backend-lib/src/types";
 import { enrichUserProperty } from "backend-lib/src/userProperties";
