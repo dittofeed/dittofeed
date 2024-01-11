@@ -298,6 +298,10 @@ export default function TemplateEditor({
         updateData.definition = definition;
       }
 
+      const draftNotice = saveAsDraft
+        ? "Saved template draft."
+        : "Published template draft.";
+
       apiRequestHandlerFactory({
         request: updateRequest,
         setRequest: (request) =>
@@ -306,8 +310,8 @@ export default function TemplateEditor({
           }),
         responseSchema: MessageTemplateResource,
         setResponse: upsertMessage,
-        onSuccessNotice: `Saved template.`,
-        onFailureNoticeHandler: () => `API Error: Failed to save template.`,
+        onSuccessNotice: draftNotice,
+        onFailureNoticeHandler: () => `API Error: Failed to update template.`,
         requestConfig: {
           method: "PUT",
           url: `${apiBase}/api/content/templates`,
@@ -342,7 +346,11 @@ export default function TemplateEditor({
 
   useEffect(() => {
     (async () => {
-      if (!workspace || !debouncedDefinition) {
+      if (
+        !workspace ||
+        !debouncedDefinition ||
+        Object.keys(debouncedUserProperties).length === 0
+      ) {
         return;
       }
       const data: RenderMessageTemplateRequest = {
