@@ -20,7 +20,10 @@ import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import axios from "axios";
 import hash from "fnv1a";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafe,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   ChannelType,
   CompletionStatus,
@@ -664,10 +667,9 @@ export default function TemplateEditor({
             value={userPropertiesJSON}
             onChange={(json) =>
               setState((draft) => {
-                const parsed = JSON.parse(json);
-                const result = schemaValidateWithErr(
-                  parsed,
-                  UserPropertyAssignments
+                draft.userPropertiesJSON = json;
+                const result = jsonParseSafe(json).andThen((p) =>
+                  schemaValidateWithErr(p, UserPropertyAssignments)
                 );
                 if (result.isErr()) {
                   return;
