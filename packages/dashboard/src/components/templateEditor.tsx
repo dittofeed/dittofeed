@@ -155,7 +155,6 @@ export default function TemplateEditor({
   renderEditorHeader,
   renderPreviewBody,
   renderPreviewHeader,
-  onTitleChange,
   hideSaveButton,
   disabled,
   member,
@@ -176,7 +175,6 @@ export default function TemplateEditor({
   renderEditorBody: RenderEditorSection;
   definitionToPreview: DefinitionToPreview;
   fieldToReadable: (field: string) => string | null;
-  onTitleChange?: (title: string) => void;
 }) {
   const theme = useTheme();
   const router = useRouter();
@@ -660,11 +658,15 @@ export default function TemplateEditor({
             boxShadow: theme.shadows[2],
           }}
         >
-          {title !== null && !hideTitle && onTitleChange && (
+          {title !== null && !hideTitle && (
             <EditableName
               name={title}
               variant="h4"
-              onChange={(e) => onTitleChange(e.target.value)}
+              onChange={(e) =>
+                setState((draft) => {
+                  draft.title = e.target.value;
+                })
+              }
             />
           )}
 
