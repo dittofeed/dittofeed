@@ -32,18 +32,16 @@ DATABASE_USER=my-postgres-user
 DATABASE_PASSWORD=my-postgres-password
 CLICKHOUSE_USER=my-clickhouse-user
 CLICKHOUSE_PASSWORD=my-clickhouse-password
+PASSWORD=password
+SECRET_KEY=GEGL1RHjFVOxIO80Dp8+ODlZPOjm2IDBJB/UunHlf3c=
 ```
 
-Finally, start Dittofeed's services, and run Dittofeed's bootstrap script.
+See our documentation on [Authentication Modes](/deployment/self-hosted/auth-modes) for instructions on how to generate a new `SECRET_KEY`.
+
+Finally, start Dittofeed's services.
 
 ```bash
-docker compose -f docker-compose.prod.yaml up -d
-```
-
-Then once the above services have successfully started.
-
-```bash
-./scripts/admin.sh bootstrap --workspace-name='My Company'
+docker compose -f docker-compose.lite.yaml up -d
 ```
 
 <Warning>
@@ -52,10 +50,3 @@ Then once the above services have successfully started.
   you should disable the corresponding services in the
   `docker-compose.prod.yaml` file.
 </Warning>
-
-<Card
-  title="Self-Host with AWS Cloudformation"
-  href="/deployment/self-hosted/cloudformation"
->
-  Deploy Dittofeed to AWS with docker compose and Cloudformation. *Coming Soon*
-</Card>
