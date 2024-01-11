@@ -19,7 +19,7 @@ x-backend-app-env: &backend-app-env
   PASSWORD: ${PASSWORD:-password}
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.8.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.8.3}
     ports:
       - "3000:3000"
     depends_on:
