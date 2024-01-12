@@ -1,10 +1,16 @@
 import { IncomingHttpHeaders } from "http";
+import { firstPresent } from "isomorphic-lib/src/first";
 import { err, ok, Result } from "neverthrow";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
 import prisma from "./prisma";
-import { DFRequestContext, Workspace, WorkspaceMemberRole } from "./types";
+import {
+  DFRequestContext,
+  Workspace,
+  WorkspaceMember,
+  WorkspaceMemberRole,
+} from "./types";
 
 export const SESSION_KEY = "df-session-key" as const;
 
@@ -50,6 +56,10 @@ export type RequestContextResult = Result<
   DFRequestContext,
   RequestContextError
 >;
+
+type MemberWithRole = WorkspaceMember & {
+  WorkspaceMemberRole: WorkspaceMemberRole[];
+};
 
 async function defaultRoleForDomain({
   email,
@@ -155,12 +165,13 @@ export async function getMultiTenantRequestContext({
     }),
   ]);
 
+  let memberWithRole: MemberWithRole;
   if (
     !member ||
     member.emailVerified !== email_verified ||
     member.image !== picture
   ) {
-    member = await prisma().workspaceMember.upsert({
+    memberWithRole = await prisma().workspaceMember.upsert({
       where: { email },
       create: {
         email,
@@ -184,6 +195,8 @@ export async function getMultiTenantRequestContext({
         nickname,
       },
     });
+  } else {
+    memberWithRole = member;
   }
 
   if (!account) {
@@ -197,16 +210,21 @@ export async function getMultiTenantRequestContext({
       create: {
         provider: authProvider,
         providerAccountId: sub,
-        workspaceMemberId: member.id,
+        workspaceMemberId: memberWithRole.id,
       },
       update: {},
     });
   }
 
-  // TODO allow users to switch between workspaces
-  const role =
-    member.WorkspaceMemberRole[0] ??
-    (await defaultRoleForDomain({ email, memberId: member.id }));
+  const role = await firstPresent<WorkspaceMemberRole>([
+    memberWithRole.lastWorkspaceId
+      ? memberWithRole.WorkspaceMemberRole.find(
+          (r) => r.workspaceId === memberWithRole.lastWorkspaceId
+        ) ?? null
+      : null,
+    memberWithRole.WorkspaceMemberRole[0] ?? null,
+    () => defaultRoleForDomain({ email, memberId: memberWithRole.id }),
+  ]);
 
   if (!role) {
     return err({
@@ -215,7 +233,7 @@ export async function getMultiTenantRequestContext({
     });
   }
 
-  if (!member.email) {
+  if (!memberWithRole.email) {
     return err({
       type: RequestContextErrorType.ApplicationError,
       message: "User missing email",
@@ -224,13 +242,13 @@ export async function getMultiTenantRequestContext({
 
   return ok({
     member: {
-      id: member.id,
-      email: member.email,
-      emailVerified: member.emailVerified,
-      name: member.name ?? undefined,
-      nickname: member.nickname ?? undefined,
-      picture: member.image ?? undefined,
-      createdAt: member.createdAt.toISOString(),
+      id: memberWithRole.id,
+      email: memberWithRole.email,
+      emailVerified: memberWithRole.emailVerified,
+      name: memberWithRole.name ?? undefined,
+      nickname: memberWithRole.nickname ?? undefined,
+      picture: memberWithRole.image ?? undefined,
+      createdAt: memberWithRole.createdAt.toISOString(),
     },
     workspace: {
       id: role.workspace.id,
@@ -240,7 +258,7 @@ export async function getMultiTenantRequestContext({
       {
         workspaceId: role.workspace.id,
         role: role.role,
-        workspaceMemberId: member.id,
+        workspaceMemberId: memberWithRole.id,
       },
     ],
   });
