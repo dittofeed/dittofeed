@@ -1,4 +1,5 @@
 import { IncomingHttpHeaders } from "http";
+import { Prisma } from "@prisma/client";
 import { firstPresent } from "isomorphic-lib/src/first";
 import { err, ok, Result } from "neverthrow";
 
@@ -10,7 +11,11 @@ import {
   Workspace,
   WorkspaceMember,
   WorkspaceMemberRole,
+  WorkspaceMemberRoleResource,
+  WorkspaceResource,
 } from "./types";
+import { sortBy } from "remeda";
+import { Overwrite } from "utility-types";
 
 export const SESSION_KEY = "df-session-key" as const;
 
@@ -59,9 +64,133 @@ export type RequestContextResult = Result<
 
 type RoleWithWorkspace = WorkspaceMemberRole & { workspace: Workspace };
 
-type MemberWithRole = WorkspaceMember & {
+type MemberWithRoles = WorkspaceMember & {
   WorkspaceMemberRole: RoleWithWorkspace[];
 };
+
+/*
+1. create any roles for workspaces in the domain if they don't exist already
+2. if the member has a lastWorkspaceId, use that
+3. otherwise use the domain corresponding to the first created domain
+
+should return all roles, and the workspace corresponding to the selected role
+
+*/
+
+interface RolesWithWorkspace {
+  workspace: WorkspaceResource | null;
+  memberRoles: WorkspaceMemberRoleResource[];
+}
+
+async function findAndCreateRoles(
+  member: MemberWithRoles
+): Promise<RolesWithWorkspace> {
+  const domain = member.email?.split("@")[1];
+  const or: Prisma.WorkspaceWhereInput[] = [
+    {
+      WorkspaceMemberRole: {
+        some: {
+          workspaceMemberId: member.id,
+        },
+      },
+    },
+  ];
+  if (domain) {
+    or.push({ domain });
+  }
+  console.log("or loc3", or);
+
+  const workspaces = await prisma().workspace.findMany({
+    where: {
+      OR: or,
+    },
+    include: {
+      WorkspaceMemberRole: {
+        where: {
+          workspaceMemberId: member.id,
+        },
+      },
+    },
+  });
+
+  console.log("workspaces loc4", workspaces);
+
+  const domainWorkspacesWithoutRole = workspaces.filter(
+    (w) => w.WorkspaceMemberRole.length === 0
+  );
+  let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole);
+  if (domainWorkspacesWithoutRole.length !== 0) {
+    const newRoles = await Promise.all(
+      domainWorkspacesWithoutRole.map((w) =>
+        prisma().workspaceMemberRole.upsert({
+          where: {
+            workspaceId_workspaceMemberId: {
+              workspaceId: w.id,
+              workspaceMemberId: member.id,
+            },
+          },
+          update: {},
+          create: {
+            workspaceId: w.id,
+            workspaceMemberId: member.id,
+            role: "Admin",
+          },
+        })
+      )
+    );
+    for (const role of newRoles) {
+      roles.push(role);
+    }
+  }
+  const workspaceById = workspaces.reduce((acc, w) => {
+    acc.set(w.id, w);
+    return acc;
+  }, new Map<string, WorkspaceResource>());
+
+  const memberRoles = roles.flatMap((r) => {
+    const workspace = workspaceById.get(r.workspaceId);
+    if (!workspace) {
+      return [];
+    }
+
+    return {
+      workspaceId: r.workspaceId,
+      role: r.role,
+      workspaceMemberId: member.id,
+      workspaceName: workspace.name,
+    };
+  });
+
+  if (member.lastWorkspaceId) {
+    const lastWorkspaceRole = roles.find(
+      (r) => r.workspaceId === member.lastWorkspaceId
+    );
+    const workspace = workspaces.find((w) => w.id === member.lastWorkspaceId);
+    if (lastWorkspaceRole && workspace) {
+      return { memberRoles, workspace };
+    }
+  }
+
+  roles = sortBy(roles, (r) => r.createdAt.getTime());
+  const role = roles[0];
+  if (!role) {
+    return {
+      memberRoles,
+      workspace: null,
+    };
+  }
+  const workspace = workspaces.find((w) => w.id === role.workspaceId);
+  if (!workspace) {
+    return {
+      memberRoles,
+      workspace: null,
+    };
+  }
+  return {
+    memberRoles,
+    workspace,
+  };
+}
 
 async function defaultRoleForDomain({
   email,
@@ -75,33 +204,62 @@ async function defaultRoleForDomain({
     return null;
   }
 
-  const workspace = await prisma().workspace.findFirst({
+  const workspaces = await prisma().workspace.findMany({
     where: {
       domain,
     },
-  });
-
-  if (!workspace) {
-    return null;
-  }
-  const role = await prisma().workspaceMemberRole.upsert({
-    where: {
-      workspaceId_workspaceMemberId: {
-        workspaceId: workspace.id,
-        workspaceMemberId: memberId,
+    include: {
+      WorkspaceMemberRole: {
+        where: {
+          workspaceMemberId: memberId,
+        },
       },
     },
-    update: {
-      workspaceId: workspace.id,
-      workspaceMemberId: memberId,
-      role: "Admin",
-    },
-    create: {
-      workspaceId: workspace.id,
-      workspaceMemberId: memberId,
-      role: "Admin",
-    },
   });
+
+  console.log("workspaces loc1", workspaces);
+  if (workspaces.length === 0) {
+    return null;
+  }
+  const domainWorkspacesWithoutRole = workspaces.filter(
+    (w) => w.WorkspaceMemberRole.length === 0
+  );
+  let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole);
+
+  // FIXME not hitting this block because 1 role already exists
+  if (domainWorkspacesWithoutRole.length !== 0) {
+    const newRoles = await Promise.all(
+      domainWorkspacesWithoutRole.map((w) =>
+        prisma().workspaceMemberRole.upsert({
+          where: {
+            workspaceId_workspaceMemberId: {
+              workspaceId: w.id,
+              workspaceMemberId: memberId,
+            },
+          },
+          update: {},
+          create: {
+            workspaceId: w.id,
+            workspaceMemberId: memberId,
+            role: "Admin",
+          },
+        })
+      )
+    );
+    for (const role of newRoles) {
+      roles.push(role);
+    }
+  }
+  roles = sortBy(roles, (r) => r.createdAt.getTime());
+  const [role] = roles;
+  if (!role) {
+    throw new Error("No role found");
+  }
+  const workspace = workspaces.find((w) => w.id === role.workspaceId);
+  if (!workspace) {
+    throw new Error("No workspace found");
+  }
+
   return { ...role, workspace };
 }
 
@@ -167,7 +325,7 @@ export async function getMultiTenantRequestContext({
     }),
   ]);
 
-  let memberWithRole: MemberWithRole;
+  let memberWithRole: MemberWithRoles;
   if (
     !member ||
     member.emailVerified !== email_verified ||
@@ -217,30 +375,19 @@ export async function getMultiTenantRequestContext({
       update: {},
     });
   }
-
-  const role = await firstPresent<
-    WorkspaceMemberRole & { workspace: Workspace }
-  >([
-    memberWithRole.lastWorkspaceId
-      ? memberWithRole.WorkspaceMemberRole.find(
-          (r) => r.workspaceId === memberWithRole.lastWorkspaceId
-        ) ?? null
-      : null,
-    memberWithRole.WorkspaceMemberRole[0] ?? null,
-    () => defaultRoleForDomain({ email, memberId: memberWithRole.id }),
-  ]);
-
-  if (!role) {
-    return err({
-      type: RequestContextErrorType.NotOnboarded,
-      message: "User missing role",
-    });
-  }
-
   if (!memberWithRole.email) {
     return err({
       type: RequestContextErrorType.ApplicationError,
       message: "User missing email",
+    });
+  }
+
+  const { workspace, memberRoles } = await findAndCreateRoles(memberWithRole);
+
+  if (!workspace) {
+    return err({
+      type: RequestContextErrorType.NotOnboarded,
+      message: "User missing role",
     });
   }
 
@@ -254,18 +401,8 @@ export async function getMultiTenantRequestContext({
       picture: memberWithRole.image ?? undefined,
       createdAt: memberWithRole.createdAt.toISOString(),
     },
-    workspace: {
-      id: role.workspace.id,
-      name: role.workspace.name,
-    },
-    memberRoles: [
-      {
-        workspaceId: role.workspace.id,
-        role: role.role,
-        workspaceMemberId: memberWithRole.id,
-        workspaceName: role.workspace.name,
-      },
-    ],
+    workspace,
+    memberRoles,
   });
 }
 
@@ -291,6 +428,7 @@ async function getAnonymousRequestContext(): Promise<RequestContextResult> {
     memberRoles: [
       {
         workspaceId: workspace.id,
+        workspaceName: workspace.name,
         workspaceMemberId: "anonymous",
         role: "Admin",
       },

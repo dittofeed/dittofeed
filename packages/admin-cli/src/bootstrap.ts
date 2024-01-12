@@ -28,10 +28,10 @@ export async function bootstrapHandler({
   workspaceName?: string;
   workspaceDomain?: string;
 }) {
-  const workspaceNameWithDefault =
-    backendConfig().nodeEnv === NodeEnvEnum.Development
-      ? "Default"
-      : workspaceName;
+  const defaultWorkspaceName =
+    backendConfig().nodeEnv === NodeEnvEnum.Development ? "Default" : null;
+  const workspaceNameWithDefault = workspaceName ?? defaultWorkspaceName;
+
   if (!workspaceNameWithDefault) {
     throw new Error("Please provide a workspace name with --workspace-name");
   }

@@ -129,20 +129,16 @@ function Profile() {
                             />
                             <Stack>
                               <Typography variant="h6">{name}</Typography>
-                              {/* <Typography variant="body2" color="textSecondary">
-                                {workspaceName} Workspace
-                              </Typography> */}
-                              {memberRoles.map((role) => (
-                                <div key={role.workspaceId}>
-                                  {role.workspaceName}
-                                </div>
-                              ))}
-                              {/* <Typography variant="h6">{name}</Typography> */}
                             </Stack>
                           </Stack>
                         </Grid>
                       </Grid>
                     </CardContent>
+                    {memberRoles.map((role) => (
+                      <Box p={1} className="foobar" key={role.workspaceId}>
+                        {role.workspaceName}
+                      </Box>
+                    ))}
                     <ProfileTab />
                   </MainCard>
                 </ClickAwayListener>
