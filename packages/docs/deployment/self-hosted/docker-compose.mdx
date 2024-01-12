@@ -22,12 +22,12 @@ Dittofeed has dependencies on Postgres, and Clickhouse, with an optional Kafka d
 Populate this `.env` file with the following values, substituting placeholder values with your own. Dittofeed will work without these overrides, but it is recommended that you substitute your own credentials.
 
 ```properties .env
-# used to generate links to the dashboard e.g. for unsubscribe links. should not
-# include the /dashboard suffix
+# Used to generate links to the dashboard e.g. for unsubscribe links. Should not
+# include the /dashboard suffix.
 DASHBOARD_URL="https://my-dittofeed-dashboard.com"
-# used to issue requests to the api from the dashboard. should include the /api
-# suffix.
-DASHBOARD_API_BASE="https://my-dittofeed-api.com/api"
+# Used to issue requests to the api from the dashboard. Should not include the
+# /api suffix. Can be the same as the DASHBOARD_URL.
+DASHBOARD_API_BASE="https://my-dittofeed-api.com"
 DATABASE_USER=my-postgres-user
 DATABASE_PASSWORD=my-postgres-password
 CLICKHOUSE_USER=my-clickhouse-user
