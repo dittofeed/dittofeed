@@ -1,4 +1,5 @@
 import {
+  Autocomplete,
   Avatar,
   Box,
   ButtonBase,
@@ -8,14 +9,17 @@ import {
   Paper,
   Popper,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 // material-ui
 import { useTheme } from "@mui/material/styles";
 import { CompletionStatus } from "isomorphic-lib/src/types";
+import { useRouter } from "next/router";
 import React, { useRef, useState } from "react";
+import { useImmer } from "use-immer";
 
-import { useAppStore } from "../../../../lib/appStore";
+import { useAppStorePick } from "../../../../lib/appStore";
 import isNode from "../../../../lib/isNode";
 // project import
 import MainCard from "../../../mainCard";
@@ -24,8 +28,13 @@ import ProfileTab from "./profile/profileTab";
 
 // ==============================|| HEADER CONTENT - PROFILE ||============================== //
 
+interface ProfileState {
+  selectedWorkspaceId: string | null;
+}
+
 function Profile() {
   const theme = useTheme();
+  const path = useRouter();
 
   const anchorRef = useRef<null | HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -41,16 +50,36 @@ function Profile() {
   };
 
   const iconBackColorOpen = "grey.300";
-  const member = useAppStore((store) => store.member);
+  const {
+    member,
+    memberRoles,
+    workspace: workspaceResult,
+  } = useAppStorePick(["member", "memberRoles", "workspace"]);
+  const workspace =
+    workspaceResult.type === CompletionStatus.Successful
+      ? workspaceResult.value
+      : null;
+
+  const [{ selectedWorkspaceId }] = useImmer<ProfileState>({
+    selectedWorkspaceId: workspace?.id ?? null,
+  });
   const name = member
     ? member.name ?? member.nickname ?? member.email
     : "Anonymous";
-  const workspace = useAppStore((store) => store.workspace);
-  const workspaceName =
-    workspace.type === CompletionStatus.Successful
-      ? workspace.value.name
-      : "Default";
+  const options = React.useMemo(
+    () =>
+      memberRoles.map((role) => ({
+        id: role.workspaceId,
+        label: role.workspaceName,
+      })),
+    [memberRoles]
+  );
+  const option = React.useMemo(
+    () => options.find((o) => o.id === selectedWorkspaceId),
+    [options, selectedWorkspaceId]
+  );
 
+  // FIXME clickaway listner screws up
   return (
     <Box sx={{ flexShrink: 0, ml: 0.75 }}>
       <ButtonBase
@@ -129,14 +158,26 @@ function Profile() {
                             />
                             <Stack>
                               <Typography variant="h6">{name}</Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                {workspaceName} Workspace
-                              </Typography>
                             </Stack>
                           </Stack>
                         </Grid>
                       </Grid>
                     </CardContent>
+                    <Box sx={{ p: 1, width: "100%" }}>
+                      <Autocomplete
+                        value={option}
+                        options={options}
+                        disableClearable
+                        onChange={(_e, newValue) => {
+                          path.push(
+                            `/select-workspace?workspaceId=${newValue?.id}`
+                          );
+                        }}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Current Workspace" />
+                        )}
+                      />
+                    </Box>
                     <ProfileTab />
                   </MainCard>
                 </ClickAwayListener>

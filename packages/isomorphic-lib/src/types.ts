@@ -1269,6 +1269,7 @@ export const WorkspaceMemberRoleResource = Type.Object({
   role: Role,
   workspaceMemberId: Type.String(),
   workspaceId: Type.String(),
+  workspaceName: Type.String(),
 });
 
 export type WorkspaceMemberRoleResource = Static<

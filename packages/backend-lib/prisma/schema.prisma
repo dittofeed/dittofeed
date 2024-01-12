@@ -37,6 +37,7 @@ model Workspace {
   SmsProvider            SmsProvider[]
   ComputedPropertyPeriod ComputedPropertyPeriod[]
   Feature                Feature[]
+  WorkspaceMember        WorkspaceMember[]
 
   @@unique([name])
 }
@@ -309,6 +310,8 @@ model WorkspaceMember {
 
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
+  lastWorkspaceId       String?                 @db.Uuid
+  lastWorkspace         Workspace?              @relation(fields: [lastWorkspaceId], references: [id], onDelete: SetNull)
   WorkspaceMemberRole   WorkspaceMemberRole[]
   WorkspaceMembeAccount WorkspaceMembeAccount[]
 }
