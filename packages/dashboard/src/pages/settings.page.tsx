@@ -120,7 +120,7 @@ async function copyToClipboard({
   }
 }
 
-function copyToClipboardSection({
+function copyToClipboardField({
   value,
   helperText,
   successNotice,
@@ -1034,23 +1034,6 @@ function WriteKeySettings() {
     return null;
   }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      enqueueSnackbar("Copied write key to clipboard", {
-        variant: "success",
-        autoHideDuration: 1000,
-        anchorOrigin: noticeAnchorOrigin,
-      });
-    } catch (err) {
-      enqueueSnackbar("Failed to write key to clipboard", {
-        variant: "error",
-        autoHideDuration: 1000,
-        anchorOrigin: noticeAnchorOrigin,
-      });
-    }
-  };
-
   return (
     <Stack spacing={3}>
       <SectionHeader
@@ -1067,30 +1050,14 @@ function WriteKeySettings() {
                 id: "authorization-fields",
                 name: "Write key",
                 fields: [
-                  {
+                  copyToClipboardField({
                     id: "sendgrid-api-key",
-                    type: "text",
-                    fieldProps: {
-                      label: "",
-                      helperText:
-                        'Include this key as an HTTP "Authorization: Basic ..." header in your requests. This authorization key can be included in your client, and does not need to be kept secret.',
-                      value: keyHeader,
-                      children: "abcd",
-                      onChange: () => {},
-                      InputProps: {
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              color="primary"
-                              onClick={() => copyToClipboard(keyHeader)}
-                            >
-                              <ContentCopyOutlined />
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      },
-                    },
-                  },
+                    successNotice: "Copied write key to clipboard.",
+                    failureNotice: "Failed to copy write key to clipboard.",
+                    value: keyHeader,
+                    helperText:
+                      'Include this key as an HTTP "Authorization: Basic ..." header in your requests. This authorization key can be included in your client, and does not need to be kept secret.',
+                  }),
                 ],
               },
             ],
@@ -1455,8 +1422,15 @@ function Metadata() {
               {
                 id: "workspace-metadata-fields",
                 name: "Workspace Id",
-                fields: [],
-                children: <HubspotIntegration />,
+                fields: [
+                  copyToClipboardField({
+                    id: "workspace-id",
+                    successNotice: "Copied workspace id to clipboard.",
+                    failureNotice: "Failed to copy workspace id to clipboard.",
+                    value: workspace.id,
+                    helperText: `Id of the current "${workspace.name}" workspace.`,
+                  }),
+                ],
               },
             ],
           },
