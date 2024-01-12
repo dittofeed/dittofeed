@@ -1,5 +1,6 @@
 import {
   ContentCopyOutlined,
+  InfoOutlined,
   Mail,
   SimCardDownload,
   SmsOutlined,
@@ -75,7 +76,11 @@ import { immer } from "zustand/middleware/immer";
 
 import ExternalLink from "../components/externalLink";
 import Fields from "../components/form/Fields";
-import { FieldComponents, SecretField } from "../components/form/types";
+import {
+  FieldComponents,
+  SecretField,
+  TextField as TextFieldComponent,
+} from "../components/form/types";
 import { HubspotIcon } from "../components/icons/hubspotIcon";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
@@ -89,6 +94,74 @@ import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
+
+async function copyToClipboard({
+  value,
+  successNotice,
+  failureNotice,
+}: {
+  successNotice: string;
+  failureNotice: string;
+  value: string;
+}) {
+  try {
+    await navigator.clipboard.writeText(value);
+    enqueueSnackbar(successNotice, {
+      variant: "success",
+      autoHideDuration: 1000,
+      anchorOrigin: noticeAnchorOrigin,
+    });
+  } catch (err) {
+    enqueueSnackbar(failureNotice, {
+      variant: "error",
+      autoHideDuration: 1000,
+      anchorOrigin: noticeAnchorOrigin,
+    });
+  }
+}
+
+function copyToClipboardSection({
+  value,
+  helperText,
+  successNotice,
+  failureNotice,
+  id,
+}: {
+  id: string;
+  value: string;
+  helperText?: string;
+  successNotice: string;
+  failureNotice: string;
+}): TextFieldComponent {
+  return {
+    id,
+    type: "text",
+    fieldProps: {
+      label: "",
+      helperText,
+      value,
+      onChange: () => {},
+      InputProps: {
+        endAdornment: (
+          <InputAdornment position="end">
+            <IconButton
+              color="primary"
+              onClick={() =>
+                copyToClipboard({
+                  value,
+                  successNotice,
+                  failureNotice,
+                })
+              }
+            >
+              <ContentCopyOutlined />
+            </IconButton>
+          </InputAdornment>
+        ),
+      },
+    },
+  };
+}
 
 function SectionHeader({
   id,
@@ -251,6 +324,7 @@ const settingsSectionIds = {
   subscription: "subscriptions",
   authentication: "authentication",
   hubspotIntegration: "hubspot-integration",
+  workspaceMetadata: "workspace-metadata",
 } as const;
 
 const menuItems: MenuItemGroup[] = [
@@ -323,6 +397,22 @@ const menuItems: MenuItemGroup[] = [
       },
     ],
     url: `/settings#${settingsSectionIds.hubspotIntegration}`,
+  },
+  {
+    id: settingsSectionIds.workspaceMetadata,
+    title: "Workspace Metadata",
+    type: "group",
+    children: [
+      {
+        id: "workspace-id",
+        title: "Workspace Id",
+        type: "item",
+        url: `/settings#${settingsSectionIds.workspaceMetadata}`,
+        icon: InfoOutlined,
+        description: "Copy workspace id to clipboard.",
+      },
+    ],
+    url: `/settings#${settingsSectionIds.workspaceMetadata}`,
   },
 ];
 
@@ -1345,6 +1435,37 @@ function SubscriptionManagementSettings() {
   );
 }
 
+function Metadata() {
+  const { workspace: workspaceResult } = useAppStorePick(["workspace"]);
+  const workspace =
+    workspaceResult.type === CompletionStatus.Successful
+      ? workspaceResult.value
+      : null;
+  if (!workspace) {
+    return null;
+  }
+  return (
+    <Stack spacing={3}>
+      <SectionHeader title="Workspace Metadata" description="" />
+      <Fields
+        sections={[
+          {
+            id: "workspace-metadata-section",
+            fieldGroups: [
+              {
+                id: "workspace-metadata-fields",
+                name: "Workspace Id",
+                fields: [],
+                children: <HubspotIntegration />,
+              },
+            ],
+          },
+        ]}
+      />
+    </Stack>
+  );
+}
+
 const Settings: NextPage<
   InferGetServerSidePropsType<typeof getServerSideProps>
 > = function Settings() {
@@ -1365,6 +1486,7 @@ const Settings: NextPage<
         <WriteKeySettings />
         <SubscriptionManagementSettings />
         <IntegrationSettings />
+        <Metadata />
       </Stack>
     </SettingsLayout>
   );

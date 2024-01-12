@@ -170,7 +170,7 @@ function Profile() {
                         disableClearable
                         onChange={(_e, newValue) => {
                           path.push(
-                            `/select-workspace?workspaceId=${newValue?.id}`
+                            `/select-workspace?workspaceId=${newValue.id}`
                           );
                         }}
                         renderInput={(params) => (
