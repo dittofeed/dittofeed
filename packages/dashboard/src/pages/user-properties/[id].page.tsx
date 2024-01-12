@@ -203,6 +203,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         name: userProperty.name,
         workspaceId,
         definition,
+        exampleValue: userProperty.exampleValue ?? undefined,
       };
       serverInitialState.userProperties = {
         type: CompletionStatus.Successful,
@@ -210,13 +211,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       };
     } else {
       userPropertyResource = {
-        name: "example",
+        name: "exampleName",
         id,
         workspaceId,
         definition: {
           type: UserPropertyDefinitionType.Trait,
-          path: "example",
+          path: "examplePath",
         },
+        exampleValue: "exampleValue",
       };
     }
 
