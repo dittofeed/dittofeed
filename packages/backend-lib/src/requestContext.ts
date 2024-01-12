@@ -1,7 +1,7 @@
-import { IncomingHttpHeaders } from "http";
 import { Prisma } from "@prisma/client";
-import { firstPresent } from "isomorphic-lib/src/first";
+import { IncomingHttpHeaders } from "http";
 import { err, ok, Result } from "neverthrow";
+import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
@@ -14,8 +14,6 @@ import {
   WorkspaceMemberRoleResource,
   WorkspaceResource,
 } from "./types";
-import { sortBy } from "remeda";
-import { Overwrite } from "utility-types";
 
 export const SESSION_KEY = "df-session-key" as const;
 
@@ -98,7 +96,6 @@ async function findAndCreateRoles(
   if (domain) {
     or.push({ domain });
   }
-  console.log("or loc3", or);
 
   const workspaces = await prisma().workspace.findMany({
     where: {
@@ -112,8 +109,6 @@ async function findAndCreateRoles(
       },
     },
   });
-
-  console.log("workspaces loc4", workspaces);
 
   const domainWorkspacesWithoutRole = workspaces.filter(
     (w) => w.WorkspaceMemberRole.length === 0
