@@ -57,8 +57,10 @@ export type RequestContextResult = Result<
   RequestContextError
 >;
 
+type RoleWithWorkspace = WorkspaceMemberRole & { workspace: Workspace };
+
 type MemberWithRole = WorkspaceMember & {
-  WorkspaceMemberRole: WorkspaceMemberRole[];
+  WorkspaceMemberRole: RoleWithWorkspace[];
 };
 
 async function defaultRoleForDomain({
@@ -67,7 +69,7 @@ async function defaultRoleForDomain({
 }: {
   email: string;
   memberId: string;
-}): Promise<(WorkspaceMemberRole & { workspace: Workspace }) | null> {
+}): Promise<RoleWithWorkspace | null> {
   const domain = email.split("@")[1];
   if (!domain) {
     return null;
@@ -216,7 +218,9 @@ export async function getMultiTenantRequestContext({
     });
   }
 
-  const role = await firstPresent<WorkspaceMemberRole>([
+  const role = await firstPresent<
+    WorkspaceMemberRole & { workspace: Workspace }
+  >([
     memberWithRole.lastWorkspaceId
       ? memberWithRole.WorkspaceMemberRole.find(
           (r) => r.workspaceId === memberWithRole.lastWorkspaceId
@@ -259,6 +263,7 @@ export async function getMultiTenantRequestContext({
         workspaceId: role.workspace.id,
         role: role.role,
         workspaceMemberId: memberWithRole.id,
+        workspaceName: role.workspace.name,
       },
     ],
   });

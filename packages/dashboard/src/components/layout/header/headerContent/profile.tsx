@@ -15,7 +15,7 @@ import { useTheme } from "@mui/material/styles";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import React, { useRef, useState } from "react";
 
-import { useAppStore } from "../../../../lib/appStore";
+import { useAppStore, useAppStorePick } from "../../../../lib/appStore";
 import isNode from "../../../../lib/isNode";
 // project import
 import MainCard from "../../../mainCard";
@@ -41,15 +41,15 @@ function Profile() {
   };
 
   const iconBackColorOpen = "grey.300";
-  const member = useAppStore((store) => store.member);
+  const { member, memberRoles } = useAppStorePick(["member", "memberRoles"]);
   const name = member
     ? member.name ?? member.nickname ?? member.email
     : "Anonymous";
-  const workspace = useAppStore((store) => store.workspace);
-  const workspaceName =
-    workspace.type === CompletionStatus.Successful
-      ? workspace.value.name
-      : "Default";
+  console.log("member roles loc1", memberRoles);
+  // const workspaceName =
+  //   workspace.type === CompletionStatus.Successful
+  //     ? workspace.value.name
+  //     : "Default";
 
   return (
     <Box sx={{ flexShrink: 0, ml: 0.75 }}>
@@ -129,9 +129,15 @@ function Profile() {
                             />
                             <Stack>
                               <Typography variant="h6">{name}</Typography>
-                              <Typography variant="body2" color="textSecondary">
+                              {/* <Typography variant="body2" color="textSecondary">
                                 {workspaceName} Workspace
-                              </Typography>
+                              </Typography> */}
+                              {memberRoles.map((role) => (
+                                <div key={role.workspaceId}>
+                                  {role.workspaceName}
+                                </div>
+                              ))}
+                              {/* <Typography variant="h6">{name}</Typography> */}
                             </Stack>
                           </Stack>
                         </Grid>

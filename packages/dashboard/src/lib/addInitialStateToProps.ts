@@ -29,7 +29,7 @@ export function addInitialStateToProps<
     dashboardUrl,
   } = backendConfig();
 
-  const stateWithEnvVars: Partial<AppState> = clone({
+  const stateWithEnvVars: Partial<AppState> = clone<Partial<AppState>>({
     apiBase: apiBase(),
     dashboardUrl,
     sourceControlProvider,
@@ -40,6 +40,7 @@ export function addInitialStateToProps<
       value: dfContext.workspace,
     },
     member: dfContext.member,
+    memberRoles: dfContext.memberRoles,
     signoutUrl,
     trackDashboard,
     dashboardWriteKey,

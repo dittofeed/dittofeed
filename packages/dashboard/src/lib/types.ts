@@ -32,6 +32,7 @@ import {
   UserPropertyResource,
   WaitForNode,
   WorkspaceMemberResource,
+  WorkspaceMemberRoleResource,
   WorkspaceResource,
   WriteKeyResource,
 } from "isomorphic-lib/src/types";
@@ -70,6 +71,7 @@ export type AppState = {
   dashboardUrl: string;
   workspace: RequestStatus<WorkspaceResource, Error>;
   member: WorkspaceMemberResource | null;
+  memberRoles: WorkspaceMemberRoleResource[];
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
   broadcasts: BroadcastResource[];
