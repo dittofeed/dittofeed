@@ -167,11 +167,12 @@ function Profile() {
                       <Autocomplete
                         value={option}
                         options={options}
-                        onChange={(_e, newValue) =>
+                        disableClearable
+                        onChange={(_e, newValue) => {
                           path.push(
                             `/select-workspace?workspaceId=${newValue?.id}`
-                          )
-                        }
+                          );
+                        }}
                         renderInput={(params) => (
                           <TextField {...params} label="Current Workspace" />
                         )}
