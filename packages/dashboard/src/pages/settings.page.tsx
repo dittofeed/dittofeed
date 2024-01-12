@@ -1413,7 +1413,11 @@ function Metadata() {
   }
   return (
     <Stack spacing={3}>
-      <SectionHeader title="Workspace Metadata" description="" />
+      <SectionHeader
+        title="Workspace Metadata"
+        description=""
+        id={settingsSectionIds.workspaceMetadata}
+      />
       <Fields
         sections={[
           {
