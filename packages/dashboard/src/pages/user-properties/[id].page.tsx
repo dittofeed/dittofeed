@@ -32,6 +32,8 @@ import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
 
 import EditableName from "../../components/editableName";
+import { SubtleHeader } from "../../components/headers";
+import InfoTooltip from "../../components/infoTooltip";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -577,9 +579,16 @@ function UserPropertyDefinitionEditor({
   );
 
   return (
-    <Stack spacing={1} direction="row">
-      {selectUserPropertyType}
-      <DefinitionComponent definition={definition} />
+    <Stack spacing={2}>
+      <SubtleHeader>Definition</SubtleHeader>
+      <Stack spacing={1} direction="row">
+        {selectUserPropertyType}
+        <DefinitionComponent definition={definition} />
+      </Stack>
+      <Stack direction="row" spacing={1}>
+        <SubtleHeader>Example Value</SubtleHeader>
+        <InfoTooltip title="This example value will be used as the default value in the template editor." />
+      </Stack>
     </Stack>
   );
 }
