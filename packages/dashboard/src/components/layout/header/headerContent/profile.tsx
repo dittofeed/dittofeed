@@ -43,7 +43,6 @@ function Profile() {
   };
 
   const handleClose = (event: MouseEvent | TouchEvent) => {
-    debugger;
     if (isNode(event.target) && anchorRef.current?.contains(event.target)) {
       return;
     }
@@ -164,12 +163,15 @@ function Profile() {
                         </Grid>
                       </Grid>
                     </CardContent>
-
                     <Box sx={{ p: 1, width: "100%" }}>
                       <Autocomplete
                         value={option}
                         options={options}
-                        onChange={() => path.push("/dashboard")}
+                        onChange={(_e, newValue) =>
+                          path.push(
+                            `/select-workspace?workspaceId=${newValue?.id}`
+                          )
+                        }
                         renderInput={(params) => (
                           <TextField {...params} label="Current Workspace" />
                         )}
