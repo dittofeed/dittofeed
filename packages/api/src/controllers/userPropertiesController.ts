@@ -30,7 +30,7 @@ export default async function userPropertiesController(
     },
     async (request, reply) => {
       let userProperty: UserProperty;
-      const { id, name, definition, workspaceId } = request.body;
+      const { id, name, definition, workspaceId, exampleValue } = request.body;
 
       const canCreate = workspaceId && name && definition;
       const definitionUpdatedAt = definition ? new Date() : undefined;
@@ -49,12 +49,14 @@ export default async function userPropertiesController(
             workspaceId,
             name,
             definition,
+            exampleValue,
           },
           update: {
             workspaceId,
             name,
             definition,
             definitionUpdatedAt,
+            exampleValue,
           },
         });
       } else {
@@ -66,6 +68,7 @@ export default async function userPropertiesController(
             workspaceId,
             name,
             definition,
+            exampleValue,
             definitionUpdatedAt,
           },
         });
@@ -85,6 +88,7 @@ export default async function userPropertiesController(
         name: userProperty.name,
         workspaceId: userProperty.workspaceId,
         definition: userPropertyDefinitionResult.value,
+        exampleValue: userProperty.exampleValue ?? undefined,
       };
 
       return reply.status(200).send(resource);

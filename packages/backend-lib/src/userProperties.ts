@@ -87,6 +87,7 @@ export async function findAllUserPropertyResources({
 
   return userProperties.map((up) => ({
     ...up,
+    exampleValue: up.exampleValue ?? undefined,
     definitionUpdatedAt: up.definitionUpdatedAt.getTime(),
     createdAt: up.createdAt.getTime(),
     updatedAt: up.updatedAt.getTime(),

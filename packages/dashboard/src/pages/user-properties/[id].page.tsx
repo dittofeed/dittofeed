@@ -1,4 +1,7 @@
 import { PlusCircleFilled } from "@ant-design/icons";
+import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
+import { linter, lintGutter } from "@codemirror/lint";
+import { EditorView } from "@codemirror/view";
 import { Delete } from "@mui/icons-material";
 import {
   Autocomplete,
@@ -10,6 +13,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import ReactCodeMirror from "@uiw/react-codemirror";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -26,6 +30,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import React, { ComponentProps } from "react";
 import { pick } from "remeda/dist/commonjs/pick";
 import { v4 as uuidv4, validate } from "uuid";
@@ -37,7 +42,7 @@ import InfoTooltip from "../../components/infoTooltip";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../../lib/appStore";
+import { useAppStore, useAppStorePick } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import {
@@ -218,7 +223,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           type: UserPropertyDefinitionType.Trait,
           path: "examplePath",
         },
-        exampleValue: "exampleValue",
+        exampleValue: '"exampleValue"',
       };
     }
 
@@ -557,10 +562,17 @@ function UserPropertyDefinitionEditor({
   isProtected: boolean;
   definition: UserPropertyDefinition;
 }) {
+  const theme = useTheme();
   const condition = getUserPropertyOption(definition.type);
-  const updateUserPropertyDefinition = useAppStore(
-    (state) => state.updateUserPropertyDefinition
-  );
+  const {
+    editedUserProperty,
+    updateUserPropertyDefinition,
+    updateEditedUserProperty,
+  } = useAppStorePick([
+    "editedUserProperty",
+    "updateUserPropertyDefinition",
+    "updateEditedUserProperty",
+  ]);
 
   const selectUserPropertyType = (
     <Autocomplete
@@ -581,40 +593,61 @@ function UserPropertyDefinitionEditor({
   );
 
   return (
-    <Stack spacing={2}>
-      <SubtleHeader>Definition</SubtleHeader>
-      <Stack spacing={1} direction="row">
-        {selectUserPropertyType}
-        <DefinitionComponent definition={definition} />
+    <Stack spacing={1} direction="row">
+      <Stack spacing={2} sx={{ flex: 1 }}>
+        <SubtleHeader>Definition</SubtleHeader>
+        <Stack spacing={1} direction="row">
+          {selectUserPropertyType}
+          <DefinitionComponent definition={definition} />
+        </Stack>
       </Stack>
-      <Stack direction="row" spacing={1}>
-        <SubtleHeader>Example Value</SubtleHeader>
-        <InfoTooltip title="This example value will be used as the default value in the template editor." />
+      <Stack spacing={2} sx={{ flex: 1 }}>
+        <Stack direction="row" spacing={1}>
+          <SubtleHeader>Example Value (JSON)</SubtleHeader>
+          <InfoTooltip title="This example value will be used as the default value in the template editor." />
+        </Stack>
+        <ReactCodeMirror
+          value={editedUserProperty?.exampleValue ?? ""}
+          onChange={(json) => {
+            updateEditedUserProperty({
+              exampleValue: json,
+            });
+          }}
+          extensions={[
+            codeMirrorJson(),
+            linter(jsonParseLinter()),
+            EditorView.lineWrapping,
+            EditorView.theme({
+              "&": {
+                fontFamily: theme.typography.fontFamily,
+              },
+            }),
+            lintGutter(),
+          ]}
+        />
       </Stack>
     </Stack>
   );
 }
 
 export default function NewUserProperty() {
+  const path = useRouter();
+  const id = typeof path.query.id === "string" ? path.query.id : null;
   const {
     editedUserProperty,
-    setEditableUserPropertyName,
+    updateEditedUserProperty,
     apiBase,
     userPropertyUpdateRequest,
     setUserPropertyUpdateRequest,
     upsertUserProperty,
-  } = useAppStore(
-    (store) =>
-      pick(store, [
-        "editedUserProperty",
-        "setEditableUserPropertyName",
-        "apiBase",
-        "userPropertyUpdateRequest",
-        "setUserPropertyUpdateRequest",
-        "upsertUserProperty",
-      ]),
-    shallow
-  );
+  } = useAppStorePick([
+    "editedUserProperty",
+    "updateEditedUserProperty",
+    "apiBase",
+    "userPropertyUpdateRequest",
+    "setUserPropertyUpdateRequest",
+    "upsertUserProperty",
+  ]);
   const theme = useTheme();
 
   if (!editedUserProperty) {
@@ -640,6 +673,51 @@ export default function NewUserProperty() {
     },
   });
   const isProtected = protectedUserProperties.has(editedUserProperty.name);
+  let body: React.ReactNode = null;
+  // deal with zustand / nextjs hydration being async
+  if (id === editedUserProperty.id) {
+    body = (
+      <Stack
+        spacing={1}
+        sx={{
+          width: "100%",
+          padding: 3,
+          backgroundColor: theme.palette.grey[100],
+        }}
+      >
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignContent="center"
+        >
+          <EditableName
+            name={name}
+            onChange={(event) =>
+              updateEditedUserProperty({
+                name: event.target.value,
+              })
+            }
+          />
+          <Button variant="contained" onClick={handleSave}>
+            Save
+          </Button>
+        </Stack>
+        <Box
+          sx={{
+            backgroundColor: "white",
+            p: 3,
+            borderRadius: 1,
+            border: `1px solid ${theme.palette.grey[200]}`,
+          }}
+        >
+          <UserPropertyDefinitionEditor
+            isProtected={isProtected}
+            definition={editedUserProperty.definition}
+          />
+        </Box>
+      </Stack>
+    );
+  }
 
   return (
     <>
@@ -648,45 +726,7 @@ export default function NewUserProperty() {
         <meta name="description" content="Open Source Customer Engagement" />
       </Head>
       <main>
-        <MainLayout>
-          <Stack
-            spacing={1}
-            sx={{
-              width: "100%",
-              padding: 3,
-              backgroundColor: theme.palette.grey[100],
-            }}
-          >
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignContent="center"
-            >
-              <EditableName
-                name={name}
-                onChange={(event) =>
-                  setEditableUserPropertyName(event.target.value)
-                }
-              />
-              <Button variant="contained" onClick={handleSave}>
-                Save
-              </Button>
-            </Stack>
-            <Box
-              sx={{
-                backgroundColor: "white",
-                p: 3,
-                borderRadius: 1,
-                border: `1px solid ${theme.palette.grey[200]}`,
-              }}
-            >
-              <UserPropertyDefinitionEditor
-                isProtected={isProtected}
-                definition={editedUserProperty.definition}
-              />
-            </Box>
-          </Stack>
-        </MainLayout>
+        <MainLayout>{body}</MainLayout>
       </main>
     </>
   );
