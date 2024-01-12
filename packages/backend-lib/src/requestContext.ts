@@ -66,15 +66,6 @@ type MemberWithRoles = WorkspaceMember & {
   WorkspaceMemberRole: RoleWithWorkspace[];
 };
 
-/*
-1. create any roles for workspaces in the domain if they don't exist already
-2. if the member has a lastWorkspaceId, use that
-3. otherwise use the domain corresponding to the first created domain
-
-should return all roles, and the workspace corresponding to the selected role
-
-*/
-
 interface RolesWithWorkspace {
   workspace: WorkspaceResource | null;
   memberRoles: WorkspaceMemberRoleResource[];
@@ -185,77 +176,6 @@ async function findAndCreateRoles(
     memberRoles,
     workspace,
   };
-}
-
-async function defaultRoleForDomain({
-  email,
-  memberId,
-}: {
-  email: string;
-  memberId: string;
-}): Promise<RoleWithWorkspace | null> {
-  const domain = email.split("@")[1];
-  if (!domain) {
-    return null;
-  }
-
-  const workspaces = await prisma().workspace.findMany({
-    where: {
-      domain,
-    },
-    include: {
-      WorkspaceMemberRole: {
-        where: {
-          workspaceMemberId: memberId,
-        },
-      },
-    },
-  });
-
-  console.log("workspaces loc1", workspaces);
-  if (workspaces.length === 0) {
-    return null;
-  }
-  const domainWorkspacesWithoutRole = workspaces.filter(
-    (w) => w.WorkspaceMemberRole.length === 0
-  );
-  let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole);
-
-  // FIXME not hitting this block because 1 role already exists
-  if (domainWorkspacesWithoutRole.length !== 0) {
-    const newRoles = await Promise.all(
-      domainWorkspacesWithoutRole.map((w) =>
-        prisma().workspaceMemberRole.upsert({
-          where: {
-            workspaceId_workspaceMemberId: {
-              workspaceId: w.id,
-              workspaceMemberId: memberId,
-            },
-          },
-          update: {},
-          create: {
-            workspaceId: w.id,
-            workspaceMemberId: memberId,
-            role: "Admin",
-          },
-        })
-      )
-    );
-    for (const role of newRoles) {
-      roles.push(role);
-    }
-  }
-  roles = sortBy(roles, (r) => r.createdAt.getTime());
-  const [role] = roles;
-  if (!role) {
-    throw new Error("No role found");
-  }
-  const workspace = workspaces.find((w) => w.id === role.workspaceId);
-  if (!workspace) {
-    throw new Error("No workspace found");
-  }
-
-  return { ...role, workspace };
 }
 
 export async function getMultiTenantRequestContext({
