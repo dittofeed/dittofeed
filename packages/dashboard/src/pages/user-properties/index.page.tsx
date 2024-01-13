@@ -8,7 +8,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { toUserPropertyResource } from "backend-lib/src/userProperties";
+import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
   CompletionStatus,
@@ -38,7 +38,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         where: { workspaceId, resourceType: "Declarative" },
       })
     ).flatMap((segment) => {
-      const result = toUserPropertyResource(segment);
+      const result = toSavedUserPropertyResource(segment);
       if (result.isErr()) {
         return [];
       }

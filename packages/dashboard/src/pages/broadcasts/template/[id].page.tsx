@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { toUserPropertyResource } from "backend-lib/src/userProperties";
+import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
 import { isChannelType } from "isomorphic-lib/src/channels";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -64,7 +64,7 @@ async function getChannelState({
         workspaceId,
       },
     })
-  ).flatMap((up) => unwrap(toUserPropertyResource(up)));
+  ).flatMap((up) => unwrap(toSavedUserPropertyResource(up)));
   return {
     userProperties: {
       type: CompletionStatus.Successful,
