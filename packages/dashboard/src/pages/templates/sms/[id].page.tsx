@@ -1,6 +1,6 @@
 import { enrichMessageTemplate } from "backend-lib/src/messageTemplates";
 import { MessageTemplate } from "backend-lib/src/types";
-import { enrichUserProperty } from "backend-lib/src/userProperties";
+import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   ChannelType,
@@ -72,7 +72,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           },
           userProperties: {
             type: CompletionStatus.Successful,
-            value: userProperties.flatMap((p) => unwrap(enrichUserProperty(p))),
+            value: userProperties.flatMap((p) =>
+              unwrap(toUserPropertyResource(p))
+            ),
           },
         },
         props: {},

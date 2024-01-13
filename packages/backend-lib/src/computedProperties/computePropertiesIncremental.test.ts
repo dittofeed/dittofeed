@@ -41,7 +41,7 @@ import {
 } from "../types";
 import {
   findAllUserPropertyAssignments,
-  toUserPropertyResource,
+  toSavedUserPropertyResource,
 } from "../userProperties";
 import {
   computeAssignments,
@@ -324,7 +324,7 @@ async function upsertComputedProperties({
             definitionUpdatedAt: new Date(now),
           },
         });
-        return unwrap(toUserPropertyResource(model));
+        return unwrap(toSavedUserPropertyResource(model));
       })
     ),
     Promise.all(

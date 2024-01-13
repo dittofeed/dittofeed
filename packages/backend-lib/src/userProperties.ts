@@ -11,6 +11,7 @@ import {
   JSONValue,
   SavedUserPropertyResource,
   UserPropertyDefinition,
+  UserPropertyResource,
 } from "./types";
 
 export function enrichUserProperty(
@@ -31,6 +32,20 @@ export function enrichUserProperty(
 
 export function toUserPropertyResource(
   userProperty: UserProperty
+): Result<UserPropertyResource, ValueError[]> {
+  return enrichUserProperty(userProperty).map(
+    ({ workspaceId, name, id, definition, exampleValue }) => ({
+      workspaceId,
+      name,
+      id,
+      definition,
+      exampleValue: exampleValue ?? undefined,
+    })
+  );
+}
+
+export function toSavedUserPropertyResource(
+  userProperty: UserProperty
 ): Result<SavedUserPropertyResource, ValueError[]> {
   return enrichUserProperty(userProperty).map(
     ({
@@ -40,12 +55,14 @@ export function toUserPropertyResource(
       definition,
       createdAt,
       updatedAt,
+      exampleValue,
       definitionUpdatedAt,
     }) => ({
       workspaceId,
       name,
       id,
       definition,
+      exampleValue: exampleValue ?? undefined,
       createdAt: createdAt.getTime(),
       updatedAt: updatedAt.getTime(),
       definitionUpdatedAt: definitionUpdatedAt.getTime(),
@@ -87,6 +104,7 @@ export async function findAllUserPropertyResources({
 
   return userProperties.map((up) => ({
     ...up,
+    exampleValue: up.exampleValue ?? undefined,
     definitionUpdatedAt: up.definitionUpdatedAt.getTime(),
     createdAt: up.createdAt.getTime(),
     updatedAt: up.updatedAt.getTime(),

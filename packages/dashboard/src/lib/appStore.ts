@@ -534,13 +534,16 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           set((state) => {
             state.userPropertyUpdateRequest = request;
           }),
-
-        setEditableUserPropertyName: (name) =>
+        updateEditedUserProperty: (updatedUserProperty) =>
           set((state) => {
             if (!state.editedUserProperty) {
               return state;
             }
-            state.editedUserProperty.name = name;
+
+            state.editedUserProperty = {
+              ...state.editedUserProperty,
+              ...updatedUserProperty,
+            };
             return state;
           }),
 

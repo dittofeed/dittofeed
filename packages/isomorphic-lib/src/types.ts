@@ -1123,6 +1123,7 @@ export const UserPropertyResource = Type.Object({
   workspaceId: Type.String(),
   name: Type.String(),
   definition: UserPropertyDefinition,
+  exampleValue: Type.Optional(Type.String()),
 });
 
 export type UserPropertyResource = Static<typeof UserPropertyResource>;

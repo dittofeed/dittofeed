@@ -39,6 +39,7 @@ import {
   RenderMessageTemplateResponse,
   UpsertMessageTemplateResource,
   UserPropertyAssignments,
+  UserPropertyResource,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { LoremIpsum } from "lorem-ipsum";
@@ -149,6 +150,42 @@ export type DefinitionToPreview = (
   dfn: MessageTemplateResourceDefinition
 ) => RenderMessageTemplateRequestContents;
 
+function getUserPropertyValue({
+  member,
+  userProperty,
+}: {
+  member?: WorkspaceMemberResource;
+  userProperty: UserPropertyResource;
+}): unknown {
+  if (userProperty.exampleValue) {
+    const parsed = jsonParseSafe(userProperty.exampleValue);
+    if (parsed.isOk()) {
+      return parsed.value;
+    }
+  }
+  if (userProperty.name === "email" && member?.email) {
+    return member.email;
+  }
+  return LOREM.generateWords(1);
+}
+
+function getUserPropertyValues({
+  member,
+  userProperties,
+}: {
+  member?: WorkspaceMemberResource;
+  userProperties: UserPropertyResource[];
+}): UserPropertyAssignments {
+  const userPropertyAssignments: UserPropertyAssignments = {};
+  for (const userProperty of userProperties) {
+    userPropertyAssignments[userProperty.name] = getUserPropertyValue({
+      member,
+      userProperty,
+    });
+  }
+  return userPropertyAssignments;
+}
+
 export default function TemplateEditor({
   templateId,
   renderEditorBody,
@@ -204,18 +241,10 @@ export default function TemplateEditor({
     if (userPropertiesResult.type !== CompletionStatus.Successful) {
       return {};
     }
-    const userPropertyAssignments: UserPropertyAssignments = {};
-    for (const userProperty of userPropertiesResult.value) {
-      let value: string;
-      if (userProperty.name === "email" && member?.email) {
-        value = member.email;
-      } else {
-        value = LOREM.generateWords(1);
-      }
-
-      userPropertyAssignments[userProperty.name] = value;
-    }
-    return userPropertyAssignments;
+    return getUserPropertyValues({
+      member,
+      userProperties: userPropertiesResult.value,
+    });
   }, [userPropertiesResult, member]);
 
   const [
@@ -252,10 +281,7 @@ export default function TemplateEditor({
   // following two hooks allow for client side navigation, and for local state
   // to become synced with zustand store
   useEffect(() => {
-    if (
-      Object.keys(initialUserProperties).length === 0 ||
-      Object.keys(userProperties).length > 0
-    ) {
+    if (Object.keys(initialUserProperties).length === 0) {
       return;
     }
     setState((draft) => {

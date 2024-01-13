@@ -159,7 +159,9 @@ export interface UserPropertyEditorContent {
   setUserPropertyUpdateRequest: (
     request: EphemeralRequestStatus<Error>
   ) => void;
-  setEditableUserPropertyName: (name: string) => void;
+  updateEditedUserProperty: (
+    userProperty: Partial<Omit<UserPropertyResource, "id" | "workspaceId">>
+  ) => void;
 }
 
 export interface JourneyIndexContent {

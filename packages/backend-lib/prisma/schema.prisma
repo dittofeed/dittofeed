@@ -139,6 +139,7 @@ model UserProperty {
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   definitionUpdatedAt    DateTime                 @default(now())
+  exampleValue           String?
   UserPropertyAssignment UserPropertyAssignment[]
 
   @@unique([workspaceId, name])
