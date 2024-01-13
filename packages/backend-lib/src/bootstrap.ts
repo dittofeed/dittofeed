@@ -65,6 +65,7 @@ async function bootstrapPostgres({
         definition: {
           type: UserPropertyDefinitionType.Id,
         },
+        exampleValue: '"62b44d22-0d14-48bb-80d9-fb5da5b26a0c"',
       },
       {
         name: "anonymousId",
@@ -72,6 +73,7 @@ async function bootstrapPostgres({
         definition: {
           type: UserPropertyDefinitionType.AnonymousId,
         },
+        exampleValue: '"b8fa9198-6475-4b18-bb64-aafd0c8b717e"',
       },
       {
         name: "email",
@@ -80,6 +82,7 @@ async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "email",
         },
+        exampleValue: '"matt@email.com"',
       },
       {
         name: "phone",
@@ -88,6 +91,7 @@ async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "phone",
         },
+        exampleValue: '"8885551234"',
       },
       {
         name: "deviceToken",
@@ -96,6 +100,8 @@ async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "deviceToken",
         },
+        exampleValue:
+          '"1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"',
       },
       {
         name: "firstName",
@@ -104,6 +110,7 @@ async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "firstName",
         },
+        exampleValue: '"Matt"',
       },
       {
         name: "lastName",
@@ -112,6 +119,7 @@ async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "lastName",
         },
+        exampleValue: '"Smith"',
       },
       {
         name: "language",
@@ -120,6 +128,7 @@ async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "language",
         },
+        exampleValue: '"en-US"',
       },
       {
         name: "accountManager",
@@ -128,6 +137,7 @@ async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "accountManager",
         },
+        exampleValue: '"Jane Johnson"',
       },
     ];
 

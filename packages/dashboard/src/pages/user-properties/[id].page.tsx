@@ -596,7 +596,7 @@ function UserPropertyDefinitionEditor({
     <Stack spacing={1} direction="row">
       <Stack spacing={2} sx={{ flex: 1 }}>
         <SubtleHeader>Definition</SubtleHeader>
-        <Stack spacing={1} direction="row">
+        <Stack spacing={1} direction="row" alignItems="center">
           {selectUserPropertyType}
           <DefinitionComponent definition={definition} />
         </Stack>
