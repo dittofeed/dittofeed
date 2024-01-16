@@ -178,6 +178,7 @@ export async function getUsers({
               AND "userId" IN (SELECT "userId" FROM unique_user_ids)
               AND "value" != ''
               AND "value" != '""'
+              AND up."resourceType" != 'Internal'
 
           UNION ALL
 
