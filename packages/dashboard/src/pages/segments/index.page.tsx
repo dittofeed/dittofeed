@@ -1,6 +1,6 @@
-import { Delete, DownloadForOffline } from "@mui/icons-material";
+import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import { IconButton, ListItem, ListItemText, Tooltip } from "@mui/material";
+import { ListItem, ListItemText, Tooltip } from "@mui/material";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
@@ -25,6 +25,7 @@ import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
+import DeleteDialog from "../../components/confirmDeleteDialog";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
@@ -111,9 +112,11 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
   return (
     <ListItem
       secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
-          <Delete />
-        </IconButton>
+        <DeleteDialog
+          onConfirm={handleDelete}
+          title="Confirm Deletion"
+          message="Are you sure you want to delete this segment?"
+        />
       }
     >
       <ResourceListItemButton href={`/dashboard/segments/${segment.id}`}>

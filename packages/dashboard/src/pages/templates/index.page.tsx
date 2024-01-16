@@ -1,4 +1,4 @@
-import { AddCircleOutline, Delete } from "@mui/icons-material";
+import { AddCircleOutline } from "@mui/icons-material";
 import {
   Box,
   IconButton,
@@ -41,6 +41,7 @@ import { useAppStore } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { getTemplatesLink } from "../../lib/templatesLink";
 import { AppState, PropsWithInitialState } from "../../lib/types";
+import DeleteDialog from "../../components/confirmDeleteDialog";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -142,9 +143,11 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
   return (
     <ListItem
       secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
-          <Delete />
-        </IconButton>
+        <DeleteDialog
+          onConfirm={handleDelete}
+          title="Confirm Deletion"
+          message="Are you sure you want to delete this template?"
+        />
       }
     >
       <ListItemButton

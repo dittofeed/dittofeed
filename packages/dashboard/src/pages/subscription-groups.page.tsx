@@ -1,5 +1,4 @@
-import { Delete } from "@mui/icons-material";
-import { IconButton, ListItem, ListItemText } from "@mui/material";
+import { ListItem, ListItemText } from "@mui/material";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import {
   DeleteSubscriptionGroupRequest,
@@ -20,6 +19,7 @@ import { useAppStore } from "../lib/appStore";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../lib/types";
+import DeleteDialog from "../components/confirmDeleteDialog";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
@@ -89,9 +89,11 @@ function Item({ item }: { item: SubscriptionGroupResource }) {
   return (
     <ListItem
       secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
-          <Delete />
-        </IconButton>
+        <DeleteDialog
+          onConfirm={handleDelete}
+          title="Confirm Deletion"
+          message="Are you sure you want to delete this Subscription Group?"
+        />
       }
     >
       <ResourceListItemButton
