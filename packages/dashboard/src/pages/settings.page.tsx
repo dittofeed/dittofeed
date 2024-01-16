@@ -891,6 +891,22 @@ function DefaultEmailConfig() {
                       "In order to use email, at least 1 email provider must be configured.",
                   },
                 },
+                {
+                  id: "default-from-address",
+                  type: "text",
+                  fieldProps: {
+                    label: 'Default "From" Address',
+                    value: "",
+                    onChange: (value) => {
+                      setState((state) => {
+                        state.defaultProvider = value;
+                      });
+                      defaultHandler(value);
+                    },
+                    helperText:
+                      'This will be used to populate "From" address in email templates.',
+                  },
+                },
               ],
             },
           ],
