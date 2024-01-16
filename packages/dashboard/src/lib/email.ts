@@ -91,6 +91,9 @@ export async function getOrCreateEmailProviders({
       case EmailProviderType.Sendgrid:
         type = EmailProviderType.Sendgrid;
         break;
+      case EmailProviderType.Resend:
+        type = EmailProviderType.Resend;
+        break;
       case EmailProviderType.Smtp:
         type = EmailProviderType.Smtp;
         break;

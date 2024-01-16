@@ -1,0 +1,146 @@
+import { err, ok, Result, ResultAsync } from "neverthrow";
+import * as R from "remeda";
+import { ErrorResponse, Resend } from 'resend';
+import { v5 as uuidv5 } from "uuid";
+
+import { submitBatch } from "../apps";
+import logger from "../logger";
+import {
+  BatchAppData,
+  BatchItem,
+  BatchTrackData,
+  EventType,
+  InternalEventType,
+  ResendEvent,
+  ResendEventType,
+} from "../types";
+
+
+function guardResponseError(payload: unknown): ErrorResponse {
+  return payload as ErrorResponse
+}
+
+export type ResendRequiredData = Parameters<Resend['emails']['send']>['0']
+export type ResendResponse = Awaited<ReturnType<Resend['emails']['send']>>
+
+export async function sendMail({
+  apiKey,
+  mailData,
+}: {
+  apiKey: string;
+  mailData: ResendRequiredData;
+}): Promise<ResultAsync<ResendResponse, ErrorResponse>> {
+  const resend = new Resend(apiKey);
+
+  return ResultAsync.fromPromise(
+    resend.emails.send(mailData),
+    guardResponseError
+  ).map((resultArray) => resultArray);
+}
+
+export function resendEventToDF({
+  workspaceId,
+  resendEvent,
+}: {
+  workspaceId: string;
+  resendEvent: ResendEvent;
+}): Result<BatchItem, Error> {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const { email, event, timestamp, sg_message_id } = resendEvent;
+
+  const userOrAnonymousId = resendEvent.userId ?? resendEvent.anonymousId;
+  if (!userOrAnonymousId) {
+    return err(new Error("Missing userId or anonymousId."));
+  }
+  const messageId = uuidv5(sg_message_id, workspaceId);
+
+  let eventName: InternalEventType;
+  const properties: Record<string, string> = R.merge(
+    { email },
+    R.pick(resendEvent, [
+      "workspaceId",
+      "journeyId",
+      "runId",
+      "messageId",
+      "userId",
+      "templateId",
+      "nodeId",
+    ])
+  );
+
+  switch (event) {
+    case ResendEventType.Opened:
+      eventName = InternalEventType.EmailOpened;
+      break;
+    case ResendEventType.Clicked:
+      eventName = InternalEventType.EmailClicked;
+      break;
+    case ResendEventType.Bounced:
+      eventName = InternalEventType.EmailBounced;
+      break;
+    case ResendEventType.DeliveryDelayed:
+      eventName = InternalEventType.EmailDropped;
+      break;
+    case ResendEventType.Complained:
+      eventName = InternalEventType.EmailMarkedSpam;
+      break;
+    case ResendEventType.Delivered:
+      eventName = InternalEventType.EmailDelivered;
+      break;
+    default:
+      return err(new Error(`Unhandled event type: ${event}`));
+  }
+
+  const itemTimestamp = new Date(timestamp * 1000).toISOString();
+  let item: BatchTrackData;
+  if (resendEvent.userId) {
+    item = {
+      type: EventType.Track,
+      event: eventName,
+      userId: resendEvent.userId,
+      anonymousId: resendEvent.anonymousId,
+      properties,
+      messageId,
+      timestamp: itemTimestamp,
+    };
+  } else if (resendEvent.anonymousId) {
+    item = {
+      type: EventType.Track,
+      event: eventName,
+      anonymousId: resendEvent.anonymousId,
+      properties,
+      messageId,
+      timestamp: itemTimestamp,
+    };
+  } else {
+    return err(new Error("Missing userId and anonymousId."));
+  }
+
+  return ok(item);
+}
+
+export async function submitResendEvents({
+  workspaceId,
+  events,
+}: {
+  workspaceId: string;
+  events: ResendEvent[];
+}) {
+  const data: BatchAppData = {
+    batch: events.flatMap((e) =>
+      resendEventToDF({ workspaceId, resendEvent: e })
+        .mapErr((error) => {
+          logger().error(
+            { err: error },
+            "Failed to convert resend event to DF."
+          );
+          return error;
+        })
+        .unwrapOr([])
+    ),
+  };
+  await submitBatch({
+    workspaceId,
+    data,
+  });
+}

@@ -194,6 +194,18 @@ export default async function contentController(fastify: FastifyInstance) {
                 },
               });
             }
+            case EmailProviderType.Resend: {
+              const { message } = result.error.variant.provider;
+              const suggestions: string[] = [];
+              suggestions.push(message);
+              return reply.status(200).send({
+                type: JsonResultType.Err,
+                err: {
+                  suggestions,
+                  responseData: message,
+                },
+              });
+            }
             case EmailProviderType.Smtp: {
               return reply.status(200).send({
                 type: JsonResultType.Err,
