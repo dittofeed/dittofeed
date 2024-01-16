@@ -46,13 +46,16 @@ export function resendEventToDF({
   resendEvent: ResendEvent;
 }): Result<BatchItem, Error> {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { email, event, timestamp, sg_message_id } = resendEvent;
+  const { type: event } = resendEvent;
+  const { created_at, email_id, to} = resendEvent.data;
+
+  const email= to[0]!
 
   const userOrAnonymousId = resendEvent.userId ?? resendEvent.anonymousId;
   if (!userOrAnonymousId) {
     return err(new Error("Missing userId or anonymousId."));
   }
-  const messageId = uuidv5(sg_message_id, workspaceId);
+  const messageId = uuidv5(email_id, workspaceId);
 
   let eventName: InternalEventType;
   const properties: Record<string, string> = R.merge(
@@ -63,8 +66,7 @@ export function resendEventToDF({
       "runId",
       "messageId",
       "userId",
-      "templateId",
-      "nodeId",
+      "templateId"
     ])
   );
 
@@ -91,6 +93,7 @@ export function resendEventToDF({
       return err(new Error(`Unhandled event type: ${event}`));
   }
 
+  const timestamp = new Date(created_at).getTime();
   const itemTimestamp = new Date(timestamp * 1000).toISOString();
   let item: BatchTrackData;
   if (resendEvent.userId) {
