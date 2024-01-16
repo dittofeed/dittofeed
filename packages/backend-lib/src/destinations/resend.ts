@@ -17,11 +17,30 @@ import {
 
 
 function guardResponseError(payload: unknown): ErrorResponse {
-  return payload as ErrorResponse
+  const error = payload as Error
+  return {
+    message: error.message,
+    name: error.cause as ErrorResponse['name']
+  }
 }
 
 export type ResendRequiredData = Parameters<Resend['emails']['send']>['0']
 export type ResendResponse = Awaited<ReturnType<Resend['emails']['send']>>
+
+/* 
+ Resend's client does not throw an error and instead returns a nullish error 
+ object that's why we wrap it out in our wrapper function
+ */
+const sendMailWrapper = async (apiKey: string, mailData: ResendRequiredData) => {
+  const resend = new Resend(apiKey)
+  const response = await resend.emails.send(mailData)
+  if (response.error) {
+    throw new Error(response.error.message, {
+      cause: response.error.name
+    })
+  }
+  return response
+}
 
 export async function sendMail({
   apiKey,
@@ -30,10 +49,9 @@ export async function sendMail({
   apiKey: string;
   mailData: ResendRequiredData;
 }): Promise<ResultAsync<ResendResponse, ErrorResponse>> {
-  const resend = new Resend(apiKey);
 
   return ResultAsync.fromPromise(
-    resend.emails.send(mailData),
+    sendMailWrapper(apiKey, mailData),
     guardResponseError
   ).map((resultArray) => resultArray);
 }
@@ -45,10 +63,11 @@ export function resendEventToDF({
   workspaceId: string;
   resendEvent: ResendEvent;
 }): Result<BatchItem, Error> {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { type: event } = resendEvent;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { created_at, email_id, to} = resendEvent.data;
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const email= to[0]!
 
   const userOrAnonymousId = resendEvent.userId ?? resendEvent.anonymousId;
