@@ -1,4 +1,12 @@
-import { Typography, useTheme } from "@mui/material";
+import {
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { Type } from "@sinclair/typebox";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -13,6 +21,7 @@ import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { useAppStore } from "../lib/appStore";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
+import { pick } from "remeda/dist/commonjs/pick";
 
 const QueryParams = Type.Pick(GetUsersRequest, ["cursor", "direction"]);
 
@@ -32,8 +41,13 @@ export default function SegmentUsers() {
     () => schemaValidate(router.query, QueryParams).unwrapOr({}),
     [router.query]
   );
-  const workspace = useAppStore((state) => state.workspace);
+  const { workspace, segments } = useAppStore((store) =>
+    pick(store, ["workspace", "segments"])
+  );
   if (workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
+  if (segments.type !== CompletionStatus.Successful) {
     return null;
   }
 
@@ -62,6 +76,32 @@ export default function SegmentUsers() {
         }}
       >
         <Typography variant="h4">Users</Typography>
+
+        <Stack spacing={2} direction="row" justifyContent="space-between">
+          <FormControl variant="outlined" sx={{ minWidth: 100, width: 300 }}>
+            <InputLabel>Select (Property)</InputLabel>
+            <Select label="Select (Property)">
+              {/* Options for Select (Property) */}
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Property Value"
+            variant="outlined"
+            sx={{ minWidth: 100, width: 300 }}
+          />
+
+          <FormControl variant="outlined" sx={{ minWidth: 100, width: 300 }}>
+            <InputLabel>Select (Segment)</InputLabel>
+            <Select label="Select (Segment)">
+              {segments.value.map((segment) => (
+                <MenuItem key={segment.id} value={segment.id} dense>
+                  {segment.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
         <UsersTable
           {...queryParams}
           workspaceId={workspace.value.id}
