@@ -34,6 +34,7 @@ import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
+import DeleteDialog from "../../components/confirmDeleteDialog";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -41,7 +42,6 @@ import { useAppStore } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { getTemplatesLink } from "../../lib/templatesLink";
 import { AppState, PropsWithInitialState } from "../../lib/types";
-import DeleteDialog from "../../components/confirmDeleteDialog";
 
 interface TabPanelProps {
   children?: React.ReactNode;

@@ -7,6 +7,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 
+import DeleteDialog from "../components/confirmDeleteDialog";
 import DashboardContent from "../components/dashboardContent";
 import {
   ResourceList,
@@ -19,7 +20,6 @@ import { useAppStore } from "../lib/appStore";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../lib/types";
-import DeleteDialog from "../components/confirmDeleteDialog";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
