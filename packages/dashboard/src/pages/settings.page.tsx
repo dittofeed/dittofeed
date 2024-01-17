@@ -141,7 +141,7 @@ function copyToClipboardField({
       label: "",
       helperText,
       value,
-      onChange: () => {},
+      onChange: () => { },
       InputProps: {
         endAdornment: (
           <InputAdornment position="end">
@@ -574,20 +574,20 @@ function SegmentIoConfig() {
                   },
                   ...(isEnabled
                     ? ([
-                        {
-                          id: "shared-secret",
-                          type: "text",
-                          fieldProps: {
-                            label: "Shared Secret",
-                            helperText:
-                              "Secret for validating signed request bodies from segment.",
-                            onChange: (e) => {
-                              updateSegmentIoSharedSecret(e.target.value);
-                            },
-                            value: sharedSecret,
+                      {
+                        id: "shared-secret",
+                        type: "text",
+                        fieldProps: {
+                          label: "Shared Secret",
+                          helperText:
+                            "Secret for validating signed request bodies from segment.",
+                          onChange: (e) => {
+                            updateSegmentIoSharedSecret(e.target.value);
                           },
+                          value: sharedSecret,
                         },
-                      ] as FieldComponents[])
+                      },
+                    ] as FieldComponents[])
                     : []),
                 ],
               },
@@ -722,27 +722,27 @@ const SMTP_SECRET_FIELDS: {
   label: string;
   key: SmtpSecretKey;
 }[] = [
-  {
-    key: "host",
-    label: "SMTP host",
-    helperText: "Host of SMTP server.",
-  },
-  {
-    key: "port",
-    label: "SMTP port",
-    helperText: "Port of SMTP server.",
-  },
-  {
-    key: "username",
-    label: "SMTP Username",
-    helperText: "Username used to authenticate SMTP server.",
-  },
-  {
-    key: "password",
-    label: "SMTP Password",
-    helperText: "Password used to authenticate SMTP server.",
-  },
-];
+    {
+      key: "host",
+      label: "SMTP host",
+      helperText: "Host of SMTP server.",
+    },
+    {
+      key: "port",
+      label: "SMTP port",
+      helperText: "Port of SMTP server.",
+    },
+    {
+      key: "username",
+      label: "SMTP Username",
+      helperText: "Username used to authenticate SMTP server.",
+    },
+    {
+      key: "password",
+      label: "SMTP Password",
+      helperText: "Password used to authenticate SMTP server.",
+    },
+  ];
 
 function SmtpConfig() {
   const { secretAvailability } = useAppStorePick(["secretAvailability"]);
@@ -794,17 +794,19 @@ function DefaultEmailConfig() {
     "defaultEmailProvider",
     "setDefaultEmailProvider",
   ]);
-  const [{ defaultProvider, defaultProviderRequest }, setState] = useImmer<{
+  const [{ defaultProvider, defaultFromAddress, defaultProviderRequest }, setState] = useImmer<{
     defaultProvider: string | null;
+    defaultFromAddress: string | null;
     defaultProviderRequest: EphemeralRequestStatus<Error>;
   }>({
     defaultProvider: defaultEmailProvider?.emailProviderId ?? null,
+    defaultFromAddress: defaultEmailProvider?.defaultFromAddress ?? null,
     defaultProviderRequest: {
       type: CompletionStatus.NotStarted,
     },
   });
 
-  const defaultHandler = (emailProviderId: string) => {
+  const apiHandler = (emailProviderId: string, _fromAddress: string) => {
     if (workspace.type !== CompletionStatus.Successful) {
       return;
     }
@@ -816,9 +818,9 @@ function DefaultEmailConfig() {
         });
       },
       responseSchema: EmptyResponse,
-      onSuccessNotice: "Set default email provider.",
+      onSuccessNotice: "Set default email configuration.",
       onFailureNoticeHandler: () =>
-        `API Error: Failed to set default email provider.`,
+        `API Error: Failed to set default email configuration.`,
       setResponse: () => {
         if (!defaultProvider) {
           return;
@@ -884,7 +886,6 @@ function DefaultEmailConfig() {
                       setState((state) => {
                         state.defaultProvider = value;
                       });
-                      defaultHandler(value);
                     },
                     options,
                     helperText:
@@ -896,12 +897,11 @@ function DefaultEmailConfig() {
                   type: "text",
                   fieldProps: {
                     label: 'Default "From" Address',
-                    value: "",
-                    onChange: (value) => {
+                    value: defaultFromAddress ?? "",
+                    onChange: ({target: { value }}) => {
                       setState((state) => {
-                        state.defaultProvider = value;
+                        state.defaultFromAddress = value;
                       });
-                      defaultHandler(value);
                     },
                     helperText:
                       'This will be used to populate "From" address in email templates.',
@@ -912,7 +912,20 @@ function DefaultEmailConfig() {
           ],
         },
       ]}
-    />
+    >
+      <Button
+        variant="contained"
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end",
+          },
+        }}
+        onClick={() => apiHandler(defaultProvider as never, "")}
+      >
+        Save
+      </Button>
+    </Fields>
   );
 }
 
@@ -1423,7 +1436,7 @@ function SubscriptionManagementSettings() {
               key={`${fromSubscribe}-${fromSubscriptionChange}`}
               subscriptions={subscriptions}
               workspaceName={workspace.name}
-              onSubscriptionUpdate={async () => {}}
+              onSubscriptionUpdate={async () => { }}
               subscriptionChange={
                 fromSubscribe
                   ? SubscriptionChange.Subscribe
