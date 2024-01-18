@@ -803,7 +803,7 @@ function DefaultEmailConfig() {
     defaultProviderRequest: EphemeralRequestStatus<Error>;
   }>({
     defaultProvider: defaultEmailProvider?.emailProviderId ?? null,
-    defaultFromAddress: defaultEmailProvider?.defaultFromAddress ?? null,
+    defaultFromAddress: defaultEmailProvider?.fromAddress ?? null,
     defaultProviderRequest: {
       type: CompletionStatus.NotStarted,
     },
@@ -831,7 +831,7 @@ function DefaultEmailConfig() {
         setDefaultEmailProvider({
           workspaceId: workspace.value.id,
           emailProviderId: defaultProvider,
-          defaultFromAddress: fromAddress,
+          fromAddress,
         });
       },
       requestConfig: {
@@ -840,7 +840,7 @@ function DefaultEmailConfig() {
         data: {
           workspaceId: workspace.value.id,
           emailProviderId,
-          defaultFromAddress: fromAddress,
+          fromAddress,
         } satisfies DefaultEmailProviderResource,
         headers: {
           "Content-Type": "application/json",

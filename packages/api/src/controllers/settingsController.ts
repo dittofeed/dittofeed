@@ -109,7 +109,7 @@ export default async function settingsController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { workspaceId, emailProviderId } = request.body;
+      const { workspaceId, emailProviderId, fromAddress } = request.body;
 
       await prisma().defaultEmailProvider.upsert({
         where: {
@@ -118,9 +118,11 @@ export default async function settingsController(fastify: FastifyInstance) {
         create: {
           workspaceId,
           emailProviderId,
+          fromAddress,
         },
         update: {
           emailProviderId,
+          fromAddress,
         },
       });
 

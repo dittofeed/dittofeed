@@ -1073,7 +1073,7 @@ export type WorkspaceResource = Static<typeof WorkspaceResource>;
 export const DefaultEmailProviderResource = Type.Object({
   workspaceId: Type.String(),
   emailProviderId: Type.String(),
-  defaultFromAddress: Type.String(),
+  fromAddress: Type.String(),
 });
 
 export type DefaultEmailProviderResource = Static<
