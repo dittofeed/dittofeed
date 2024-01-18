@@ -43,7 +43,7 @@ services:
       - POSTGRES_PWD=${DATABASE_PASSWORD:-password}
       - POSTGRES_SEEDS=${DATABASE_HOST:-postgres}
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/prod.yaml
-    image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.18.5}
+    image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.22.4}
     labels:
       kompose.volume.type: configMap
     networks:
@@ -52,6 +52,19 @@ services:
       - 7233:7233
     volumes:
       - ./packages/backend-lib/temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+  temporal-ui:
+    profiles: ["temporal-ui"]
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    image: temporalio/ui:${TEMPORAL_UI_VERSION:-2.22.1}
+    networks:
+      - dittofeed-network-lite
+    ports:
+      - 8080:8080
   postgres:
     image: postgres:${POSTGRES_VERSION:-15}
     restart: always
