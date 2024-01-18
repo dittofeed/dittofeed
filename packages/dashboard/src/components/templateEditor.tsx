@@ -281,7 +281,10 @@ export default function TemplateEditor({
   // following two hooks allow for client side navigation, and for local state
   // to become synced with zustand store
   useEffect(() => {
-    if (Object.keys(initialUserProperties).length === 0) {
+    if (
+      Object.keys(initialUserProperties).length === 0 ||
+      Object.keys(userProperties).length > 0
+    ) {
       return;
     }
     setState((draft) => {
