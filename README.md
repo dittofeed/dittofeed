@@ -21,6 +21,8 @@
 [![Dittofeed Discord Community Badge](https://img.shields.io/discord/1182801141046726706?style=social&logo=discord&label=Community&link=https%3A%2F%2Fdiscord.gg%2FHajPkCG4Mm
 )](https://discord.gg/HajPkCG4Mm)
 [![Dittofeed X Twitter Social Badge](https://img.shields.io/badge/follow-dittofeed?style=social&logo=x&link=https%3A%2F%2Fx.com%2Fdittofeed)](https://x.com/dittofeed)
+[![Open Bounties](https://img.shields.io/endpoint?url=https%3A%2F%2Fconsole.algora.io%2Fapi%2Fshields%2Fdittofeed%2Fbounties%3Fstatus%3Dopen)](https://console.algora.io/org/dittofeed/bounties?status=open)
+[![Rewarded Bounties](https://img.shields.io/endpoint?url=https%3A%2F%2Fconsole.algora.io%2Fapi%2Fshields%2Fdittofeed%2Fbounties%3Fstatus%3Dcompleted)](https://console.algora.io/org/dittofeed/bounties?status=completed)
 
 <br>
 
