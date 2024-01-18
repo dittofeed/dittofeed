@@ -1,5 +1,4 @@
-import { Delete } from "@mui/icons-material";
-import { IconButton, ListItem, ListItemText } from "@mui/material";
+import { ListItem, ListItemText } from "@mui/material";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import {
   DeleteSubscriptionGroupRequest,
@@ -8,6 +7,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 
+import DeleteDialog from "../components/confirmDeleteDialog";
 import DashboardContent from "../components/dashboardContent";
 import {
   ResourceList,
@@ -89,9 +89,11 @@ function Item({ item }: { item: SubscriptionGroupResource }) {
   return (
     <ListItem
       secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
-          <Delete />
-        </IconButton>
+        <DeleteDialog
+          onConfirm={handleDelete}
+          title="Confirm Deletion"
+          message="Are you sure you want to delete this Subscription Group?"
+        />
       }
     >
       <ResourceListItemButton

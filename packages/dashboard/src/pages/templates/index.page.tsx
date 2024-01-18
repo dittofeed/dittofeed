@@ -1,4 +1,4 @@
-import { AddCircleOutline, Delete } from "@mui/icons-material";
+import { AddCircleOutline } from "@mui/icons-material";
 import {
   Box,
   IconButton,
@@ -34,6 +34,7 @@ import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
+import DeleteDialog from "../../components/confirmDeleteDialog";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -142,9 +143,11 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
   return (
     <ListItem
       secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
-          <Delete />
-        </IconButton>
+        <DeleteDialog
+          onConfirm={handleDelete}
+          title="Confirm Deletion"
+          message="Are you sure you want to delete this template?"
+        />
       }
     >
       <ListItemButton

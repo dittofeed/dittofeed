@@ -1,6 +1,6 @@
-import { Delete, DownloadForOffline } from "@mui/icons-material";
+import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import { IconButton, ListItem, ListItemText, Tooltip } from "@mui/material";
+import { ListItem, ListItemText, Tooltip } from "@mui/material";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
@@ -11,6 +11,7 @@ import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { pick } from "remeda/dist/commonjs/pick";
 
+import DeleteDialog from "../../components/confirmDeleteDialog";
 import DashboardContent from "../../components/dashboardContent";
 import {
   ResourceList,
@@ -111,9 +112,11 @@ function SegmentItem({ segment }: { segment: SegmentResource }) {
   return (
     <ListItem
       secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
-          <Delete />
-        </IconButton>
+        <DeleteDialog
+          onConfirm={handleDelete}
+          title="Confirm Deletion"
+          message="Are you sure you want to delete this segment?"
+        />
       }
     >
       <ResourceListItemButton href={`/dashboard/segments/${segment.id}`}>
