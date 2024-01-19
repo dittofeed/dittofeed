@@ -4160,6 +4160,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@stablelib/base64@npm:^1.0.0":
+  version: 1.0.1
+  resolution: "@stablelib/base64@npm:1.0.1"
+  checksum: 3ef4466d1d6889ac3fc67407bc21aa079953981c322eeca3b29f426d05506c63011faab1bfc042d7406e0677a94de6c9d2db2ce079afdd1eccae90031bfb5859
+  languageName: node
+  linkType: hard
+
 "@swc/core-darwin-arm64@npm:1.3.28":
   version: 1.3.28
   resolution: "@swc/core-darwin-arm64@npm:1.3.28"
@@ -6192,6 +6199,7 @@ __metadata:
     prettier: ^2.8.3
     remeda: ^1.12.0
     resend: ^2.1.0
+    svix: ^1.15.0
     ts-node: ^10.9.1
     tsc-watch: ^6.0.0
     typescript: ^5.2.2
@@ -8450,6 +8458,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"es6-promise@npm:^4.2.4":
+  version: 4.2.8
+  resolution: "es6-promise@npm:4.2.8"
+  checksum: 95614a88873611cb9165a85d36afa7268af5c03a378b35ca7bda9508e1d4f1f6f19a788d4bc755b3fd37c8ebba40782018e02034564ff24c9d6fa37e959ad57d
+  languageName: node
+  linkType: hard
+
 "escalade@npm:^3.1.1":
   version: 3.1.1
   resolution: "escalade@npm:3.1.1"
@@ -9125,6 +9140,13 @@ __metadata:
   version: 2.1.1
   resolution: "fast-safe-stringify@npm:2.1.1"
   checksum: a851cbddc451745662f8f00ddb622d6766f9bd97642dabfd9a405fb0d646d69fc0b9a1243cbf67f5f18a39f40f6fa821737651ff1bceeba06c9992ca2dc5bd3d
+  languageName: node
+  linkType: hard
+
+"fast-sha256@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "fast-sha256@npm:1.3.0"
+  checksum: 2b0bea7d3a9955e67abd2d3fbef4ce57f7dbb75708fc206d14973bd1d97aaf35b5c0a59c1d65be6f755df43d73b7657b9eac4fb3c2d58e6849966db1ef1fa186
   languageName: node
   linkType: hard
 
@@ -15394,6 +15416,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"svix-fetch@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "svix-fetch@npm:3.0.0"
+  dependencies:
+    node-fetch: ^2.6.1
+    whatwg-fetch: ^3.4.1
+  checksum: 7b5db2cb6a8a534eec27838e8255d014618cac4c3146ca882ca0fb4ef0da3353ba7617d72d0119fceb17845f9583b952c4a22892086f56ec76c508c655f252a8
+  languageName: node
+  linkType: hard
+
+"svix@npm:^1.15.0":
+  version: 1.15.0
+  resolution: "svix@npm:1.15.0"
+  dependencies:
+    "@stablelib/base64": ^1.0.0
+    es6-promise: ^4.2.4
+    fast-sha256: ^1.3.0
+    svix-fetch: ^3.0.0
+    url-parse: ^1.4.3
+  checksum: 5cd8325d74c81fdc386db4c12c2642ce635b662179fd24edb1e354ced5e66d80aabd309601149b22720351964039bec75e7e7b5c4e36fb1d11f81ad245a91ae9
+  languageName: node
+  linkType: hard
+
 "swc-loader@npm:^0.2.3":
   version: 0.2.3
   resolution: "swc-loader@npm:0.2.3"
@@ -16007,7 +16052,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"url-parse@npm:^1.5.9":
+"url-parse@npm:^1.4.3, url-parse@npm:^1.5.9":
   version: 1.5.10
   resolution: "url-parse@npm:1.5.10"
   dependencies:
@@ -16217,6 +16262,13 @@ __metadata:
   version: 0.1.4
   resolution: "websocket-extensions@npm:0.1.4"
   checksum: 5976835e68a86afcd64c7a9762ed85f2f27d48c488c707e67ba85e717b90fa066b98ab33c744d64255c9622d349eedecf728e65a5f921da71b58d0e9591b9038
+  languageName: node
+  linkType: hard
+
+"whatwg-fetch@npm:^3.4.1":
+  version: 3.6.20
+  resolution: "whatwg-fetch@npm:3.6.20"
+  checksum: c58851ea2c4efe5c2235f13450f426824cf0253c1d45da28f45900290ae602a20aff2ab43346f16ec58917d5562e159cd691efa368354b2e82918c2146a519c5
   languageName: node
   linkType: hard
 
