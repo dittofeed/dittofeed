@@ -31,7 +31,7 @@ import { shallow } from "zustand/shallow";
 import { useAppStore } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import SearchIcon from "@mui/icons-material/Search";
-import EventDetailsSidebar from "./EventDetailsSidebar";
+import EventDetailsSidebar from "./eventDetailsSidebar";
 interface EventsState {
   pageSize: number;
   page: number;
@@ -213,6 +213,8 @@ export function EventsTable({
     });
   };
 
+  ///////////////////////////////////////////////////////////////////////////////
+
   const [selectedEvent, setSelectedEvent] =
     useState<GetEventsResponseItem | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -299,6 +301,7 @@ export function EventsTable({
         paginationModel={paginationModel}
         paginationMode="server"
         onPaginationModelChange={updatePagination}
+        onRowClick={handleEventSelection}
       />
       <EventDetailsSidebar
         open={isSidebarOpen}
