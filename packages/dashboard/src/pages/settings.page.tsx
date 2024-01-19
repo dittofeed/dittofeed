@@ -36,6 +36,7 @@ import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
   EMAIL_PROVIDER_TYPE_TO_SECRET_NAME,
+  RESEND_SECRET,
   SENDGRID_SECRET,
   SMTP_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
@@ -664,6 +665,59 @@ function SendGridConfig() {
   );
 }
 
+function ResendConfig() {
+  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "resend-section",
+          fieldGroups: [
+            {
+              id: "resend-fields",
+              name: "Resend",
+              fields: [
+                {
+                  id: "resend-api-key",
+                  type: "secret",
+                  fieldProps: {
+                    name: RESEND_SECRET,
+                    secretKey: "apiKey",
+                    label: "Resend API Key",
+                    helperText:
+                      "API key, used internally by Dittofeed to send emails via resend.",
+                    type: EmailProviderType.Resend,
+                    saved:
+                      secretAvailability.find((s) => s.name === RESEND_SECRET)
+                        ?.configValue?.apiKey ?? false,
+                  },
+                },
+                {
+                  id: "resend-webhook-key",
+                  type: "secret",
+                  fieldProps: {
+                    name: RESEND_SECRET,
+                    secretKey: "webhookKey",
+                    label: "Webhook Key",
+                    helperText:
+                      "Resend webhook verification key, used to authenticate resend webhook requests.",
+                    type: EmailProviderType.Resend,
+                    saved:
+                      secretAvailability.find((s) => s.name === RESEND_SECRET)
+                        ?.configValue?.webhookKey ?? false,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
+
 const SMTP_SECRET_FIELDS: {
   helperText: string;
   label: string;
@@ -799,6 +853,9 @@ function DefaultEmailConfig() {
       case EmailProviderType.Smtp:
         name = "SMTP";
         break;
+      case EmailProviderType.Resend:
+        name = "Resend";
+        break;
       default:
         assertUnreachable(type, `Unknown email provider type ${type}`);
     }
@@ -850,6 +907,7 @@ function EmailChannelConfig() {
       <SectionSubHeader id={settingsSectionIds.emailChannel} title="Email" />
       <DefaultEmailConfig />
       <SendGridConfig />
+      <ResendConfig />
       <SmtpConfig />
     </>
   );
