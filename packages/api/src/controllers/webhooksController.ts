@@ -10,6 +10,7 @@ import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import { ResendEvent, SendgridEvent } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
+import { createHmac } from "crypto";
 import { FastifyInstance } from "fastify";
 import {
   RESEND_SECRET,
@@ -18,7 +19,6 @@ import {
 } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { ResendSecret, SendgridSecret, WorkspaceId } from "isomorphic-lib/src/types";
-import { Webhook } from "svix";
 
 import { getWorkspaceId } from "../workspace";
 
@@ -127,7 +127,7 @@ export default async function webhookController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       logger().debug({ body: request.body }, "Received resend events.");
-      
+
       const workspaceId = await getWorkspaceId(request);
       if (!workspaceId) {
         return reply.status(400).send({
@@ -174,8 +174,23 @@ export default async function webhookController(fastify: FastifyInstance) {
         return reply.status(500).send();
       }
 
-      const wh = new Webhook(webhookKey);
-      const verified = wh.verify(request.rawBody, request.headers);
+      const svixId = request.headers["svix-id"];
+      const svixTimestamp = request.headers["svix-timestamp"];
+      const svixSignature = request.headers["svix-signature"];
+      const signedContent = `${svixId}.${svixTimestamp}.${request.rawBody}`;
+
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const secretBytes = Buffer.from(webhookKey.split('_')[1]!, "base64");
+
+      const expectedSignature = createHmac('sha256', secretBytes)
+        .update(signedContent)
+        .digest('base64');
+
+      const receivedSignatures = svixSignature.split(' ');
+
+      // The svix-signature header can contain multiple signatures so we check 
+      // if any of the received signatures match the expected signature 
+      const verified = receivedSignatures.some(sig => sig.split(',')[1] === expectedSignature);
 
       if (!verified) {
         logger().error(
