@@ -32,18 +32,31 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
     const workspaceId = dfContext.workspace.id;
 
-    const [emailTemplate, userProperties] = await Promise.all([
-      prisma().messageTemplate.findUnique({
-        where: {
-          id: templateId,
-        },
-      }),
-      prisma().userProperty.findMany({
-        where: {
-          workspaceId,
-        },
-      }),
-    ]);
+    const [emailTemplate, userProperties, defaultEmailProvider] =
+      await Promise.all([
+        prisma().messageTemplate.findUnique({
+          where: {
+            id: templateId,
+          },
+        }),
+        prisma().userProperty.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        prisma().defaultEmailProvider.findUnique({
+          where: {
+            workspaceId,
+          },
+        }),
+      ]);
+
+    const definition = defaultEmailDefinition();
+    if (defaultEmailProvider?.fromAddress)
+      definition.from = definition.from.replace(
+        /default:\s+".*"/,
+        `default: "${defaultEmailProvider.fromAddress}" `
+      );
 
     let emailTemplateWithDefault: MessageTemplate;
     if (!emailTemplate) {
@@ -53,7 +66,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId,
           name: `New Email Message - ${templateId}`,
           id: templateId,
-          definition: defaultEmailDefinition() satisfies EmailTemplateResource,
+          definition: definition satisfies EmailTemplateResource,
         },
         update: {},
       });
