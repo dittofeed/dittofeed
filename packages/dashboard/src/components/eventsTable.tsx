@@ -1,5 +1,19 @@
-import { Box, useTheme } from "@mui/material";
-import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import {
+  Box,
+  Container,
+  IconButton,
+  InputAdornment,
+  TextField,
+  useTheme,
+} from "@mui/material";
+import {
+  DataGrid,
+  GridColDef,
+  GridColumnMenu,
+  GridRenderCellParams,
+  GridRowParams,
+  GridSearchIcon,
+} from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
@@ -9,14 +23,15 @@ import {
   GetEventsResponse,
   GetEventsResponseItem,
 } from "isomorphic-lib/src/types";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
-
+import SearchIcon from "@mui/icons-material/Search";
+import EventDetailsSidebar from "./EventDetailsSidebar";
 interface EventsState {
   pageSize: number;
   page: number;
@@ -173,62 +188,123 @@ export function EventsTable({
     updateEvents,
     apiBase,
   ]);
+  ///////////////////////////////////////////////////////////////////////////////
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleChange = (event: any) => {
+    const text = (event.target as HTMLInputElement).value;
+    setSearchTerm(text);
+    let events = sortedEvents.filter(
+      (e: GetEventsResponseItem) =>
+        e.event.includes(text) ||
+        e.eventType.includes(text) ||
+        e.messageId.includes(text)
+    );
+    updateEvents(
+      events.map((event) => ({
+        ...event,
+        id: event.messageId,
+      }))
+    );
+    updateTotalRowCount(events.length);
+    updateEventsPaginationRequest({
+      type: CompletionStatus.NotStarted,
+    });
+  };
+
+  const [selectedEvent, setSelectedEvent] =
+    useState<GetEventsResponseItem | null>(null);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleEventSelection = (params: GridRowParams) => {
+    const selectedRow: GetEventsResponseItem =
+      params.row as GetEventsResponseItem;
+    setSelectedEvent(selectedRow);
+    setSidebarOpen(true);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
 
   return (
-    <DataGrid
-      rows={sortedEvents}
-      sx={{
-        border: 2,
-        borderColor: theme.palette.grey[200],
-      }}
-      getRowId={(row) => row.messageId}
-      columns={[
-        {
-          field: "userId",
-          renderCell: ({ value }: GridRenderCellParams) => (
-            <LinkCell href={`/users/${value}`} title={value}>
-              <Box
-                sx={{
-                  fontFamily: "monospace",
-                }}
-              >
-                {value}
-              </Box>
-            </LinkCell>
+    <>
+      <TextField
+        id="search"
+        type="search"
+        label="Search"
+        sx={{ m: 0.5, width: "40%" }}
+        value={searchTerm}
+        onChange={handleChange}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <SearchIcon />
+            </InputAdornment>
           ),
-        },
-        {
-          field: "anonymousId",
-        },
-        {
-          field: "eventType",
-        },
-        {
-          field: "event",
-        },
-        {
-          field: "traits",
-          flex: 2,
-        },
-        {
-          field: "eventTime",
-          flex: 1,
-        },
-        {
-          field: "processingTime",
-          flex: 1,
-        },
-        {
-          field: "messageId",
-          flex: 1,
-        },
-      ].map((c) => ({ ...baseColumn, ...c }))}
-      rowCount={totalRowCount}
-      loading={eventsPaginationRequest.type === CompletionStatus.InProgress}
-      pageSizeOptions={[paginationModel.pageSize]}
-      paginationModel={paginationModel}
-      paginationMode="server"
-      onPaginationModelChange={updatePagination}
-    />
+        }}
+      />
+      <DataGrid
+        rows={sortedEvents}
+        sx={{
+          border: 2,
+          borderColor: theme.palette.grey[200],
+        }}
+        getRowId={(row) => row.messageId}
+        columns={[
+          {
+            field: "userId",
+            renderCell: ({ value }: GridRenderCellParams) => (
+              <LinkCell href={`/users/${value}`} title={value}>
+                <Box
+                  sx={{
+                    fontFamily: "monospace",
+                  }}
+                >
+                  {value}
+                </Box>
+              </LinkCell>
+            ),
+          },
+          {
+            field: "anonymousId",
+          },
+          {
+            field: "eventType",
+          },
+          {
+            field: "event",
+          },
+          {
+            field: "traits",
+            flex: 2,
+          },
+          {
+            field: "eventTime",
+            flex: 1,
+          },
+          {
+            field: "processingTime",
+            flex: 1,
+          },
+          {
+            field: "messageId",
+            flex: 1,
+          },
+        ].map((c) => ({ ...baseColumn, ...c }))}
+        rowCount={totalRowCount}
+        loading={eventsPaginationRequest.type === CompletionStatus.InProgress}
+        pageSizeOptions={[paginationModel.pageSize]}
+        paginationModel={paginationModel}
+        paginationMode="server"
+        onPaginationModelChange={updatePagination}
+      />
+      <EventDetailsSidebar
+        open={isSidebarOpen}
+        onClose={closeSidebar}
+        selectedEvent={selectedEvent}
+      />
+    </>
   );
 }
