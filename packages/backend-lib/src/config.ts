@@ -1,4 +1,5 @@
 import { Static, Type } from "@sinclair/typebox";
+import { parseInt } from "isomorphic-lib/src/numbers";
 import { hasProtocol } from "isomorphic-lib/src/urls";
 import { URL } from "url";
 import { Overwrite } from "utility-types";
@@ -74,6 +75,9 @@ const BaseRawConfigProps = {
   ),
   secretKey: Type.Optional(Type.String()),
   password: Type.Optional(Type.String()),
+  computePropertiesWorkflowTaskTimeout: Type.Optional(
+    Type.String({ format: "naturalNumber" })
+  ),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -169,6 +173,7 @@ export type Config = Overwrite<
     readQueryPageSize: number;
     readQueryConcurrency: number;
     computePropertiesInterval: number;
+    computePropertiesWorkflowTaskTimeout: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -349,20 +354,25 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     trackDashboard: rawConfig.trackDashboard === "true",
     enableMobilePush: rawConfig.enableMobilePush === "true",
     readQueryPageSize: rawConfig.readQueryPageSize
-      ? Number(rawConfig.readQueryPageSize)
+      ? parseInt(rawConfig.readQueryPageSize)
       : 200,
     readQueryConcurrency: rawConfig.readQueryConcurrency
-      ? Number(rawConfig.readQueryConcurrency)
+      ? parseInt(rawConfig.readQueryConcurrency)
       : 2,
     // 30 seconds in ms
     computePropertiesInterval: rawConfig.computePropertiesInterval
-      ? Number(rawConfig.computePropertiesInterval)
+      ? parseInt(rawConfig.computePropertiesInterval)
       : 30 * 1000,
     signoutUrl:
       authMode === "single-tenant"
         ? "/api/public/single-tenant/signout"
         : rawConfig.signoutUrl,
     secretKey,
+    // ms
+    computePropertiesWorkflowTaskTimeout:
+      rawConfig.computePropertiesWorkflowTaskTimeout
+        ? parseInt(rawConfig.computePropertiesWorkflowTaskTimeout)
+        : 10000,
   };
   return parsedConfig;
 }

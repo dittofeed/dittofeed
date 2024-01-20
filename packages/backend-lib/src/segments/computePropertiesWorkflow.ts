@@ -34,6 +34,7 @@ export const POLLING_JITTER_COEFFICIENT = 1000;
 
 export interface ComputedPropertiesWorkflowParams {
   workspaceId: string;
+  // TODO deprecated, remove
   tableVersion: string;
   maxPollingAttempts?: number;
   shouldContinueAsNew?: boolean;
