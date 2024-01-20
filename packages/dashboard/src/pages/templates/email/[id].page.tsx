@@ -4,6 +4,7 @@ import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   CompletionStatus,
+  DefaultEmailProviderResource,
   EmailTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -51,13 +52,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         }),
       ]);
 
-    const definition = defaultEmailDefinition();
-    if (defaultEmailProvider?.fromAddress)
-      definition.from = definition.from.replace(
-        /default:\s+".*"/,
-        `default: "${defaultEmailProvider.fromAddress}" `
-      );
-
     let emailTemplateWithDefault: MessageTemplate;
     if (!emailTemplate) {
       emailTemplateWithDefault = await prisma().messageTemplate.upsert({
@@ -66,7 +60,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId,
           name: `New Email Message - ${templateId}`,
           id: templateId,
-          definition: definition satisfies EmailTemplateResource,
+          definition: defaultEmailDefinition(
+            defaultEmailProvider as DefaultEmailProviderResource | undefined
+          ) satisfies EmailTemplateResource,
         },
         update: {},
       });
