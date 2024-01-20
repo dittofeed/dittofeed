@@ -1,15 +1,24 @@
 #!/bin/bash
 
 # Check if the correct number of arguments is provided
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <remote-name> <contributor-username> <branch-name>"
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <contributor:branch>"
     exit 1
 fi
 
-REMOTE_NAME=$1
-CONTRIBUTOR_USERNAME=$2
-BRANCH_NAME=$3
+CONTRIBUTOR_BRANCH=$1
+
+# Splitting the contributor and branch from the input
+IFS=':' read -ra ADDR <<< "$CONTRIBUTOR_BRANCH"
+CONTRIBUTOR_USERNAME=${ADDR[0]}
+BRANCH_NAME=${ADDR[1]}
 NEW_LOCAL_BRANCH_NAME="${CONTRIBUTOR_USERNAME}-${BRANCH_NAME}"
+
+# Check if both contributor and branch names are provided
+if [ -z "$CONTRIBUTOR_USERNAME" ] || [ -z "$BRANCH_NAME" ]; then
+    echo "Error: Invalid input. Please use the format <contributor:branch>"
+    exit 1
+fi
 
 # Adding the contributor's repository as a remote (if not already added)
 if ! git remote | grep -q "$CONTRIBUTOR_USERNAME"; then
