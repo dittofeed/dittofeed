@@ -128,6 +128,7 @@ export async function findManyEvents({
   startDate,
   endDate,
   userId,
+  searchTerm,
 }: {
   workspaceId: string;
   userId?: string;
@@ -136,6 +137,7 @@ export async function findManyEvents({
   // unix timestamp units ms
   startDate?: number;
   endDate?: number;
+  searchTerm?: string;
 }): Promise<UserEventsWithTraits[]> {
   const qb = new ClickHouseQueryBuilder();
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
@@ -159,6 +161,14 @@ export async function findManyEvents({
     ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
     : "";
 
+  const searchClause = searchTerm
+    ? `AND (
+        event_name ILIKE ${qb.addQueryValue(`%${searchTerm}%`, "String")} OR
+        event_type ILIKE ${qb.addQueryValue(`%${searchTerm}%`, "String")} OR
+        message_id ILIKE ${qb.addQueryValue(`%${searchTerm}%`, "String")}
+      )`
+    : "";
+
   // TODO exclude event_time from group by
   const query = `SELECT
     workspace_id,
@@ -177,6 +187,7 @@ export async function findManyEvents({
   ${startDateClause}
   ${endDateClause}
   ${userIdClause}
+  ${searchClause}
   GROUP BY workspace_id, user_id, message_id, event_time
   ORDER BY event_time DESC, message_id
   ${paginationClause}`;
@@ -260,7 +271,7 @@ export async function findEventsCount({
 }): Promise<number> {
   const userIdClause = userId ? `AND user_id = {userId:String}` : "";
 
-  const query = `SELECT COUNT(message_id) AS event_count FROM user_events_v2 
+  const query = `SELECT COUNT(message_id) AS event_count FROM user_events_v2
   WHERE workspace_id = {workspaceId:String}
   ${userIdClause}
   GROUP BY workspace_id

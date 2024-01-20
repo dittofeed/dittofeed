@@ -3,6 +3,7 @@ import {
   Container,
   IconButton,
   InputAdornment,
+  LinearProgress,
   TextField,
   useTheme,
 } from "@mui/material";
@@ -23,6 +24,7 @@ import {
   GetEventsResponse,
   GetEventsResponseItem,
 } from "isomorphic-lib/src/types";
+
 import React, { useMemo, useState } from "react";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
@@ -49,6 +51,28 @@ interface EventsActions {
   updateEventsPaginationRequest: (
     key: EventsState["eventsPaginationRequest"]
   ) => void;
+}
+
+interface HandleChanges {
+  event: any;
+  page: number;
+  pageSize: number;
+  workspaceId: string;
+  userId: string | undefined;
+  updateTotalRowCount: (key: number) => void;
+  updateEvents: (
+    key: {
+      userId: string | null;
+      traits: string;
+      messageId: string;
+      eventType: string;
+      event: string;
+      anonymousId: string | null;
+      processingTime: string;
+      eventTime: string;
+    }[]
+  ) => void;
+  apiBase: string;
 }
 
 export const useEventsStore = create(
@@ -100,7 +124,7 @@ export function EventsTable({
   const { page, pageSize } = paginationModel;
   const theme = useTheme();
   const workspace = useAppStore((store) => store.workspace);
-  const apiBase = useAppStore((store) => store.apiBase);
+  const apiBase =useAppStore((store) => store.apiBase);
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
   const updatePagination = useEventsStore((store) => store.updatePagination);
@@ -125,6 +149,48 @@ export function EventsTable({
     [events]
   );
   const updateEvents = useEventsStore((store) => store.updateEvents);
+
+  const cols = [
+    {
+      field: "userId",
+      renderCell: ({ value }: GridRenderCellParams) => (
+        <LinkCell href={`/users/${value}`} title={value}>
+          <Box
+            sx={{
+              fontFamily: "monospace",
+            }}
+          >
+            {value}
+          </Box>
+        </LinkCell>
+      ),
+    },
+    {
+      field: "anonymousId",
+    },
+    {
+      field: "eventType",
+    },
+    {
+      field: "event",
+    },
+    {
+      field: "traits",
+      flex: 2,
+    },
+    {
+      field: "eventTime",
+      flex: 1,
+    },
+    {
+      field: "processingTime",
+      flex: 1,
+    },
+    {
+      field: "messageId",
+      flex: 1,
+    },
+  ];
 
   React.useEffect(() => {
     (async () => {
@@ -192,22 +258,61 @@ export function EventsTable({
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handleChange = (event: any) => {
+  const handleSearchTermChange = async ({
+    event,
+    page,
+    pageSize,
+    workspaceId,
+    userId,
+    updateTotalRowCount,
+    updateEvents,
+    apiBase,
+  }: HandleChanges) => {
     const text = (event.target as HTMLInputElement).value;
+    console.log(text);
     setSearchTerm(text);
-    let events = sortedEvents.filter(
-      (e: GetEventsResponseItem) =>
-        e.event.includes(text) ||
-        e.eventType.includes(text) ||
-        e.messageId.includes(text)
-    );
-    updateEvents(
-      events.map((event) => ({
-        ...event,
-        id: event.messageId,
-      }))
-    );
-    updateTotalRowCount(events.length);
+    updateEventsPaginationRequest({
+      type: CompletionStatus.InProgress,
+    });
+    let response: AxiosResponse;
+    try {
+      const params: GetEventsRequest = {
+        workspaceId,
+        userId,
+        offset: page * pageSize,
+        limit: pageSize,
+      };
+
+      response = await axios.get(`${apiBase}/api/events`, {
+        params,
+      });
+    } catch (e) {
+      const error = e as Error;
+
+      updateEventsPaginationRequest({
+        type: CompletionStatus.Failed,
+        error,
+      });
+      return;
+    }
+    const result = schemaValidate(response.data, GetEventsResponse);
+    if (result.isErr()) {
+      console.error("unable parse response", result.error);
+
+      updateEventsPaginationRequest({
+        type: CompletionStatus.Failed,
+        error: new Error(JSON.stringify(result.error)),
+      });
+      return;
+    }
+
+    const eventsWithId = result.value.events.map((event) => ({
+      ...event,
+      id: event.messageId,
+    }));
+    updateEvents(eventsWithId);
+    updateTotalRowCount(result.value.count);
+
     updateEventsPaginationRequest({
       type: CompletionStatus.NotStarted,
     });
@@ -232,69 +337,50 @@ export function EventsTable({
 
   return (
     <>
-      <TextField
-        id="search"
-        type="search"
-        label="Search"
-        sx={{ m: 0.5, width: "40%" }}
-        value={searchTerm}
-        onChange={handleChange}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-      />
       <DataGrid
         rows={sortedEvents}
         sx={{
           border: 2,
           borderColor: theme.palette.grey[200],
         }}
+        slots={{
+          toolbar: ({ onChange, value }) => (
+            <TextField
+              id="search"
+              type="search"
+              label="Search"
+              sx={{ width: "100%" }}
+              value={value}
+              onChange={onChange}
+              autoFocus={true}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          ),
+        }}
+        slotProps={{
+          toolbar: {
+            value: searchTerm,
+            onChange: (event) =>
+              handleSearchTermChange({
+                event,
+                page,
+                pageSize,
+                workspaceId: workspaceId!,
+                userId,
+                updateTotalRowCount,
+                updateEvents,
+                apiBase,
+              }),
+          },
+        }}
         getRowId={(row) => row.messageId}
-        columns={[
-          {
-            field: "userId",
-            renderCell: ({ value }: GridRenderCellParams) => (
-              <LinkCell href={`/users/${value}`} title={value}>
-                <Box
-                  sx={{
-                    fontFamily: "monospace",
-                  }}
-                >
-                  {value}
-                </Box>
-              </LinkCell>
-            ),
-          },
-          {
-            field: "anonymousId",
-          },
-          {
-            field: "eventType",
-          },
-          {
-            field: "event",
-          },
-          {
-            field: "traits",
-            flex: 2,
-          },
-          {
-            field: "eventTime",
-            flex: 1,
-          },
-          {
-            field: "processingTime",
-            flex: 1,
-          },
-          {
-            field: "messageId",
-            flex: 1,
-          },
-        ].map((c) => ({ ...baseColumn, ...c }))}
+        columns={cols.map((c) => ({ ...baseColumn, ...c }))}
         rowCount={totalRowCount}
         loading={eventsPaginationRequest.type === CompletionStatus.InProgress}
         pageSizeOptions={[paginationModel.pageSize]}
