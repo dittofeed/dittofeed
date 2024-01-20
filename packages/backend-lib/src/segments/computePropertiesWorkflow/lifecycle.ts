@@ -16,12 +16,17 @@ export async function startComputePropertiesWorkflow({
   client?: WorkflowClient;
 }) {
   const temporalClient = client ?? (await connectWorkflowClient());
+  const {
+    computePropertiesWorkflowTaskTimeout,
+    defaultUserEventsTableVersion,
+  } = config();
   await temporalClient.start(computePropertiesWorkflow, {
     taskQueue: "default",
     workflowId: generateComputePropertiesId(workspaceId),
+    workflowTaskTimeout: computePropertiesWorkflowTaskTimeout,
     args: [
       {
-        tableVersion: config().defaultUserEventsTableVersion,
+        tableVersion: defaultUserEventsTableVersion,
         workspaceId,
         shouldContinueAsNew: true,
       },
