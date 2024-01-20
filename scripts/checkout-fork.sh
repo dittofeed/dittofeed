@@ -30,8 +30,13 @@ fi
 echo "Fetching from $CONTRIBUTOR_USERNAME..."
 git fetch "$CONTRIBUTOR_USERNAME"
 
-# Checking out the branch as a new local branch with a unique name
-echo "Checking out the branch $BRANCH_NAME as $NEW_LOCAL_BRANCH_NAME..."
-git checkout -b "$NEW_LOCAL_BRANCH_NAME" "$CONTRIBUTOR_USERNAME/$BRANCH_NAME"
+# Checking if the local branch already exists and creating or switching as necessary
+if git branch --list | grep -qw "$NEW_LOCAL_BRANCH_NAME"; then
+    echo "Switching to existing branch $NEW_LOCAL_BRANCH_NAME..."
+    git checkout "$NEW_LOCAL_BRANCH_NAME"
+else
+    echo "Checking out the branch $BRANCH_NAME as $NEW_LOCAL_BRANCH_NAME..."
+    git checkout -b "$NEW_LOCAL_BRANCH_NAME" "$CONTRIBUTOR_USERNAME/$BRANCH_NAME"
+fi
 
-echo "Branch $NEW_LOCAL_BRANCH_NAME has been checked out."
+echo "Branch $NEW_LOCAL_BRANCH_NAME is now active."
