@@ -19,7 +19,7 @@ const {
   computePropertiesIncrementalArgs,
   config,
 } = proxyActivities<typeof activities>({
-  startToCloseTimeout: 15 * 60 * 1000,
+  startToCloseTimeout: "5 minutes",
 });
 
 export const userJourneyInitialize = wf.defineSignal<[string]>(
