@@ -203,7 +203,7 @@ model DefaultEmailProvider {
 
   emailProvider   EmailProvider @relation(fields: [emailProviderId], references: [id], onDelete: Cascade)
   emailProviderId String        @db.Uuid
-  fromAddress     String
+  fromAddress     String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
