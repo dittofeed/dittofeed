@@ -353,6 +353,16 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             return state;
           }),
 
+        // user index view
+        userDeleteRequest: {
+          type: CompletionStatus.NotStarted,
+        },
+
+        setUserDeleteRequest: (request) =>
+          set((state) => {
+            state.userDeleteRequest = request;
+          }),
+
         // userProperty index view
         userPropertyDeleteRequest: {
           type: CompletionStatus.NotStarted,

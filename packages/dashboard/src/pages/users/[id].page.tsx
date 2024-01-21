@@ -13,22 +13,22 @@ import { toBroadcastResource } from "backend-lib/src/broadcasts";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
-import { useAppStore } from "../../lib/appStore";
 import prisma from "backend-lib/src/prisma";
 import { getUsers } from "backend-lib/src/users";
-import { DeleteUserPropertyRequest, CompletionStatus, GetUsersResponse, EmptyResponse } from "isomorphic-lib/src/types";
+import { CompletionStatus, DeleteUsersRequest, EmptyResponse,GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 
+import DeleteDialog from "../../components/confirmDeleteDialog";
 import { DeliveriesTable } from "../../components/deliveriesTable";
 import { EventsTable } from "../../components/eventsTable";
 import { SubtleHeader } from "../../components/headers";
-import DeleteDialog from "../../components/confirmDeleteDialog";
 import MainLayout from "../../components/mainLayout";
 import { ResourceListItemButton } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
+import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
+import { useAppStore } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
-import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 
 interface UserPageProps {
   user: GetUsersResponse["users"][0];
@@ -122,50 +122,45 @@ const User: NextPage<UserPageProps> = function User(props) {
     2
   );
 
-  const setUserPropertyDeleteRequest = useAppStore(
-    (store) => store.setUserPropertyDeleteRequest
+  const userDeleteRequest = useAppStore(
+    (store) => store.userDeleteRequest
+  );
+  const setUserDeleteRequest = useAppStore(
+    (store) => store.setUserDeleteRequest
   );
 
   const workspace = useAppStore((store) => store.workspace);
   const apiBase = useAppStore((store) => store.apiBase);
 
-  const userPropertyDeleteRequest = useAppStore(
-    (store) => store.userPropertyDeleteRequest
-  );
-  const deleteUserProperty = useAppStore((store) => store.deleteUserProperty);
+  const workspaceId =
+    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
 
-  const setDeleteResponse = (
-    _response: EmptyResponse,
-    deleteRequest?: DeleteUserPropertyRequest
-  ) => {
-    if (!deleteRequest) {
+  const handleDelete = () => {
+    if (!workspaceId) {
       return;
     }
-    deleteUserProperty(deleteRequest.id);
-  };
 
-  const requestBody = {
-    workspaceId: workspace.value.id,
-    userIds: [user.id]
-  }
-
-  const handleDelete = apiRequestHandlerFactory({
-    request: userPropertyDeleteRequest,
-    setRequest: setUserPropertyDeleteRequest,
-    responseSchema: EmptyResponse,
-    onSuccessNotice: `Deleted User`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to delete User`,
-    setResponse: setDeleteResponse,
-    requestConfig: {
-      method: "DELETE",
-      url: `${apiBase}/api/users`,
-      data: requestBody,
-      headers: {
-        "Content-Type": "application/json",
+    apiRequestHandlerFactory({
+      request: userDeleteRequest,
+      setRequest: setUserDeleteRequest,
+      responseSchema: EmptyResponse,
+      onSuccessNotice: `Deleted User`,
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to delete User`,
+      setResponse: () => {},
+      requestConfig: {
+        method: "DELETE",
+        url: `${apiBase}/api/users`,
+        data: {
+          workspaceId,
+          userIds: [user.id]
+        } satisfies DeleteUsersRequest,
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-    },
-  });
+    })();
+  };
 
   return (
     <MainLayout>
