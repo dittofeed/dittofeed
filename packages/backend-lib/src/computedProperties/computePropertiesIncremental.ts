@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import jsonPath from "jsonpath";
 import { mapValues } from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
@@ -373,6 +374,29 @@ export function segmentNodeStateId(
   );
 }
 
+function nodeToJsonPath({
+  path,
+  qb,
+}: {
+  path: string;
+  qb: ClickHouseQueryBuilder;
+}): string | null {
+  const unvalidated = `$.${path}`;
+  try {
+    jsonPath.parse(unvalidated);
+  } catch (e) {
+    logger().debug(
+      {
+        unvalidated,
+        err: e,
+      },
+      "invalid json path in node path"
+    );
+    return null;
+  }
+  return qb.addQueryValue(unvalidated, "String");
+}
+
 export function segmentNodeToStateSubQuery({
   segment,
   node,
@@ -385,7 +409,13 @@ export function segmentNodeToStateSubQuery({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const stateId = segmentNodeStateId(segment, node.id);
-      const path = qb.addQueryValue(`$.${node.path}`, "String");
+      const path = nodeToJsonPath({
+        path: node.path,
+        qb,
+      });
+      if (!path) {
+        return [];
+      }
       return [
         {
           condition: `event_type == 'identify'`,
@@ -575,7 +605,13 @@ function leafUserPropertyToSubQuery({
       if (child.path.length === 0) {
         return null;
       }
-      const path = qb.addQueryValue(`$.${child.path}`, "String");
+      const path = nodeToJsonPath({
+        path: child.path,
+        qb,
+      });
+      if (!path) {
+        return null;
+      }
       return {
         condition: `event_type == 'identify'`,
         type: "user_property",
