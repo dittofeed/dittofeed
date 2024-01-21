@@ -17,6 +17,7 @@ import prisma from "backend-lib/src/prisma";
 import { getUsers } from "backend-lib/src/users";
 import { CompletionStatus, DeleteUsersRequest, EmptyResponse,GetUsersResponse } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
+import { useRouter } from "next/router";
 
 import DeleteDialog from "../../components/confirmDeleteDialog";
 import { DeliveriesTable } from "../../components/deliveriesTable";
@@ -108,6 +109,7 @@ export const getServerSideProps: GetServerSideProps<
 });
 
 const User: NextPage<UserPageProps> = function User(props) {
+  const router = useRouter();
   const { user } = props;
   const theme = useTheme();
   const properties = JSON.stringify(
@@ -147,7 +149,11 @@ const User: NextPage<UserPageProps> = function User(props) {
       onSuccessNotice: `Deleted User`,
       onFailureNoticeHandler: () =>
         `API Error: Failed to delete User`,
-      setResponse: () => {},
+      setResponse: () => {
+        router.push({
+          pathname: `/users`,
+        });
+      },
       requestConfig: {
         method: "DELETE",
         url: `${apiBase}/api/users`,
