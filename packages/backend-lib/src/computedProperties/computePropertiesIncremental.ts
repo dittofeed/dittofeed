@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import jsonPath from "jsonpath";
 import { mapValues } from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
@@ -373,6 +374,29 @@ export function segmentNodeStateId(
   );
 }
 
+function toJsonPathParam({
+  path,
+  qb,
+}: {
+  path: string;
+  qb: ClickHouseQueryBuilder;
+}): string | null {
+  const unvalidated = `$.${path}`;
+  try {
+    jsonPath.parse(unvalidated);
+  } catch (e) {
+    logger().debug(
+      {
+        unvalidated,
+        err: e,
+      },
+      "invalid json path in node path"
+    );
+    return null;
+  }
+  return qb.addQueryValue(unvalidated, "String");
+}
+
 export function segmentNodeToStateSubQuery({
   segment,
   node,
@@ -385,7 +409,13 @@ export function segmentNodeToStateSubQuery({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const stateId = segmentNodeStateId(segment, node.id);
-      const path = qb.addQueryValue(`$.${node.path}`, "String");
+      const path = toJsonPathParam({
+        path: node.path,
+        qb,
+      });
+      if (!path) {
+        return [];
+      }
       return [
         {
           condition: `event_type == 'identify'`,
@@ -404,7 +434,13 @@ export function segmentNodeToStateSubQuery({
         const operatorType = property.operator.type;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
-            const path = qb.addQueryValue(`$.${property.path}`, "String");
+            const path = toJsonPathParam({
+              path: property.path,
+              qb,
+            });
+            if (!path) {
+              return [];
+            }
             return `JSON_VALUE(properties, ${path}) == ${qb.addQueryValue(
               property.operator.value,
               "String"
@@ -476,7 +512,13 @@ export function segmentNodeToStateSubQuery({
       const stateId = segmentNodeStateId(segment, node.id);
       const whereConditions = node.whereProperties?.map((property) => {
         const operatorType = property.operator.type;
-        const path = qb.addQueryValue(`$.${property.path}`, "String");
+        const path = toJsonPathParam({
+          path: property.path,
+          qb,
+        });
+        if (!path) {
+          return [];
+        }
         const propertyValue = `JSON_VALUE(properties, ${path})`;
         switch (operatorType) {
           case SegmentOperatorType.Equals: {
@@ -500,10 +542,19 @@ export function segmentNodeToStateSubQuery({
       const wherePropertyClause = whereConditions?.length
         ? `and (${whereConditions.join(" and ")})`
         : "";
-      const propertyValues = node.hasProperties.map((property) => {
-        const path = qb.addQueryValue(`$.${property.path}`, "String");
+      const propertyValues = node.hasProperties.flatMap((property) => {
+        const path = toJsonPathParam({
+          path: property.path,
+          qb,
+        });
+        if (!path) {
+          return [];
+        }
         return `JSON_VALUE(properties, ${path})`;
       });
+      if (propertyValues.length === 0) {
+        return [];
+      }
 
       const event = qb.addQueryValue(node.event, "String");
       const condition = `event_type == 'track' and event == ${event} ${wherePropertyClause}`;
@@ -575,7 +626,13 @@ function leafUserPropertyToSubQuery({
       if (child.path.length === 0) {
         return null;
       }
-      const path = qb.addQueryValue(`$.${child.path}`, "String");
+      const path = toJsonPathParam({
+        path: child.path,
+        qb,
+      });
+      if (!path) {
+        return null;
+      }
       return {
         condition: `event_type == 'identify'`,
         type: "user_property",
@@ -590,7 +647,13 @@ function leafUserPropertyToSubQuery({
       if (child.path.length === 0) {
         return null;
       }
-      const path = qb.addQueryValue(`$.${child.path}`, "String");
+      const path = toJsonPathParam({
+        path: child.path,
+        qb,
+      });
+      if (!path) {
+        return null;
+      }
       return {
         condition: `event_type == 'track' and event = ${qb.addQueryValue(
           child.event,
