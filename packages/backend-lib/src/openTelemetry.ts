@@ -31,6 +31,7 @@ export function getMeter() {
   }
   return METER;
 }
+export function getSpan() {}
 
 export function initOpenTelemetry({
   serviceName,
