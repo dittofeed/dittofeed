@@ -169,6 +169,11 @@ export interface JourneyIndexContent {
   setJourneyDeleteRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
+export interface UserIndexContent {
+  userDeleteRequest: EphemeralRequestStatus<Error>;
+  setUserDeleteRequest: (request: EphemeralRequestStatus<Error>) => void;
+}
+
 export interface MessageTemplateIndexContent {
   messageTemplateDeleteRequest: EphemeralRequestStatus<Error>;
   setMessageTemplateDeleteRequest: (
@@ -266,6 +271,7 @@ export type PageStoreContents = SegmentEditorContents &
   SegmentIndexContent &
   UserPropertyIndexContent &
   JourneyIndexContent &
+  UserIndexContent &
   MessageTemplateIndexContent &
   UserPropertyEditorContent &
   JourneyContent &
