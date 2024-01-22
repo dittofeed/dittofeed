@@ -1,4 +1,4 @@
-import api, { Meter } from "@opentelemetry/api";
+import api, { Meter, Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import {
   getNodeAutoInstrumentations,
   InstrumentationConfigMap,
@@ -24,6 +24,35 @@ export interface OpenTelemetry {
 }
 
 let METER: Meter | null = null;
+
+export async function withSpan<T>(
+  {
+    name,
+    tracer: tracerName = "default",
+  }: {
+    name: string;
+    tracer?: string;
+  },
+  cb: (span: Span) => Promise<T>
+): Promise<T> {
+  const tracer = trace.getTracer(tracerName);
+  return tracer.startActiveSpan(name, async (span) => {
+    try {
+      return await cb(span);
+    } catch (e) {
+      if (e instanceof Error) {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: e.message,
+        });
+        span.recordException(e);
+      }
+      throw e;
+    } finally {
+      span.end();
+    }
+  });
+}
 
 export function getMeter() {
   if (!METER) {
