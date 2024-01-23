@@ -144,9 +144,9 @@ export async function findManyEvents({
 
   const paginationClause = limit
     ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
-        limit,
-        "Int32"
-      )}`
+      limit,
+      "Int32"
+    )}`
     : "";
 
   const startDateClause = startDate
@@ -162,11 +162,12 @@ export async function findManyEvents({
     : "";
 
   const searchClause = searchTerm
-    ? `AND (
-        event_name ILIKE ${qb.addQueryValue(`%${searchTerm}%`, "String")} OR
-        event_type ILIKE ${qb.addQueryValue(`%${searchTerm}%`, "String")} OR
-        message_id ILIKE ${qb.addQueryValue(`%${searchTerm}%`, "String")}
-      )`
+    ? `HAVING CAST(event_type AS String) LIKE ${qb.addQueryValue(
+      searchTerm,
+      "String"
+    )} OR
+    CAST(event AS String) LIKE ${qb.addQueryValue(searchTerm, "String")} OR
+    message_id LIKE ${qb.addQueryValue(searchTerm, "String")}`
     : "";
 
   // TODO exclude event_time from group by
@@ -187,8 +188,8 @@ export async function findManyEvents({
   ${startDateClause}
   ${endDateClause}
   ${userIdClause}
-  ${searchClause}
   GROUP BY workspace_id, user_id, message_id, event_time
+  ${searchClause}
   ORDER BY event_time DESC, message_id
   ${paginationClause}`;
 
