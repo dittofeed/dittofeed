@@ -828,6 +828,7 @@ export async function computePropertiesIncremental({
       userProperties: userProperties.map((up) => up.id),
       journeys: journeys.map((j) => j.id),
       integrations: integrations.map((i) => i.id),
+      now: new Date(now).toISOString(),
     });
 
     await computeState({
