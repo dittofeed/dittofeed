@@ -2195,8 +2195,10 @@ export async function processAssignments({
       clickhouse_settings: { wait_end_of_query: 1 },
     });
 
+    let rowsProcessed = 0;
     try {
       await streamClickhouseQuery(resultSet, async (rows) => {
+        rowsProcessed += rows.length;
         await processRows({
           rows,
           workspaceId,
@@ -2212,6 +2214,7 @@ export async function processAssignments({
         "failed to process rows"
       );
     }
+    span.setAttribute("rowsProcessed", rowsProcessed);
 
     // TODO encorporate existing periods into query
     const periodByComputedPropertyId = await getPeriodsByComputedPropertyId({
