@@ -20,6 +20,7 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
+import JourneysTable from "../../components/journeysTable";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -35,7 +36,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       await prisma().journey.findMany({
         where: { workspaceId, resourceType: "Declarative" },
       })
-    ).flatMap(({ id, definition, name, status }) => {
+    ).flatMap(({ id, definition, name, status, updatedAt }) => {
       const validatedDefinition = schemaValidate(definition, JourneyDefinition);
       if (validatedDefinition.isErr()) {
         return [];
@@ -46,6 +47,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         workspaceId,
         name,
         status,
+        updatedAt: Number(updatedAt),
       };
       return resource;
     });
@@ -182,6 +184,7 @@ function JourneyListContents() {
         </IconButton>
       </Stack>
       {innerContents}
+      <JourneysTable />
     </Stack>
   );
 }

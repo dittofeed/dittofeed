@@ -1,26 +1,16 @@
-import { Delete, DownloadForOffline } from "@mui/icons-material";
+import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import { IconButton, ListItem, ListItemText, Tooltip } from "@mui/material";
-import {
-  CompletionStatus,
-  DeleteSegmentRequest,
-  EmptyResponse,
-  SegmentResource,
-} from "isomorphic-lib/src/types";
+import { Tooltip } from "@mui/material";
+import { CompletionStatus, SegmentResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { pick } from "remeda/dist/commonjs/pick";
 
 import DashboardContent from "../../components/dashboardContent";
-import {
-  ResourceList,
-  ResourceListContainer,
-  ResourceListItemButton,
-} from "../../components/resourceList";
+import { ResourceListContainer } from "../../components/resourceList";
+import SegmentsTable from "../../components/segmentsTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import apiRequestHandlerFactory, {
-  downloadFileFactory,
-} from "../../lib/apiRequestHandlerFactory";
+import { downloadFileFactory } from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
@@ -63,69 +53,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
   });
 
-function SegmentItem({ segment }: { segment: SegmentResource }) {
-  const {
-    setSegmentDeleteRequest,
-    apiBase,
-    segmentDeleteRequest,
-    deleteSegment,
-  } = useAppStore((store) =>
-    pick(store, [
-      "setSegmentDeleteRequest",
-      "apiBase",
-      "segmentDeleteRequest",
-      "deleteSegment",
-    ])
-  );
-
-  const setDeleteResponse = (
-    _response: EmptyResponse,
-    deleteRequest?: DeleteSegmentRequest
-  ) => {
-    if (!deleteRequest) {
-      return;
-    }
-    deleteSegment(deleteRequest.id);
-  };
-
-  const handleDelete = apiRequestHandlerFactory({
-    request: segmentDeleteRequest,
-    setRequest: setSegmentDeleteRequest,
-    responseSchema: EmptyResponse,
-    setResponse: setDeleteResponse,
-    onSuccessNotice: `Deleted segment ${segment.name}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to delete segment ${segment.name}.`,
-    requestConfig: {
-      method: "DELETE",
-      url: `${apiBase}/api/segments`,
-      data: {
-        id: segment.id,
-      },
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-
-  return (
-    <ListItem
-      secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
-          <Delete />
-        </IconButton>
-      }
-    >
-      <ResourceListItemButton href={`/dashboard/segments/${segment.id}`}>
-        <ListItemText>{segment.name}</ListItemText>
-      </ResourceListItemButton>
-    </ListItem>
-  );
-}
-
 export default function SegmentList() {
   const {
-    segments: segmentsRequest,
     segmentDownloadRequest,
     setSegmentDownloadRequest,
     workspace: workspaceRequest,
@@ -139,10 +68,7 @@ export default function SegmentList() {
       "workspace",
     ])
   );
-  const segments =
-    segmentsRequest.type === CompletionStatus.Successful
-      ? segmentsRequest.value
-      : [];
+
   const workspace =
     workspaceRequest.type === CompletionStatus.Successful
       ? workspaceRequest.value
@@ -190,13 +116,7 @@ export default function SegmentList() {
             newItemHref={(newItemId) => `/segments/${newItemId}`}
             controls={controls}
           >
-            {segments.length ? (
-              <ResourceList>
-                {segments.map((segment) => (
-                  <SegmentItem key={segment.id} segment={segment} />
-                ))}
-              </ResourceList>
-            ) : null}
+            <SegmentsTable />
           </ResourceListContainer>
         </DashboardContent>
       </main>

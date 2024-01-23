@@ -712,6 +712,7 @@ export const SegmentResource = Type.Object({
   name: Type.String(),
   definition: SegmentDefinition,
   subscriptionGroupId: Type.Optional(Type.String()),
+  updatedAt: Type.Number(),
 });
 
 export type SegmentResource = Static<typeof SegmentResource>;
@@ -749,6 +750,7 @@ export const BroadcastResource = Type.Object({
     Type.Literal("Triggered"),
   ]),
   createdAt: Type.Number(),
+  updatedAt: Type.Number(),
   triggeredAt: Type.Optional(Type.Number()),
 });
 
@@ -889,6 +891,8 @@ const MessageTemplateResourceProperties = {
   name: Type.String(),
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(MessageTemplateResourceDefinition),
+  updatedAt: Type.Number(),
+  journeys: Type.Optional(Type.String()),
 } as const;
 
 export const MessageTemplateResource = Type.Object(
@@ -1085,6 +1089,7 @@ export const JourneyResource = Type.Object({
   status: JourneyResourceStatus,
   definition: JourneyDefinition,
   canRunMultiple: Type.Optional(Type.Boolean()),
+  updatedAt: Type.Number(),
 });
 
 export type JourneyResource = Static<typeof JourneyResource>;
@@ -1165,6 +1170,17 @@ export enum CursorDirectionEnum {
 
 export const CursorDirection = Type.Enum(CursorDirectionEnum);
 
+export const MessageTemplateResourceRequest = Type.Object({
+  ...MessageTemplateResourceProperties,
+  cursor: Type.Optional(Type.String()),
+  limit: Type.Optional(Type.Number()),
+  direction: Type.Optional(CursorDirection),
+});
+
+export type MessageTemplateResourceRequest = Static<
+  typeof MessageTemplateResourceRequest
+>;
+
 export const GetUsersRequest = Type.Object({
   cursor: Type.Optional(Type.String()),
   segmentId: Type.Optional(Type.String()),
@@ -1203,6 +1219,8 @@ export const GetUsersResponse = Type.Object({
 });
 
 export type GetUsersResponse = Static<typeof GetUsersResponse>;
+
+export const GetBroadcastsRequest = Type.Object({});
 
 export const BaseMessageResponse = Type.Object({
   message: Type.String(),

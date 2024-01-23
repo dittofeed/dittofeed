@@ -1,11 +1,8 @@
-import { AddCircleOutline, Delete } from "@mui/icons-material";
+import { AddCircleOutline } from "@mui/icons-material";
 import {
   Box,
   IconButton,
   List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
   Menu,
   MenuItem,
   Stack,
@@ -13,16 +10,16 @@ import {
   Tabs,
   Typography,
 } from "@mui/material";
+import { Type } from "@sinclair/typebox";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
+import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
-  DeleteMessageTemplateRequest,
   EmailTemplateResource,
-  EmptyResponse,
-  MessageTemplateResource,
+  MessageTemplateResourceRequest,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
@@ -35,11 +32,10 @@ import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../components/mainLayout";
+import TemplatesTable from "../../components/templatesTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
-import { getTemplatesLink } from "../../lib/templatesLink";
 import { AppState, PropsWithInitialState } from "../../lib/types";
 
 interface TabPanelProps {
@@ -47,6 +43,11 @@ interface TabPanelProps {
   index: number;
   value: number;
 }
+
+const QueryParams = Type.Pick(MessageTemplateResourceRequest, [
+  "cursor",
+  "direction",
+]);
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
@@ -91,82 +92,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
   });
 
-function TemplateListItem({ template }: { template: MessageTemplateResource }) {
-  const path = useRouter();
 
-  const setMessageTemplateDeleteRequest = useAppStore(
-    (store) => store.setMessageTemplateDeleteRequest
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const messageTemplateDeleteRequest = useAppStore(
-    (store) => store.messageTemplateDeleteRequest
-  );
-  const deleteMessageTemplate = useAppStore((store) => store.deleteMessage);
-
-  const setDeleteResponse = (
-    _response: EmptyResponse,
-    deleteRequest?: DeleteMessageTemplateRequest
-  ) => {
-    if (!deleteRequest) {
-      return;
-    }
-    deleteMessageTemplate(deleteRequest.id);
-  };
-
-  const definition = template.draft ?? template.definition;
-  if (!definition) {
-    return null;
-  }
-
-  const deleteData: DeleteMessageTemplateRequest = {
-    id: template.id,
-    type: definition.type,
-  };
-  const handleDelete = apiRequestHandlerFactory({
-    request: messageTemplateDeleteRequest,
-    setRequest: setMessageTemplateDeleteRequest,
-    responseSchema: EmptyResponse,
-    setResponse: setDeleteResponse,
-    onSuccessNotice: `Deleted template ${template.name}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to delete template ${template.name}.`,
-    requestConfig: {
-      method: "DELETE",
-      url: `${apiBase}/api/content/templates`,
-      data: deleteData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-  return (
-    <ListItem
-      secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
-          <Delete />
-        </IconButton>
-      }
-    >
-      <ListItemButton
-        sx={{
-          border: 1,
-          borderRadius: 1,
-          borderColor: "grey.200",
-        }}
-        onClick={() => {
-          path.push(
-            getTemplatesLink({
-              id: template.id,
-              channel: definition.type,
-            })
-          );
-        }}
-      >
-        <ListItemText primary={template.name} />
-      </ListItemButton>
-    </ListItem>
-  );
-}
 
 function TemplateListContents() {
   const enableMobilePush = useAppStore((store) => store.enableMobilePush);
@@ -174,6 +100,13 @@ function TemplateListContents() {
   const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const messagesResult = useAppStore((store) => store.messages);
   const [newItemId, setNewItemId] = useState(() => uuid());
+
+  const router = useRouter();
+  const queryParams = useMemo(
+    () => schemaValidate(router.query, QueryParams).unwrapOr({}),
+    [router.query]
+  );
+  const workspace = useAppStore((state) => state.workspace);
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
@@ -222,6 +155,10 @@ function TemplateListContents() {
       { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] }
     );
   }, [messagesResult]);
+
+  if (workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
 
   return (
     <Stack
@@ -284,9 +221,7 @@ function TemplateListContents() {
             borderRadius: 1,
           }}
         >
-          {emailTemplates.map((template) => (
-            <TemplateListItem template={template} key={template.id} />
-          ))}
+          <TemplatesTable label={CHANNEL_NAMES[ChannelType.Email]} />
 
           {emailTemplates.length === 0 && (
             <Typography
@@ -309,9 +244,10 @@ function TemplateListContents() {
             borderRadius: 1,
           }}
         >
-          {smsTemplates.map((template) => (
-            <TemplateListItem template={template} key={template.id} />
-          ))}
+          <TemplatesTable
+            {...queryParams}
+            label={CHANNEL_NAMES[ChannelType.Sms]}
+          />
           {smsTemplates.length === 0 && (
             <Typography
               component="span"
@@ -333,9 +269,10 @@ function TemplateListContents() {
             borderRadius: 1,
           }}
         >
-          {mobilePushTemplates.map((template) => (
-            <TemplateListItem template={template} key={template.id} />
-          ))}
+          <TemplatesTable
+            {...queryParams}
+            label={CHANNEL_NAMES[ChannelType.MobilePush]}
+          />
           {mobilePushTemplates.length === 0 && (
             <Typography
               component="span"

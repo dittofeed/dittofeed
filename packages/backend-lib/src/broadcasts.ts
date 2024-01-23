@@ -55,6 +55,7 @@ export function toBroadcastResource(broadcast: Broadcast): BroadcastResource {
       : undefined,
     status: broadcast.status,
     createdAt: broadcast.createdAt.getTime(),
+    updatedAt: broadcast.updatedAt.getTime(),
   };
   return resource;
 }
@@ -97,6 +98,13 @@ export async function getBroadcast({
           name: broadcastTemplateName,
         },
       },
+      include: {
+        Broadcast: {
+          include: {
+            journey: true,
+          }
+        }
+      }
     }),
   ]);
 
@@ -168,6 +176,13 @@ export async function upsertBroadcast({
         definition: WELCOME_TEMPLATE,
       },
       update: {},
+      include: {
+        Broadcast: {
+          include: {
+            journey: true,
+          }
+        }
+      }
     }),
   ]);
 

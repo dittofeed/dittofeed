@@ -25,9 +25,10 @@ import {
   InternalEventType,
   MessageSendFailure,
   MessageSkippedType,
-  MessageTemplate,
+  // MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
+  Prisma,
   SmsProviderConfig,
   SmsProviderType,
   UpsertMessageTemplateResource,
@@ -40,7 +41,17 @@ export function enrichMessageTemplate({
   workspaceId,
   definition,
   draft,
-}: MessageTemplate): Result<MessageTemplateResource, Error> {
+  updatedAt,
+  Broadcast,
+}: Prisma.MessageTemplateGetPayload<{
+  include: {
+    Broadcast: {
+      include: {
+        journey: true;
+      };
+    };
+  };
+}>): Result<MessageTemplateResource, Error> {
   const enrichedDefintion = definition
     ? schemaValidateWithErr(definition, MessageTemplateResourceDefinition)
     : ok(undefined);
@@ -53,13 +64,17 @@ export function enrichMessageTemplate({
   if (enrichedDraft.isErr()) {
     return err(enrichedDraft.error);
   }
-
   return ok({
     id,
     name,
     workspaceId,
     definition: enrichedDefintion.value,
     draft: enrichedDraft.value,
+    updatedAt: Number(updatedAt),
+    journeys:
+      Broadcast.length !== 0
+        ? "".concat(...Broadcast.map((b) => `${b.journey?.name}, `))
+        : "No Journeys",
   });
 }
 
@@ -71,6 +86,7 @@ export function enrichEmailTemplate({
   subject,
   from,
   replyTo,
+  updatedAt,
 }: EmailTemplate): MessageTemplateResource {
   return {
     id,
@@ -83,6 +99,7 @@ export function enrichEmailTemplate({
       body,
       replyTo: replyTo ?? undefined,
     },
+    updatedAt: Number(updatedAt),
   };
 }
 
@@ -96,6 +113,13 @@ export async function findMessageTemplate({
   const template = await prisma().messageTemplate.findUnique({
     where: {
       id,
+    },
+    include: {
+      Broadcast: {
+        include: {
+          journey: true,
+        },
+      },
     },
   });
   if (!template) {
@@ -111,7 +135,15 @@ export async function findMessageTemplate({
 export async function upsertMessageTemplate(
   data: UpsertMessageTemplateResource
 ): Promise<MessageTemplateResource> {
-  let messageTemplate: MessageTemplate;
+  let messageTemplate: Prisma.MessageTemplateGetPayload<{
+    include: {
+      Broadcast: {
+        include: {
+          journey: true;
+        };
+      };
+    };
+  }>;
   if (data.name && data.workspaceId) {
     messageTemplate = await prisma().messageTemplate.upsert({
       where: {
@@ -131,6 +163,13 @@ export async function upsertMessageTemplate(
         definition: data.definition,
         draft: data.draft,
       },
+      include: {
+        Broadcast: {
+          include: {
+            journey: true,
+          },
+        },
+      },
     });
   } else {
     messageTemplate = await prisma().messageTemplate.update({
@@ -143,6 +182,13 @@ export async function upsertMessageTemplate(
         id: data.id,
         definition: data.definition,
         draft: data.draft,
+      },
+      include: {
+        Broadcast: {
+          include: {
+            journey: true,
+          },
+        },
       },
     });
   }
@@ -161,6 +207,13 @@ export async function findMessageTemplates({
       where: {
         workspaceId,
         resourceType: includeInternal ? undefined : "Declarative",
+      },
+      include: {
+        Broadcast: {
+          include: {
+            journey: true,
+          },
+        },
       },
     })
   ).map((mt) => unwrap(enrichMessageTemplate(mt)));

@@ -96,6 +96,7 @@ export default async function journeysController(fastify: FastifyInstance) {
         workspaceId: journey.workspaceId,
         status: journey.status,
         definition: journeyDefinitionResult.value,
+        updatedAt: Number(journey.updatedAt),
       };
       return reply.status(200).send(resource);
     }
