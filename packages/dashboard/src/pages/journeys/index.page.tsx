@@ -1,4 +1,4 @@
-import { AddCircleOutline, Delete } from "@mui/icons-material";
+import { AddCircleOutline } from "@mui/icons-material";
 import {
   IconButton,
   List,
@@ -20,6 +20,7 @@ import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
+import DeleteDialog from "../../components/confirmDeleteDialog";
 import JourneysTable from "../../components/journeysTable";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
@@ -113,9 +114,11 @@ function JourneyItem({ journey }: { journey: JourneyResource }) {
   return (
     <ListItem
       secondaryAction={
-        <IconButton edge="end" onClick={handleDelete}>
-          <Delete />
-        </IconButton>
+        <DeleteDialog
+          onConfirm={handleDelete}
+          title="Confirm Deletion"
+          message="Are you sure you want to delete this journey?"
+        />
       }
     >
       <ListItemButton

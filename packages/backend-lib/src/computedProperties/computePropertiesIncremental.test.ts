@@ -417,6 +417,54 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "does not throw with an invalid trait user property",
+      userProperties: [
+        {
+          name: "invalid",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "a[..email",
+          },
+        },
+        {
+          name: "id",
+          definition: {
+            type: UserPropertyDefinitionType.Id,
+          },
+        },
+      ],
+      segments: [],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                foo: "bar",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              properties: {
+                id: "user-1",
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
       description: "computes a trait user property over multiple periods",
       userProperties: [
         {

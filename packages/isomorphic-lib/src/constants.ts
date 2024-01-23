@@ -13,6 +13,7 @@ export const SUBSCRIPTION_SECRET_NAME = "subscription-key" as const;
 export const TWILIO_SECRET_NAME = "twilio-key" as const;
 export const SENDGRID_WEBHOOK_SECRET_NAME = "sendgrid-webhook" as const;
 export const SENDGRID_SECRET = "sendgrid" as const;
+export const RESEND_SECRET = "sendgrid" as const;
 export const FCM_SECRET_NAME = "fcm-key" as const;
 export const SMTP_SECRET_NAME = "smtp" as const;
 export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
@@ -21,6 +22,7 @@ export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
 > = {
   [EmailProviderType.Sendgrid]: SENDGRID_SECRET,
   [EmailProviderType.Smtp]: SMTP_SECRET_NAME,
+  [EmailProviderType.Resend]: RESEND_SECRET,
   [EmailProviderType.Test]: "",
 };
 

@@ -31,6 +31,7 @@ import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
+import DeleteDialog from "../../components/confirmDeleteDialog";
 import MainLayout from "../../components/mainLayout";
 import TemplatesTable from "../../components/templatesTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";

@@ -35,6 +35,7 @@ import {
   userJourneyWorkflow,
 } from "../../../journeys/userWorkflow";
 import logger from "../../../logger";
+import { withSpan } from "../../../openTelemetry";
 import {
   findManyEnrichedSegments,
   findManySegmentResourcesSafe,
@@ -820,22 +821,28 @@ export async function computePropertiesIncremental({
   integrations,
   now,
 }: ComputePropertiesIncrementalArgs) {
-  try {
-    logger().info({ workspaceId }, "computing states incrementally");
+  return withSpan({ name: "compute-properties-incremental" }, async (span) => {
+    span.setAttributes({
+      workspaceId,
+      segments: segments.map((s) => s.id),
+      userProperties: userProperties.map((up) => up.id),
+      journeys: journeys.map((j) => j.id),
+      integrations: integrations.map((i) => i.id),
+      now: new Date(now).toISOString(),
+    });
+
     await computeState({
       workspaceId,
       segments,
       userProperties,
       now,
     });
-    logger().info({ workspaceId }, "computing assignments incrementally");
     await computeAssignments({
       workspaceId,
       segments,
       userProperties,
       now,
     });
-    logger().info({ workspaceId }, "processing assignments incrementally");
     await processAssignments({
       workspaceId,
       segments,
@@ -844,14 +851,5 @@ export async function computePropertiesIncremental({
       journeys,
       integrations,
     });
-    logger().info(
-      { workspaceId },
-      "finished computing properties incrementally"
-    );
-  } catch (e) {
-    logger().error(
-      { err: e, workspaceId },
-      "failed to compute properties incrementally"
-    );
-  }
+  });
 }

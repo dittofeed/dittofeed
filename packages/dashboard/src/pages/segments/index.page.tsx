@@ -1,11 +1,19 @@
 import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
+import { ListItem, ListItemText, Tooltip } from "@mui/material";
+import {
+  CompletionStatus,
+  DeleteSegmentRequest,
+  EmptyResponse,
+  SegmentResource,
+} from "isomorphic-lib/src/types";
 import { Tooltip } from "@mui/material";
 import { CompletionStatus, SegmentResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { pick } from "remeda/dist/commonjs/pick";
 
+import DeleteDialog from "../../components/confirmDeleteDialog";
 import DashboardContent from "../../components/dashboardContent";
 import { ResourceListContainer } from "../../components/resourceList";
 import SegmentsTable from "../../components/segmentsTable";

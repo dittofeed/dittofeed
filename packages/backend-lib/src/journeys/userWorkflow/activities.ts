@@ -20,6 +20,7 @@ import { v5 as uuidv5 } from "uuid";
 
 import { submitTrack } from "../../apps";
 import { sendNotification } from "../../destinations/fcm";
+import { ResendRequiredData , sendMail as sendEmailResend } from "../../destinations/resend";
 import { sendMail as sendEmailSendgrid } from "../../destinations/sendgrid";
 import {
   sendSms as sendSmsTwilio,
@@ -665,6 +666,54 @@ async function sendEmailWithPayload(
               error: {
                 stack: result.error.stack,
                 responseBody: result.error.response.body,
+              },
+            });
+          }
+
+          return buildSendValue(true, InternalEventType.MessageSent, {
+            from,
+            to: identifier,
+            body,
+            subject,
+            replyTo,
+          });
+        }
+        case EmailProviderType.Resend: {
+          const headers: Record<string, string> = {};
+          const mailData: ResendRequiredData = {
+            to: identifier,
+            from,
+            subject,
+            html: body,
+            tags: [
+              { name: 'journeyId', value: journeyId },
+              { name: 'runId', value: runId },
+              { name: 'messageId', value: messageId },
+              { name: 'userId', value: userId },
+              { name: 'workspaceId', value: workspaceId },
+              { name: 'templateId', value: templateId },
+              { name: 'nodeId', value: nodeId },
+            ],
+            headers,
+          };
+          if (replyTo) {
+            mailData.reply_to = replyTo;
+          }
+          if (!channelConfig.emailProvider.apiKey) {
+            throw new Error("Missing resend api key");
+          }
+
+          const result = await sendEmailResend({
+            mailData,
+            apiKey: channelConfig.emailProvider.apiKey,
+          });
+
+          if (result.isErr()) {
+            logger().error({ err: result.error });
+            return buildSendValue(false, InternalEventType.MessageFailure, {
+              message: `Failed to send message to resend: ${result.error.message}`,
+              error: {
+                responseBody: result.error,
               },
             });
           }

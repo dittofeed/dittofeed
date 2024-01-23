@@ -59,3 +59,20 @@ Then run the docker compose dependencies with the otel profile.
 ```bash
 docker compose --profile otel up -d
 ```
+
+## FAQ
+
+### Why don't I see any users in the Dashboard?
+
+Displayed users represent a collection of computed "User Property Assignments" and "Segment Assignments". These are computed by the dittofeed worker, and won't be available until the worker has processed user events. Try running the following commands.
+
+```bash
+# Will start the job responsible to computing user events, and create sample events.
+BOOTSTRAP_WORKER=true BOOTSTRAP_EVENTS=true yarn admin bootstrap
+# Start the worker.
+yarn workspace worker dev
+```
+
+### How can I submit events?
+
+See the documentation on [Using Dittofeed's REST API as a source](/integrations/sources/api).
