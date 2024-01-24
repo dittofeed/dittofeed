@@ -272,29 +272,37 @@ export async function getJourneysStats({
 
       if(node.type === JourneyNodeType.SegmentSplitNode) {
         const parentNodeProcessed = nodeProcessedMap.get(node.id);
-        const falseChildNodesProcessed = nodeProcessedMap.get(node.variant.falseChild);
+        const falseChildNodesProcessed = nodeProcessedMap.get(node.variant.falseChild) ?? 0;
         
-        const falseChildNodeProcessedRate = (falseChildNodesProcessed as number) / (parentNodeProcessed as number);
-        const falseChildEdgeProportion = (falseChildNodeProcessedRate > 1 ? 1 : falseChildNodeProcessedRate) * 100;
+        if(parentNodeProcessed) {
+          const falseChildNodeProcessedRate = (falseChildNodesProcessed / parentNodeProcessed);
+          const falseChildEdgeProportion = (falseChildNodeProcessedRate > 1 ? 1 : falseChildNodeProcessedRate) * 100;
 
-        stats.nodeStats[node.id] = {
-          type: NodeStatsType.SegmentSplitNodeStats,
-          proportions: {
-            falseChildEdge: falseChildEdgeProportion,
+          stats.nodeStats[node.id] = {
+            type: NodeStatsType.SegmentSplitNodeStats,
+            proportions: {
+              falseChildEdge: falseChildEdgeProportion,
+            }
           }
         }
       }
       else if (node.type === JourneyNodeType.WaitForNode) {
         const parentNodeProcessed = nodeProcessedMap.get(node.id);
-        let segmentChildNodesProcessed = nodeProcessedMap.get(node.segmentChildren[0]?.id as string);
+        let segmentChildNodesProcessed = 0;
 
-        const segmentChildNodeProcessedRate = (segmentChildNodesProcessed as number) / (parentNodeProcessed as number);
-        const segmentChildEdgeProportion = (segmentChildNodeProcessedRate > 1 ? 1 : segmentChildNodeProcessedRate) * 100;
+        if(node.segmentChildren[0]) {
+          segmentChildNodesProcessed = nodeProcessedMap.get(node.segmentChildren[0].id) ?? 0;
+        }
 
-        stats.nodeStats[node.id] = {
-          type: NodeStatsType.WaitForNodeStats,
-          proportions: {
-            segmentChildEdge: segmentChildEdgeProportion,
+        if(parentNodeProcessed) {
+          const segmentChildNodeProcessedRate = (segmentChildNodesProcessed / parentNodeProcessed);
+          const segmentChildEdgeProportion = (segmentChildNodeProcessedRate > 1 ? 1 : segmentChildNodeProcessedRate) * 100;
+  
+          stats.nodeStats[node.id] = {
+            type: NodeStatsType.WaitForNodeStats,
+            proportions: {
+              segmentChildEdge: segmentChildEdgeProportion,
+            }
           }
         }
       }

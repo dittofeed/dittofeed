@@ -12,6 +12,7 @@ import {
   CompletionStatus,
   JourneyNodeType,
   JourneyResource,
+  MessageNodeStats,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -205,7 +206,7 @@ export default function MessagesPage() {
               );
               return [];
             }
-            const nodeStats = stats?.nodeStats[node.id];
+            const nodeStats = stats?.nodeStats[node.id] as MessageNodeStats;
             if (!message.definition) {
               return [];
             }
@@ -217,11 +218,11 @@ export default function MessagesPage() {
               messageId,
               messageChannel: message.definition.type,
               messageName: message.name,
-              sendRate: nodeStats?.sendRate ?? 0,
-              clickRate: nodeStats?.channelStats.clickRate ?? 0,
-              deliveryRate: nodeStats?.channelStats.deliveryRate ?? 0,
-              openRate: nodeStats?.channelStats.openRate ?? 0,
-              spamRate: nodeStats?.channelStats.spamRate ?? 0,
+              sendRate: nodeStats.sendRate ?? 0,
+              clickRate: nodeStats.channelStats.clickRate ?? 0,
+              deliveryRate: nodeStats.channelStats.deliveryRate ?? 0,
+              openRate: nodeStats.channelStats.openRate ?? 0,
+              spamRate: nodeStats.channelStats.spamRate ?? 0,
             };
             return row;
           });

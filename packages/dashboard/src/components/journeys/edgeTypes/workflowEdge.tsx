@@ -50,7 +50,6 @@ export default function WorkflowEdge({
   const nodes = useAppStore((state) => state.journeyNodes);
   const nodesIndex = useAppStore((state) => state.journeyNodesIndex);
   const targetNode = findNode(target, nodes, nodesIndex);
-  const sourceNode = findNode(source, nodes, nodesIndex);
 
   let sourceWithoutChildSuffix = source;
   sourceWithoutChildSuffix = sourceWithoutChildSuffix.replaceAll('-child-0', '');
@@ -68,24 +67,24 @@ export default function WorkflowEdge({
   const getLabelText = (): string => {
     if(stats?.type === NodeStatsType.SegmentSplitNodeStats) {
       if(id.includes('child-0')) {
-        return (100 - stats.proportions.falseChildEdge)?.toString();
+        return (100 - stats.proportions.falseChildEdge).toString();
       }
       if(id.includes('child-1')) {
-        return (stats.proportions.falseChildEdge)?.toString();
+        return (stats.proportions.falseChildEdge).toString();
       }
     }
 
     if(stats?.type === NodeStatsType.WaitForNodeStats) {
       if(id.includes('child-0')) {
-        return stats.proportions.segmentChildEdge?.toString();
+        return stats.proportions.segmentChildEdge.toString();
       }
       if(id.includes('child-1')) {
-        return (100 - stats.proportions.segmentChildEdge)?.toString();
+        return (100 - stats.proportions.segmentChildEdge).toString();
       }
     }
 
     if(stats?.type === NodeStatsType.DelayNodeStats || stats?.type === NodeStatsType.MessageNodeStats) {
-      return stats.proportions.childEdge?.toString();
+      return stats.proportions.childEdge.toString();
     }
 
     return "";
