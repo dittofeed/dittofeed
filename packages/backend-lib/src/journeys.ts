@@ -17,6 +17,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JourneyStats,
+  MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
 } from "./types";
@@ -172,6 +173,7 @@ export async function getJourneysStats({
                 or event = 'DFEmailBounced'
                 or event = 'DFEmailMarkedSpam'
                 or event = 'DFBadWorkspaceConfiguration'
+                or event = 'DFJourneyNodeProcessed'
             )
         group by journey_id, node_id, run_id, message_id, event
     )
@@ -194,6 +196,7 @@ export async function getJourneysStats({
 
   const stream = statsResultSet.stream();
   const statsMap = new Map<string, MapWithDefault<InternalEventType, number>>();
+  const nodeProcessedMap = new Map<string, number>();
 
   const rowPromises: Promise<unknown>[] = [];
   stream.on("data", (rows: Row[]) => {
@@ -225,6 +228,10 @@ export async function getJourneysStats({
 
         eventMap.set(event, parseInt(count));
         statsMap.set(node_id, eventMap);
+
+        if(event === InternalEventType.JourneyNodeProcessed) {
+          nodeProcessedMap.set(node_id, parseInt(count));
+        }
       })();
       rowPromises.push(promise);
     });
@@ -257,13 +264,65 @@ export async function getJourneysStats({
     journeysStats.push(stats);
 
     for (const node of definition.nodes) {
+      if(node.type === JourneyNodeType.RateLimitNode || node.type === JourneyNodeType.ExperimentSplitNode) {
+        continue;
+      }
+
+      const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
+
+      if(node.type === JourneyNodeType.SegmentSplitNode) {
+        const parentNodeProcessed = nodeProcessedMap.get(node.id);
+        const falseChildNodesProcessed = nodeProcessedMap.get(node.variant.falseChild);
+        
+        const falseChildNodeProcessedRate = (falseChildNodesProcessed as number) / (parentNodeProcessed as number);
+        const falseChildEdgeProportion = (falseChildNodeProcessedRate > 1 ? 1 : falseChildNodeProcessedRate) * 100;
+
+        stats.nodeStats[node.id] = {
+          type: NodeStatsType.SegmentSplitNodeStats,
+          proportions: {
+            falseChildEdge: falseChildEdgeProportion,
+          }
+        }
+      }
+      else if (node.type === JourneyNodeType.WaitForNode) {
+        const parentNodeProcessed = nodeProcessedMap.get(node.id);
+        let segmentChildNodesProcessed = nodeProcessedMap.get(node.segmentChildren[0]?.id as string);
+
+        const segmentChildNodeProcessedRate = (segmentChildNodesProcessed as number) / (parentNodeProcessed as number);
+        const segmentChildEdgeProportion = (segmentChildNodeProcessedRate > 1 ? 1 : segmentChildNodeProcessedRate) * 100;
+
+        stats.nodeStats[node.id] = {
+          type: NodeStatsType.WaitForNodeStats,
+          proportions: {
+            segmentChildEdge: segmentChildEdgeProportion,
+          }
+        }
+      }
+      else if(node.type === JourneyNodeType.DelayNode) {
+        stats.nodeStats[node.id] = {
+          type: NodeStatsType.DelayNodeStats,
+          proportions: {
+            childEdge: 100
+          },
+        }
+      }
+      else {
+        stats.nodeStats[node.id] = {
+          type: NodeStatsType.MessageNodeStats,
+          proportions: {
+            childEdge: 100,
+          },
+          sendRate: 0,
+          channelStats: {} as MessageChannelStats,
+        };
+      }
+
       if (
         node.type !== JourneyNodeType.MessageNode ||
         node.variant.type !== ChannelType.Email
       ) {
         continue;
       }
-      const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
 
       const sent = nodeStats.get(InternalEventType.MessageSent);
       const badConfig = nodeStats.get(
@@ -291,6 +350,9 @@ export async function getJourneysStats({
 
       stats.nodeStats[node.id] = {
         type: NodeStatsType.MessageNodeStats,
+        proportions: {
+          childEdge: 100,
+        },
         sendRate,
         channelStats: {
           type: ChannelType.Email,
