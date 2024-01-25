@@ -17,7 +17,7 @@ function getTimestamps() {
 }
 
 export function segmentTrackEvent(
-  overrides: Record<string, JSONValue>
+  overrides: Record<string, JSONValue>,
 ): Record<string, JSONValue> {
   return deepmerge(
     {
@@ -47,12 +47,12 @@ export function segmentTrackEvent(
       originalTimestamp: "2015-12-12T19:11:01.152Z",
       ...getTimestamps(),
     },
-    overrides
+    overrides,
   );
 }
 
 export function segmentIdentifyEvent(
-  overrides: Record<string, JSONValue> = {}
+  overrides: Record<string, JSONValue> = {},
 ): Record<string, JSONValue> {
   return deepmerge(
     {
@@ -75,6 +75,6 @@ export function segmentIdentifyEvent(
       // version: "1.1",
       // ...getTimestamps(),
     },
-    overrides
+    overrides,
   );
 }

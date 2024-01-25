@@ -84,11 +84,11 @@ export default function SubscriptionGroupConfig() {
               setRowErrors(
                 (axiosError.response.data.rowErrors ?? [])
                   .slice(0, 3)
-                  .map((e) => `row ${e.row}: ${e.error}`)
+                  .map((e) => `row ${e.row}: ${e.error}`),
               );
               setMainError(axiosError.response.data.message);
               console.error(
-                `Dittofeed Error: ${axiosError.response.status} ${axiosError.response.data.message}`
+                `Dittofeed Error: ${axiosError.response.status} ${axiosError.response.data.message}`,
               );
               return;
             }
@@ -99,7 +99,7 @@ export default function SubscriptionGroupConfig() {
               variant: "error",
               autoHideDuration: 3000,
               anchorOrigin: noticeAnchorOrigin,
-            }
+            },
           );
           // Unknown error
           console.error(error);

@@ -43,7 +43,7 @@ type CsvParseResult = Result<
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function subscriptionGroupsController(
-  fastify: FastifyInstance
+  fastify: FastifyInstance,
 ) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/",
@@ -67,7 +67,7 @@ export default async function subscriptionGroupsController(
       }
       const resource = subscriptionGroupToResource(result.value);
       return reply.status(200).send(resource);
-    }
+    },
   );
 
   await fastify.register(async (fastifyInner) => {
@@ -142,7 +142,7 @@ export default async function subscriptionGroupsController(
               })
               .on("end", () => {
                 logger().debug(
-                  `Parsed ${uploadedRows.length} rows for workspace: ${workspaceId}`
+                  `Parsed ${uploadedRows.length} rows for workspace: ${workspaceId}`,
                 );
                 if (parsingErrors.length) {
                   resolve(err(parsingErrors));
@@ -153,7 +153,7 @@ export default async function subscriptionGroupsController(
               .on("error", (error) => {
                 resolve(err(error));
               });
-          }
+          },
         );
         if (rows.isErr()) {
           if (rows.error instanceof Error) {
@@ -232,7 +232,7 @@ export default async function subscriptionGroupsController(
 
         const response = await reply.status(200).send();
         return response;
-      }
+      },
     );
   });
 
@@ -259,6 +259,6 @@ export default async function subscriptionGroupsController(
         },
       });
       return reply.status(204).send();
-    }
+    },
   );
 }

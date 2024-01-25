@@ -145,7 +145,7 @@ describe("userEvents", () => {
           throw new Error("Too few events found.");
         }
         expect(new Date(events[0].event_time).getTime()).toBeGreaterThan(
-          new Date(events[1].event_time).getTime()
+          new Date(events[1].event_time).getTime(),
         );
       });
     });

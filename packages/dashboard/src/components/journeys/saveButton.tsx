@@ -13,10 +13,10 @@ import { journeyDefinitionFromState } from "./store";
 // Only usable on SSR pages
 export default function SaveButton({ journeyId }: { journeyId: string }) {
   const journeyUpdateRequest = useAppStore(
-    (store) => store.journeyUpdateRequest
+    (store) => store.journeyUpdateRequest,
   );
   const setJourneyUpdateRequest = useAppStore(
-    (store) => store.setJourneyUpdateRequest
+    (store) => store.setJourneyUpdateRequest,
   );
   const apiBase = useAppStore((store) => store.apiBase);
   const upsertJourney = useAppStore((store) => store.upsertJourney);
@@ -43,7 +43,7 @@ export default function SaveButton({ journeyId }: { journeyId: string }) {
     if (journeyDefinition.isErr()) {
       console.error(
         "failed to build journey definition",
-        journeyDefinition.error
+        journeyDefinition.error,
       );
       return;
     }

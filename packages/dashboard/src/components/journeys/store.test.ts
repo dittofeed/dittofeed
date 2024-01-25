@@ -123,10 +123,10 @@ describe("journeyToState", () => {
       (nodeId, expectedChildren) => {
         const actualChildren = findDirectUiChildren(
           nodeId,
-          uiState.journeyEdges
+          uiState.journeyEdges,
         );
         expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
-      }
+      },
     );
   });
 
@@ -179,7 +179,7 @@ describe("journeyToState", () => {
       for (const [nodeId, expectedChildren] of uiExpectations) {
         const actualChildren = findDirectUiChildren(
           nodeId,
-          uiState.journeyEdges
+          uiState.journeyEdges,
         );
         expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
       }
@@ -320,7 +320,7 @@ describe("journeyToState", () => {
       uiState = journeyToState(journeyResource);
 
       definitionFromState = unwrap(
-        await journeyDefinitionFromState({ state: uiState })
+        await journeyDefinitionFromState({ state: uiState }),
       );
     });
     const uiExpectations: [string, string[]][] = [
@@ -374,10 +374,10 @@ describe("journeyToState", () => {
       (nodeId, expectedChildren) => {
         const actualChildren = findDirectUiChildren(
           nodeId,
-          uiState.journeyEdges
+          uiState.journeyEdges,
         );
         expect(new Set(actualChildren)).toEqual(new Set(expectedChildren));
-      }
+      },
     );
 
     const expectations: [string, string[]][] = [
@@ -408,7 +408,7 @@ describe("journeyToState", () => {
       (nodeId, expectedChildren) => {
         const actualChildren = findDirectChildren(nodeId, definitionFromState);
         expect(actualChildren).toEqual(new Set(expectedChildren));
-      }
+      },
     );
 
     it("doesn't contain isolated nodes", async () => {
@@ -561,11 +561,11 @@ describe("journeyToState", () => {
 
     it("produces the correct ui state", () => {
       expect(
-        uiState.journeyNodes.filter((n) => n.type === "label")
+        uiState.journeyNodes.filter((n) => n.type === "label"),
       ).toHaveLength(4);
 
       expect(
-        uiState.journeyNodes.filter((n) => n.type === "empty")
+        uiState.journeyNodes.filter((n) => n.type === "empty"),
       ).toHaveLength(2);
     });
   });
@@ -782,7 +782,7 @@ describe("journeyDefinitionFromState", () => {
     });
     if (result.isErr()) {
       throw new Error(
-        `journeyResourceFromState failed with ${result.error.message}`
+        `journeyResourceFromState failed with ${result.error.message}`,
       );
     }
     const { exitNode, entryNode, nodes } = result.value;

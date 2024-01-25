@@ -60,7 +60,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       segmentId: id,
       workspaceId,
       subscriptionGroups: subscriptionGroups.map((sg) =>
-        subscriptionGroupToResource(sg)
+        subscriptionGroupToResource(sg),
       ),
       messageTemplates,
     });
@@ -100,7 +100,7 @@ export default function BroadcastSegment() {
   const [debouncedSegment] = useDebounce(editedSegment, 1000);
   const broadcast = useMemo(
     () => broadcasts.find((b) => b.id === id) ?? null,
-    [broadcasts, id]
+    [broadcasts, id],
   );
   const started = broadcast?.status !== "NotStarted";
 

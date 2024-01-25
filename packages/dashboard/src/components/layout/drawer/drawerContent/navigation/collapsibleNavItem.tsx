@@ -1,6 +1,6 @@
-import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material"
-import { GridExpandMoreIcon } from "@mui/x-data-grid"
-import { PropsWithChildren } from "react"
+import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
+import { GridExpandMoreIcon } from "@mui/x-data-grid";
+import { PropsWithChildren } from "react";
 
 function CollapsibleNavItem({ children }: PropsWithChildren<object>) {
   return (
@@ -14,7 +14,7 @@ function CollapsibleNavItem({ children }: PropsWithChildren<object>) {
       </AccordionSummary>
       <AccordionDetails>a</AccordionDetails>
     </Accordion>
-  )
+  );
 }
 
-export default CollapsibleNavItem
+export default CollapsibleNavItem;

@@ -51,7 +51,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           {
             workspaceId: dfContext.workspace.id,
           },
-          "handling hubspot callback"
+          "handling hubspot callback",
         );
         const [tokenResponse, integration] = await Promise.all([
           axios({
@@ -139,7 +139,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
           {
             provider,
           },
-          "unknown provider"
+          "unknown provider",
         );
 
         return {
@@ -155,7 +155,7 @@ export const getServerSideProps: GetServerSideProps = requestContext(
         destination: "/settings",
       },
     };
-  }
+  },
 );
 
 export default function CallbackPage() {

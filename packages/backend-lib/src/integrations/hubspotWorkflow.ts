@@ -21,7 +21,7 @@ const { getOauthToken, refreshToken, getIntegrationEnabled } = proxyActivities<
 });
 
 export const hubspotWorkflowInitialize = wf.defineSignal(
-  "hubspotWorkflowInitialize"
+  "hubspotWorkflowInitialize",
 );
 
 export function generateId(workspaceId: string) {
@@ -85,7 +85,7 @@ export async function hubspotWorkflow({
         REFRESH_WINDOW -
         // add jitter to prevent thundering herd
         jitter * pollingJitterCoefficient,
-      0
+      0,
     );
     logger.info("hubspot getTimeToWait", {
       workspaceId,

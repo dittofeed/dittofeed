@@ -55,7 +55,7 @@ export default async function router(fastify: FastifyInstance) {
     },
     {
       prefix: "/api",
-    }
+    },
   );
 
   // endpoints without standard authorization
@@ -72,12 +72,12 @@ export default async function router(fastify: FastifyInstance) {
           : null,
       ]);
     },
-    { prefix: "/api/public" }
+    { prefix: "/api/public" },
   );
 
   await fastify.register(
     async (f: FastifyInstance) =>
       Promise.all([f.register(debugController, { prefix: "/debug" })]),
-    { prefix: "/internal-api" }
+    { prefix: "/internal-api" },
   );
 }

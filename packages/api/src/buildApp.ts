@@ -84,7 +84,7 @@ async function buildApp() {
           httpOnly: true,
           secure: config().nodeEnv === "production",
         },
-      })
+      }),
     );
   }
 

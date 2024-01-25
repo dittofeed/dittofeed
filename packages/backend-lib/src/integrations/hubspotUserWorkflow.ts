@@ -89,7 +89,7 @@ export async function hubspotUserWorkflow({
         }
         const parsed = parseUserProperty(
           emailEventsUserProperty.definition,
-          signal.value
+          signal.value,
         );
         if (parsed.isErr()) {
           logger.error("failed to parse user property", {
@@ -102,7 +102,7 @@ export async function hubspotUserWorkflow({
         }
         const valueResult = schemaValidateWithErr(
           parsed.value,
-          Type.Array(ParsedPerformedManyValueItem)
+          Type.Array(ParsedPerformedManyValueItem),
         );
         if (valueResult.isErr()) {
           logger.error("failed to validate user property", {
@@ -141,7 +141,7 @@ export async function hubspotUserWorkflow({
     () =>
       pendingListsUpdates.size > BATCH_SIZE ||
       pendingEmailsUpdate.update !== null,
-    TIMEOUT
+    TIMEOUT,
   );
   if (batchFull) {
     logger.info("hubspot user batch ready", {
@@ -172,7 +172,7 @@ export async function hubspotUserWorkflow({
         workspaceId,
         userId,
         events: pendingEmailsValue,
-      })
+      }),
     );
   }
 
@@ -182,7 +182,7 @@ export async function hubspotUserWorkflow({
         workspaceId,
         userId,
         segments: Array.from(pendingListsUpdates.values()),
-      })
+      }),
     );
   }
 

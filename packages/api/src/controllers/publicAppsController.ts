@@ -55,7 +55,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         data: request.body,
       });
       return reply.status(204).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -91,7 +91,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         data: request.body,
       });
       return reply.status(204).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -127,7 +127,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         data: request.body,
       });
       return reply.status(204).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -163,7 +163,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         data: request.body,
       });
       return reply.status(204).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -179,7 +179,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       return reply.status(400).send({
         message: "Not yet implemented.",
       });
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -195,7 +195,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
       return reply.status(400).send({
         message: "Not yet implemented.",
       });
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -230,6 +230,6 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         data: request.body,
       });
       return reply.status(204).send();
-    }
+    },
   );
 }

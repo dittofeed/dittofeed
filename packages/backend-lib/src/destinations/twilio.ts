@@ -27,7 +27,7 @@ export async function sendSms({
         body,
         to,
       },
-      "Sending SMS"
+      "Sending SMS",
     );
     const response = await TwilioClient(accountSid, authToken).messages.create({
       messagingServiceSid,

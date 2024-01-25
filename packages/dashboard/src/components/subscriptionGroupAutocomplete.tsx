@@ -11,7 +11,7 @@ function getSubscriptionGroupLabel(sg: SubscriptionGroupResource) {
 }
 
 export type SubscriptionGroupChangeHandler = (
-  subscriptionGroup: SubscriptionGroupResource | null
+  subscriptionGroup: SubscriptionGroupResource | null,
 ) => void;
 
 export default function SubscriptionGroupAutocomplete({
@@ -27,7 +27,7 @@ export default function SubscriptionGroupAutocomplete({
 }) {
   const { subscriptionGroups } = useAppStorePick(["subscriptionGroups"]);
   const subscriptionGroupItems = subscriptionGroups.filter(
-    (sg) => sg.channel === channel
+    (sg) => sg.channel === channel,
   );
   const subscriptionGroup =
     subscriptionGroupItems.find((sg) => sg.id === subscriptionGroupId) ?? null;

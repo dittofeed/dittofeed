@@ -23,6 +23,6 @@ export default async function integrationsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const integration = await upsertIntegration(request.body);
       return reply.status(200).send(integration);
-    }
+    },
   );
 }

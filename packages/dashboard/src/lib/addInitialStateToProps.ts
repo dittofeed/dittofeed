@@ -9,7 +9,7 @@ function clone<T>(obj: T): T {
 }
 
 export function addInitialStateToProps<
-  T extends Record<string, unknown> = Record<string, never>
+  T extends Record<string, unknown> = Record<string, never>,
 >({
   props,
   serverInitialState,

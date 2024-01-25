@@ -34,7 +34,7 @@ export function getSegmentConfigState({
   let segmentResource: SegmentResource;
   if (segment && segment.workspaceId === workspaceId) {
     const segmentDefinition = unwrap(
-      schemaValidateWithErr(segment.definition, SegmentDefinition)
+      schemaValidateWithErr(segment.definition, SegmentDefinition),
     );
     segmentResource = {
       id: segment.id,

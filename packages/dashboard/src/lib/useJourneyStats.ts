@@ -15,7 +15,7 @@ export function useJourneyStats(
     Pick<
       AppContents,
       "apiBase" | "upsertJourneyStats" | "setJourneyStatsRequest"
-    >
+    >,
 ) {
   React.useEffect(() => {
     (async () => {
@@ -34,7 +34,7 @@ export function useJourneyStats(
           params,
         });
         const value = unwrap(
-          schemaValidateWithErr(response.data, JourneyStatsResponse)
+          schemaValidateWithErr(response.data, JourneyStatsResponse),
         );
 
         args.setJourneyStatsRequest({

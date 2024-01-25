@@ -141,7 +141,7 @@ export const getServerSideProps: GetServerSideProps<
 
 function getBroadcastMessageNode(
   journeyId: string,
-  journeys: AppState["journeys"]
+  journeys: AppState["journeys"],
 ): MessageNode | null {
   if (journeys.type !== CompletionStatus.Successful) {
     return null;
@@ -188,7 +188,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
     const theme = useTheme();
     const broadcast = useMemo(
       () => broadcasts.find((b) => b.id === id) ?? null,
-      [broadcasts, id]
+      [broadcasts, id],
     );
     const started = broadcast?.status !== "NotStarted";
 

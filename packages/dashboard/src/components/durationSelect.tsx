@@ -41,7 +41,7 @@ export default function DurationSelect({
     }
   };
   const handleTimeChange: ComponentProps<typeof TextField>["onChange"] = (
-    e
+    e,
   ) => {
     const time = parseInt(e.target.value, 10);
     onChange(time * timeUnitConversion[timeUnit]);

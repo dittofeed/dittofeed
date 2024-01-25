@@ -22,7 +22,7 @@ const Transitions = forwardRef(
         | "bottom-right"
         | "bottom";
     },
-    ref
+    ref,
   ) => {
     let positionSX = {
       transformOrigin: "0 0 0",
@@ -63,7 +63,7 @@ const Transitions = forwardRef(
         )}
       </Box>
     );
-  }
+  },
 );
 
 Transitions.displayName = "Transitions";

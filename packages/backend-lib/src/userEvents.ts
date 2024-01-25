@@ -69,7 +69,7 @@ export async function insertUserEvents({
   const { userEventsTopicName, writeMode } = config();
   const userEventsWithDefault: InsertUserEventInternal[] = arrayDefault(
     userEvents,
-    events
+    events,
   ).map((e) => ({
     ...e,
     messageRaw:
@@ -94,7 +94,7 @@ export async function insertUserEvents({
               message_id: messageId,
               message_raw: messageRaw,
             }),
-          })
+          }),
         ),
       });
       break;
@@ -143,7 +143,7 @@ export async function findManyEvents({
   const paginationClause = limit
     ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
         limit,
-        "Int32"
+        "Int32",
       )}`
     : "";
 
@@ -330,11 +330,11 @@ export async function findUserIdsByUserProperty({
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
   const computedPropertyId = queryBuilder.addQueryValue(
     userProperty.id,
-    "String"
+    "String",
   );
   const valueSetParam = queryBuilder.addQueryValue(
     Array.from(valueSet),
-    "Array(String)"
+    "Array(String)",
   );
 
   const query = `
@@ -356,7 +356,7 @@ export async function findUserIdsByUserProperty({
 
   for await (const rows of queryResults.stream()) {
     await Promise.all([
-      rows.map(async (row: Row) => {
+      (rows as Row[]).forEach((row) => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { user_id, user_property_value } = row.json<{
           user_id: string;
