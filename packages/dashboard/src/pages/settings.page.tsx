@@ -920,6 +920,7 @@ function DefaultEmailConfig() {
     >
       <Button
         variant="contained"
+        disabled={!defaultProvider}
         sx={{
           alignSelf: {
             xs: "start",
