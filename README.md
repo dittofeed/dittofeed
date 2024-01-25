@@ -73,8 +73,6 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 ## Roadmap
 
-### Q1
-
 ☑️ = in development | ✅ = in production
 
 ### Q1: January 1 to March 31
