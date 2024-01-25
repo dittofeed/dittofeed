@@ -1,6 +1,12 @@
 // EventDetailsSidebar.tsx
 import React from "react";
-import { Drawer, Typography, Box } from "@mui/material";
+import { Drawer, Typography, Box, useTheme } from "@mui/material";
+import InfoTooltip from "./infoTooltip";
+import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
+import { linter, lintGutter } from "@codemirror/lint";
+import { EditorView } from "@codemirror/view";
+import ReactCodeMirror from "@uiw/react-codemirror";
+import { SubtleHeader } from "./headers";
 type SelectedEvent = {
   [x: string]: any;
   messageId: string;
@@ -23,15 +29,16 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
   onClose,
   selectedEvent,
 }) => {
+  const theme = useTheme();
   return (
-    <Drawer
-      open={open}
-      onClose={onClose}
-      anchor="right"
-      slotProps={{ backdrop: { onClick: onClose } }}
-    >
-      <Box padding={2} paddingTop={10}>
-        <Typography fontFamily={"monospace"} variant="h2">
+    <Drawer open={open} onClose={onClose} anchor="right">
+      <Box padding={2} paddingTop={10} sx={{ maxWidth: "25vw" }}>
+        <Typography
+          fontWeight={300}
+          variant="h2"
+          fontFamily={"monospace"}
+          sx={{ fontSize: 16, marginBottom: 0.5 }}
+        >
           Event Details
         </Typography>
         {selectedEvent &&
@@ -47,12 +54,35 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
 
         {selectedEvent && selectedEvent.traits && (
           <>
-            <Typography fontFamily={"monospace"}>Traits:</Typography>
-            <Typography>
-              <pre>
-                {JSON.stringify(JSON.parse(selectedEvent.traits), null, 2)}
-              </pre>
-            </Typography>
+            <InfoTooltip title={"Traits"}>
+              <Typography variant="h5">Traits</Typography>
+            </InfoTooltip>
+            <ReactCodeMirror
+              value={selectedEvent.traits}
+              // onChange={(json) =>
+              //   setState((draft) => {
+              //     draft.userPropertiesJSON = json;
+              //     const result = jsonParseSafe(json).andThen((p) =>
+              //       schemaValidateWithErr(p, UserPropertyAssignments)
+              //     );
+              //     if (result.isErr()) {
+              //       return;
+              //     }
+              //     draft.userProperties = result.value;
+              //   })
+              // }
+              extensions={[
+                codeMirrorJson(),
+                linter(jsonParseLinter()),
+                EditorView.lineWrapping,
+                EditorView.theme({
+                  "&": {
+                    fontFamily: theme.typography.fontFamily,
+                  },
+                }),
+                lintGutter(),
+              ]}
+            />
           </>
         )}
       </Box>

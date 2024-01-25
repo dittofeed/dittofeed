@@ -124,8 +124,7 @@ export function EventsTable({
   const { page, pageSize } = paginationModel;
   const theme = useTheme();
   const workspace = useAppStore((store) => store.workspace);
-  const apiBase ='https://3001-rutik3-dittofeed-b0l07s2gxv6.ws-us107.gitpod.io';
-  //useAppStore((store) => store.apiBase);
+  const apiBase = useAppStore((store) => store.apiBase);
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
   const updatePagination = useEventsStore((store) => store.updatePagination);
@@ -278,7 +277,7 @@ export function EventsTable({
         userId,
         offset: page * pageSize,
         limit: pageSize,
-        searchTerm:text
+        searchTerm: text
       };
 
       response = await axios.get(`${apiBase}/api/events`, {
