@@ -48,7 +48,6 @@ module.exports = {
         caughtErrorsIgnorePattern: "^_",
       },
     ],
-    "@typescript-eslint/no-unsafe-enum-comparison": "error",
   },
   root: true,
 };
