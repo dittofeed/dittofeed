@@ -33,14 +33,9 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
   return (
     <Drawer open={open} onClose={onClose} anchor="right">
       <Box padding={2} paddingTop={10} sx={{ maxWidth: "25vw" }}>
-        <Typography
-          fontWeight={300}
-          variant="h2"
-          fontFamily={"monospace"}
-          sx={{ fontSize: 16, marginBottom: 0.5 }}
-        >
+        <SubtleHeader>
           Event Details
-        </Typography>
+        </SubtleHeader>
         {selectedEvent &&
           Object.keys(selectedEvent).map((key) => {
             return key !== "traits" ? (
@@ -59,18 +54,6 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
             </InfoTooltip>
             <ReactCodeMirror
               value={selectedEvent.traits}
-              // onChange={(json) =>
-              //   setState((draft) => {
-              //     draft.userPropertiesJSON = json;
-              //     const result = jsonParseSafe(json).andThen((p) =>
-              //       schemaValidateWithErr(p, UserPropertyAssignments)
-              //     );
-              //     if (result.isErr()) {
-              //       return;
-              //     }
-              //     draft.userProperties = result.value;
-              //   })
-              // }
               extensions={[
                 codeMirrorJson(),
                 linter(jsonParseLinter()),

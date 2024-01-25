@@ -163,11 +163,12 @@ export async function findManyEvents({
 
   const searchClause = searchTerm
     ? `HAVING CAST(event_type AS String) LIKE ${qb.addQueryValue(
-      searchTerm,
+      `%${searchTerm}%`,
       "String"
-    )} OR
-    CAST(event AS String) LIKE ${qb.addQueryValue(searchTerm, "String")} OR
-    message_id LIKE ${qb.addQueryValue(searchTerm, "String")}`
+    )} OR CAST(event AS String) LIKE ${qb.addQueryValue(
+      `%${searchTerm}%`,
+      "String"
+    )} OR message_id = ${qb.addQueryValue(searchTerm, "String")}`
     : "";
 
   // TODO exclude event_time from group by

@@ -34,6 +34,7 @@ import { useAppStore } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import SearchIcon from "@mui/icons-material/Search";
 import EventDetailsSidebar from "./eventDetailsSidebar";
+import { useDebounce } from "use-debounce";
 interface EventsState {
   pageSize: number;
   page: number;
@@ -257,6 +258,7 @@ export function EventsTable({
   ///////////////////////////////////////////////////////////////////////////////
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 30000);
 
   const handleSearchTermChange = async ({
     event,
@@ -269,7 +271,8 @@ export function EventsTable({
     apiBase,
   }: HandleChanges) => {
     const text = (event.target as HTMLInputElement).value;
-    setSearchTerm(text);
+      setSearchTerm(text);
+    if (debouncedSearchTerm === "") return;
     let response: AxiosResponse;
     try {
       const params: GetEventsRequest = {
@@ -277,12 +280,15 @@ export function EventsTable({
         userId,
         offset: page * pageSize,
         limit: pageSize,
-        searchTerm: text
+        searchTerm: debouncedSearchTerm,
       };
-
+      updateEventsPaginationRequest({
+        type: CompletionStatus.InProgress,
+      });
       response = await axios.get(`${apiBase}/api/events`, {
         params,
       });
+      console.info(response)
     } catch (e) {
       const error = e as Error;
 
@@ -346,7 +352,7 @@ export function EventsTable({
               id="search"
               type="search"
               label="Search"
-              sx={{ width: "100%" }}
+              sx={{ width: "98%" ,m:2}}
               value={value}
               onChange={onChange}
               autoFocus={true}
