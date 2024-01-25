@@ -356,7 +356,7 @@ export async function findUserIdsByUserProperty({
 
   for await (const rows of queryResults.stream()) {
     await Promise.all([
-      rows.map(async (row: Row) => {
+      (rows as Row[]).forEach((row) => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { user_id, user_property_value } = row.json<{
           user_id: string;

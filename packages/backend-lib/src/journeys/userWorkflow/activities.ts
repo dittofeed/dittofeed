@@ -413,6 +413,7 @@ export async function sendSmsWithPayload(
         }
         default: {
           const smsType: never = channelConfig.type;
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           assertUnreachable(smsType, `unknown sms provider type ${smsType}`);
         }
       }

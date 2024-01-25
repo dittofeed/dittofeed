@@ -124,12 +124,12 @@ async function readStates({
       state_id,
       user_id
   `;
-  const response = (await (
+  const response = await (
     await clickhouseClient().query({
       query,
       query_params: qb.getQueries(),
     })
-  ).json()) as { data: State[] };
+  ).json<{ data: State[] }>();
   return response.data;
 }
 
@@ -2604,7 +2604,7 @@ describe("computeProperties", () => {
           const events: TestEvent[] = [];
           for (const event of step.events) {
             if (typeof event === "function") {
-              events.push(await event(stepContext));
+              events.push(event(stepContext));
             } else {
               events.push(event);
             }
@@ -2656,7 +2656,7 @@ describe("computeProperties", () => {
             ...(step.users?.map(async (userOrFn) => {
               let user: TableUser;
               if (typeof userOrFn === "function") {
-                user = await userOrFn(stepContext);
+                user = userOrFn(stepContext);
               } else {
                 user = userOrFn;
               }

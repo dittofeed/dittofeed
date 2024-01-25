@@ -356,7 +356,7 @@ export async function buildSegmentsFile({
       };
       const ui = userIdentifiersMap.get(a.userId);
       ui?.forEach((value, key) => {
-        const parsed = JSON.parse(value);
+        const parsed = JSON.parse(value) as unknown;
         if (typeof parsed === "string" && parsed.length > 0) {
           csvAssignment[key] = parsed;
         }

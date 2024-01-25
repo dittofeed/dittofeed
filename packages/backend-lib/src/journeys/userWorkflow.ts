@@ -272,6 +272,7 @@ export async function userJourneyWorkflow({
             }
             default: {
               const { type }: never = currentNode.variant;
+              // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
               assertUnreachable(type, `unknown channel type ${type}`);
             }
           }

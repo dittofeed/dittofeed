@@ -57,13 +57,17 @@ export class ClickHouseQueryBuilder {
     if (this.debug) {
       switch (dataType) {
         case "String":
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           return `'${value}'`;
         case "Int32":
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           return `${value}`;
         case "Array(String)":
           if (Array.isArray(value)) {
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
             return `['${value.join("','")}']`;
           }
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           return `['${value}']`;
         default:
           throw new Error(

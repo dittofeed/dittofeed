@@ -662,7 +662,7 @@ export async function computePropertiesPeriodSafe({
             }
             receivedRows += rows.length;
 
-            (async () => {
+            void (async () => {
               unprocessedRowSets += 1;
               try {
                 await processRows({ rows, workspaceId, subscribedJourneys });

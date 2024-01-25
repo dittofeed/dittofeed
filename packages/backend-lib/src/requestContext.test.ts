@@ -13,7 +13,7 @@ describe("getMultiTenantRequestContext", () => {
     let header: string;
     let emailDomain: string;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       emailDomain = `${randomUUID()}.com`;
       header = `Bearer ${encodeMockJwt({
         email: `${randomUUID()}@${emailDomain}`,

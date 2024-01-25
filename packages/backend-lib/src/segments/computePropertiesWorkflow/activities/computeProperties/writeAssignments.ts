@@ -45,10 +45,13 @@ function pathToArgs(
   queryBuilder: ClickHouseQueryBuilder,
 ): string | null {
   try {
-    return jp
-      .parse(path)
-      .map((c) => queryBuilder.addQueryValue(c.expression.value, "String"))
-      .join(", ");
+    return (
+      jp
+        .parse(path)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        .map((c) => queryBuilder.addQueryValue(c.expression.value, "String"))
+        .join(", ")
+    );
   } catch (e) {
     logger().info({ err: e });
     return null;
@@ -621,7 +624,7 @@ function buildGroupedUserPropertyQueryExpression({
         .filter((query) => query !== null)
         .map((query) => {
           const queryId = getChCompatibleUuid();
-          return `if(empty(${query} as ${queryId}), Null, ${queryId})`;
+          return `if(empty(${query ?? ""} as ${queryId}), Null, ${queryId})`;
         });
       if (childFragments.length === 0) {
         return null;

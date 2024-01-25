@@ -59,6 +59,7 @@ export function getSubscriptionGroupDetails(
 ): SubscriptionGroupDetails {
   let action: UserSubscriptionAction;
   if (sg.Segment[0]?.SegmentAssignment[0] !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     action = sg.Segment[0].SegmentAssignment[0].inSegment
       ? UserSubscriptionAction.Subscribe
       : UserSubscriptionAction.Unsubscribe;

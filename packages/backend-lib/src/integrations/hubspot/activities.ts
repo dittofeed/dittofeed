@@ -67,7 +67,7 @@ function handleAuthFailure<T extends unknown[], U>(
       logger().error(
         {
           err: e,
-          errBody: e.response?.data,
+          errBody: e.response?.data as unknown,
         },
         "failed to contact hubspot",
       );
@@ -170,7 +170,11 @@ export async function refreshToken({
     });
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { access_token, refresh_token, expires_in } = tokenResponse.data;
+    const { access_token, refresh_token, expires_in } = tokenResponse.data as {
+      access_token: string;
+      refresh_token: string;
+      expires_in: number;
+    };
 
     const newOauthToken = await prisma().oauthToken.upsert({
       where: {
@@ -205,14 +209,14 @@ export async function refreshToken({
       throw e;
     }
     const badRefreshTokenError = schemaValidateWithErr(
-      e.response?.data,
+      e.response?.data as unknown,
       HubspotBadRefreshTokenError,
     );
 
     logger().error(
       {
         err: e,
-        errBody: e.response?.data,
+        errBody: e.response?.data as unknown,
         isRefreshError: badRefreshTokenError.isOk(),
         workspaceId,
       },
@@ -459,13 +463,13 @@ async function createHubspotEmailRequest(
   };
   try {
     const response = await axios.post(url, email, { headers });
-    return response.data;
+    return response.data as unknown;
   } catch (e) {
     if (e instanceof AxiosError) {
       logger().error(
         {
           err: e,
-          body: e.response?.data,
+          body: e.response?.data as unknown,
         },
         "error creating hubspot email",
       );
@@ -544,13 +548,13 @@ export function calculateHubspotEmailChanges({
     let status: string | undefined;
     for (const { properties, event } of groupedEvents) {
       if (properties.body && !body) {
-        body = properties.body;
+        body = properties.body as string;
       }
       if (properties.subject && !subject) {
-        subject = properties.subject;
+        subject = properties.subject as string;
       }
       if (properties.from && !from) {
-        from = properties.from;
+        from = properties.from as string;
       }
       if (!status) {
         switch (event) {

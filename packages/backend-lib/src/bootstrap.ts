@@ -303,13 +303,13 @@ export default async function bootstrap({
   });
   const initialBootstrap = [
     bootstrapClickhouse().catch((err) =>
-      logger().error({ err }, "failed to bootstrap clickhouse"),
+      logger().error({ err: err as Error }, "failed to bootstrap clickhouse"),
     ),
   ];
   if (config().writeMode === "kafka") {
     initialBootstrap.push(
       bootstrapKafka().catch((err) =>
-        logger().error({ err }, "failed to bootstrap kafka"),
+        logger().error({ err: err as Error }, "failed to bootstrap kafka"),
       ),
     );
   }

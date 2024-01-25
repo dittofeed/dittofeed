@@ -86,7 +86,7 @@ function defaultTemporalAddress(inputURL?: string): string {
   }
   const parts = inputURL.split(":");
   if (parts.length === 1) {
-    return `${parts[0]}:7233`;
+    return `${parts[0] ?? ""}:7233`;
   }
   return inputURL;
 }

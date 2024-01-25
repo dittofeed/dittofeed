@@ -78,7 +78,7 @@ describe("generateSubscriptionChangeUrl", () => {
     if (!secret?.value) {
       throw new Error("No secret found");
     }
-    const url = await generateSubscriptionChangeUrl({
+    const url = generateSubscriptionChangeUrl({
       workspaceId,
       userId,
       subscriptionSecret: secret.value,
