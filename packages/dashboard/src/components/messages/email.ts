@@ -486,7 +486,7 @@ export const defaultEmailBody = `<!DOCTYPE html>
 </html>`;
 
 export function defaultEmailDefinition(
-  emailProvider?: DefaultEmailProviderResource
+  emailProvider?: DefaultEmailProviderResource,
 ): EmailTemplateResource {
   return {
     type: ChannelType.Email,

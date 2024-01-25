@@ -61,7 +61,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           name: `New Email Message - ${templateId}`,
           id: templateId,
           definition: defaultEmailDefinition(
-            defaultEmailProvider as DefaultEmailProviderResource | undefined
+            defaultEmailProvider as DefaultEmailProviderResource | undefined,
           ) satisfies EmailTemplateResource,
         },
         update: {},
