@@ -128,7 +128,7 @@ describe("renderWithUserProperties", () => {
       },
     });
     expect(rendered.trim()).toEqual(
-      expect.stringContaining(expectedRenderedMjmlTemplate.trim())
+      expect.stringContaining(expectedRenderedMjmlTemplate.trim()),
     );
   });
 

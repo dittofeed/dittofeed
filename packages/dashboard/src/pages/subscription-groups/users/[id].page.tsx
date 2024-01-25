@@ -26,12 +26,12 @@ export default function SubscriptionGroupUsers() {
   const segmentsResult = useAppStore((store) => store.segments);
   const workspace = useAppStore((store) => store.workspace);
   const editedSubscriptionGroup = useAppStore(
-    (store) => store.editedSubscriptionGroup
+    (store) => store.editedSubscriptionGroup,
   );
 
   const queryParams = useMemo(
     () => schemaValidate(router.query, UsersTableParams).unwrapOr({}),
-    [router.query]
+    [router.query],
   );
 
   const segment = useMemo(
@@ -39,7 +39,7 @@ export default function SubscriptionGroupUsers() {
       segmentsResult.type === CompletionStatus.Successful
         ? segmentsResult.value.find((s) => s.subscriptionGroupId === id)
         : undefined,
-    [segmentsResult, id]
+    [segmentsResult, id],
   );
 
   if (!id) {

@@ -33,7 +33,7 @@ export async function withSpan<T>(
     name: string;
     tracer?: string;
   },
-  cb: (span: Span) => Promise<T>
+  cb: (span: Span) => Promise<T>,
 ): Promise<T> {
   const tracer = trace.getTracer(tracerName);
   return tracer.startActiveSpan(name, async (span) => {
@@ -115,9 +115,9 @@ export function initOpenTelemetry({
           (err) => {
             logger().error({ err }, "Error terminating telemetry");
             process.exit(1);
-          }
+          },
         );
-      })
+      }),
     );
 
     try {

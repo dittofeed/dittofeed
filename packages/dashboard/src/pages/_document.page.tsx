@@ -40,7 +40,7 @@ export default function DittofeedDocument({ emotionStyleTags }: DocumentProps) {
 // `getInitialProps` belongs to `_document` (instead of `_app`),
 // it's compatible with static-site generation (SSG).
 DittofeedDocument.getInitialProps = async (
-  ctx: DocumentContext
+  ctx: DocumentContext,
 ): Promise<DocumentProps & DocumentInitialProps> => {
   // Resolution order
   //
@@ -74,7 +74,7 @@ DittofeedDocument.getInitialProps = async (
   ctx.renderPage = () =>
     originalRenderPage({
       enhanceApp: (
-        DittofeedApp: AppType | React.ComponentType<DittofeedAppProps>
+        DittofeedApp: AppType | React.ComponentType<DittofeedAppProps>,
       ) =>
         function EnhanceApp(props) {
           return <DittofeedApp emotionCache={cache} {...props} />;

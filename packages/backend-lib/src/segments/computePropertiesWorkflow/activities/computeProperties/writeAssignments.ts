@@ -42,7 +42,7 @@ type ComputedProperty = SegmentComputedProperty | UserComputedProperty;
 
 function pathToArgs(
   path: string,
-  queryBuilder: ClickHouseQueryBuilder
+  queryBuilder: ClickHouseQueryBuilder,
 ): string | null {
   try {
     return jp
@@ -57,7 +57,7 @@ function pathToArgs(
 
 function jsonValueToCh(
   queryBuilder: ClickHouseQueryBuilder,
-  val: unknown
+  val: unknown,
 ): string {
   const type = typeof val;
   switch (type) {
@@ -193,7 +193,7 @@ function buildSegmentQueryExpression({
         for (const property of node.whereProperties) {
           const path = queryBuilder.addQueryValue(
             `$.${property.path}`,
-            "String"
+            "String",
           );
           const operatorType = property.operator.type;
 
@@ -202,7 +202,7 @@ function buildSegmentQueryExpression({
             case SegmentOperatorType.Equals: {
               const value = jsonValueToCh(
                 queryBuilder,
-                property.operator.value
+                property.operator.value,
               );
               condition = `
                 JSON_VALUE(
@@ -214,7 +214,7 @@ function buildSegmentQueryExpression({
             }
             default:
               throw new Error(
-                `Unimplemented operator for ${node.type} segment node ${operatorType}`
+                `Unimplemented operator for ${node.type} segment node ${operatorType}`,
               );
           }
           whereConditions.push(condition);
@@ -261,7 +261,7 @@ function buildSegmentQueryExpression({
           }
           default:
             throw new Error(
-              `Unimplemented operator for ${node.type} segment node ${operatorType}`
+              `Unimplemented operator for ${node.type} segment node ${operatorType}`,
             );
         }
         hasConditions.push(condition);
@@ -284,7 +284,7 @@ function buildSegmentQueryExpression({
         for (const property of node.properties) {
           const path = queryBuilder.addQueryValue(
             `$.${property.path}`,
-            "String"
+            "String",
           );
           const operatorType = property.operator.type;
 
@@ -293,7 +293,7 @@ function buildSegmentQueryExpression({
             case SegmentOperatorType.Equals: {
               const value = jsonValueToCh(
                 queryBuilder,
-                property.operator.value
+                property.operator.value,
               );
               condition = `
                 JSON_VALUE(
@@ -305,7 +305,7 @@ function buildSegmentQueryExpression({
             }
             default:
               throw new Error(
-                `Unimplemented segment operator for performed node ${operatorType}`
+                `Unimplemented segment operator for performed node ${operatorType}`,
               );
           }
           conditions.push(condition);
@@ -326,7 +326,7 @@ function buildSegmentQueryExpression({
       const pathArgs = pathToArgs(node.path, queryBuilder);
       const jsonValuePath = queryBuilder.addQueryValue(
         `$.${node.path}`,
-        "String"
+        "String",
       );
       if (!pathArgs) {
         return null;
@@ -453,7 +453,7 @@ function buildSegmentQueryExpression({
             node: childNode,
             segmentId,
             nodes,
-          })
+          }),
         )
         .filter((query) => query !== null);
       if (childFragments.length === 0) {
@@ -477,7 +477,7 @@ function buildSegmentQueryExpression({
             node: childNode,
             segmentId,
             nodes,
-          })
+          }),
         )
         .filter((query) => query !== null);
       if (childFragments.length === 0) {
@@ -553,7 +553,7 @@ function buildLeafUserPropertyQueryExpression({
                 JSONHas(m.1, ${pathArgs}),
                 m.5 = ${queryBuilder.addQueryValue(
                   userProperty.event,
-                  "String"
+                  "String",
                 )}
               ),
               timed_messages
@@ -608,7 +608,7 @@ function buildGroupedUserPropertyQueryExpression({
     case UserPropertyDefinitionType.AnyOf: {
       const childIds = new Set(child.children);
       const childNodes = userProperty.nodes.filter(
-        (n) => n.id && childIds.has(n.id)
+        (n) => n.id && childIds.has(n.id),
       );
       const childFragments = childNodes
         .map((childNode) =>
@@ -616,7 +616,7 @@ function buildGroupedUserPropertyQueryExpression({
             child: childNode,
             userProperty,
             queryBuilder,
-          })
+          }),
         )
         .filter((query) => query !== null)
         .map((query) => {
@@ -648,7 +648,7 @@ function buildUserPropertyQueryExpression({
       const { entry } = userProperty.definition;
 
       const entryNode = userProperty.definition.nodes.find(
-        (n) => n.id === entry
+        (n) => n.id === entry,
       );
       if (!entryNode) {
         return null;
@@ -682,7 +682,7 @@ function buildUserPropertyQueryExpression({
         return null;
       }
       const orFragments = userProperty.definition.or.map(
-        ({ event }) => `m.5 = ${queryBuilder.addQueryValue(event, "String")}`
+        ({ event }) => `m.5 = ${queryBuilder.addQueryValue(event, "String")}`,
       );
       const eventsName = getChCompatibleUuid();
       return `
@@ -786,7 +786,7 @@ function computedToQueryFragments({
           groupArray(if(isNull(event), '', event))
         )
       )
-    `
+    `,
   );
   const joinedModelsFragment = `
     arrayJoin(
@@ -801,7 +801,7 @@ function computedToQueryFragments({
   withClause.set("computed_property_id", "models.3");
   withClause.set(
     "latest_processing_time",
-    "arrayMax(m -> toInt64(m.3), timed_messages)"
+    "arrayMax(m -> toInt64(m.3), timed_messages)",
   );
   withClause.set("history_length", "length(timed_messages)");
 
@@ -826,7 +826,7 @@ export default async function writeAssignments({
         segment,
       };
       return p;
-    }
+    },
   );
 
   const userComputedProperties: ComputedProperty[] = userProperties.map(
@@ -836,11 +836,11 @@ export default async function writeAssignments({
         userProperty,
       };
       return p;
-    }
+    },
   );
 
   const computedProperties = segmentComputedProperties.concat(
-    userComputedProperties
+    userComputedProperties,
   );
 
   if (computedProperties.length) {
@@ -893,7 +893,7 @@ export default async function writeAssignments({
     } catch (e) {
       logger().error(
         { workspaceId, queryId, err: e },
-        "failed write assignments query"
+        "failed write assignments query",
       );
       throw e;
     }

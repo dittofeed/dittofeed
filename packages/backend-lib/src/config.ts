@@ -71,12 +71,12 @@ const BaseRawConfigProps = {
   readQueryPageSize: Type.Optional(Type.String({ format: "naturalNumber" })),
   readQueryConcurrency: Type.Optional(Type.String({ format: "naturalNumber" })),
   computePropertiesInterval: Type.Optional(
-    Type.String({ format: "naturalNumber" })
+    Type.String({ format: "naturalNumber" }),
   ),
   secretKey: Type.Optional(Type.String()),
   password: Type.Optional(Type.String()),
   computePropertiesWorkflowTaskTimeout: Type.Optional(
-    Type.String({ format: "naturalNumber" })
+    Type.String({ format: "naturalNumber" }),
   ),
 };
 
@@ -134,7 +134,7 @@ const RawConfig = Type.Union([
         Type.Literal(NodeEnvEnum.Test),
       ]),
       ...BaseRawConfigProps,
-    })
+    }),
   ),
 ]);
 
@@ -207,7 +207,7 @@ function parseDatabaseUrl(rawConfig: RawConfig) {
   const databasePort = rawConfig.databasePort ?? "5432";
 
   const url = new URL(
-    `postgresql://${databaseUser}:${databasePassword}@${databaseHost}:${databasePort}/dittofeed`
+    `postgresql://${databaseUser}:${databasePassword}@${databaseHost}:${databasePort}/dittofeed`,
   );
   url.search = new URLSearchParams({
     ...defaultDbParams,
@@ -290,7 +290,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
 
   if (authMode === "single-tenant" && (!secretKey || !rawConfig.password)) {
     throw new Error(
-      "In single-tenant mode must specify secretKey and password"
+      "In single-tenant mode must specify secretKey and password",
     );
   }
 
@@ -303,7 +303,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     clickhouseDatabase,
     clickhouseHost: defaultChUrl(
       rawConfig.clickhouseHost,
-      rawConfig.clickhouseProtocol
+      rawConfig.clickhouseProtocol,
     ),
     clickhouseUser: rawConfig.clickhouseUser ?? "dittofeed",
     clickhousePassword: rawConfig.clickhousePassword ?? "password",

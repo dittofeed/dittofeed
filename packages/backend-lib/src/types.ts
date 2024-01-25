@@ -172,7 +172,7 @@ export const SendgridEvent = Type.Object({
     Type.Object({
       id: Type.Number(),
       name: Type.String(),
-    })
+    }),
   ),
   workspaceId: Type.Optional(Type.String()),
   runId: Type.Optional(Type.String()),
@@ -185,13 +185,13 @@ export const SendgridEvent = Type.Object({
 });
 
 export enum ResendEventType {
-   Sent = 'email.sent',
-   Delivered = 'email.delivered',
-   DeliveryDelayed = 'email.delivery_delayed',
-   Complained = 'email.complained',
-   Bounced = 'email.bounced',
-   Opened = 'email.opened',
-   Clicked = 'email.clicked'
+  Sent = "email.sent",
+  Delivered = "email.delivered",
+  DeliveryDelayed = "email.delivery_delayed",
+  Complained = "email.complained",
+  Bounced = "email.bounced",
+  Opened = "email.opened",
+  Clicked = "email.clicked",
 }
 
 export const ResendEvent = Type.Object({

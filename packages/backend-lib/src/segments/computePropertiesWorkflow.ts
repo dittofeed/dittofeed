@@ -23,7 +23,7 @@ const {
 });
 
 export const userJourneyInitialize = wf.defineSignal<[string]>(
-  "userJourneyInitialize"
+  "userJourneyInitialize",
 );
 
 export function generateComputePropertiesId(workspaceId: string) {

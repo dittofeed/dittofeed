@@ -7,7 +7,7 @@ import { useAppStore } from "../lib/appStore";
 
 export function SdkInitializer({ children }: { children: React.ReactNode }) {
   const { dashboardWriteKey, trackDashboard } = useAppStore((store) =>
-    pick(store, ["dashboardWriteKey", "trackDashboard"])
+    pick(store, ["dashboardWriteKey", "trackDashboard"]),
   );
   React.useEffect(() => {
     if (trackDashboard && dashboardWriteKey) {

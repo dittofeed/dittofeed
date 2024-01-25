@@ -27,7 +27,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const resource = await upsertSegment(request.body);
       return reply.status(200).send(resource);
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
@@ -70,7 +70,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
       }
 
       return reply.status(204).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -97,6 +97,6 @@ export default async function segmentsController(fastify: FastifyInstance) {
         .header("Content-Disposition", `attachment; filename=${fileName}`)
         .type("text/csv")
         .send(fileContent);
-    }
+    },
   );
 }

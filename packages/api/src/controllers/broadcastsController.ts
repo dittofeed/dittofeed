@@ -38,7 +38,7 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         },
       });
       return reply.status(200).send(toBroadcastResource(broadcast));
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
@@ -86,6 +86,6 @@ export default async function broadcastsController(fastify: FastifyInstance) {
         },
       });
       return reply.status(200).send(toBroadcastResource(broadcast));
-    }
+    },
   );
 }

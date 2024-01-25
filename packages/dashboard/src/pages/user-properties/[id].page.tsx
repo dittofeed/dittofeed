@@ -102,7 +102,7 @@ const groupedUserPropertyOptions: UserPropertyGroupedOption[] = [
 ];
 
 function getUserPropertyOption(
-  type: UserPropertyDefinitionType
+  type: UserPropertyDefinitionType,
 ): UserPropertyGroupedOption {
   switch (type) {
     case UserPropertyDefinitionType.Id:
@@ -128,7 +128,7 @@ function getUserPropertyOption(
 
 function defaultUserProperty(
   type: UserPropertyDefinitionType,
-  id?: string
+  id?: string,
 ): UserPropertyDefinition {
   switch (type) {
     case UserPropertyDefinitionType.Id:
@@ -201,7 +201,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     let userPropertyResource: UserPropertyResource;
     if (userProperty && userProperty.workspaceId === workspaceId) {
       const definition = unwrap(
-        schemaValidate(userProperty.definition, UserPropertyDefinition)
+        schemaValidate(userProperty.definition, UserPropertyDefinition),
       );
       userPropertyResource = {
         id: userProperty.id,
@@ -247,7 +247,7 @@ function TraitUserPropertyDefinitionEditor({
   const traits = useAppStore((store) => store.traits);
 
   const updateUserPropertyDefinition = useAppStore(
-    (state) => state.updateUserPropertyDefinition
+    (state) => state.updateUserPropertyDefinition,
   );
   const handleTraitChange = (trait: string) => {
     updateUserPropertyDefinition((current) => {
@@ -259,7 +259,7 @@ function TraitUserPropertyDefinitionEditor({
         definition.id
       ) {
         traitDefinition = current.nodes.find(
-          (n) => n.id === definition.id
+          (n) => n.id === definition.id,
         ) as TraitUserPropertyDefinition;
       } else {
         return current;
@@ -305,11 +305,11 @@ function PerformedUserPropertyDefinitionEditor({
 }) {
   const { updateUserPropertyDefinition } = useAppStore(
     (store) => pick(store, ["updateUserPropertyDefinition"]),
-    shallow
+    shallow,
   );
 
   const handlePathChange: ComponentProps<typeof TextField>["onChange"] = (
-    e
+    e,
   ) => {
     updateUserPropertyDefinition((current) => {
       let d: PerformedUserPropertyDefinition;
@@ -320,7 +320,7 @@ function PerformedUserPropertyDefinitionEditor({
         definition.id
       ) {
         d = current.nodes.find(
-          (n) => n.id === definition.id
+          (n) => n.id === definition.id,
         ) as PerformedUserPropertyDefinition;
       } else {
         return current;
@@ -331,7 +331,7 @@ function PerformedUserPropertyDefinitionEditor({
   };
 
   const handleEventNameChange: ComponentProps<typeof TextField>["onChange"] = (
-    e
+    e,
   ) => {
     updateUserPropertyDefinition((current) => {
       let d: PerformedUserPropertyDefinition;
@@ -342,7 +342,7 @@ function PerformedUserPropertyDefinitionEditor({
         definition.id
       ) {
         d = current.nodes.find(
-          (n) => n.id === definition.id
+          (n) => n.id === definition.id,
         ) as PerformedUserPropertyDefinition;
       } else {
         return current;
@@ -379,7 +379,7 @@ function AnyOfUserPropertyDefinitionEditor({
 }) {
   const { updateUserPropertyDefinition } = useAppStore(
     (store) => pick(store, ["updateUserPropertyDefinition"]),
-    shallow
+    shallow,
   );
   return (
     <>
@@ -398,7 +398,7 @@ function AnyOfUserPropertyDefinitionEditor({
             const newId = uuidv4();
             const newChild = defaultUserProperty(
               UserPropertyDefinitionType.Trait,
-              newId
+              newId,
             );
             if (newChild.type !== UserPropertyDefinitionType.Trait) {
               return current;
@@ -433,7 +433,7 @@ function AnyOfUserPropertyDefinitionEditor({
                   groupBy={(option) => option.group}
                   onChange={(
                     _event: unknown,
-                    newValue: UserPropertyGroupedOption
+                    newValue: UserPropertyGroupedOption,
                   ) => {
                     updateUserPropertyDefinition((current) => {
                       if (current.type !== UserPropertyDefinitionType.Group) {
@@ -443,7 +443,7 @@ function AnyOfUserPropertyDefinitionEditor({
                         if (node.id === n.id) {
                           const newNode = defaultUserProperty(
                             newValue.id,
-                            node.id
+                            node.id,
                           );
 
                           if (
@@ -486,7 +486,7 @@ function AnyOfUserPropertyDefinitionEditor({
                           return current;
                         }
                         const entry = current.nodes.find(
-                          (node) => node.id === current.entry
+                          (node) => node.id === current.entry,
                         );
                         if (
                           !entry ||
@@ -495,10 +495,10 @@ function AnyOfUserPropertyDefinitionEditor({
                           return current;
                         }
                         entry.children = entry.children.filter(
-                          (c) => c !== n.id
+                          (c) => c !== n.id,
                         );
                         current.nodes = current.nodes.filter(
-                          (c) => c.id !== n.id
+                          (c) => c.id !== n.id,
                         );
                         return current;
                       })

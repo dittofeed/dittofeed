@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "NODE_ENV=production tsc --build",
-    "lint": "eslint src/",
+    "lint": "eslint src/ --fix",
+    "prettier:fix": "prettier ./ --write",
     "check": "tsc --build",
     "config-env": "ts-node scripts/configEnv.ts",
     "prisma-prod": "yarn config-env-prod prisma",

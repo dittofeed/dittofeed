@@ -1,6 +1,6 @@
 import { err, ok, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
-import { ErrorResponse, Resend } from 'resend';
+import { ErrorResponse, Resend } from "resend";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps";
@@ -15,32 +15,34 @@ import {
   ResendEventType,
 } from "../types";
 
-
 function guardResponseError(payload: unknown): ErrorResponse {
-  const error = payload as Error
+  const error = payload as Error;
   return {
     message: error.message,
-    name: error.cause as ErrorResponse['name']
-  }
+    name: error.cause as ErrorResponse["name"],
+  };
 }
 
-export type ResendRequiredData = Parameters<Resend['emails']['send']>['0']
-export type ResendResponse = Awaited<ReturnType<Resend['emails']['send']>>
+export type ResendRequiredData = Parameters<Resend["emails"]["send"]>["0"];
+export type ResendResponse = Awaited<ReturnType<Resend["emails"]["send"]>>;
 
 /* 
  Resend's client does not throw an error and instead returns a nullish error 
  object that's why we wrap it out in our wrapper function
  */
-const sendMailWrapper = async (apiKey: string, mailData: ResendRequiredData) => {
-  const resend = new Resend(apiKey)
-  const response = await resend.emails.send(mailData)
+const sendMailWrapper = async (
+  apiKey: string,
+  mailData: ResendRequiredData,
+) => {
+  const resend = new Resend(apiKey);
+  const response = await resend.emails.send(mailData);
   if (response.error) {
     throw new Error(response.error.message, {
-      cause: response.error.name
-    })
+      cause: response.error.name,
+    });
   }
-  return response
-}
+  return response;
+};
 
 export async function sendMail({
   apiKey,
@@ -49,10 +51,9 @@ export async function sendMail({
   apiKey: string;
   mailData: ResendRequiredData;
 }): Promise<ResultAsync<ResendResponse, ErrorResponse>> {
-
   return ResultAsync.fromPromise(
     sendMailWrapper(apiKey, mailData),
-    guardResponseError
+    guardResponseError,
   ).map((resultArray) => resultArray);
 }
 
@@ -65,10 +66,10 @@ export function resendEventToDF({
 }): Result<BatchItem, Error> {
   const { type: event } = resendEvent;
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { created_at, email_id, to} = resendEvent.data;
+  const { created_at, email_id, to } = resendEvent.data;
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const email= to[0]!
+  const email = to[0]!;
 
   const userOrAnonymousId = resendEvent.userId ?? resendEvent.anonymousId;
   if (!userOrAnonymousId) {
@@ -85,8 +86,8 @@ export function resendEventToDF({
       "runId",
       "messageId",
       "userId",
-      "templateId"
-    ])
+      "templateId",
+    ]),
   );
 
   switch (event) {
@@ -154,11 +155,11 @@ export async function submitResendEvents({
         .mapErr((error) => {
           logger().error(
             { err: error },
-            "Failed to convert resend event to DF."
+            "Failed to convert resend event to DF.",
           );
           return error;
         })
-        .unwrapOr([])
+        .unwrapOr([]),
     ),
   };
   await submitBatch({

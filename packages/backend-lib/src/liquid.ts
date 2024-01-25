@@ -113,7 +113,7 @@ liquidEngine.registerTag("unsubscribe_link", {
           identifier,
           userId,
         },
-        "Unsubscribe link not rendering"
+        "Unsubscribe link not rendering",
       );
     }
 

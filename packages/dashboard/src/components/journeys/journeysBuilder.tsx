@@ -88,7 +88,7 @@ function createConnections({
           rightId: falseId,
           leftLabel: "true",
           rightLabel: "false",
-        })
+        }),
       );
 
       newEdges = edgesForJourneyNode({
@@ -119,7 +119,7 @@ function createConnections({
           rightId: timeoutLabelNodeId,
           leftLabel: WAIT_FOR_SATISFY_LABEL,
           rightLabel: waitForTimeoutLabel(nodeTypeProps.timeoutSeconds),
-        })
+        }),
       );
 
       newEdges = edgesForJourneyNode({

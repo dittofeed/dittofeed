@@ -2,7 +2,7 @@ import { StyledComponent } from "@emotion/styled";
 import { styled, TextField, TextFieldProps } from "@mui/material";
 
 const SimpleTextField: StyledComponent<TextFieldProps, object, object> = styled(
-  TextField
+  TextField,
 )(({ theme }) => ({
   fieldset: {
     display: "none",

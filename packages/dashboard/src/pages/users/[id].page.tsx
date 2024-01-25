@@ -15,7 +15,12 @@ import logger from "backend-lib/src/logger";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
 import { getUsers } from "backend-lib/src/users";
-import { CompletionStatus, DeleteUsersRequest, EmptyResponse,GetUsersResponse } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  DeleteUsersRequest,
+  EmptyResponse,
+  GetUsersResponse,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
 import { useRouter } from "next/router";
 
@@ -71,7 +76,7 @@ export const getServerSideProps: GetServerSideProps<
       {
         err: usersResult.error,
       },
-      "Unable to retrieve user"
+      "Unable to retrieve user",
     );
     throw new Error("Unable to retrieve user");
   }
@@ -118,17 +123,15 @@ const User: NextPage<UserPageProps> = function User(props) {
         acc[property.name] = property.value;
         return acc;
       },
-      {}
+      {},
     ),
     null,
-    2
+    2,
   );
 
-  const userDeleteRequest = useAppStore(
-    (store) => store.userDeleteRequest
-  );
+  const userDeleteRequest = useAppStore((store) => store.userDeleteRequest);
   const setUserDeleteRequest = useAppStore(
-    (store) => store.setUserDeleteRequest
+    (store) => store.setUserDeleteRequest,
   );
 
   const workspace = useAppStore((store) => store.workspace);
@@ -147,8 +150,7 @@ const User: NextPage<UserPageProps> = function User(props) {
       setRequest: setUserDeleteRequest,
       responseSchema: EmptyResponse,
       onSuccessNotice: `Deleted User`,
-      onFailureNoticeHandler: () =>
-        `API Error: Failed to delete User`,
+      onFailureNoticeHandler: () => `API Error: Failed to delete User`,
       setResponse: () => {
         router.push({
           pathname: `/users`,
@@ -159,7 +161,7 @@ const User: NextPage<UserPageProps> = function User(props) {
         url: `${apiBase}/api/users`,
         data: {
           workspaceId,
-          userIds: [user.id]
+          userIds: [user.id],
         } satisfies DeleteUsersRequest,
         headers: {
           "Content-Type": "application/json",

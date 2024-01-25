@@ -60,7 +60,7 @@ import { upsertBulkUserPropertyAssignments } from "../userProperties";
 
 function broadcastSegmentToPerformed(
   segmentId: string,
-  node: BroadcastSegmentNode
+  node: BroadcastSegmentNode,
 ): PerformedSegmentNode {
   return {
     id: node.id,
@@ -100,7 +100,7 @@ function emailSegmentToPerformed(node: EmailSegmentNode): PerformedSegmentNode {
 }
 
 function subscriptionChangeToPerformed(
-  node: SubscriptionGroupSegmentNode
+  node: SubscriptionGroupSegmentNode,
 ): LastPerformedSegmentNode {
   let hasProperties: LastPerformedSegmentNode["hasProperties"];
   switch (node.subscriptionGroupType) {
@@ -232,7 +232,7 @@ class PeriodByComputedPropertyId {
       PeriodByComputedPropertyId.getKey({
         computedPropertyId,
         version,
-      })
+      }),
     );
   }
 }
@@ -256,9 +256,8 @@ async function getPeriodsByComputedPropertyId({
       AND "step" = ${step}
     ORDER BY "workspaceId", "type", "computedPropertyId", "to" DESC;
   `;
-  const periods = await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(
-    periodsQuery
-  );
+  const periods =
+    await prisma().$queryRaw<AggregatedComputedPropertyPeriod[]>(periodsQuery);
 
   const periodByComputedPropertyId =
     periods.reduce<PeriodByComputedPropertyIdMap>((acc, period) => {
@@ -367,11 +366,11 @@ type AggregatedComputedPropertyPeriod = Omit<
 
 export function segmentNodeStateId(
   segment: SavedSegmentResource,
-  nodeId: string
+  nodeId: string,
 ): string {
   return uuidv5(
     `${segment.definitionUpdatedAt.toString()}:${nodeId}`,
-    segment.id
+    segment.id,
   );
 }
 
@@ -391,7 +390,7 @@ function toJsonPathParam({
         unvalidated,
         err: e,
       },
-      "invalid json path in node path"
+      "invalid json path in node path",
     );
     return null;
   }
@@ -444,12 +443,12 @@ export function segmentNodeToStateSubQuery({
             }
             return `JSON_VALUE(properties, ${path}) == ${qb.addQueryValue(
               property.operator.value,
-              "String"
+              "String",
             )}`;
           }
           default:
             throw new Error(
-              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
+              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`,
             );
         }
       });
@@ -477,7 +476,7 @@ export function segmentNodeToStateSubQuery({
               child,
               node,
             },
-            "AND child node not found"
+            "AND child node not found",
           );
           return [];
         }
@@ -498,7 +497,7 @@ export function segmentNodeToStateSubQuery({
               child,
               node,
             },
-            "Or child node not found"
+            "Or child node not found",
           );
           return [];
         }
@@ -525,18 +524,18 @@ export function segmentNodeToStateSubQuery({
           case SegmentOperatorType.Equals: {
             return `${propertyValue} == ${qb.addQueryValue(
               property.operator.value,
-              "String"
+              "String",
             )}`;
           }
           case SegmentOperatorType.NotEquals: {
             return `${propertyValue} != ${qb.addQueryValue(
               property.operator.value,
-              "String"
+              "String",
             )}`;
           }
           default:
             throw new Error(
-              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
+              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`,
             );
         }
       });
@@ -573,7 +572,7 @@ export function segmentNodeToStateSubQuery({
     case SegmentNodeType.Broadcast: {
       const performedNode: PerformedSegmentNode = broadcastSegmentToPerformed(
         segment.id,
-        node
+        node,
       );
       return segmentNodeToStateSubQuery({
         node: performedNode,
@@ -603,11 +602,11 @@ export function segmentNodeToStateSubQuery({
 
 export function userPropertyStateId(
   userProperty: SavedUserPropertyResource,
-  nodeId = ""
+  nodeId = "",
 ): string {
   const stateId = uuidv5(
     `${userProperty.definitionUpdatedAt.toString()}:${nodeId}`,
-    userProperty.id
+    userProperty.id,
   );
   return stateId;
 }
@@ -658,7 +657,7 @@ function leafUserPropertyToSubQuery({
       return {
         condition: `event_type == 'track' and event = ${qb.addQueryValue(
           child.event,
-          "String"
+          "String",
         )}`,
         type: "user_property",
         uniqValue: "''",
@@ -692,7 +691,7 @@ function groupedUserPropertyToSubQuery({
               child,
               node,
             },
-            "Grouped user property child node not found"
+            "Grouped user property child node not found",
           );
           return [];
         }
@@ -767,7 +766,7 @@ function userPropertyToSubQuery({
     case UserPropertyDefinitionType.Group: {
       const entryId = userProperty.definition.entry;
       const entryNode = userProperty.definition.nodes.find(
-        (n) => n.id === entryId
+        (n) => n.id === entryId,
       );
       if (!entryNode) {
         logger().error(
@@ -775,7 +774,7 @@ function userPropertyToSubQuery({
             userProperty,
             entryId,
           },
-          "Grouped user property entry node not found"
+          "Grouped user property entry node not found",
         );
         return [];
       }
@@ -791,7 +790,7 @@ function userPropertyToSubQuery({
         {
           condition: `event_type == 'track' and has(${qb.addQueryValue(
             userProperty.definition.or.map((event) => event.event),
-            "Array(String)"
+            "Array(String)",
           )}, event)`,
           type: "user_property",
           recordMessageId: true,
@@ -889,7 +888,7 @@ function groupedUserPropertyToAssignment({
               child,
               node,
             },
-            "Grouped user property child node not found"
+            "Grouped user property child node not found",
           );
           return [];
         }
@@ -957,7 +956,7 @@ function userPropertyToAssignment({
     case UserPropertyDefinitionType.Group: {
       const entryId = userProperty.definition.entry;
       const entryNode = userProperty.definition.nodes.find(
-        (n) => n.id === entryId
+        (n) => n.id === entryId,
       );
       if (!entryNode) {
         logger().error(
@@ -965,7 +964,7 @@ function userPropertyToAssignment({
             userProperty,
             entryId,
           },
-          "Grouped user property entry node not found"
+          "Grouped user property entry node not found",
         );
         return null;
       }
@@ -1071,7 +1070,7 @@ function segmentToAssignment({
         }
         case SegmentOperatorType.Within: {
           const lowerBound = Math.round(
-            Math.max(nowSeconds - node.operator.windowSeconds, 0)
+            Math.max(nowSeconds - node.operator.windowSeconds, 0),
           );
           const name = getChCompatibleUuid();
           const query = `
@@ -1101,11 +1100,11 @@ function segmentToAssignment({
         case SegmentOperatorType.HasBeen: {
           const upperBound = Math.max(
             nowSeconds - node.operator.windowSeconds,
-            0
+            0,
           );
           const query = `${maxEventTime} < toDateTime64(${upperBound}, 3) and ${lastValue} == ${qb.addQueryValue(
             node.operator.value,
-            "String"
+            "String",
           )}`;
           return {
             query,
@@ -1156,18 +1155,18 @@ function segmentToAssignment({
           case SegmentOperatorType.Equals: {
             return `${indexedReference} == ${qb.addQueryValue(
               property.operator.value,
-              "String"
+              "String",
             )}`;
           }
           case SegmentOperatorType.NotEquals: {
             return `${indexedReference} != ${qb.addQueryValue(
               property.operator.value,
-              "String"
+              "String",
             )}`;
           }
           default:
             throw new Error(
-              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`
+              `Unimplemented segment operator for performed node ${operatorType} for segment: ${segment.id} and node: ${node.id}`,
             );
         }
       });
@@ -1191,7 +1190,7 @@ function segmentToAssignment({
               child,
               node,
             },
-            "AND child node not found"
+            "AND child node not found",
           );
           return [];
         }
@@ -1229,7 +1228,7 @@ function segmentToAssignment({
               child,
               node,
             },
-            "Or child node not found"
+            "Or child node not found",
           );
           return [];
         }
@@ -1260,7 +1259,7 @@ function segmentToAssignment({
     case SegmentNodeType.Broadcast: {
       const performedNode: PerformedSegmentNode = broadcastSegmentToPerformed(
         segment.id,
-        node
+        node,
       );
       return segmentToAssignment({
         node: performedNode,
@@ -1320,13 +1319,13 @@ function constructAssignmentsQuery({
     stateIdClauses.push(
       `(state_id in ${qb.addQueryValue(
         ac.stateIds,
-        "Array(String)"
-      )} ${lowerBoundClause})`
+        "Array(String)",
+      )} ${lowerBoundClause})`,
     );
   }
   if (ac.unboundedStateIds.length > 0) {
     stateIdClauses.push(
-      `state_id in ${qb.addQueryValue(ac.unboundedStateIds, "Array(String)")}`
+      `state_id in ${qb.addQueryValue(ac.unboundedStateIds, "Array(String)")}`,
     );
   }
   if (stateIdClauses.length === 0) {
@@ -1336,7 +1335,7 @@ function constructAssignmentsQuery({
         computedPropertyId,
         computedPropertyType,
       },
-      "missing state id clauses while assigning computed property"
+      "missing state id clauses while assigning computed property",
     );
     return null;
   }
@@ -1434,7 +1433,7 @@ function constructAssignmentsQuery({
                   and type = '${computedPropertyType}'
                   and computed_property_id = ${qb.addQueryValue(
                     computedPropertyId,
-                    "String"
+                    "String",
                   )}
                   and computed_at <= toDateTime64(${nowSeconds}, 3)
                   ${stateIdClause}
@@ -1521,7 +1520,7 @@ export async function computeState({
         }).map((subQuery) => ({
           ...subQuery,
           version: segment.definitionUpdatedAt.toString(),
-        }))
+        })),
       );
     }
 
@@ -1533,7 +1532,7 @@ export async function computeState({
         }).map((subQuery) => ({
           ...subQuery,
           version: userProperty.definitionUpdatedAt.toString(),
-        }))
+        })),
       );
     }
     if (subQueryData.length === 0) {
@@ -1578,7 +1577,7 @@ export async function computeState({
               ),
               (Null, Null, Null, Null, Null, Null)
             )
-          `
+          `,
           )
           .join(", ");
         const query = `
@@ -1665,7 +1664,7 @@ export async function computeState({
             function_json_value_return_type_allow_complex: 1,
           },
         });
-      })
+      }),
     );
 
     await Promise.all(queries);
@@ -1731,7 +1730,7 @@ export async function computeAssignments({
           query: stateQuery,
           query_params: qb.getQueries(),
           clickhouse_settings: { wait_end_of_query: 1 },
-        })
+        }),
       );
     }
 
@@ -1767,7 +1766,7 @@ export async function computeAssignments({
           query: stateQuery,
           query_params: qb.getQueries(),
           clickhouse_settings: { wait_end_of_query: 1 },
-        })
+        }),
       );
     }
 
@@ -1797,7 +1796,7 @@ async function processRows({
     {
       rows,
     },
-    "processRows"
+    "processRows",
   );
   let hasRows = false;
   const assignments: ComputedAssignment[] = rows
@@ -1806,7 +1805,7 @@ async function processRows({
       if (result.isErr()) {
         logger().error(
           { err: result.error, json },
-          "failed to parse assignment json"
+          "failed to parse assignment json",
         );
         const emptyAssignments: ComputedAssignment[] = [];
         return emptyAssignments;
@@ -1853,7 +1852,7 @@ async function processRows({
       journeySegmentAssignmentsCount: journeySegmentAssignments.length,
       integrationAssignmentsCount: integrationAssignments.length,
     },
-    "processing computed assignments"
+    "processing computed assignments",
   );
 
   await Promise.all([
@@ -1878,7 +1877,7 @@ async function processRows({
   await Promise.all([
     ...journeySegmentAssignments.flatMap((assignment) => {
       const journey = subscribedJourneys.find(
-        (j) => j.id === assignment.processed_for
+        (j) => j.id === assignment.processed_for,
       );
       if (!journey) {
         logger().error(
@@ -1886,7 +1885,7 @@ async function processRows({
             subscribedJourneys: subscribedJourneys.map((j) => j.id),
             processed_for: assignment.processed_for,
           },
-          "journey in assignment.processed_for missing from subscribed journeys"
+          "journey in assignment.processed_for missing from subscribed journeys",
         );
         return [];
       }
@@ -1932,7 +1931,7 @@ async function processRows({
               workspaceId,
               assignment,
             },
-            "integration in assignment.processed_for missing from subscribed integrations"
+            "integration in assignment.processed_for missing from subscribed integrations",
           );
           return [];
       }
@@ -1975,7 +1974,7 @@ export async function processAssignments({
         });
         return memo;
       },
-      new Map()
+      new Map(),
     );
 
     const subscribedIntegrationUserPropertyMap = integrations.reduce<
@@ -1984,19 +1983,19 @@ export async function processAssignments({
       integration.definition.subscribedUserProperties.forEach(
         (userPropertyName) => {
           const userPropertyId = userProperties.find(
-            (up) => up.name === userPropertyName
+            (up) => up.name === userPropertyName,
           )?.id;
           if (!userPropertyId) {
             logger().info(
               { workspaceId, integration, userPropertyName },
-              "integration subscribed to user property that doesn't exist"
+              "integration subscribed to user property that doesn't exist",
             );
             return;
           }
           const processFor = memo.get(userPropertyId) ?? new Set();
           processFor.add(integration.name);
           memo.set(userPropertyId, processFor);
-        }
+        },
       );
       return memo;
     }, new Map());
@@ -2009,7 +2008,7 @@ export async function processAssignments({
         if (!segmentId) {
           logger().info(
             { workspaceId, integration, segmentName },
-            "integration subscribed to segment that doesn't exist"
+            "integration subscribed to segment that doesn't exist",
           );
           return;
         }
@@ -2033,14 +2032,14 @@ export async function processAssignments({
     }
 
     for (const [segmentId, integrationSet] of Array.from(
-      subscribedIntegrationSegmentMap
+      subscribedIntegrationSegmentMap,
     )) {
       subscribedIntegrationSegmentKeys.push(segmentId);
       subscribedIntegrationSegmentValues.push(Array.from(integrationSet));
     }
 
     for (const [userPropertyId, integrationSet] of Array.from(
-      subscribedIntegrationUserPropertyMap
+      subscribedIntegrationUserPropertyMap,
     )) {
       subscribedIntegrationUserPropertyKeys.push(userPropertyId);
       subscribedIntegrationUserPropertyValues.push(Array.from(integrationSet));
@@ -2050,32 +2049,32 @@ export async function processAssignments({
 
     const subscribedJourneysKeysQuery = qb.addQueryValue(
       subscribedJourneyKeys,
-      "Array(String)"
+      "Array(String)",
     );
 
     const subscribedJourneysValuesQuery = qb.addQueryValue(
       subscribedJourneyValues,
-      "Array(Array(String))"
+      "Array(Array(String))",
     );
 
     const subscribedIntegrationsUserPropertyKeysQuery = qb.addQueryValue(
       subscribedIntegrationUserPropertyKeys,
-      "Array(String)"
+      "Array(String)",
     );
 
     const subscribedIntegrationsUserPropertyValuesQuery = qb.addQueryValue(
       subscribedIntegrationUserPropertyValues,
-      "Array(Array(String))"
+      "Array(Array(String))",
     );
 
     const subscribedIntegrationsSegmentKeysQuery = qb.addQueryValue(
       subscribedIntegrationSegmentKeys,
-      "Array(String)"
+      "Array(String)",
     );
 
     const subscribedIntegrationsSegmentValuesQuery = qb.addQueryValue(
       subscribedIntegrationSegmentValues,
-      "Array(Array(String))"
+      "Array(Array(String))",
     );
 
     const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
@@ -2211,7 +2210,7 @@ export async function processAssignments({
           err: e,
           pageQueryId,
         },
-        "failed to process rows"
+        "failed to process rows",
       );
     }
     span.setAttribute("rowsProcessed", rowsProcessed);

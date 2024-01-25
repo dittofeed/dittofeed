@@ -37,11 +37,11 @@ export const defaultNodes = layoutNodes(
       type: "journey",
     },
   ],
-  defaultEdges
+  defaultEdges,
 );
 
 export function buildNodesIndex(
-  nodes: Node<NodeData>[]
+  nodes: Node<NodeData>[],
 ): Record<string, number> {
   return nodes.reduce<Record<string, number>>((memo, node, i) => {
     memo[node.id] = i;

@@ -17,7 +17,7 @@ import { apiBase } from "./apiBase";
 import { GetDFServerSideProps, PropsWithInitialState } from "./types";
 
 export const requestContext: <T>(
-  gssp: GetDFServerSideProps<PropsWithInitialState<T>>
+  gssp: GetDFServerSideProps<PropsWithInitialState<T>>,
 ) => GetServerSideProps<PropsWithInitialState<T>> =
   (gssp) => async (context) => {
     const rc = await getRequestContext(context.req.headers);
@@ -36,7 +36,7 @@ export const requestContext: <T>(
             {
               contextErrorMsg: rc.error.message,
             },
-            "user not onboarded"
+            "user not onboarded",
           );
           return {
             redirect: { destination: WAITING_ROOM_PAGE, permanent: false },
@@ -46,7 +46,7 @@ export const requestContext: <T>(
             {
               contextErrorMsg: rc.error.message,
             },
-            "user unauthorized"
+            "user unauthorized",
           );
           return {
             redirect: { destination: UNAUTHORIZED_PAGE, permanent: false },

@@ -23,6 +23,6 @@ export default async function deliveriesController(fastify: FastifyInstance) {
     async (request, reply) => {
       const deliveries = await searchDeliveries(request.query);
       return reply.status(200).send(deliveries);
-    }
+    },
   );
 }

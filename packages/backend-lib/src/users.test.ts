@@ -64,7 +64,7 @@ describe("getUsers", () => {
         await getUsers({
           workspaceId: workspace.id,
           limit: 1,
-        })
+        }),
       );
       expect(result1.users).toEqual([
         {
@@ -82,7 +82,7 @@ describe("getUsers", () => {
           workspaceId: workspace.id,
           cursor: result1.nextCursor,
           limit: 1,
-        })
+        }),
       );
 
       expect(result2.users).toEqual([
@@ -101,7 +101,7 @@ describe("getUsers", () => {
           workspaceId: workspace.id,
           cursor: result2.nextCursor,
           limit: 1,
-        })
+        }),
       );
 
       expect(result3.users).toHaveLength(0);
@@ -191,7 +191,7 @@ describe("getUsers", () => {
         await getUsers({
           workspaceId: workspace.id,
           segmentId: segmentId1,
-        })
+        }),
       );
 
       expect(result).toEqual({
@@ -279,7 +279,7 @@ describe("getUsers", () => {
       ).json();
       expect(events.data).toHaveLength(1);
       expect(events.data[0]).toEqual(
-        expect.objectContaining({ user_id: userIds[1] })
+        expect.objectContaining({ user_id: userIds[1] }),
       );
       const userPropertyAssignments =
         await prisma().userPropertyAssignment.findMany({

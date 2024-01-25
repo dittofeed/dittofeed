@@ -12,7 +12,7 @@ const withWorkspaceId = Type.Object({
 
 export function getWorkspaceIdFromReq(req: FastifyRequest): string | null {
   const bodyParam = schemaValidate(req.body, withWorkspaceId).unwrapOr(
-    null
+    null,
   )?.workspaceId;
   if (bodyParam) {
     logger().debug({ workspaceId: bodyParam }, "Found workspaceId in body.");
@@ -20,7 +20,7 @@ export function getWorkspaceIdFromReq(req: FastifyRequest): string | null {
   }
 
   const queryParam = schemaValidate(req.query, withWorkspaceId).unwrapOr(
-    null
+    null,
   )?.workspaceId;
   if (queryParam) {
     logger().debug({ workspaceId: queryParam }, "Found workspaceId in query.");
@@ -43,10 +43,10 @@ export function getWorkspaceIdFromReq(req: FastifyRequest): string | null {
 }
 
 export async function getWorkspaceId(
-  req: FastifyRequest
+  req: FastifyRequest,
 ): Promise<string | null> {
   const bodyParam = schemaValidate(req.body, withWorkspaceId).unwrapOr(
-    null
+    null,
   )?.workspaceId;
   if (bodyParam) {
     logger().debug({ workspaceId: bodyParam }, "Found workspaceId in body.");
@@ -54,7 +54,7 @@ export async function getWorkspaceId(
   }
 
   const queryParam = schemaValidate(req.query, withWorkspaceId).unwrapOr(
-    null
+    null,
   )?.workspaceId;
   if (queryParam) {
     logger().debug({ workspaceId: queryParam }, "Found workspaceId in query.");

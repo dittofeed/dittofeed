@@ -36,7 +36,7 @@ export interface DurationDescriptionProps {
 }
 
 export function durationDescription(
-  durationSeconds: number | undefined
+  durationSeconds: number | undefined,
 ): string {
   if (durationSeconds === 0 || !durationSeconds) {
     return "0 days";

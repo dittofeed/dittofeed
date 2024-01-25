@@ -48,10 +48,10 @@ export default async function secretsController(fastify: FastifyInstance) {
             name: secret.name,
             value: secret.value,
           };
-        }
+        },
       );
       return reply.status(200).send(secrets);
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
@@ -116,7 +116,7 @@ export default async function secretsController(fastify: FastifyInstance) {
       });
 
       return reply.status(204).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
@@ -140,6 +140,6 @@ export default async function secretsController(fastify: FastifyInstance) {
         },
       });
       return reply.status(204).send();
-    }
+    },
   );
 }

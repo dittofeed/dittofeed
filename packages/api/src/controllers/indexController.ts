@@ -10,6 +10,6 @@ export default async function indexController(fastify: FastifyInstance) {
       },
     },
     async (_request: FastifyRequest, reply: FastifyReply) =>
-      reply.status(200).send()
+      reply.status(200).send(),
   );
 }

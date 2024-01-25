@@ -52,7 +52,7 @@ async function disableIntegration({ workspaceId }: { workspaceId: string }) {
 
 function handleAuthFailure<T extends unknown[], U>(
   workspaceId: string,
-  fn: FuncReturningPromise<T, U>
+  fn: FuncReturningPromise<T, U>,
 ): FuncReturningPromise<T, Result<U, AuthError>> {
   const newFn: FuncReturningPromise<T, Result<U, AuthError>> = async (
     ...args: T
@@ -69,7 +69,7 @@ function handleAuthFailure<T extends unknown[], U>(
           err: e,
           errBody: e.response?.data,
         },
-        "failed to contact hubspot"
+        "failed to contact hubspot",
       );
       if (e.response?.status !== 401) {
         throw e;
@@ -129,7 +129,7 @@ type MissingTokenError = Static<typeof MissingTokenError>;
 
 const RefreshResult = JsonResult(
   OauthTokenResource,
-  Type.Union([MissingTokenError, HubspotBadRefreshTokenError])
+  Type.Union([MissingTokenError, HubspotBadRefreshTokenError]),
 );
 
 type RefreshResult = Static<typeof RefreshResult>;
@@ -206,7 +206,7 @@ export async function refreshToken({
     }
     const badRefreshTokenError = schemaValidateWithErr(
       e.response?.data,
-      HubspotBadRefreshTokenError
+      HubspotBadRefreshTokenError,
     );
 
     logger().error(
@@ -216,7 +216,7 @@ export async function refreshToken({
         isRefreshError: badRefreshTokenError.isOk(),
         workspaceId,
       },
-      "Error refreshing Hubspot token"
+      "Error refreshing Hubspot token",
     );
     if (badRefreshTokenError.isErr()) {
       throw e;
@@ -264,20 +264,19 @@ interface HubspotCreateEmail {
     hs_email_html?: string;
     hs_email_headers: string;
   };
-  associations:
-    | [
+  associations: [
+    {
+      to: {
+        id: string;
+      };
+      types: [
         {
-          to: {
-            id: string;
-          };
-          types: [
-            {
-              associationCategory: "HUBSPOT_DEFINED";
-              associationTypeId: 198;
-            }
-          ];
-        }
+          associationCategory: "HUBSPOT_DEFINED";
+          associationTypeId: 198;
+        },
       ];
+    },
+  ];
 }
 
 interface HubspotUpdateEmail {
@@ -343,7 +342,7 @@ export async function findEmailEventsUserProperty({
   if (enrichedResult.isErr()) {
     logger().error(
       { err: enrichedResult.error },
-      "error enriching user property"
+      "error enriching user property",
     );
     return null;
   }
@@ -371,7 +370,7 @@ export async function getIntegrationEnabled({
 
 async function searchEmails(
   token: string,
-  recipientEmail: string
+  recipientEmail: string,
 ): Promise<Result<HubspotEmailSearchResult, Error>> {
   const url = "https://api.hubapi.com/crm/v3/objects/emails/search";
   const headers = {
@@ -404,7 +403,7 @@ async function searchEmails(
 }
 
 async function listOwners(
-  token: string
+  token: string,
 ): Promise<Result<HubspotOwnerSearchResult, Error>> {
   const url = "https://api.hubapi.com/crm/v3/owners";
   const headers = {
@@ -416,7 +415,7 @@ async function listOwners(
 
 async function searchContacts(
   token: string,
-  email: string
+  email: string,
 ): Promise<Result<HubspotContactSearchResult, Error>> {
   const url = "https://api.hubapi.com/crm/v3/objects/contact/search";
   const headers = {
@@ -441,7 +440,7 @@ async function searchContacts(
 
 async function updateHubspotEmailsRequest(
   token: string,
-  batch: HubspotUpdateEmailBatch
+  batch: HubspotUpdateEmailBatch,
 ) {
   const url = "https://api.hubapi.com/crm/v3/objects/emails/batch/update";
   const headers = {
@@ -452,7 +451,7 @@ async function updateHubspotEmailsRequest(
 
 async function createHubspotEmailRequest(
   token: string,
-  email: HubspotCreateEmail
+  email: HubspotCreateEmail,
 ) {
   const url = "https://api.hubapi.com/crm/v3/objects/emails";
   const headers = {
@@ -468,7 +467,7 @@ async function createHubspotEmailRequest(
           err: e,
           body: e.response?.data,
         },
-        "error creating hubspot email"
+        "error creating hubspot email",
       );
     }
     throw e;
@@ -508,7 +507,7 @@ export function calculateHubspotEmailChanges({
   const filteredEvents = events.flatMap((e) => {
     try {
       const keyParts = Object.values(
-        pick(e.properties, ["journeyId", "nodeId", "runId"])
+        pick(e.properties, ["journeyId", "nodeId", "runId"]),
       );
       if (!keyParts.length || keyParts.some((p) => !p)) {
         return [];
@@ -535,7 +534,7 @@ export function calculateHubspotEmailChanges({
     }
     const earliestMessageSent = groupedEvents.findLast(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-      (e) => e.event === InternalEventType.MessageSent
+      (e) => e.event === InternalEventType.MessageSent,
     );
 
     const hsTimestamp = earliestMessageSent?.timestamp;
@@ -577,7 +576,7 @@ export function calculateHubspotEmailChanges({
           userId,
           events,
         },
-        "no hubspot status for email event"
+        "no hubspot status for email event",
       );
       continue;
     }
@@ -591,14 +590,14 @@ export function calculateHubspotEmailChanges({
           userId,
           events,
         },
-        "no message sent event for user hubspot email"
+        "no message sent event for user hubspot email",
       );
       continue;
     }
     const hsNumericTimestamp = new Date(hsTimestamp).getTime();
     const existingEmail = pastEmails.find(
       (e) =>
-        new Date(e.properties.hs_timestamp).getTime() === hsNumericTimestamp
+        new Date(e.properties.hs_timestamp).getTime() === hsNumericTimestamp,
     );
 
     if (existingEmail && status !== existingEmail.properties.hs_email_status) {
@@ -658,11 +657,11 @@ export async function updateHubspotEmails({
     searchContacts: handleAuthFailure(workspaceId, searchContacts),
     createHubspotEmailRequest: handleAuthFailure(
       workspaceId,
-      createHubspotEmailRequest
+      createHubspotEmailRequest,
     ),
     updateHubspotEmailsRequest: handleAuthFailure(
       workspaceId,
-      updateHubspotEmailsRequest
+      updateHubspotEmailsRequest,
     ),
   } as const;
 
@@ -671,7 +670,7 @@ export async function updateHubspotEmails({
       api.searchEmails(hubspotAccessToken, email),
       api.listOwners(hubspotAccessToken),
       api.searchContacts(hubspotAccessToken, email),
-    ]
+    ],
   );
   if (
     ownersResult.isErr() ||
@@ -690,7 +689,7 @@ export async function updateHubspotEmails({
         workspaceId,
         userId,
       },
-      "error searching emails"
+      "error searching emails",
     );
     return;
   }
@@ -699,13 +698,13 @@ export async function updateHubspotEmails({
     .map(
       (r) =>
         r.results.find(
-          (contactItem) => contactItem.properties.email === email
-        ) ?? null
+          (contactItem) => contactItem.properties.email === email,
+        ) ?? null,
     )
     .mapErr((e) => {
       logger().error(
         { workspaceId, userId, err: e },
-        "error searching hubspot contacts"
+        "error searching hubspot contacts",
       );
       return e;
     })
@@ -714,7 +713,7 @@ export async function updateHubspotEmails({
   if (!contact) {
     logger().info(
       { workspaceId, userId, email },
-      "no hubspot contact found for email"
+      "no hubspot contact found for email",
     );
     return;
   }
@@ -725,12 +724,12 @@ export async function updateHubspotEmails({
       .mapErr((e) => {
         logger().error(
           { workspaceId, userId, err: e },
-          "error searching hubspot owners"
+          "error searching hubspot owners",
         );
         return e;
       })
       .unwrapOr([]),
-    (o) => o.email
+    (o) => o.email,
   );
 
   const { newEmails, emailUpdates } = calculateHubspotEmailChanges({
@@ -778,7 +777,7 @@ export async function updateHubspotEmails({
           ],
         },
       ],
-    })
+    }),
   );
   logger().info(
     {
@@ -788,7 +787,7 @@ export async function updateHubspotEmails({
       updateCount: updateEmailsBatch.items.length,
       email,
     },
-    "creating and updating hubspot emails"
+    "creating and updating hubspot emails",
   );
   await Promise.all([
     updateHubspotEmailsRequest(hubspotAccessToken, updateEmailsBatch),
@@ -813,7 +812,7 @@ type HubspotListSearchResult = Static<typeof HubspotListSearchResult>;
 
 async function fetchHubspotLists(
   token: string,
-  offset = 0
+  offset = 0,
 ): Promise<Result<HubspotListSearchResult, Error>> {
   const url = `https://api.hubapi.com/contacts/v1/lists?count=100&offset=${offset}`;
   const headers = {
@@ -824,7 +823,7 @@ async function fetchHubspotLists(
 }
 
 export async function paginateHubspotLists(
-  token: string
+  token: string,
 ): Promise<HubspotList[]> {
   let offset = 0;
   let lists: HubspotList[] = [];
@@ -872,7 +871,7 @@ async function createHubspotList({
       {
         name,
       },
-      { headers }
+      { headers },
     );
     return schemaValidateWithErr(response.data, HubspotList);
   } catch (e) {
@@ -884,7 +883,7 @@ async function createHubspotList({
     }
     const isDuplicateListError = schemaValidateWithErr(
       e.response.data,
-      HubspotDuplicateListError
+      HubspotDuplicateListError,
     ).isOk();
 
     if (!isDuplicateListError) {
@@ -974,11 +973,11 @@ export async function updateHubspotLists({
     addContactToList: handleAuthFailure(workspaceId, addContactToList),
     removeContactFromList: handleAuthFailure(
       workspaceId,
-      removeContactFromList
+      removeContactFromList,
     ),
   } as const;
   const authedLists = await api.paginateHubspotLists(
-    hubspotAccessToken.accessToken
+    hubspotAccessToken.accessToken,
   );
   if (authedLists.isErr()) {
     logger().error("auth error paginating hubspot lists");
@@ -995,8 +994,8 @@ export async function updateHubspotLists({
       api.createHubspotList({
         token: hubspotAccessToken.accessToken,
         name,
-      })
-    )
+      }),
+    ),
   );
   for (const newList of newListsAuthed) {
     if (newList.isErr()) {
@@ -1018,7 +1017,7 @@ export async function updateHubspotLists({
             segmentUpdates,
             segment: s,
           },
-          "no segment update found for segment"
+          "no segment update found for segment",
         );
         return [];
       }
@@ -1043,6 +1042,6 @@ export async function updateHubspotLists({
         listId,
         email,
       });
-    })
+    }),
   );
 }

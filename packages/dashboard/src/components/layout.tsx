@@ -13,16 +13,21 @@ function Layout({
   children,
   navigationRenderer,
   backLink,
-  pageTitle
+  pageTitle,
 }: {
   children?: React.ReactElement | null;
 } & LayoutContextValues) {
   const drawerOpen = useAppStore((state) => state.drawerOpen);
   const toggleDrawer = useAppStore((state) => state.toggleDrawer);
-  const layoutProps = useMemo(() => ({
-    items, navigationRenderer, backLink,
-    pageTitle
-  }), [items, navigationRenderer, backLink, pageTitle]);
+  const layoutProps = useMemo(
+    () => ({
+      items,
+      navigationRenderer,
+      backLink,
+      pageTitle,
+    }),
+    [items, navigationRenderer, backLink, pageTitle],
+  );
 
   return (
     <LayoutContext.Provider value={layoutProps}>

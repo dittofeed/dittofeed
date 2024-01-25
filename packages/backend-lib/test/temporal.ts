@@ -27,7 +27,7 @@ export async function createEnvAndWorker({
             }),
         ],
       },
-      console
+      console,
     ),
     activities: { ...activities, ...activityOverrides },
     taskQueue: "default",

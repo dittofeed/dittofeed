@@ -245,7 +245,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           where: { workspaceId, resourceType: "Declarative" },
         })
         .then((dbSegments) =>
-          dbSegments.map((segment) => unwrap(toSegmentResource(segment)))
+          dbSegments.map((segment) => unwrap(toSegmentResource(segment))),
         ),
       prisma().smsProvider.findMany({
         where: {
@@ -266,7 +266,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       secretAvailability,
       defaultEmailProvider: defaultEmailProviderRecord,
       integrations: unwrap(integrations).map((i) =>
-        pick(i, ["id", "name", "workspaceId", "definition", "enabled"])
+        pick(i, ["id", "name", "workspaceId", "definition", "enabled"]),
       ),
       segments: {
         type: CompletionStatus.Successful,
@@ -287,21 +287,21 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
 
     const subscriptionGroupResources = subscriptionGroups.map(
-      subscriptionGroupToResource
+      subscriptionGroupToResource,
     );
 
     serverInitialState.subscriptionGroups = subscriptionGroupResources;
     serverInitialState.smsProviders = smsProviders.flatMap((provider) => {
       const configResult = schemaValidateWithErr(
         provider.secret.configValue,
-        SmsProviderConfig
+        SmsProviderConfig,
       );
       if (configResult.isErr()) {
         logger().error(
           {
             err: configResult.error,
           },
-          "failed to validate sms provider config"
+          "failed to validate sms provider config",
         );
         return [];
       }
@@ -418,7 +418,7 @@ const menuItems: MenuItemGroup[] = [
 ];
 
 function SettingsLayout(
-  props: Omit<React.ComponentProps<typeof Layout>, "items">
+  props: Omit<React.ComponentProps<typeof Layout>, "items">,
 ) {
   return (
     <Layout
@@ -442,7 +442,7 @@ interface SettingsActions {
   updateSegmentIoSharedSecret: (key: string) => void;
   updateSegmentIoRequest: (request: EphemeralRequestStatus<Error>) => void;
   updateUpsertIntegrationsRequest: (
-    request: EphemeralRequestStatus<Error>
+    request: EphemeralRequestStatus<Error>,
   ) => void;
   updateSmsProviderRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
@@ -481,7 +481,7 @@ export const useSettingsStore = create(
         state.upsertSmsProviderRequest = request;
       });
     },
-  }))
+  })),
 );
 
 function useSettingsStorePick(params: (keyof SettingsContent)[]) {
@@ -494,14 +494,14 @@ function SegmentIoConfig() {
   const segmentIoRequest = useSettingsStore((store) => store.segmentIoRequest);
   const apiBase = useAppStore((store) => store.apiBase);
   const updateSegmentIoRequest = useSettingsStore(
-    (store) => store.updateSegmentIoRequest
+    (store) => store.updateSegmentIoRequest,
   );
   const workspace = useAppStore((store) => store.workspace);
   const upsertDataSourceConfiguration = useAppStore(
-    (store) => store.upsertDataSourceConfiguration
+    (store) => store.upsertDataSourceConfiguration,
   );
   const updateSegmentIoSharedSecret = useSettingsStore(
-    (store) => store.updateSegmentIoSharedSecret
+    (store) => store.updateSegmentIoSharedSecret,
   );
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
@@ -717,7 +717,6 @@ function ResendConfig() {
   );
 }
 
-
 const SMTP_SECRET_FIELDS: {
   helperText: string;
   label: string;
@@ -922,10 +921,10 @@ function TwilioConfig() {
       "upsertSmsProvider",
     ]);
   const upsertSmsProviderRequest = useSettingsStore(
-    (store) => store.upsertSmsProviderRequest
+    (store) => store.upsertSmsProviderRequest,
   );
   const updateSmsProviderRequest = useSettingsStore(
-    (store) => store.updateSmsProviderRequest
+    (store) => store.updateSmsProviderRequest,
   );
 
   const twilioProvider: TwilioSmsProvider | null = useMemo(() => {
@@ -941,10 +940,10 @@ function TwilioConfig() {
   const [showAuthToken, setShowAuthKey] = useState(false);
   const [authToken, setAuthToken] = useState(twilioProvider?.authToken ?? "");
   const [messagingServiceSid, setMessagingServiceSid] = useState(
-    twilioProvider?.messagingServiceSid
+    twilioProvider?.messagingServiceSid,
   );
   const [accountSid, setAccountSid] = useState(
-    twilioProvider?.accountSid ?? ""
+    twilioProvider?.accountSid ?? "",
   );
   if (workspace.type !== CompletionStatus.Successful) {
     return null;
@@ -1085,7 +1084,7 @@ function WriteKeySettings() {
   const writeKey = useAppStore((store) => store.writeKeys)[0];
   const keyHeader = useMemo(
     () => (writeKey ? writeKeyToHeader(writeKey) : null),
-    [writeKey]
+    [writeKey],
   );
 
   if (!keyHeader) {
@@ -1147,7 +1146,7 @@ function HubspotIntegration() {
       ? segmentsRequest.value
       : [];
   const [inProgress, setInProgress] = useState<"segments" | "enabled" | null>(
-    null
+    null,
   );
 
   const { upsertIntegrationsRequest, updateUpsertIntegrationsRequest } =

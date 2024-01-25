@@ -22,7 +22,7 @@ export default function SegmentUsers() {
   const workspace = useAppStore((state) => state.workspace);
   const queryParams = useMemo(
     () => schemaValidate(router.query, UsersTableParams).unwrapOr({}),
-    [router.query]
+    [router.query],
   );
 
   if (!editedSegment) {

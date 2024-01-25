@@ -73,7 +73,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           userProperties: {
             type: CompletionStatus.Successful,
             value: userProperties.flatMap((p) =>
-              unwrap(toUserPropertyResource(p))
+              unwrap(toUserPropertyResource(p)),
             ),
           },
         },

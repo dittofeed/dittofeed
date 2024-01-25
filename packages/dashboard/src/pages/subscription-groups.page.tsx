@@ -34,7 +34,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     });
 
     serverInitialState.subscriptionGroups = subscriptionGroup.map(
-      subscriptionGroupToResource
+      subscriptionGroupToResource,
     );
     return {
       props: addInitialStateToProps({
@@ -47,19 +47,19 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
 function Item({ item }: { item: SubscriptionGroupResource }) {
   const setSubscriptionGroupDeleteRequest = useAppStore(
-    (store) => store.setSubscriptionGroupDeleteRequest
+    (store) => store.setSubscriptionGroupDeleteRequest,
   );
   const apiBase = useAppStore((store) => store.apiBase);
   const subscriptionGroupDeleteRequest = useAppStore(
-    (store) => store.subscriptionGroupDeleteRequest
+    (store) => store.subscriptionGroupDeleteRequest,
   );
 
   const deleteSubscriptionGroup = useAppStore(
-    (store) => store.deleteSubscriptionGroup
+    (store) => store.deleteSubscriptionGroup,
   );
   const setDeleteResponse = (
     _response: EmptyResponse,
-    deleteRequest?: DeleteSubscriptionGroupRequest
+    deleteRequest?: DeleteSubscriptionGroupRequest,
   ) => {
     if (!deleteRequest) {
       return;

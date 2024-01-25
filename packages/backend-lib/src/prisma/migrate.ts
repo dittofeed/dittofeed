@@ -10,7 +10,7 @@ export async function prismaMigrate() {
           resolve();
         } else {
           reject(
-            new Error(`Migration failed with exit code: ${String(exitCode)}`)
+            new Error(`Migration failed with exit code: ${String(exitCode)}`),
           );
         }
       } else if (signal) {
