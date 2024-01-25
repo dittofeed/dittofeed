@@ -73,18 +73,43 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 ## Roadmap
 
-*Updated monthly | ☑️ = in development | ✅ = in production
+### Q1
 
-| Feature                         | Purpose                                                                                              | Status |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------- | ------ |
-| SMTP support                    | Use SMTP as an email provider                                                                        | ✅      |
-| SES support                     | Use Amazon SES as an email provider                                                                  | ☑️      |
-| User property objects & arrays  | Store objects & arrays within user properties                                                        | ✅      |
-| Segment node type               | Expose segments as a node type within the journeys GUI                                               | ☑️      |
-| Incrimental computed properties | Rearchitect computed properties engine to incrementally recompute properties for greater scalability | ✅      |
-| Reverse ETL                     | Add support for reverse ETL as a data source via Polytomic                                           | ✅      |
-| Twilio SMS support              | Use Twilio as a SMS provider                                                                         | ✅      |
-| Broadcast UI                    | Improve functionality and usability of Broadcasts                                                    | ✅      |
+☑️ = in development | ✅ = in production
+
+### Q1: January 1 to March 31
+
+| Feature                       | Purpose                                                                                                                                                              | Status  |
+|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| Webhook channel               | New message channel supporting arbitrary requests to user-specified APIs.                                                                                            | - \[ ]   |
+| Low code template builder     | Allows members to build email templates in a low-code interface without manual encoding in MJML.                                                                     | - \[ ]   |
+| Performance work on time-based segmentation | Optimization of [computePropertiesWorkflow](https://github.com/dittofeed/dittofeed/blob/0477114238af27d4f42f3d368266a79823956236/packages/backend-lib/src/segments/computePropertiesWorkflow.ts#L46-L113) to reduce segment update times. | - \[ ]   |
+| Replace Prisma with Drizzle   | Addresses Prisma’s excessive memory consumption and memory leak issues for self-hosting developers.                                                                       | - \[ ]   |
+| Basic White Labeling Support  | Allow workspace members to provide their own branding, for the dashboard.                                                                                                                                                                 | - \[ ]   |
+| AWS SES Support               | Support SES as an email service provider.                                                                                                                                                                      | - \[ ]   |
+
+---
+
+### Q2: April 1 to June 30
+
+| Feature                       | Purpose                                                                                                               | Status  |
+|-------------------------------|-----------------------------------------------------------------------------------------------------------------------|---------|
+| Complete git-based workflows  | Allows members to manage journey, segment, and template resources via git, including branching workflow for merging.   | - \[ ]   |
+| Identity resolution           | Enables joining of users based on traits or behavior, important for identifying anonymous users post sign-up/sign-in. | - \[ ]   |
+| User grouping                 | Provides a way to represent a collection of users (e.g., club, company, team) for segment membership conditions.      | - \[ ]   |
+
+---
+
+### Q3: July 1 to September 30
+
+| Feature                      | Purpose                                                                                               | Status  |
+|------------------------------|-------------------------------------------------------------------------------------------------------|---------|
+| LLM Integration              | Drives the generation of journeys, segments, and templates.                                           | - \[ ]   |
+| Granular Permissions Model   | Enhances the permissions model for more restricted access to the dashboard.                           | - \[ ]   |
+| Embeddable Components        | Enables embedding of Journey Builder, Segment Builder, Template Builder, etc., into third-party apps. | - \[ ]   |
+
+---
+
 
 
 ## Developer-centric

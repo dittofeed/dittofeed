@@ -178,6 +178,7 @@
       "group": "User Guides",
       "pages": [
         "guide/submitting-user-events",
+        "guide/roadmap",
         "guide/creating-journeys",
         "guide/git-workflows",
         "guide/testing",
