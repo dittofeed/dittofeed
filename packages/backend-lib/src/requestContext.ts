@@ -1,10 +1,13 @@
+import { SpanStatusCode } from "@opentelemetry/api";
 import { Prisma } from "@prisma/client";
 import { IncomingHttpHeaders } from "http";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
+import { withSpan } from "./openTelemetry";
 import prisma from "./prisma";
 import {
   DFRequestContext,
@@ -15,9 +18,6 @@ import {
   WorkspaceMemberRoleResource,
   WorkspaceResource,
 } from "./types";
-import { withSpan } from "./openTelemetry";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { SpanStatusCode } from "@opentelemetry/api";
 
 export const SESSION_KEY = "df-session-key" as const;
 
@@ -82,7 +82,7 @@ interface RolesWithWorkspace {
 }
 
 async function findAndCreateRoles(
-  member: MemberWithRoles
+  member: MemberWithRoles,
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
   const or: Prisma.WorkspaceWhereInput[] = [
@@ -112,7 +112,7 @@ async function findAndCreateRoles(
   });
 
   const domainWorkspacesWithoutRole = workspaces.filter(
-    (w) => w.WorkspaceMemberRole.length === 0
+    (w) => w.WorkspaceMemberRole.length === 0,
   );
   let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole);
   if (domainWorkspacesWithoutRole.length !== 0) {
@@ -131,8 +131,8 @@ async function findAndCreateRoles(
             workspaceMemberId: member.id,
             role: "Admin",
           },
-        })
-      )
+        }),
+      ),
     );
     for (const role of newRoles) {
       roles.push(role);
@@ -159,7 +159,7 @@ async function findAndCreateRoles(
 
   if (member.lastWorkspaceId) {
     const lastWorkspaceRole = roles.find(
-      (r) => r.workspaceId === member.lastWorkspaceId
+      (r) => r.workspaceId === member.lastWorkspaceId,
     );
     const workspace = workspaces.find((w) => w.id === member.lastWorkspaceId);
     if (lastWorkspaceRole && workspace) {
@@ -224,7 +224,7 @@ export async function getMultiTenantRequestContext({
   if (!email_verified) {
     return err({
       type: RequestContextErrorType.EmailNotVerified,
-      email: email ?? "",
+      email,
     });
   }
 
@@ -366,7 +366,7 @@ async function getAnonymousRequestContext(): Promise<RequestContextResult> {
 }
 
 export async function getRequestContext(
-  headers: IncomingHttpHeaders
+  headers: IncomingHttpHeaders,
 ): Promise<RequestContextResult> {
   return withSpan({ name: "get-request-context" }, async (span) => {
     const { authMode } = config();
@@ -402,7 +402,7 @@ export async function getRequestContext(
       const { id: workspaceId, name: workspaceName } = result.value.workspace;
 
       const memberRoles = result.value.memberRoles.flatMap((r) =>
-        r.workspaceId === workspaceId ? r.role : []
+        r.workspaceId === workspaceId ? r.role : [],
       );
       span.setAttributes({
         memberId,
