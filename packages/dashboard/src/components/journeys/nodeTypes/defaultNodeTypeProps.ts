@@ -12,7 +12,7 @@ export const defaultSegmentSplitName = "True / False Branch";
 
 export default function defaultNodeTypeProps(
   type: JourneyNodeType,
-  nodes: Node<NodeData>[]
+  nodes: Node<NodeData>[],
 ): NodeTypeProps {
   switch (type) {
     case JourneyNodeType.EntryNode:
@@ -28,7 +28,7 @@ export default function defaultNodeTypeProps(
         nodes.filter(
           (n) =>
             n.data.type === "JourneyNode" &&
-            n.data.nodeTypeProps.type === JourneyNodeType.MessageNode
+            n.data.nodeTypeProps.type === JourneyNodeType.MessageNode,
         ).length + 1;
       return {
         type,

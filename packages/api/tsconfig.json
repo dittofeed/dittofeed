@@ -2,16 +2,16 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "types": ["node", "jest"],
-    "outDir": "dist"
+    "outDir": "dist",
   },
   "exclude": ["node_modules", "dist"],
   "include": ["./src/**/*.ts", "./scripts/**/*.ts"],
   "references": [
     {
-      "path": "../isomorphic-lib"
+      "path": "../isomorphic-lib",
     },
     {
-      "path": "../backend-lib"
-    }
-  ]
+      "path": "../backend-lib",
+    },
+  ],
 }

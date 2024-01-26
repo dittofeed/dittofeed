@@ -72,14 +72,14 @@ export type JourneyStateForResource = Pick<
 
 export function findDirectUiParents(
   parentId: string,
-  edges: JourneyContent["journeyEdges"]
+  edges: JourneyContent["journeyEdges"],
 ): string[] {
   return edges.flatMap((e) => (e.target === parentId ? e.source : []));
 }
 
 export function findDirectUiChildren(
   parentId: string,
-  edges: JourneyContent["journeyEdges"]
+  edges: JourneyContent["journeyEdges"],
 ): string[] {
   return edges.flatMap((e) => (e.source === parentId ? e.target : []));
 }
@@ -104,7 +104,7 @@ function buildJourneyNodeMap(journeyNodes: Node<NodeData>[]): JourneyNodeMap {
 
 function buildUiHeritageMap(
   nodes: Node<NodeData>[],
-  edges: Edge<EdgeData>[]
+  edges: Edge<EdgeData>[],
 ): HeritageMap {
   const map: HeritageMap = new Map();
 
@@ -124,7 +124,7 @@ function buildUiHeritageMap(
     const { id } = node;
 
     const queue = Array.from(findDirectUiChildren(id, edges).values()).flatMap(
-      (childId) => nodes.find((n) => n.id === childId) ?? []
+      (childId) => nodes.find((n) => n.id === childId) ?? [],
     );
 
     queue.forEach((childNode) => {
@@ -157,9 +157,9 @@ function buildUiHeritageMap(
 
       // add children of current child to queue
       const grandchildren = Array.from(
-        map.get(childId)?.children.values() ?? []
+        map.get(childId)?.children.values() ?? [],
       ).flatMap(
-        (grandChildId) => nodes.find((n) => n.id === grandChildId) ?? []
+        (grandChildId) => nodes.find((n) => n.id === grandChildId) ?? [],
       );
 
       queue.push(...grandchildren);
@@ -171,7 +171,7 @@ function buildUiHeritageMap(
 
 export function getNearestUiFromChildren(
   nId: string,
-  hm: HeritageMap
+  hm: HeritageMap,
 ): string | null {
   const hmEntry = getUnsafe(hm, nId);
 
@@ -191,7 +191,7 @@ export function getNearestUiFromChildren(
       const val: [string, number] = [d, descendantHmEntry.ancestors.size];
       return [val];
     }),
-    (val) => val[1]
+    (val) => val[1],
   );
   const nearestDescendant = nearestDescendants[0];
   if (!nearestDescendant) {
@@ -203,7 +203,7 @@ export function getNearestUiFromChildren(
 export function getNearestJourneyFromChildren(
   nId: string,
   hm: HeritageMap,
-  uiJourneyNodes: JourneyNodeMap
+  uiJourneyNodes: JourneyNodeMap,
 ): string {
   const hmEntry = getUnsafe(hm, nId);
 
@@ -227,7 +227,7 @@ export function getNearestJourneyFromChildren(
       const val: [string, number] = [d, descendantHmEntry.ancestors.size];
       return [val];
     }),
-    (val) => val[1]
+    (val) => val[1],
   );
   const nearestDescendant = nearestDescendants[0];
   if (!nearestDescendant) {
@@ -239,7 +239,7 @@ export function getNearestJourneyFromChildren(
 function findNextJourneyNode(
   nodeId: string,
   hm: HeritageMap,
-  uiJourneyNodes: Map<string, NodeTypeProps>
+  uiJourneyNodes: Map<string, NodeTypeProps>,
 ): string {
   let hmEntry = getUnsafe(hm, nodeId);
   let child: string | null = null;
@@ -264,7 +264,7 @@ function journeyDefinitionFromStateBranch(
   nodes: JourneyNode[],
   uiJourneyNodes: JourneyNodeMap,
   edges: Edge<EdgeData>[],
-  terminateBefore?: string
+  terminateBefore?: string,
 ): Result<null, { message: string; nodeId: string }> {
   let nId = initialNodeId;
   let nextId: string | null = null;
@@ -385,7 +385,7 @@ function journeyDefinitionFromStateBranch(
         const timeoutChild = findNextJourneyNode(
           uiNode.timeoutLabelNodeId,
           hm,
-          uiJourneyNodes
+          uiJourneyNodes,
         );
 
         if (nfc !== timeoutChild) {
@@ -395,7 +395,7 @@ function journeyDefinitionFromStateBranch(
             nodes,
             uiJourneyNodes,
             edges,
-            nfc
+            nfc,
           );
           if (branchResult.isErr()) {
             return err(branchResult.error);
@@ -413,7 +413,7 @@ function journeyDefinitionFromStateBranch(
           const child = findNextJourneyNode(
             segmentChild.labelNodeId,
             hm,
-            uiJourneyNodes
+            uiJourneyNodes,
           );
 
           if (nfc !== child) {
@@ -423,7 +423,7 @@ function journeyDefinitionFromStateBranch(
               nodes,
               uiJourneyNodes,
               edges,
-              nfc
+              nfc,
             );
             if (branchResult.isErr()) {
               return err(branchResult.error);
@@ -456,7 +456,7 @@ function journeyDefinitionFromStateBranch(
         const trueChild = findNextJourneyNode(
           uiNode.trueLabelNodeId,
           hm,
-          uiJourneyNodes
+          uiJourneyNodes,
         );
 
         const nfc = getNearestJourneyFromChildren(nId, hm, uiJourneyNodes);
@@ -467,7 +467,7 @@ function journeyDefinitionFromStateBranch(
             nodes,
             uiJourneyNodes,
             edges,
-            nfc
+            nfc,
           );
           if (branchResult.isErr()) {
             return err(branchResult.error);
@@ -477,7 +477,7 @@ function journeyDefinitionFromStateBranch(
         const falseChild = findNextJourneyNode(
           uiNode.falseLabelNodeId,
           hm,
-          uiJourneyNodes
+          uiJourneyNodes,
         );
 
         if (nfc !== falseChild) {
@@ -487,7 +487,7 @@ function journeyDefinitionFromStateBranch(
             nodes,
             uiJourneyNodes,
             edges,
-            nfc
+            nfc,
           );
           if (branchResult.isErr()) {
             return err(branchResult.error);
@@ -536,7 +536,7 @@ export function journeyDefinitionFromState({
     hm,
     nodes,
     journeyNodes,
-    state.journeyEdges
+    state.journeyEdges,
   );
 
   if (result.isErr()) {
@@ -797,7 +797,7 @@ export function newStateFromNodes({
  */
 export function findAllDescendants(
   parentId: string,
-  edges: JourneyContent["journeyEdges"]
+  edges: JourneyContent["journeyEdges"],
 ): Map<string, number> {
   const children = new Map<string, number>();
   const unprocessed = [{ node: parentId, depth: 0 }];
@@ -871,7 +871,7 @@ function buildPlaceholderEdge(source: string, target: string): Edge<EdgeData> {
 
 function buildJourneyNode(
   id: string,
-  nodeTypeProps: NodeTypeProps
+  nodeTypeProps: NodeTypeProps,
 ): Node<JourneyNodeProps> {
   return {
     id,
@@ -931,10 +931,10 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       }
 
       state.journeyNodes = state.journeyNodes.filter(
-        (n) => !nodesToRemove.has(n.id)
+        (n) => !nodesToRemove.has(n.id),
       );
       state.journeyEdges = state.journeyEdges.filter(
-        (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target)
+        (e) => !nodesToRemove.has(e.source) && !nodesToRemove.has(e.target),
       );
 
       const terminalHmEntry = getUnsafe(hm, terminalNode);
@@ -976,7 +976,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       const node = findJourneyNode(
         nodeId,
         state.journeyNodes,
-        state.journeyNodesIndex
+        state.journeyNodesIndex,
       );
       if (node) {
         updater(node);
@@ -1000,7 +1000,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
       const node = findNode(
         nodeId,
         state.journeyNodes,
-        state.journeyNodesIndex
+        state.journeyNodesIndex,
       );
       if (node && isLabelNode(node)) {
         node.data.title = title;
@@ -1014,7 +1014,7 @@ export function journeyBranchToState(
   edgesState: Edge<EdgeData>[],
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap,
-  terminateBefore?: string
+  terminateBefore?: string,
 ): {
   terminalNode: string | null;
 } {
@@ -1032,7 +1032,7 @@ export function journeyBranchToState(
         };
         nodesState.push(buildJourneyNode(nId, entryNode));
         edgesState.push(
-          buildWorkflowEdge(JourneyNodeType.EntryNode, node.child)
+          buildWorkflowEdge(JourneyNodeType.EntryNode, node.child),
         );
         nextNodeId = node.child;
         break;
@@ -1146,11 +1146,11 @@ export function journeyBranchToState(
             edgesState,
             nodes,
             hm,
-            nfc
+            nfc,
           ).terminalNode;
           if (!terminalId) {
             throw new Error(
-              "segment split children terminate which should not be possible"
+              "segment split children terminate which should not be possible",
             );
           }
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
@@ -1167,11 +1167,11 @@ export function journeyBranchToState(
             edgesState,
             nodes,
             hm,
-            nfc
+            nfc,
           ).terminalNode;
           if (!terminalId) {
             throw new Error(
-              "segment split children terminate which should not be possible"
+              "segment split children terminate which should not be possible",
             );
           }
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
@@ -1210,10 +1210,10 @@ export function journeyBranchToState(
 
         nodesState.push(buildJourneyNode(nId, waitForNodeProps));
         nodesState.push(
-          buildLabelNode(segmentChildLabelId, WAIT_FOR_SATISFY_LABEL)
+          buildLabelNode(segmentChildLabelId, WAIT_FOR_SATISFY_LABEL),
         );
         nodesState.push(
-          buildLabelNode(timeoutId, waitForTimeoutLabel(node.timeoutSeconds))
+          buildLabelNode(timeoutId, waitForTimeoutLabel(node.timeoutSeconds)),
         );
         nodesState.push(buildEmptyNode(emptyId));
         edgesState.push(buildPlaceholderEdge(nId, segmentChildLabelId));
@@ -1225,7 +1225,7 @@ export function journeyBranchToState(
           edgesState.push(buildWorkflowEdge(segmentChildLabelId, emptyId));
         } else {
           edgesState.push(
-            buildWorkflowEdge(segmentChildLabelId, segmentChild.id)
+            buildWorkflowEdge(segmentChildLabelId, segmentChild.id),
           );
 
           const terminalId = journeyBranchToState(
@@ -1234,11 +1234,11 @@ export function journeyBranchToState(
             edgesState,
             nodes,
             hm,
-            nfc
+            nfc,
           ).terminalNode;
           if (!terminalId) {
             throw new Error(
-              "segment split children terminate which should not be possible"
+              "segment split children terminate which should not be possible",
             );
           }
           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
@@ -1255,7 +1255,7 @@ export function journeyBranchToState(
             edgesState,
             nodes,
             hm,
-            nfc
+            nfc,
           ).terminalNode;
           if (!terminalId) {
             throw new Error("children terminate which should not be possible");
@@ -1290,7 +1290,7 @@ export function journeyBranchToState(
 }
 
 export function journeyToState(
-  journey: Omit<JourneyResource, "id" | "status" | "workspaceId">
+  journey: Omit<JourneyResource, "id" | "status" | "workspaceId">,
 ): JourneyStateForResource {
   const journeyEdges: Edge<EdgeData>[] = [];
   let journeyNodes: Node<NodeData>[] = [];
@@ -1308,7 +1308,7 @@ export function journeyToState(
     journeyNodes,
     journeyEdges,
     nodes,
-    hm
+    hm,
   );
   journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   const journeyNodesIndex = buildNodesIndex(journeyNodes);

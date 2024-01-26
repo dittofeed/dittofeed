@@ -7,8 +7,9 @@ export { findAllUserProperties } from "../../userProperties";
 export * from "./activities/computeProperties";
 export * from "./activities/performBroadcast";
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function config(
-  keys: (keyof Config)[]
+  keys: (keyof Config)[],
 ): Promise<Pick<Config, (typeof keys)[number]>> {
   return pick(getConfig(), keys);
 }

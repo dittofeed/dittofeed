@@ -92,8 +92,8 @@ describe("journeys", () => {
                 sendRate: 1,
                 channelStats: expect.objectContaining({
                   type: ChannelType.Email,
-                }),
-              }),
+                }) as unknown,
+              }) as unknown,
             },
           },
         ]);

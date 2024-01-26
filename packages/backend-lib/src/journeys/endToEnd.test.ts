@@ -191,8 +191,8 @@ describe("end to end journeys", () => {
               definition: journeyDefinition,
               status: "Running",
             },
-          })
-        )
+          }),
+        ),
       );
 
       currentTimeMS = await testEnv.currentTimeMs();
@@ -259,7 +259,7 @@ describe("end to end journeys", () => {
           await segmentWorkflowHandle.result();
 
           const handle = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId
+            userJourneyWorkflowId,
           );
 
           await handle.result();
@@ -269,7 +269,7 @@ describe("end to end journeys", () => {
         expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
           expect.objectContaining({
             nodeId: messageNode1,
-          })
+          }),
         );
       });
     });
@@ -335,7 +335,7 @@ describe("end to end journeys", () => {
           await segmentWorkflowHandle.result();
 
           const handle = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId
+            userJourneyWorkflowId,
           );
 
           await handle.result();
@@ -345,7 +345,7 @@ describe("end to end journeys", () => {
         expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
           expect.objectContaining({
             nodeId: messageNode2,
-          })
+          }),
         );
       });
     });
@@ -409,7 +409,7 @@ describe("end to end journeys", () => {
           await segmentWorkflowHandle.result();
 
           const handle = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId
+            userJourneyWorkflowId,
           );
 
           await handle.result();
@@ -419,7 +419,7 @@ describe("end to end journeys", () => {
         expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
           expect.objectContaining({
             nodeId: messageNode2,
-          })
+          }),
         );
       });
     });
@@ -529,8 +529,8 @@ describe("end to end journeys", () => {
                 definition: journeyDefinition,
                 status: "Running",
               },
-            })
-          )
+            }),
+          ),
         );
 
         const currentTimeMS = await testEnv.currentTimeMs();
@@ -588,12 +588,12 @@ describe("end to end journeys", () => {
           await testEnv.sleep("1.5 weeks");
 
           const handle = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId
+            userJourneyWorkflowId,
           );
 
           const userJourneyWorkflowId2 = `user-journey-${journey.id}-${userId2}`;
           const handle2 = testEnv.client.workflow.getHandle(
-            userJourneyWorkflowId2
+            userJourneyWorkflowId2,
           );
 
           await Promise.all([handle.result(), handle2.result()]);
@@ -624,7 +624,7 @@ describe("end to end journeys", () => {
             name: "default",
             type: SubscriptionGroupType.OptIn,
             channel: ChannelType.Email,
-          })
+          }),
         );
 
         const journeyDefinition: JourneyDefinition = {
@@ -659,8 +659,8 @@ describe("end to end journeys", () => {
                 definition: journeyDefinition,
                 status: "NotStarted",
               },
-            })
-          )
+            }),
+          ),
         );
 
         userJourneyWorkflowId = `user-journey-${journey.id}-${userId1}`;
@@ -705,7 +705,7 @@ describe("end to end journeys", () => {
               });
 
             const handle = testEnv.client.workflow.getHandle(
-              userJourneyWorkflowId
+              userJourneyWorkflowId,
             );
 
             let workflowDescribeError: unknown | null = null;
@@ -738,14 +738,14 @@ describe("end to end journeys", () => {
                     shouldContinueAsNew: false,
                   },
                 ],
-              }
+              },
             );
 
             expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
             expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
               expect.objectContaining({
                 userId: userId1,
-              })
+              }),
             );
 
             const currentTimeMS = await testEnv.currentTimeMs();
@@ -789,14 +789,14 @@ describe("end to end journeys", () => {
                     shouldContinueAsNew: false,
                   },
                 ],
-              }
+              },
             );
 
             expect(testActivities.sendMessageV2).toHaveBeenCalledTimes(1);
             expect(testActivities.sendMessageV2).not.toHaveBeenCalledWith(
               expect.objectContaining({
                 userId: userId2,
-              })
+              }),
             );
 
             await prisma().journey.update({
@@ -824,7 +824,7 @@ describe("end to end journeys", () => {
             expect(testActivities.sendMessageV2).toHaveBeenCalledWith(
               expect.objectContaining({
                 userId: userId2,
-              })
+              }),
             );
           } catch (e) {
             workerError = e as Error;

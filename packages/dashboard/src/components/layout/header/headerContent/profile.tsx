@@ -72,11 +72,11 @@ function Profile() {
         id: role.workspaceId,
         label: role.workspaceName,
       })),
-    [memberRoles]
+    [memberRoles],
   );
   const option = React.useMemo(
     () => options.find((o) => o.id === selectedWorkspaceId),
-    [options, selectedWorkspaceId]
+    [options, selectedWorkspaceId],
   );
 
   // FIXME clickaway listner screws up
@@ -170,7 +170,7 @@ function Profile() {
                         disableClearable
                         onChange={(_e, newValue) => {
                           path.push(
-                            `/select-workspace?workspaceId=${newValue.id}`
+                            `/select-workspace?workspaceId=${newValue.id}`,
                           );
                         }}
                         renderInput={(params) => (

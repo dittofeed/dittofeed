@@ -63,14 +63,14 @@ function SegmentSplitNodeFields({
   nodeProps: SegmentSplitNodeProps;
 }) {
   const updateJourneyNodeData = useAppStore(
-    (state) => state.updateJourneyNodeData
+    (state) => state.updateJourneyNodeData,
   );
 
   const segments = useAppStore((state) => state.segments);
 
   const onSegmentChangeHandler = (
     _event: unknown,
-    segment: SegmentResource | null
+    segment: SegmentResource | null,
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
@@ -108,14 +108,14 @@ function EntryNodeFields({
   nodeProps: EntryNodeProps;
 }) {
   const updateJourneyNodeData = useAppStore(
-    (state) => state.updateJourneyNodeData
+    (state) => state.updateJourneyNodeData,
   );
 
   const segments = useAppStore((state) => state.segments);
 
   const onSegmentChangeHandler = (
     _event: unknown,
-    segment: SegmentResource | null
+    segment: SegmentResource | null,
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
@@ -163,7 +163,7 @@ function MessageNodeFields({
       templates: store.messages,
       messages: store.messages,
     }),
-    shallow
+    shallow,
   );
 
   const onNameChangeHandler: React.ChangeEventHandler<
@@ -179,7 +179,7 @@ function MessageNodeFields({
 
   const onTemplateChangeHandler = (
     _event: unknown,
-    template: MessageTemplateResource | null
+    template: MessageTemplateResource | null,
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
@@ -197,7 +197,7 @@ function MessageNodeFields({
   const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;
 
   const onChannelChangeHandler: SelectInputProps<ChannelType>["onChange"] = (
-    e
+    e,
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
@@ -295,7 +295,7 @@ function DelayNodeFields({
   nodeProps: DelayNodeProps;
 }) {
   const updateJourneyNodeData = useAppStore(
-    (state) => state.updateJourneyNodeData
+    (state) => state.updateJourneyNodeData,
   );
   let variant: React.ReactElement;
   switch (nodeProps.variant.type) {
@@ -323,7 +323,7 @@ function DelayNodeFields({
     }
     case DelayVariantType.LocalTime: {
       const allowedDaysOfWeek = new Set(
-        nodeProps.variant.allowedDaysOfWeek ?? DAY_INDICES
+        nodeProps.variant.allowedDaysOfWeek ?? DAY_INDICES,
       );
       const dayEls = DAYS.map((day, i) => {
         const index = i as AllowedDayIndices;
@@ -376,7 +376,7 @@ function DelayNodeFields({
                 0,
                 0,
                 nodeProps.variant.hour,
-                nodeProps.variant.minute
+                nodeProps.variant.minute,
               )
             }
             onChange={(newValue) =>
@@ -457,7 +457,7 @@ function WaitForNodeFields({
       segments: store.segments,
       updateLabelNode: store.updateLabelNode,
     }),
-    shallow
+    shallow,
   );
 
   if (segments.type !== CompletionStatus.Successful) {
@@ -477,7 +477,7 @@ function WaitForNodeFields({
 
   const onSegmentChangeHandler = (
     _event: unknown,
-    segment: SegmentResource | null
+    segment: SegmentResource | null,
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
@@ -492,7 +492,7 @@ function WaitForNodeFields({
 
   const segment =
     segments.value.find(
-      (t) => t.id === nodeProps.segmentChildren[0]?.segmentId
+      (t) => t.id === nodeProps.segmentChildren[0]?.segmentId,
     ) ?? null;
 
   return (
@@ -658,7 +658,7 @@ export default function NodeEditor() {
       selectedNodeId
         ? findJourneyNode(selectedNodeId, nodes, nodesIndex)
         : null,
-    [selectedNodeId, nodes, nodesIndex]
+    [selectedNodeId, nodes, nodesIndex],
   );
   const isOpen = !!selectedNode;
 

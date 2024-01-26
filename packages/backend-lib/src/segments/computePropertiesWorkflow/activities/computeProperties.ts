@@ -150,19 +150,19 @@ function buildReadQuery({
     integration.definition.subscribedUserProperties.forEach(
       (userPropertyName) => {
         const userPropertyId = userProperties.find(
-          (up) => up.name === userPropertyName
+          (up) => up.name === userPropertyName,
         )?.id;
         if (!userPropertyId) {
           logger().info(
             { workspaceId, integration, userPropertyName },
-            "integration subscribed to user property that doesn't exist"
+            "integration subscribed to user property that doesn't exist",
           );
           return;
         }
         const processFor = memo.get(userPropertyId) ?? new Set();
         processFor.add(integration.name);
         memo.set(userPropertyId, processFor);
-      }
+      },
     );
     return memo;
   }, new Map());
@@ -175,7 +175,7 @@ function buildReadQuery({
       if (!segmentId) {
         logger().info(
           { workspaceId, integration, segmentName },
-          "integration subscribed to segment that doesn't exist"
+          "integration subscribed to segment that doesn't exist",
         );
         return;
       }
@@ -199,14 +199,14 @@ function buildReadQuery({
   }
 
   for (const [segmentId, integrationSet] of Array.from(
-    subscribedIntegrationSegmentMap
+    subscribedIntegrationSegmentMap,
   )) {
     subscribedIntegrationSegmentKeys.push(segmentId);
     subscribedIntegrationSegmentValues.push(Array.from(integrationSet));
   }
 
   for (const [userPropertyId, integrationSet] of Array.from(
-    subscribedIntegrationUserPropertyMap
+    subscribedIntegrationUserPropertyMap,
   )) {
     subscribedIntegrationUserPropertyKeys.push(userPropertyId);
     subscribedIntegrationUserPropertyValues.push(Array.from(integrationSet));
@@ -214,32 +214,32 @@ function buildReadQuery({
 
   const subscribedJourneysKeysQuery = readChqb.addQueryValue(
     subscribedJourneyKeys,
-    "Array(String)"
+    "Array(String)",
   );
 
   const subscribedJourneysValuesQuery = readChqb.addQueryValue(
     subscribedJourneyValues,
-    "Array(Array(String))"
+    "Array(Array(String))",
   );
 
   const subscribedIntegrationsUserPropertyKeysQuery = readChqb.addQueryValue(
     subscribedIntegrationUserPropertyKeys,
-    "Array(String)"
+    "Array(String)",
   );
 
   const subscribedIntegrationsUserPropertyValuesQuery = readChqb.addQueryValue(
     subscribedIntegrationUserPropertyValues,
-    "Array(Array(String))"
+    "Array(Array(String))",
   );
 
   const subscribedIntegrationsSegmentKeysQuery = readChqb.addQueryValue(
     subscribedIntegrationSegmentKeys,
-    "Array(String)"
+    "Array(String)",
   );
 
   const subscribedIntegrationsSegmentValuesQuery = readChqb.addQueryValue(
     subscribedIntegrationSegmentValues,
-    "Array(Array(String))"
+    "Array(Array(String))",
   );
 
   const workspaceIdParam = readChqb.addQueryValue(workspaceId, "String");
@@ -378,13 +378,13 @@ async function processRows({
         if (result.isErr()) {
           logger().error(
             { err: result.error, json },
-            "failed to parse assignment json"
+            "failed to parse assignment json",
           );
           const emptyAssignments: ComputedAssignment[] = [];
           return emptyAssignments;
         }
         return result.value;
-      })
+      }),
     )
   ).flat();
 
@@ -423,7 +423,7 @@ async function processRows({
       journeySegmentAssignmentsCount: journeySegmentAssignments.length,
       integrationAssignmentsCount: integrationAssignments.length,
     },
-    "processing computed assignments"
+    "processing computed assignments",
   );
 
   await Promise.all([
@@ -448,7 +448,7 @@ async function processRows({
   await Promise.all([
     ...journeySegmentAssignments.flatMap((assignment) => {
       const journey = subscribedJourneys.find(
-        (j) => j.id === assignment.processed_for
+        (j) => j.id === assignment.processed_for,
       );
       if (!journey) {
         logger().error(
@@ -456,7 +456,7 @@ async function processRows({
             subscribedJourneys: subscribedJourneys.map((j) => j.id),
             processed_for: assignment.processed_for,
           },
-          "journey in assignment.processed_for missing from subscribed journeys"
+          "journey in assignment.processed_for missing from subscribed journeys",
         );
         return [];
       }
@@ -502,7 +502,7 @@ async function processRows({
               workspaceId,
               assignment,
             },
-            "integration in assignment.processed_for missing from subscribed integrations"
+            "integration in assignment.processed_for missing from subscribed integrations",
           );
           return [];
       }
@@ -554,7 +554,7 @@ export async function computePropertiesPeriodSafe({
       userProperties,
       segments: segmentResult.value,
     },
-    "computePropertiesPeriodSafe"
+    "computePropertiesPeriodSafe",
   );
 
   if (integrationsResult.isErr()) {
@@ -599,7 +599,7 @@ export async function computePropertiesPeriodSafe({
           queryId: tmpTableQueryId,
           err: e,
         },
-        "failed read temp table"
+        "failed read temp table",
       );
       throw e;
     }
@@ -608,7 +608,7 @@ export async function computePropertiesPeriodSafe({
         workspaceId,
         queryId: tmpTableQueryId,
       },
-      "read query temp table"
+      "read query temp table",
     );
     let offset = 0;
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
@@ -623,7 +623,7 @@ export async function computePropertiesPeriodSafe({
             query: paginatedReadQuery,
             query_id: pageQueryId,
             format: "JSONEachRow",
-          })
+          }),
         );
       } catch (e) {
         logger().error(
@@ -634,7 +634,7 @@ export async function computePropertiesPeriodSafe({
             readQueryPageSize,
             offset,
           },
-          "failed read query page"
+          "failed read query page",
         );
         throw e;
       }
@@ -645,7 +645,7 @@ export async function computePropertiesPeriodSafe({
           readQueryPageSize,
           offset,
         },
-        "read query page"
+        "read query page",
       );
 
       let unprocessedRowSets = 0;
@@ -662,7 +662,7 @@ export async function computePropertiesPeriodSafe({
             }
             receivedRows += rows.length;
 
-            (async () => {
+            void (async () => {
               unprocessedRowSets += 1;
               try {
                 await processRows({ rows, workspaceId, subscribedJourneys });
@@ -694,7 +694,7 @@ export async function computePropertiesPeriodSafe({
             pageQueryId,
             tmpTableQueryId,
           },
-          "failed to process rows"
+          "failed to process rows",
         );
         throw e;
       }
@@ -724,7 +724,7 @@ export async function computePropertiesPeriodSafe({
           queryId: tmpTableQueryId,
           err: e,
         },
-        "failed to cleanup temp table"
+        "failed to cleanup temp table",
       );
     }
     logger().info(
@@ -732,7 +732,7 @@ export async function computePropertiesPeriodSafe({
         workspaceId,
         queryId: tmpTableQueryId,
       },
-      "cleanup temp table"
+      "cleanup temp table",
     );
   }
 
@@ -750,14 +750,14 @@ interface ComputePropertiesPeriodParams {
 }
 
 export async function computePropertiesPeriod(
-  params: ComputePropertiesPeriodParams
+  params: ComputePropertiesPeriodParams,
 ): Promise<null> {
   try {
     return unwrap(await computePropertiesPeriodSafe(params));
   } catch (e) {
     logger().error(
       { err: e, workspaceId: params.workspaceId },
-      "failed to compute properties"
+      "failed to compute properties",
     );
     throw e;
   }

@@ -33,7 +33,7 @@ export async function onboardUser({
       workspaceMember,
       workspace,
     },
-    "assigning role to workspace member"
+    "assigning role to workspace member",
   );
 
   await prisma().workspaceMemberRole.upsert({

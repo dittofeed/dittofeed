@@ -117,7 +117,7 @@ export async function findMessageTemplate({
 }
 
 export async function upsertMessageTemplate(
-  data: UpsertMessageTemplateResource
+  data: UpsertMessageTemplateResource,
 ): Promise<MessageTemplateResource> {
   let messageTemplate: MessageTemplate;
   if (data.name && data.workspaceId) {
@@ -233,7 +233,7 @@ async function getSendMessageModels({
         workspaceId,
         err: messageTemplateResult.error,
       },
-      message
+      message,
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -250,7 +250,7 @@ async function getSendMessageModels({
         templateId,
         workspaceId,
       },
-      "message template not found"
+      "message template not found",
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -268,7 +268,7 @@ async function getSendMessageModels({
       {
         messageTemplate,
       },
-      "message template has no definition"
+      "message template has no definition",
     );
 
     return err({
@@ -463,7 +463,7 @@ export async function sendEmail({
 
   const secretConfigResult = schemaValidateWithErr(
     defaultEmailProvider.emailProvider.secret?.configValue,
-    EmailProviderSecret
+    EmailProviderSecret,
   );
   if (secretConfigResult.isErr()) {
     logger().error(
@@ -471,7 +471,7 @@ export async function sendEmail({
         err: secretConfigResult.error,
         unvalidatedSecretConfig,
       },
-      "message service provider config malformed"
+      "message service provider config malformed",
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -769,7 +769,7 @@ export async function sendSms({
 
   const parsedConfigResult = schemaValidateWithErr(
     smsConfig,
-    SmsProviderConfig
+    SmsProviderConfig,
   );
   if (parsedConfigResult.isErr()) {
     return err({
@@ -900,7 +900,7 @@ export async function sendSms({
 }
 
 export async function sendMessage(
-  params: SendMessageParameters
+  params: SendMessageParameters,
 ): Promise<BackendMessageSendResult> {
   switch (params.channel) {
     case ChannelType.Email:

@@ -78,7 +78,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     }
 
     const segmentResourceResult = Result.combine(
-      segments.map(toSegmentResource)
+      segments.map(toSegmentResource),
     );
 
     if (segmentResourceResult.isOk()) {

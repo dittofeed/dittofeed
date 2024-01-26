@@ -181,7 +181,7 @@ function ValueSelect({
   const { disabled } = useContext(DisabledContext);
 
   const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData
+    (state) => state.updateEditableSegmentNodeData,
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,7 +220,7 @@ function DurationValueSelect({
   const value = operator.windowSeconds;
 
   const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData
+    (state) => state.updateEditableSegmentNodeData,
   );
 
   const handleChange = (seconds: number) => {
@@ -248,7 +248,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
   const { disabled } = useContext(DisabledContext);
 
   const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData
+    (state) => state.updateEditableSegmentNodeData,
   );
 
   const handleEventNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -312,7 +312,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
 
   const propertyRows = node.properties?.map((property, i) => {
     const handlePropertyPathChange = (
-      e: React.ChangeEvent<HTMLInputElement>
+      e: React.ChangeEvent<HTMLInputElement>,
     ) => {
       updateSegmentNodeData(node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
@@ -326,7 +326,7 @@ function PerformedSelect({ node }: { node: PerformedSegmentNode }) {
       });
     };
     const handlePropertyValueChange = (
-      e: React.ChangeEvent<HTMLInputElement>
+      e: React.ChangeEvent<HTMLInputElement>,
     ) => {
       updateSegmentNodeData(node.id, (n) => {
         if (n.type === SegmentNodeType.Performed) {
@@ -520,7 +520,7 @@ function EmailSelect({ node }: { node: EmailSegmentNode }) {
       updateEditableSegmentNodeData: store.updateEditableSegmentNodeData,
       messages: store.messages,
     }),
-    shallow
+    shallow,
   );
 
   const onEmailEventChangeHandler: SelectProps["onChange"] = (e) => {
@@ -601,7 +601,7 @@ function SubscriptionGroupSelect({
 }) {
   const { disabled } = useContext(DisabledContext);
   const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData
+    (state) => state.updateEditableSegmentNodeData,
   );
   const subscriptionGroups = useAppStore((state) => state.subscriptionGroups);
   const subscriptionGroupOptions = useMemo(
@@ -610,15 +610,15 @@ function SubscriptionGroupSelect({
         label: sg.name,
         id: sg.id,
       })),
-    [subscriptionGroups]
+    [subscriptionGroups],
   );
 
   const subscriptionGroup = useMemo(
     () =>
       subscriptionGroupOptions.find(
-        (sg) => sg.id === node.subscriptionGroupId
+        (sg) => sg.id === node.subscriptionGroupId,
       ) ?? null,
-    [subscriptionGroupOptions, node.subscriptionGroupId]
+    [subscriptionGroupOptions, node.subscriptionGroupId],
   );
 
   return (
@@ -652,7 +652,7 @@ function SubscriptionGroupSelect({
 function TraitSelect({ node }: { node: TraitSegmentNode }) {
   const traitPath = node.path;
   const updateSegmentNodeData = useAppStore(
-    (state) => state.updateEditableSegmentNodeData
+    (state) => state.updateEditableSegmentNodeData,
   );
   const { disabled } = useContext(DisabledContext);
 
@@ -805,7 +805,7 @@ function SegmentNodeComponent({
   label?: Label;
 }) {
   const updateNodeType = useAppStore(
-    (state) => state.updateEditableSegmentNodeType
+    (state) => state.updateEditableSegmentNodeType,
   );
   const theme = useTheme();
   const addChild = useAppStore((state) => state.addEditableSegmentChild);
@@ -819,9 +819,9 @@ function SegmentNodeComponent({
           memo[segmentNode.id] = segmentNode;
           return memo;
         },
-        {}
+        {},
       ),
-    [editedSegment]
+    [editedSegment],
   );
   if (node.type === SegmentNodeType.LastPerformed) {
     throw new Error(`Unimplemented node type ${node.type}`);

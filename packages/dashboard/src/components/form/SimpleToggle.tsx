@@ -8,7 +8,7 @@ const SimpleToggle: StyledComponent<SwitchProps, object, object> = styled(
       disableRipple
       {...props}
     />
-  )
+  ),
 )(({ theme }) => ({
   width: 42,
   height: 26,

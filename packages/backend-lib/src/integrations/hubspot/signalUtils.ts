@@ -55,6 +55,6 @@ export async function startHubspotIntegrationWorkflow({
       args: [{ workspaceId, shouldContinueAsNew: true }],
       signal: hubspotWorkflowInitialize,
       signalArgs: [],
-    }
+    },
   );
 }

@@ -32,7 +32,7 @@ interface EventsActions {
   updatePagination: (key: PaginationModel) => void;
   updateTotalRowCount: (key: EventsState["totalRowCount"]) => void;
   updateEventsPaginationRequest: (
-    key: EventsState["eventsPaginationRequest"]
+    key: EventsState["eventsPaginationRequest"],
   ) => void;
 }
 
@@ -62,7 +62,7 @@ export const useEventsStore = create(
       set((state) => {
         state.totalRowCount = totalRowCount;
       }),
-  }))
+  })),
 );
 
 const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
@@ -80,7 +80,7 @@ export function EventsTable({
       page,
       pageSize,
     }),
-    shallow
+    shallow,
   );
   const { page, pageSize } = paginationModel;
   const theme = useTheme();
@@ -91,13 +91,13 @@ export function EventsTable({
   const updatePagination = useEventsStore((store) => store.updatePagination);
   const totalRowCount = useEventsStore((store) => store.totalRowCount);
   const updateTotalRowCount = useEventsStore(
-    (store) => store.updateTotalRowCount
+    (store) => store.updateTotalRowCount,
   );
   const updateEventsPaginationRequest = useEventsStore(
-    (store) => store.updateEventsPaginationRequest
+    (store) => store.updateEventsPaginationRequest,
   );
   const eventsPaginationRequest = useEventsStore(
-    (store) => store.eventsPaginationRequest
+    (store) => store.eventsPaginationRequest,
   );
   const events = useEventsStore((store) => store.events);
   const sortedEvents = useMemo(
@@ -107,7 +107,7 @@ export function EventsTable({
         const t2 = new Date(e2.eventTime);
         return t1.getTime() > t2.getTime() ? -1 : 1;
       }),
-    [events]
+    [events],
   );
   const updateEvents = useEventsStore((store) => store.updateEvents);
 

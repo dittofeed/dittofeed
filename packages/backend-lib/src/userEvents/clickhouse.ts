@@ -206,8 +206,8 @@ export async function createUserEventsTables({
       clickhouseClient().exec({
         query,
         clickhouse_settings: { wait_end_of_query: 1 },
-      })
-    )
+      }),
+    ),
   );
 
   const mvQueries: string[] = [
@@ -260,7 +260,7 @@ export async function createUserEventsTables({
       clickhouseClient().exec({
         query,
         clickhouse_settings: { wait_end_of_query: 1 },
-      })
-    )
+      }),
+    ),
   );
 }

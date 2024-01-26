@@ -180,7 +180,7 @@ function TemplateListContents() {
         }
         return acc;
       },
-      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] }
+      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] },
     );
   }, [messagesResult]);
 

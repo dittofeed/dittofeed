@@ -38,7 +38,7 @@ function MinimalNavItem({ item, level }: { level: number; item: MenuItem }) {
             borderRadius: 2,
             paddingX: 1,
             paddingY: 0.5,
-            ml: level * 1.5
+            ml: level * 1.5,
           }}
         >
           <ListItemIcon>
@@ -46,13 +46,7 @@ function MinimalNavItem({ item, level }: { level: number; item: MenuItem }) {
           </ListItemIcon>
           {(drawerOpen || level !== 1) && (
             <ListItemText
-              primary={
-                <Typography
-                  variant="h6"
-                >
-                  {item.title}
-                </Typography>
-              }
+              primary={<Typography variant="h6">{item.title}</Typography>}
             />
           )}
         </ListItemButton>

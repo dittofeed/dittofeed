@@ -48,7 +48,7 @@ export async function restartComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to terminate compute properties workflow."
+      "Failed to terminate compute properties workflow.",
     );
   }
 
@@ -62,7 +62,7 @@ export async function restartComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to start compute properties workflow."
+      "Failed to start compute properties workflow.",
     );
   }
 }

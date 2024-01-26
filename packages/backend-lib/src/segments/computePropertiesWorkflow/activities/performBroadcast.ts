@@ -23,7 +23,7 @@ export async function performBroadcastIncremental({
       {
         broadcastId,
       },
-      "Broadcast not found."
+      "Broadcast not found.",
     );
     return null;
   }
@@ -35,7 +35,7 @@ export async function performBroadcastIncremental({
       {
         broadcast,
       },
-      "broadcast already triggered"
+      "broadcast already triggered",
     );
     return null;
   }
@@ -75,7 +75,7 @@ export async function performBroadcast({
       workspaceId,
       broadcastId,
     },
-    "performing broadcast"
+    "performing broadcast",
   );
   const broadcastResources = await getBroadcast({
     workspaceId,
@@ -87,7 +87,7 @@ export async function performBroadcast({
       {
         broadcastId,
       },
-      "Broadcast not found."
+      "Broadcast not found.",
     );
     return null;
   }
@@ -98,7 +98,7 @@ export async function performBroadcast({
       {
         broadcast,
       },
-      "broadcast already triggered"
+      "broadcast already triggered",
     );
     return null;
   }

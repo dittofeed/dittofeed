@@ -56,13 +56,13 @@ export function BroadcastLayout({
   ]);
   const broadcast = useMemo(
     () => broadcasts.find((b) => b.id === id),
-    [broadcasts, id]
+    [broadcasts, id],
   );
   const editable = broadcast?.status === "NotStarted";
   const stepIndex = order[activeStep];
   const sortedSteps = sortBy(
     toPairs(steps),
-    ([path]) => order[path as keyof typeof steps]
+    ([path]) => order[path as keyof typeof steps],
   );
   const [debouncedName] = useDebounce(editedBroadcast?.name, 1000);
   useUpdateEffect(() => {

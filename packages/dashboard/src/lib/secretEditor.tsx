@@ -17,7 +17,7 @@ export const secretEditorStore = create(
   immer<{
     upsertSecretRequest: EphemeralRequestStatus<Error>;
     setUpsertSecretRequest: (
-      upsertSecretRequest: EphemeralRequestStatus<Error>
+      upsertSecretRequest: EphemeralRequestStatus<Error>,
     ) => void;
   }>((set) => ({
     upsertSecretRequest: {
@@ -27,7 +27,7 @@ export const secretEditorStore = create(
       set((state) => {
         state.upsertSecretRequest = upsertSecretRequest;
       }),
-  }))
+  })),
 );
 
 export const useSecretsEditor = ({ secretName }: { secretName: string }) => {
@@ -39,14 +39,14 @@ export const useSecretsEditor = ({ secretName }: { secretName: string }) => {
     "upsertSecrets",
   ]);
   const upsertSecretRequest = secretEditorStore(
-    (state) => state.upsertSecretRequest
+    (state) => state.upsertSecretRequest,
   );
   const setUpsertSecretRequest = secretEditorStore(
-    (state) => state.setUpsertSecretRequest
+    (state) => state.setUpsertSecretRequest,
   );
   const secret = useMemo(
     () => secrets.find((s) => s.name === secretName),
-    [secrets, secretName]
+    [secrets, secretName],
   );
   const handleClickShowPassword = () => setShowPassword(!showPassword);
   const handleMouseDownPassword = () => setShowPassword(!showPassword);

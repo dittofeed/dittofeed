@@ -34,7 +34,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
         query: ctx.query,
         err: params.error,
       },
-      "Invalid subscription management params"
+      "Invalid subscription management params",
     );
     return {
       redirect: {
@@ -64,7 +64,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
       {
         err: userLookupResult.error,
       },
-      "Failed user lookup"
+      "Failed user lookup",
     );
     return {
       redirect: {
@@ -96,7 +96,7 @@ export const getServerSideProps: GetServerSideProps<SSP> = async (ctx) => {
         subscriptionId: s,
         subscriptionChange: sub,
       },
-      "Subscription change"
+      "Subscription change",
     );
 
     subscriptionChange =
