@@ -10,6 +10,7 @@ import {
   Tabs,
   Typography,
 } from "@mui/material";
+import { Journey } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
@@ -19,6 +20,8 @@ import {
   ChannelType,
   CompletionStatus,
   EmailTemplateResource,
+  JourneyDefinition,
+  JourneyNodeType,
   MessageTemplateResourceRequest,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
@@ -31,11 +34,11 @@ import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
-import DeleteDialog from "../../components/confirmDeleteDialog";
 import MainLayout from "../../components/mainLayout";
 import TemplatesTable from "../../components/templatesTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStore } from "../../lib/appStore";
+import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
 
@@ -77,9 +80,35 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const templates = await findMessageTemplates({
       workspaceId,
     });
+    const journeys = await prisma().journey.findMany({
+      where: { workspaceId },
+    });
+    const usedBy: Record<string, Journey[]> = {};
+    for (const template of templates) {
+      for (const journey of journeys) {
+        for (const node of (journey.definition as JourneyDefinition).nodes) {
+          if (
+            node.type === JourneyNodeType.MessageNode &&
+            node.variant.templateId === template.id
+          ) {
+            usedBy[template.id] = usedBy[template.id] ?? [];
+            usedBy[template.id]?.push(journey);
+          }
+        }
+      }
+    }
+
     const messages: AppState["messages"] = {
       type: CompletionStatus.Successful,
-      value: templates,
+      value: templates.map((template) => ({
+        ...template,
+        journeys:
+          usedBy[template.id] && usedBy[template.id]?.length !== 0
+            ? usedBy[template.id]
+                ?.map((journey) => `${journey.name}, `)
+                ?.join(`, \n`)
+            : "No Journey",
+      })),
     };
 
     return {
@@ -92,8 +121,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     };
   });
-
-
 
 function TemplateListContents() {
   const enableMobilePush = useAppStore((store) => store.enableMobilePush);
@@ -166,7 +193,7 @@ function TemplateListContents() {
       sx={{
         padding: 1,
         width: "100%",
-        maxWidth: "40rem",
+        maxWidth: "70rem",
       }}
       spacing={2}
     >

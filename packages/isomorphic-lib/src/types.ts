@@ -713,6 +713,8 @@ export const SegmentResource = Type.Object({
   definition: SegmentDefinition,
   subscriptionGroupId: Type.Optional(Type.String()),
   updatedAt: Type.Number(),
+  journeys: Type.Optional(Type.String()),
+  lastRecomputed: Type.Optional(Type.Number()),
 });
 
 export type SegmentResource = Static<typeof SegmentResource>;
@@ -1139,6 +1141,9 @@ export const UserPropertyResource = Type.Object({
   name: Type.String(),
   definition: UserPropertyDefinition,
   exampleValue: Type.Optional(Type.String()),
+  updatedAt: Type.Number(),
+  templates: Type.Optional(Type.String()),
+  lastRecomputed: Type.Optional(Type.Number()),
 });
 
 export type UserPropertyResource = Static<typeof UserPropertyResource>;

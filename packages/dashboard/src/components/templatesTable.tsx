@@ -1,5 +1,3 @@
-import { Delete } from "@mui/icons-material";
-import { Button } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -19,14 +17,21 @@ import React, { useMemo } from "react";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
+import DeleteDialog from "./confirmDeleteDialog";
 
 interface Row {
   id: string;
   name: string;
-  updatedAt: number;
+  updatedAt: string;
   journeys?: string;
-  definition?: EmailTemplateResource | MobilePushTemplateResource | SmsTemplateResource;
-  draft?: EmailTemplateResource | MobilePushTemplateResource | SmsTemplateResource;
+  definition?:
+    | EmailTemplateResource
+    | MobilePushTemplateResource
+    | SmsTemplateResource;
+  draft?:
+    | EmailTemplateResource
+    | MobilePushTemplateResource
+    | SmsTemplateResource;
 }
 
 const baseColumn: Partial<GridColDef<Row>> = {
@@ -124,14 +129,26 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     );
   }, [messagesResult]);
 
-  let rows;
-
+  let rows: Row[];
+  let routeName: string;
   if (label === CHANNEL_NAMES[ChannelType.Email]) {
-    rows = emailTemplates;
+    rows = emailTemplates.map((template) => ({
+      ...template,
+      updatedAt: new Date(template.updatedAt).toISOString(),
+    }));
+    routeName = "email";
   } else if (label === CHANNEL_NAMES[ChannelType.MobilePush]) {
-    rows = mobilePushTemplates;
+    rows = mobilePushTemplates.map((template) => ({
+      ...template,
+      updatedAt: new Date(template.updatedAt).toISOString(),
+    }));
+    routeName = "mobile-push";
   } else {
-    rows = smsTemplates;
+    rows = smsTemplates.map((template) => ({
+      ...template,
+      updatedAt: new Date(template.updatedAt).toISOString(),
+    }));
+    routeName = "sms";
   }
 
   return (
@@ -149,22 +166,26 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
           cursor: "pointer",
         },
       }}
-      getRowId={(row) => row.name}
+      getRowId={(row) => row.id}
       onRowClick={(params) => {
         router.push({
-          pathname: `/users/${params.id}`,
+          pathname: `/templates/${routeName}/${params.id}`,
         });
       }}
       autoHeight
       columns={[
         {
           field: "name",
+          headerName: "Name",
+          width: 50,
         },
         {
           field: "updatedAt",
+          headerName: "Last Updated",
         },
         {
           field: "journeys",
+          headerName: "Journeys Used By",
         },
         {
           field: "actions",
@@ -206,14 +227,11 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
             };
 
             return (
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                onClick={onClick}
-              >
-                <Delete />
-              </Button>
+              <DeleteDialog
+                onConfirm={onClick}
+                title="Delete Template"
+                message="Are you sure you want to delete this template?"
+              />
             );
           },
         },

@@ -69,22 +69,22 @@ export default function BroadcastsTable() {
       getRowId={(row) => row.id}
       onRowClick={(params) => {
         router.push({
-          pathname: `/users/${params.id}`,
+          pathname: `/broadcasts/segment/${params.id}`,
         });
       }}
       autoHeight
       columns={[
         {
-          field: "id",
-        },
-        {
           field: "name",
+          headerName: "Name",
         },
         {
           field: "updatedAt",
+          headerName: "Updated At",
         },
         {
           field: "triggeredAt",
+          headerName: "Sent At",
         },
       ].map((c) => ({ ...baseColumn, ...c }))}
       initialState={{

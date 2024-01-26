@@ -1,19 +1,16 @@
 import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import { ListItem, ListItemText, Tooltip } from "@mui/material";
+import { Tooltip } from "@mui/material";
+import { ComputedPropertyPeriod } from "@prisma/client";
 import {
   CompletionStatus,
-  DeleteSegmentRequest,
-  EmptyResponse,
+  JourneyDefinition,
   SegmentResource,
 } from "isomorphic-lib/src/types";
-import { Tooltip } from "@mui/material";
-import { CompletionStatus, SegmentResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { pick } from "remeda/dist/commonjs/pick";
 
-import DeleteDialog from "../../components/confirmDeleteDialog";
 import DashboardContent from "../../components/dashboardContent";
 import { ResourceListContainer } from "../../components/resourceList";
 import SegmentsTable from "../../components/segmentsTable";
@@ -46,9 +43,52 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }
       return result.value;
     });
+    const journeys = await prisma().journey.findMany({
+      where: {
+        workspaceId,
+      },
+    });
+    const computedPropertyPeriods =
+      await prisma().computedPropertyPeriod.findMany({
+        where: {
+          workspaceId,
+        },
+      });
+
+    const csps: Record<string, ComputedPropertyPeriod> = {};
+    for (const segmentResource of segmentResources) {
+      for (const computedPropertyPeriod of computedPropertyPeriods) {
+        if (computedPropertyPeriod.id === segmentResource.id) {
+          csps[segmentResource.id] = computedPropertyPeriod;
+        }
+      }
+    }
+
+    const usedBy: Record<string, SegmentResource[]> = {};
+    for (const segmentResource of segmentResources) {
+      for (const journey of journeys) {
+        if (
+          (journey.definition as JourneyDefinition).entryNode.segment ===
+          segmentResource.id
+        ) {
+          usedBy[segmentResource.id] = usedBy[segmentResource.id] ?? [];
+          usedBy[segmentResource.id]?.push(segmentResource);
+        }
+      }
+    }
+
     const segments: AppState["segments"] = {
       type: CompletionStatus.Successful,
-      value: segmentResources,
+      value: segmentResources.map((segment) => ({
+        ...segment,
+        lastRecomputed: Number(new Date(csps[segment.id]?.createdAt ?? "")),
+        journeys:
+          usedBy[segment.id] && usedBy[segment.id]?.length !== 0
+            ? usedBy[segment.id]
+                ?.map((journey) => `${journey.name}, `)
+                ?.join(`, \n`)
+            : "No Journey",
+      })),
     };
     return {
       props: addInitialStateToProps({

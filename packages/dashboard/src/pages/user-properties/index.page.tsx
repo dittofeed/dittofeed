@@ -1,8 +1,11 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import { IconButton, Stack, Typography } from "@mui/material";
+import { ComputedPropertyPeriod, MessageTemplate } from "@prisma/client";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
 import {
+  ChannelType,
   CompletionStatus,
+  MessageTemplateResourceDefinition,
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -32,9 +35,68 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }
       return result.value;
     });
+
+    const messageTemplates = await prisma().messageTemplate.findMany({
+      where: {
+        workspaceId,
+      },
+    });
+    const computedPropertyPeriods =
+      await prisma().computedPropertyPeriod.findMany({
+        where: {
+          workspaceId,
+        },
+      });
+
+    const csps: Record<string, ComputedPropertyPeriod> = {};
+    for (const userPropertyResource of userPropertyResources) {
+      for (const computedPropertyPeriod of computedPropertyPeriods) {
+        if (computedPropertyPeriod.id === userPropertyResource.id) {
+          csps[userPropertyResource.id] = computedPropertyPeriod;
+        }
+      }
+    }
+
+    const templatesUsedBy: Record<string, MessageTemplate[]> = {};
+
+    for (const userPropertyResource of userPropertyResources) {
+      for (const messageTemplate of messageTemplates) {
+        const messageDefinition =
+          messageTemplate.definition as MessageTemplateResourceDefinition;
+        if (
+          messageDefinition.body?.includes(`user.${userPropertyResource.name}`)
+        ) {
+          templatesUsedBy[userPropertyResource.id] =
+            templatesUsedBy[userPropertyResource.id] ?? [];
+          templatesUsedBy[userPropertyResource.id]?.push(messageTemplate);
+        } else if (
+          messageDefinition.type === ChannelType.Email &&
+          messageDefinition.subject.includes(
+            `user.${userPropertyResource.name}`
+          )
+        ) {
+          templatesUsedBy[userPropertyResource.id] =
+            templatesUsedBy[userPropertyResource.id] ?? [];
+          templatesUsedBy[userPropertyResource.id]?.push(messageTemplate);
+        }
+      }
+    }
+
     const userProperties: AppState["userProperties"] = {
       type: CompletionStatus.Successful,
-      value: userPropertyResources,
+      value: userPropertyResources.map((userPropertyResource) => ({
+        ...userPropertyResource,
+        lastRecomputed: Number(
+          new Date(csps[userPropertyResource.id]?.createdAt ?? "")
+        ),
+        templates:
+          templatesUsedBy[userPropertyResource.id] &&
+          templatesUsedBy[userPropertyResource.id]?.length !== 0
+            ? templatesUsedBy[userPropertyResource.id]
+                ?.map((template) => `${template.name}`)
+                ?.join(`, \n`)
+            : "No Templates",
+      })),
     };
     return {
       props: addInitialStateToProps({
@@ -55,7 +117,13 @@ function UserPropertyListContents() {
       sx={{
         padding: 1,
         width: "100%",
-        maxWidth: "40rem",
+        maxWidth: "60rem",
+        height: "100%",
+        maxHeight: "70%",
+        border: 1,
+        borderRadius: 1,
+        borderColor: "grey.400",
+        margin: "1rem",
       }}
       spacing={2}
     >

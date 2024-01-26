@@ -1,5 +1,3 @@
-import { Delete } from "@mui/icons-material";
-import { Button } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   CompletionStatus,
@@ -13,10 +11,13 @@ import { pick } from "remeda/dist/commonjs/pick";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
+import DeleteDialog from "./confirmDeleteDialog";
 
 interface Row {
   id: string;
   name: string;
+  journeys: string;
+  lastRecomputed: string;
   updatedAt: string;
 }
 
@@ -65,7 +66,13 @@ export default function SegmentsTable() {
     const row: Row = {
       id: segment.id,
       name: segment.name,
-      updatedAt: new Date(segment.updatedAt).toISOString(),
+      updatedAt: segment.updatedAt
+        ? new Date(segment.updatedAt).toISOString()
+        : "Not Updated",
+      journeys: segment.journeys ?? "",
+      lastRecomputed: segment.lastRecomputed
+        ? new Date(segment.lastRecomputed).toISOString()
+        : "Not Re-Computed ",
     };
     segmentsRow.push(row);
   });
@@ -117,7 +124,7 @@ export default function SegmentsTable() {
       getRowId={(row) => row.id}
       onRowClick={(params) => {
         router.push({
-          pathname: `/journeys/${params.id}`,
+          pathname: `/segments/${params.id}`,
         });
       }}
       autoHeight
@@ -129,6 +136,14 @@ export default function SegmentsTable() {
         {
           field: "updatedAt",
           headerName: "Updated At",
+        },
+        {
+          field: "journeys",
+          headerName: "Journeys used by",
+        },
+        {
+          field: "lastRecomputed",
+          headerName: "Last Recomputed",
         },
         {
           field: "actions",
@@ -164,14 +179,11 @@ export default function SegmentsTable() {
             };
 
             return (
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                onClick={onClick}
-              >
-                <Delete />
-              </Button>
+              <DeleteDialog
+                onConfirm={onClick}
+                title="Delete Segment"
+                message="Are you sure you want to delete this segment?"
+              />
             );
           },
         },

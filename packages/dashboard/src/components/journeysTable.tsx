@@ -1,5 +1,3 @@
-import { Delete } from "@mui/icons-material";
-import { Button } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   CompletionStatus,
@@ -13,6 +11,7 @@ import React from "react";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
+import DeleteDialog from "./confirmDeleteDialog";
 
 interface Row {
   id: string;
@@ -117,7 +116,7 @@ export default function JourneysTable() {
           headerName: "Action",
           width: 180,
           sortable: false,
-          disableClickEventBubbling: true,
+          // disableClickEventBubbling: true,
           // eslint-disable-next-line react/no-unused-prop-types
           renderCell: ({ row }: { row: Row }) => {
             const onClick = () => {
@@ -145,14 +144,11 @@ export default function JourneysTable() {
             };
 
             return (
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                onClick={onClick}
-              >
-                <Delete />
-              </Button>
+              <DeleteDialog
+                onConfirm={onClick}
+                title="Delete Journey"
+                message="Are you sure you want to delete this journey?"
+              />
             );
           },
         },

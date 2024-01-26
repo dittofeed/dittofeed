@@ -5,7 +5,10 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
-import { ResendRequiredData, sendMail as sendMailResend } from "./destinations/resend";
+import {
+  ResendRequiredData,
+  sendMail as sendMailResend,
+} from "./destinations/resend";
 import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
 import { sendMail as sendMailSmtp } from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
@@ -26,10 +29,10 @@ import {
   InternalEventType,
   MessageSendFailure,
   MessageSkippedType,
+  MessageTemplate,
   // MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
-  Prisma,
   SmsProviderConfig,
   SmsProviderType,
   UpsertMessageTemplateResource,
@@ -43,16 +46,7 @@ export function enrichMessageTemplate({
   definition,
   draft,
   updatedAt,
-  Broadcast,
-}: Prisma.MessageTemplateGetPayload<{
-  include: {
-    Broadcast: {
-      include: {
-        journey: true;
-      };
-    };
-  };
-}>): Result<MessageTemplateResource, Error> {
+}: MessageTemplate): Result<MessageTemplateResource, Error> {
   const enrichedDefintion = definition
     ? schemaValidateWithErr(definition, MessageTemplateResourceDefinition)
     : ok(undefined);
@@ -72,10 +66,6 @@ export function enrichMessageTemplate({
     definition: enrichedDefintion.value,
     draft: enrichedDraft.value,
     updatedAt: Number(updatedAt),
-    journeys:
-      Broadcast.length !== 0
-        ? "".concat(...Broadcast.map((b) => `${b.journey?.name}, `))
-        : "No Journeys",
   });
 }
 
@@ -115,13 +105,6 @@ export async function findMessageTemplate({
     where: {
       id,
     },
-    include: {
-      Broadcast: {
-        include: {
-          journey: true,
-        },
-      },
-    },
   });
   if (!template) {
     return ok(null);
@@ -136,15 +119,7 @@ export async function findMessageTemplate({
 export async function upsertMessageTemplate(
   data: UpsertMessageTemplateResource
 ): Promise<MessageTemplateResource> {
-  let messageTemplate: Prisma.MessageTemplateGetPayload<{
-    include: {
-      Broadcast: {
-        include: {
-          journey: true;
-        };
-      };
-    };
-  }>;
+  let messageTemplate: MessageTemplate;
   if (data.name && data.workspaceId) {
     messageTemplate = await prisma().messageTemplate.upsert({
       where: {
@@ -164,13 +139,6 @@ export async function upsertMessageTemplate(
         definition: data.definition,
         draft: data.draft,
       },
-      include: {
-        Broadcast: {
-          include: {
-            journey: true,
-          },
-        },
-      },
     });
   } else {
     messageTemplate = await prisma().messageTemplate.update({
@@ -183,13 +151,6 @@ export async function upsertMessageTemplate(
         id: data.id,
         definition: data.definition,
         draft: data.draft,
-      },
-      include: {
-        Broadcast: {
-          include: {
-            journey: true,
-          },
-        },
       },
     });
   }
@@ -208,13 +169,6 @@ export async function findMessageTemplates({
       where: {
         workspaceId,
         resourceType: includeInternal ? undefined : "Declarative",
-      },
-      include: {
-        Broadcast: {
-          include: {
-            journey: true,
-          },
-        },
       },
     })
   ).map((mt) => unwrap(enrichMessageTemplate(mt)));
@@ -685,15 +639,20 @@ export async function sendEmail({
         reply_to: replyTo,
         tags: [
           {
-            name: 'workspaceId',
+            name: "workspaceId",
             value: workspaceId,
           },
           {
-            name: 'templateId',
+            name: "templateId",
             value: templateId,
           },
-          ...(messageTags ? Object.entries(messageTags).map(([name, value]) => ({ name, value })) : [])
-        ]
+          ...(messageTags
+            ? Object.entries(messageTags).map(([name, value]) => ({
+                name,
+                value,
+              }))
+            : []),
+        ],
       };
 
       if (!secretConfig.apiKey) {
@@ -719,7 +678,7 @@ export async function sendEmail({
             provider: {
               type: EmailProviderType.Resend,
               name: result.error.name,
-              message: result.error.message
+              message: result.error.message,
             },
           },
         });
@@ -734,7 +693,7 @@ export async function sendEmail({
           subject,
           replyTo,
           provider: {
-            type: EmailProviderType.Resend
+            type: EmailProviderType.Resend,
           },
         },
       });

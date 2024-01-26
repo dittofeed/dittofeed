@@ -40,6 +40,7 @@ export function toUserPropertyResource(
       id,
       definition,
       exampleValue: exampleValue ?? undefined,
+      updatedAt: Number(userProperty.updatedAt),
     })
   );
 }

@@ -19,7 +19,8 @@ interface DeleteDialogProps {
 function DeleteDialog({ onConfirm, title, message }: DeleteDialogProps) {
   const [open, setOpen] = useState(false);
 
-  const handleOpen = () => {
+  const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     setOpen(true);
   };
 
@@ -34,7 +35,7 @@ function DeleteDialog({ onConfirm, title, message }: DeleteDialogProps) {
 
   return (
     <>
-      <IconButton edge="end" onClick={handleOpen}>
+      <IconButton edge="end" onClick={(event) => handleOpen(event)}>
         <DeleteIcon />
       </IconButton>
       <Dialog open={open} onClose={handleClose}>

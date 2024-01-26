@@ -1,5 +1,3 @@
-import { Delete } from "@mui/icons-material";
-import { Button } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   CompletionStatus,
@@ -12,11 +10,14 @@ import React from "react";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
+import DeleteDialog from "./confirmDeleteDialog";
 
 interface Row {
   id: string;
   properties: string;
-  segments: string;
+  updatedAt: string;
+  templates: string;
+  lastRecomputed: string;
 }
 
 const baseColumn: Partial<GridColDef<Row>> = {
@@ -51,7 +52,13 @@ export default function UserPropertiesTable() {
     const row: Row = {
       id: userProperty.id,
       properties: userProperty.name,
-      segments: "",
+      updatedAt: userProperty.updatedAt
+        ? new Date(userProperty.updatedAt).toISOString()
+        : "Not Updated",
+      templates: userProperty.templates ?? "No Templates",
+      lastRecomputed: userProperty.lastRecomputed
+        ? new Date(userProperty.lastRecomputed).toISOString()
+        : "Not Re-Computed",
     };
     usersPropertiesRow.push(row);
   });
@@ -93,22 +100,26 @@ export default function UserPropertiesTable() {
       getRowId={(row) => row.id}
       onRowClick={(params) => {
         router.push({
-          pathname: `/users/${params.id}`,
+          pathname: `/user-properties/${params.id}`,
         });
       }}
       autoHeight
       columns={[
         {
           field: "properties",
+          headerName: "Name",
         },
         {
-          field: "segments",
+          field: "lastRecomputed",
+          headerName: "Last Re-Computed",
         },
         {
-          field: "Journeys Used By",
+          field: "updatedAt",
+          headerName: "Last Updated",
         },
         {
-          field: "Last Re-Computed",
+          field: "templates",
+          headerName: "Templates used by",
         },
         {
           field: "actions",
@@ -143,14 +154,11 @@ export default function UserPropertiesTable() {
             };
 
             return (
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                onClick={onClick}
-              >
-                <Delete />
-              </Button>
+              <DeleteDialog
+                onConfirm={onClick}
+                title="Delete User Property"
+                message="Are you sure you want to delete this user property?"
+              />
             );
           },
         },

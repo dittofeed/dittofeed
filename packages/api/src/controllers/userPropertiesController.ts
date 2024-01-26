@@ -89,6 +89,7 @@ export default async function userPropertiesController(
         workspaceId: userProperty.workspaceId,
         definition: userPropertyDefinitionResult.value,
         exampleValue: userProperty.exampleValue ?? undefined,
+        updatedAt: Number(userProperty.updatedAt),
       };
 
       return reply.status(200).send(resource);
