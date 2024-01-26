@@ -114,7 +114,7 @@ export default function SegmentList() {
       "setSegmentDownloadRequest",
       "apiBase",
       "workspace",
-    ])
+    ]),
   );
 
   const workspace =

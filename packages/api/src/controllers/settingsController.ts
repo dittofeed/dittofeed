@@ -75,7 +75,7 @@ export default async function settingsController(fastify: FastifyInstance) {
       }
 
       return reply.status(200).send(resource);
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
@@ -93,7 +93,7 @@ export default async function settingsController(fastify: FastifyInstance) {
     async (request, reply) => {
       const resource = await upsertSmsProvider(request.body);
       return reply.status(200).send(resource);
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
@@ -125,7 +125,7 @@ export default async function settingsController(fastify: FastifyInstance) {
       });
 
       return reply.status(201).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
@@ -149,7 +149,7 @@ export default async function settingsController(fastify: FastifyInstance) {
         writeKeyValue,
       });
       return reply.status(204).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -169,7 +169,7 @@ export default async function settingsController(fastify: FastifyInstance) {
         workspaceId: request.query.workspaceId,
       });
       return reply.status(200).send(resource);
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
@@ -205,6 +205,6 @@ export default async function settingsController(fastify: FastifyInstance) {
       }
 
       return reply.status(204).send();
-    }
+    },
   );
 }

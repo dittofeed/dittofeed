@@ -51,12 +51,14 @@ export const liquidEngine = new Liquid({
     readFileSync(file) {
       return getLayoutUnsafe(file);
     },
+    // eslint-disable-next-line @typescript-eslint/require-await
     async readFile(file) {
       return getLayoutUnsafe(file);
     },
     existsSync(file) {
       return getLayout(file) !== undefined;
     },
+    // eslint-disable-next-line @typescript-eslint/require-await
     async exists(file) {
       return getLayout(file) !== undefined;
     },
@@ -69,7 +71,7 @@ export const liquidEngine = new Liquid({
   },
 });
 
-liquidEngine.registerFilter("markdown", (value) => md.render(value));
+liquidEngine.registerFilter("markdown", (value) => md.render(value as string));
 
 type Secrets = Record<string, string>;
 
@@ -78,7 +80,7 @@ liquidEngine.registerTag("unsubscribe_link", {
     this.contents = tagToken.args;
   },
   render(scope) {
-    const linkText = this.contents || "unsubscribe";
+    const linkText = (this.contents as string) || "unsubscribe";
 
     const allScope = scope.getAll() as Record<string, unknown>;
     const secrets = allScope.secrets as Secrets | undefined;
@@ -113,7 +115,7 @@ liquidEngine.registerTag("unsubscribe_link", {
           identifier,
           userId,
         },
-        "Unsubscribe link not rendering"
+        "Unsubscribe link not rendering",
       );
     }
 
@@ -152,7 +154,7 @@ export function renderLiquid({
     subscription_group_id: subscriptionGroupId,
     secrets,
     identifier_key: identifierKey,
-  });
+  }) as string;
   if (!mjml) {
     return liquidRendered;
   }

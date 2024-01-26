@@ -6,10 +6,7 @@ export default function DiscordLink({
   children?: React.ReactNode;
 }) {
   return (
-    <ExternalLink
-      href="https://discord.gg/HajPkCG4Mm"
-      enableLinkStyling
-    >
+    <ExternalLink href="https://discord.gg/HajPkCG4Mm" enableLinkStyling>
       {children}
     </ExternalLink>
   );

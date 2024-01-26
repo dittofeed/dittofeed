@@ -15,11 +15,11 @@ import {
 } from "./types";
 
 export function enrichUserProperty(
-  userProperty: UserProperty
+  userProperty: UserProperty,
 ): Result<EnrichedUserProperty, ValueError[]> {
   const definitionResult = schemaValidate(
     userProperty.definition,
-    UserPropertyDefinition
+    UserPropertyDefinition,
   );
   if (definitionResult.isErr()) {
     return err(definitionResult.error);
@@ -31,7 +31,7 @@ export function enrichUserProperty(
 }
 
 export function toUserPropertyResource(
-  userProperty: UserProperty
+  userProperty: UserProperty,
 ): Result<UserPropertyResource, ValueError[]> {
   return enrichUserProperty(userProperty).map(
     ({ workspaceId, name, id, definition, exampleValue }) => ({
@@ -46,7 +46,7 @@ export function toUserPropertyResource(
 }
 
 export function toSavedUserPropertyResource(
-  userProperty: UserProperty
+  userProperty: UserProperty,
 ): Result<SavedUserPropertyResource, ValueError[]> {
   return enrichUserProperty(userProperty).map(
     ({
@@ -67,7 +67,7 @@ export function toSavedUserPropertyResource(
       createdAt: createdAt.getTime(),
       updatedAt: updatedAt.getTime(),
       definitionUpdatedAt: definitionUpdatedAt.getTime(),
-    })
+    }),
   );
 }
 
@@ -116,7 +116,7 @@ export type UserPropertyAssignments = Record<string, JSONValue>;
 
 export function assignmentAsString(
   assignments: UserPropertyAssignments,
-  key: string
+  key: string,
 ): string | null {
   const assignment = assignments[key];
   if (typeof assignment !== "string") {
@@ -149,7 +149,7 @@ export async function upsertBulkUserPropertyAssignments({
           new: item,
           workspaceId: item.workspaceId,
         },
-        "duplicate user property assignment in bulk upsert"
+        "duplicate user property assignment in bulk upsert",
       );
       continue;
     }
@@ -239,12 +239,12 @@ export async function findAllUserPropertyAssignments({
   for (const userProperty of userProperties) {
     const definitionResult = schemaValidate(
       userProperty.definition,
-      UserPropertyDefinition
+      UserPropertyDefinition,
     );
     if (definitionResult.isErr()) {
       logger().error(
         { err: definitionResult.error, workspaceId, userProperty },
-        "failed to parse user property definition"
+        "failed to parse user property definition",
       );
       continue;
     }
@@ -261,7 +261,7 @@ export async function findAllUserPropertyAssignments({
             userProperty,
             assignment,
           },
-          "failed to parse user property assignment"
+          "failed to parse user property assignment",
         );
         continue;
       }
@@ -274,7 +274,7 @@ export async function findAllUserPropertyAssignments({
       userProperties,
       combinedAssignments,
     },
-    "findAllUserPropertyAssignments"
+    "findAllUserPropertyAssignments",
   );
 
   return combinedAssignments;

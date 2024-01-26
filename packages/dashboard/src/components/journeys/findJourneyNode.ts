@@ -7,7 +7,7 @@ import { isJourneyNode } from "./isJourneyNode";
 export default function findJourneyNode(
   nodeId: string,
   nodes: Node<NodeData>[],
-  nodesIndex: Record<string, number>
+  nodesIndex: Record<string, number>,
 ): Node<JourneyNodeProps> | null {
   const node = findNode(nodeId, nodes, nodesIndex);
   if (node && isJourneyNode(node)) {

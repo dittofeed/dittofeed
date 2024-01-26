@@ -132,7 +132,7 @@ export const usersStore = create(
       set((state) => {
         state.nextCursor = cursor;
       }),
-  }))
+  })),
 );
 
 export type OnPaginationChangeProps = Pick<
@@ -187,7 +187,7 @@ export default function UsersTable({
           segments: segments.join(" "),
         };
       }),
-    [currentPageUserIds, users]
+    [currentPageUserIds, users],
   );
 
   React.useEffect(() => {

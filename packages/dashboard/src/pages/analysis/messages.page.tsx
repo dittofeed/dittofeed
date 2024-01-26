@@ -180,7 +180,7 @@ export default function MessagesPage() {
         }
         return acc;
       }, new Map<string, BroadcastResource>()),
-    [broadcasts]
+    [broadcasts],
   );
 
   if (messages.type !== CompletionStatus.Successful) {
@@ -201,7 +201,7 @@ export default function MessagesPage() {
 
             if (!message) {
               console.error(
-                `Message ${messageId} not found for journey ${journey.id}`
+                `Message ${messageId} not found for journey ${journey.id}`,
               );
               return [];
             }

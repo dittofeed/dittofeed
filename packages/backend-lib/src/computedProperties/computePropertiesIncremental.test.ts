@@ -124,12 +124,12 @@ async function readStates({
       state_id,
       user_id
   `;
-  const response = (await (
+  const response = await (
     await clickhouseClient().query({
       query,
       query_params: qb.getQueries(),
     })
-  ).json()) as { data: State[] };
+  ).json<{ data: State[] }>();
   return response.data;
 }
 
@@ -146,7 +146,7 @@ interface TestState {
 function toTestState(
   state: State,
   userProperties: SavedUserPropertyResource[],
-  segments: SavedSegmentResource[]
+  segments: SavedSegmentResource[],
 ): TestState {
   const maxEventTime = clickhouseDateToIso(state.max_event_time);
   switch (state.type) {
@@ -182,7 +182,7 @@ function toTestState(
       let nodeId: string | undefined;
       if (userProperty.definition.type === UserPropertyDefinitionType.Group) {
         nodeId = userProperty.definition.nodes.find(
-          (n) => userPropertyStateId(userProperty, n.id) === state.state_id
+          (n) => userPropertyStateId(userProperty, n.id) === state.state_id,
         )?.id;
       }
       return {
@@ -325,7 +325,7 @@ async function upsertComputedProperties({
           },
         });
         return unwrap(toSavedUserPropertyResource(model));
-      })
+      }),
     ),
     Promise.all(
       segments.map(async (s) => {
@@ -348,7 +348,7 @@ async function upsertComputedProperties({
           },
         });
         return unwrap(toSegmentResource(model));
-      })
+      }),
     ),
   ]);
   return {
@@ -978,7 +978,7 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "onboarding",
               maxEventTime: new Date(
-                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50
+                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50,
               ).toISOString(),
             }),
           ],
@@ -1023,7 +1023,7 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "onboarding",
               maxEventTime: new Date(
-                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100
+                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100,
               ).toISOString(),
             }),
           ],
@@ -1072,7 +1072,7 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "active",
               maxEventTime: new Date(
-                now - 1000 * 60 * 60 * 24 * 7 - 100
+                now - 1000 * 60 * 60 * 24 * 7 - 100,
               ).toISOString(),
             }),
           ],
@@ -1880,7 +1880,7 @@ describe("computeProperties", () => {
                     event: "test2",
                     timestamp: format(
                       utcToZonedTime(new Date(now - 100), "UTC"),
-                      "yyyy-MM-dd'T'HH:mm:ss"
+                      "yyyy-MM-dd'T'HH:mm:ss",
                     ),
                     properties: {
                       prop2: "value2",
@@ -1890,7 +1890,7 @@ describe("computeProperties", () => {
                     event: "test1",
                     timestamp: format(
                       utcToZonedTime(new Date(now - 1000 * 60), "UTC"),
-                      "yyyy-MM-dd'T'HH:mm:ss"
+                      "yyyy-MM-dd'T'HH:mm:ss",
                     ),
                     properties: {
                       prop1: "value1",
@@ -2533,8 +2533,8 @@ describe("computeProperties", () => {
 
   test.concurrent.each(
     tests.filter(
-      (t) => t.skip !== true && (only === null || only === t.description)
-    )
+      (t) => t.skip !== true && (only === null || only === t.description),
+    ),
   )("$description", async (test) => {
     if (only && test.description !== only) {
       return;
@@ -2560,7 +2560,7 @@ describe("computeProperties", () => {
         const segment = segments.find((s) => s.name === entrySegmentName);
         if (!segment) {
           throw new Error(
-            `could not find segment with name: ${entrySegmentName}`
+            `could not find segment with name: ${entrySegmentName}`,
           );
         }
         const definition: JourneyDefinition = {
@@ -2588,10 +2588,10 @@ describe("computeProperties", () => {
           },
           update: {},
         });
-      }) ?? []
+      }) ?? [],
     );
     const journeyResources: SavedJourneyResource[] = journeys.map((j) =>
-      unwrap(toJourneyResource(j))
+      unwrap(toJourneyResource(j)),
     );
 
     for (const step of test.steps) {
@@ -2604,7 +2604,7 @@ describe("computeProperties", () => {
           const events: TestEvent[] = [];
           for (const event of step.events) {
             if (typeof event === "function") {
-              events.push(await event(stepContext));
+              events.push(event(stepContext));
             } else {
               events.push(event);
             }
@@ -2622,7 +2622,7 @@ describe("computeProperties", () => {
             {
               assignments,
             },
-            "debug assignments"
+            "debug assignments",
           );
           break;
         }
@@ -2656,7 +2656,7 @@ describe("computeProperties", () => {
             ...(step.users?.map(async (userOrFn) => {
               let user: TableUser;
               if (typeof userOrFn === "function") {
-                user = await userOrFn(stepContext);
+                user = userOrFn(stepContext);
               } else {
                 user = userOrFn;
               }
@@ -2670,8 +2670,8 @@ describe("computeProperties", () => {
                         up,
                         `${
                           step.description ? `${step.description}: ` : ""
-                        }user properties for: ${user.id}`
-                      ).toEqual(user.properties)
+                        }user properties for: ${user.id}`,
+                      ).toEqual(user.properties),
                     )
                   : null,
                 user.segments
@@ -2683,7 +2683,7 @@ describe("computeProperties", () => {
                         s,
                         `${
                           step.description ? `${step.description}: ` : ""
-                        }segments for: ${user.id}`
+                        }segments for: ${user.id}`,
                       ).toEqual(user.segments);
                     })
                   : null,
@@ -2693,7 +2693,7 @@ describe("computeProperties", () => {
               ? (async () => {
                   const states = await readStates({ workspaceId });
                   const actualTestStates = states.map((s) =>
-                    toTestState(s, userProperties, segments)
+                    toTestState(s, userProperties, segments),
                   );
                   for (const expected of step.states ?? []) {
                     const expectedState =
@@ -2706,7 +2706,7 @@ describe("computeProperties", () => {
                         s.userId === expectedState.userId &&
                         s.name === expectedState.name &&
                         s.type === expectedState.type &&
-                        s.nodeId === expectedState.nodeId
+                        s.nodeId === expectedState.nodeId,
                     );
                     expect(
                       actualState,
@@ -2715,29 +2715,29 @@ describe("computeProperties", () => {
                         .join(" - ")}:\n\n${JSON.stringify(
                         expectedState,
                         null,
-                        2
+                        2,
                       )}\n\nto be found in actual states:\n\n${JSON.stringify(
                         actualTestStates,
                         null,
-                        2
-                      )}`
+                        2,
+                      )}`,
                     ).not.toBeUndefined();
                     if (expectedState.lastValue) {
                       expect(actualState, step.description).toHaveProperty(
                         "lastValue",
-                        expectedState.lastValue
+                        expectedState.lastValue,
                       );
                     }
                     if (expectedState.uniqueCount) {
                       expect(actualState, step.description).toHaveProperty(
                         "uniqueCount",
-                        expectedState.uniqueCount
+                        expectedState.uniqueCount,
                       );
                     }
                     if (expectedState.maxEventTime) {
                       expect(actualState, step.description).toHaveProperty(
                         "maxEventTime",
-                        expectedState.maxEventTime
+                        expectedState.maxEventTime,
                       );
                     }
                   }
@@ -2765,23 +2765,23 @@ describe("computeProperties", () => {
                     return s;
                   });
                   expect(simplifiedPeriods, step.description).toEqual(
-                    step.periods
+                    step.periods,
                   );
                 })()
               : null,
           ]);
           for (const assertedJourney of step.journeys ?? []) {
             const journey = journeyResources.find(
-              (j) => j.name === assertedJourney.journeyName
+              (j) => j.name === assertedJourney.journeyName,
             );
             if (!journey) {
               throw new Error(
-                `could not find journey with name: ${assertedJourney.journeyName}`
+                `could not find journey with name: ${assertedJourney.journeyName}`,
               );
             }
             if (assertedJourney.times !== undefined) {
               expect(signalWithStart).toHaveBeenCalledTimes(
-                assertedJourney.times
+                assertedJourney.times,
               );
             }
             if (
@@ -2796,7 +2796,7 @@ describe("computeProperties", () => {
                       journeyId: journey.id,
                     }),
                   ],
-                })
+                }),
               );
             }
           }

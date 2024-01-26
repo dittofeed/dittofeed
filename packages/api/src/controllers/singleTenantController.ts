@@ -36,7 +36,7 @@ export default async function authController(fastify: FastifyInstance) {
       }
       request.session.set(SESSION_KEY, true);
       return reply.status(200).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -53,6 +53,6 @@ export default async function authController(fastify: FastifyInstance) {
       }
       request.session.delete();
       return reply.redirect(302, "/dashboard/auth/single-tenant");
-    }
+    },
   );
 }

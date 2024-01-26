@@ -17,7 +17,7 @@ export class CustomActivityInboundInterceptor
 
   constructor(
     ctx: Context,
-    { workflowClient }: { workflowClient: WorkflowClient }
+    { workflowClient }: { workflowClient: WorkflowClient },
   ) {
     this.workflowClient = workflowClient;
     const customCtxt = ctx as CustomContext;
@@ -27,7 +27,7 @@ export class CustomActivityInboundInterceptor
   // eslint-disable-next-line class-methods-use-this
   execute(
     input: ActivityExecuteInput,
-    next: Next<ActivityInboundCallsInterceptor, "execute">
+    next: Next<ActivityInboundCallsInterceptor, "execute">,
   ): Promise<unknown> {
     return next(input);
   }

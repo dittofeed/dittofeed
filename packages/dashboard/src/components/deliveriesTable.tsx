@@ -112,11 +112,11 @@ export const useDeliveriesStore = create(
       set((state) => {
         state.pageSize = pageSize;
       }),
-  }))
+  })),
 );
 
 function useStorePick<K extends keyof DeliveriesStore>(
-  params: K[]
+  params: K[],
 ): Pick<DeliveriesStore, K> {
   return useDeliveriesStore((store) => pick(store, params));
 }
@@ -146,11 +146,11 @@ export function DeliveriesTable({
   const router = useRouter();
   const previousCursor = getQueryValue(
     router.query,
-    QUERY_PARAMETERS.PREVIOUS_CURSOR
+    QUERY_PARAMETERS.PREVIOUS_CURSOR,
   );
   const currentCursor = getQueryValue(
     router.query,
-    QUERY_PARAMETERS.CURRENT_CURSOR
+    QUERY_PARAMETERS.CURRENT_CURSOR,
   );
   const nextCursor = getQueryValue(router.query, QUERY_PARAMETERS.NEXT_CURSOR);
 
@@ -342,7 +342,7 @@ export function DeliveriesTable({
         };
         return tableItem;
       }),
-    [items, pageItems]
+    [items, pageItems],
   );
 
   return (

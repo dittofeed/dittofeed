@@ -42,7 +42,7 @@ export default async function usersController(fastify: FastifyInstance) {
         nextCursor,
         previousCursor,
       });
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
@@ -61,6 +61,6 @@ export default async function usersController(fastify: FastifyInstance) {
     async (request, reply) => {
       await deleteUsers(request.body);
       return reply.status(204).send();
-    }
+    },
   );
 }

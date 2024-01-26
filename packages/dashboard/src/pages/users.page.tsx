@@ -30,7 +30,7 @@ export default function SegmentUsers() {
   const router = useRouter();
   const queryParams = useMemo(
     () => schemaValidate(router.query, QueryParams).unwrapOr({}),
-    [router.query]
+    [router.query],
   );
   const workspace = useAppStore((state) => state.workspace);
   if (workspace.type !== CompletionStatus.Successful) {

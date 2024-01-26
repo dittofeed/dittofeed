@@ -9,7 +9,7 @@ import { JourneyNodeIcon, journeyNodeIcon } from "./nodeTypes/journeyNode";
 function Sidebar() {
   const theme = useTheme();
   const setDraggedComponentType = useAppStore(
-    (store) => store.setDraggedComponentType
+    (store) => store.setDraggedComponentType,
   );
   const onDragStart =
     ({ nodeType }: { nodeType: JourneyNodeType }) =>

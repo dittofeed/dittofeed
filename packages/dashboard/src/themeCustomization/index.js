@@ -17,7 +17,7 @@ export default function ThemeCustomization({ children }) {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const themeTypography = Typography(
-    "Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji"
+    "Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji",
   );
 
   const themeCustomShadows = useMemo(() => CustomShadows(theme), [theme]);
@@ -45,7 +45,7 @@ export default function ThemeCustomization({ children }) {
       customShadows: themeCustomShadows,
       typography: themeTypography,
     }),
-    [theme, themeTypography, themeCustomShadows]
+    [theme, themeTypography, themeCustomShadows],
   );
 
   const themes = createTheme(themeOptions);

@@ -56,7 +56,7 @@ export default class KafkaSkaffold {
    */
   async sendJson(
     topicPrefix: string,
-    messages: { key: string; value: JSONValue }[]
+    messages: { key: string; value: JSONValue }[],
   ) {
     const topic = this.getTopicName(topicPrefix);
 
@@ -81,7 +81,7 @@ export default class KafkaSkaffold {
    */
   async waitForMessage<T>(
     topicNamePrefix: string,
-    findMessage: (payload: EachMessagePayload) => T | null
+    findMessage: (payload: EachMessagePayload) => T | null,
   ): Promise<T> {
     const topicName = this.getTopicName(topicNamePrefix);
     const message = await this.waitForMessageSuffixed(topicName, findMessage);
@@ -90,7 +90,7 @@ export default class KafkaSkaffold {
 
   async waitForMessageSuffixed<T>(
     topicName: string,
-    findMessage: (payload: EachMessagePayload) => T | null
+    findMessage: (payload: EachMessagePayload) => T | null,
   ): Promise<T> {
     const consumerGroup = randomUUID();
     const consumer = kafka().consumer({

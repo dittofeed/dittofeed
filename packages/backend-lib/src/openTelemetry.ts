@@ -20,7 +20,7 @@ export interface OpenTelemetry {
   sdk: NodeSDK;
   resource: Resource;
   traceExporter: OTLPTraceExporter;
-  start: () => Promise<void>;
+  start: () => void;
 }
 
 let METER: Meter | null = null;
@@ -33,7 +33,7 @@ export async function withSpan<T>(
     name: string;
     tracer?: string;
   },
-  cb: (span: Span) => Promise<T>
+  cb: (span: Span) => Promise<T>,
 ): Promise<T> {
   const tracer = trace.getTracer(tracerName);
   return tracer.startActiveSpan(name, async (span) => {
@@ -99,7 +99,7 @@ export function initOpenTelemetry({
     views: meterProviderViews,
   });
 
-  const start = async function start() {
+  const start = function start() {
     if (!startOtel) {
       return;
     }
@@ -113,15 +113,18 @@ export function initOpenTelemetry({
             process.exit(0);
           },
           (err) => {
-            logger().error({ err }, "Error terminating telemetry");
+            logger().error(
+              { err: err as Error },
+              "Error terminating telemetry",
+            );
             process.exit(1);
-          }
+          },
         );
-      })
+      }),
     );
 
     try {
-      await sdk.start();
+      sdk.start();
       METER = api.metrics.getMeterProvider().getMeter(serviceName);
     } catch (err) {
       logger().error({ err }, "Error initializing telemetry");

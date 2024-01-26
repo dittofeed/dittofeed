@@ -95,11 +95,11 @@ function JourneyConfigure() {
 
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
   const journeyUpdateRequest = useAppStore(
-    (store) => store.journeyUpdateRequest
+    (store) => store.journeyUpdateRequest,
   );
   const apiBase = useAppStore((store) => store.apiBase);
   const setJourneyUpdateRequest = useAppStore(
-    (store) => store.setJourneyUpdateRequest
+    (store) => store.setJourneyUpdateRequest,
   );
   const upsertJourney = useAppStore((store) => store.upsertJourney);
   const journeyName = useAppStore((store) => store.journeyName);
@@ -114,7 +114,7 @@ function JourneyConfigure() {
       : null;
 
   const [canRunMultiple, setCanRunMultiple] = useState(
-    !!journey?.canRunMultiple
+    !!journey?.canRunMultiple,
   );
 
   if (journey?.status === "Broadcast") {

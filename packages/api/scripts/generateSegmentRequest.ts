@@ -29,7 +29,7 @@ function generateSegmentRequest() {
   });
   // eslint-disable-next-line no-console
   console.log(
-    `curl -X POST -H "x-signature:${signature}" -H "Content-Type: application/json" -d '${body}' '${host}/api/webhooks/segment'`
+    `curl -X POST -H "x-signature:${signature}" -H "Content-Type: application/json" -d '${body}' '${host}/api/webhooks/segment'`,
   );
 }
 
