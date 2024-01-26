@@ -70,7 +70,7 @@ function JourneyListContents() {
         maxHeight: "70%",
         border: 1,
         borderRadius: 1,
-        borderColor: "grey.400",
+        borderColor: "theme.palette.grey[400]",
         margin: "1rem",
       }}
       spacing={2}

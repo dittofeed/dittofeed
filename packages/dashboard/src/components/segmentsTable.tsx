@@ -28,16 +28,6 @@ const baseColumn: Partial<GridColDef<Row>> = {
   renderCell: monospaceCell,
 };
 
-declare module "@mui/x-data-grid" {
-  interface FooterPropsOverrides {
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-    onNextPage: () => void;
-    onPreviousPage: () => void;
-    status: "a" | "b";
-  }
-}
-
 export default function SegmentsTable() {
   const router = useRouter();
 
@@ -61,8 +51,8 @@ export default function SegmentsTable() {
       : null;
 
   const segmentsRow: Row[] = [];
-  // eslint-disable-next-line array-callback-return
-  segments.map((segment) => {
+
+  segments.forEach((segment) => {
     const row: Row = {
       id: segment.id,
       name: segment.name,

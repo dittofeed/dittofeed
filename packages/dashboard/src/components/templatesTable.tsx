@@ -41,16 +41,6 @@ const baseColumn: Partial<GridColDef<Row>> = {
   renderCell: monospaceCell,
 };
 
-declare module "@mui/x-data-grid" {
-  interface FooterPropsOverrides {
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-    onNextPage: () => void;
-    onPreviousPage: () => void;
-    status: "a" | "b";
-  }
-}
-
 export interface TemplatesTableProps {
   label: string;
 }

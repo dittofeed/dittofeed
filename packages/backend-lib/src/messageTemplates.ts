@@ -30,7 +30,6 @@ import {
   MessageSendFailure,
   MessageSkippedType,
   MessageTemplate,
-  // MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
   SmsProviderConfig,

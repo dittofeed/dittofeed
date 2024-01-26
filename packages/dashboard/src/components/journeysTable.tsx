@@ -3,7 +3,6 @@ import {
   CompletionStatus,
   DeleteJourneyRequest,
   EmptyResponse,
-  MessageTemplateResourceRequest,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React from "react";
@@ -25,21 +24,6 @@ const baseColumn: Partial<GridColDef<Row>> = {
   filterable: false,
   renderCell: monospaceCell,
 };
-
-declare module "@mui/x-data-grid" {
-  interface FooterPropsOverrides {
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-    onNextPage: () => void;
-    onPreviousPage: () => void;
-    status: "a" | "b";
-  }
-}
-
-export type OnPaginationChangeProps = Pick<
-  MessageTemplateResourceRequest,
-  "direction" | "cursor"
->;
 
 export default function JourneysTable() {
   const router = useRouter();
@@ -70,8 +54,8 @@ export default function JourneysTable() {
       : [];
 
   const journeysRow: Row[] = [];
-  // eslint-disable-next-line array-callback-return
-  journeys.map((journey) => {
+
+  journeys.forEach((journey) => {
     const row: Row = {
       id: journey.id,
       name: journey.name,

@@ -23,23 +23,13 @@ const baseColumn: Partial<GridColDef<Row>> = {
   renderCell: monospaceCell,
 };
 
-declare module "@mui/x-data-grid" {
-  interface FooterPropsOverrides {
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-    onNextPage: () => void;
-    onPreviousPage: () => void;
-    status: "a" | "b";
-  }
-}
-
 export default function BroadcastsTable() {
   const router = useRouter();
   const broadcasts = useAppStore((store) => store.broadcasts);
   
   const broadcastsRow: Row[] = [];
-  // eslint-disable-next-line array-callback-return 
-  broadcasts.map((broadcast) => {
+  
+  broadcasts.forEach((broadcast) => {
     const row: Row = {
       id: broadcast.id,
       name: broadcast.name,

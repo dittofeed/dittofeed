@@ -237,7 +237,7 @@ class PeriodByComputedPropertyId {
   }
 }
 
-async function getPeriodsByComputedPropertyId({
+export async function getPeriodsByComputedPropertyId({
   workspaceId,
   step,
 }: {

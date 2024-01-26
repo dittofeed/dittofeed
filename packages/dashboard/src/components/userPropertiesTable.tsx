@@ -27,16 +27,6 @@ const baseColumn: Partial<GridColDef<Row>> = {
   renderCell: monospaceCell,
 };
 
-declare module "@mui/x-data-grid" {
-  interface FooterPropsOverrides {
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-    onNextPage: () => void;
-    onPreviousPage: () => void;
-    status: "a" | "b";
-  }
-}
-
 export default function UserPropertiesTable() {
   const router = useRouter();
 
@@ -47,8 +37,8 @@ export default function UserPropertiesTable() {
       : [];
 
   const usersPropertiesRow: Row[] = [];
-  // eslint-disable-next-line array-callback-return
-  userProperties.map((userProperty) => {
+  
+  userProperties.forEach((userProperty) => {
     const row: Row = {
       id: userProperty.id,
       properties: userProperty.name,
