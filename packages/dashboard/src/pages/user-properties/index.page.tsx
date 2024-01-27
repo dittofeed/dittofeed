@@ -1,6 +1,10 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import { IconButton, Stack, Typography } from "@mui/material";
-import { ComputedPropertyPeriod, MessageTemplate } from "@prisma/client";
+import { MessageTemplate } from "@prisma/client";
+import {
+  ComputedPropertyStep,
+  getPeriodsByComputedPropertyId,
+} from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
 import {
   ChannelType,
@@ -41,19 +45,19 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         workspaceId,
       },
     });
-    const computedPropertyPeriods =
-      await prisma().computedPropertyPeriod.findMany({
-        where: {
-          workspaceId,
-        },
-      });
+    const computedPropertyPeriods = await getPeriodsByComputedPropertyId({
+      workspaceId,
+      step: ComputedPropertyStep.ProcessAssignments,
+    });
 
-    const csps: Record<string, ComputedPropertyPeriod> = {};
+    const csps: Record<string, string> = {};
     for (const userPropertyResource of userPropertyResources) {
-      for (const computedPropertyPeriod of computedPropertyPeriods) {
-        if (computedPropertyPeriod.id === userPropertyResource.id) {
-          csps[userPropertyResource.id] = computedPropertyPeriod;
-        }
+      const computedPropertyPeriod = computedPropertyPeriods.get({
+        computedPropertyId: userPropertyResource.id,
+        version: userPropertyResource.updatedAt.toString(),
+      });
+      if (computedPropertyPeriod !== undefined) {
+        csps[userPropertyResource.id] = computedPropertyPeriod.version;
       }
     }
 
@@ -72,7 +76,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         } else if (
           messageDefinition.type === ChannelType.Email &&
           messageDefinition.subject.includes(
-            `user.${userPropertyResource.name}`
+            `user.${userPropertyResource.name}`,
           )
         ) {
           templatesUsedBy[userPropertyResource.id] =
@@ -86,9 +90,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       type: CompletionStatus.Successful,
       value: userPropertyResources.map((userPropertyResource) => ({
         ...userPropertyResource,
-        lastRecomputed: Number(
-          new Date(csps[userPropertyResource.id]?.createdAt ?? "")
-        ),
+        lastRecomputed: Number(new Date(Number(csps[userPropertyResource.id]))),
         templates:
           templatesUsedBy[userPropertyResource.id] &&
           templatesUsedBy[userPropertyResource.id]?.length !== 0
@@ -122,7 +124,7 @@ function UserPropertyListContents() {
         maxHeight: "70%",
         border: 1,
         borderRadius: 1,
-        borderColor: "grey.400",
+        borderColor: "theme.palette.grey[400]",
         margin: "1rem",
       }}
       spacing={2}

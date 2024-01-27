@@ -1,10 +1,15 @@
 import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import { Tooltip } from "@mui/material";
-import { ComputedPropertyPeriod } from "@prisma/client";
+import { Journey } from "@prisma/client";
+import {
+  ComputedPropertyStep,
+  getPeriodsByComputedPropertyId,
+} from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   CompletionStatus,
   JourneyDefinition,
+  JourneyNodeType,
   SegmentResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -27,7 +32,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const { toSegmentResource } = await import("backend-lib/src/segments");
 
     const workspaceId = dfContext.workspace.id;
-    const segmentResources: SegmentResource[] = (
+    const segmentResources: (SegmentResource & {
+      definitionUpdatedAt: number;
+    })[] = (
       await prisma().segment.findMany({
         where: {
           workspaceId,
@@ -48,31 +55,42 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         workspaceId,
       },
     });
-    const computedPropertyPeriods =
-      await prisma().computedPropertyPeriod.findMany({
-        where: {
-          workspaceId,
-        },
-      });
+    const computedPropertyPeriods = await getPeriodsByComputedPropertyId({
+      workspaceId,
+      step: ComputedPropertyStep.ProcessAssignments,
+    });
 
-    const csps: Record<string, ComputedPropertyPeriod> = {};
+    const csps: Record<string, string> = {};
     for (const segmentResource of segmentResources) {
-      for (const computedPropertyPeriod of computedPropertyPeriods) {
-        if (computedPropertyPeriod.id === segmentResource.id) {
-          csps[segmentResource.id] = computedPropertyPeriod;
-        }
+      const computedPropertyPeriod = computedPropertyPeriods.get({
+        computedPropertyId: segmentResource.id,
+        version: segmentResource.updatedAt.toString(),
+      });
+      if (computedPropertyPeriod !== undefined) {
+        csps[segmentResource.id] = computedPropertyPeriod.version;
       }
     }
 
-    const usedBy: Record<string, SegmentResource[]> = {};
+    const usedBy: Record<string, Journey[]> = {};
     for (const segmentResource of segmentResources) {
       for (const journey of journeys) {
-        if (
-          (journey.definition as JourneyDefinition).entryNode.segment ===
-          segmentResource.id
-        ) {
+        const journeyDefinition = journey.definition as JourneyDefinition;
+        if (journeyDefinition.entryNode.segment === segmentResource.id) {
           usedBy[segmentResource.id] = usedBy[segmentResource.id] ?? [];
-          usedBy[segmentResource.id]?.push(segmentResource);
+          if (!usedBy[segmentResource.id]?.includes(journey))
+            usedBy[segmentResource.id]?.push(journey);
+        } else {
+          for (const node of journeyDefinition.nodes) {
+            if (node.type === JourneyNodeType.WaitForNode) {
+              for (const segmentChild of node.segmentChildren) {
+                if (segmentChild.segmentId === segmentResource.id) {
+                  usedBy[segmentResource.id] = usedBy[segmentResource.id] ?? [];
+                  if (!usedBy[segmentResource.id]?.includes(journey))
+                    usedBy[segmentResource.id]?.push(journey);
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -81,11 +99,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       type: CompletionStatus.Successful,
       value: segmentResources.map((segment) => ({
         ...segment,
-        lastRecomputed: Number(new Date(csps[segment.id]?.createdAt ?? "")),
+        lastRecomputed: Number(new Date(Number(csps[segment.id]))),
         journeys:
           usedBy[segment.id] && usedBy[segment.id]?.length !== 0
             ? usedBy[segment.id]
-                ?.map((journey) => `${journey.name}, `)
+                ?.map((journey) => `${journey.name}`)
                 ?.join(`, \n`)
             : "No Journey",
       })),
