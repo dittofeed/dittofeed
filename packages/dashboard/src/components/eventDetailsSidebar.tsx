@@ -1,13 +1,15 @@
 // EventDetailsSidebar.tsx
-import React from "react";
-import { Drawer, Typography, Box, useTheme } from "@mui/material";
-import InfoTooltip from "./infoTooltip";
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
+import { Box, Drawer, Typography, useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import React from "react";
+
 import { SubtleHeader } from "./headers";
-type SelectedEvent = {
+import InfoTooltip from "./infoTooltip";
+
+interface SelectedEvent {
   [x: string]: any;
   messageId: string;
   eventType: string;
@@ -17,7 +19,7 @@ type SelectedEvent = {
   processingTime: string;
   eventTime: string;
   traits: string;
-};
+}
 interface EventDetailsSidebarProps {
   open: boolean;
   onClose: () => void;
@@ -37,19 +39,17 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
           Event Details
         </SubtleHeader>
         {selectedEvent &&
-          Object.keys(selectedEvent).map((key) => {
-            return key !== "traits" ? (
-              <Typography key={key} fontFamily={"monospace"}>
+          Object.keys(selectedEvent).map((key) => key !== "traits" ? (
+              <Typography key={key} fontFamily="monospace">
                 {`${key}: ${selectedEvent[key as keyof SelectedEvent]}`}
               </Typography>
             ) : (
               <></>
-            );
-          })}
+            ))}
 
         {selectedEvent && selectedEvent.traits && (
           <>
-            <InfoTooltip title={"Traits"}>
+            <InfoTooltip title="Traits">
               <Typography variant="h5">Traits</Typography>
             </InfoTooltip>
             <ReactCodeMirror

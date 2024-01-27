@@ -1,3 +1,4 @@
+import SearchIcon from "@mui/icons-material/Search";
 import {
   Box,
   Container,
@@ -24,17 +25,16 @@ import {
   GetEventsResponse,
   GetEventsResponseItem,
 } from "isomorphic-lib/src/types";
-
 import React, { useMemo, useState } from "react";
+import { useDebounce } from "use-debounce";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
-import SearchIcon from "@mui/icons-material/Search";
 import EventDetailsSidebar from "./eventDetailsSidebar";
-import { useDebounce } from "use-debounce";
+
 interface EventsState {
   pageSize: number;
   page: number;
@@ -255,7 +255,7 @@ export function EventsTable({
     updateEvents,
     apiBase,
   ]);
-  ///////////////////////////////////////////////////////////////////////////////
+  /// ////////////////////////////////////////////////////////////////////////////
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm] = useDebounce(searchTerm, 30000);
@@ -321,7 +321,7 @@ export function EventsTable({
     });
   };
 
-  ///////////////////////////////////////////////////////////////////////////////
+  /// ////////////////////////////////////////////////////////////////////////////
 
   const [selectedEvent, setSelectedEvent] =
     useState<GetEventsResponseItem | null>(null);
@@ -355,7 +355,7 @@ export function EventsTable({
               sx={{ width: "98%" ,m:2}}
               value={value}
               onChange={onChange}
-              autoFocus={true}
+              autoFocus
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
