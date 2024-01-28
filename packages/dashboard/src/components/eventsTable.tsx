@@ -258,7 +258,7 @@ export function EventsTable({
   /// ////////////////////////////////////////////////////////////////////////////
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 30000);
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
 
   const handleSearchTermChange = async ({
     event,
