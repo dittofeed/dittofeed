@@ -33,7 +33,7 @@ export async function withSpan<T>(
     name: string;
     tracer?: string;
   },
-  cb: (span: Span) => Promise<T>,
+  cb: (span: Span) => Promise<T>
 ): Promise<T> {
   const tracer = trace.getTracer(tracerName);
   return tracer.startActiveSpan(name, async (span) => {
@@ -54,13 +54,11 @@ export async function withSpan<T>(
   });
 }
 
+let SERVICE_NAME: string = "default";
+
 export function getMeter() {
-  if (!METER) {
-    throw new Error("Must init opentelemetry before accessing meter");
-  }
-  return METER;
+  return api.metrics.getMeterProvider().getMeter(SERVICE_NAME);
 }
-export function getSpan() {}
 
 export function initOpenTelemetry({
   serviceName,
@@ -115,22 +113,23 @@ export function initOpenTelemetry({
           (err) => {
             logger().error(
               { err: err as Error },
-              "Error terminating telemetry",
+              "Error terminating telemetry"
             );
             process.exit(1);
-          },
+          }
         );
-      }),
+      })
     );
 
     try {
       sdk.start();
-      METER = api.metrics.getMeterProvider().getMeter(serviceName);
     } catch (err) {
       logger().error({ err }, "Error initializing telemetry");
       process.exit(1);
     }
   };
+
+  SERVICE_NAME = serviceName;
 
   return {
     start,

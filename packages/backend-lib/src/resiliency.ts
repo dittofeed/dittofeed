@@ -1,5 +1,4 @@
 import { ComputedPropertyStep } from "./computedProperties/computePropertiesIncremental";
-import config from "./config";
 import logger from "./logger";
 import { getMeter } from "./openTelemetry";
 import prisma, { Prisma } from "./prisma";
@@ -10,7 +9,7 @@ export async function observeWorkspaceComputeLatency() {
       const periodsQuery = Prisma.sql`
         SELECT
           "workspaceId",
-          MAX("to")
+          MAX("to") as to
         FROM "ComputedPropertyPeriod"
         WHERE
           "step" = ${ComputedPropertyStep.ProcessAssignments}
@@ -32,6 +31,9 @@ export async function observeWorkspaceComputeLatency() {
   );
 
   const now = Date.now();
+
+  const histogram = getMeter().createHistogram("workspace_compute_latency");
+
   for (const workspace of workspaces) {
     const maxTo = maxToByWorkspaceId.get(workspace.id);
     if (!maxTo) {
@@ -46,13 +48,10 @@ export async function observeWorkspaceComputeLatency() {
     }
     const latency = now - maxTo.getTime();
 
-    if (config().startOtel) {
-      const histogram = getMeter().createHistogram("workspace_compute_latency");
-      histogram.record(latency, {
-        workspaceId: workspace.id,
-        workspaceName: workspace.name,
-      });
-    }
+    histogram.record(latency, {
+      workspaceId: workspace.id,
+      workspaceName: workspace.name,
+    });
     logger().info(
       {
         workspaceId: workspace.id,
