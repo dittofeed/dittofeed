@@ -35,17 +35,17 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
   return (
     <Drawer open={open} onClose={onClose} anchor="right">
       <Box padding={2} paddingTop={10} sx={{ maxWidth: "25vw" }}>
-        <SubtleHeader>
-          Event Details
-        </SubtleHeader>
+        <SubtleHeader>Event Details</SubtleHeader>
         {selectedEvent &&
-          Object.keys(selectedEvent).map((key) => key !== "traits" ? (
+          Object.keys(selectedEvent).map((key) =>
+            key !== "traits" ? (
               <Typography key={key} fontFamily="monospace">
                 {`${key}: ${selectedEvent[key as keyof SelectedEvent]}`}
               </Typography>
             ) : (
               <></>
-            ))}
+            ),
+          )}
 
         {selectedEvent && selectedEvent.traits && (
           <>

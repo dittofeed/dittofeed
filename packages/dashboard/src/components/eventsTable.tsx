@@ -71,7 +71,7 @@ interface HandleChanges {
       anonymousId: string | null;
       processingTime: string;
       eventTime: string;
-    }[]
+    }[],
   ) => void;
   apiBase: string;
 }
@@ -271,7 +271,7 @@ export function EventsTable({
     apiBase,
   }: HandleChanges) => {
     const text = (event.target as HTMLInputElement).value;
-      setSearchTerm(text);
+    setSearchTerm(text);
     if (debouncedSearchTerm === "") return;
     let response: AxiosResponse;
     try {
@@ -288,7 +288,7 @@ export function EventsTable({
       response = await axios.get(`${apiBase}/api/events`, {
         params,
       });
-      console.info(response)
+      console.info(response);
     } catch (e) {
       const error = e as Error;
 
@@ -352,7 +352,7 @@ export function EventsTable({
               id="search"
               type="search"
               label="Search"
-              sx={{ width: "98%" ,m:2}}
+              sx={{ width: "98%", m: 2 }}
               value={value}
               onChange={onChange}
               autoFocus
