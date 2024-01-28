@@ -794,17 +794,22 @@ function DefaultEmailConfig() {
     "defaultEmailProvider",
     "setDefaultEmailProvider",
   ]);
-  const [{ defaultProvider, defaultProviderRequest }, setState] = useImmer<{
+  const [
+    { defaultProvider, defaultFromAddress, defaultProviderRequest },
+    setState,
+  ] = useImmer<{
     defaultProvider: string | null;
+    defaultFromAddress: string | null;
     defaultProviderRequest: EphemeralRequestStatus<Error>;
   }>({
     defaultProvider: defaultEmailProvider?.emailProviderId ?? null,
+    defaultFromAddress: defaultEmailProvider?.fromAddress ?? null,
     defaultProviderRequest: {
       type: CompletionStatus.NotStarted,
     },
   });
 
-  const defaultHandler = (emailProviderId: string) => {
+  const apiHandler = (emailProviderId: string, fromAddress: string) => {
     if (workspace.type !== CompletionStatus.Successful) {
       return;
     }
@@ -816,9 +821,9 @@ function DefaultEmailConfig() {
         });
       },
       responseSchema: EmptyResponse,
-      onSuccessNotice: "Set default email provider.",
+      onSuccessNotice: "Set default email configuration.",
       onFailureNoticeHandler: () =>
-        `API Error: Failed to set default email provider.`,
+        `API Error: Failed to set default email configuration.`,
       setResponse: () => {
         if (!defaultProvider) {
           return;
@@ -826,6 +831,7 @@ function DefaultEmailConfig() {
         setDefaultEmailProvider({
           workspaceId: workspace.value.id,
           emailProviderId: defaultProvider,
+          fromAddress,
         });
       },
       requestConfig: {
@@ -834,6 +840,7 @@ function DefaultEmailConfig() {
         data: {
           workspaceId: workspace.value.id,
           emailProviderId,
+          fromAddress,
         } satisfies DefaultEmailProviderResource,
         headers: {
           "Content-Type": "application/json",
@@ -884,11 +891,25 @@ function DefaultEmailConfig() {
                       setState((state) => {
                         state.defaultProvider = value;
                       });
-                      defaultHandler(value);
                     },
                     options,
                     helperText:
                       "In order to use email, at least 1 email provider must be configured.",
+                  },
+                },
+                {
+                  id: "default-from-address",
+                  type: "text",
+                  fieldProps: {
+                    label: 'Default "From" Address',
+                    value: defaultFromAddress ?? "",
+                    onChange: ({ target: { value } }) => {
+                      setState((state) => {
+                        state.defaultFromAddress = value;
+                      });
+                    },
+                    helperText:
+                      'This will be used to populate "From" address in email templates.',
                   },
                 },
               ],
@@ -896,7 +917,23 @@ function DefaultEmailConfig() {
           ],
         },
       ]}
-    />
+    >
+      <Button
+        variant="contained"
+        disabled={!defaultProvider}
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end",
+          },
+        }}
+        onClick={() =>
+          apiHandler(defaultProvider ?? "", defaultFromAddress ?? "")
+        }
+      >
+        Save
+      </Button>
+    </Fields>
   );
 }
 
