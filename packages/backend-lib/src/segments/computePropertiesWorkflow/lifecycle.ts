@@ -2,7 +2,7 @@ import { WorkflowClient } from "@temporalio/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 
 import config from "../../config";
-import { GLOBAL_CRON_ID, globalCronWorkflow } from "../../globalCron";
+import { GLOBAL_CRON_ID, globalCronWorkflow } from "../../globalCronWorkflow";
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
@@ -36,12 +36,16 @@ export async function startComputePropertiesWorkflow({
   });
 }
 
-export async function startGlobalCron() {
-  const client = await connectWorkflowClient();
+export async function startGlobalCron({
+  client,
+}: {
+  client?: WorkflowClient;
+} = {}) {
+  const temporalClient = client ?? (await connectWorkflowClient());
   try {
-    await client.start(globalCronWorkflow, {
+    await temporalClient.start(globalCronWorkflow, {
       taskQueue: "default",
-      cronSchedule: "*/10 * * * *",
+      cronSchedule: "* * * * *",
       workflowId: GLOBAL_CRON_ID,
       workflowTaskTimeout: "5 minutes",
     });
@@ -53,9 +57,33 @@ export async function startGlobalCron() {
         {
           err: e,
         },
-        "Failed to start global cron.",
+        "Failed to start global cron."
       );
     }
+  }
+}
+
+export async function resetGlobalCron() {
+  const client = await connectWorkflowClient();
+  try {
+    await client.getHandle(GLOBAL_CRON_ID).terminate();
+  } catch (e) {
+    logger().info(
+      {
+        err: e,
+      },
+      "Failed to terminate global cron."
+    );
+  }
+  try {
+    await startGlobalCron({ client });
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+      },
+      "Failed to start global cron."
+    );
   }
 }
 
@@ -70,11 +98,11 @@ export async function resetComputePropertiesWorkflow({
       .getHandle(generateComputePropertiesId(workspaceId))
       .terminate();
   } catch (e) {
-    logger().error(
+    logger().info(
       {
         err: e,
       },
-      "Failed to terminate compute properties workflow.",
+      "Failed to terminate compute properties workflow."
     );
   }
 
@@ -88,7 +116,7 @@ export async function resetComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to start compute properties workflow.",
+      "Failed to start compute properties workflow."
     );
   }
 }
