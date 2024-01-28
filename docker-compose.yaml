@@ -221,7 +221,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
       - prometheus-storage:/prometheus
     networks:
       - dittofeed-network-dev
