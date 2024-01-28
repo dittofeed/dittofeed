@@ -17,7 +17,10 @@ import { upsertMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
 import { segmentIdentifyEvent } from "./segmentIO";
-import { startComputePropertiesWorkflow } from "./segments/computePropertiesWorkflow/lifecycle";
+import {
+  startComputePropertiesWorkflow,
+  startGlobalCron,
+} from "./segments/computePropertiesWorkflow/lifecycle";
 import { upsertSubscriptionGroup } from "./subscriptionGroups";
 import {
   ChannelType,
@@ -41,7 +44,7 @@ async function bootstrapPostgres({
       workspaceName,
       workspaceDomain,
     },
-    "Upserting workspace.",
+    "Upserting workspace."
   );
   const workspace = await prisma().workspace.upsert({
     where: {
@@ -152,7 +155,7 @@ async function bootstrapPostgres({
         },
         create: up,
         update: up,
-      }),
+      })
     ),
     prisma().secret.upsert({
       where: {
@@ -264,7 +267,7 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
               // 1 day ago
               createdAt: new Date(Date.now() - 8.64 * 1000000).toISOString(),
             },
-          }),
+          })
         ),
       },
       {
@@ -280,10 +283,10 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
               plan: "paid",
               // 2 days ago
               createdAt: new Date(
-                Date.now() - 2 * 8.64 * 1000000,
+                Date.now() - 2 * 8.64 * 1000000
               ).toISOString(),
             },
-          }),
+          })
         ),
       },
     ],
@@ -303,14 +306,14 @@ export default async function bootstrap({
   });
   const initialBootstrap = [
     bootstrapClickhouse().catch((err) =>
-      logger().error({ err: err as Error }, "failed to bootstrap clickhouse"),
+      logger().error({ err: err as Error }, "failed to bootstrap clickhouse")
     ),
   ];
   if (config().writeMode === "kafka") {
     initialBootstrap.push(
       bootstrapKafka().catch((err) =>
-        logger().error({ err: err as Error }, "failed to bootstrap kafka"),
-      ),
+        logger().error({ err: err as Error }, "failed to bootstrap kafka")
+      )
     );
   }
   await Promise.all(initialBootstrap);
@@ -321,6 +324,7 @@ export default async function bootstrap({
 
   if (config().bootstrapWorker) {
     await bootstrapWorker({ workspaceId });
+    await startGlobalCron();
   }
   return { workspaceId };
 }

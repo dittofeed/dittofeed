@@ -1,6 +1,8 @@
 import { WorkflowClient } from "@temporalio/client";
+import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 
 import config from "../../config";
+import { GLOBAL_CRON_ID, globalCronWorkflow } from "../../globalCron";
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
@@ -33,7 +35,31 @@ export async function startComputePropertiesWorkflow({
     ],
   });
 }
-export async function restartComputePropertiesWorkflow({
+
+export async function startGlobalCron() {
+  const client = await connectWorkflowClient();
+  try {
+    await client.start(globalCronWorkflow, {
+      taskQueue: "default",
+      cronSchedule: "*/10 * * * *",
+      workflowId: GLOBAL_CRON_ID,
+      workflowTaskTimeout: "5 minutes",
+    });
+  } catch (e) {
+    if (e instanceof WorkflowExecutionAlreadyStartedError) {
+      logger().info("Global cron already started.");
+    } else {
+      logger().error(
+        {
+          err: e,
+        },
+        "Failed to start global cron."
+      );
+    }
+  }
+}
+
+export async function resetComputePropertiesWorkflow({
   workspaceId,
 }: {
   workspaceId: string;
@@ -48,7 +74,7 @@ export async function restartComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to terminate compute properties workflow.",
+      "Failed to terminate compute properties workflow."
     );
   }
 
@@ -62,7 +88,7 @@ export async function restartComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to start compute properties workflow.",
+      "Failed to start compute properties workflow."
     );
   }
 }
