@@ -45,9 +45,8 @@ export async function startGlobalCron({
   try {
     await temporalClient.start(globalCronWorkflow, {
       taskQueue: "default",
-      cronSchedule: "* * * * *",
+      cronSchedule: "*/5 * * * *",
       workflowId: GLOBAL_CRON_ID,
-      workflowTaskTimeout: "5 minutes",
     });
   } catch (e) {
     if (e instanceof WorkflowExecutionAlreadyStartedError) {
@@ -57,7 +56,7 @@ export async function startGlobalCron({
         {
           err: e,
         },
-        "Failed to start global cron."
+        "Failed to start global cron.",
       );
     }
   }
@@ -72,7 +71,7 @@ export async function resetGlobalCron() {
       {
         err: e,
       },
-      "Failed to terminate global cron."
+      "Failed to terminate global cron.",
     );
   }
   try {
@@ -82,7 +81,7 @@ export async function resetGlobalCron() {
       {
         err: e,
       },
-      "Failed to start global cron."
+      "Failed to start global cron.",
     );
   }
 }
@@ -102,7 +101,7 @@ export async function resetComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to terminate compute properties workflow."
+      "Failed to terminate compute properties workflow.",
     );
   }
 
@@ -116,7 +115,7 @@ export async function resetComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to start compute properties workflow."
+      "Failed to start compute properties workflow.",
     );
   }
 }

@@ -16,7 +16,7 @@ export async function observeWorkspaceComputeLatency() {
         GROUP BY "workspaceId";
       `;
       return prisma().$queryRaw<{ to: Date; workspaceId: string }[]>(
-        periodsQuery
+        periodsQuery,
       );
     })(),
     prisma().workspace.findMany(),
@@ -27,7 +27,7 @@ export async function observeWorkspaceComputeLatency() {
       acc.set(period.workspaceId, period.to);
       return acc;
     },
-    new Map()
+    new Map(),
   );
 
   const now = Date.now();
@@ -42,7 +42,7 @@ export async function observeWorkspaceComputeLatency() {
           workspaceId: workspace.id,
           workspaceName: workspace.name,
         },
-        `Could not find maxTo for workspace`
+        `Could not find maxTo for workspace`,
       );
       continue;
     }
@@ -58,7 +58,7 @@ export async function observeWorkspaceComputeLatency() {
         workspaceName: workspace.name,
         latency,
       },
-      "Observed workspace compute latency."
+      "Observed workspace compute latency.",
     );
   }
 }
