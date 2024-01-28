@@ -5,6 +5,10 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 
+import {
+  ResendRequiredData,
+  sendMail as sendMailResend,
+} from "./destinations/resend";
 import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
 import { sendMail as sendMailSmtp } from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
@@ -109,7 +113,7 @@ export async function findMessageTemplate({
 }
 
 export async function upsertMessageTemplate(
-  data: UpsertMessageTemplateResource
+  data: UpsertMessageTemplateResource,
 ): Promise<MessageTemplateResource> {
   let messageTemplate: MessageTemplate;
   if (data.name && data.workspaceId) {
@@ -225,7 +229,7 @@ async function getSendMessageModels({
         workspaceId,
         err: messageTemplateResult.error,
       },
-      message
+      message,
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -242,7 +246,7 @@ async function getSendMessageModels({
         templateId,
         workspaceId,
       },
-      "message template not found"
+      "message template not found",
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -260,7 +264,7 @@ async function getSendMessageModels({
       {
         messageTemplate,
       },
-      "message template has no definition"
+      "message template has no definition",
     );
 
     return err({
@@ -455,7 +459,7 @@ export async function sendEmail({
 
   const secretConfigResult = schemaValidateWithErr(
     defaultEmailProvider.emailProvider.secret?.configValue,
-    EmailProviderSecret
+    EmailProviderSecret,
   );
   if (secretConfigResult.isErr()) {
     logger().error(
@@ -463,7 +467,7 @@ export async function sendEmail({
         err: secretConfigResult.error,
         unvalidatedSecretConfig,
       },
-      "message service provider config malformed"
+      "message service provider config malformed",
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -610,6 +614,86 @@ export async function sendEmail({
         },
       });
     }
+
+    case EmailProviderType.Resend: {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (secretConfig.type !== EmailProviderType.Resend) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `expected resend secret config but got ${secretConfig.type}`,
+          },
+        });
+      }
+
+      const mailData: ResendRequiredData = {
+        to,
+        from,
+        subject,
+        html: body,
+        reply_to: replyTo,
+        tags: [
+          {
+            name: "workspaceId",
+            value: workspaceId,
+          },
+          {
+            name: "templateId",
+            value: templateId,
+          },
+          ...(messageTags
+            ? Object.entries(messageTags).map(([name, value]) => ({
+                name,
+                value,
+              }))
+            : []),
+        ],
+      };
+
+      if (!secretConfig.apiKey) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing apiKey in sendgrid secret config`,
+          },
+        });
+      }
+
+      const result = await sendMailResend({
+        mailData,
+        apiKey: secretConfig.apiKey,
+      });
+
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Email,
+            provider: {
+              type: EmailProviderType.Resend,
+              name: result.error.name,
+              message: result.error.message,
+            },
+          },
+        });
+      }
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Email,
+          from,
+          body,
+          to,
+          subject,
+          replyTo,
+          provider: {
+            type: EmailProviderType.Resend,
+          },
+        },
+      });
+    }
     case EmailProviderType.Test:
       return ok({
         type: InternalEventType.MessageSent,
@@ -681,7 +765,7 @@ export async function sendSms({
 
   const parsedConfigResult = schemaValidateWithErr(
     smsConfig,
-    SmsProviderConfig
+    SmsProviderConfig,
   );
   if (parsedConfigResult.isErr()) {
     return err({
@@ -812,7 +896,7 @@ export async function sendSms({
 }
 
 export async function sendMessage(
-  params: SendMessageParameters
+  params: SendMessageParameters,
 ): Promise<BackendMessageSendResult> {
   switch (params.channel) {
     case ChannelType.Email:

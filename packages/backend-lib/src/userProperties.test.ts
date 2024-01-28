@@ -45,7 +45,7 @@ describe("upsertBulkUserPropertyAssignments", () => {
 
     // Attempt to upsert assignments
     await expect(
-      upsertBulkUserPropertyAssignments({ data: assignments })
+      upsertBulkUserPropertyAssignments({ data: assignments }),
     ).resolves.not.toThrow();
 
     // Check that the first assignment was written successfully

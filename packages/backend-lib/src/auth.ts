@@ -41,7 +41,7 @@ export async function validateWriteKey({
 
   // Decode the writeKey
   const decodedWriteKey = Buffer.from(encodedWriteKey, "base64").toString(
-    "utf-8"
+    "utf-8",
   );
 
   // Split the writeKey into secretKeyId and secretKeyValue
@@ -81,7 +81,7 @@ export async function createWriteKey({
       writeKeyName,
       workspaceId,
     },
-    "creating write key"
+    "creating write key",
   );
   const resource = await prisma().$transaction(async (tx) => {
     // Try to find the secret, create if it doesn't exist

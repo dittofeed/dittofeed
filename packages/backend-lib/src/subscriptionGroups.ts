@@ -45,7 +45,7 @@ export interface SubscriptionGroupDetails {
 }
 
 export function inSubscriptionGroup(
-  details: SubscriptionGroupDetails
+  details: SubscriptionGroupDetails,
 ): boolean {
   // in the case that the subscription group segment hasn't been calculated yet
   if (details.action === null && details.type === SubscriptionGroupType.OptIn) {
@@ -55,10 +55,11 @@ export function inSubscriptionGroup(
 }
 
 export function getSubscriptionGroupDetails(
-  sg: SubscriptionGroupWithAssignment
+  sg: SubscriptionGroupWithAssignment,
 ): SubscriptionGroupDetails {
   let action: UserSubscriptionAction;
   if (sg.Segment[0]?.SegmentAssignment[0] !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     action = sg.Segment[0].SegmentAssignment[0].inSegment
       ? UserSubscriptionAction.Subscribe
       : UserSubscriptionAction.Unsubscribe;
@@ -164,7 +165,7 @@ export async function upsertSubscriptionGroup({
 }
 
 export function subscriptionGroupToResource(
-  subscriptionGroup: SubscriptionGroup
+  subscriptionGroup: SubscriptionGroup,
 ): SubscriptionGroupResource {
   const type: SubscriptionGroupType =
     subscriptionGroup.type === "OptIn"
@@ -252,7 +253,7 @@ export function generateSubscriptionChangeUrl({
     {
       urlString,
     },
-    "generated subscription change url"
+    "generated subscription change url",
   );
   return urlString;
 }
@@ -310,7 +311,7 @@ export function buildSubscriptionChangeEvent({
         subscriptionGroupId,
         timestamp,
         messageId,
-      })
+      }),
     ),
   };
 }
@@ -348,7 +349,7 @@ export async function getUserSubscriptions({
     if (!segment) {
       logger().error(
         { subscriptionGroup },
-        "No segment found for subscription group"
+        "No segment found for subscription group",
       );
       continue;
     }
@@ -465,7 +466,7 @@ export async function updateUserSubscriptions({
         [segment.subscriptionGroupId]: segment,
       };
     },
-    {}
+    {},
   );
 
   const changePairs = R.toPairs(changes);
@@ -477,7 +478,7 @@ export async function updateUserSubscriptions({
           : SubscriptionChange.Unsubscribe,
         subscriptionGroupId,
         userId,
-      })
+      }),
   );
 
   const segmentAssignmentUpdates = changePairs.flatMap(
@@ -492,7 +493,7 @@ export async function updateUserSubscriptions({
             changes,
             changesKeys: Object.keys(changes),
           },
-          "Segment not found for subscription group id"
+          "Segment not found for subscription group id",
         );
         return [];
       }
@@ -514,7 +515,7 @@ export async function updateUserSubscriptions({
           inSegment: isSubscribed,
         },
       });
-    }
+    },
   );
 
   await Promise.all([

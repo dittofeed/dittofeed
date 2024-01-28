@@ -5,7 +5,7 @@ import prisma from "./prisma";
 import { SmsProviderConfig, UpsertSmsProviderRequest } from "./types";
 
 export async function upsertSmsProvider(
-  request: UpsertSmsProviderRequest
+  request: UpsertSmsProviderRequest,
 ): Promise<SmsProviderConfig> {
   const setDefault = request.setDefault ?? false;
 

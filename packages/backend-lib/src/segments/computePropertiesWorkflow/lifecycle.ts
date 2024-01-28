@@ -16,12 +16,17 @@ export async function startComputePropertiesWorkflow({
   client?: WorkflowClient;
 }) {
   const temporalClient = client ?? (await connectWorkflowClient());
+  const {
+    computePropertiesWorkflowTaskTimeout,
+    defaultUserEventsTableVersion,
+  } = config();
   await temporalClient.start(computePropertiesWorkflow, {
     taskQueue: "default",
     workflowId: generateComputePropertiesId(workspaceId),
+    workflowTaskTimeout: computePropertiesWorkflowTaskTimeout,
     args: [
       {
-        tableVersion: config().defaultUserEventsTableVersion,
+        tableVersion: defaultUserEventsTableVersion,
         workspaceId,
         shouldContinueAsNew: true,
       },
@@ -43,7 +48,7 @@ export async function restartComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to terminate compute properties workflow."
+      "Failed to terminate compute properties workflow.",
     );
   }
 
@@ -57,7 +62,7 @@ export async function restartComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to start compute properties workflow."
+      "Failed to start compute properties workflow.",
     );
   }
 }

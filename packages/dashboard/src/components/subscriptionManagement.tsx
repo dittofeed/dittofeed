@@ -49,13 +49,13 @@ export function SubscriptionManagement({
         acc[subscription.id] = subscription.isSubscribed;
         return acc;
       }, {}),
-    [subscriptions]
+    [subscriptions],
   );
 
   const theme = useTheme();
   const [loading, setLoading] = React.useState(false);
   const [state, setState] = React.useState<SubscriptionState>(
-    initialSubscriptionManagementState
+    initialSubscriptionManagementState,
   );
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +68,7 @@ export function SubscriptionManagement({
     () =>
       changedSubscription &&
       subscriptions.find((s) => s.id === changedSubscription)?.name,
-    [subscriptions, changedSubscription]
+    [subscriptions, changedSubscription],
   );
 
   let subscriptionChangeSection = null;

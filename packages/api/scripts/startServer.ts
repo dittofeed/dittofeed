@@ -36,7 +36,7 @@ async function start() {
         ...backendConfig(),
         ...apiConfig,
       },
-      "Initialized with config"
+      "Initialized with config",
     );
   }
 

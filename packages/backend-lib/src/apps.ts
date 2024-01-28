@@ -142,7 +142,7 @@ export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
       {
         timestamp,
       },
-      rest
+      rest,
     );
 
     return {

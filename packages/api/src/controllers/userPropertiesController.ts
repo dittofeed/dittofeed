@@ -14,7 +14,7 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function userPropertiesController(
-  fastify: FastifyInstance
+  fastify: FastifyInstance,
 ) {
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/",
@@ -76,7 +76,7 @@ export default async function userPropertiesController(
 
       const userPropertyDefinitionResult = schemaValidate(
         userProperty.definition,
-        UserPropertyDefinition
+        UserPropertyDefinition,
       );
 
       if (userPropertyDefinitionResult.isErr()) {
@@ -92,7 +92,7 @@ export default async function userPropertiesController(
       };
 
       return reply.status(200).send(resource);
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
@@ -161,6 +161,6 @@ export default async function userPropertiesController(
       }
 
       return reply.status(204).send();
-    }
+    },
   );
 }

@@ -78,7 +78,7 @@ describe("generateSubscriptionChangeUrl", () => {
     if (!secret?.value) {
       throw new Error("No secret found");
     }
-    const url = await generateSubscriptionChangeUrl({
+    const url = generateSubscriptionChangeUrl({
       workspaceId,
       userId,
       subscriptionSecret: secret.value,
@@ -89,7 +89,7 @@ describe("generateSubscriptionChangeUrl", () => {
     });
     const parsed = new URL(url);
     expect(url).toContain(
-      "http://localhost:3000/dashboard/public/subscription-management"
+      "http://localhost:3000/dashboard/public/subscription-management",
     );
     expect(parsed.searchParams.get("w")).toEqual(workspaceId);
     expect(parsed.searchParams.get("i")).toEqual(email);

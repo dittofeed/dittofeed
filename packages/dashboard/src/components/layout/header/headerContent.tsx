@@ -51,14 +51,14 @@ const branchName = "maxgurewitz/my-feature-branch";
 function BranchSelect() {
   const enableSourceControl = useAppStore((store) => store.enableSourceControl);
   const sourceControlProvider = useAppStore(
-    (store) => store.sourceControlProvider
+    (store) => store.sourceControlProvider,
   );
 
   const [branch, setBranch] = React.useState("main");
   const [newBranchIsOpen, setNewBranchIsOpen] = React.useState(false);
   const [newBranchIsLoading, setNewBranchIsLoading] = React.useState(false);
   const [availableBranches, setAvailableBranches] = React.useState<string[]>(
-    []
+    [],
   );
 
   if (!enableSourceControl || !sourceControlProvider) {
@@ -221,7 +221,7 @@ function GitActionsSelect() {
   const theme = useTheme();
   const enableSourceControl = useAppStore((store) => store.enableSourceControl);
   const sourceControlProvider = useAppStore(
-    (store) => store.sourceControlProvider
+    (store) => store.sourceControlProvider,
   );
   const [isDiffOpen, setDiffOpen] = React.useState(false);
   const handleClose = () => setDiffOpen(false);
@@ -305,7 +305,7 @@ function GitActionsSelect() {
 
 function HeaderContent() {
   const matchesXs = useMediaQuery<Theme>((theme) =>
-    theme.breakpoints.down("md")
+    theme.breakpoints.down("md"),
   );
 
   return (

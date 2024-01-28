@@ -69,7 +69,7 @@ function TransitionInner(
   props: TransitionProps & {
     children: React.ReactElement;
   },
-  ref: React.Ref<unknown>
+  ref: React.Ref<unknown>,
 ) {
   return <Slide direction="up" ref={ref} {...props} />;
 }
@@ -93,7 +93,7 @@ const BodyBox = styled(Box, {
           borderTopRightRadius: theme.shape.borderRadius * 1,
           borderBottomRightRadius: theme.shape.borderRadius * 1,
         }),
-  })
+  }),
 );
 
 export interface TemplateState {
@@ -126,13 +126,13 @@ export interface RenderPreviewParams {
 }
 
 export type RenderPreviewSection = (
-  args: RenderPreviewParams
+  args: RenderPreviewParams,
 ) => React.ReactNode;
 
 export type SetDefinition = (
   setter: (
-    dfn: MessageTemplateResourceDefinition
-  ) => MessageTemplateResourceDefinition
+    dfn: MessageTemplateResourceDefinition,
+  ) => MessageTemplateResourceDefinition,
 ) => void;
 
 export interface RenderEditorParams {
@@ -147,7 +147,7 @@ function errorHash(key: string, message: string) {
 }
 
 export type DefinitionToPreview = (
-  dfn: MessageTemplateResourceDefinition
+  dfn: MessageTemplateResourceDefinition,
 ) => RenderMessageTemplateRequestContents;
 
 function getUserPropertyValue({
@@ -359,7 +359,7 @@ export default function TemplateEditor({
       upsertMessage,
       apiBase,
       setState,
-    ]
+    ],
   );
 
   useUpdateEffect(() => {
@@ -471,7 +471,7 @@ export default function TemplateEditor({
     const userPropertySet = new Set(
       userPropertiesResult.type === CompletionStatus.Successful
         ? userPropertiesResult.value.map((p) => p.name)
-        : []
+        : [],
     );
     for (const userProperty in userProperties) {
       if (!userPropertySet.has(userProperty)) {
@@ -708,7 +708,7 @@ export default function TemplateEditor({
               setState((draft) => {
                 draft.userPropertiesJSON = json;
                 const result = jsonParseSafe(json).andThen((p) =>
-                  schemaValidateWithErr(p, UserPropertyAssignments)
+                  schemaValidateWithErr(p, UserPropertyAssignments),
                 );
                 if (result.isErr()) {
                   return;

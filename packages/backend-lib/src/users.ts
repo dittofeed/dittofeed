@@ -135,7 +135,7 @@ export async function getUsers({
         {
           err: e,
         },
-        "failed to decode user cursor"
+        "failed to decode user cursor",
       );
     }
   }
@@ -213,7 +213,7 @@ export async function getUsers({
       acc.set(property.id, property);
       return acc;
     },
-    new Map()
+    new Map(),
   );
 
   const userMap = new Map<string, GetUsersResponseItem>();
@@ -237,7 +237,7 @@ export async function getUsers({
       }
       const parsedUp = parseUserProperty(
         userProperty.definition as UserPropertyDefinition,
-        result.userPropertyValue
+        result.userPropertyValue,
       );
       if (parsedUp.isErr()) {
         logger().error(
@@ -246,7 +246,7 @@ export async function getUsers({
             userPropertyId: userProperty.id,
             userPropertyValue: result.userPropertyValue,
           },
-          "failed to parse user property value"
+          "failed to parse user property value",
         );
         continue;
       }
@@ -305,7 +305,7 @@ export async function deleteUsers({
   const query = `
     ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
       workspaceId,
-      "String"
+      "String",
     )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});
   `;
   await clickhouseClient().command({

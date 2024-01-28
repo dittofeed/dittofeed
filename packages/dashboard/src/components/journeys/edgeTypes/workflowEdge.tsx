@@ -21,7 +21,7 @@ export default function WorkflowEdge({
 }: EdgeProps<EdgeData>) {
   const [isDropzoneActive, setDropzoneActive] = useState<boolean>(false);
   const isDragging = useAppStore(
-    (store) => !!store.journeyDraggedComponentType
+    (store) => !!store.journeyDraggedComponentType,
   );
 
   const onDrop = () => {

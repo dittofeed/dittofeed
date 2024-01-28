@@ -11,7 +11,7 @@ export default function codeDiff(params: UnifiedDiffParams) {
   const diff = parseDiff(diffText, { nearbySequences: "zip" });
 
   const renderFile: (
-    file: ReturnType<typeof parseDiff>[0]
+    file: ReturnType<typeof parseDiff>[0],
   ) => React.ReactNode = ({ oldRevision, newRevision, type, hunks }) => (
     <Diff
       key={`${oldRevision}-${newRevision}`}

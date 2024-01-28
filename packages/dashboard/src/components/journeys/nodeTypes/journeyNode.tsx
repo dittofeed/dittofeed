@@ -51,7 +51,7 @@ interface JourneyNodeConfig {
  */
 export function isNodeComplete(
   props: NodeTypeProps,
-  state: Pick<AppState, "segments" | "messages">
+  state: Pick<AppState, "segments" | "messages">,
 ): boolean {
   switch (props.type) {
     case JourneyNodeType.EntryNode: {
@@ -62,7 +62,7 @@ export function isNodeComplete(
         return true;
       }
       const segment = state.segments.value.find(
-        (s) => s.id === props.segmentId
+        (s) => s.id === props.segmentId,
       );
       return segment !== undefined;
     }
@@ -291,7 +291,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
       .find(
         (el) =>
           el instanceof HTMLElement &&
-          el.classList.contains("react-flow__renderer")
+          el.classList.contains("react-flow__renderer"),
       );
 
     if (!insideRenderer) {

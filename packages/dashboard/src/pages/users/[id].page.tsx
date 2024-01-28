@@ -15,15 +15,24 @@ import logger from "backend-lib/src/logger";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
 import { getUsers } from "backend-lib/src/users";
-import { CompletionStatus, GetUsersResponse } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  DeleteUsersRequest,
+  EmptyResponse,
+  GetUsersResponse,
+} from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
+import { useRouter } from "next/router";
 
+import DeleteDialog from "../../components/confirmDeleteDialog";
 import { DeliveriesTable } from "../../components/deliveriesTable";
 import { EventsTable } from "../../components/eventsTable";
 import { SubtleHeader } from "../../components/headers";
 import MainLayout from "../../components/mainLayout";
 import { ResourceListItemButton } from "../../components/resourceList";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
+import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
+import { useAppStore } from "../../lib/appStore";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
 
@@ -67,7 +76,7 @@ export const getServerSideProps: GetServerSideProps<
       {
         err: usersResult.error,
       },
-      "Unable to retrieve user"
+      "Unable to retrieve user",
     );
     throw new Error("Unable to retrieve user");
   }
@@ -105,6 +114,7 @@ export const getServerSideProps: GetServerSideProps<
 });
 
 const User: NextPage<UserPageProps> = function User(props) {
+  const router = useRouter();
   const { user } = props;
   const theme = useTheme();
   const properties = JSON.stringify(
@@ -113,11 +123,52 @@ const User: NextPage<UserPageProps> = function User(props) {
         acc[property.name] = property.value;
         return acc;
       },
-      {}
+      {},
     ),
     null,
-    2
+    2,
   );
+
+  const userDeleteRequest = useAppStore((store) => store.userDeleteRequest);
+  const setUserDeleteRequest = useAppStore(
+    (store) => store.setUserDeleteRequest,
+  );
+
+  const workspace = useAppStore((store) => store.workspace);
+  const apiBase = useAppStore((store) => store.apiBase);
+
+  const workspaceId =
+    workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
+
+  const handleDelete = () => {
+    if (!workspaceId) {
+      return;
+    }
+
+    apiRequestHandlerFactory({
+      request: userDeleteRequest,
+      setRequest: setUserDeleteRequest,
+      responseSchema: EmptyResponse,
+      onSuccessNotice: `Deleted User`,
+      onFailureNoticeHandler: () => `API Error: Failed to delete User`,
+      setResponse: () => {
+        router.push({
+          pathname: `/users`,
+        });
+      },
+      requestConfig: {
+        method: "DELETE",
+        url: `${apiBase}/api/users`,
+        data: {
+          workspaceId,
+          userIds: [user.id],
+        } satisfies DeleteUsersRequest,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+  };
 
   return (
     <MainLayout>
@@ -175,6 +226,13 @@ const User: NextPage<UserPageProps> = function User(props) {
             <SubtleHeader>Deliveries</SubtleHeader>
             <DeliveriesTable userId={user.id} />
           </Stack>
+        </Stack>
+        <Stack spacing={1}>
+          <DeleteDialog
+            onConfirm={handleDelete}
+            title="Confirm Deletion"
+            message="Are you sure you want to delete this User?"
+          />
         </Stack>
       </Stack>
     </MainLayout>

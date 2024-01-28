@@ -36,6 +36,7 @@ import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
   EMAIL_PROVIDER_TYPE_TO_SECRET_NAME,
+  RESEND_SECRET,
   SENDGRID_SECRET,
   SMTP_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
@@ -244,7 +245,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           where: { workspaceId, resourceType: "Declarative" },
         })
         .then((dbSegments) =>
-          dbSegments.map((segment) => unwrap(toSegmentResource(segment)))
+          dbSegments.map((segment) => unwrap(toSegmentResource(segment))),
         ),
       prisma().smsProvider.findMany({
         where: {
@@ -265,7 +266,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       secretAvailability,
       defaultEmailProvider: defaultEmailProviderRecord,
       integrations: unwrap(integrations).map((i) =>
-        pick(i, ["id", "name", "workspaceId", "definition", "enabled"])
+        pick(i, ["id", "name", "workspaceId", "definition", "enabled"]),
       ),
       segments: {
         type: CompletionStatus.Successful,
@@ -286,21 +287,21 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
 
     const subscriptionGroupResources = subscriptionGroups.map(
-      subscriptionGroupToResource
+      subscriptionGroupToResource,
     );
 
     serverInitialState.subscriptionGroups = subscriptionGroupResources;
     serverInitialState.smsProviders = smsProviders.flatMap((provider) => {
       const configResult = schemaValidateWithErr(
         provider.secret.configValue,
-        SmsProviderConfig
+        SmsProviderConfig,
       );
       if (configResult.isErr()) {
         logger().error(
           {
             err: configResult.error,
           },
-          "failed to validate sms provider config"
+          "failed to validate sms provider config",
         );
         return [];
       }
@@ -417,7 +418,7 @@ const menuItems: MenuItemGroup[] = [
 ];
 
 function SettingsLayout(
-  props: Omit<React.ComponentProps<typeof Layout>, "items">
+  props: Omit<React.ComponentProps<typeof Layout>, "items">,
 ) {
   return (
     <Layout
@@ -441,7 +442,7 @@ interface SettingsActions {
   updateSegmentIoSharedSecret: (key: string) => void;
   updateSegmentIoRequest: (request: EphemeralRequestStatus<Error>) => void;
   updateUpsertIntegrationsRequest: (
-    request: EphemeralRequestStatus<Error>
+    request: EphemeralRequestStatus<Error>,
   ) => void;
   updateSmsProviderRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
@@ -480,7 +481,7 @@ export const useSettingsStore = create(
         state.upsertSmsProviderRequest = request;
       });
     },
-  }))
+  })),
 );
 
 function useSettingsStorePick(params: (keyof SettingsContent)[]) {
@@ -493,14 +494,14 @@ function SegmentIoConfig() {
   const segmentIoRequest = useSettingsStore((store) => store.segmentIoRequest);
   const apiBase = useAppStore((store) => store.apiBase);
   const updateSegmentIoRequest = useSettingsStore(
-    (store) => store.updateSegmentIoRequest
+    (store) => store.updateSegmentIoRequest,
   );
   const workspace = useAppStore((store) => store.workspace);
   const upsertDataSourceConfiguration = useAppStore(
-    (store) => store.upsertDataSourceConfiguration
+    (store) => store.upsertDataSourceConfiguration,
   );
   const updateSegmentIoSharedSecret = useSettingsStore(
-    (store) => store.updateSegmentIoSharedSecret
+    (store) => store.updateSegmentIoSharedSecret,
   );
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
@@ -664,6 +665,58 @@ function SendGridConfig() {
   );
 }
 
+function ResendConfig() {
+  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "resend-section",
+          fieldGroups: [
+            {
+              id: "resend-fields",
+              name: "Resend",
+              fields: [
+                {
+                  id: "resend-api-key",
+                  type: "secret",
+                  fieldProps: {
+                    name: RESEND_SECRET,
+                    secretKey: "apiKey",
+                    label: "Resend API Key",
+                    helperText:
+                      "API key, used internally by Dittofeed to send emails via resend.",
+                    type: EmailProviderType.Resend,
+                    saved:
+                      secretAvailability.find((s) => s.name === RESEND_SECRET)
+                        ?.configValue?.apiKey ?? false,
+                  },
+                },
+                {
+                  id: "resend-webhook-key",
+                  type: "secret",
+                  fieldProps: {
+                    name: RESEND_SECRET,
+                    secretKey: "webhookKey",
+                    label: "Webhook Key",
+                    helperText:
+                      "Resend webhook verification key, used to authenticate resend webhook requests.",
+                    type: EmailProviderType.Resend,
+                    saved:
+                      secretAvailability.find((s) => s.name === RESEND_SECRET)
+                        ?.configValue?.webhookKey ?? false,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
 const SMTP_SECRET_FIELDS: {
   helperText: string;
   label: string;
@@ -741,17 +794,22 @@ function DefaultEmailConfig() {
     "defaultEmailProvider",
     "setDefaultEmailProvider",
   ]);
-  const [{ defaultProvider, defaultProviderRequest }, setState] = useImmer<{
+  const [
+    { defaultProvider, defaultFromAddress, defaultProviderRequest },
+    setState,
+  ] = useImmer<{
     defaultProvider: string | null;
+    defaultFromAddress: string | null;
     defaultProviderRequest: EphemeralRequestStatus<Error>;
   }>({
     defaultProvider: defaultEmailProvider?.emailProviderId ?? null,
+    defaultFromAddress: defaultEmailProvider?.fromAddress ?? null,
     defaultProviderRequest: {
       type: CompletionStatus.NotStarted,
     },
   });
 
-  const defaultHandler = (emailProviderId: string) => {
+  const apiHandler = (emailProviderId: string, fromAddress: string) => {
     if (workspace.type !== CompletionStatus.Successful) {
       return;
     }
@@ -763,9 +821,9 @@ function DefaultEmailConfig() {
         });
       },
       responseSchema: EmptyResponse,
-      onSuccessNotice: "Set default email provider.",
+      onSuccessNotice: "Set default email configuration.",
       onFailureNoticeHandler: () =>
-        `API Error: Failed to set default email provider.`,
+        `API Error: Failed to set default email configuration.`,
       setResponse: () => {
         if (!defaultProvider) {
           return;
@@ -773,6 +831,7 @@ function DefaultEmailConfig() {
         setDefaultEmailProvider({
           workspaceId: workspace.value.id,
           emailProviderId: defaultProvider,
+          fromAddress,
         });
       },
       requestConfig: {
@@ -781,6 +840,7 @@ function DefaultEmailConfig() {
         data: {
           workspaceId: workspace.value.id,
           emailProviderId,
+          fromAddress,
         } satisfies DefaultEmailProviderResource,
         headers: {
           "Content-Type": "application/json",
@@ -798,6 +858,9 @@ function DefaultEmailConfig() {
         break;
       case EmailProviderType.Smtp:
         name = "SMTP";
+        break;
+      case EmailProviderType.Resend:
+        name = "Resend";
         break;
       default:
         assertUnreachable(type, `Unknown email provider type ${type}`);
@@ -828,11 +891,25 @@ function DefaultEmailConfig() {
                       setState((state) => {
                         state.defaultProvider = value;
                       });
-                      defaultHandler(value);
                     },
                     options,
                     helperText:
                       "In order to use email, at least 1 email provider must be configured.",
+                  },
+                },
+                {
+                  id: "default-from-address",
+                  type: "text",
+                  fieldProps: {
+                    label: 'Default "From" Address',
+                    value: defaultFromAddress ?? "",
+                    onChange: ({ target: { value } }) => {
+                      setState((state) => {
+                        state.defaultFromAddress = value;
+                      });
+                    },
+                    helperText:
+                      'This will be used to populate "From" address in email templates.',
                   },
                 },
               ],
@@ -840,7 +917,23 @@ function DefaultEmailConfig() {
           ],
         },
       ]}
-    />
+    >
+      <Button
+        variant="contained"
+        disabled={!defaultProvider}
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end",
+          },
+        }}
+        onClick={() =>
+          apiHandler(defaultProvider ?? "", defaultFromAddress ?? "")
+        }
+      >
+        Save
+      </Button>
+    </Fields>
   );
 }
 
@@ -850,6 +943,7 @@ function EmailChannelConfig() {
       <SectionSubHeader id={settingsSectionIds.emailChannel} title="Email" />
       <DefaultEmailConfig />
       <SendGridConfig />
+      <ResendConfig />
       <SmtpConfig />
     </>
   );
@@ -864,10 +958,10 @@ function TwilioConfig() {
       "upsertSmsProvider",
     ]);
   const upsertSmsProviderRequest = useSettingsStore(
-    (store) => store.upsertSmsProviderRequest
+    (store) => store.upsertSmsProviderRequest,
   );
   const updateSmsProviderRequest = useSettingsStore(
-    (store) => store.updateSmsProviderRequest
+    (store) => store.updateSmsProviderRequest,
   );
 
   const twilioProvider: TwilioSmsProvider | null = useMemo(() => {
@@ -883,10 +977,10 @@ function TwilioConfig() {
   const [showAuthToken, setShowAuthKey] = useState(false);
   const [authToken, setAuthToken] = useState(twilioProvider?.authToken ?? "");
   const [messagingServiceSid, setMessagingServiceSid] = useState(
-    twilioProvider?.messagingServiceSid
+    twilioProvider?.messagingServiceSid,
   );
   const [accountSid, setAccountSid] = useState(
-    twilioProvider?.accountSid ?? ""
+    twilioProvider?.accountSid ?? "",
   );
   if (workspace.type !== CompletionStatus.Successful) {
     return null;
@@ -1027,7 +1121,7 @@ function WriteKeySettings() {
   const writeKey = useAppStore((store) => store.writeKeys)[0];
   const keyHeader = useMemo(
     () => (writeKey ? writeKeyToHeader(writeKey) : null),
-    [writeKey]
+    [writeKey],
   );
 
   if (!keyHeader) {
@@ -1089,7 +1183,7 @@ function HubspotIntegration() {
       ? segmentsRequest.value
       : [];
   const [inProgress, setInProgress] = useState<"segments" | "enabled" | null>(
-    null
+    null,
   );
 
   const { upsertIntegrationsRequest, updateUpsertIntegrationsRequest } =

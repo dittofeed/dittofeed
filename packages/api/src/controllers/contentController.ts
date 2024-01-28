@@ -102,7 +102,7 @@ export default async function contentController(fastify: FastifyInstance) {
       return reply.status(200).send({
         contents: responseContents,
       });
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
@@ -120,7 +120,7 @@ export default async function contentController(fastify: FastifyInstance) {
     async (request, reply) => {
       const resource = await upsertMessageTemplate(request.body);
       return reply.status(200).send(resource);
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -182,7 +182,7 @@ export default async function contentController(fastify: FastifyInstance) {
                 suggestions.push(`Sendgrid responded with status: ${status}`);
                 if (status === 403) {
                   suggestions.push(
-                    "Is the configured email domain authorized in sengrid?"
+                    "Is the configured email domain authorized in sengrid?",
                   );
                 }
               }
@@ -191,6 +191,18 @@ export default async function contentController(fastify: FastifyInstance) {
                 err: {
                   suggestions,
                   responseData: body,
+                },
+              });
+            }
+            case EmailProviderType.Resend: {
+              const { message } = result.error.variant.provider;
+              const suggestions: string[] = [];
+              suggestions.push(message);
+              return reply.status(200).send({
+                type: JsonResultType.Err,
+                err: {
+                  suggestions,
+                  responseData: message,
                 },
               });
             }
@@ -246,7 +258,7 @@ export default async function contentController(fastify: FastifyInstance) {
       }
       logger().error(result.error, "Unexpected error sending test message");
       return reply.status(500);
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
@@ -284,6 +296,6 @@ export default async function contentController(fastify: FastifyInstance) {
       }
 
       return reply.status(204).send();
-    }
+    },
   );
 }

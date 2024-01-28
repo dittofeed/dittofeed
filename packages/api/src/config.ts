@@ -9,7 +9,7 @@ const RawConfigProps = {
   apiPort: Type.Optional(
     Type.String({
       format: "naturalNumber",
-    })
+    }),
   ),
   apiHost: Type.Optional(Type.String()),
   apiPrefix: Type.Optional(Type.String()),

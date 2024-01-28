@@ -61,14 +61,14 @@ export default function SubscriptionGroupConfig() {
       setSubscriptionGroupUpdateRequest:
         store.setSubscriptionGroupUpdateRequest,
     }),
-    shallow
+    shallow,
   );
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
   const workspace = useAppStore((store) => store.workspace);
 
   const onChannelChangeHandler: SelectInputProps<ChannelType>["onChange"] = (
-    e
+    e,
   ) => {
     if (editedSubscriptionGroup) {
       updateEditedSubscriptionGroup({

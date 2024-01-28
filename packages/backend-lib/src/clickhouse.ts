@@ -57,17 +57,21 @@ export class ClickHouseQueryBuilder {
     if (this.debug) {
       switch (dataType) {
         case "String":
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           return `'${value}'`;
         case "Int32":
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           return `${value}`;
         case "Array(String)":
           if (Array.isArray(value)) {
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
             return `['${value.join("','")}']`;
           }
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           return `['${value}']`;
         default:
           throw new Error(
-            `Unhandled data type in query builder debug mode: ${dataType}`
+            `Unhandled data type in query builder debug mode: ${dataType}`,
           );
       }
     }
@@ -109,7 +113,7 @@ function getClientConfig({
 }
 
 export async function createClickhouseDb(
-  createConfigParams: CreateConfigParams = {}
+  createConfigParams: CreateConfigParams = {},
 ) {
   const { clickhouseDatabase: database } = config();
 
@@ -128,7 +132,7 @@ export async function createClickhouseDb(
 }
 
 export function createClickhouseClient(
-  createConfigParams: CreateConfigParams = {}
+  createConfigParams: CreateConfigParams = {},
 ) {
   const clientConfig = getClientConfig(createConfigParams);
   return createClient(clientConfig);
@@ -145,7 +149,7 @@ export function clickhouseClient() {
 
 export async function streamClickhouseQuery(
   q: BaseResultSet<Readable>,
-  cb: (rows: unknown[]) => Promise<void> | void
+  cb: (rows: unknown[]) => Promise<void> | void,
 ): Promise<void> {
   const stream = q.stream();
   const rowPromises: Promise<unknown>[] = [];
@@ -179,7 +183,7 @@ export async function command(
   }: {
     clickhouseClient?: ClickHouseClient<Readable>;
     queryId?: string;
-  } = {}
+  } = {},
 ): Promise<ReturnType<ClickHouseClient["command"]>> {
   const queryId = params.query_id ?? getChCompatibleUuid();
   try {
@@ -197,7 +201,7 @@ export async function query(
   }: {
     clickhouseClient?: ClickHouseClient<Readable>;
     queryId?: string;
-  } = {}
+  } = {},
 ): Promise<BaseResultSet<Readable>> {
   const queryId = params.query_id ?? getChCompatibleUuid();
   try {

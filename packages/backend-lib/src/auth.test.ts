@@ -25,7 +25,7 @@ describe("validateWriteKey", () => {
       const header = writeKeyToHeader(writeKey);
       valid = await validateWriteKey({ writeKey: header });
     });
-    it("should return true", async () => {
+    it("should return true", () => {
       expect(valid).not.toBe(null);
     });
   });
@@ -35,7 +35,7 @@ describe("validateWriteKey", () => {
         writeKey: `Basic ${toBase64("missing:")}`,
       });
     });
-    it("should return false", async () => {
+    it("should return false", () => {
       expect(valid).toBe(null);
     });
   });
@@ -45,7 +45,7 @@ describe("validateWriteKey", () => {
         writeKey: "Basic foobar",
       });
     });
-    it("should return false", async () => {
+    it("should return false", () => {
       expect(valid).toBe(null);
     });
   });
@@ -70,12 +70,12 @@ describe("validateWriteKey", () => {
           },
         },
       });
-
+      const secretID = `${secret?.id ?? ""}:wrong`;
       valid = await validateWriteKey({
-        writeKey: `Basic ${toBase64(`${secret?.id}:wrong`)}`,
+        writeKey: `Basic ${toBase64(secretID)}`,
       });
     });
-    it("should return false", async () => {
+    it("should return false", () => {
       expect(valid).toBe(null);
     });
   });

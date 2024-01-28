@@ -9,7 +9,7 @@
   "include": ["./src/**/*.ts", "./scripts/**/*.ts"],
   "references": [
     {
-      "path": "../isomorphic-lib"
+      "path": "../isomorphic-lib",
     },
   ],
 }

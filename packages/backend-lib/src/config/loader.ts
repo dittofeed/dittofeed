@@ -64,7 +64,7 @@ export function setConfigOnEnv(configForEnv: object) {
       serializedValue = value;
     } else {
       throw new Error(
-        `Unable to serialize env key: ${key}, value: ${JSON.stringify(value)}`
+        `Unable to serialize env key: ${key}, value: ${JSON.stringify(value)}`,
       );
     }
 

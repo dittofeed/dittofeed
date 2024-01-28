@@ -4,18 +4,25 @@ import {
   generateDigest,
   verifyTimestampedSignature,
 } from "backend-lib/src/crypto";
+import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
-import { SendgridEvent } from "backend-lib/src/types";
+import { ResendEvent, SendgridEvent } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import {
+  RESEND_SECRET,
   SENDGRID_SECRET,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { SendgridSecret, WorkspaceId } from "isomorphic-lib/src/types";
+import {
+  ResendSecret,
+  SendgridSecret,
+  WorkspaceId,
+} from "isomorphic-lib/src/types";
+import { Webhook } from "svix";
 
 import { getWorkspaceId } from "../workspace";
 
@@ -57,7 +64,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       });
       const webhookKey = schemaValidateWithErr(
         secret?.configValue,
-        SendgridSecret
+        SendgridSecret,
       )
         .map((val) => val.webhookKey)
         .unwrapOr(null);
@@ -67,7 +74,7 @@ export default async function webhookController(fastify: FastifyInstance) {
           {
             workspaceId,
           },
-          "Missing sendgrid webhook secret."
+          "Missing sendgrid webhook secret.",
         );
         return reply.status(400).send({
           error: "Missing secret.",
@@ -93,7 +100,7 @@ export default async function webhookController(fastify: FastifyInstance) {
           {
             workspaceId,
           },
-          "Invalid signature for sendgrid webhook."
+          "Invalid signature for sendgrid webhook.",
         );
         return reply.status(401).send({
           message: "Invalid signature.",
@@ -105,7 +112,93 @@ export default async function webhookController(fastify: FastifyInstance) {
         events: request.body,
       });
       return reply.status(200).send();
-    }
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/resend",
+    {
+      schema: {
+        description: "Used to consume resend webhook payloads.",
+        tags: ["Webhooks"],
+        headers: Type.Object({
+          "svix-id": Type.String(),
+          "svix-timestamp": Type.String(),
+          "svix-signature": Type.String(),
+        }),
+        body: Type.Array(ResendEvent),
+      },
+    },
+    async (request, reply) => {
+      logger().debug({ body: request.body }, "Received resend events.");
+
+      const workspaceId = await getWorkspaceId(request);
+      if (!workspaceId) {
+        return reply.status(400).send({
+          error: "Missing workspaceId. Try setting the df-workspace-id header.",
+        });
+      }
+
+      if (!workspaceId) {
+        logger().error("Missing workspaceId on resend events.");
+        return reply.status(400).send({
+          error: "Missing workspaceId custom arg.",
+        });
+      }
+
+      const secret = await prisma().secret.findUnique({
+        where: {
+          workspaceId_name: {
+            name: RESEND_SECRET,
+            workspaceId,
+          },
+        },
+      });
+      const webhookKey = schemaValidateWithErr(
+        secret?.configValue,
+        ResendSecret,
+      )
+        .map((val) => val.webhookKey)
+        .unwrapOr(null);
+
+      if (!webhookKey) {
+        logger().error(
+          {
+            workspaceId,
+          },
+          "Missing resend webhook secret.",
+        );
+        return reply.status(400).send({
+          error: "Missing secret.",
+        });
+      }
+
+      if (!request.rawBody || typeof request.rawBody !== "string") {
+        logger().error({ workspaceId }, "Missing rawBody on resend webhook.");
+        return reply.status(500).send();
+      }
+
+      const wh = new Webhook(webhookKey);
+      const verified = wh.verify(request.rawBody, request.headers);
+
+      if (!verified) {
+        logger().error(
+          {
+            workspaceId,
+          },
+          "Invalid signature for resend webhook.",
+        );
+        return reply.status(401).send({
+          message: "Invalid signature.",
+        });
+      }
+
+      await submitResendEvents({
+        workspaceId,
+        events: request.body,
+      });
+      return reply.status(200).send();
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -120,7 +213,7 @@ export default async function webhookController(fastify: FastifyInstance) {
             messageId: Type.String(),
             timestamp: Type.String(),
           },
-          { additionalProperties: true }
+          { additionalProperties: true },
         ),
         headers: Type.Object({
           "x-signature": Type.String(),
@@ -171,6 +264,6 @@ export default async function webhookController(fastify: FastifyInstance) {
       });
 
       return reply.status(200).send();
-    }
+    },
   );
 }

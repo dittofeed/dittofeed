@@ -78,7 +78,7 @@ export async function getOrCreateEmailProviders({
           if (ep) {
             emailProviders.push(ep);
           }
-        })
+        }),
       );
     }
   }
@@ -90,6 +90,9 @@ export async function getOrCreateEmailProviders({
         return [];
       case EmailProviderType.Sendgrid:
         type = EmailProviderType.Sendgrid;
+        break;
+      case EmailProviderType.Resend:
+        type = EmailProviderType.Resend;
         break;
       case EmailProviderType.Smtp:
         type = EmailProviderType.Smtp;

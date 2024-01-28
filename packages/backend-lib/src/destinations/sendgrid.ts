@@ -37,7 +37,7 @@ export async function sendMail({
 
   return ResultAsync.fromPromise(
     sendgridMail.send(mailData),
-    guardResponseError
+    guardResponseError,
   ).map((resultArray) => resultArray[0]);
 }
 
@@ -68,7 +68,7 @@ export function sendgridEventToDF({
       "userId",
       "templateId",
       "nodeId",
-    ])
+    ]),
   );
 
   switch (event) {
@@ -135,11 +135,11 @@ export async function submitSendgridEvents({
         .mapErr((error) => {
           logger().error(
             { err: error },
-            "Failed to convert sendgrid event to DF."
+            "Failed to convert sendgrid event to DF.",
           );
           return error;
         })
-        .unwrapOr([])
+        .unwrapOr([]),
     ),
   };
   await submitBatch({

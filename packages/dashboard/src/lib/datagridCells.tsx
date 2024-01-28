@@ -18,7 +18,7 @@ export function monospaceCell(params: unknown) {
   const coerced = params as Record<string, unknown>;
   const result = schemaValidateWithErr(
     pick(coerced, ["value", "row"]),
-    RenderCellValues
+    RenderCellValues,
   );
   let renderCellContent: React.ReactNode;
   let title: string;

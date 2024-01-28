@@ -173,11 +173,11 @@ export async function userJourneyWorkflow({
         const { timeoutSeconds, segmentChildren } = cn;
         const satisfiedSegmentWithinTimeout = await wf.condition(
           () => segmentChildren.some((s) => segmentAssignedTrue(s.segmentId)),
-          timeoutSeconds * 1000
+          timeoutSeconds * 1000,
         );
         if (satisfiedSegmentWithinTimeout) {
           const child = segmentChildren.find((s) =>
-            segmentAssignedTrue(s.segmentId)
+            segmentAssignedTrue(s.segmentId),
           );
           if (!child) {
             logger.error("missing wait for segment child", {
@@ -201,7 +201,7 @@ export async function userJourneyWorkflow({
           if (!nextNode) {
             logger.error(
               "missing wait for timeout child node",
-              defaultLoggingFields
+              defaultLoggingFields,
             );
             nextNode = definition.exitNode;
             break;
@@ -272,6 +272,7 @@ export async function userJourneyWorkflow({
             }
             default: {
               const { type }: never = currentNode.variant;
+              // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
               assertUnreachable(type, `unknown channel type ${type}`);
             }
           }

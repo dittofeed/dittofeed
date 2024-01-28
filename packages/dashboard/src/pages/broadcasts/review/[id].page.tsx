@@ -63,7 +63,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       segmentId: id,
       workspaceId,
       subscriptionGroups: subscriptionGroups.map((sg) =>
-        subscriptionGroupToResource(sg)
+        subscriptionGroupToResource(sg),
       ),
       messageTemplates,
     });

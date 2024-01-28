@@ -172,7 +172,7 @@ export const SendgridEvent = Type.Object({
     Type.Object({
       id: Type.Number(),
       name: Type.String(),
-    })
+    }),
   ),
   workspaceId: Type.Optional(Type.String()),
   runId: Type.Optional(Type.String()),
@@ -184,7 +184,38 @@ export const SendgridEvent = Type.Object({
   anonymousId: Type.Optional(Type.String()),
 });
 
+export enum ResendEventType {
+  Sent = "email.sent",
+  Delivered = "email.delivered",
+  DeliveryDelayed = "email.delivery_delayed",
+  Complained = "email.complained",
+  Bounced = "email.bounced",
+  Opened = "email.opened",
+  Clicked = "email.clicked",
+}
+
+export const ResendEvent = Type.Object({
+  created_at: Type.String(),
+  data: Type.Object({
+    created_at: Type.String(),
+    email_id: Type.String(),
+    from: Type.String(),
+    subject: Type.String(),
+    to: Type.Array(Type.String()),
+  }),
+  type: Type.Enum(ResendEventType),
+  workspaceId: Type.Optional(Type.String()),
+  runId: Type.Optional(Type.String()),
+  messageId: Type.Optional(Type.String()),
+  userId: Type.Optional(Type.String()),
+  templateId: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+  anonymousId: Type.Optional(Type.String()),
+});
+
 export type SendgridEvent = Static<typeof SendgridEvent>;
+
+export type ResendEvent = Static<typeof ResendEvent>;
 
 export type IntegrationCreateDefinition = Omit<
   Overwrite<

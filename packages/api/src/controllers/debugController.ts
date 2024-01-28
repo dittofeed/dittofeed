@@ -13,6 +13,6 @@ export default async function debugController(fastify: FastifyInstance) {
     // eslint-disable-next-line @typescript-eslint/require-await
     async () => {
       throw new Error("boom!");
-    }
+    },
   );
 }

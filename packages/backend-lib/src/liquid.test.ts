@@ -83,7 +83,7 @@ const mjmlTemplate = `
 const expectedRenderedMjmlTemplate = `Dittofeed Example by Max`;
 
 describe("renderWithUserProperties", () => {
-  it("can render markdown that passes email validation", async () => {
+  it("can render markdown that passes email validation", () => {
     const rendered = renderLiquid({
       template: markdownTemplate,
       workspaceId: randomUUID(),
@@ -96,7 +96,7 @@ describe("renderWithUserProperties", () => {
     expect(rendered.trim()).toEqual(expectedRenderedMarkdown.trim());
   });
 
-  it("can render with the base email layout", async () => {
+  it("can render with the base email layout", () => {
     const rendered = renderLiquid({
       template: baseLayoutTemplate,
       workspaceId: randomUUID(),
@@ -106,7 +106,7 @@ describe("renderWithUserProperties", () => {
     expect(rendered.trim()).toEqual(expectedBaseLayoutTemplate.trim());
   });
 
-  it("can render markdown email layout", async () => {
+  it("can render markdown email layout", () => {
     const rendered = renderLiquid({
       template: markdownEmailTemplate,
       workspaceId: randomUUID(),
@@ -118,7 +118,7 @@ describe("renderWithUserProperties", () => {
     expect(rendered.trim()).toEqual(expectedRenderedMarkdownEmail.trim());
   });
 
-  it("can render mjml email layout", async () => {
+  it("can render mjml email layout", () => {
     const rendered = renderLiquid({
       template: mjmlTemplate,
       workspaceId: randomUUID(),
@@ -128,7 +128,7 @@ describe("renderWithUserProperties", () => {
       },
     });
     expect(rendered.trim()).toEqual(
-      expect.stringContaining(expectedRenderedMjmlTemplate.trim())
+      expect.stringContaining(expectedRenderedMjmlTemplate.trim()),
     );
   });
 
@@ -141,7 +141,7 @@ describe("renderWithUserProperties", () => {
       <a class="df-unsubscribe" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&s=92edd119-3566-4c42-a91a-ff80498a1f57&sub=0" target="_blank">unsubscribe</a>
     `;
 
-    it("can render an unsubscribe link", async () => {
+    it("can render an unsubscribe link", () => {
       const rendered = renderLiquid({
         template: unsubscribeTemplate,
         workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",
@@ -168,7 +168,7 @@ describe("renderWithUserProperties", () => {
       <a class="df-unsubscribe" clicktracking=off href="http://localhost:3000/dashboard/public/subscription-management?w=024f3d0a-8eee-11ed-a1eb-0242ac120002&i=max%40email.com&ik=email&h=c8405195c77e89383ca6e9c4fd787a77bae5445b78dd891e0c30cd186c60a7b9&s=92edd119-3566-4c42-a91a-ff80498a1f57&sub=0" target="_blank">here</a>
     `;
 
-    it("can render an unsubscribe link", async () => {
+    it("can render an unsubscribe link", () => {
       const rendered = renderLiquid({
         template: unsubscribeTemplate,
         workspaceId: "024f3d0a-8eee-11ed-a1eb-0242ac120002",

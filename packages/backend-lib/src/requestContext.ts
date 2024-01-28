@@ -1,15 +1,19 @@
+import { SpanStatusCode } from "@opentelemetry/api";
 import { Prisma } from "@prisma/client";
 import { IncomingHttpHeaders } from "http";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import { sortBy } from "remeda";
 
 import { decodeJwtHeader } from "./auth";
 import config from "./config";
+import { withSpan } from "./openTelemetry";
 import prisma from "./prisma";
 import {
   DFRequestContext,
   Workspace,
   WorkspaceMember,
+  WorkspaceMemberResource,
   WorkspaceMemberRole,
   WorkspaceMemberRoleResource,
   WorkspaceResource,
@@ -28,11 +32,16 @@ export enum RequestContextErrorType {
 export interface UnauthorizedError {
   type: RequestContextErrorType.Unauthorized;
   message: string;
+  member: WorkspaceMemberResource;
+  memberRoles: WorkspaceMemberRoleResource[];
+  workspace: WorkspaceResource;
 }
 
 export interface NotOnboardedError {
   type: RequestContextErrorType.NotOnboarded;
   message: string;
+  member: WorkspaceMemberResource;
+  memberRoles: WorkspaceMemberRoleResource[];
 }
 
 export interface ApplicationError {
@@ -42,6 +51,7 @@ export interface ApplicationError {
 
 export interface EmailNotVerifiedError {
   type: RequestContextErrorType.EmailNotVerified;
+  email: string;
 }
 
 export interface NotAuthenticatedError {
@@ -72,7 +82,7 @@ interface RolesWithWorkspace {
 }
 
 async function findAndCreateRoles(
-  member: MemberWithRoles
+  member: MemberWithRoles,
 ): Promise<RolesWithWorkspace> {
   const domain = member.email?.split("@")[1];
   const or: Prisma.WorkspaceWhereInput[] = [
@@ -102,7 +112,7 @@ async function findAndCreateRoles(
   });
 
   const domainWorkspacesWithoutRole = workspaces.filter(
-    (w) => w.WorkspaceMemberRole.length === 0
+    (w) => w.WorkspaceMemberRole.length === 0,
   );
   let roles = workspaces.flatMap((w) => w.WorkspaceMemberRole);
   if (domainWorkspacesWithoutRole.length !== 0) {
@@ -121,8 +131,8 @@ async function findAndCreateRoles(
             workspaceMemberId: member.id,
             role: "Admin",
           },
-        })
-      )
+        }),
+      ),
     );
     for (const role of newRoles) {
       roles.push(role);
@@ -149,7 +159,7 @@ async function findAndCreateRoles(
 
   if (member.lastWorkspaceId) {
     const lastWorkspaceRole = roles.find(
-      (r) => r.workspaceId === member.lastWorkspaceId
+      (r) => r.workspaceId === member.lastWorkspaceId,
     );
     const workspace = workspaces.find((w) => w.id === member.lastWorkspaceId);
     if (lastWorkspaceRole && workspace) {
@@ -203,7 +213,7 @@ export async function getMultiTenantRequestContext({
 
   if (!decodedJwt) {
     return err({
-      type: RequestContextErrorType.Unauthorized,
+      type: RequestContextErrorType.NotAuthenticated,
       message: "Unable to decode jwt",
     });
   }
@@ -214,6 +224,7 @@ export async function getMultiTenantRequestContext({
   if (!email_verified) {
     return err({
       type: RequestContextErrorType.EmailNotVerified,
+      email,
     });
   }
 
@@ -298,24 +309,27 @@ export async function getMultiTenantRequestContext({
   }
 
   const { workspace, memberRoles } = await findAndCreateRoles(memberWithRole);
+  const memberResouce: WorkspaceMemberResource = {
+    id: memberWithRole.id,
+    email: memberWithRole.email,
+    emailVerified: memberWithRole.emailVerified,
+    name: memberWithRole.name ?? undefined,
+    nickname: memberWithRole.nickname ?? undefined,
+    picture: memberWithRole.image ?? undefined,
+    createdAt: memberWithRole.createdAt.toISOString(),
+  };
 
   if (!workspace) {
     return err({
       type: RequestContextErrorType.NotOnboarded,
       message: "User missing role",
-    });
+      member: memberResouce,
+      memberRoles,
+    } satisfies NotOnboardedError);
   }
 
   return ok({
-    member: {
-      id: memberWithRole.id,
-      email: memberWithRole.email,
-      emailVerified: memberWithRole.emailVerified,
-      name: memberWithRole.name ?? undefined,
-      nickname: memberWithRole.nickname ?? undefined,
-      picture: memberWithRole.image ?? undefined,
-      createdAt: memberWithRole.createdAt.toISOString(),
-    },
+    member: memberResouce,
     workspace,
     memberRoles,
   });
@@ -325,7 +339,7 @@ async function getAnonymousRequestContext(): Promise<RequestContextResult> {
   const workspace = await prisma().workspace.findFirst();
   if (!workspace) {
     return err({
-      type: RequestContextErrorType.NotOnboarded,
+      type: RequestContextErrorType.ApplicationError,
       message: `Workspace not found`,
     });
   }
@@ -352,30 +366,105 @@ async function getAnonymousRequestContext(): Promise<RequestContextResult> {
 }
 
 export async function getRequestContext(
-  headers: IncomingHttpHeaders
+  headers: IncomingHttpHeaders,
 ): Promise<RequestContextResult> {
-  const { authMode } = config();
-  switch (authMode) {
-    case "anonymous": {
-      return getAnonymousRequestContext();
-    }
-    case "single-tenant": {
-      if (headers[SESSION_KEY] !== "true") {
-        return err({
-          type: RequestContextErrorType.NotAuthenticated,
-        });
+  return withSpan({ name: "get-request-context" }, async (span) => {
+    const { authMode } = config();
+    let result: RequestContextResult;
+    switch (authMode) {
+      case "anonymous": {
+        result = await getAnonymousRequestContext();
+        break;
       }
-      return getAnonymousRequestContext();
+      case "single-tenant": {
+        if (headers[SESSION_KEY] !== "true") {
+          return err({
+            type: RequestContextErrorType.NotAuthenticated,
+          });
+        }
+        result = await getAnonymousRequestContext();
+        break;
+      }
+      case "multi-tenant": {
+        const authorizationToken =
+          headers.authorization && typeof headers.authorization === "string"
+            ? headers.authorization
+            : null;
+        result = await getMultiTenantRequestContext({
+          authorizationToken,
+          authProvider: config().authProvider,
+        });
+        break;
+      }
     }
-    case "multi-tenant": {
-      const authorizationToken =
-        headers.authorization && typeof headers.authorization === "string"
-          ? headers.authorization
-          : null;
-      return getMultiTenantRequestContext({
-        authorizationToken,
-        authProvider: config().authProvider,
+    if (result.isOk()) {
+      const { id: memberId, email: memberEmail } = result.value.member;
+      const { id: workspaceId, name: workspaceName } = result.value.workspace;
+
+      const memberRoles = result.value.memberRoles.flatMap((r) =>
+        r.workspaceId === workspaceId ? r.role : [],
+      );
+      span.setAttributes({
+        memberId,
+        memberEmail,
+        workspaceId,
+        workspaceName,
+        memberRoles,
       });
+      return result;
     }
-  }
+    switch (result.error.type) {
+      // TODO handle when users can request access to a workspace that they
+      // currently are not authorized to access
+      case RequestContextErrorType.Unauthorized: {
+        throw new Error("unhandled unauthorized error");
+      }
+      case RequestContextErrorType.NotOnboarded: {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: result.error.message,
+        });
+        span.setAttributes({
+          type: result.error.type,
+          memberEmail: result.error.member.email,
+          memberId: result.error.member.id,
+        });
+        break;
+      }
+      case RequestContextErrorType.ApplicationError: {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: result.error.message,
+        });
+        span.setAttributes({
+          type: result.error.type,
+        });
+        break;
+      }
+      case RequestContextErrorType.EmailNotVerified: {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: result.error.type,
+        });
+        span.setAttributes({
+          type: result.error.type,
+          email: result.error.email,
+        });
+        break;
+      }
+      case RequestContextErrorType.NotAuthenticated: {
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: result.error.type,
+        });
+        span.setAttributes({
+          type: result.error.type,
+        });
+        break;
+      }
+      default:
+        assertUnreachable(result.error);
+    }
+    return result;
+  });
 }

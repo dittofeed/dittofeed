@@ -72,17 +72,17 @@ function JourneyItem({ journey }: { journey: JourneyResource }) {
   const path = useRouter();
 
   const setJourneyDeleteRequest = useAppStore(
-    (store) => store.setJourneyDeleteRequest
+    (store) => store.setJourneyDeleteRequest,
   );
   const apiBase = useAppStore((store) => store.apiBase);
   const journeyDeleteRequest = useAppStore(
-    (store) => store.journeyDeleteRequest
+    (store) => store.journeyDeleteRequest,
   );
   const deleteJourney = useAppStore((store) => store.deleteJourney);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
-    deleteRequest?: DeleteJourneyRequest
+    deleteRequest?: DeleteJourneyRequest,
   ) => {
     if (!deleteRequest) {
       return;

@@ -17,7 +17,7 @@ export const FcmKey = Type.Object({
 export type FcmKey = Static<typeof FcmKey>;
 
 export function extractServiceAccount(
-  fcmKeyString: string
+  fcmKeyString: string,
 ): Result<ServiceAccount, Error> {
   return jsonParseSafe(fcmKeyString)
     .andThen((parsed) => schemaValidateWithErr(parsed, FcmKey))

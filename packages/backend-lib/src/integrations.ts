@@ -14,11 +14,11 @@ import {
 } from "./types";
 
 export function enrichIntegration(
-  integration: Integration
+  integration: Integration,
 ): Result<EnrichedIntegration, Error> {
   const definitionResult = schemaValidateWithErr(
     integration.definition,
-    IntegrationDefinition
+    IntegrationDefinition,
   );
   if (definitionResult.isErr()) {
     return err(definitionResult.error);
@@ -30,7 +30,7 @@ export function enrichIntegration(
 }
 
 function toIntegrationResource(
-  integration: Integration
+  integration: Integration,
 ): Result<SavedIntegrationResource, Error> {
   return enrichIntegration(integration).map((i) => ({
     workspaceId: i.workspaceId,
@@ -45,7 +45,7 @@ function toIntegrationResource(
 }
 
 export async function findAllEnrichedIntegrations(
-  workspaceId: string
+  workspaceId: string,
 ): Promise<Result<EnrichedIntegration[], Error>> {
   const dbVals = await prisma().integration.findMany({
     where: { workspaceId, enabled: true },

@@ -96,17 +96,17 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
   const path = useRouter();
 
   const setMessageTemplateDeleteRequest = useAppStore(
-    (store) => store.setMessageTemplateDeleteRequest
+    (store) => store.setMessageTemplateDeleteRequest,
   );
   const apiBase = useAppStore((store) => store.apiBase);
   const messageTemplateDeleteRequest = useAppStore(
-    (store) => store.messageTemplateDeleteRequest
+    (store) => store.messageTemplateDeleteRequest,
   );
   const deleteMessageTemplate = useAppStore((store) => store.deleteMessage);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
-    deleteRequest?: DeleteMessageTemplateRequest
+    deleteRequest?: DeleteMessageTemplateRequest,
   ) => {
     if (!deleteRequest) {
       return;
@@ -161,7 +161,7 @@ function TemplateListItem({ template }: { template: MessageTemplateResource }) {
             getTemplatesLink({
               id: template.id,
               channel: definition.type,
-            })
+            }),
           );
         }}
       >
@@ -222,7 +222,7 @@ function TemplateListContents() {
         }
         return acc;
       },
-      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] }
+      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] },
     );
   }, [messagesResult]);
 
