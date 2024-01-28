@@ -79,7 +79,6 @@ export function ResourceListContainer({
         borderRadius: 1,
         borderColor: "theme.palette.grey[400]",
         margin: "1rem",
-        
       }}
       spacing={2}
     >

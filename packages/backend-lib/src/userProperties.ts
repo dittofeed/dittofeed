@@ -41,7 +41,7 @@ export function toUserPropertyResource(
       definition,
       exampleValue: exampleValue ?? undefined,
       updatedAt: Number(userProperty.updatedAt),
-    })
+    }),
   );
 }
 

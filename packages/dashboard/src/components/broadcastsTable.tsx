@@ -1,13 +1,9 @@
-import {
-  DataGrid,
-  GridColDef,
-} from "@mui/x-data-grid";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { useRouter } from "next/router";
 import React from "react";
 
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
-
 
 interface Row {
   id: string;
@@ -26,9 +22,9 @@ const baseColumn: Partial<GridColDef<Row>> = {
 export default function BroadcastsTable() {
   const router = useRouter();
   const broadcasts = useAppStore((store) => store.broadcasts);
-  
+
   const broadcastsRow: Row[] = [];
-  
+
   broadcasts.forEach((broadcast) => {
     const row: Row = {
       id: broadcast.id,

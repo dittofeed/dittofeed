@@ -37,7 +37,7 @@ export default function UserPropertiesTable() {
       : [];
 
   const usersPropertiesRow: Row[] = [];
-  
+
   userProperties.forEach((userProperty) => {
     const row: Row = {
       id: userProperty.id,
@@ -54,17 +54,17 @@ export default function UserPropertiesTable() {
   });
 
   const setUserPropertyDeleteRequest = useAppStore(
-    (store) => store.setUserPropertyDeleteRequest
+    (store) => store.setUserPropertyDeleteRequest,
   );
   const apiBase = useAppStore((store) => store.apiBase);
   const userPropertyDeleteRequest = useAppStore(
-    (store) => store.userPropertyDeleteRequest
+    (store) => store.userPropertyDeleteRequest,
   );
   const deleteUserProperty = useAppStore((store) => store.deleteUserProperty);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
-    deleteRequest?: DeleteUserPropertyRequest
+    deleteRequest?: DeleteUserPropertyRequest,
   ) => {
     if (!deleteRequest) {
       return;

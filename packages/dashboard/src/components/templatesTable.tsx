@@ -50,17 +50,17 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
   const messagesResult = useAppStore((store) => store.messages);
 
   const setMessageTemplateDeleteRequest = useAppStore(
-    (store) => store.setMessageTemplateDeleteRequest
+    (store) => store.setMessageTemplateDeleteRequest,
   );
   const apiBase = useAppStore((store) => store.apiBase);
   const messageTemplateDeleteRequest = useAppStore(
-    (store) => store.messageTemplateDeleteRequest
+    (store) => store.messageTemplateDeleteRequest,
   );
   const deleteMessageTemplate = useAppStore((store) => store.deleteMessage);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
-    deleteRequest?: DeleteMessageTemplateRequest
+    deleteRequest?: DeleteMessageTemplateRequest,
   ) => {
     if (!deleteRequest) {
       return;
@@ -115,7 +115,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
         }
         return acc;
       },
-      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] }
+      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] },
     );
   }, [messagesResult]);
 

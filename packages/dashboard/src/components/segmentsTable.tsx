@@ -39,7 +39,7 @@ export default function SegmentsTable() {
         "setSegmentDownloadRequest",
         "apiBase",
         "workspace",
-      ])
+      ]),
     );
   const segments =
     segmentsRequest.type === CompletionStatus.Successful
@@ -78,12 +78,12 @@ export default function SegmentsTable() {
       "apiBase",
       "segmentDeleteRequest",
       "deleteSegment",
-    ])
+    ]),
   );
 
   const setDeleteResponse = (
     _response: EmptyResponse,
-    deleteRequest?: DeleteSegmentRequest
+    deleteRequest?: DeleteSegmentRequest,
   ) => {
     if (!deleteRequest) {
       return;
