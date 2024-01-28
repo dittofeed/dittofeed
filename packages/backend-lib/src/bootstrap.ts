@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
 import {
   DEBUG_USER_ID1,
@@ -44,7 +45,7 @@ async function bootstrapPostgres({
       workspaceName,
       workspaceDomain,
     },
-    "Upserting workspace."
+    "Upserting workspace.",
   );
   const workspace = await prisma().workspace.upsert({
     where: {
@@ -155,7 +156,7 @@ async function bootstrapPostgres({
         },
         create: up,
         update: up,
-      })
+      }),
     ),
     prisma().secret.upsert({
       where: {
@@ -239,7 +240,11 @@ export async function bootstrapWorker({
   try {
     await startComputePropertiesWorkflow({ workspaceId });
   } catch (err) {
-    logger().error({ err }, "Failed to bootstrap worker.");
+    if (err instanceof WorkflowExecutionAlreadyStartedError) {
+      logger().info("Compute properties workflow already started.");
+    } else {
+      logger().error({ err }, "Failed to bootstrap worker.");
+    }
   }
 }
 
@@ -267,7 +272,7 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
               // 1 day ago
               createdAt: new Date(Date.now() - 8.64 * 1000000).toISOString(),
             },
-          })
+          }),
         ),
       },
       {
@@ -283,10 +288,10 @@ async function insertDefaultEvents({ workspaceId }: { workspaceId: string }) {
               plan: "paid",
               // 2 days ago
               createdAt: new Date(
-                Date.now() - 2 * 8.64 * 1000000
+                Date.now() - 2 * 8.64 * 1000000,
               ).toISOString(),
             },
-          })
+          }),
         ),
       },
     ],
@@ -306,14 +311,14 @@ export default async function bootstrap({
   });
   const initialBootstrap = [
     bootstrapClickhouse().catch((err) =>
-      logger().error({ err: err as Error }, "failed to bootstrap clickhouse")
+      logger().error({ err: err as Error }, "failed to bootstrap clickhouse"),
     ),
   ];
   if (config().writeMode === "kafka") {
     initialBootstrap.push(
       bootstrapKafka().catch((err) =>
-        logger().error({ err: err as Error }, "failed to bootstrap kafka")
-      )
+        logger().error({ err: err as Error }, "failed to bootstrap kafka"),
+      ),
     );
   }
   await Promise.all(initialBootstrap);

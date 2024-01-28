@@ -53,7 +53,7 @@ export async function startGlobalCron() {
         {
           err: e,
         },
-        "Failed to start global cron."
+        "Failed to start global cron.",
       );
     }
   }
@@ -74,7 +74,7 @@ export async function resetComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to terminate compute properties workflow."
+      "Failed to terminate compute properties workflow.",
     );
   }
 
@@ -88,7 +88,7 @@ export async function resetComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to start compute properties workflow."
+      "Failed to start compute properties workflow.",
     );
   }
 }
