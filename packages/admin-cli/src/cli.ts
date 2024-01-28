@@ -3,7 +3,10 @@ import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
-import { restartComputePropertiesWorkflow } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
+import {
+  resetComputePropertiesWorkflow,
+  resetGlobalCron,
+} from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 import {
   SENDGRID_SECRET,
   SENDGRID_WEBHOOK_SECRET_NAME,
@@ -145,14 +148,23 @@ export async function cli() {
         const workspaces = await prisma().workspace.findMany();
         await Promise.all(
           workspaces.map(async (workspace) => {
-            await restartComputePropertiesWorkflow({
+            await resetComputePropertiesWorkflow({
               workspaceId: workspace.id,
             });
             logger().info(
-              `Restarted compute properties workflow for workspace ${workspace.name} ${workspace.id}.`
+              `Reset compute properties workflow for workspace ${workspace.name} ${workspace.id}.`
             );
           })
         );
+        logger().info("Done.");
+      }
+    )
+    .command(
+      "reset-global-cron",
+      "Resets global cron job.",
+      () => {},
+      async () => {
+        await resetGlobalCron();
         logger().info("Done.");
       }
     )

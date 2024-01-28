@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
 import {
   DEBUG_USER_ID1,
@@ -17,7 +18,10 @@ import { upsertMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
 import { segmentIdentifyEvent } from "./segmentIO";
-import { startComputePropertiesWorkflow } from "./segments/computePropertiesWorkflow/lifecycle";
+import {
+  startComputePropertiesWorkflow,
+  startGlobalCron,
+} from "./segments/computePropertiesWorkflow/lifecycle";
 import { upsertSubscriptionGroup } from "./subscriptionGroups";
 import {
   ChannelType,
@@ -236,7 +240,11 @@ export async function bootstrapWorker({
   try {
     await startComputePropertiesWorkflow({ workspaceId });
   } catch (err) {
-    logger().error({ err }, "Failed to bootstrap worker.");
+    if (err instanceof WorkflowExecutionAlreadyStartedError) {
+      logger().info("Compute properties workflow already started.");
+    } else {
+      logger().error({ err }, "Failed to bootstrap worker.");
+    }
   }
 }
 
@@ -321,6 +329,7 @@ export default async function bootstrap({
 
   if (config().bootstrapWorker) {
     await bootstrapWorker({ workspaceId });
+    await startGlobalCron();
   }
   return { workspaceId };
 }

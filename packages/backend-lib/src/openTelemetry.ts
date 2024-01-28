@@ -1,4 +1,4 @@
-import api, { Meter, Span, SpanStatusCode, trace } from "@opentelemetry/api";
+import api, { Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import {
   getNodeAutoInstrumentations,
   InstrumentationConfigMap,
@@ -22,8 +22,6 @@ export interface OpenTelemetry {
   traceExporter: OTLPTraceExporter;
   start: () => void;
 }
-
-let METER: Meter | null = null;
 
 export async function withSpan<T>(
   {
@@ -54,13 +52,11 @@ export async function withSpan<T>(
   });
 }
 
+let SERVICE_NAME = "default";
+
 export function getMeter() {
-  if (!METER) {
-    throw new Error("Must init opentelemetry before accessing meter");
-  }
-  return METER;
+  return api.metrics.getMeterProvider().getMeter(SERVICE_NAME);
 }
-export function getSpan() {}
 
 export function initOpenTelemetry({
   serviceName,
@@ -125,12 +121,13 @@ export function initOpenTelemetry({
 
     try {
       sdk.start();
-      METER = api.metrics.getMeterProvider().getMeter(serviceName);
     } catch (err) {
       logger().error({ err }, "Error initializing telemetry");
       process.exit(1);
     }
   };
+
+  SERVICE_NAME = serviceName;
 
   return {
     start,
