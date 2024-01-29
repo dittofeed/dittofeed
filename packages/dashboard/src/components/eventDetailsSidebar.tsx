@@ -10,7 +10,7 @@ import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
 
 interface SelectedEvent {
-  [x: string]: any;
+  [x: string]: unknown;
   messageId: string;
   eventType: string;
   event: string;
@@ -26,51 +26,46 @@ interface EventDetailsSidebarProps {
   selectedEvent: SelectedEvent | null;
 }
 
-const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> = ({
-  open,
-  onClose,
-  selectedEvent,
-}) => {
-  const theme = useTheme();
-  return (
-    <Drawer open={open} onClose={onClose} anchor="right">
-      <Box padding={2} paddingTop={10} sx={{ maxWidth: "25vw" }}>
-        <SubtleHeader>Event Details</SubtleHeader>
-        {selectedEvent &&
-          Object.keys(selectedEvent).map((key) =>
-            key !== "traits" ? (
-              <Typography key={key} fontFamily="monospace">
-                {`${key}: ${selectedEvent[key as keyof SelectedEvent]}`}
-              </Typography>
-            ) : (
-              <></>
-            ),
-          )}
+const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> =
+  function EventDetailsSidebar({ open, onClose, selectedEvent }) {
+    const theme = useTheme();
+    return (
+      <Drawer open={open} onClose={onClose} anchor="right">
+        <Box padding={2} paddingTop={10} sx={{ maxWidth: "25vw" }}>
+          <SubtleHeader>Event Details</SubtleHeader>
+          {selectedEvent &&
+            Object.keys(selectedEvent).map((key) =>
+              key !== "traits" ? (
+                <Typography key={key} fontFamily="monospace">
+                  {`${key}: ${selectedEvent[key as keyof SelectedEvent]}`}
+                </Typography>
+              ) : null,
+            )}
 
-        {selectedEvent && selectedEvent.traits && (
-          <>
-            <InfoTooltip title="Traits">
-              <Typography variant="h5">Traits</Typography>
-            </InfoTooltip>
-            <ReactCodeMirror
-              value={selectedEvent.traits}
-              extensions={[
-                codeMirrorJson(),
-                linter(jsonParseLinter()),
-                EditorView.lineWrapping,
-                EditorView.theme({
-                  "&": {
-                    fontFamily: theme.typography.fontFamily,
-                  },
-                }),
-                lintGutter(),
-              ]}
-            />
-          </>
-        )}
-      </Box>
-    </Drawer>
-  );
-};
+          {selectedEvent?.traits && (
+            <>
+              <InfoTooltip title="Traits">
+                <Typography variant="h5">Traits</Typography>
+              </InfoTooltip>
+              <ReactCodeMirror
+                value={selectedEvent.traits}
+                extensions={[
+                  codeMirrorJson(),
+                  linter(jsonParseLinter()),
+                  EditorView.lineWrapping,
+                  EditorView.theme({
+                    "&": {
+                      fontFamily: theme.typography.fontFamily,
+                    },
+                  }),
+                  lintGutter(),
+                ]}
+              />
+            </>
+          )}
+        </Box>
+      </Drawer>
+    );
+  };
 
 export default EventDetailsSidebar;

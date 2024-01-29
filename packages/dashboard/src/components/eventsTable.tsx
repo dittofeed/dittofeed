@@ -1,20 +1,11 @@
+/* eslint-disable react/no-unstable-nested-components */
 import SearchIcon from "@mui/icons-material/Search";
-import {
-  Box,
-  Container,
-  IconButton,
-  InputAdornment,
-  LinearProgress,
-  TextField,
-  useTheme,
-} from "@mui/material";
+import { Box, InputAdornment, TextField, useTheme } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
-  GridColumnMenu,
   GridRenderCellParams,
   GridRowParams,
-  GridSearchIcon,
 } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -50,12 +41,12 @@ interface EventsActions {
   updatePagination: (key: PaginationModel) => void;
   updateTotalRowCount: (key: EventsState["totalRowCount"]) => void;
   updateEventsPaginationRequest: (
-    key: EventsState["eventsPaginationRequest"],
+    key: EventsState["eventsPaginationRequest"]
   ) => void;
 }
 
 interface HandleChanges {
-  event: any;
+  event: React.FormEvent<HTMLDivElement>;
   page: number;
   pageSize: number;
   workspaceId: string;
@@ -71,7 +62,7 @@ interface HandleChanges {
       anonymousId: string | null;
       processingTime: string;
       eventTime: string;
-    }[],
+    }[]
   ) => void;
   apiBase: string;
 }
@@ -102,7 +93,7 @@ export const useEventsStore = create(
       set((state) => {
         state.totalRowCount = totalRowCount;
       }),
-  })),
+  }))
 );
 
 const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
@@ -120,7 +111,7 @@ export function EventsTable({
       page,
       pageSize,
     }),
-    shallow,
+    shallow
   );
   const { page, pageSize } = paginationModel;
   const theme = useTheme();
@@ -131,13 +122,13 @@ export function EventsTable({
   const updatePagination = useEventsStore((store) => store.updatePagination);
   const totalRowCount = useEventsStore((store) => store.totalRowCount);
   const updateTotalRowCount = useEventsStore(
-    (store) => store.updateTotalRowCount,
+    (store) => store.updateTotalRowCount
   );
   const updateEventsPaginationRequest = useEventsStore(
-    (store) => store.updateEventsPaginationRequest,
+    (store) => store.updateEventsPaginationRequest
   );
   const eventsPaginationRequest = useEventsStore(
-    (store) => store.eventsPaginationRequest,
+    (store) => store.eventsPaginationRequest
   );
   const events = useEventsStore((store) => store.events);
   const sortedEvents = useMemo(
@@ -147,7 +138,7 @@ export function EventsTable({
         const t2 = new Date(e2.eventTime);
         return t1.getTime() > t2.getTime() ? -1 : 1;
       }),
-    [events],
+    [events]
   );
   const updateEvents = useEventsStore((store) => store.updateEvents);
 
@@ -225,8 +216,6 @@ export function EventsTable({
       }
       const result = schemaValidate(response.data, GetEventsResponse);
       if (result.isErr()) {
-        console.error("unable parse response", result.error);
-
         updateEventsPaginationRequest({
           type: CompletionStatus.Failed,
           error: new Error(JSON.stringify(result.error)),
@@ -258,28 +247,29 @@ export function EventsTable({
   /// ////////////////////////////////////////////////////////////////////////////
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
-
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 200);
   const handleSearchTermChange = async ({
     event,
-    page,
-    pageSize,
-    workspaceId,
-    userId,
-    updateTotalRowCount,
-    updateEvents,
-    apiBase,
+    workspaceId: wId,
+    page: searchPage,
+    pageSize: searchPageSize,
+    userId: searchUserId,
+    updateTotalRowCount: searchUpdateTotalRowCount,
+    updateEvents: ue,
   }: HandleChanges) => {
     const text = (event.target as HTMLInputElement).value;
+    console.info(`Text : "${text}"`);
     setSearchTerm(text);
     if (debouncedSearchTerm === "") return;
     let response: AxiosResponse;
     try {
+      console.info(`Debounce : "${debouncedSearchTerm}"`);
+
       const params: GetEventsRequest = {
-        workspaceId,
-        userId,
-        offset: page * pageSize,
-        limit: pageSize,
+        workspaceId: wId,
+        userId: searchUserId,
+        offset: searchPage * searchPageSize,
+        limit: searchPageSize,
         searchTerm: debouncedSearchTerm,
       };
       updateEventsPaginationRequest({
@@ -288,7 +278,6 @@ export function EventsTable({
       response = await axios.get(`${apiBase}/api/events`, {
         params,
       });
-      console.info(response);
     } catch (e) {
       const error = e as Error;
 
@@ -300,8 +289,6 @@ export function EventsTable({
     }
     const result = schemaValidate(response.data, GetEventsResponse);
     if (result.isErr()) {
-      console.error("unable parse response", result.error);
-
       updateEventsPaginationRequest({
         type: CompletionStatus.Failed,
         error: new Error(JSON.stringify(result.error)),
@@ -309,12 +296,12 @@ export function EventsTable({
       return;
     }
 
-    const eventsWithId = result.value.events.map((event) => ({
-      ...event,
-      id: event.messageId,
+    const eventsWithId = result.value.events.map((e) => ({
+      ...e,
+      id: e.messageId,
     }));
-    updateEvents(eventsWithId);
-    updateTotalRowCount(result.value.count);
+    ue(eventsWithId);
+    searchUpdateTotalRowCount(result.value.count);
 
     updateEventsPaginationRequest({
       type: CompletionStatus.NotStarted,
@@ -370,16 +357,18 @@ export function EventsTable({
           toolbar: {
             value: searchTerm,
             onChange: (event) =>
-              handleSearchTermChange({
-                event,
-                page,
-                pageSize,
-                workspaceId: workspaceId!,
-                userId,
-                updateTotalRowCount,
-                updateEvents,
-                apiBase,
-              }),
+              workspaceId !== null
+                ? handleSearchTermChange({
+                    event,
+                    page,
+                    pageSize,
+                    workspaceId,
+                    userId,
+                    updateTotalRowCount,
+                    updateEvents,
+                    apiBase,
+                  })
+                : undefined,
           },
         }}
         getRowId={(row) => row.messageId}
