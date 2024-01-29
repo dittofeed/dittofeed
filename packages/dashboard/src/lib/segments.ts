@@ -41,6 +41,7 @@ export function getSegmentConfigState({
       name: segment.name,
       workspaceId,
       definition: segmentDefinition,
+      updatedAt: segment.updatedAt,
     };
 
     serverInitialState.segments = {
@@ -53,6 +54,7 @@ export function getSegmentConfigState({
       id,
       workspaceId,
       definition: DEFAULT_SEGMENT_DEFINITION,
+      updatedAt: Number(new Date()),
     };
   }
   serverInitialState.editedSegment = segmentResource;

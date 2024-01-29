@@ -80,6 +80,7 @@ describe("journeyToState", () => {
         status: "NotStarted",
         definition,
         workspaceId,
+        updatedAt: Number(new Date()),
       };
 
       journeyId = uuid();
@@ -90,6 +91,7 @@ describe("journeyToState", () => {
         status: "NotStarted",
         definition,
         workspaceId,
+        updatedAt: Number(new Date()),
       };
       uiState = journeyToState(journeyResource);
     });
@@ -163,6 +165,7 @@ describe("journeyToState", () => {
         status: "NotStarted",
         definition,
         workspaceId,
+        updatedAt: Number(new Date()),
       };
       uiState = journeyToState(journeyResource);
     });
@@ -316,6 +319,7 @@ describe("journeyToState", () => {
         status: "NotStarted",
         definition,
         workspaceId,
+        updatedAt: Number(new Date()),
       };
       uiState = journeyToState(journeyResource);
 
@@ -487,6 +491,7 @@ describe("journeyToState", () => {
           ],
         },
         workspaceId,
+        updatedAt: Number(new Date()),
       };
       uiState = journeyToState(journeyResource);
     });
@@ -555,6 +560,7 @@ describe("journeyToState", () => {
           ],
         },
         workspaceId,
+        updatedAt: Number(new Date()),
       };
       uiState = journeyToState(journeyResource);
     });

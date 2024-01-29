@@ -209,6 +209,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         workspaceId,
         definition,
         exampleValue: userProperty.exampleValue ?? undefined,
+        updatedAt: Number(userProperty.updatedAt),
       };
       serverInitialState.userProperties = {
         type: CompletionStatus.Successful,
@@ -224,6 +225,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           path: "examplePath",
         },
         exampleValue: '"exampleValue"',
+        updatedAt: Number(new Date()),
       };
     }
 

@@ -189,7 +189,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
               const currentRow = row;
               const definition = currentRow.draft ?? currentRow.definition;
               if (!definition) {
-                return null;
+                return;
               }
 
               const deleteData: DeleteMessageTemplateRequest = {
