@@ -253,6 +253,7 @@ export function EventsTable({
           borderColor: theme.palette.grey[200],
         }}
         slots={{
+          // eslint-disable-next-line react/no-unstable-nested-components
           toolbar: ({ onChange, value }) => (
             <TextField
               id="search"
