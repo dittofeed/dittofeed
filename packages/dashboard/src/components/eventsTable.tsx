@@ -244,10 +244,9 @@ export function EventsTable({
     updateEvents,
     apiBase,
   ]);
-  /// ////////////////////////////////////////////////////////////////////////////
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 200);
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
   const handleSearchTermChange = async ({
     event,
     workspaceId: wId,
@@ -258,13 +257,9 @@ export function EventsTable({
     updateEvents: ue,
   }: HandleChanges) => {
     const text = (event.target as HTMLInputElement).value;
-    console.info(`Text : "${text}"`);
     setSearchTerm(text);
-    if (debouncedSearchTerm === "") return;
     let response: AxiosResponse;
     try {
-      console.info(`Debounce : "${debouncedSearchTerm}"`);
-
       const params: GetEventsRequest = {
         workspaceId: wId,
         userId: searchUserId,
