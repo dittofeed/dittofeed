@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unstable-nested-components */
 import SearchIcon from "@mui/icons-material/Search";
 import { Box, InputAdornment, TextField, useTheme } from "@mui/material";
 import {
@@ -41,30 +40,8 @@ interface EventsActions {
   updatePagination: (key: PaginationModel) => void;
   updateTotalRowCount: (key: EventsState["totalRowCount"]) => void;
   updateEventsPaginationRequest: (
-    key: EventsState["eventsPaginationRequest"]
+    key: EventsState["eventsPaginationRequest"],
   ) => void;
-}
-
-interface HandleChanges {
-  event: React.FormEvent<HTMLDivElement>;
-  page: number;
-  pageSize: number;
-  workspaceId: string;
-  userId: string | undefined;
-  updateTotalRowCount: (key: number) => void;
-  updateEvents: (
-    key: {
-      userId: string | null;
-      traits: string;
-      messageId: string;
-      eventType: string;
-      event: string;
-      anonymousId: string | null;
-      processingTime: string;
-      eventTime: string;
-    }[]
-  ) => void;
-  apiBase: string;
 }
 
 export const useEventsStore = create(
@@ -93,7 +70,7 @@ export const useEventsStore = create(
       set((state) => {
         state.totalRowCount = totalRowCount;
       }),
-  }))
+  })),
 );
 
 const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
@@ -111,7 +88,7 @@ export function EventsTable({
       page,
       pageSize,
     }),
-    shallow
+    shallow,
   );
   const { page, pageSize } = paginationModel;
   const theme = useTheme();
@@ -122,13 +99,13 @@ export function EventsTable({
   const updatePagination = useEventsStore((store) => store.updatePagination);
   const totalRowCount = useEventsStore((store) => store.totalRowCount);
   const updateTotalRowCount = useEventsStore(
-    (store) => store.updateTotalRowCount
+    (store) => store.updateTotalRowCount,
   );
   const updateEventsPaginationRequest = useEventsStore(
-    (store) => store.updateEventsPaginationRequest
+    (store) => store.updateEventsPaginationRequest,
   );
   const eventsPaginationRequest = useEventsStore(
-    (store) => store.eventsPaginationRequest
+    (store) => store.eventsPaginationRequest,
   );
   const events = useEventsStore((store) => store.events);
   const sortedEvents = useMemo(
@@ -138,7 +115,7 @@ export function EventsTable({
         const t2 = new Date(e2.eventTime);
         return t1.getTime() > t2.getTime() ? -1 : 1;
       }),
-    [events]
+    [events],
   );
   const updateEvents = useEventsStore((store) => store.updateEvents);
 
@@ -184,6 +161,10 @@ export function EventsTable({
     },
   ];
 
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
+
   React.useEffect(() => {
     (async () => {
       if (!workspaceId) {
@@ -200,6 +181,8 @@ export function EventsTable({
           userId,
           offset: page * pageSize,
           limit: pageSize,
+          searchTerm:
+            debouncedSearchTerm !== "" ? debouncedSearchTerm : undefined,
         };
 
         response = await axios.get(`${apiBase}/api/events`, {
@@ -236,6 +219,7 @@ export function EventsTable({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    debouncedSearchTerm,
     page,
     pageSize,
     workspaceId,
@@ -244,66 +228,6 @@ export function EventsTable({
     updateEvents,
     apiBase,
   ]);
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
-  const handleSearchTermChange = async ({
-    event,
-    workspaceId: wId,
-    page: searchPage,
-    pageSize: searchPageSize,
-    userId: searchUserId,
-    updateTotalRowCount: searchUpdateTotalRowCount,
-    updateEvents: ue,
-  }: HandleChanges) => {
-    const text = (event.target as HTMLInputElement).value;
-    setSearchTerm(text);
-    let response: AxiosResponse;
-    try {
-      const params: GetEventsRequest = {
-        workspaceId: wId,
-        userId: searchUserId,
-        offset: searchPage * searchPageSize,
-        limit: searchPageSize,
-        searchTerm: debouncedSearchTerm,
-      };
-      updateEventsPaginationRequest({
-        type: CompletionStatus.InProgress,
-      });
-      response = await axios.get(`${apiBase}/api/events`, {
-        params,
-      });
-    } catch (e) {
-      const error = e as Error;
-
-      updateEventsPaginationRequest({
-        type: CompletionStatus.Failed,
-        error,
-      });
-      return;
-    }
-    const result = schemaValidate(response.data, GetEventsResponse);
-    if (result.isErr()) {
-      updateEventsPaginationRequest({
-        type: CompletionStatus.Failed,
-        error: new Error(JSON.stringify(result.error)),
-      });
-      return;
-    }
-
-    const eventsWithId = result.value.events.map((e) => ({
-      ...e,
-      id: e.messageId,
-    }));
-    ue(eventsWithId);
-    searchUpdateTotalRowCount(result.value.count);
-
-    updateEventsPaginationRequest({
-      type: CompletionStatus.NotStarted,
-    });
-  };
-
-  /// ////////////////////////////////////////////////////////////////////////////
 
   const [selectedEvent, setSelectedEvent] =
     useState<GetEventsResponseItem | null>(null);
@@ -352,18 +276,7 @@ export function EventsTable({
           toolbar: {
             value: searchTerm,
             onChange: (event) =>
-              workspaceId !== null
-                ? handleSearchTermChange({
-                    event,
-                    page,
-                    pageSize,
-                    workspaceId,
-                    userId,
-                    updateTotalRowCount,
-                    updateEvents,
-                    apiBase,
-                  })
-                : undefined,
+              setSearchTerm((event.target as HTMLInputElement).value),
           },
         }}
         getRowId={(row) => row.messageId}
