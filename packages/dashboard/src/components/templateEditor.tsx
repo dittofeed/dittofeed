@@ -781,7 +781,7 @@ export default function TemplateEditor({
         onClose={handleFullscreenClose}
         TransitionComponent={Transition}
       >
-        Preview
+        {preview}
       </Dialog>
     </>
   );
