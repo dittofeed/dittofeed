@@ -146,6 +146,114 @@ export const DecodedJwt = Type.Object({
 
 export type DecodedJwt = Static<typeof DecodedJwt>;
 
+export enum AmazonSesNotificationType {
+  Bounce = "Bounce",
+  Complaint = "Complaint",
+  Delivery = "Delivery",
+}
+
+export enum AmazonSesBounceType {
+  Undetermined = "Undetermined",
+  Permanent = "Permanent",
+  Transient = "Transient",
+}
+
+export enum AmazonSesBounceSubType {
+  Undetermined = "Undetermined",
+  General = "General",
+  NoEmail = "NoEmail",
+  Suppressed = "Suppressed",
+  OnAccountSuppressionList = "OnAccountSuppressionList",
+  MailboxFull = "MailboxFull",
+  MessageTooLarge = "MessageTooLarge",
+  ContentRejected = "ContentRejected",
+  AttachmentRejected = "AttachmentRejected",
+}
+
+export enum AmazonSesComplaintSubType {
+  Abuse = "abuse",
+  AuthFailure = "auth-failure",
+  Fraud = "fraud",
+  NotSpam = "not-spam",
+  Other = "other",
+  Virus = "virus",
+}
+
+export const AmazonSesNotification = Type.Object({
+  notificationType: Type.Enum(AmazonSesNotificationType),
+  mail: Type.Object({
+    timestamp: Type.String(),
+    messageId: Type.String(),
+    source: Type.String(),
+    sourceArn: Type.String(),
+    sourceIp: Type.String(),
+    sendingAccountId: Type.String(),
+    callerIdentity: Type.String(),
+    destination: Type.Array(Type.String()),
+    headers: Type.Optional(
+      Type.Array(
+        Type.Object({
+          name: Type.String(),
+          value: Type.String(),
+        }),
+      ),
+    ),
+    headersTruncated: Type.Optional(Type.Boolean()),
+    commonHeaders: Type.Optional(
+      Type.Object({
+        from: Type.Array(Type.String()),
+        to: Type.Array(Type.String()),
+        date: Type.String(),
+        messageId: Type.String(),
+        subject: Type.String(),
+      }),
+    ),
+  }),
+  bounce: Type.Optional(
+    Type.Object({
+      bounceType: Type.Enum(AmazonSesBounceType),
+      bounceSubType: Type.Enum(AmazonSesBounceSubType),
+      bouncedRecipients: Type.Array(
+        Type.Object({
+          emailAddress: Type.String(),
+          action: Type.Optional(Type.String()),
+          status: Type.Optional(Type.String()),
+          diagnosticCode: Type.Optional(Type.String()),
+        }),
+      ),
+      timestamp: Type.String(),
+      feedbackId: Type.String(),
+      remoteMtaIp: Type.Optional(Type.String()),
+      reportingMTA: Type.Optional(Type.String()),
+    }),
+  ),
+  complaint: Type.Optional(
+    Type.Object({
+      complainedRecipients: Type.Array(
+        Type.Object({
+          email: Type.String(),
+        }),
+      ),
+      timestamp: Type.String(),
+      feedbackId: Type.String(),
+      complaintSubType: Type.Enum(AmazonSesComplaintSubType),
+      userAgent: Type.Optional(Type.String()),
+      complaintFeedbackType: Type.Optional(Type.String()),
+      arrivalDate: Type.Optional(Type.String()),
+    }),
+  ),
+  delivery: Type.Optional(
+    Type.Object({
+      timestamp: Type.String(),
+      processingTimeMillis: Type.Integer(),
+      recipients: Type.Array(Type.String()),
+      smtpResponse: Type.String(),
+      reportingMTA: Type.String(),
+      remoteMtaIp: Type.String(),
+    }),
+  ),
+});
+
 export enum SendgridEventType {
   Processed = "processed",
   Dropped = "dropped",
