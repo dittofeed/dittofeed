@@ -219,16 +219,16 @@ export default async function contentController(fastify: FastifyInstance) {
               break;
             }
             case EmailProviderType.AmazonSes: {
-              const { body } = result.error.variant.provider;
+              const { message } = result.error.variant.provider;
               const suggestions: string[] = [];
-              if (body) {
-                suggestions.push(body);
+              if (message) {
+                suggestions.push(message);
               }
               return reply.status(200).send({
                 type: JsonResultType.Err,
                 err: {
                   suggestions,
-                  responseData: body,
+                  responseData: message,
                 },
               });
             }

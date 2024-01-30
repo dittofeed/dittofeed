@@ -709,6 +709,21 @@ function AmazonSesConfig() {
                       )?.configValue?.secretAccessKey ?? false,
                   },
                 },
+                {
+                  id: "amazonses-region",
+                  type: "secret",
+                  fieldProps: {
+                    name: AMAZONSES_SECRET_NAME,
+                    secretKey: "region",
+                    label: "AWS Region",
+                    helperText: "The AWS region to route requests to.",
+                    type: EmailProviderType.AmazonSes,
+                    saved:
+                      secretAvailability.find(
+                        (s) => s.name === AMAZONSES_SECRET_NAME,
+                      )?.configValue?.region ?? false,
+                  },
+                },
               ],
             },
           ],

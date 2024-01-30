@@ -1960,6 +1960,7 @@ export type EmailSendgridSuccess = Static<typeof EmailSendgridSuccess>;
 
 export const EmailAmazonSesSuccess = Type.Object({
   type: Type.Literal(EmailProviderType.AmazonSes),
+  messageId: Type.Optional(Type.String()),
 });
 
 export type EmailAmazonSesSuccess = Static<typeof EmailAmazonSesSuccess>;
@@ -2108,8 +2109,7 @@ export type MessageSendgridServiceFailure = Static<
 
 export const MessageAmazonSesServiceFailure = Type.Object({
   type: Type.Literal(EmailProviderType.AmazonSes),
-  status: Type.Optional(Type.Number()),
-  body: Type.Optional(Type.String()),
+  message: Type.Optional(Type.String()),
 });
 
 export type MessageAmazonSesServiceFailure = Static<typeof MessageAmazonSesServiceFailure>;
@@ -2350,9 +2350,27 @@ export const AmazonSesSecret = Type.Object({
   type: Type.Literal(EmailProviderType.AmazonSes),
   accessKeyId: Type.Optional(Type.String()),
   secretAccessKey: Type.Optional(Type.String()),
+  region: Type.Optional(Type.String()),
 });
 
 export type AmazonSesSecret = Static<typeof AmazonSesSecret>;
+
+export type AmazonSesConfig = Required<Pick<AmazonSesSecret, "accessKeyId" | "secretAccessKey" | "region">>;
+
+export const AmazonSesMailFields = Type.Object({
+  from: Type.String(),
+  to: Type.String(),
+  subject: Type.String(),
+  html: Type.String(),
+  replyTo: Type.Optional(Type.String()),
+  tags: Type.Optional(
+    Type.Record(
+      Type.String(), Type.String()
+    )
+  ),
+})
+
+export type AmazonSesMailFields = Static<typeof AmazonSesMailFields>;
 
 export const ResendSecret = Type.Object({
   type: Type.Literal(EmailProviderType.Resend),

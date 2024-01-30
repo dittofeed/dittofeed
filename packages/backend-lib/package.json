@@ -14,6 +14,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.503.1",
     "@clickhouse/client": "^0.2.1",
     "@fast-csv/format": "^4.3.5",
     "@opentelemetry/api": "^1.4.1",
