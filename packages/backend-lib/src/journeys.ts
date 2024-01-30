@@ -134,50 +134,56 @@ export async function getJourneysStats({
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
   const query = `
+  select
+    event,
+    node_id,
+    count(resolved_message_id) count
+from (
     select
-        event,
-        node_id,
-        count() count
-    from (
-        select
-            JSON_VALUE(
-                message_raw,
-                '$.properties.journeyId'
-            ) journey_id,
-            JSON_VALUE(
-                message_raw,
-                '$.properties.nodeId'
-            ) node_id,
-            JSON_VALUE(
-                message_raw,
-                '$.properties.runId'
-            ) run_id,
+        JSON_VALUE(
+            message_raw,
+            '$.properties.journeyId'
+        ) journey_id,
+        JSON_VALUE(
+            message_raw,
+            '$.properties.nodeId'
+        ) node_id,
+        JSON_VALUE(
+            message_raw,
+            '$.properties.runId'
+        ) run_id,
+        if(
+            (
             JSON_VALUE(
                 message_raw,
                 '$.properties.messageId'
-            ) message_id,
-            event
-        from user_events_v2
-        where
-            workspace_id = ${workspaceIdQuery}
-            and journey_id in ${journeyIdsQuery}
-            and event_type = 'track'
-            and (
-                event = 'DFInternalMessageSent'
-                or event = 'DFMessageFailure'
-                or event = 'DFMessageSkipped'
-                or event = 'DFEmailDropped'
-                or event = 'DFEmailDelivered'
-                or event = 'DFEmailOpened'
-                or event = 'DFEmailClicked'
-                or event = 'DFEmailBounced'
-                or event = 'DFEmailMarkedSpam'
-                or event = 'DFBadWorkspaceConfiguration'
-                or event = 'DFJourneyNodeProcessed'
-            )
-        group by journey_id, node_id, run_id, message_id, event
-    )
-    group by event, node_id;`;
+            ) as property_message_id 
+            ) != '',
+            property_message_id,
+            message_id
+        ) resolved_message_id,
+        event
+    from user_events_v2
+    where
+        workspace_id = ${workspaceIdQuery}
+        and journey_id in ${journeyIdsQuery}
+        and event_type = 'track'
+        and (
+            event = 'DFInternalMessageSent'
+            or event = 'DFMessageFailure'
+            or event = 'DFMessageSkipped'
+            or event = 'DFEmailDropped'
+            or event = 'DFEmailDelivered'
+            or event = 'DFEmailOpened'
+            or event = 'DFEmailClicked'
+            or event = 'DFEmailBounced'
+            or event = 'DFEmailMarkedSpam'
+            or event = 'DFBadWorkspaceConfiguration'
+            or event = 'DFJourneyNodeProcessed'
+        )
+    group by journey_id, node_id, run_id, resolved_message_id, event
+)
+group by event, node_id;`;
 
   const [statsResultSet, journeys] = await Promise.all([
     clickhouseClient().query({
