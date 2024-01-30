@@ -47,24 +47,25 @@ export async function computePropertiesWorkflow({
   tableVersion,
   workspaceId,
   shouldContinueAsNew = false,
-  maxPollingAttempts = 1500,
   // useful primarily for testing
   basePollingPeriod: basePollingPeriodOverride,
+  // useful primarily for testing
+  maxPollingAttempts: maxPollingAttemptsOverride = 1500,
   pollingJitterCoefficient = POLLING_JITTER_COEFFICIENT,
   subscribedJourneys = [],
 }: ComputedPropertiesWorkflowParams): Promise<ComputedPropertiesWorkflowParams> {
-  for (let i = 0; i < maxPollingAttempts; i++) {
+  let i = 0;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+  while (true) {
     const currentTime = Date.now();
 
     logger.info("segmentsNotificationWorkflow polling attempt", {
       i,
       currentTime,
-      maxPollingAttempts,
     });
 
-    const { computePropertiesInterval } = await config([
-      "computePropertiesInterval",
-    ]);
+    const { computePropertiesInterval, computePropertiesAttempts } =
+      await config(["computePropertiesInterval", "computePropertiesAttempts"]);
 
     try {
       const args = await computePropertiesIncrementalArgs({
@@ -87,19 +88,35 @@ export async function computePropertiesWorkflow({
         ? computePropertiesInterval
         : basePollingPeriodOverride;
 
+    const maxPollingAttempts =
+      shouldContinueAsNew || !maxPollingAttemptsOverride
+        ? computePropertiesAttempts
+        : maxPollingAttemptsOverride;
+
     const period =
       basePollingInterval + Math.random() * pollingJitterCoefficient;
 
     logger.debug("segmentsNotificationWorkflow sleeping started", {
       period,
+      i,
+      maxPollingAttempts,
     });
     // sleep for 10 seconds + up to 1 seconds of jitter for next polling period
     await sleep(period);
+
+    i += 1;
+    if (i >= maxPollingAttempts) {
+      logger.debug("segmentsNotificationWorkflow polling ended", {
+        i,
+        maxPollingAttempts,
+      });
+      break;
+    }
   }
 
   const params: ComputedPropertiesWorkflowParams = {
     basePollingPeriod: basePollingPeriodOverride,
-    maxPollingAttempts,
+    maxPollingAttempts: maxPollingAttemptsOverride,
     pollingJitterCoefficient,
     shouldContinueAsNew,
     subscribedJourneys,
