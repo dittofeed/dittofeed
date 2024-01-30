@@ -37,7 +37,7 @@
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-simple-import-sort": "^10.0.0",
-    "prettier": "^2.8.3",
+    "prettier": "3.2.4",
     "ts-node": "^10.9.1",
     "tsc-watch": "^6.0.0",
     "typescript": "^5.2.2"
