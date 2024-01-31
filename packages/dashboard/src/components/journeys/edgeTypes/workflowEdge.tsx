@@ -1,4 +1,5 @@
 import { NodeStatsType } from "isomorphic-lib/src/types";
+import { useRouter } from "next/router";
 import React, { useState } from "react";
 import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "reactflow";
 
@@ -20,8 +21,9 @@ export default function WorkflowEdge({
   style,
   markerEnd,
 }: EdgeProps<EdgeData>) {
+  const path = useRouter();
+
   const journeyStats = useAppStore((store) => store.journeyStats);
-  const journeyName = useAppStore((store) => store.journeyName);
   const [isDropzoneActive, setDropzoneActive] = useState<boolean>(false);
   const isDragging = useAppStore(
     (store) => !!store.journeyDraggedComponentType,
@@ -61,7 +63,7 @@ export default function WorkflowEdge({
     "",
   );
 
-  const journeyId = journeyName.replace("New Journey - ", "");
+  const journeyId = typeof path.query.id === "string" ? path.query.id : "";
   const stats = journeyStats[journeyId]?.nodeStats[sourceWithoutChildSuffix];
 
   if (targetNode && targetNode.type === "empty") {
