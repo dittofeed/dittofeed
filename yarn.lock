@@ -7670,6 +7670,7 @@ __metadata:
     prisma: ^5.4.1
     remeda: ^1.24.0
     resend: ^2.1.0
+    sns-payload-validator: ^2.1.0
     ts-node: ^10.9.1
     twilio: ^4.18.0
     typescript: ^5.2.2
@@ -13029,7 +13030,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lru-cache@npm:^7.7.1":
+"lru-cache@npm:^7.14.1, lru-cache@npm:^7.7.1":
   version: 7.18.3
   resolution: "lru-cache@npm:7.18.3"
   checksum: e550d772384709deea3f141af34b6d4fa392e2e418c1498c078de0ee63670f1f46f5eee746e8ef7e69e1c895af0d4224e62ee33e66a543a14763b0f2e74c1356
@@ -16036,6 +16037,15 @@ __metadata:
     dot-case: ^3.0.4
     tslib: ^2.0.3
   checksum: 0a7a79900bbb36f8aaa922cf111702a3647ac6165736d5dc96d3ef367efc50465cac70c53cd172c382b022dac72ec91710608e5393de71f76d7142e6fd80e8a3
+  languageName: node
+  linkType: hard
+
+"sns-payload-validator@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "sns-payload-validator@npm:2.1.0"
+  dependencies:
+    lru-cache: ^7.14.1
+  checksum: 12202cf7c168fda30a2f2a11c0eeccea96eb92f8bd2d8ab7d007d5f8798845df4714d58276193b9c8eba97239c54388577a88259eccfd9d7e7105156a5996619
   languageName: node
   linkType: hard
 
