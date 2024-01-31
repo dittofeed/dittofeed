@@ -1213,7 +1213,13 @@ export const GetUsersResponse = Type.Object({
   nextCursor: Type.Optional(Type.String()),
 });
 
-export type GetUsersResponse = Static<typeof GetUsersResponse>;
+export type GetUsersResponse = Static<typeof GetUsersResponse>;  
+
+export const GetUserPropertiesResponse = Type.Object({
+  properties: Type.Array(UserPropertyResource)  
+})
+
+export type GetUserPropertiesResponse = Static<typeof GetUserPropertiesResponse>;
 
 export const BaseMessageResponse = Type.Object({
   message: Type.String(),
