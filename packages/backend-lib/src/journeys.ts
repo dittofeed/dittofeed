@@ -235,7 +235,7 @@ group by event, node_id;`;
         eventMap.set(event, parseInt(count));
         statsMap.set(node_id, eventMap);
 
-        if(event === InternalEventType.JourneyNodeProcessed) {
+        if (event === InternalEventType.JourneyNodeProcessed) {
           nodeProcessedMap.set(node_id, parseInt(count));
         }
       })();
@@ -270,57 +270,67 @@ group by event, node_id;`;
     journeysStats.push(stats);
 
     for (const node of definition.nodes) {
-      if(node.type === JourneyNodeType.RateLimitNode || node.type === JourneyNodeType.ExperimentSplitNode) {
+      if (
+        node.type === JourneyNodeType.RateLimitNode ||
+        node.type === JourneyNodeType.ExperimentSplitNode
+      ) {
         continue;
       }
 
       const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
 
-      if(node.type === JourneyNodeType.SegmentSplitNode) {
+      if (node.type === JourneyNodeType.SegmentSplitNode) {
         const parentNodeProcessed = nodeProcessedMap.get(node.id);
-        const falseChildNodesProcessed = nodeProcessedMap.get(node.variant.falseChild) ?? 0;
-        
-        if(parentNodeProcessed) {
-          const falseChildNodeProcessedRate = (falseChildNodesProcessed / parentNodeProcessed);
-          const falseChildEdgeProportion = (falseChildNodeProcessedRate > 1 ? 1 : falseChildNodeProcessedRate) * 100;
+        const falseChildNodesProcessed =
+          nodeProcessedMap.get(node.variant.falseChild) ?? 0;
+
+        if (parentNodeProcessed) {
+          const falseChildNodeProcessedRate =
+            falseChildNodesProcessed / parentNodeProcessed;
+          const falseChildEdgeProportion =
+            (falseChildNodeProcessedRate > 1
+              ? 1
+              : falseChildNodeProcessedRate) * 100;
 
           stats.nodeStats[node.id] = {
             type: NodeStatsType.SegmentSplitNodeStats,
             proportions: {
               falseChildEdge: falseChildEdgeProportion,
-            }
-          }
+            },
+          };
         }
-      }
-      else if (node.type === JourneyNodeType.WaitForNode) {
+      } else if (node.type === JourneyNodeType.WaitForNode) {
         const parentNodeProcessed = nodeProcessedMap.get(node.id);
         let segmentChildNodesProcessed = 0;
 
-        if(node.segmentChildren[0]) {
-          segmentChildNodesProcessed = nodeProcessedMap.get(node.segmentChildren[0].id) ?? 0;
+        if (node.segmentChildren[0]) {
+          segmentChildNodesProcessed =
+            nodeProcessedMap.get(node.segmentChildren[0].id) ?? 0;
         }
 
-        if(parentNodeProcessed) {
-          const segmentChildNodeProcessedRate = (segmentChildNodesProcessed / parentNodeProcessed);
-          const segmentChildEdgeProportion = (segmentChildNodeProcessedRate > 1 ? 1 : segmentChildNodeProcessedRate) * 100;
-  
+        if (parentNodeProcessed) {
+          const segmentChildNodeProcessedRate =
+            segmentChildNodesProcessed / parentNodeProcessed;
+          const segmentChildEdgeProportion =
+            (segmentChildNodeProcessedRate > 1
+              ? 1
+              : segmentChildNodeProcessedRate) * 100;
+
           stats.nodeStats[node.id] = {
             type: NodeStatsType.WaitForNodeStats,
             proportions: {
               segmentChildEdge: segmentChildEdgeProportion,
-            }
-          }
+            },
+          };
         }
-      }
-      else if(node.type === JourneyNodeType.DelayNode) {
+      } else if (node.type === JourneyNodeType.DelayNode) {
         stats.nodeStats[node.id] = {
           type: NodeStatsType.DelayNodeStats,
           proportions: {
-            childEdge: 100
+            childEdge: 100,
           },
-        }
-      }
-      else {
+        };
+      } else {
         stats.nodeStats[node.id] = {
           type: NodeStatsType.MessageNodeStats,
           proportions: {
