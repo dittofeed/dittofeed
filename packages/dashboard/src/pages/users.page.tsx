@@ -30,18 +30,37 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   }));
 
 interface UserPropertiesState {
-    properties: Record<string, UserPropertyResource>,
+    // Records<propertyName, propertyId>
+    properties: Record<string, string>, 
+
+    // String = name of selected property. Used to index the properties object (defined above).
+    selectedProperty: string,
+
+    // Once selected property is populated, this will be set by getting all values for the selected property.
+    selectedPropertyValues: string[],
+
+    // Chosen from the selectedPropertyValues object. Will be sent as part of the query 
+    // to get all users that have a property matching the selected value.
+    selectedPropertySelectedValue: string,
+
+    // Used to indicate status of the getUserProperties request.
     getUserPropertiesRequest: EphemeralRequestStatus<Error>
 }
 
 interface UserPropertiesActions {
     setProperties: (val: UserPropertyResource[]) => void;
+    setSelectedProperty: (val: string) => void;
+    setSelectedPropertyValues: (val: string[]) => void;
+    setSelectedPropertySelectedValue: (val: string) => void;
     setGetUserPropertiesRequest: (val: EphemeralRequestStatus<Error>) => void;
 }
 
 export const propertiesStore = create(
     immer<UserPropertiesState & UserPropertiesActions>((set) => ({
         properties: {},
+        selectedProperty: '',
+        selectedPropertyValues: [''],
+        selectedPropertySelectedValue: '',
         getUserPropertiesRequest: {
             type: CompletionStatus.NotStarted,
         },
@@ -52,8 +71,20 @@ export const propertiesStore = create(
         setProperties: (properties) => 
           set((state) => {
               for (const property of properties) {
-                  state.properties[property.id] = property;
-          }})
+                  state.properties[property.name] = property.id;
+          }}),
+        setSelectedProperty: (property) =>
+            set((state) => {
+                state.selectedProperty = property
+            }),
+        setSelectedPropertyValues: (propertyValues) => 
+            set((state) => {
+                state.selectedPropertyValues = propertyValues
+            }),
+        setSelectedPropertySelectedValue: (selectedPropertyValue) => 
+            set((state) => {
+                state.selectedPropertySelectedValue = selectedPropertyValue
+            })
     })
 ))
 
@@ -69,9 +100,9 @@ export default function SegmentUsers() {
   if (workspace.type !== CompletionStatus.Successful) {
     return null;
   }
-  const apiBase = useAppStore((state) => state.apiBase);
 
-  const properties = propertiesStore((store) => store.properties);
+
+  const apiBase = useAppStore((state) => state.apiBase);
   const getUserPropertiesRequest = propertiesStore((store) => store.getUserPropertiesRequest);
   const setGetUserPropertiesRequest = propertiesStore((store) => store.setGetUserPropertiesRequest);
   const setProperties = propertiesStore((store) => store.setProperties);
@@ -101,10 +132,6 @@ export default function SegmentUsers() {
     handler();
   }, [])
 
-  console.log({properties})
-
-
-
   const onUsersTablePaginate = ({
     direction,
     cursor,
@@ -133,7 +160,7 @@ export default function SegmentUsers() {
       >
         <Stack direction="row">
             <Typography variant="h4">Users</Typography>
-            <UserFilter properties={Object.values(properties)}/>
+            <UserFilter/>
         </Stack>
         <UsersTable
           {...queryParams}
