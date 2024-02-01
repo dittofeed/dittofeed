@@ -7,12 +7,14 @@ import { err, ok, Result } from "neverthrow";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
+    ComputedPropertyAssignment,
   EnrichedUserProperty,
   JSONValue,
   SavedUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyResource,
 } from "./types";
+import { clickhouseClient } from "./clickhouse";
 
 export function enrichUserProperty(
   userProperty: UserProperty,
@@ -93,6 +95,30 @@ export async function findAllUserProperties({
   }
 
   return enrichedUserProperties;
+}
+
+
+export async function findAllPropertyValues({
+    propertyId,
+    workspaceId
+} : {
+    propertyId: string;
+    workspaceId: string;
+}): Promise<string[]> {
+    const query = `SELECT user_property_value FROM computed_property_assignments_v2 WHERE (computed_property_id = {propertyId:String}) AND (workspace_id = {workspaceId:String})`;
+
+    const resultSet = await clickhouseClient().query({
+        query,
+        format: 'JSONEachRow',
+        query_params: {
+            propertyId,
+            workspaceId
+        }
+    })
+
+    const results: string[] = (await resultSet.json() as any).map((result: Record<string,string>) => result.user_property_value)
+
+    return results;
 }
 
 export async function findAllUserPropertyResources({
