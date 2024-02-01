@@ -14,9 +14,9 @@ import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
+  AmazonSesEventPayload,
   AmazonSNSEvent,
   AmazonSNSEventTypes,
-  AmazonSesEventPayload,
   ResendEvent,
   SendgridEvent,
 } from "backend-lib/src/types";
