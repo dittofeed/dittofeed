@@ -1,13 +1,14 @@
 import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
 import { UserProperty } from "backend-lib/src/types";
-import { findAllUserProperties, findAllUserPropertyResources } from "backend-lib/src/userProperties";
+import { findAllPropertyValues, findAllUserProperties, findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { FastifyInstance } from "fastify";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   DeleteUserPropertyRequest,
   EmptyResponse,
+  GetComputedPropertyAssignmentResourcesResponse,
   GetUserPropertiesResponse,
   UpsertUserPropertyResource,
   UserPropertyDefinition,
@@ -97,7 +98,40 @@ export default async function userPropertiesController(
     },
   );
 
-  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+ fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+      "/values",
+      {
+          schema: {
+              description: "Get all properties values",
+              tags: ["User Properties"],
+              querystring: Type.Object({
+                  propertyId: Type.String(),
+                  workspaceId: Type.String()
+              }),
+              response: {
+                200: GetComputedPropertyAssignmentResourcesResponse,
+                500: {},
+              },
+          },
+      },
+    async (request, reply) => {
+      try {
+        const result = await findAllPropertyValues({
+            propertyId: request.query.propertyId,
+            workspaceId: request.query.workspaceId
+        })
+
+        return reply.status(200).send({
+            values: result
+        })
+      } catch (e) {
+            throw e;
+      }
+    }
+  )
+
+
+   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
       "/",
       {
           schema: {
