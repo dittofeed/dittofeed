@@ -10,12 +10,6 @@ cd into docs directory
 cd packages/docs
 ```
 
-Install mintlify
-
-```bash
-mintlify install
-```
-
 Run the mintlify dev server.
 
 ```bash
