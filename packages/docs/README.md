@@ -13,5 +13,5 @@ npm i -g mintlify
 Run the mintlify dev server.
 
 ```bash
-yarn workspace docs dev
+mintlify dev
 ```
