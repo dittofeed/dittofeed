@@ -1221,6 +1221,13 @@ export const GetUserPropertiesResponse = Type.Object({
 
 export type GetUserPropertiesResponse = Static<typeof GetUserPropertiesResponse>;
 
+export const GetComputedPropertyAssignmentResourcesResponse = Type.Object({
+    // Represents an array of all values assigned to a given property
+    values: Type.Array(Type.String())
+});
+
+export type GetComputedPropertyAssignmentResourcesResponse = Static<typeof GetComputedPropertyAssignmentResourcesResponse>;
+
 export const BaseMessageResponse = Type.Object({
   message: Type.String(),
 });
