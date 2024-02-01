@@ -4,6 +4,9 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { propertiesStore } from '../pages/users.page';
 import { Box, Select, TextField } from '@mui/material';
+import apiRequestHandlerFactory from '../lib/apiRequestHandlerFactory';
+import { GetComputedPropertyAssignmentResourcesResponse } from 'isomorphic-lib/src/types';
+import { useAppStore } from '../lib/appStore';
 
 export default function UserFilter() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -17,6 +20,10 @@ export default function UserFilter() {
 
   const handleClose = () => {
     setAnchorEl(null);
+    setTimeout(() => {
+        setSelectedProperty('')
+        setStage(false)
+    }, 300)
   };
 
   const handleStageChange = (selectedProperty: string) => {
@@ -60,32 +67,66 @@ function UserProperties({
     return (
         <>
           {Object.keys(properties).map(
-            (property) => <MenuItem onClick={() => handleStageChange(property)}>{property}</MenuItem>)
+            (property) => <MenuItem onClick={() => handleStageChange(properties[property] as string)}>{property}</MenuItem>)
           }
         </>
     )
 }
 
 function filterStrings(inputStr: string, stringArray: string[]) {
-    return stringArray.filter(str => str.includes(inputStr));
+    return stringArray.filter(str => str.toLowerCase().includes(inputStr.toLowerCase()));
 }
 
 function Selector() {
-    const propertyObjects = propertiesStore((store) => store.properties)
+  const selectedPropertyValues = propertiesStore((store) => store.selectedPropertyValues)
+  const setSelectedProperySelectedValue = propertiesStore((store) => store.setSelectedPropertySelectedValue)
+  const selectedProperty = propertiesStore((store) => store.selectedProperty);
+  const getUserPropertiesRequest = propertiesStore((store) => store.getUserPropertiesRequest);
+  const setGetUserPropertiesRequest = propertiesStore((store) => store.setGetUserPropertiesRequest);
+  const setSelectedPropertyValues = propertiesStore((store) => store.setSelectedPropertyValues);
+  const apiBase = useAppStore((state) => state.apiBase);
 
-    const propertyNames = React.useMemo(() => Object.keys(propertyObjects), [])
-    const [filter, setFilter] = React.useState('');
-    const filteredProperties = React.useMemo(() => {
+    
+  const [filter, setFilter] = React.useState('');
+
+  const propertyNames = React.useMemo(() => selectedPropertyValues, [selectedPropertyValues])
+  const filteredProperties = React.useMemo(() => {
         if (filter === '') return propertyNames 
         return filterStrings(filter, propertyNames)
-    }, [filter])
+    }, [filter, propertyNames])
+
+  React.useEffect(() => {
+    const setLoadResponse = (response: GetComputedPropertyAssignmentResourcesResponse) => {
+        setSelectedPropertyValues(response.values)
+    };
+
+    const handler = apiRequestHandlerFactory({
+      request: getUserPropertiesRequest,
+      setRequest: setGetUserPropertiesRequest,
+      responseSchema: GetComputedPropertyAssignmentResourcesResponse,
+      setResponse: setLoadResponse,
+      requestConfig: {
+        method: "GET",
+        url: `${apiBase}/api/user-properties/values`,
+        params: {
+           propertyId: selectedProperty,
+           workspaceId: "58290c8f-6c59-460f-a8f1-777033c8ded1" 
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    });
+    handler();
+  }, [selectedProperty])
+
 
     return (
         <Box component="section">
           <TextField id="outlined-basic" variant="outlined" onChange={(e) => setFilter(e.target.value)}/>
 
           {filteredProperties.map(
-            (property) => <MenuItem onClick={() => console.log(true)}>{property}</MenuItem>)
+            (property) => <MenuItem onClick={() => setSelectedProperySelectedValue(property)}>{property}</MenuItem>)
           }
         </Box>
     )

@@ -59,7 +59,7 @@ export const propertiesStore = create(
     immer<UserPropertiesState & UserPropertiesActions>((set) => ({
         properties: {},
         selectedProperty: '',
-        selectedPropertyValues: [''],
+        selectedPropertyValues: [],
         selectedPropertySelectedValue: '',
         getUserPropertiesRequest: {
             type: CompletionStatus.NotStarted,
