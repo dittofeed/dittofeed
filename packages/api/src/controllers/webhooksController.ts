@@ -127,13 +127,14 @@ export default async function webhookController(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
-    "/amazonses",
+    "/amazon-ses",
     {
       schema: {
         description: "Used to consume amazonses notification events.",
         tags: ["Webhooks"],
         body: AmazonSNSEvent,
       },
+      // Force JSON parsing the request body as SNS send requests with text/plain content-type.
       onRequest: (req, _, done) => {
         // eslint-disable-next-line no-param-reassign
         req.headers["content-type"] = "application/json";
@@ -152,6 +153,9 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
 
       switch (request.body.Type) {
+        // Amazon will send a confirmation Type event we must use to enable (subscribe to) the webhook.
+        // UnsubscribeConfirmation type events occur when our application requests disabling
+        // the webhook. Since we never do this, we respond by re-confirming the subscription.
         case AmazonSNSEventTypes.SubscriptionConfirmation:
         case AmazonSNSEventTypes.UnsubscribeConfirmation:
           /* eslint-disable-next-line no-case-declarations */

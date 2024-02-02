@@ -30,11 +30,8 @@ function unwrapTag(tagName: string, tags: Record<string, string[]>) {
   if (!tags[tagName]) {
     return null;
   }
-  // disable the nonnull assertion eslint rule
-  // eslint-disable-next-line
-  const tag = tags[tagName]!;
 
-  return tag[0];
+  return tags[tagName]?.[0] ?? null;
 }
 
 // README the typescript types on this are wrong, body is not of type string,
@@ -115,9 +112,9 @@ export async function submitAmazonSesEvents(
   // TODO: Amazon may batch requests (if we send with multiple To: addresses? or with the BatchTemplated endpoint).  We should map over the receipients.
   logger().debug(event);
 
-  const workspaceId = unwrapTag("workspaceId", event.mail.tags) ?? null;
-  const userId = unwrapTag("userId", event.mail.tags) ?? null;
-  const templateId = unwrapTag("messageId", event.mail.tags) ?? null;
+  const workspaceId = unwrapTag("workspaceId", event.mail.tags);
+  const userId = unwrapTag("userId", event.mail.tags);
+  const templateId = unwrapTag("messageId", event.mail.tags);
 
   if (!workspaceId) {
     return err(new Error("Workspace id not found"));
