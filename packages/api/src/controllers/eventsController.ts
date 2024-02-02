@@ -77,13 +77,13 @@ export default async function eventsController(fastify: FastifyInstance) {
             eventTime: event_time,
             traits: colsolidatedTraits,
           };
-        }
+        },
       );
       return reply.status(200).send({
         events,
         count,
       });
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -103,6 +103,6 @@ export default async function eventsController(fastify: FastifyInstance) {
         workspaceId: request.query.workspaceId,
       });
       return reply.status(200).send({ traits });
-    }
+    },
   );
 }
