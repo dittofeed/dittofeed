@@ -7,9 +7,7 @@ import {
   GetTraitsResponse,
 } from "backend-lib/src/types";
 import {
-  findEventsCount,
   findIdentifyTraits,
-  findManyEvents,
   findManyEventsWithCount,
 } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
@@ -48,21 +46,6 @@ export default async function eventsController(fastify: FastifyInstance) {
         userId,
         searchTerm,
       });
-      // const [eventsRaw, count] = await Promise.all([
-      //   findManyEvents({
-      //     workspaceId,
-      //     limit,
-      //     offset,
-      //     startDate,
-      //     endDate,
-      //     userId,
-      //     searchTerm,
-      //   }),
-      //   findEventsCount({
-      //     workspaceId,
-      //     userId,
-      //   }),
-      // ]);
 
       const events: GetEventsResponseItem[] = eventsRaw.flatMap(
         ({

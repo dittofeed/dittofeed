@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { submitBatch } from "./apps";
 import prisma from "./prisma";
 import { EventType } from "./types";
-import { findManyEvents } from "./userEvents";
+import { findManyEventsWithCount } from "./userEvents";
 
 describe("apps", () => {
   describe("submitBatch", () => {
@@ -36,10 +36,10 @@ describe("apps", () => {
             ],
           },
         });
-        const eventsRaw = await findManyEvents({
+        const { events } = await findManyEventsWithCount({
           workspaceId,
         });
-        expect(eventsRaw.map((er) => er.properties || er.traits)).toEqual([
+        expect(events.map((er) => er.properties || er.traits)).toEqual([
           "{}",
           "{}",
         ]);
