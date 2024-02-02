@@ -370,6 +370,16 @@ export async function findManyEventsWithCount({
       )} OR message_id = ${qb.addQueryValue(searchTerm, "String")}`
     : "";
 
+  const searchClause2 = searchTerm
+    ? `AND (CAST(event_type AS String) LIKE ${qb.addQueryValue(
+        `%${searchTerm}%`,
+        "String"
+      )} OR CAST(event AS String) LIKE ${qb.addQueryValue(
+        `%${searchTerm}%`,
+        "String"
+      )} OR message_id = ${qb.addQueryValue(searchTerm, "String")})`
+    : "";
+
   // TODO exclude event_time from group by
   const query = `SELECT
     workspace_id,
@@ -393,14 +403,60 @@ export async function findManyEventsWithCount({
   ORDER BY event_time DESC, message_id
   ${paginationClause}`;
 
+  const query2 = `
+    SELECT
+      workspace_id,
+      user_id,
+      anonymous_id,
+      user_or_anonymous_id,
+      message_id,
+      event_time,
+      max_processing_time AS processing_time,
+      event,
+      traits,
+      properties,
+      count(*) AS count
+    FROM (
+      SELECT
+        workspace_id,
+        user_id,
+        user_or_anonymous_id,
+        event_time,
+        anonymous_id,
+        message_id,
+        event,
+        max(processing_time) AS max_processing_time,
+        JSONExtractRaw(argMax(message_raw, processing_time) AS last_message_raw, 'traits') AS traits,
+        JSONExtractRaw(last_message_raw, 'properties') AS properties
+      FROM user_events_v2
+      WHERE
+        workspace_id = ${workspaceIdParam}
+        ${startDateClause}
+        ${endDateClause}
+        ${userIdClause}
+        ${searchClause2}
+      GROUP BY
+        workspace_id,
+        user_id,
+        event,
+        user_or_anonymous_id,
+        event_time,
+        anonymous_id,
+        message_id
+      ORDER BY event_time DESC, message_id
+    ) AS inner_query
+    ${paginationClause}
+  `;
+
   const resultSet = await clickhouseClient().query({
-    query,
+    query: query2,
     format: "JSONEachRow",
     query_params: qb.getQueries(),
   });
 
   const results =
     await resultSet.json<(UserEventsWithTraits & { count: number })[]>();
+
   return {
     events: results.map((r) => omit(r, ["count"])),
     count: results[0]?.count ?? 0,

@@ -10,6 +10,7 @@ import {
   findEventsCount,
   findIdentifyTraits,
   findManyEvents,
+  findManyEventsWithCount,
 } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 
@@ -38,21 +39,30 @@ export default async function eventsController(fastify: FastifyInstance) {
         searchTerm,
       } = request.query;
 
-      const [eventsRaw, count] = await Promise.all([
-        findManyEvents({
-          workspaceId,
-          limit,
-          offset,
-          startDate,
-          endDate,
-          userId,
-          searchTerm,
-        }),
-        findEventsCount({
-          workspaceId,
-          userId,
-        }),
-      ]);
+      const { events: eventsRaw, count } = await findManyEventsWithCount({
+        workspaceId,
+        limit,
+        offset,
+        startDate,
+        endDate,
+        userId,
+        searchTerm,
+      });
+      // const [eventsRaw, count] = await Promise.all([
+      //   findManyEvents({
+      //     workspaceId,
+      //     limit,
+      //     offset,
+      //     startDate,
+      //     endDate,
+      //     userId,
+      //     searchTerm,
+      //   }),
+      //   findEventsCount({
+      //     workspaceId,
+      //     userId,
+      //   }),
+      // ]);
 
       const events: GetEventsResponseItem[] = eventsRaw.flatMap(
         ({
@@ -84,13 +94,13 @@ export default async function eventsController(fastify: FastifyInstance) {
             eventTime: event_time,
             traits: colsolidatedTraits,
           };
-        },
+        }
       );
       return reply.status(200).send({
         events,
         count,
       });
-    },
+    }
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -110,6 +120,6 @@ export default async function eventsController(fastify: FastifyInstance) {
         workspaceId: request.query.workspaceId,
       });
       return reply.status(200).send({ traits });
-    },
+    }
   );
 }
