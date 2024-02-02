@@ -7,6 +7,7 @@ import config from "./config";
 import { kafkaProducer } from "./kafka";
 import prisma from "./prisma";
 import { InternalEventType, UserEvent } from "./types";
+import { omit } from "remeda";
 
 export interface InsertUserEvent {
   messageRaw: string | Record<string, unknown>;
@@ -69,7 +70,7 @@ export async function insertUserEvents({
   const { userEventsTopicName, writeMode } = config();
   const userEventsWithDefault: InsertUserEventInternal[] = arrayDefault(
     userEvents,
-    events,
+    events
   ).map((e) => ({
     ...e,
     messageRaw:
@@ -94,7 +95,7 @@ export async function insertUserEvents({
               message_id: messageId,
               message_raw: messageRaw,
             }),
-          }),
+          })
         ),
       });
       break;
@@ -145,7 +146,7 @@ export async function findManyEvents({
   const paginationClause = limit
     ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
         limit,
-        "Int32",
+        "Int32"
       )}`
     : "";
 
@@ -164,10 +165,10 @@ export async function findManyEvents({
   const searchClause = searchTerm
     ? `HAVING CAST(event_type AS String) LIKE ${qb.addQueryValue(
         `%${searchTerm}%`,
-        "String",
+        "String"
       )} OR CAST(event AS String) LIKE ${qb.addQueryValue(
         `%${searchTerm}%`,
-        "String",
+        "String"
       )} OR message_id = ${qb.addQueryValue(searchTerm, "String")}`
     : "";
 
@@ -318,6 +319,94 @@ export async function findIdentifyTraits({
 
 export type UserIdsByPropertyValue = Record<string, string[]>;
 
+export async function findManyEventsWithCount({
+  workspaceId,
+  limit,
+  offset = 0,
+  startDate,
+  endDate,
+  userId,
+  searchTerm,
+}: {
+  workspaceId: string;
+  userId?: string;
+  limit?: number;
+  offset?: number;
+  // unix timestamp units ms
+  startDate?: number;
+  endDate?: number;
+  searchTerm?: string;
+}): Promise<{ events: UserEventsWithTraits[]; count: number }> {
+  const qb = new ClickHouseQueryBuilder();
+
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+
+  const paginationClause = limit
+    ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
+        limit,
+        "Int32"
+      )}`
+    : "";
+
+  const startDateClause = startDate
+    ? `AND event_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
+    : "";
+
+  const endDateClause = endDate
+    ? `AND event_time <= ${qb.addQueryValue(endDate, "DateTime64(3)")}`
+    : "";
+
+  const userIdClause = userId
+    ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
+    : "";
+
+  const searchClause = searchTerm
+    ? `HAVING CAST(event_type AS String) LIKE ${qb.addQueryValue(
+        `%${searchTerm}%`,
+        "String"
+      )} OR CAST(event AS String) LIKE ${qb.addQueryValue(
+        `%${searchTerm}%`,
+        "String"
+      )} OR message_id = ${qb.addQueryValue(searchTerm, "String")}`
+    : "";
+
+  // TODO exclude event_time from group by
+  const query = `SELECT
+    workspace_id,
+    any(event_type) event_type,
+    user_id,
+    any(anonymous_id) anonymous_id,
+    any(user_or_anonymous_id) user_or_anonymous_id,
+    message_id,
+    event_time,
+    any(processing_time) processing_time,
+    any(event) event,
+    JSONExtractRaw(any(message_raw), 'traits') AS traits,
+    JSONExtractRaw(any(message_raw), 'properties') AS properties
+  FROM user_events_v2
+  WHERE workspace_id = ${workspaceIdParam}
+  ${startDateClause}
+  ${endDateClause}
+  ${userIdClause}
+  GROUP BY workspace_id, user_id, message_id, event_time
+  ${searchClause}
+  ORDER BY event_time DESC, message_id
+  ${paginationClause}`;
+
+  const resultSet = await clickhouseClient().query({
+    query,
+    format: "JSONEachRow",
+    query_params: qb.getQueries(),
+  });
+
+  const results =
+    await resultSet.json<(UserEventsWithTraits & { count: number })[]>();
+  return {
+    events: results.map((r) => omit(r, ["count"])),
+    count: results[0]?.count ?? 0,
+  };
+}
+
 export async function findUserIdsByUserProperty({
   userPropertyName,
   workspaceId,
@@ -343,11 +432,11 @@ export async function findUserIdsByUserProperty({
   const workspaceIdParam = queryBuilder.addQueryValue(workspaceId, "String");
   const computedPropertyId = queryBuilder.addQueryValue(
     userProperty.id,
-    "String",
+    "String"
   );
   const valueSetParam = queryBuilder.addQueryValue(
     Array.from(valueSet),
-    "Array(String)",
+    "Array(String)"
   );
 
   const query = `
