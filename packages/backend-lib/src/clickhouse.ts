@@ -11,6 +11,7 @@ import { v4 as uuid } from "uuid";
 
 import config from "./config";
 import logger from "./logger";
+import { withSpan } from "./openTelemetry";
 
 export function getChCompatibleUuid() {
   return uuid().replace(/-/g, "_");
@@ -186,12 +187,10 @@ export async function command(
   } = {},
 ): Promise<ReturnType<ClickHouseClient["command"]>> {
   const queryId = params.query_id ?? getChCompatibleUuid();
-  try {
+  return withSpan({ name: "clickhouse-command" }, async (span) => {
+    span.setAttributes({ queryId, query: params.query });
     return client.command({ query_id: queryId, ...params });
-  } catch (e) {
-    logger().error({ queryId, params, error: e }, "ClickHouse command failed.");
-    throw e;
-  }
+  });
 }
 
 export async function query(
@@ -204,10 +203,8 @@ export async function query(
   } = {},
 ): Promise<BaseResultSet<Readable>> {
   const queryId = params.query_id ?? getChCompatibleUuid();
-  try {
+  return withSpan({ name: "clickhouse-query" }, async (span) => {
+    span.setAttributes({ queryId, query: params.query });
     return client.query({ query_id: queryId, ...params });
-  } catch (e) {
-    logger().error({ queryId, params, error: e }, "ClickHouse query failed.");
-    throw e;
-  }
+  });
 }
