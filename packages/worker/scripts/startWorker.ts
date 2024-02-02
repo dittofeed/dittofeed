@@ -15,6 +15,7 @@ import {
   Worker,
 } from "@temporalio/worker";
 import backendConfig from "backend-lib/src/config";
+import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "backend-lib/src/constants";
 import logger from "backend-lib/src/logger";
 import { initOpenTelemetry } from "backend-lib/src/openTelemetry";
 import * as activities from "backend-lib/src/temporal/activities";
@@ -23,7 +24,6 @@ import connectWorkflowCLient from "backend-lib/src/temporal/connectWorkflowClien
 
 import config from "../src/config";
 import workerLogger from "../src/workerLogger";
-import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "backend-lib/src/constants";
 
 async function run() {
   const workerConfig = config();
