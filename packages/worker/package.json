@@ -13,6 +13,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
+    "@opentelemetry/sdk-metrics": "1.12.0",
     "@sinclair/typebox": "0.31.5",
     "@temporalio/interceptors-opentelemetry": "1.8.4",
     "@temporalio/worker": "1.8.4",

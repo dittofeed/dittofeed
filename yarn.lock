@@ -16417,6 +16417,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "worker@workspace:packages/worker"
   dependencies:
+    "@opentelemetry/sdk-metrics": 1.12.0
     "@sinclair/typebox": 0.31.5
     "@temporalio/interceptors-opentelemetry": 1.8.4
     "@temporalio/worker": 1.8.4

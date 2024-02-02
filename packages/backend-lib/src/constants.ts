@@ -42,3 +42,6 @@ export const DEFAULT_SEGMENT_DEFINITION: SegmentDefinition = {
 };
 
 export const FEATURE_INCREMENTAL_COMP = "incremental-comp" as const;
+
+export const WORKSPACE_COMPUTE_LATENCY_METRIC =
+  "workspace_compute_latency" as const;
