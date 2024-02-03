@@ -287,15 +287,14 @@ group by event, node_id;`;
         if (parentNodeProcessed) {
           const falseChildNodeProcessedRate =
             falseChildNodesProcessed / parentNodeProcessed;
-          const falseChildEdgeProportion =
-            (falseChildNodeProcessedRate > 1
-              ? 1
-              : falseChildNodeProcessedRate) * 100;
+          const falseChildEdgeProportion = (
+            falseChildNodeProcessedRate * 100
+          ).toFixed(1);
 
           stats.nodeStats[node.id] = {
             type: NodeStatsType.SegmentSplitNodeStats,
             proportions: {
-              falseChildEdge: falseChildEdgeProportion,
+              falseChildEdge: parseFloat(falseChildEdgeProportion),
             },
           };
         }
@@ -311,15 +310,14 @@ group by event, node_id;`;
         if (parentNodeProcessed) {
           const segmentChildNodeProcessedRate =
             segmentChildNodesProcessed / parentNodeProcessed;
-          const segmentChildEdgeProportion =
-            (segmentChildNodeProcessedRate > 1
-              ? 1
-              : segmentChildNodeProcessedRate) * 100;
+          const segmentChildEdgeProportion = (
+            segmentChildNodeProcessedRate * 100
+          ).toFixed(1);
 
           stats.nodeStats[node.id] = {
             type: NodeStatsType.WaitForNodeStats,
             proportions: {
-              segmentChildEdge: segmentChildEdgeProportion,
+              segmentChildEdge: parseFloat(segmentChildEdgeProportion),
             },
           };
         }

@@ -160,6 +160,8 @@ export default function WorkflowEdge({
               transform: `translate(-50%, -50%) translate(${edgeCenterX}px,${edgeCenterY - 40}px)`,
               fontSize: 12,
               fontWeight: 700,
+              padding: "8px",
+              backgroundColor: "#f0f0f0",
             }}
             className="nodrag nopan"
           >

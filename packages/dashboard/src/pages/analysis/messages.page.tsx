@@ -13,6 +13,7 @@ import {
   JourneyNodeType,
   JourneyResource,
   MessageNodeStats,
+  NodeStatsType,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -206,8 +207,12 @@ export default function MessagesPage() {
               );
               return [];
             }
-            const nodeStats = stats?.nodeStats[node.id] as MessageNodeStats;
-            if (!message.definition) {
+            const nodeStats = stats?.nodeStats[node.id];
+            if (
+              !message.definition ||
+              !nodeStats ||
+              nodeStats.type !== NodeStatsType.MessageNodeStats
+            ) {
               return [];
             }
 
