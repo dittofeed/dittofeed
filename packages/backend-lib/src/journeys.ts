@@ -17,6 +17,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JourneyStats,
+  MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
 } from "./types";
@@ -133,49 +134,56 @@ export async function getJourneysStats({
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
   const query = `
+  select
+    event,
+    node_id,
+    count(resolved_message_id) count
+from (
     select
-        event,
-        node_id,
-        count() count
-    from (
-        select
-            JSON_VALUE(
-                message_raw,
-                '$.properties.journeyId'
-            ) journey_id,
-            JSON_VALUE(
-                message_raw,
-                '$.properties.nodeId'
-            ) node_id,
-            JSON_VALUE(
-                message_raw,
-                '$.properties.runId'
-            ) run_id,
+        JSON_VALUE(
+            message_raw,
+            '$.properties.journeyId'
+        ) journey_id,
+        JSON_VALUE(
+            message_raw,
+            '$.properties.nodeId'
+        ) node_id,
+        JSON_VALUE(
+            message_raw,
+            '$.properties.runId'
+        ) run_id,
+        if(
+            (
             JSON_VALUE(
                 message_raw,
                 '$.properties.messageId'
-            ) message_id,
-            event
-        from user_events_v2
-        where
-            workspace_id = ${workspaceIdQuery}
-            and journey_id in ${journeyIdsQuery}
-            and event_type = 'track'
-            and (
-                event = 'DFInternalMessageSent'
-                or event = 'DFMessageFailure'
-                or event = 'DFMessageSkipped'
-                or event = 'DFEmailDropped'
-                or event = 'DFEmailDelivered'
-                or event = 'DFEmailOpened'
-                or event = 'DFEmailClicked'
-                or event = 'DFEmailBounced'
-                or event = 'DFEmailMarkedSpam'
-                or event = 'DFBadWorkspaceConfiguration'
-            )
-        group by journey_id, node_id, run_id, message_id, event
-    )
-    group by event, node_id;`;
+            ) as property_message_id 
+            ) != '',
+            property_message_id,
+            message_id
+        ) resolved_message_id,
+        event
+    from user_events_v2
+    where
+        workspace_id = ${workspaceIdQuery}
+        and journey_id in ${journeyIdsQuery}
+        and event_type = 'track'
+        and (
+            event = 'DFInternalMessageSent'
+            or event = 'DFMessageFailure'
+            or event = 'DFMessageSkipped'
+            or event = 'DFEmailDropped'
+            or event = 'DFEmailDelivered'
+            or event = 'DFEmailOpened'
+            or event = 'DFEmailClicked'
+            or event = 'DFEmailBounced'
+            or event = 'DFEmailMarkedSpam'
+            or event = 'DFBadWorkspaceConfiguration'
+            or event = 'DFJourneyNodeProcessed'
+        )
+    group by journey_id, node_id, run_id, resolved_message_id, event
+)
+group by event, node_id;`;
 
   const [statsResultSet, journeys] = await Promise.all([
     clickhouseClient().query({
@@ -194,6 +202,7 @@ export async function getJourneysStats({
 
   const stream = statsResultSet.stream();
   const statsMap = new Map<string, MapWithDefault<InternalEventType, number>>();
+  const nodeProcessedMap = new Map<string, number>();
 
   const rowPromises: Promise<unknown>[] = [];
   stream.on("data", (rows: Row[]) => {
@@ -225,6 +234,10 @@ export async function getJourneysStats({
 
         eventMap.set(event, parseInt(count));
         statsMap.set(node_id, eventMap);
+
+        if (event === InternalEventType.JourneyNodeProcessed) {
+          nodeProcessedMap.set(node_id, parseInt(count));
+        }
       })();
       rowPromises.push(promise);
     });
@@ -258,12 +271,80 @@ export async function getJourneysStats({
 
     for (const node of definition.nodes) {
       if (
+        node.type === JourneyNodeType.RateLimitNode ||
+        node.type === JourneyNodeType.ExperimentSplitNode
+      ) {
+        continue;
+      }
+
+      const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
+
+      if (node.type === JourneyNodeType.SegmentSplitNode) {
+        const parentNodeProcessed = nodeProcessedMap.get(node.id);
+        const falseChildNodesProcessed =
+          nodeProcessedMap.get(node.variant.falseChild) ?? 0;
+
+        if (parentNodeProcessed) {
+          const falseChildNodeProcessedRate =
+            falseChildNodesProcessed / parentNodeProcessed;
+          const falseChildEdgeProportion = (
+            falseChildNodeProcessedRate * 100
+          ).toFixed(1);
+
+          stats.nodeStats[node.id] = {
+            type: NodeStatsType.SegmentSplitNodeStats,
+            proportions: {
+              falseChildEdge: parseFloat(falseChildEdgeProportion),
+            },
+          };
+        }
+      } else if (node.type === JourneyNodeType.WaitForNode) {
+        const parentNodeProcessed = nodeProcessedMap.get(node.id);
+        let segmentChildNodesProcessed = 0;
+
+        if (node.segmentChildren[0]) {
+          segmentChildNodesProcessed =
+            nodeProcessedMap.get(node.segmentChildren[0].id) ?? 0;
+        }
+
+        if (parentNodeProcessed) {
+          const segmentChildNodeProcessedRate =
+            segmentChildNodesProcessed / parentNodeProcessed;
+          const segmentChildEdgeProportion = (
+            segmentChildNodeProcessedRate * 100
+          ).toFixed(1);
+
+          stats.nodeStats[node.id] = {
+            type: NodeStatsType.WaitForNodeStats,
+            proportions: {
+              segmentChildEdge: parseFloat(segmentChildEdgeProportion),
+            },
+          };
+        }
+      } else if (node.type === JourneyNodeType.DelayNode) {
+        stats.nodeStats[node.id] = {
+          type: NodeStatsType.DelayNodeStats,
+          proportions: {
+            childEdge: 100,
+          },
+        };
+      } else {
+        stats.nodeStats[node.id] = {
+          type: NodeStatsType.MessageNodeStats,
+          proportions: {
+            childEdge: 100,
+          },
+          sendRate: 0,
+          channelStats: {} as MessageChannelStats,
+        };
+      }
+
+      if (
         node.type !== JourneyNodeType.MessageNode ||
         node.variant.type !== ChannelType.Email
       ) {
         continue;
       }
-      const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
 
       const sent = nodeStats.get(InternalEventType.MessageSent);
       const badConfig = nodeStats.get(
@@ -291,6 +372,9 @@ export async function getJourneysStats({
 
       stats.nodeStats[node.id] = {
         type: NodeStatsType.MessageNodeStats,
+        proportions: {
+          childEdge: 100,
+        },
         sendRate,
         channelStats: {
           type: ChannelType.Email,
