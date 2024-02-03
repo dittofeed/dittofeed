@@ -21,6 +21,7 @@ import {
   CompletionStatus,
   DelayVariantType,
   JourneyNodeType,
+  NodeStatsType,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import { Handle, NodeProps, Position } from "reactflow";
@@ -400,7 +401,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
           height: stats ? undefined : 0,
         }}
       >
-        {stats ? (
+        {stats && stats.type === NodeStatsType.MessageNodeStats ? (
           <>
             <StatCategory label="Sent" rate={stats.sendRate} />
             <StatCategory

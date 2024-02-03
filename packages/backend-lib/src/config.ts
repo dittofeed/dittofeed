@@ -73,6 +73,9 @@ const BaseRawConfigProps = {
   computePropertiesInterval: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  computePropertiesAttempts: Type.Optional(
+    Type.String({ format: "naturalNumber" }),
+  ),
   secretKey: Type.Optional(Type.String()),
   password: Type.Optional(Type.String()),
   computePropertiesWorkflowTaskTimeout: Type.Optional(
@@ -174,6 +177,7 @@ export type Config = Overwrite<
     readQueryConcurrency: number;
     computePropertiesInterval: number;
     computePropertiesWorkflowTaskTimeout: number;
+    computePropertiesAttempts: number;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -373,6 +377,9 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.computePropertiesWorkflowTaskTimeout
         ? parseInt(rawConfig.computePropertiesWorkflowTaskTimeout)
         : 10000,
+    computePropertiesAttempts: rawConfig.computePropertiesAttempts
+      ? parseInt(rawConfig.computePropertiesAttempts)
+      : 150,
   };
   return parsedConfig;
 }

@@ -4,6 +4,7 @@ import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   CompletionStatus,
+  DefaultEmailProviderResource,
   EmailTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -32,18 +33,24 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }
     const workspaceId = dfContext.workspace.id;
 
-    const [emailTemplate, userProperties] = await Promise.all([
-      prisma().messageTemplate.findUnique({
-        where: {
-          id: templateId,
-        },
-      }),
-      prisma().userProperty.findMany({
-        where: {
-          workspaceId,
-        },
-      }),
-    ]);
+    const [emailTemplate, userProperties, defaultEmailProvider] =
+      await Promise.all([
+        prisma().messageTemplate.findUnique({
+          where: {
+            id: templateId,
+          },
+        }),
+        prisma().userProperty.findMany({
+          where: {
+            workspaceId,
+          },
+        }),
+        prisma().defaultEmailProvider.findUnique({
+          where: {
+            workspaceId,
+          },
+        }),
+      ]);
 
     let emailTemplateWithDefault: MessageTemplate;
     if (!emailTemplate) {
@@ -53,7 +60,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           workspaceId,
           name: `New Email Message - ${templateId}`,
           id: templateId,
-          definition: defaultEmailDefinition() satisfies EmailTemplateResource,
+          definition: defaultEmailDefinition(
+            defaultEmailProvider as DefaultEmailProviderResource | undefined,
+          ) satisfies EmailTemplateResource,
         },
         update: {},
       });

@@ -788,6 +788,7 @@ export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
 
 export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
+  searchTerm:Type.Optional(Type.String()),
   userId: Type.Optional(Type.String()),
   offset: Type.Number(),
   limit: Type.Number(),
@@ -1079,6 +1080,7 @@ export type WorkspaceResource = Static<typeof WorkspaceResource>;
 export const DefaultEmailProviderResource = Type.Object({
   workspaceId: Type.String(),
   emailProviderId: Type.String(),
+  fromAddress: Nullable(Type.String()),
 });
 
 export type DefaultEmailProviderResource = Static<
@@ -1837,6 +1839,9 @@ export const BoolStr = Type.Union([
 
 export enum NodeStatsType {
   MessageNodeStats = "MessageNodeStats",
+  SegmentSplitNodeStats = "SegmentSplitNodeStats",
+  WaitForNodeStats = "WaitForNodeStats",
+  DelayNodeStats = "DelayNodeStats",
 }
 
 export const EmailStats = Type.Object({
@@ -1855,13 +1860,43 @@ export type MessageChannelStats = Static<typeof MessageChannelStats>;
 
 const MessageNodeStats = Type.Object({
   type: Type.Literal(NodeStatsType.MessageNodeStats),
+  proportions: Type.Object({
+    childEdge: Type.Number(),
+  }),
   sendRate: Type.Number(),
   channelStats: MessageChannelStats,
 });
 
+const DelayNodeStats = Type.Object({
+  type: Type.Literal(NodeStatsType.DelayNodeStats),
+  proportions: Type.Object({
+    childEdge: Type.Number(),
+  }),
+});
+
+const WaitForNodeStats = Type.Object({
+  type: Type.Literal(NodeStatsType.WaitForNodeStats),
+  proportions: Type.Object({
+    segmentChildEdge: Type.Number(),
+  }),
+});
+
+const SegmentSplitNodeStats = Type.Object({
+  type: Type.Literal(NodeStatsType.SegmentSplitNodeStats),
+  proportions: Type.Object({
+    falseChildEdge: Type.Number(),
+  }),
+});
+
 export type MessageNodeStats = Static<typeof MessageNodeStats>;
 
-export const NodeStats = Type.Union([MessageNodeStats]);
+export type DelayNodeStats = Static<typeof DelayNodeStats>;
+
+export type WaitForNodeStats = Static<typeof WaitForNodeStats>;
+
+export type SegmentSplitNodeStats = Static<typeof SegmentSplitNodeStats>;
+
+export const NodeStats = Type.Union([MessageNodeStats, DelayNodeStats,WaitForNodeStats , SegmentSplitNodeStats]);
 
 export type NodeStats = Static<typeof NodeStats>;
 

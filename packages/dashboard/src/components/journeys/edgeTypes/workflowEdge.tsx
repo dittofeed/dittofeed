@@ -1,5 +1,7 @@
+import { NodeStatsType } from "isomorphic-lib/src/types";
+import { useRouter } from "next/router";
 import React, { useState } from "react";
-import { EdgeProps, getBezierPath } from "reactflow";
+import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "reactflow";
 
 import { useAppStore } from "../../../lib/appStore";
 import { EdgeData } from "../../../lib/types";
@@ -19,6 +21,9 @@ export default function WorkflowEdge({
   style,
   markerEnd,
 }: EdgeProps<EdgeData>) {
+  const path = useRouter();
+
+  const journeyStats = useAppStore((store) => store.journeyStats);
   const [isDropzoneActive, setDropzoneActive] = useState<boolean>(false);
   const isDragging = useAppStore(
     (store) => !!store.journeyDraggedComponentType,
@@ -47,11 +52,55 @@ export default function WorkflowEdge({
   const nodes = useAppStore((state) => state.journeyNodes);
   const nodesIndex = useAppStore((state) => state.journeyNodesIndex);
   const targetNode = findNode(target, nodes, nodesIndex);
+
+  let sourceWithoutChildSuffix = source;
+  sourceWithoutChildSuffix = sourceWithoutChildSuffix.replaceAll(
+    "-child-0",
+    "",
+  );
+  sourceWithoutChildSuffix = sourceWithoutChildSuffix.replaceAll(
+    "-child-1",
+    "",
+  );
+
+  const journeyId = typeof path.query.id === "string" ? path.query.id : "";
+  const stats = journeyStats[journeyId]?.nodeStats[sourceWithoutChildSuffix];
+
   if (targetNode && targetNode.type === "empty") {
     markerEnd = undefined;
   }
 
   const isPlusVisible = isDragging && !isDropzoneActive;
+
+  const getLabelText = (): string => {
+    if (stats?.type === NodeStatsType.SegmentSplitNodeStats) {
+      if (id.includes("child-0")) {
+        return (100 - stats.proportions.falseChildEdge).toString();
+      }
+      if (id.includes("child-1")) {
+        return stats.proportions.falseChildEdge.toString();
+      }
+    }
+
+    if (stats?.type === NodeStatsType.WaitForNodeStats) {
+      if (id.includes("child-0")) {
+        return stats.proportions.segmentChildEdge.toString();
+      }
+      if (id.includes("child-1")) {
+        return (100 - stats.proportions.segmentChildEdge).toString();
+      }
+    }
+
+    if (
+      stats?.type === NodeStatsType.DelayNodeStats ||
+      stats?.type === NodeStatsType.MessageNodeStats
+    ) {
+      return stats.proportions.childEdge.toString();
+    }
+
+    return "";
+  };
+
   return (
     <>
       <path
@@ -103,6 +152,23 @@ export default function WorkflowEdge({
           +
         </text>
       </g>
+      {getLabelText().length > 0 && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${edgeCenterX}px,${edgeCenterY - 40}px)`,
+              fontSize: 12,
+              fontWeight: 700,
+              padding: "8px",
+              backgroundColor: "#f0f0f0",
+            }}
+            className="nodrag nopan"
+          >
+            {`${getLabelText()} %`}
+          </div>
+        </EdgeLabelRenderer>
+      )}
     </>
   );
 }
