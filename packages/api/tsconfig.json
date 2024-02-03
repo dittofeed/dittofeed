@@ -4,7 +4,7 @@
     "types": ["node", "jest"],
     "outDir": "dist",
   },
-  "exclude": ["node_modules", "dist", "../dashboard/**/*"],
+  "exclude": ["node_modules", "dist", "../dashboard/**/*", "../docs/**/*", "../admin-cli/**/*"],
   "include": ["./src/**/*.ts", "./scripts/**/*.ts"],
   "references": [
     {
