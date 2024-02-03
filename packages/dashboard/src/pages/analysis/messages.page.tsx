@@ -12,7 +12,6 @@ import {
   CompletionStatus,
   JourneyNodeType,
   JourneyResource,
-  MessageNodeStats,
   NodeStatsType,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
