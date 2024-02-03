@@ -100,12 +100,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       value: segmentResources.map((segment) => ({
         ...segment,
         lastRecomputed: Number(new Date(Number(csps[segment.id]))),
-        journeys:
-          usedBy[segment.id] && usedBy[segment.id]?.length !== 0
-            ? usedBy[segment.id]
-                ?.map((journey) => `${journey.name}`)
-                ?.join(`, \n`)
-            : "No Journey",
+        journeys: usedBy[segment.id]
+          ?.map((journey) => `${journey.name}|${journey.id}`)
+          ?.join(`, \n`),
       })),
     };
     return {

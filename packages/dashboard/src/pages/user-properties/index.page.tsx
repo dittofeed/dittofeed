@@ -91,13 +91,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       value: userPropertyResources.map((userPropertyResource) => ({
         ...userPropertyResource,
         lastRecomputed: Number(new Date(Number(csps[userPropertyResource.id]))),
-        templates:
-          templatesUsedBy[userPropertyResource.id] &&
-          templatesUsedBy[userPropertyResource.id]?.length !== 0
-            ? templatesUsedBy[userPropertyResource.id]
-                ?.map((template) => `${template.name}`)
-                ?.join(`, \n`)
-            : "No Templates",
+        templates: templatesUsedBy[userPropertyResource.id]
+          ?.map(
+            (template) =>
+              `${template.name}|${template.id}|${(template.definition as MessageTemplateResourceDefinition).type}`,
+          )
+          ?.join(`, \n`),
       })),
     };
     return {
@@ -119,12 +118,8 @@ function UserPropertyListContents() {
       sx={{
         padding: 1,
         width: "100%",
-        maxWidth: "60rem",
-        height: "100%",
-        maxHeight: "70%",
-        border: 1,
+        bgcolor: "background.paper",
         borderRadius: 1,
-        borderColor: "theme.palette.grey[400]",
         margin: "1rem",
       }}
       spacing={2}

@@ -81,6 +81,7 @@ export default function BroadcastsTable() {
         },
       }}
       pageSizeOptions={[1, 5, 10, 25]}
+      getRowHeight={() => "auto"}
     />
   );
 }

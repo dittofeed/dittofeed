@@ -72,13 +72,9 @@ export function ResourceListContainer({
       sx={{
         padding: 1,
         width: "100%",
-        maxWidth: "60rem",
-        height: "100%",
-        maxHeight: "70%",
-        border: 1,
-        borderRadius: 1,
-        borderColor: "theme.palette.grey[400]",
         margin: "1rem",
+        bgcolor: "background.paper",
+        borderRadius: 1,
       }}
       spacing={2}
     >

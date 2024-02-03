@@ -11,10 +11,8 @@ import {
   Typography,
 } from "@mui/material";
 import { Journey } from "@prisma/client";
-import { Type } from "@sinclair/typebox";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
@@ -22,7 +20,6 @@ import {
   EmailTemplateResource,
   JourneyDefinition,
   JourneyNodeType,
-  MessageTemplateResourceRequest,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
@@ -30,7 +27,6 @@ import {
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
@@ -47,11 +43,6 @@ interface TabPanelProps {
   index: number;
   value: number;
 }
-
-const QueryParams = Type.Pick(MessageTemplateResourceRequest, [
-  "cursor",
-  "direction",
-]);
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
@@ -105,7 +96,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         journeys:
           usedBy[template.id] && usedBy[template.id]?.length !== 0
             ? usedBy[template.id]
-                ?.map((journey) => `${journey.name}, `)
+                ?.map((journey) => `${journey.name}|${journey.id}`)
                 ?.join(`, \n`)
             : "No Journey",
       })),
@@ -129,11 +120,6 @@ function TemplateListContents() {
   const messagesResult = useAppStore((store) => store.messages);
   const [newItemId, setNewItemId] = useState(() => uuid());
 
-  const router = useRouter();
-  const queryParams = useMemo(
-    () => schemaValidate(router.query, QueryParams).unwrapOr({}),
-    [router.query],
-  );
   const workspace = useAppStore((state) => state.workspace);
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
@@ -193,7 +179,6 @@ function TemplateListContents() {
       sx={{
         padding: 1,
         width: "100%",
-        maxWidth: "70rem",
       }}
       spacing={2}
     >
@@ -250,7 +235,6 @@ function TemplateListContents() {
           }}
         >
           <TemplatesTable label={CHANNEL_NAMES[ChannelType.Email]} />
-
           {emailTemplates.length === 0 && (
             <Typography
               component="span"
@@ -272,10 +256,7 @@ function TemplateListContents() {
             borderRadius: 1,
           }}
         >
-          <TemplatesTable
-            {...queryParams}
-            label={CHANNEL_NAMES[ChannelType.Sms]}
-          />
+          <TemplatesTable label={CHANNEL_NAMES[ChannelType.Sms]} />
           {smsTemplates.length === 0 && (
             <Typography
               component="span"
@@ -297,10 +278,7 @@ function TemplateListContents() {
             borderRadius: 1,
           }}
         >
-          <TemplatesTable
-            {...queryParams}
-            label={CHANNEL_NAMES[ChannelType.MobilePush]}
-          />
+          <TemplatesTable label={CHANNEL_NAMES[ChannelType.MobilePush]} />
           {mobilePushTemplates.length === 0 && (
             <Typography
               component="span"

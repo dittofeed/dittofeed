@@ -100,7 +100,6 @@ export default function JourneysTable() {
           headerName: "Action",
           width: 180,
           sortable: false,
-          // disableClickEventBubbling: true,
           // eslint-disable-next-line react/no-unused-prop-types
           renderCell: ({ row }: { row: Row }) => {
             const onClick = () => {
@@ -145,6 +144,7 @@ export default function JourneysTable() {
         },
       }}
       pageSizeOptions={[1, 5, 10, 25]}
+      getRowHeight={() => "auto"}
     />
   );
 }

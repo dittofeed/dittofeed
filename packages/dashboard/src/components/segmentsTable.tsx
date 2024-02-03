@@ -1,3 +1,4 @@
+import { Button } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   CompletionStatus,
@@ -130,6 +131,45 @@ export default function SegmentsTable() {
         {
           field: "journeys",
           headerName: "Journeys used by",
+          renderCell: ({ row }: { row: Row }) => {
+            const currentRow = row;
+            if (currentRow.journeys === "No Journey") {
+              return (
+                <div>
+                  <p>No Journey</p>
+                </div>
+              );
+            }
+            const journeys = currentRow.journeys.split(",");
+            return (
+              <div>
+                {journeys.map((journey) => {
+                  const [journeyName, journeyId] = journey.split("|");
+                  return (
+                    <Button
+                      key={journey}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push({
+                          pathname: `/journeys/${journeyId}`,
+                        });
+                      }}
+                      sx={{
+                        color: "inherit",
+                        textDecoration: "underline",
+                        "&:hover": {
+                          textDecoration: "none",
+                        },
+                        fontSize: "inherit",
+                      }}
+                    >
+                      {journeyName}
+                    </Button>
+                  );
+                })}
+              </div>
+            );
+          },
         },
         {
           field: "lastRecomputed",
@@ -140,7 +180,6 @@ export default function SegmentsTable() {
           headerName: "Action",
           width: 180,
           sortable: false,
-          disableClickEventBubbling: true,
           // eslint-disable-next-line react/no-unused-prop-types
           renderCell: ({ row }: { row: Row }) => {
             const onClick = () => {
@@ -186,6 +225,7 @@ export default function SegmentsTable() {
         },
       }}
       pageSizeOptions={[1, 5, 10, 25]}
+      getRowHeight={() => "auto"}
     />
   );
 }

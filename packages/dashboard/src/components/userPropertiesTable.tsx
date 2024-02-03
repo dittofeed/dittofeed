@@ -1,3 +1,4 @@
+import { Button } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   CompletionStatus,
@@ -110,13 +111,60 @@ export default function UserPropertiesTable() {
         {
           field: "templates",
           headerName: "Templates used by",
+          renderCell: ({ row }: { row: Row }) => {
+            const currentRow = row;
+            if (currentRow.templates === "No Templates") {
+              return (
+                <div>
+                  <p>No Templates</p>
+                </div>
+              );
+            }
+            const templates = currentRow.templates.split(",");
+            return (
+              <div>
+                {templates.map((template) => {
+                  const [templateName, templateId, templateType] =
+                    template.split("|");
+                  let type = "email";
+                  if (templateType === "Email") {
+                    type = "email";
+                  } else if (templateType === "Sms") {
+                    type = "sms";
+                  } else if (templateType === "MobilePush") {
+                    type = "mobile-push";
+                  }
+                  return (
+                    <Button
+                      key={template}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push({
+                          pathname: `/templates/${type}/${templateId}`,
+                        });
+                      }}
+                      sx={{
+                        color: "inherit",
+                        textDecoration: "underline",
+                        "&:hover": {
+                          textDecoration: "none",
+                        },
+                        fontSize: "inherit",
+                      }}
+                    >
+                      {templateName}
+                    </Button>
+                  );
+                })}
+              </div>
+            );
+          },
         },
         {
           field: "actions",
           headerName: "Action",
           width: 180,
           sortable: false,
-          disableClickEventBubbling: true,
           // eslint-disable-next-line react/no-unused-prop-types
           renderCell: ({ row }: { row: Row }) => {
             const onClick = () => {
@@ -161,6 +209,7 @@ export default function UserPropertiesTable() {
         },
       }}
       pageSizeOptions={[1, 5, 10, 25]}
+      getRowHeight={() => "auto"}
     />
   );
 }
