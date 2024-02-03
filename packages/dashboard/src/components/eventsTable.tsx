@@ -23,6 +23,7 @@ import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
+import { getTemplatesLink } from "../lib/templatesLink";
 import EventDetailsSidebar from "./eventDetailsSidebar";
 
 interface EventsState {
@@ -94,6 +95,7 @@ export function EventsTable({
   const theme = useTheme();
   const workspace = useAppStore((store) => store.workspace);
   const apiBase = useAppStore((store) => store.apiBase);
+  const messagesResult = useAppStore((store) => store.messages);
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
   const updatePagination = useEventsStore((store) => store.updatePagination);
@@ -118,6 +120,11 @@ export function EventsTable({
     [events],
   );
   const updateEvents = useEventsStore((store) => store.updateEvents);
+
+  const messages =
+    messagesResult.type === CompletionStatus.Successful
+      ? messagesResult.value
+      : [];
 
   const cols = [
     {
@@ -158,6 +165,34 @@ export function EventsTable({
     {
       field: "messageId",
       flex: 1,
+    },
+    {
+      field: "relatedResources",
+      flex: 1,
+      valueGetter: (params: any) => JSON.parse(params.row.traits),
+      renderCell: ({ value }: GridRenderCellParams) => {
+        const templateId = value.templateId || "";
+        const channelType = value.variant?.type || "";
+        const templateName =
+          messages.find((t) => t.id === templateId)?.name ?? null;
+
+        if (!templateId || !channelType || !templateName) return null;
+
+        return (
+          <LinkCell
+            href={getTemplatesLink({ channel: channelType, id: templateId })}
+            title={templateId}
+          >
+            <Box
+              sx={{
+                fontFamily: "monospace",
+              }}
+            >
+              {templateName}
+            </Box>
+          </LinkCell>
+        );
+      },
     },
   ];
 
