@@ -21,7 +21,7 @@ export function getChCompatibleUuid() {
  * Class to build ClickHouse queries.
  */
 export class ClickHouseQueryBuilder {
-  private queries: Record<string, unknown>;
+  private queries: Map<string, unknown>;
 
   private debug: boolean;
 
@@ -35,7 +35,7 @@ export class ClickHouseQueryBuilder {
    */
   constructor({ debug }: { debug?: boolean } = { debug: false }) {
     this.debug = debug ?? false;
-    this.queries = {};
+    this.queries = new Map();
   }
 
   /**
@@ -43,8 +43,8 @@ export class ClickHouseQueryBuilder {
    *
    * @returns {Record<string, unknown>} The current queries.
    */
-  getQueries() {
-    return this.queries;
+  getQueries(): Record<string, unknown> {
+    return Object.fromEntries(this.queries);
   }
 
   /**
@@ -76,8 +76,8 @@ export class ClickHouseQueryBuilder {
           );
       }
     }
-    const id = getChCompatibleUuid();
-    this.queries[id] = value;
+    const id = `v${this.queries.size}`;
+    this.queries.set(id, value);
     return `{${id}:${dataType}}`;
   }
 }
