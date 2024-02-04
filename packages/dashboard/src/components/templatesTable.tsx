@@ -163,7 +163,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
           pathname: `/templates/${routeName}/${params.id}`,
         });
       }}
-      autoHeight
+      autoPageSize
       columns={[
         {
           field: "name",

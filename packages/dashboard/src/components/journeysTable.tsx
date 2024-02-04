@@ -85,7 +85,7 @@ export default function JourneysTable() {
           pathname: `/journeys/${params.id}`,
         });
       }}
-      autoHeight
+      autoPageSize
       columns={[
         {
           field: "name",

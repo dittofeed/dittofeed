@@ -118,7 +118,7 @@ export default function SegmentsTable() {
           pathname: `/segments/${params.id}`,
         });
       }}
-      autoHeight
+      autoPageSize
       columns={[
         {
           field: "name",

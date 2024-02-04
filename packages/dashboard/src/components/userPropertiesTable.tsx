@@ -94,7 +94,7 @@ export default function UserPropertiesTable() {
           pathname: `/user-properties/${params.id}`,
         });
       }}
-      autoHeight
+      autoPageSize
       columns={[
         {
           field: "properties",

@@ -232,6 +232,7 @@ function TemplateListContents() {
             width: "100%",
             bgcolor: "background.paper",
             borderRadius: 1,
+            height: "70vh"
           }}
         >
           <TemplatesTable label={CHANNEL_NAMES[ChannelType.Email]} />
@@ -254,6 +255,7 @@ function TemplateListContents() {
             width: "100%",
             bgcolor: "background.paper",
             borderRadius: 1,
+            height: "70vh"
           }}
         >
           <TemplatesTable label={CHANNEL_NAMES[ChannelType.Sms]} />
@@ -276,6 +278,7 @@ function TemplateListContents() {
             width: "100%",
             bgcolor: "background.paper",
             borderRadius: 1,
+            height: "70vh"
           }}
         >
           <TemplatesTable label={CHANNEL_NAMES[ChannelType.MobilePush]} />

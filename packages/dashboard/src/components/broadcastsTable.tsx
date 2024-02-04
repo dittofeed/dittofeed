@@ -58,7 +58,7 @@ export default function BroadcastsTable() {
           pathname: `/broadcasts/segment/${params.id}`,
         });
       }}
-      autoHeight
+      autoPageSize
       columns={[
         {
           field: "name",
