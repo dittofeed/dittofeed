@@ -121,89 +121,6 @@ type UserEventsWithTraits = UserEvent & {
   properties: string;
 };
 
-export async function findManyEvents({
-  workspaceId,
-  limit,
-  offset = 0,
-  startDate,
-  endDate,
-  userId,
-  searchTerm,
-}: {
-  workspaceId: string;
-  userId?: string;
-  limit?: number;
-  offset?: number;
-  // unix timestamp units ms
-  startDate?: number;
-  endDate?: number;
-  searchTerm?: string;
-}): Promise<UserEventsWithTraits[]> {
-  const qb = new ClickHouseQueryBuilder();
-  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
-
-  const paginationClause = limit
-    ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
-        limit,
-        "Int32",
-      )}`
-    : "";
-
-  const startDateClause = startDate
-    ? `AND event_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
-    : "";
-
-  const endDateClause = endDate
-    ? `AND event_time <= ${qb.addQueryValue(endDate, "DateTime64(3)")}`
-    : "";
-
-  const userIdClause = userId
-    ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
-    : "";
-
-  const searchClause = searchTerm
-    ? `HAVING CAST(event_type AS String) LIKE ${qb.addQueryValue(
-        `%${searchTerm}%`,
-        "String",
-      )} OR CAST(event AS String) LIKE ${qb.addQueryValue(
-        `%${searchTerm}%`,
-        "String",
-      )} OR message_id = ${qb.addQueryValue(searchTerm, "String")}`
-    : "";
-
-  // TODO exclude event_time from group by
-  const query = `SELECT
-    workspace_id,
-    any(event_type) event_type,
-    user_id,
-    any(anonymous_id) anonymous_id,
-    any(user_or_anonymous_id) user_or_anonymous_id,
-    message_id,
-    event_time,
-    any(processing_time) processing_time,
-    any(event) event,
-    JSONExtractRaw(any(message_raw), 'traits') AS traits,
-    JSONExtractRaw(any(message_raw), 'properties') AS properties
-  FROM user_events_v2
-  WHERE workspace_id = ${workspaceIdParam}
-  ${startDateClause}
-  ${endDateClause}
-  ${userIdClause}
-  GROUP BY workspace_id, user_id, message_id, event_time
-  ${searchClause}
-  ORDER BY event_time DESC, message_id
-  ${paginationClause}`;
-
-  const resultSet = await clickhouseClient().query({
-    query,
-    format: "JSONEachRow",
-    query_params: qb.getQueries(),
-  });
-
-  const results = await resultSet.json<UserEventsWithTraits[]>();
-  return results;
-}
-
 // TODO implement pagination
 export async function findManyInternalEvents({
   event,
@@ -262,36 +179,6 @@ export async function trackInternalEvents(props: {
   return ok(undefined);
 }
 
-export async function findEventsCount({
-  workspaceId,
-  userId,
-}: {
-  workspaceId: string;
-  userId?: string;
-  limit?: number;
-  offset?: number;
-}): Promise<number> {
-  const userIdClause = userId ? `AND user_id = {userId:String}` : "";
-
-  const query = `SELECT COUNT(message_id) AS event_count FROM user_events_v2
-  WHERE workspace_id = {workspaceId:String}
-  ${userIdClause}
-  GROUP BY workspace_id
-  `;
-
-  const resultSet = await clickhouseClient().query({
-    query,
-    format: "JSONEachRow",
-    query_params: {
-      workspaceId,
-      userId,
-    },
-  });
-
-  const results = await resultSet.json<{ event_count: number }[]>();
-  return results[0]?.event_count ?? 0;
-}
-
 export async function findIdentifyTraits({
   workspaceId,
 }: {
@@ -317,6 +204,134 @@ export async function findIdentifyTraits({
 }
 
 export type UserIdsByPropertyValue = Record<string, string[]>;
+
+export async function findManyEventsWithCount({
+  workspaceId,
+  limit,
+  offset = 0,
+  startDate,
+  endDate,
+  userId,
+  searchTerm,
+}: {
+  workspaceId: string;
+  userId?: string;
+  limit?: number;
+  offset?: number;
+  // unix timestamp units ms
+  startDate?: number;
+  endDate?: number;
+  searchTerm?: string;
+}): Promise<{ events: UserEventsWithTraits[]; count: number }> {
+  const qb = new ClickHouseQueryBuilder();
+
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+
+  const paginationClause = limit
+    ? `LIMIT ${qb.addQueryValue(offset, "Int32")},${qb.addQueryValue(
+        limit,
+        "Int32",
+      )}`
+    : "";
+
+  const startDateClause = startDate
+    ? `AND event_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
+    : "";
+
+  const endDateClause = endDate
+    ? `AND event_time <= ${qb.addQueryValue(endDate, "DateTime64(3)")}`
+    : "";
+
+  const userIdClause = userId
+    ? `AND user_id = ${qb.addQueryValue(userId, "String")}`
+    : "";
+
+  const searchClause = searchTerm
+    ? `AND (CAST(event_type AS String) LIKE ${qb.addQueryValue(
+        `%${searchTerm}%`,
+        "String",
+      )} OR CAST(event AS String) LIKE ${qb.addQueryValue(
+        `%${searchTerm}%`,
+        "String",
+      )} OR message_id = ${qb.addQueryValue(searchTerm, "String")})`
+    : "";
+
+  const innerQuery = `
+    SELECT
+      workspace_id,
+      user_id,
+      user_or_anonymous_id,
+      event_time,
+      anonymous_id,
+      message_id,
+      event,
+      event_type,
+      max(processing_time) AS max_processing_time,
+      JSONExtractRaw(argMax(message_raw, processing_time) AS last_message_raw, 'traits') AS traits,
+      JSONExtractRaw(last_message_raw, 'properties') AS properties
+    FROM user_events_v2
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      ${startDateClause}
+      ${endDateClause}
+      ${userIdClause}
+      ${searchClause}
+    GROUP BY
+      workspace_id,
+      user_id,
+      event,
+      user_or_anonymous_id,
+      event_time,
+      anonymous_id,
+      event_type,
+      message_id
+    ORDER BY event_time DESC, message_id
+  `;
+
+  const eventsQuery = `
+    SELECT
+      workspace_id,
+      user_id,
+      anonymous_id,
+      user_or_anonymous_id,
+      message_id,
+      event_time,
+      max_processing_time AS processing_time,
+      event_type,
+      event,
+      traits,
+      properties
+    FROM (${innerQuery}) AS inner_query
+    ${paginationClause}
+  `;
+  const countQuery = `
+    SELECT count() AS count
+    FROM (${innerQuery}) AS inner_query
+  `;
+
+  const [eventsResultSet, countResultSet] = await Promise.all([
+    clickhouseClient().query({
+      query: eventsQuery,
+      format: "JSONEachRow",
+      query_params: qb.getQueries(),
+    }),
+    clickhouseClient().query({
+      query: countQuery,
+      format: "JSONEachRow",
+      query_params: qb.getQueries(),
+    }),
+  ]);
+
+  const [eventResults, countResults] = await Promise.all([
+    eventsResultSet.json<UserEventsWithTraits[]>(),
+    countResultSet.json<{ count: number }[]>(),
+  ]);
+
+  return {
+    events: eventResults,
+    count: countResults[0]?.count ?? 0,
+  };
+}
 
 export async function findUserIdsByUserProperty({
   userPropertyName,

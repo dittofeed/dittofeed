@@ -267,7 +267,7 @@ export default function EmailEditor({
       )}
       renderPreviewBody={({ rendered }) => (
         <iframe
-          srcDoc={`<!DOCTYPE html>${rendered.body}`}
+          srcDoc={`<!DOCTYPE html>${rendered.body ?? ""}`}
           title="email-body-preview"
           style={{
             border: "none",

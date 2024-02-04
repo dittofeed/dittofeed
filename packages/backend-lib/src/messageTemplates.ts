@@ -500,7 +500,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `missing host in smtp host`,
+            message: `missing host in smtp config`,
           },
         });
       }
@@ -510,7 +510,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `invalid port in smtp host`,
+            message: `invalid port in smtp config`,
           },
         });
       }
