@@ -7,7 +7,7 @@ import { segmentIdentifyEvent } from "./segmentIO";
 import { EventType } from "./types";
 import {
   findIdentifyTraits,
-  findManyEvents,
+  findManyEventsWithCount,
   insertUserEvents,
 } from "./userEvents";
 
@@ -56,7 +56,7 @@ describe("userEvents", () => {
     });
   });
 
-  describe("findManyEvents", () => {
+  describe("findManyEventsWithCount", () => {
     let messageId1: string;
     let messageId2: string;
     let messageId3: string;
@@ -95,7 +95,7 @@ describe("userEvents", () => {
       });
 
       it("returns events in the date range", async () => {
-        const events = await findManyEvents({
+        const { events } = await findManyEventsWithCount({
           workspaceId: workspace.id,
           startDate: new Date("2023-01-08T00:00:00.000Z").getTime(),
           endDate: new Date("2023-01-12T00:00:00.000Z").getTime(),
@@ -138,7 +138,7 @@ describe("userEvents", () => {
       });
 
       it("returns the relevant traits without duplicates", async () => {
-        const events = await findManyEvents({
+        const { events } = await findManyEventsWithCount({
           workspaceId: workspace.id,
         });
         if (!events[0] || !events[1]) {
