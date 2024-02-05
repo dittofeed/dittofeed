@@ -11,13 +11,13 @@ import { FastifyInstance } from "fastify";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function usersController(fastify: FastifyInstance) {
-  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/",
     {
       schema: {
         description: "Get list of users",
         tags: ["Users"],
-        querystring: GetUsersRequest,
+        body: GetUsersRequest,
         response: {
           200: GetUsersResponse,
           400: BadRequestResponse,
@@ -26,10 +26,11 @@ export default async function usersController(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const result = await getUsers({
-        workspaceId: request.query.workspaceId,
-        cursor: request.query.cursor,
-        direction: request.query.direction,
-        segmentId: request.query.segmentId,
+        workspaceId: request.body.workspaceId,
+        cursor: request.body.cursor,
+        direction: request.body.direction,
+        segmentId: request.body.segmentId,
+        userPropertyIds: request.body.userPropertyIds
       });
       if (result.isErr()) {
         return reply.status(400).send({

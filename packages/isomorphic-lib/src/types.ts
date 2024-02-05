@@ -1182,6 +1182,15 @@ export const GetUsersRequest = Type.Object({
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
   userIds: Type.Optional(Type.Array(Type.String())),
+  userPropertyIds: Type.Optional(
+      Type.Array(
+          Type.Object({
+            id: Type.String(),
+            userIds: Type.Optional(Type.Array(Type.String())),
+            partial: Type.Optional(Type.Array(Type.String())),
+          })
+      )
+  ),
   workspaceId: Type.String(),
 });
 

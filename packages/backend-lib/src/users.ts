@@ -46,10 +46,38 @@ function serializeUserCursor(cursor: Cursor): string {
   return serializeCursor(cursor);
 }
 
+type UserPropertyIdsFilter = {
+    id: string,
+    userIds?: string[],
+    partial?: string[]
+}[]
+
+function getUserPropertyAssignmentConditions(userPropertyIds: UserPropertyIdsFilter) {
+    const fullQuery: any = userPropertyIds.map((property) => {
+        const subqueries: any[] = []
+        
+
+        if (property.userIds) {
+            subqueries.push(
+                Prisma.sql`"userId" IN (${Prisma.join(property.userIds)})`
+            )
+        }
+
+        if (property.partial) {
+            subqueries.push(Prisma.sql`LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.partial)}])`)
+        }
+
+        return Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND (${Prisma.join(subqueries, subqueries.length > 1 ? " OR " : "")}))`
+    })
+
+    return Prisma.join(fullQuery, " OR ")
+}
+
 function buildUserIdQueries({
   workspaceId,
   direction,
   segmentId,
+  userPropertyIds,
   userIds,
   cursor,
 }: {
@@ -58,6 +86,7 @@ function buildUserIdQueries({
   cursor: Cursor | null;
   direction: CursorDirectionEnum;
   userIds?: string[];
+  userPropertyIds?: UserPropertyIdsFilter;
 }): Sql {
   let lastUserIdCondition: Sql;
   if (cursor) {
@@ -85,8 +114,8 @@ function buildUserIdQueries({
     ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
     : Prisma.sql`1=1`;
 
-  const userPropertyAssignmentCondition = segmentId
-    ? Prisma.sql`1=0`
+  const userPropertyAssignmentCondition = userPropertyIds 
+    ? getUserPropertyAssignmentConditions(userPropertyIds)
     : Prisma.sql`1=1`;
 
   const userIdQueries = Prisma.sql`
@@ -116,10 +145,11 @@ export async function getUsers({
   workspaceId,
   cursor: unparsedCursor,
   segmentId,
-  direction = CursorDirectionEnum.After,
   userIds,
+  userPropertyIds,
+  direction = CursorDirectionEnum.After,
   limit = 10,
-}: GetUsersRequest & { workspaceId: string }): Promise<
+}: GetUsersRequest): Promise<
   Result<GetUsersResponse, Error>
 > {
   if (segmentId && !validateUuid(segmentId)) {
@@ -144,6 +174,7 @@ export async function getUsers({
     workspaceId,
     userIds,
     cursor,
+    userPropertyIds,
     segmentId,
     direction,
   });
