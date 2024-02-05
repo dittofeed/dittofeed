@@ -9,6 +9,7 @@ import {
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  ChannelType,
   CompletionStatus,
   EphemeralRequestStatus,
   GetEventsRequest,
@@ -17,6 +18,7 @@ import {
 } from "isomorphic-lib/src/types";
 import React, { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
+import { v4 as uuid } from "uuid";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
@@ -24,6 +26,7 @@ import { shallow } from "zustand/shallow";
 import { useAppStore } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import { getTemplatesLink } from "../lib/templatesLink";
+import { EventResources } from "../lib/types";
 import EventDetailsSidebar from "./eventDetailsSidebar";
 
 interface EventsState {
@@ -96,6 +99,8 @@ export function EventsTable({
   const workspace = useAppStore((store) => store.workspace);
   const apiBase = useAppStore((store) => store.apiBase);
   const messagesResult = useAppStore((store) => store.messages);
+  const broadcasts = useAppStore((store) => store.broadcasts);
+  const journeys = useAppStore((store) => store.journeys);
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
   const updatePagination = useEventsStore((store) => store.updatePagination);
@@ -125,6 +130,85 @@ export function EventsTable({
     messagesResult.type === CompletionStatus.Successful
       ? messagesResult.value
       : [];
+
+  const getBroadcastResources = (journeyId: string) => {
+    const resources = [];
+    for (const broadcast of broadcasts) {
+      if (broadcast.journeyId === journeyId) {
+        resources.push(
+          {
+            name: `${broadcast.name}`,
+            link: `/broadcasts/review/${broadcast.id}`,
+            key: uuid(),
+          },
+          {
+            name: `${broadcast.name}-Template`,
+            link: `/broadcasts/template/${broadcast.id}`,
+            key: uuid(),
+          },
+        );
+        break;
+      }
+    }
+    return resources;
+  };
+
+  const getJourneyResources = (
+    journeyId: string,
+    templateId: string,
+    templateName: string | null,
+    channelType: ChannelType | null,
+  ) => {
+    const resources = [];
+    if (journeyId) {
+      const journeyValue =
+        journeys.type === CompletionStatus.Successful ? journeys.value : [];
+
+      for (const journey of journeyValue) {
+        if (journey.id === journeyId) {
+          resources.push({
+            name: journey.name,
+            link: `/journeys/${journey.id}`,
+            key: uuid(),
+          });
+          break;
+        }
+      }
+    }
+
+    if (templateId && channelType && templateName) {
+      resources.push({
+        name: templateName,
+        link: getTemplatesLink({ channel: channelType, id: templateId }),
+        key: uuid(),
+      });
+    }
+
+    return resources;
+  };
+
+  const getResources = (parsedTraits: any) => {
+    const journeyId = parsedTraits.journeyId || "";
+    const nodeId = parsedTraits.nodeId || "";
+
+    if (nodeId === "broadcast-message") {
+      const broadcastResources = getBroadcastResources(journeyId);
+      return broadcastResources;
+    }
+
+    const templateId = parsedTraits.templateId || "";
+    const template = messages.find((t) => t.id === templateId);
+    const channelType = template?.definition?.type ?? null;
+    const templateName = template?.name ?? null;
+
+    const journeyResources = getJourneyResources(
+      journeyId,
+      templateId,
+      templateName,
+      channelType,
+    );
+    return journeyResources;
+  };
 
   const cols = [
     {
@@ -168,29 +252,31 @@ export function EventsTable({
     },
     {
       field: "relatedResources",
-      flex: 1,
+      flex: 2,
       valueGetter: (params: any) => JSON.parse(params.row.traits),
       renderCell: ({ value }: GridRenderCellParams) => {
-        const templateId = value.templateId || "";
-        const channelType = value.variant?.type || "";
-        const templateName =
-          messages.find((t) => t.id === templateId)?.name ?? null;
-
-        if (!templateId || !channelType || !templateName) return null;
+        const relatedResources = getResources(value);
 
         return (
-          <LinkCell
-            href={getTemplatesLink({ channel: channelType, id: templateId })}
-            title={templateId}
-          >
-            <Box
-              sx={{
-                fontFamily: "monospace",
-              }}
-            >
-              {templateName}
-            </Box>
-          </LinkCell>
+          <>
+            {relatedResources.map((currResource) => {
+              return (
+                <LinkCell
+                  href={currResource.link}
+                  title={currResource.name}
+                  key={currResource.key}
+                >
+                  <Box
+                    sx={{
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    {`${currResource.name}  `}
+                  </Box>
+                </LinkCell>
+              );
+            })}
+          </>
         );
       },
     },
@@ -267,10 +353,14 @@ export function EventsTable({
   const [selectedEvent, setSelectedEvent] =
     useState<GetEventsResponseItem | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedEventResources, setSelectedEventResources] = useState<
+    EventResources[]
+  >([]);
 
   const handleEventSelection = (params: GridRowParams) => {
     const selectedRow: GetEventsResponseItem =
       params.row as GetEventsResponseItem;
+    setSelectedEventResources(getResources(JSON.parse(selectedRow.traits)));
     setSelectedEvent(selectedRow);
     setSidebarOpen(true);
   };
@@ -329,6 +419,7 @@ export function EventsTable({
         open={isSidebarOpen}
         onClose={closeSidebar}
         selectedEvent={selectedEvent}
+        eventResources={selectedEventResources}
       />
     </>
   );
