@@ -104,8 +104,8 @@ export async function findAllPropertyValues({
 } : {
     propertyId: string;
     workspaceId: string;
-}): Promise<string[]> {
-    const query = `SELECT user_property_value FROM computed_property_assignments_v2 WHERE (computed_property_id = {propertyId:String}) AND (workspace_id = {workspaceId:String})`;
+}): Promise<{[key: string]: string}> {
+    const query = `SELECT user_property_value, user_id FROM computed_property_assignments_v2 WHERE (computed_property_id = {propertyId:String}) AND (workspace_id = {workspaceId:String})`;
 
     const resultSet = await clickhouseClient().query({
         query,
@@ -116,9 +116,14 @@ export async function findAllPropertyValues({
         }
     })
 
-    const results: string[] = (await resultSet.json() as any).map((result: Record<string,string>) => result.user_property_value)
 
-    return results;
+    const parsedResult: {[key: string]: string} = {}
+
+    const result = await resultSet.json() as {user_property_value: string, user_id: string}[]
+   
+    result.map((result) => parsedResult[result.user_property_value] = result.user_id)
+
+    return parsedResult;
 }
 
 export async function findAllUserPropertyResources({

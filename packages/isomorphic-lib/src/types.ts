@@ -1222,8 +1222,7 @@ export const GetUserPropertiesResponse = Type.Object({
 export type GetUserPropertiesResponse = Static<typeof GetUserPropertiesResponse>;
 
 export const GetComputedPropertyAssignmentResourcesResponse = Type.Object({
-    // Represents an array of all values assigned to a given property
-    values: Type.Array(Type.String())
+    values: Type.Record(Type.String(), Type.String())
 });
 
 export type GetComputedPropertyAssignmentResourcesResponse = Static<typeof GetComputedPropertyAssignmentResourcesResponse>;
