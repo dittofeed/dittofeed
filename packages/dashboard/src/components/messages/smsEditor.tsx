@@ -52,6 +52,7 @@ export default function SmsEditor({
   return (
     <TemplateEditor
       templateId={messageId}
+      channel={ChannelType.Sms}
       member={member}
       disabled={disabled}
       hideTitle={hideTitle}

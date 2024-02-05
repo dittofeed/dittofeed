@@ -83,6 +83,7 @@ export default function EmailEditor({
   return (
     <TemplateEditor
       templateId={messageId}
+      channel={ChannelType.Email}
       member={member}
       disabled={disabled}
       hideTitle={hideTitle}
@@ -267,7 +268,7 @@ export default function EmailEditor({
       )}
       renderPreviewBody={({ rendered }) => (
         <iframe
-          srcDoc={`<!DOCTYPE html>${rendered.body}`}
+          srcDoc={`<!DOCTYPE html>${rendered.body ?? ""}`}
           title="email-body-preview"
           style={{
             border: "none",

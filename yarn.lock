@@ -437,21 +437,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.22.5":
-  version: 7.22.6
-  resolution: "@babel/runtime@npm:7.22.6"
-  dependencies:
-    regenerator-runtime: ^0.13.11
-  checksum: e585338287c4514a713babf4fdb8fc2a67adcebab3e7723a739fc62c79cfda875b314c90fd25f827afb150d781af97bc16c85bfdbfa2889f06053879a1ddb597
-  languageName: node
-  linkType: hard
-
 "@babel/runtime@npm:^7.23.2, @babel/runtime@npm:^7.23.5":
   version: 7.23.6
   resolution: "@babel/runtime@npm:7.23.6"
   dependencies:
     regenerator-runtime: ^0.14.0
   checksum: 1a8eaf3d3a103ef5227b60ca7ab5c589118c36ca65ef2d64e65380b32a98a3f3b5b3ef96660fa0471b079a18b619a8317f3e7f03ab2b930c45282a8b69ed9a16
+  languageName: node
+  linkType: hard
+
+"@babel/runtime@npm:^7.23.8":
+  version: 7.23.9
+  resolution: "@babel/runtime@npm:7.23.9"
+  dependencies:
+    regenerator-runtime: ^0.14.0
+  checksum: 6bbebe8d27c0c2dd275d1ac197fc1a6c00e18dab68cc7aaff0adc3195b45862bae9c4cc58975629004b0213955b2ed91e99eccb3d9b39cabea246c657323d667
   languageName: node
   linkType: hard
 
@@ -1983,11 +1983,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mui/icons-material@npm:^5.13.7":
-  version: 5.13.7
-  resolution: "@mui/icons-material@npm:5.13.7"
+"@mui/icons-material@npm:^5.15.5":
+  version: 5.15.6
+  resolution: "@mui/icons-material@npm:5.15.6"
   dependencies:
-    "@babel/runtime": ^7.22.5
+    "@babel/runtime": ^7.23.8
   peerDependencies:
     "@mui/material": ^5.0.0
     "@types/react": ^17.0.0 || ^18.0.0
@@ -1995,7 +1995,7 @@ __metadata:
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: f2bff37c5bf9038073b733c9fd1f5c595c7e8094e2616622babb9133dde7d671b0c068faf6db10cfb45e6105ab0d2d3f348b947441419454516afba5a513d652
+  checksum: 9e48abacc7dbcf6461a1451aebd92c6f50826a464bc5f5f8251c6e0868025405d865068089878ecd96a941ddc5ca71789d3534705401fe0db72a1c9ab11df0c1
   languageName: node
   linkType: hard
 
@@ -7659,7 +7659,7 @@ __metadata:
     "@emotion/react": ^11.10.5
     "@emotion/server": ^11.10.0
     "@emotion/styled": ^11.10.5
-    "@mui/icons-material": ^5.13.7
+    "@mui/icons-material": ^5.15.5
     "@mui/lab": ^5.0.0-alpha.125
     "@mui/material": ^5.11.4
     "@mui/x-data-grid": ^6.0.0
@@ -16417,6 +16417,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "worker@workspace:packages/worker"
   dependencies:
+    "@opentelemetry/sdk-metrics": 1.12.0
     "@sinclair/typebox": 0.31.5
     "@temporalio/interceptors-opentelemetry": 1.8.4
     "@temporalio/worker": 1.8.4

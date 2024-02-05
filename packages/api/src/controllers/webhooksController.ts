@@ -40,6 +40,19 @@ export default async function webhookController(fastify: FastifyInstance) {
         }),
         body: Type.Array(SendgridEvent),
       },
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      onSend: async (_request, reply, payload) => {
+        if (reply.statusCode !== 400) {
+          return payload;
+        }
+        logger().error(
+          {
+            payload,
+          },
+          "Failed to validate sendgrid webhook payload.",
+        );
+        return payload;
+      },
     },
     async (request, reply) => {
       logger().debug({ body: request.body }, "Received sendgrid events.");

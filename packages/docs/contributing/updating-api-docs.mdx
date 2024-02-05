@@ -23,8 +23,17 @@ curl "http://localhost:3001/documentation/json" | jq "." > packages/docs/open-ap
 
    <Step title="Run Docs" stepNumber="3" titleSize="h3">
     Run Dittofeed's docs in local machine:
+
+cd into docs directory
+
 ```bash
-yarn workspace docs dev
+cd packages/docs
+```
+
+Run the mintlify dev server.
+
+```bash
+mintlify dev
 ```
   </Step>
 </Steps>

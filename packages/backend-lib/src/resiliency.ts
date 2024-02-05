@@ -1,4 +1,5 @@
 import { ComputedPropertyStep } from "./computedProperties/computePropertiesIncremental";
+import { WORKSPACE_COMPUTE_LATENCY_METRIC } from "./constants";
 import logger from "./logger";
 import { getMeter } from "./openTelemetry";
 import prisma, { Prisma } from "./prisma";
@@ -32,7 +33,9 @@ export async function observeWorkspaceComputeLatency() {
 
   const now = Date.now();
 
-  const histogram = getMeter().createHistogram("workspace_compute_latency");
+  const histogram = getMeter().createHistogram(
+    WORKSPACE_COMPUTE_LATENCY_METRIC,
+  );
 
   for (const workspace of workspaces) {
     const maxTo = maxToByWorkspaceId.get(workspace.id);

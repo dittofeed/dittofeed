@@ -4,14 +4,14 @@ Documentation Dittofeed, available at [https://dittofeed.mintlify.app/](https://
 
 ## Contributing
 
-Install mintlify
+cd into docs directory
 
-```
-npm i -g mintlify
+```bash
+cd packages/docs
 ```
 
 Run the mintlify dev server.
 
 ```bash
-yarn workspace docs dev
+mintlify dev
 ```

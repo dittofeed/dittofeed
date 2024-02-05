@@ -36,11 +36,11 @@ async function start() {
         ...backendConfig(),
         ...apiConfig,
       },
-      "Initialized with config",
+      "Initialized with config"
     );
   }
 
-  await otel.start();
+  otel.start();
 
   const app = await buildApp();
   await app.listen({ port, host });
