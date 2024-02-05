@@ -37,11 +37,17 @@ interface UserPropertiesState {
     selectedProperty: string,
 
     // Once selected property is populated, this will be set by getting all values for the selected property.
-    selectedPropertyValues: string[],
+    selectedPropertyValues: Record<string,string>,
 
     // Chosen from the selectedPropertyValues object. Will be sent as part of the query 
     // to get all users that have a property matching the selected value.
-    selectedPropertySelectedValue: string,
+    selectedPropertySelectedValue: {
+        [key: string]: {
+            id: string,
+            values?: string[],
+            partial?: string[]
+        }
+    },
 
     // Used to indicate status of the getUserProperties request.
     getUserPropertiesRequest: EphemeralRequestStatus<Error>
@@ -50,7 +56,7 @@ interface UserPropertiesState {
 interface UserPropertiesActions {
     setProperties: (val: UserPropertyResource[]) => void;
     setSelectedProperty: (val: string) => void;
-    setSelectedPropertyValues: (val: string[]) => void;
+    setSelectedPropertyValues: (val: Record<string,string>) => void;
     setSelectedPropertySelectedValue: (val: string) => void;
     setGetUserPropertiesRequest: (val: EphemeralRequestStatus<Error>) => void;
 }
@@ -59,8 +65,8 @@ export const propertiesStore = create(
     immer<UserPropertiesState & UserPropertiesActions>((set) => ({
         properties: {},
         selectedProperty: '',
-        selectedPropertyValues: [],
-        selectedPropertySelectedValue: '',
+        selectedPropertyValues: {},
+        selectedPropertySelectedValue: {},
         getUserPropertiesRequest: {
             type: CompletionStatus.NotStarted,
         },
@@ -83,7 +89,14 @@ export const propertiesStore = create(
             }),
         setSelectedPropertySelectedValue: (selectedPropertyValue) => 
             set((state) => {
-                state.selectedPropertySelectedValue = selectedPropertyValue
+                if (state.selectedPropertySelectedValue[state.selectedProperty]) {
+                    state.selectedPropertySelectedValue[state.selectedProperty]?.values?.push(selectedPropertyValue)
+                }
+
+                state.selectedPropertySelectedValue[state.selectedProperty] = {
+                    id: state.selectedProperty,
+                    value: [selectedPropertyValue]
+                } 
             })
     })
 ))

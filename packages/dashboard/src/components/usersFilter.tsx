@@ -85,11 +85,10 @@ function Selector() {
   const setGetUserPropertiesRequest = propertiesStore((store) => store.setGetUserPropertiesRequest);
   const setSelectedPropertyValues = propertiesStore((store) => store.setSelectedPropertyValues);
   const apiBase = useAppStore((state) => state.apiBase);
-
-    
   const [filter, setFilter] = React.useState('');
+  const selectedPropertySelectedValue = propertiesStore((store) => store.selectedPropertySelectedValue);
 
-  const propertyNames = React.useMemo(() => selectedPropertyValues, [selectedPropertyValues])
+  const propertyNames = React.useMemo(() => Object.keys(selectedPropertyValues), [selectedPropertyValues])
   const filteredProperties = React.useMemo(() => {
         if (filter === '') return propertyNames 
         return filterStrings(filter, propertyNames)
@@ -126,7 +125,7 @@ function Selector() {
           <TextField id="outlined-basic" variant="outlined" onChange={(e) => setFilter(e.target.value)}/>
 
           {filteredProperties.map(
-            (property) => <MenuItem onClick={() => setSelectedProperySelectedValue(property)}>{property}</MenuItem>)
+            (property) => <MenuItem onClick={() => setSelectedProperySelectedValue(selectedPropertyValues[property] as string)}>{property}</MenuItem>)
           }
         </Box>
     )

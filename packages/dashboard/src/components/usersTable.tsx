@@ -23,6 +23,7 @@ import { immer } from "zustand/middleware/immer";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
+import { propertiesStore } from "../pages/users.page";
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -149,6 +150,7 @@ export default function UsersTable({
   segmentId,
   direction,
   cursor,
+  userPropertyIds,
   onPaginationChange,
 }: UsersTableProps) {
   const router = useRouter();
@@ -163,6 +165,8 @@ export default function UsersTable({
   const setUsers = usersStore((store) => store.setUsers);
   const setUsersPage = usersStore((store) => store.setUsersPage);
   const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
+  const selectedPropertySelectedValue = propertiesStore((store) => store.selectedPropertySelectedValue);
+  const userPropertyFilter = useMemo(() => Object.values(selectedPropertySelectedValue), [selectedPropertySelectedValue])
 
   const usersPage = useMemo(
     () =>
@@ -211,6 +215,7 @@ export default function UsersTable({
       cursor,
       direction,
       workspaceId,
+      userPropertyIds: userPropertyFilter.length > 0 ? userPropertyFilter : undefined
     };
 
     const handler = apiRequestHandlerFactory({
@@ -219,9 +224,9 @@ export default function UsersTable({
       responseSchema: GetUsersResponse,
       setResponse: setLoadResponse,
       requestConfig: {
-        method: "GET",
+        method: "POST",
         url: `${apiBase}/api/users`,
-        params,
+        data: JSON.stringify(params),
         headers: {
           "Content-Type": "application/json",
         },
@@ -230,7 +235,7 @@ export default function UsersTable({
     handler();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segmentId, cursor, direction]);
+  }, [segmentId, cursor, direction, userPropertyFilter]);
 
   const isLoading = getUsersRequest.type === CompletionStatus.InProgress;
 
