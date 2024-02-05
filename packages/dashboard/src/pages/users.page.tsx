@@ -44,7 +44,7 @@ interface UserPropertiesState {
     selectedPropertySelectedValue: {
         [key: string]: {
             id: string,
-            values?: string[],
+            userIds?: string[],
             partial?: string[]
         }
     },
@@ -90,12 +90,12 @@ export const propertiesStore = create(
         setSelectedPropertySelectedValue: (selectedPropertyValue) => 
             set((state) => {
                 if (state.selectedPropertySelectedValue[state.selectedProperty]) {
-                    state.selectedPropertySelectedValue[state.selectedProperty]?.values?.push(selectedPropertyValue)
+                    state.selectedPropertySelectedValue[state.selectedProperty]?.userIds?.push(selectedPropertyValue)
                 }
 
                 state.selectedPropertySelectedValue[state.selectedProperty] = {
                     id: state.selectedProperty,
-                    value: [selectedPropertyValue]
+                    userIds: [selectedPropertyValue]
                 } 
             })
     })
