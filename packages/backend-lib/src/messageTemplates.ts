@@ -731,7 +731,7 @@ export async function sendSms({
     getSendMessageModels({
       workspaceId,
       templateId,
-      channel: ChannelType.Email,
+      channel: ChannelType.Sms,
       useDraft,
       subscriptionGroupDetails,
     }),
