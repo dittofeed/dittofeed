@@ -4,11 +4,22 @@ import {
   generateDigest,
   verifyTimestampedSignature,
 } from "backend-lib/src/crypto";
+import {
+  confirmSubscription,
+  submitAmazonSesEvents,
+  validSNSSignature,
+} from "backend-lib/src/destinations/amazonses";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
-import { ResendEvent, SendgridEvent } from "backend-lib/src/types";
+import {
+  AmazonSesEventPayload,
+  AmazonSNSEvent,
+  AmazonSNSEventTypes,
+  ResendEvent,
+  SendgridEvent,
+} from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import {
@@ -124,6 +135,63 @@ export default async function webhookController(fastify: FastifyInstance) {
         workspaceId,
         events: request.body,
       });
+      return reply.status(200).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/amazon-ses",
+    {
+      schema: {
+        description: "Used to consume amazonses notification events.",
+        tags: ["Webhooks"],
+        body: AmazonSNSEvent,
+      },
+      // Force JSON parsing the request body as SNS send requests with text/plain content-type.
+      onRequest: (req, _, done) => {
+        // eslint-disable-next-line no-param-reassign
+        req.headers["content-type"] = "application/json";
+        done();
+      },
+    },
+    async (request, reply) => {
+      logger().debug({ body: request.body }, "Received AmazonSES event.");
+
+      // Validate the signature
+      const valid = await validSNSSignature(request.body);
+
+      if (valid.isErr()) {
+        logger().error("Invalid signature for AmazonSES webhook.", valid.error);
+        return reply.status(401).send({ message: "Invalid signature" });
+      }
+
+      switch (request.body.Type) {
+        // Amazon will send a confirmation Type event we must use to enable (subscribe to) the webhook.
+        // UnsubscribeConfirmation type events occur when our application requests disabling
+        // the webhook. Since we never do this, we respond by re-confirming the subscription.
+        case AmazonSNSEventTypes.SubscriptionConfirmation:
+        case AmazonSNSEventTypes.UnsubscribeConfirmation:
+          /* eslint-disable-next-line no-case-declarations */
+          const confirmed = await confirmSubscription(request.body);
+          if (confirmed.isErr()) {
+            logger().error("Unable to confirm AmazonSNS subscription.", {
+              error: confirmed.error,
+            });
+            return reply.status(401).send({});
+          }
+          logger().debug("AmazonSES Subscription confirmed");
+          break;
+        case AmazonSNSEventTypes.Notification: {
+          await submitAmazonSesEvents(
+            JSON.parse(request.body.Message) as AmazonSesEventPayload,
+          );
+          break;
+        }
+        default: {
+          logger().error("Unknown AmazonSes event type");
+        }
+      }
+
       return reply.status(200).send();
     },
   );
