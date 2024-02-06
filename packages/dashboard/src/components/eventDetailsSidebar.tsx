@@ -2,10 +2,19 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Box, Drawer, Typography, useTheme } from "@mui/material";
+import {
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
-import { useRouter } from "next/router";
-import React from "react";
+import Link from "next/link";
+import React, { useMemo } from "react";
 
 import { EventResources } from "../lib/types";
 import { SubtleHeader } from "./headers";
@@ -37,19 +46,35 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> =
     eventResources,
   }) {
     const theme = useTheme();
-    const router = useRouter();
+    const formattedTraits = useMemo(() => {
+      if (selectedEvent?.traits) {
+        try {
+          return JSON.stringify(JSON.parse(selectedEvent.traits), null, 2);
+        } catch (e) {
+          return selectedEvent.traits;
+        }
+      }
+      return "";
+    }, [selectedEvent?.traits]);
     return (
       <Drawer open={open} onClose={onClose} anchor="right">
-        <Box padding={2} paddingTop={10} sx={{ maxWidth: "25vw" }}>
+        <Stack
+          padding={2}
+          paddingTop={10}
+          sx={{ maxWidth: "25vw" }}
+          spacing={2}
+        >
           <SubtleHeader>Event Details</SubtleHeader>
-          {selectedEvent &&
-            Object.keys(selectedEvent).map((key) =>
-              key !== "traits" ? (
-                <Typography key={key} fontFamily="monospace">
-                  {`${key}: ${selectedEvent[key as keyof SelectedEvent]}`}
-                </Typography>
-              ) : null,
-            )}
+          <Stack spacing={1}>
+            {selectedEvent &&
+              Object.keys(selectedEvent).map((key) =>
+                key !== "traits" ? (
+                  <Typography key={key} fontFamily="monospace">
+                    {`${key}: ${selectedEvent[key as keyof SelectedEvent]}`}
+                  </Typography>
+                ) : null,
+              )}
+          </Stack>
 
           {selectedEvent?.traits && (
             <>
@@ -57,7 +82,7 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> =
                 <Typography variant="h5">Traits</Typography>
               </InfoTooltip>
               <ReactCodeMirror
-                value={selectedEvent.traits}
+                value={formattedTraits}
                 extensions={[
                   codeMirrorJson(),
                   linter(jsonParseLinter()),
@@ -77,26 +102,23 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> =
               <InfoTooltip title="Related Resources">
                 <Typography variant="h5">Related Resources</Typography>
               </InfoTooltip>
-              {eventResources.map((currResource) => {
-                return (
-                  // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-                  <span
-                    key={currResource.key}
-                    onClick={() => {
-                      router.push({
-                        pathname: currResource.link,
-                      });
-                    }}
-                  >
-                    <Typography fontFamily="monospace">
-                      {`${currResource.name}`}
-                    </Typography>
-                  </span>
-                );
-              })}
+              <List>
+                {eventResources.map((currResource) => (
+                  <ListItem key={currResource.key} disablePadding>
+                    <ListItemButton component={Link} href={currResource.link}>
+                      <ListItemText
+                        sx={{
+                          fontSize: "1rem",
+                        }}
+                        primary={currResource.name}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
             </>
           )}
-        </Box>
+        </Stack>
       </Drawer>
     );
   };
