@@ -5,7 +5,7 @@ import {
   Segment,
   UserProperty,
 } from "@prisma/client";
-import { Static, Type } from "@sinclair/typebox";
+import { Optional, Static, Type } from "@sinclair/typebox";
 import {
   EventType,
   IntegrationDefinition,
@@ -445,9 +445,41 @@ export const ResendEvent = Type.Object({
   anonymousId: Type.Optional(Type.String()),
 });
 
+export enum PostMarkEventType {
+  Delivery = "email.delivered",
+  SpamComplaint = "email.complained",
+  Bounce = "email.bounced",
+  Open = "email.opened",
+  Click = "email.clicked",
+}
+
+export const PostMarkEvent = Type.Object({
+  MessageStream: Type.String(),
+  ID: Type.Number(),
+  Name: Type.String(),
+  Tag: Type.String(),
+  MessageID: Type.String(),
+  Metadata: Type.Record(Type.String(), Type.Any()),
+  Recipient: Type.Optional(Type.String()),
+  Email: Type.String(),
+  From: Type.String(),
+  RecordType: Type.Enum(PostMarkEventType),
+  BouncedAt: Type.Optional(Type.String()),
+  DeliveredAt: Type.Optional(Type.String()),
+  ReceivedAt: Type.Optional(Type.String()),
+  workspaceId: Type.Optional(Type.String()),
+  runId: Type.Optional(Type.String()),
+  messageId: Type.Optional(Type.String()),
+  userId: Type.Optional(Type.String()),
+  templateId: Type.Optional(Type.String()),
+  journeyId: Type.Optional(Type.String()),
+});
+
 export type SendgridEvent = Static<typeof SendgridEvent>;
 
 export type ResendEvent = Static<typeof ResendEvent>;
+
+export type PostMarkEvent = Static<typeof PostMarkEvent>;
 
 export type IntegrationCreateDefinition = Omit<
   Overwrite<

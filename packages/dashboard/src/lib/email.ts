@@ -94,6 +94,9 @@ export async function getOrCreateEmailProviders({
       case EmailProviderType.AmazonSes:
         type = EmailProviderType.AmazonSes;
         break;
+      case EmailProviderType.PostMark:
+        type = EmailProviderType.PostMark;
+        break;
       case EmailProviderType.Resend:
         type = EmailProviderType.Resend;
         break;

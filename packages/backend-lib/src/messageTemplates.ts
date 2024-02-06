@@ -11,6 +11,7 @@ import {
   ResendRequiredData,
   sendMail as sendMailResend,
 } from "./destinations/resend";
+import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
 import { sendMail as sendMailSmtp } from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
@@ -41,6 +42,7 @@ import {
   UpsertMessageTemplateResource,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
+import { Message as PostMarkRequiredFields} from 'postmark'
 
 export function enrichMessageTemplate({
   id,
@@ -754,6 +756,74 @@ export async function sendEmail({
               type: EmailProviderType.Resend,
               name: result.error.name,
               message: result.error.message,
+            },
+          },
+        });
+      }
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Email,
+          from,
+          body,
+          to,
+          subject,
+          replyTo,
+          provider: {
+            type: EmailProviderType.Resend,
+          },
+        },
+      });
+    }
+    case EmailProviderType.PostMark: {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (secretConfig.type !== EmailProviderType.Resend) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `expected resend secret config but got ${secretConfig.type}`,
+          },
+        });
+      }
+
+      const mailData: PostMarkRequiredFields = {
+        To: to,
+        From: from,
+        Subject: subject,
+        HtmlBody: body,
+        ReplyTo: replyTo,
+        Metadata: {
+          workspaceId,
+          templateId,
+          ...messageTags,
+        },
+      };
+
+      if (!secretConfig.apiKey) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing apiKey in PostMark secret config`,
+          },
+        });
+      }
+
+      const result = await sendMailPostMark({
+        mailData,
+        apiKey: secretConfig.apiKey,
+      });
+
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Email,
+            provider: {
+              type: EmailProviderType.Resend,
+              name: result.error.ErrorCode.toString(),
+              message: result.error.Message,
             },
           },
         });
