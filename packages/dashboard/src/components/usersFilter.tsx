@@ -10,8 +10,7 @@ import { useAppStore } from "../lib/appStore";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import FilterSelector from "./usersFilterSelector";
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import { ClearIcon } from "@mui/x-date-pickers";
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 
 export enum FilterOptions {
     "USER_PROPERTY",
@@ -149,7 +148,7 @@ export const UsersFilter = ({
     <Stack spacing={2} direction="row" justifyItems="center" alignItems="center">
          { userPropertyFilter.map((property, index) => 
             <Box display="flex" flexDirection="row" bgcolor="grey.300" color="text.primary" paddingY="5px" paddingX="8px" key={index}>
-                <ClearIcon fontSize="small" color="secondary" onClick={() => removeFilter(property.id)}/>
+                <CloseOutlinedIcon sx={{width: 10, mr: 1}} color="secondary" onClick={() => removeFilter(property.id)}/>
                 <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
                     <Typography color="inherit">
                      {properties[property.id]}
