@@ -121,7 +121,7 @@ export async function findAllPropertyValues({
 
     const result = await resultSet.json() as {user_property_value: string, user_id: string}[]
    
-    result.map((result) => parsedResult[result.user_property_value] = result.user_id)
+    result.map((result) => parsedResult[result.user_id] = result.user_property_value)
 
     return parsedResult;
 }
