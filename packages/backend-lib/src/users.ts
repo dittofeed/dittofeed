@@ -127,7 +127,7 @@ function buildUserIdQueries({
     WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
       AND ${lastUserIdCondition}
       AND "value" != ''
-      AND ${userPropertyAssignmentCondition}
+      AND (${userPropertyAssignmentCondition})
       AND ${userIdsCondition}
   `
   const segmentAssignmentQuery = Prisma.sql`
