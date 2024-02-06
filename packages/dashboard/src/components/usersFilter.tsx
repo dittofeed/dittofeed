@@ -1,135 +1,147 @@
-import * as React from 'react';
-import Button from '@mui/material/Button';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import { Box, Select, TextField } from '@mui/material';
-import apiRequestHandlerFactory from '../lib/apiRequestHandlerFactory';
-import { GetComputedPropertyAssignmentResourcesResponse } from 'isomorphic-lib/src/types';
-import { useAppStore } from '../lib/appStore';
-import { propertiesStore } from './filterDisplay';
+import Stack from "@mui/material/Stack";
+import UserFilter from "./usersFilter";
+import Typography from "@mui/material/Typography";
+import Breadcrumbs from "@mui/material/Breadcrumbs";
+import { Box } from "@mui/material";
+import React, { useMemo } from "react";
+import { CompletionStatus, EphemeralRequestStatus, GetUserPropertiesResponse, UserPropertyResource } from "isomorphic-lib/src/types";
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
+import { useAppStore } from "../lib/appStore";
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import FilterSelector from "./usersFilterSelector";
 
-export default function UserFilter() {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const [stage, setStage] = React.useState(false);
-  const setSelectedProperty = propertiesStore((store) => store.setSelectedProperty);
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-    setTimeout(() => {
-        setSelectedProperty('')
-        setStage(false)
-    }, 300)
-  };
-
-  const handleStageChange = (selectedProperty: string) => {
-    setSelectedProperty(selectedProperty)
-    setStage(true)
-  }
-
-  return (
-    <div>
-      <Button
-        id="basic-button"
-        aria-controls={open ? 'basic-menu' : undefined}
-        aria-haspopup="true"
-        aria-expanded={open ? 'true' : undefined}
-        onClick={handleClick}
-      >
-       Filter
-      </Button>
-      <Menu
-        id="basic-menu"
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        MenuListProps={{
-          'aria-labelledby': 'basic-button',
-        }}
-      >
-       {!stage ? <UserProperties handleStageChange={handleStageChange}/> : <Selector/>}
-      </Menu>
-    </div>
-  );
+interface UserPropertiesState {
+    // Object stores a list of available properties where
+    // key = propertyId 
+    // value = property_value
+    // { uuid: "firstName" }
+    properties: Record<string, string>, 
+    // Object stores available values for selected properties.
+    // key = propertyId 
+    // value = { userId: propertyValue }
+    propertiesValues: {[key: string]: Record<string,string>},
+    // String = propertyId
+    // used to index propertiesValues
+    selectedProperty: string,
+    filter: {
+        [key: string]: {
+            id: string,
+            userIds?: string[],
+            partial?: string[]
+        }
+    },
+    getUserPropertiesRequest: EphemeralRequestStatus<Error>
 }
 
-function UserProperties({
-    handleStageChange
-} : {
-    handleStageChange: (selectedProperty: string) => void
-}) {
-    const properties = propertiesStore((store) => store.properties)
-
-    return (
-        <>
-          {Object.values(properties).map(
-            (property,key) => <MenuItem key={key} onClick={() => handleStageChange(Object.keys(properties)[key] as string)}>{property}</MenuItem>)
-          }
-        </>
-    )
+interface UserPropertiesActions {
+    setProperties: (val: UserPropertyResource[]) => void;
+    setSelectedProperty: (val: string) => void;
+    setPropertiesValues: (val: Record<string,string>) => void;
+    setSelectedPropertySelectedValue: (val: string) => void;
+    setGetUserPropertiesRequest: (val: EphemeralRequestStatus<Error>) => void;
 }
 
-function filterStrings(inputStr: string, stringArray: string[]) {
-    return stringArray.filter(str => str.toLowerCase().includes(inputStr.toLowerCase()));
-}
+export const propertiesStore = create(
+    immer<UserPropertiesState & UserPropertiesActions>((set) => ({
+        properties: {},
+        selectedProperty: '',
+        propertiesValues: {},
+        filter: {},
+        getUserPropertiesRequest: {
+            type: CompletionStatus.NotStarted,
+        },
+        setGetUserPropertiesRequest: (request) =>
+          set((state) => {
+            state.getUserPropertiesRequest = request;
+          }),
+        setProperties: (properties) => 
+          set((state) => {
+              for (const property of properties) {
+                  state.properties[property.id] = property.name;
+          }}),
+        setSelectedProperty: (property) =>
+            set((state) => {
+                console.log({property})
+                state.selectedProperty = property
+            }),
+        setPropertiesValues: (propertyValues) => 
+            set((state) => {
+                state.propertiesValues[state.selectedProperty] = propertyValues
+            }),
+        setSelectedPropertySelectedValue: (selectedPropertyValue) => 
+            set((state) => {
+                if (state.filter[state.selectedProperty]) {
+                    state.filter[state.selectedProperty]?.userIds?.push(selectedPropertyValue)
+                }else {
+                    state.filter[state.selectedProperty] = {
+                        id: state.selectedProperty,
+                        userIds: [selectedPropertyValue]
+                    } 
+                }
 
-function Selector() {
+            })
+    })
+))
+
+export const UsersFilter = ({
+    workspaceId,
+}: {
+    workspaceId: string,
+}) => {
+  const selectedPropertySelectedValue = propertiesStore((store) => store.filter)
+  const userPropertyFilter = useMemo(() => Object.values(selectedPropertySelectedValue), [selectedPropertySelectedValue])
+  const properties = propertiesStore((store) => store.properties)
   const propertiesValues = propertiesStore((store) => store.propertiesValues)
-  const setSelectedProperySelectedValue = propertiesStore((store) => store.setSelectedPropertySelectedValue)
-  const selectedProperty = propertiesStore((store) => store.selectedProperty);
   const getUserPropertiesRequest = propertiesStore((store) => store.getUserPropertiesRequest);
   const setGetUserPropertiesRequest = propertiesStore((store) => store.setGetUserPropertiesRequest);
-  const setPropertiesValues = propertiesStore((store) => store.setPropertiesValues);
-  const apiBase = useAppStore((state) => state.apiBase);
-  const [filter, setFilter] = React.useState('');
-  const selectedPropertyValues = React.useMemo(() => propertiesValues[selectedProperty], [selectedProperty, propertiesValues])
+  const setProperties = propertiesStore((store) => store.setProperties);
+  const apiBase = useAppStore((store) => store.apiBase);
 
-  const propertyNames = React.useMemo(() => Object.values(selectedPropertyValues ?? {}), [selectedPropertyValues])
-  const filteredProperties = React.useMemo(() => {
-        if (filter === '') return propertyNames 
-        return filterStrings(filter, propertyNames)
-    }, [filter, propertyNames])
 
   React.useEffect(() => {
-    const setLoadResponse = (response: GetComputedPropertyAssignmentResourcesResponse) => {
-        setPropertiesValues(response.values)
+    const setLoadResponse = (response: GetUserPropertiesResponse) => {
+        setProperties(response.properties);
     };
 
     const handler = apiRequestHandlerFactory({
       request: getUserPropertiesRequest,
       setRequest: setGetUserPropertiesRequest,
-      responseSchema: GetComputedPropertyAssignmentResourcesResponse,
+      responseSchema: GetUserPropertiesResponse,
       setResponse: setLoadResponse,
       requestConfig: {
         method: "GET",
-        url: `${apiBase}/api/user-properties/values`,
+        url: `${apiBase}/api/user-properties`,
         params: {
-           propertyId: selectedProperty,
-           workspaceId: "58290c8f-6c59-460f-a8f1-777033c8ded1" 
+           workspaceId: workspaceId 
         },
         headers: {
           "Content-Type": "application/json",
         },
       },
     });
+    handler();
+  }, [])
 
-    if (!propertiesValues[selectedProperty]) {
-        handler();
-    }
-  }, [selectedProperty])
-
-
-    return (
-        <Box component="section">
-          <TextField id="outlined-basic" variant="outlined" onChange={(e) => setFilter(e.target.value)}/>
-
-          {selectedPropertyValues && filteredProperties.map(
-            (property, key) => <MenuItem key={key} onClick={() => setSelectedProperySelectedValue(Object.keys(selectedPropertyValues)[key] as string)}>{property}</MenuItem>)
-          }
-        </Box>
-    )
+  return (
+    <Stack spacing={2} direction="row" justifyItems="center" alignItems="center">
+         { userPropertyFilter.map((property, index) => 
+            <Box display="flex" flexDirection="row" bgcolor="grey.300" color="text.primary" paddingY="5px" paddingX="8px" key={index}>
+                <Breadcrumbs aria-label="breadcrumb" separator=">">
+                    <Typography color="inherit">
+                     {properties[property.id]}
+                    </Typography>
+                    {property.userIds && property.userIds.map((userId, key) => 
+                        <Typography color="inherit" key={key}>
+                          {(propertiesValues[property.id] as Record<string,string>)[userId]} 
+                        </Typography>
+                    )}
+                </Breadcrumbs>
+            </Box>
+         )}
+        <FilterSelector workspaceId={workspaceId}/>
+    </Stack>
+  );
 }
+

@@ -12,7 +12,7 @@ import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { useAppStore } from "../lib/appStore";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
-import { FilterDisplay } from "../components/filterDisplay";
+import { UsersFilter } from "../components/usersFilter";
 
 const QueryParams = Type.Pick(GetUsersRequest, ["cursor", "direction"]);
 
@@ -70,7 +70,7 @@ export default function SegmentUsers() {
             <Typography variant="h4">Users</Typography>
         </Stack>
         <div>
-            <FilterDisplay property={"firstName"} value={"test"}/>
+            <UsersFilter workspaceId={workspace.value.id}/>
         </div>
         <UsersTable
           {...queryParams}
