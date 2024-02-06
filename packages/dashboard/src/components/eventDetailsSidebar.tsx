@@ -5,7 +5,7 @@ import { EditorView } from "@codemirror/view";
 import { Box, Drawer, Typography, useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import { useRouter } from "next/router";
-import React from "react";
+import React, { useMemo } from "react";
 
 import { EventResources } from "../lib/types";
 import { SubtleHeader } from "./headers";
@@ -38,6 +38,16 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> =
   }) {
     const theme = useTheme();
     const router = useRouter();
+    const formattedTraits = useMemo(() => {
+      if (selectedEvent?.traits) {
+        try {
+          return JSON.stringify(JSON.parse(selectedEvent.traits), null, 2);
+        } catch (e) {
+          return selectedEvent.traits;
+        }
+      }
+      return "";
+    }, [selectedEvent?.traits]);
     return (
       <Drawer open={open} onClose={onClose} anchor="right">
         <Box padding={2} paddingTop={10} sx={{ maxWidth: "25vw" }}>
@@ -48,7 +58,7 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> =
                 <Typography key={key} fontFamily="monospace">
                   {`${key}: ${selectedEvent[key as keyof SelectedEvent]}`}
                 </Typography>
-              ) : null,
+              ) : null
             )}
 
           {selectedEvent?.traits && (
@@ -57,7 +67,7 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> =
                 <Typography variant="h5">Traits</Typography>
               </InfoTooltip>
               <ReactCodeMirror
-                value={selectedEvent.traits}
+                value={formattedTraits}
                 extensions={[
                   codeMirrorJson(),
                   linter(jsonParseLinter()),
