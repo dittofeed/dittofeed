@@ -379,3 +379,9 @@ export interface GroupedOption<T> {
   label: string;
   disabled?: boolean;
 }
+
+export interface EventResources {
+  name: string;
+  link: string;
+  key: string;
+}
