@@ -72,7 +72,7 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> =
                   <Typography key={key} fontFamily="monospace">
                     {`${key}: ${selectedEvent[key as keyof SelectedEvent]}`}
                   </Typography>
-                ) : null
+                ) : null,
               )}
           </Stack>
 
