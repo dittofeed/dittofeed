@@ -84,7 +84,7 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 | Performance work on time-based segmentation | Optimization of [computePropertiesWorkflow](https://github.com/dittofeed/dittofeed/blob/0477114238af27d4f42f3d368266a79823956236/packages/backend-lib/src/segments/computePropertiesWorkflow.ts#L46-L113) to reduce segment update times. | - \[ ]   |
 | Replace Prisma with Drizzle   | Addresses Prisma’s excessive memory consumption and memory leak issues for self-hosting developers.                                                                       | - \[ ]   |
 | Basic White Labeling Support  | Allow workspace members to provide their own branding, for the dashboard.                                                                                                                                                                 | - \[ ]   |
-| AWS SES Support               | Support SES as an email service provider.                                                                                                                                                                      | - \[ ]   |
+| AWS SES Support               | Support SES as an email service provider.                                                                                                                                                                      | - ✅ |
 
 ---
 
