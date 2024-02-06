@@ -1,5 +1,5 @@
 import SearchIcon from "@mui/icons-material/Search";
-import { Box, InputAdornment, TextField, useTheme } from "@mui/material";
+import { Box, InputAdornment, Stack, TextField, useTheme } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
@@ -44,7 +44,7 @@ interface EventsActions {
   updatePagination: (key: PaginationModel) => void;
   updateTotalRowCount: (key: EventsState["totalRowCount"]) => void;
   updateEventsPaginationRequest: (
-    key: EventsState["eventsPaginationRequest"],
+    key: EventsState["eventsPaginationRequest"]
   ) => void;
 }
 
@@ -74,7 +74,7 @@ export const useEventsStore = create(
       set((state) => {
         state.totalRowCount = totalRowCount;
       }),
-  })),
+  }))
 );
 
 const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
@@ -92,7 +92,7 @@ export function EventsTable({
       page,
       pageSize,
     }),
-    shallow,
+    shallow
   );
   const { page, pageSize } = paginationModel;
   const theme = useTheme();
@@ -106,13 +106,13 @@ export function EventsTable({
   const updatePagination = useEventsStore((store) => store.updatePagination);
   const totalRowCount = useEventsStore((store) => store.totalRowCount);
   const updateTotalRowCount = useEventsStore(
-    (store) => store.updateTotalRowCount,
+    (store) => store.updateTotalRowCount
   );
   const updateEventsPaginationRequest = useEventsStore(
-    (store) => store.updateEventsPaginationRequest,
+    (store) => store.updateEventsPaginationRequest
   );
   const eventsPaginationRequest = useEventsStore(
-    (store) => store.eventsPaginationRequest,
+    (store) => store.eventsPaginationRequest
   );
   const events = useEventsStore((store) => store.events);
   const sortedEvents = useMemo(
@@ -122,7 +122,7 @@ export function EventsTable({
         const t2 = new Date(e2.eventTime);
         return t1.getTime() > t2.getTime() ? -1 : 1;
       }),
-    [events],
+    [events]
   );
   const updateEvents = useEventsStore((store) => store.updateEvents);
 
@@ -145,7 +145,7 @@ export function EventsTable({
             name: `${broadcast.name}-Template`,
             link: `/broadcasts/template/${broadcast.id}`,
             key: uuid(),
-          },
+          }
         );
         break;
       }
@@ -157,7 +157,7 @@ export function EventsTable({
     journeyId: string,
     templateId: string,
     templateName: string | null,
-    channelType: ChannelType | null,
+    channelType: ChannelType | null
   ) => {
     const resources = [];
     if (journeyId) {
@@ -205,7 +205,7 @@ export function EventsTable({
       journeyId,
       templateId,
       templateName,
-      channelType,
+      channelType
     );
     return journeyResources;
   };
@@ -258,7 +258,7 @@ export function EventsTable({
         const relatedResources = getResources(value);
 
         return (
-          <>
+          <Stack direction="row" spacing={1}>
             {relatedResources.map((currResource) => {
               return (
                 <LinkCell
@@ -268,6 +268,13 @@ export function EventsTable({
                 >
                   <Box
                     sx={{
+                      padding: 1,
+                      backgroundColor: theme.palette.grey[200],
+                      borderRadius: theme.spacing(1),
+                      maxWidth: theme.spacing(16),
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      whiteSpace: "nowrap",
                       fontFamily: "monospace",
                     }}
                   >
@@ -276,7 +283,7 @@ export function EventsTable({
                 </LinkCell>
               );
             })}
-          </>
+          </Stack>
         );
       },
     },
