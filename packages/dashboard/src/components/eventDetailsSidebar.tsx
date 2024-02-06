@@ -3,8 +3,6 @@ import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import {
-  Box,
-  Button,
   Drawer,
   List,
   ListItem,
@@ -15,12 +13,12 @@ import {
   useTheme,
 } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
+import Link from "next/link";
 import React, { useMemo } from "react";
 
 import { EventResources } from "../lib/types";
 import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
-import Link from "next/link";
 
 interface SelectedEvent {
   [x: string]: unknown;

@@ -1,3 +1,4 @@
+import { Visibility } from "@mui/icons-material";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Box,
@@ -12,7 +13,6 @@ import {
   DataGridProps,
   GridColDef,
   GridRenderCellParams,
-  GridRowParams,
 } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -24,7 +24,7 @@ import {
   GetEventsResponse,
   GetEventsResponseItem,
 } from "isomorphic-lib/src/types";
-import React, { ComponentProps, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { v4 as uuid } from "uuid";
 import { create } from "zustand";
@@ -36,7 +36,6 @@ import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import { getTemplatesLink } from "../lib/templatesLink";
 import { EventResources } from "../lib/types";
 import EventDetailsSidebar from "./eventDetailsSidebar";
-import { Visibility } from "@mui/icons-material";
 
 interface EventsState {
   pageSize: number;
