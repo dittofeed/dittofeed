@@ -6,11 +6,12 @@ import { Box, TextField } from '@mui/material';
 import apiRequestHandlerFactory from '../lib/apiRequestHandlerFactory';
 import { GetComputedPropertyAssignmentResourcesResponse } from 'isomorphic-lib/src/types';
 import { useAppStore } from '../lib/appStore';
-import { propertiesStore } from './usersFilter';
+import { FilterOptions, propertiesStore } from './usersFilter';
 
 enum Stage {
-    "SELECTING_PROPERTY",
-    "SELECTING_PROPERTY_VALUE"
+    "SELECTING_FILTER",
+    "SELECTING_ID",
+    "SELECTING_VALUE"
 }
 
 export default function FilterSelector({
@@ -20,9 +21,10 @@ export default function FilterSelector({
 }) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-  const [stage, setStage] = React.useState<Stage>(Stage.SELECTING_PROPERTY);
+  const [stage, setStage] = React.useState<Stage>(Stage.SELECTING_FILTER);
   const setSelectedProperty = propertiesStore((store) => store.setSelectedProperty);
   const setSelectedPropertySelectedValue = propertiesStore((store) => store.setSelectedPropertySelectedValue);
+  const setSelectedFilter = propertiesStore((store) => store.setSelectedFilter);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -32,13 +34,19 @@ export default function FilterSelector({
         setAnchorEl(null);
         setTimeout(() => {
             setSelectedProperty('')
-            setStage(Stage.SELECTING_PROPERTY)
+            setSelectedFilter(FilterOptions.NONE)
+            setStage(Stage.SELECTING_FILTER)
         }, 300)
   };
 
+  const handleFilterSelection = (selectedFilter: FilterOptions) => {
+      setSelectedFilter(selectedFilter)
+      setStage(Stage.SELECTING_ID)
+  }
+
   const handlePropertySelection = (selectedProperty: string) => {
     setSelectedProperty(selectedProperty)
-    setStage(Stage.SELECTING_PROPERTY_VALUE)
+    setStage(Stage.SELECTING_VALUE)
   }
 
     const handleValueSelection = (propertyAssignmentId: string) => {
@@ -65,7 +73,9 @@ export default function FilterSelector({
           'aria-labelledby': 'basic-button',
         }}
       >
-       {stage === Stage.SELECTING_PROPERTY 
+      { stage === Stage.SELECTING_FILTER
+        ? <FilterSelectors handleFilterSelection={handleFilterSelection}/>
+        : stage === Stage.SELECTING_ID 
             ? <PropertiesSelector handleStageChange={handlePropertySelection}/> 
             : <PropertyValuesSelector 
                 handleValueSelection={handleValueSelection}
@@ -75,6 +85,19 @@ export default function FilterSelector({
       </Menu>
     </div>
   );
+}
+
+function FilterSelectors({
+  handleFilterSelection
+}: {
+  handleFilterSelection: (selectedFilter: FilterOptions) => void
+}) {
+    return (
+        <>
+        <MenuItem onClick={() => handleFilterSelection(FilterOptions.USER_PROPERTY)}>User Property</MenuItem> 
+        <MenuItem onClick={() => handleFilterSelection(FilterOptions.SEGMENTS)}>Segment</MenuItem> 
+        </>
+    )
 }
 
 function PropertiesSelector({

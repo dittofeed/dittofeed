@@ -11,7 +11,11 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import FilterSelector from "./usersFilterSelector";
 
-
+export enum FilterOptions {
+    "USER_PROPERTY",
+    "SEGMENTS",
+    "NONE"
+}
 interface UserPropertiesState {
     // Object stores a list of available properties where
     // key = propertyId 
@@ -25,6 +29,7 @@ interface UserPropertiesState {
     // String = propertyId
     // used to index propertiesValues
     selectedProperty: string,
+    selectedFilter: FilterOptions,
     filter: {
         [key: string]: {
             id: string,
@@ -37,6 +42,7 @@ interface UserPropertiesState {
 
 interface UserPropertiesActions {
     setProperties: (val: UserPropertyResource[]) => void;
+    setSelectedFilter: (val: FilterOptions) => void;
     setSelectedProperty: (val: string) => void;
     setPropertiesValues: (val: Record<string,string>) => void;
     setSelectedPropertySelectedValue: (val: string) => void;
@@ -46,12 +52,17 @@ interface UserPropertiesActions {
 export const propertiesStore = create(
     immer<UserPropertiesState & UserPropertiesActions>((set) => ({
         properties: {},
+        selectedFilter: FilterOptions.NONE,
         selectedProperty: '',
         propertiesValues: {},
         filter: {},
         getUserPropertiesRequest: {
             type: CompletionStatus.NotStarted,
         },
+        setSelectedFilter: (filterOption) =>
+          set((state) => {
+            state.selectedFilter = filterOption
+          }),
         setGetUserPropertiesRequest: (request) =>
           set((state) => {
             state.getUserPropertiesRequest = request;
