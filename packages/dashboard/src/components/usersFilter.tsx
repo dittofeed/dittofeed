@@ -1,5 +1,4 @@
 import Stack from "@mui/material/Stack";
-import UserFilter from "./usersFilter";
 import Typography from "@mui/material/Typography";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import { Box } from "@mui/material";
