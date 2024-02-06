@@ -2,11 +2,11 @@ import * as React from 'react';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import { propertiesStore } from '../pages/users.page';
 import { Box, Select, TextField } from '@mui/material';
 import apiRequestHandlerFactory from '../lib/apiRequestHandlerFactory';
 import { GetComputedPropertyAssignmentResourcesResponse } from 'isomorphic-lib/src/types';
 import { useAppStore } from '../lib/appStore';
+import { propertiesStore } from './filterDisplay';
 
 export default function UserFilter() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -66,8 +66,8 @@ function UserProperties({
 
     return (
         <>
-          {Object.keys(properties).map(
-            (property) => <MenuItem onClick={() => handleStageChange(properties[property] as string)}>{property}</MenuItem>)
+          {Object.values(properties).map(
+            (property,key) => <MenuItem key={key} onClick={() => handleStageChange(Object.keys(properties)[key] as string)}>{property}</MenuItem>)
           }
         </>
     )
@@ -78,17 +78,17 @@ function filterStrings(inputStr: string, stringArray: string[]) {
 }
 
 function Selector() {
-  const selectedPropertyValues = propertiesStore((store) => store.selectedPropertyValues)
+  const propertiesValues = propertiesStore((store) => store.propertiesValues)
   const setSelectedProperySelectedValue = propertiesStore((store) => store.setSelectedPropertySelectedValue)
   const selectedProperty = propertiesStore((store) => store.selectedProperty);
   const getUserPropertiesRequest = propertiesStore((store) => store.getUserPropertiesRequest);
   const setGetUserPropertiesRequest = propertiesStore((store) => store.setGetUserPropertiesRequest);
-  const setSelectedPropertyValues = propertiesStore((store) => store.setSelectedPropertyValues);
+  const setPropertiesValues = propertiesStore((store) => store.setPropertiesValues);
   const apiBase = useAppStore((state) => state.apiBase);
   const [filter, setFilter] = React.useState('');
-  const selectedPropertySelectedValue = propertiesStore((store) => store.selectedPropertySelectedValue);
+  const selectedPropertyValues = React.useMemo(() => propertiesValues[selectedProperty], [selectedProperty, propertiesValues])
 
-  const propertyNames = React.useMemo(() => Object.keys(selectedPropertyValues), [selectedPropertyValues])
+  const propertyNames = React.useMemo(() => Object.values(selectedPropertyValues ?? {}), [selectedPropertyValues])
   const filteredProperties = React.useMemo(() => {
         if (filter === '') return propertyNames 
         return filterStrings(filter, propertyNames)
@@ -96,7 +96,7 @@ function Selector() {
 
   React.useEffect(() => {
     const setLoadResponse = (response: GetComputedPropertyAssignmentResourcesResponse) => {
-        setSelectedPropertyValues(response.values)
+        setPropertiesValues(response.values)
     };
 
     const handler = apiRequestHandlerFactory({
@@ -116,7 +116,10 @@ function Selector() {
         },
       },
     });
-    handler();
+
+    if (!propertiesValues[selectedProperty]) {
+        handler();
+    }
   }, [selectedProperty])
 
 
@@ -124,8 +127,8 @@ function Selector() {
         <Box component="section">
           <TextField id="outlined-basic" variant="outlined" onChange={(e) => setFilter(e.target.value)}/>
 
-          {filteredProperties.map(
-            (property) => <MenuItem onClick={() => setSelectedProperySelectedValue(selectedPropertyValues[property] as string)}>{property}</MenuItem>)
+          {selectedPropertyValues && filteredProperties.map(
+            (property, key) => <MenuItem key={key} onClick={() => setSelectedProperySelectedValue(Object.keys(selectedPropertyValues)[key] as string)}>{property}</MenuItem>)
           }
         </Box>
     )
