@@ -10,6 +10,8 @@ import { useAppStore } from "../lib/appStore";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import FilterSelector from "./usersFilterSelector";
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import { ClearIcon } from "@mui/x-date-pickers";
 
 export enum FilterOptions {
     "USER_PROPERTY",
@@ -45,7 +47,8 @@ interface UserPropertiesActions {
     setSelectedFilter: (val: FilterOptions) => void;
     setSelectedProperty: (val: string) => void;
     setPropertiesValues: (val: Record<string,string>) => void;
-    setSelectedPropertySelectedValue: (val: string) => void;
+    setFilter: (val: string) => void;
+    removeFilter: (propertyId: string, userId?: string) => void;
     setGetUserPropertiesRequest: (val: EphemeralRequestStatus<Error>) => void;
 }
 
@@ -74,14 +77,13 @@ export const propertiesStore = create(
           }}),
         setSelectedProperty: (property) =>
             set((state) => {
-                console.log({property})
                 state.selectedProperty = property
             }),
         setPropertiesValues: (propertyValues) => 
             set((state) => {
                 state.propertiesValues[state.selectedProperty] = propertyValues
             }),
-        setSelectedPropertySelectedValue: (selectedPropertyValue) => 
+        setFilter: (selectedPropertyValue) => 
             set((state) => {
                 if (state.filter[state.selectedProperty]) {
                     state.filter[state.selectedProperty]?.userIds?.push(selectedPropertyValue)
@@ -91,7 +93,14 @@ export const propertiesStore = create(
                         userIds: [selectedPropertyValue]
                     } 
                 }
-
+            }),
+        removeFilter: (propertyId, userIdToDelete) => 
+            set((state) => {
+                if (!userIdToDelete || (state.filter[propertyId]?.userIds?.length as number) < 2){
+                    delete state.filter[propertyId]
+                } else {
+                    (state.filter[propertyId] as any).userIds = state.filter[propertyId]?.userIds?.filter(userId => userId !== userIdToDelete)
+                }
             })
     })
 ))
@@ -101,8 +110,9 @@ export const UsersFilter = ({
 }: {
     workspaceId: string,
 }) => {
-  const selectedPropertySelectedValue = propertiesStore((store) => store.filter)
-  const userPropertyFilter = useMemo(() => Object.values(selectedPropertySelectedValue), [selectedPropertySelectedValue])
+  const filter = propertiesStore((store) => store.filter)
+  const removeFilter = propertiesStore((store) => store.removeFilter)
+  const userPropertyFilter = useMemo(() => Object.values(filter), [filter])
   const properties = propertiesStore((store) => store.properties)
   const propertiesValues = propertiesStore((store) => store.propertiesValues)
   const getUserPropertiesRequest = propertiesStore((store) => store.getUserPropertiesRequest);
@@ -139,12 +149,13 @@ export const UsersFilter = ({
     <Stack spacing={2} direction="row" justifyItems="center" alignItems="center">
          { userPropertyFilter.map((property, index) => 
             <Box display="flex" flexDirection="row" bgcolor="grey.300" color="text.primary" paddingY="5px" paddingX="8px" key={index}>
-                <Breadcrumbs aria-label="breadcrumb" separator=">">
+                <ClearIcon fontSize="small" color="secondary" onClick={() => removeFilter(property.id)}/>
+                <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
                     <Typography color="inherit">
                      {properties[property.id]}
                     </Typography>
                     {property.userIds && property.userIds.map((userId, key) => 
-                        <Typography color="inherit" key={key}>
+                        <Typography color="inherit" key={key} onClick={() => removeFilter(property.id, userId)}>
                           {(propertiesValues[property.id] as Record<string,string>)[userId]} 
                         </Typography>
                     )}

@@ -23,7 +23,7 @@ export default function FilterSelector({
   const open = Boolean(anchorEl);
   const [stage, setStage] = React.useState<Stage>(Stage.SELECTING_FILTER);
   const setSelectedProperty = propertiesStore((store) => store.setSelectedProperty);
-  const setSelectedPropertySelectedValue = propertiesStore((store) => store.setSelectedPropertySelectedValue);
+  const setFilter = propertiesStore((store) => store.setFilter);
   const setSelectedFilter = propertiesStore((store) => store.setSelectedFilter);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -50,7 +50,7 @@ export default function FilterSelector({
   }
 
     const handleValueSelection = (propertyAssignmentId: string) => {
-        setSelectedPropertySelectedValue(propertyAssignmentId)
+        setFilter(propertyAssignmentId)
         handleClose()
     }
   return (
