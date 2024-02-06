@@ -67,7 +67,7 @@ function getUserPropertyAssignmentConditions(userPropertyIds: UserPropertyIdsFil
             subqueries.push(Prisma.sql`LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.partial)}])`)
         }
 
-        return Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND (${Prisma.join(subqueries, subqueries.length > 1 ? " OR " : "")}))`
+        return Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND (${Prisma.join(subqueries," OR ")}))`
     })
 
     return Prisma.join(fullQuery, " OR ")
@@ -76,17 +76,17 @@ function getUserPropertyAssignmentConditions(userPropertyIds: UserPropertyIdsFil
 function buildUserIdQueries({
   workspaceId,
   direction,
-  segmentId,
-  userPropertyIds,
+  segmentFilter,
+  userPropertyFilter,
   userIds,
   cursor,
 }: {
   workspaceId: string;
-  segmentId?: string;
+  segmentFilter?: string;
   cursor: Cursor | null;
   direction: CursorDirectionEnum;
   userIds?: string[];
-  userPropertyIds?: UserPropertyIdsFilter;
+  userPropertyFilter?: UserPropertyIdsFilter;
 }): Sql {
   let lastUserIdCondition: Sql;
   if (cursor) {
@@ -110,15 +110,15 @@ function buildUserIdQueries({
     userIdsCondition = Prisma.sql`1=1`;
   }
 
-  const segmentIdCondition = segmentId
-    ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
+  const segmentIdCondition =segmentFilter 
+    ? Prisma.sql`"segmentId" = CAST(${segmentFilter} AS UUID)`
     : Prisma.sql`1=1`;
 
-  const userPropertyAssignmentCondition = userPropertyIds 
-    ? getUserPropertyAssignmentConditions(userPropertyIds)
+  const userPropertyAssignmentCondition = userPropertyFilter 
+    ? getUserPropertyAssignmentConditions(userPropertyFilter)
     : Prisma.sql`1=1`;
 
-  const userIdQueries = Prisma.sql`
+  const userPropertyAssignmentQuery = Prisma.sql`
     SELECT "userId"
     FROM "UserPropertyAssignment"
     WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
@@ -126,9 +126,8 @@ function buildUserIdQueries({
       AND "value" != ''
       AND ${userPropertyAssignmentCondition}
       AND ${userIdsCondition}
-
-    UNION ALL
-
+  `
+  const segmentAssignmentQuery = Prisma.sql`
     SELECT "userId"
     FROM "SegmentAssignment"
     WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
@@ -136,23 +135,39 @@ function buildUserIdQueries({
       AND "inSegment" = TRUE
       AND ${segmentIdCondition}
       AND ${userIdsCondition}
-  `;
+  `
 
-  return userIdQueries;
+  const userIdQueries = []
+
+  if (userPropertyFilter) {
+      userIdQueries.push(userPropertyAssignmentQuery)
+  }
+
+  if (segmentFilter) {
+      userIdQueries.push(segmentAssignmentQuery)
+  }
+
+  if (!userPropertyFilter && !segmentFilter) {
+      userIdQueries.push(segmentAssignmentQuery)
+      userIdQueries.push(userPropertyAssignmentQuery)
+  }
+
+
+  return  Prisma.join(userIdQueries, ' UNION ALL ')
 }
 
 export async function getUsers({
   workspaceId,
   cursor: unparsedCursor,
-  segmentId,
+  segmentFilter,
   userIds,
-  userPropertyIds,
+  userPropertyFilter,
   direction = CursorDirectionEnum.After,
   limit = 10,
 }: GetUsersRequest): Promise<
   Result<GetUsersResponse, Error>
 > {
-  if (segmentId && !validateUuid(segmentId)) {
+  if (segmentFilter && !validateUuid(segmentFilter)) {
     return err(new Error("segmentId is invalid uuid"));
   }
   let cursor: Cursor | null = null;
@@ -174,8 +189,8 @@ export async function getUsers({
     workspaceId,
     userIds,
     cursor,
-    userPropertyIds,
-    segmentId,
+    userPropertyFilter,
+    segmentFilter,
     direction,
   });
 

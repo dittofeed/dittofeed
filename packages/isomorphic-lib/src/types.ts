@@ -1179,11 +1179,11 @@ export const CursorDirection = Type.Enum(CursorDirectionEnum);
 
 export const GetUsersRequest = Type.Object({
   cursor: Type.Optional(Type.String()),
-  segmentId: Type.Optional(Type.String()),
+  segmentFilter: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
   userIds: Type.Optional(Type.Array(Type.String())),
-  userPropertyIds: Type.Optional(
+  userPropertyFilter: Type.Optional(
       Type.Array(
           Type.Object({
             id: Type.String(),

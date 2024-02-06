@@ -147,7 +147,7 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
 
 export default function UsersTable({
   workspaceId,
-  segmentId,
+  segmentFilter,
   direction,
   cursor,
   onPaginationChange,
@@ -212,11 +212,11 @@ export default function UsersTable({
     };
 
     const params: GetUsersRequest = {
-      segmentId,
+      segmentFilter,
       cursor,
       direction,
       workspaceId,
-      userPropertyIds: userPropertyFilter.length > 0 ? userPropertyFilter : undefined
+      userPropertyFilter: userPropertyFilter.length > 0 ? userPropertyFilter : undefined
     };
 
     const handler = apiRequestHandlerFactory({
@@ -236,7 +236,7 @@ export default function UsersTable({
     handler();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segmentId, cursor, direction, userPropertyFilter]);
+  }, [segmentFilter, cursor, direction, userPropertyFilter]);
 
   const isLoading = getUsersRequest.type === CompletionStatus.InProgress;
 

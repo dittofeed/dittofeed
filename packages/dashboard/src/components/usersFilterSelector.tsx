@@ -62,7 +62,7 @@ export default function FilterSelector({
         aria-expanded={open ? 'true' : undefined}
         onClick={handleClick}
       >
-       Filter
+        Add filter
       </Button>
       <Menu
         id="basic-menu"

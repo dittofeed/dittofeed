@@ -29,8 +29,8 @@ export default async function usersController(fastify: FastifyInstance) {
         workspaceId: request.body.workspaceId,
         cursor: request.body.cursor,
         direction: request.body.direction,
-        segmentId: request.body.segmentId,
-        userPropertyIds: request.body.userPropertyIds
+        segmentFilter: request.body.segmentFilter,
+        userPropertyFilter: request.body.userPropertyFilter
       });
       if (result.isErr()) {
         return reply.status(400).send({
