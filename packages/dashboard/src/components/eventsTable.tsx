@@ -40,16 +40,20 @@ import EventDetailsSidebar from "./eventDetailsSidebar";
 interface EventsState {
   pageSize: number;
   page: number;
+  searchTerm: string;
   totalRowCount: number;
   events: GetEventsResponseItem[];
+  currentlySelectedEvent: GetEventsResponseItem | null;
   eventsPaginationRequest: EphemeralRequestStatus<Error>;
 }
 
 type PaginationModel = Pick<EventsState, "page" | "pageSize">;
 
 interface EventsActions {
+  updateSelectedEvent: (key: EventsState["currentlySelectedEvent"]) => void;
   updateEvents: (key: EventsState["events"]) => void;
   updatePagination: (key: PaginationModel) => void;
+  updateSearchTerm: (key: EventsState["searchTerm"]) => void;
   updateTotalRowCount: (key: EventsState["totalRowCount"]) => void;
   updateEventsPaginationRequest: (
     key: EventsState["eventsPaginationRequest"],
@@ -60,14 +64,24 @@ export const useEventsStore = create(
   immer<EventsState & EventsActions>((set) => ({
     pageSize: 10,
     page: 0,
+    searchTerm: "",
     totalRowCount: 2,
     events: [],
+    currentlySelectedEvent: null,
     eventsPaginationRequest: {
       type: CompletionStatus.NotStarted,
     },
+    updateSelectedEvent: (currentlySelectedEvent) =>
+      set((state) => {
+        state.currentlySelectedEvent = currentlySelectedEvent;
+      }),
     updateEvents: (events) =>
       set((state) => {
         state.events = events;
+      }),
+    updateSearchTerm: (searchTerm) =>
+      set((state) => {
+        state.searchTerm = searchTerm;
       }),
     updatePagination: (pagination) =>
       set((state) => {
@@ -314,7 +328,13 @@ export function EventsTable({
     },
   ].map((c) => ({ ...baseColumn, ...c }));
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const {searchTerm, setSearchTerm} = useEventsStore(
+    (store) => ({
+      searchTerm: store.searchTerm,
+      setSearchTerm: store.updateSearchTerm
+    }),
+    shallow,
+  );
 
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
 
@@ -382,8 +402,13 @@ export function EventsTable({
     apiBase,
   ]);
 
-  const [selectedEvent, setSelectedEvent] =
-    useState<GetEventsResponseItem | null>(null);
+  const {selectedEvent, setSelectedEvent} = useEventsStore(
+    (store) => ({
+      selectedEvent: store.currentlySelectedEvent,
+      setSelectedEvent: store.updateSelectedEvent
+    }),
+    shallow,
+  );
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [selectedEventResources, setSelectedEventResources] = useState<
     EventResources[]
