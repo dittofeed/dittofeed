@@ -53,22 +53,25 @@ type UserPropertyIdsFilter = {
 }[]
 
 function getUserPropertyAssignmentConditions(userPropertyIds: UserPropertyIdsFilter) {
-    const fullQuery: any = userPropertyIds.map((property) => {
-        const subqueries: any[] = []
-        
+    const userIds: string[] = []
+    const fullQuery: Sql[] = []
+
+    userPropertyIds.map((property) => {
+        console.log({property})
 
         if (property.userIds) {
-            subqueries.push(
-                Prisma.sql`"userId" IN (${Prisma.join(property.userIds)})`
-            )
+            userIds.push(...property.userIds)
         }
 
         if (property.partial) {
-            subqueries.push(Prisma.sql`LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.partial)}])`)
+            fullQuery.push(Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.partial)}]))`);
         }
 
-        return Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND (${Prisma.join(subqueries," OR ")}))`
     })
+
+    if (userIds.length > 0) {
+        fullQuery.unshift(Prisma.sql`"userId" IN (${Prisma.join(userIds)})`)
+    }
 
     return Prisma.join(fullQuery, " OR ")
 }
