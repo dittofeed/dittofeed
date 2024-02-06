@@ -1,7 +1,15 @@
 import SearchIcon from "@mui/icons-material/Search";
-import { Box, InputAdornment, Stack, TextField, useTheme } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  InputAdornment,
+  Stack,
+  TextField,
+  useTheme,
+} from "@mui/material";
 import {
   DataGrid,
+  DataGridProps,
   GridColDef,
   GridRenderCellParams,
   GridRowParams,
@@ -16,7 +24,7 @@ import {
   GetEventsResponse,
   GetEventsResponseItem,
 } from "isomorphic-lib/src/types";
-import React, { useMemo, useState } from "react";
+import React, { ComponentProps, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { v4 as uuid } from "uuid";
 import { create } from "zustand";
@@ -28,6 +36,7 @@ import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import { getTemplatesLink } from "../lib/templatesLink";
 import { EventResources } from "../lib/types";
 import EventDetailsSidebar from "./eventDetailsSidebar";
+import { Visibility } from "@mui/icons-material";
 
 interface EventsState {
   pageSize: number;
@@ -83,6 +92,23 @@ const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
   filterable: false,
   renderCell: monospaceCell,
 };
+
+function generatePreviewColumn(
+  openSideBar: (params: GridRenderCellParams<GetEventsResponseItem>) => void
+): GridColDef {
+  return {
+    ...baseColumn,
+    field: "preview",
+    headerName: "",
+    renderCell: (params: GridRenderCellParams<GetEventsResponseItem>) => {
+      return (
+        <IconButton onClick={() => openSideBar(params)}>
+          <Visibility />
+        </IconButton>
+      );
+    },
+  };
+}
 
 export function EventsTable({
   userId,
@@ -210,7 +236,7 @@ export function EventsTable({
     return journeyResources;
   };
 
-  const cols = [
+  const cols: DataGridProps["columns"] = [
     {
       field: "userId",
       renderCell: ({ value }: GridRenderCellParams) => (
@@ -287,7 +313,7 @@ export function EventsTable({
         );
       },
     },
-  ];
+  ].map((c) => ({ ...baseColumn, ...c }));
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -364,9 +390,10 @@ export function EventsTable({
     EventResources[]
   >([]);
 
-  const handleEventSelection = (params: GridRowParams) => {
-    const selectedRow: GetEventsResponseItem =
-      params.row as GetEventsResponseItem;
+  const handleEventSelection = (
+    params: GridRenderCellParams<GetEventsResponseItem>
+  ) => {
+    const selectedRow = params.row;
     setSelectedEventResources(getResources(JSON.parse(selectedRow.traits)));
     setSelectedEvent(selectedRow);
     setSidebarOpen(true);
@@ -413,14 +440,13 @@ export function EventsTable({
           },
         }}
         getRowId={(row) => row.messageId}
-        columns={cols.map((c) => ({ ...baseColumn, ...c }))}
+        columns={[generatePreviewColumn(handleEventSelection), ...cols]}
         rowCount={totalRowCount}
         loading={eventsPaginationRequest.type === CompletionStatus.InProgress}
         pageSizeOptions={[paginationModel.pageSize]}
         paginationModel={paginationModel}
         paginationMode="server"
         onPaginationModelChange={updatePagination}
-        onRowClick={handleEventSelection}
       />
       <EventDetailsSidebar
         open={isSidebarOpen}
