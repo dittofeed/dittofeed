@@ -115,9 +115,8 @@ export const propertiesStore = create(
     removePropertyFilter: (propertyId, userIdToDelete) =>
       set((state) => {
         if (
-          !userIdToDelete ||
-          (state.userPropertyFilter[propertyId]?.userIds?.length &&
-            state.userPropertyFilter[propertyId]?.userIds?.length < 2)
+            // @ts-ignore
+          !userIdToDelete || state.userPropertyFilter[propertyId]?.userIds?.length < 2
         ) {
           delete state.userPropertyFilter[propertyId];
         } else {

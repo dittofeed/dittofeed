@@ -177,7 +177,7 @@ export default function UsersTable({
   const segmentFilter: string[] = useMemo(
     () =>
       segmentId
-        ? ([...segmentFilterFromStore, segmentId] as string[])
+        ? ([...segmentFilterFromStore, ...segmentId] as string[])
         : segmentFilterFromStore,
     [segmentFilterFromStore],
   );
