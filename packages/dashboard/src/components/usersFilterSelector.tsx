@@ -18,7 +18,7 @@ enum Stage {
 function IdSelector({
   handleStageChange,
 }: {
-  handleStageChange: (selectedProperty: string) => void;
+  handleStageChange: (selectedProperty: string | undefined) => void;
 }) {
   const selectedFilter = propertiesStore((store) => store.selectedFilter);
   const segments = propertiesStore((store) => store.segments);
@@ -26,19 +26,19 @@ function IdSelector({
   const options = React.useMemo(
     () =>
       selectedFilter === FilterOptions.SEGMENTS
-        ? Object.keys(segments)
-        : Object.keys(properties),
+        ? Object.entries(segments)
+        : Object.entries(properties),
     [],
   );
 
   return (
     <>
-      {Object.values(options).map((property, key) => (
+      {options.map((property) => (
         <MenuItem
-          key={options[key]}
-          onClick={() => handleStageChange(options[key]!)}
+          key={property[0]}
+          onClick={() => handleStageChange(property[0])}
         >
-          {property}
+          {property[1]}
         </MenuItem>
       ))}
     </>
@@ -49,14 +49,10 @@ function PropertyValueSelector({
   handleValueSelection,
   workspaceId,
 }: {
-  handleValueSelection: (propertyAssignmentId: string) => void;
+  handleValueSelection: (propertyAssignmentId: string | undefined) => void;
   workspaceId: string;
 }) {
   const propertiesValues = propertiesStore((store) => store.propertiesValues);
-  const values = React.useMemo(
-    () => Object.keys(propertiesValues),
-    [propertiesValues],
-  );
   const selectedProperty = propertiesStore((store) => store.selectedProperty);
   const getUserPropertiesRequest = propertiesStore(
     (store) => store.getUserPropertiesRequest,
@@ -75,18 +71,16 @@ function PropertyValueSelector({
     [selectedProperty, propertiesValues],
   );
   const propertyNames = React.useMemo(
-    () => Object.values(selectedPropertyValues ?? {}),
+    () => Object.entries(selectedPropertyValues ?? {}),
     [selectedPropertyValues],
   );
 
-  function filterStrings(inputStr: string, stringArray: string[]) {
-    if (inputStr === "") return stringArray;
-    return stringArray.filter((str) =>
-      str.toLowerCase().includes(inputStr.toLowerCase()),
-    );
+  function filterProperties(inputArray: [string,string][], filterString: string): [string,string][]{
+    return inputArray.filter(([firstValue]) => firstValue.includes(filterString));
   }
+
   const filteredProperties = React.useMemo(
-    () => filterStrings(filter, propertyNames),
+    () => filterProperties(propertyNames, filter),
     [filter, propertyNames],
   );
 
@@ -129,12 +123,12 @@ function PropertyValueSelector({
       />
 
       {selectedPropertyValues &&
-        filteredProperties.map((property, key) => (
+        filteredProperties.map((property) => (
           <MenuItem
-            key={values[key]}
-            onClick={() => handleValueSelection(values[key]!)}
+            key={property[0]}
+            onClick={() => handleValueSelection(property[0])}
           >
-            {property}
+            {property[1]}
           </MenuItem>
         ))}
     </Box>
@@ -158,6 +152,29 @@ function FilterSelectors({
       </MenuItem>
     </>
   );
+}
+
+const IdAndValueSelector = ({
+    stage,
+    handleIdSelection,
+    handleValueSelection,
+    workspaceId
+} : {
+    stage: Stage,
+    handleIdSelection: (selectedId: string | undefined) => void,
+    handleValueSelection: (propertyAssignmentId: string | undefined) => void,
+    workspaceId: string
+}) => {
+    if (stage === Stage.SELECTING_ID)   {
+        return <IdSelector handleStageChange={handleIdSelection} />
+    }
+
+    return (
+          <PropertyValueSelector
+            handleValueSelection={handleValueSelection}
+            workspaceId={workspaceId}
+          />
+    )
 }
 
 export default function FilterSelect({ workspaceId }: { workspaceId: string }) {
@@ -192,7 +209,8 @@ export default function FilterSelect({ workspaceId }: { workspaceId: string }) {
     setStage(Stage.SELECTING_ID);
   };
 
-  const handleIdSelection = (selectedId: string) => {
+  const handleIdSelection = (selectedId: string | undefined) => {
+    if (!selectedId) return
     if (selectedFilter === FilterOptions.USER_PROPERTY) {
       setSelectedProperty(selectedId);
       setStage(Stage.SELECTING_VALUE);
@@ -202,12 +220,13 @@ export default function FilterSelect({ workspaceId }: { workspaceId: string }) {
     }
   };
 
-  const handleValueSelection = (propertyAssignmentId: string) => {
-    setUserPropertyFilter(propertyAssignmentId);
+  const handleValueSelection = (propertyAssignmentId: string | undefined) => {
+      if (propertyAssignmentId) {
+        setUserPropertyFilter(propertyAssignmentId);
+      }
+    
     handleClose();
   };
-  if (stage === Stage.SELECTING_FILTER)
-    return <FilterSelectors handleFilterSelection={handleFilterSelection} />;
 
   return (
     <div>
@@ -228,15 +247,15 @@ export default function FilterSelect({ workspaceId }: { workspaceId: string }) {
         MenuListProps={{
           "aria-labelledby": "basic-button",
         }}
-      >
-        {stage === Stage.SELECTING_ID ? (
-          <IdSelector handleStageChange={handleIdSelection} />
-        ) : (
-          <PropertyValueSelector
-            handleValueSelection={handleValueSelection}
-            workspaceId={workspaceId}
-          />
-        )}
+      > {stage === Stage.SELECTING_FILTER 
+          ? <FilterSelectors handleFilterSelection={handleFilterSelection} /> 
+          : <IdAndValueSelector 
+                stage={stage} 
+                handleValueSelection={handleValueSelection} 
+                handleIdSelection={handleIdSelection}
+                workspaceId={workspaceId}
+            />
+        }
       </Menu>
     </div>
   );
