@@ -48,7 +48,7 @@ export default function SegmentUsers() {
         <Typography variant="h4">Users in &quot;{name}&quot;</Typography>
         <UsersTable
           workspaceId={workspace.value.id}
-          segmentId={editedSegment.id}
+          segmentFilter={editedSegment.id}
           {...queryParams}
           onPaginationChange={onUsersTablePaginate}
         />

@@ -1,5 +1,6 @@
 import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
+import { findSegments } from "backend-lib/src/segments";
 import { UserProperty } from "backend-lib/src/types";
 import { findAllPropertyValues, findAllUserProperties, findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { FastifyInstance } from "fastify";
@@ -149,9 +150,11 @@ export default async function userPropertiesController(
     async (request, reply) => {
       try {
         const properties = await findAllUserProperties({workspaceId: request.query.workspaceId}); 
+        const segments = await findSegments({workspaceId: request.query.workspaceId});
 
         return reply.status(200).send({
-            properties: properties
+            properties: properties,
+            segments: segments
         })
       } catch (e) {
             throw e;

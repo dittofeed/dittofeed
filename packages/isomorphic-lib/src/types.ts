@@ -1179,7 +1179,7 @@ export const CursorDirection = Type.Enum(CursorDirectionEnum);
 
 export const GetUsersRequest = Type.Object({
   cursor: Type.Optional(Type.String()),
-  segmentFilter: Type.Optional(Type.String()),
+  segmentFilter: Type.Optional(Type.Array(Type.String())),
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
   userIds: Type.Optional(Type.Array(Type.String())),
@@ -1226,7 +1226,8 @@ export const GetUsersResponse = Type.Object({
 export type GetUsersResponse = Static<typeof GetUsersResponse>;  
 
 export const GetUserPropertiesResponse = Type.Object({
-  properties: Type.Array(UserPropertyResource)  
+  properties: Type.Array(UserPropertyResource),
+  segments: Type.Array(Type.Pick(SegmentResource, ['name', 'id']))
 })
 
 export type GetUserPropertiesResponse = Static<typeof GetUserPropertiesResponse>;

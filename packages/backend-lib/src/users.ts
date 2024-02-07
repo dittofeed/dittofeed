@@ -57,7 +57,6 @@ function getUserPropertyAssignmentConditions(userPropertyIds: UserPropertyIdsFil
     const fullQuery: Sql[] = []
 
     userPropertyIds.map((property) => {
-        console.log({property})
 
         if (property.userIds) {
             userIds.push(...property.userIds)
@@ -85,7 +84,7 @@ function buildUserIdQueries({
   cursor,
 }: {
   workspaceId: string;
-  segmentFilter?: string;
+  segmentFilter?: string[];
   cursor: Cursor | null;
   direction: CursorDirectionEnum;
   userIds?: string[];
@@ -114,7 +113,8 @@ function buildUserIdQueries({
   }
 
   const segmentIdCondition =segmentFilter 
-    ? Prisma.sql`"segmentId" = CAST(${segmentFilter} AS UUID)`
+    ? Prisma.sql`("segmentId" IN (${Prisma.join(segmentFilter.map(segmentId => Prisma.sql`${segmentId}::uuid`))}))`
+
     : Prisma.sql`1=1`;
 
   const userPropertyAssignmentCondition = userPropertyFilter 
@@ -170,9 +170,6 @@ export async function getUsers({
 }: GetUsersRequest): Promise<
   Result<GetUsersResponse, Error>
 > {
-  if (segmentFilter && !validateUuid(segmentFilter)) {
-    return err(new Error("segmentId is invalid uuid"));
-  }
   let cursor: Cursor | null = null;
   if (unparsedCursor) {
     try {

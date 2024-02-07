@@ -154,6 +154,21 @@ export async function findEnrichedSegments({
   return ok(enrichedSegments);
 }
 
+export async function findSegments({workspaceId}: {workspaceId: string}): Promise<Pick<Segment, "name" | "id">[]> {
+    const segments = await prisma().segment.findMany({
+        where: {
+            workspaceId,
+            status: "Running",
+            resourceType: "Declarative"
+        },
+        select: {
+            name: true,
+            id: true
+        }
+    })
+    return segments
+}
+
 export async function findManyEnrichedSegments({
   workspaceId,
   segmentIds,

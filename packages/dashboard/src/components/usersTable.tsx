@@ -147,7 +147,7 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
 
 export default function UsersTable({
   workspaceId,
-  segmentFilter,
+  segmentFilter: segmentId,
   direction,
   cursor,
   onPaginationChange,
@@ -166,8 +166,10 @@ export default function UsersTable({
   const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
 
   // used to filter by property 
-  const selectedPropertySelectedValue = propertiesStore((store) => store.filter);
-  const userPropertyFilter = useMemo(() => Object.values(selectedPropertySelectedValue), [selectedPropertySelectedValue])
+  const propertyFilter = propertiesStore((store) => store.userPropertyFilter);
+  const userPropertyFilter = useMemo(() => Object.values(propertyFilter), [propertyFilter])
+  const segmentFilterFromStore = propertiesStore((store) => store.segmentFilter);
+  const segmentFilter: string[] = useMemo(() => segmentId ? [...segmentFilterFromStore, segmentId] as string[] : segmentFilterFromStore, [segmentFilterFromStore]) 
 
   const usersPage = useMemo(
     () =>
@@ -212,7 +214,7 @@ export default function UsersTable({
     };
 
     const params: GetUsersRequest = {
-      segmentFilter,
+      segmentFilter: segmentFilter.length > 0 ? segmentFilter : undefined,
       cursor,
       direction,
       workspaceId,
@@ -236,7 +238,7 @@ export default function UsersTable({
     handler();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segmentFilter, cursor, direction, userPropertyFilter]);
+  }, [segmentFilter, cursor, direction, userPropertyFilter, segmentFilter]);
 
   const isLoading = getUsersRequest.type === CompletionStatus.InProgress;
 

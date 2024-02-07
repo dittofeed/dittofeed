@@ -70,7 +70,7 @@ export default function SubscriptionGroupUsers() {
             </Typography>
             <UsersTable
               workspaceId={workspace.value.id}
-              segmentId={segment.id}
+              segmentFilter={segment.id}
               {...queryParams}
               onPaginationChange={onUsersTablePaginate}
             />

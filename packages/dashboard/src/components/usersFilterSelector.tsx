@@ -14,7 +14,7 @@ enum Stage {
     "SELECTING_VALUE"
 }
 
-export default function FilterSelector({
+export default function FilterSelect({
     workspaceId
 } : {
     workspaceId: string
@@ -23,8 +23,10 @@ export default function FilterSelector({
   const open = Boolean(anchorEl);
   const [stage, setStage] = React.useState<Stage>(Stage.SELECTING_FILTER);
   const setSelectedProperty = propertiesStore((store) => store.setSelectedProperty);
-  const setFilter = propertiesStore((store) => store.setFilter);
+  const setUserPropertyFilter = propertiesStore((store) => store.setUserPropertyFilter);
+  const setSegmentFilter = propertiesStore((store) => store.setSegmentFilter);
   const setSelectedFilter = propertiesStore((store) => store.setSelectedFilter);
+  const selectedFilter = propertiesStore((store) => store.selectedFilter);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -44,13 +46,18 @@ export default function FilterSelector({
       setStage(Stage.SELECTING_ID)
   }
 
-  const handlePropertySelection = (selectedProperty: string) => {
-    setSelectedProperty(selectedProperty)
-    setStage(Stage.SELECTING_VALUE)
+  const handleIdSelection = (selectedId: string) => {
+      if (selectedFilter === FilterOptions.USER_PROPERTY) {
+            setSelectedProperty(selectedId)
+            setStage(Stage.SELECTING_VALUE)
+      } else {
+          setSegmentFilter(selectedId)
+          handleClose()
+      }
   }
 
     const handleValueSelection = (propertyAssignmentId: string) => {
-        setFilter(propertyAssignmentId)
+        setUserPropertyFilter(propertyAssignmentId)
         handleClose()
     }
   return (
@@ -76,8 +83,8 @@ export default function FilterSelector({
       { stage === Stage.SELECTING_FILTER
         ? <FilterSelectors handleFilterSelection={handleFilterSelection}/>
         : stage === Stage.SELECTING_ID 
-            ? <PropertiesSelector handleStageChange={handlePropertySelection}/> 
-            : <PropertyValuesSelector 
+            ? <IdSelector handleStageChange={handleIdSelection}/> 
+            : <PropertyValueSelector 
                 handleValueSelection={handleValueSelection}
                 workspaceId={workspaceId}
               />
@@ -100,22 +107,33 @@ function FilterSelectors({
     )
 }
 
-function PropertiesSelector({
+function IdSelector({
     handleStageChange
 } : {
     handleStageChange: (selectedProperty: string) => void
 }) {
+    const selectedFilter = propertiesStore((store) => store.selectedFilter)
+    const segments = propertiesStore((store) => store.segments)
     const properties = propertiesStore((store) => store.properties)
+    const options = React.useMemo(() => 
+            selectedFilter === FilterOptions.SEGMENTS 
+            ? segments 
+            : properties
+    ,[])
+
     return (
         <>
-          {Object.values(properties).map(
-            (property,key) => <MenuItem key={key} onClick={() => handleStageChange(Object.keys(properties)[key] as string)}>{property}</MenuItem>)
+          {Object.values(options).map((property,key) => 
+                <MenuItem key={key} onClick={() => handleStageChange(Object.keys(options)[key] as string)}>
+                    {property}
+                </MenuItem>
+            )
           }
         </>
     )
 }
 
-function PropertyValuesSelector({
+function PropertyValueSelector({
     handleValueSelection,
     workspaceId
 } : {
