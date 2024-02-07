@@ -6,13 +6,14 @@ import { CompletionStatus, GetUsersRequest } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React, { useMemo } from "react";
+
 import MainLayout from "../components/mainLayout";
+import { UsersFilter } from "../components/usersFilter";
 import UsersTable, { OnPaginationChangeProps } from "../components/usersTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { useAppStore } from "../lib/appStore";
 import { requestContext } from "../lib/requestContext";
 import { PropsWithInitialState } from "../lib/types";
-import { UsersFilter } from "../components/usersFilter";
 
 const QueryParams = Type.Pick(GetUsersRequest, ["cursor", "direction"]);
 
@@ -25,7 +26,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     }),
   }));
 
-
 export default function SegmentUsers() {
   const theme = useTheme();
   const router = useRouter();
@@ -37,8 +37,6 @@ export default function SegmentUsers() {
   if (workspace.type !== CompletionStatus.Successful) {
     return null;
   }
-
-
 
   const onUsersTablePaginate = ({
     direction,
@@ -54,7 +52,6 @@ export default function SegmentUsers() {
     });
   };
 
-
   return (
     <MainLayout>
       <Stack
@@ -67,10 +64,10 @@ export default function SegmentUsers() {
         }}
       >
         <Stack direction="row">
-            <Typography variant="h4">Users</Typography>
+          <Typography variant="h4">Users</Typography>
         </Stack>
         <div>
-            <UsersFilter workspaceId={workspace.value.id}/>
+          <UsersFilter workspaceId={workspace.value.id} />
         </div>
         <UsersTable
           {...queryParams}

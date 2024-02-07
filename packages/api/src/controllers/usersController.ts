@@ -30,7 +30,7 @@ export default async function usersController(fastify: FastifyInstance) {
         cursor: request.body.cursor,
         direction: request.body.direction,
         segmentFilter: request.body.segmentFilter,
-        userPropertyFilter: request.body.userPropertyFilter
+        userPropertyFilter: request.body.userPropertyFilter,
       });
       if (result.isErr()) {
         return reply.status(400).send({

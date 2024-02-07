@@ -23,7 +23,7 @@ import { immer } from "zustand/middleware/immer";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
-import { propertiesStore } from "./usersFilter";
+import { propertiesStore } from "../lib/filterStore";
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -165,11 +165,22 @@ export default function UsersTable({
   const setUsersPage = usersStore((store) => store.setUsersPage);
   const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
 
-  // used to filter by property 
+  // used to filter by property
   const propertyFilter = propertiesStore((store) => store.userPropertyFilter);
-  const userPropertyFilter = useMemo(() => Object.values(propertyFilter), [propertyFilter])
-  const segmentFilterFromStore = propertiesStore((store) => store.segmentFilter);
-  const segmentFilter: string[] = useMemo(() => segmentId ? [...segmentFilterFromStore, segmentId] as string[] : segmentFilterFromStore, [segmentFilterFromStore]) 
+  const userPropertyFilter = useMemo(
+    () => Object.values(propertyFilter),
+    [propertyFilter],
+  );
+  const segmentFilterFromStore = propertiesStore(
+    (store) => store.segmentFilter,
+  );
+  const segmentFilter: string[] = useMemo(
+    () =>
+      segmentId
+        ? ([...segmentFilterFromStore, segmentId] as string[])
+        : segmentFilterFromStore,
+    [segmentFilterFromStore],
+  );
 
   const usersPage = useMemo(
     () =>
@@ -218,7 +229,8 @@ export default function UsersTable({
       cursor,
       direction,
       workspaceId,
-      userPropertyFilter: userPropertyFilter.length > 0 ? userPropertyFilter : undefined
+      userPropertyFilter:
+        userPropertyFilter.length > 0 ? userPropertyFilter : undefined,
     };
 
     const handler = apiRequestHandlerFactory({
