@@ -48,7 +48,8 @@ interface UserPropertiesActions {
   setPropertiesValues: (val: Record<string, string>) => void;
   setSegmentFilter: (val: string) => void;
   setUserPropertyFilter: (val: string) => void;
-  removeFilter: (propertyId: string, userId?: string) => void;
+  removePropertyFilter: (propertyId: string, userId?: string) => void;
+  removeSegmentFilter: (segmentId: string) => void;
   setGetUserPropertiesRequest: (val: EphemeralRequestStatus<Error>) => void;
 }
 
@@ -111,7 +112,7 @@ export const propertiesStore = create(
           };
         }
       }),
-    removeFilter: (propertyId, userIdToDelete) =>
+    removePropertyFilter: (propertyId, userIdToDelete) =>
       set((state) => {
         if (
           !userIdToDelete ||
@@ -126,5 +127,10 @@ export const propertiesStore = create(
             );
         }
       }),
+    removeSegmentFilter: (segmentId) => 
+      set((state) => {
+          console.log(segmentId)
+          state.segmentFilter = state.segmentFilter.filter((segment) =>  segment !== segmentId)
+      })
   })),
 );

@@ -15,7 +15,8 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
   const userPropertyFilterFromStore = propertiesStore(
     (store) => store.userPropertyFilter,
   );
-  const removeFilter = propertiesStore((store) => store.removeFilter);
+  const removeSegmentFilter = propertiesStore((store) => store.removeSegmentFilter);
+  const removePropertyFilter = propertiesStore((store) => store.removePropertyFilter);
   const userPropertyFilter = useMemo(
     () => Object.values(userPropertyFilterFromStore),
     [userPropertyFilterFromStore],
@@ -84,9 +85,9 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
           key={property.id}
         >
           <CloseOutlinedIcon
-            sx={{ width: 10, mr: 1 }}
+            sx={{ width: 10, mr: 1, cursor: "pointer"}}
             color="secondary"
-            onClick={() => removeFilter(property.id)}
+            onClick={() => removePropertyFilter(property.id)}
           />
           <Breadcrumbs aria-label="breadcrumb" separator=">">
             <Typography color="inherit">User Property</Typography>
@@ -95,8 +96,9 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
               property.userIds.map((userId) => (
                 <Typography
                   color="inherit"
+                  sx={{cursor: "pointer"}}
                   key={userId}
-                  onClick={() => removeFilter(property.id, userId)}
+                  onClick={() => removePropertyFilter(property.id, userId)}
                 >
                   {propertiesValues[property.id]![userId]}
                 </Typography>
@@ -115,9 +117,9 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
             paddingX="8px"
           >
             <CloseOutlinedIcon
-              sx={{ width: 10, mr: 1 }}
+              sx={{ width: 10, mr: 1, cursor: "pointer"}}
               color="secondary"
-              onClick={() => removeFilter(property)}
+              onClick={() => removeSegmentFilter(property)}
             />
             <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
               <Typography color="inherit">Segment</Typography>
