@@ -218,6 +218,20 @@ export default async function contentController(fastify: FastifyInstance) {
               });
               break;
             }
+            case EmailProviderType.AmazonSes: {
+              const { message } = result.error.variant.provider;
+              const suggestions: string[] = [];
+              if (message) {
+                suggestions.push(message);
+              }
+              return reply.status(200).send({
+                type: JsonResultType.Err,
+                err: {
+                  suggestions,
+                  responseData: message,
+                },
+              });
+            }
             default: {
               assertUnreachable(type);
             }

@@ -188,6 +188,7 @@ function getUserPropertyValues({
 
 export default function TemplateEditor({
   templateId,
+  channel,
   renderEditorBody,
   renderEditorHeader,
   renderPreviewBody,
@@ -200,6 +201,7 @@ export default function TemplateEditor({
   fieldToReadable,
   definitionToPreview,
 }: {
+  channel: ChannelType;
   templateId: string;
   disabled?: boolean;
   hideTitle?: boolean;
@@ -382,7 +384,7 @@ export default function TemplateEditor({
       }
       const data: RenderMessageTemplateRequest = {
         workspaceId: workspace.id,
-        channel: ChannelType.Email,
+        channel,
         userProperties: debouncedUserProperties,
         contents: definitionToPreview(debouncedDefinition),
       };
@@ -511,7 +513,7 @@ export default function TemplateEditor({
   }
 
   const submitTestData: MessageTemplateTestRequest = {
-    channel: ChannelType.Email,
+    channel,
     workspaceId: workspace.id,
     templateId,
     userProperties,
@@ -545,7 +547,7 @@ export default function TemplateEditor({
     if (
       testResponse.type === JsonResultType.Ok &&
       testResponse.value.type === InternalEventType.MessageSent &&
-      testResponse.value.variant.type === ChannelType.Email
+      testResponse.value.variant.type === channel
     ) {
       const { to } = testResponse.value.variant;
       testResponseEl = (

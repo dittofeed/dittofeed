@@ -969,9 +969,11 @@ export type RequestStatus<V, E> =
 
 export enum EmailProviderType {
   Sendgrid = "SendGrid",
+  AmazonSes = "AmazonSes",
   Resend = "Resend",
   Smtp = "Smtp",
   Test = "Test",
+
 }
 
 export const TestEmailProvider = Type.Object({
@@ -987,6 +989,14 @@ export const SendgridEmailProvider = Type.Object({
 });
 
 export type SendgridEmailProvider = Static<typeof SendgridEmailProvider>;
+
+export const AmazonSesEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(EmailProviderType.AmazonSes),
+});
+
+export type AmazonSesEmailProvider = Static<typeof AmazonSesEmailProvider>;
 
 export const SmtpEmailProvider = Type.Object({
   id: Type.String(),
@@ -1006,6 +1016,7 @@ export type ResendEmailProvider = Static<typeof ResendEmailProvider>;
 
 export const PersistedEmailProvider = Type.Union([
   SendgridEmailProvider,
+  AmazonSesEmailProvider,
   ResendEmailProvider,
   SmtpEmailProvider,
 ]);
@@ -2004,6 +2015,13 @@ export const EmailSendgridSuccess = Type.Object({
 
 export type EmailSendgridSuccess = Static<typeof EmailSendgridSuccess>;
 
+export const EmailAmazonSesSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.AmazonSes),
+  messageId: Type.Optional(Type.String()),
+});
+
+export type EmailAmazonSesSuccess = Static<typeof EmailAmazonSesSuccess>;
+
 export const EmailSmtpSuccess = Type.Object({
   type: Type.Literal(EmailProviderType.Smtp),
   messageId: Type.String(),
@@ -2019,6 +2037,7 @@ export type EmailResendSuccess = Static<typeof EmailResendSuccess>;
 
 export const EmailServiceProviderSuccess = Type.Union([
   EmailSendgridSuccess,
+  EmailAmazonSesSuccess,
   EmailResendSuccess,
   EmailSmtpSuccess,
   EmailTestSuccess,
@@ -2143,7 +2162,14 @@ export const MessageSendgridServiceFailure = Type.Object({
 
 export type MessageSendgridServiceFailure = Static<
   typeof MessageSendgridServiceFailure
->;
+  >;
+
+export const MessageAmazonSesServiceFailure = Type.Object({
+  type: Type.Literal(EmailProviderType.AmazonSes),
+  message: Type.Optional(Type.String()),
+});
+
+export type MessageAmazonSesServiceFailure = Static<typeof MessageAmazonSesServiceFailure>;
 
 export const MessageSmtpFailure = Type.Object({
   type: Type.Literal(EmailProviderType.Smtp),
@@ -2162,6 +2188,7 @@ export type MessageResendFailure = Static<typeof MessageResendFailure>;
 
 export const EmailServiceProviderFailure = Type.Union([
   MessageSendgridServiceFailure,
+  MessageAmazonSesServiceFailure,
   MessageResendFailure,
   MessageSmtpFailure,
 ]);
@@ -2376,6 +2403,32 @@ export const SendgridSecret = Type.Object({
 
 export type SendgridSecret = Static<typeof SendgridSecret>;
 
+export const AmazonSesSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.AmazonSes),
+  accessKeyId: Type.Optional(Type.String()),
+  secretAccessKey: Type.Optional(Type.String()),
+  region: Type.Optional(Type.String()),
+});
+
+export type AmazonSesSecret = Static<typeof AmazonSesSecret>;
+
+export type AmazonSesConfig = Required<Pick<AmazonSesSecret, "accessKeyId" | "secretAccessKey" | "region">>;
+
+export const AmazonSesMailFields = Type.Object({
+  from: Type.String(),
+  to: Type.String(),
+  subject: Type.String(),
+  html: Type.String(),
+  replyTo: Type.Optional(Type.String()),
+  tags: Type.Optional(
+    Type.Record(
+      Type.String(), Type.String()
+    )
+  ),
+})
+
+export type AmazonSesMailFields = Static<typeof AmazonSesMailFields>;
+
 export const ResendSecret = Type.Object({
   type: Type.Literal(EmailProviderType.Resend),
   apiKey: Type.Optional(Type.String()),
@@ -2398,6 +2451,7 @@ export type SmtpSecretKey = keyof Omit<SmtpSecret, "type">;
 
 export const EmailProviderSecret = Type.Union([
   SendgridSecret,
+  AmazonSesSecret,
   SmtpSecret,
   ResendSecret,
 ]);

@@ -35,6 +35,7 @@ import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups"
 import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
+  AMAZONSES_SECRET_NAME,
   EMAIL_PROVIDER_TYPE_TO_SECRET_NAME,
   RESEND_SECRET,
   SENDGRID_SECRET,
@@ -665,6 +666,73 @@ function SendGridConfig() {
   );
 }
 
+function AmazonSesConfig() {
+  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "amazonses-section",
+          fieldGroups: [
+            {
+              id: "amazonses-fields",
+              name: "AmazonSES",
+              fields: [
+                {
+                  id: "amazonses-access-key-id",
+                  type: "secret",
+                  fieldProps: {
+                    name: AMAZONSES_SECRET_NAME,
+                    secretKey: "accessKeyId",
+                    label: "Access Key Id",
+                    helperText: "IAM user access key",
+                    type: EmailProviderType.AmazonSes,
+                    saved:
+                      secretAvailability.find(
+                        (s) => s.name === AMAZONSES_SECRET_NAME,
+                      )?.configValue?.accessKeyId ?? false,
+                  },
+                },
+                {
+                  id: "amazonses-secret-access-key",
+                  type: "secret",
+                  fieldProps: {
+                    name: AMAZONSES_SECRET_NAME,
+                    secretKey: "secretAccessKey",
+                    label: "Secret Access Key",
+                    helperText: "Secret access key for IAM user.",
+                    type: EmailProviderType.AmazonSes,
+                    saved:
+                      secretAvailability.find(
+                        (s) => s.name === AMAZONSES_SECRET_NAME,
+                      )?.configValue?.secretAccessKey ?? false,
+                  },
+                },
+                {
+                  id: "amazonses-region",
+                  type: "secret",
+                  fieldProps: {
+                    name: AMAZONSES_SECRET_NAME,
+                    secretKey: "region",
+                    label: "AWS Region",
+                    helperText: "The AWS region to route requests to.",
+                    type: EmailProviderType.AmazonSes,
+                    saved:
+                      secretAvailability.find(
+                        (s) => s.name === AMAZONSES_SECRET_NAME,
+                      )?.configValue?.region ?? false,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
 function ResendConfig() {
   const { secretAvailability } = useAppStorePick(["secretAvailability"]);
 
@@ -856,6 +924,9 @@ function DefaultEmailConfig() {
       case EmailProviderType.Sendgrid:
         name = "SendGrid";
         break;
+      case EmailProviderType.AmazonSes:
+        name = "AmazonSES";
+        break;
       case EmailProviderType.Smtp:
         name = "SMTP";
         break;
@@ -943,6 +1014,7 @@ function EmailChannelConfig() {
       <SectionSubHeader id={settingsSectionIds.emailChannel} title="Email" />
       <DefaultEmailConfig />
       <SendGridConfig />
+      <AmazonSesConfig />
       <ResendConfig />
       <SmtpConfig />
     </>

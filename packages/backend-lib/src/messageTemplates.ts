@@ -4,7 +4,9 @@ import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+import * as R from "remeda";
 
+import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
 import {
   ResendRequiredData,
   sendMail as sendMailResend,
@@ -20,6 +22,8 @@ import {
   SubscriptionGroupDetails,
 } from "./subscriptionGroups";
 import {
+  AmazonSesConfig,
+  type AmazonSesMailFields,
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
   ChannelType,
@@ -617,6 +621,81 @@ export async function sendEmail({
         },
       });
     }
+    case EmailProviderType.AmazonSes: {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (secretConfig.type !== EmailProviderType.AmazonSes) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `expected amazon secret config but got ${secretConfig.type}`,
+          },
+        });
+      }
+      const mailData: AmazonSesMailFields = {
+        to,
+        from,
+        subject,
+        html: body,
+        replyTo,
+        tags: {
+          workspaceId,
+          templateId,
+          ...messageTags,
+        },
+      };
+
+      if (
+        !secretConfig.accessKeyId ||
+        !secretConfig.secretAccessKey ||
+        !secretConfig.region
+      ) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: "missing accesskey or secret in AmazonSES config",
+          },
+        });
+      }
+
+      const result = await sendMailAmazonSes({
+        mailData,
+        config: R.pick(secretConfig, [
+          "accessKeyId",
+          "secretAccessKey",
+          "region",
+        ]) as AmazonSesConfig,
+      });
+
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Email,
+            provider: {
+              type: EmailProviderType.AmazonSes,
+              message: result.error.message,
+            },
+          },
+        });
+      }
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Email,
+          from,
+          body,
+          to,
+          subject,
+          replyTo,
+          provider: {
+            type: EmailProviderType.AmazonSes,
+            messageId: result.value.MessageId,
+          },
+        },
+      });
+    }
 
     case EmailProviderType.Resend: {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -734,7 +813,7 @@ export async function sendSms({
     getSendMessageModels({
       workspaceId,
       templateId,
-      channel: ChannelType.Email,
+      channel: ChannelType.Sms,
       useDraft,
       subscriptionGroupDetails,
     }),
