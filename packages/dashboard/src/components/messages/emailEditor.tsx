@@ -83,6 +83,7 @@ export default function EmailEditor({
   return (
     <TemplateEditor
       templateId={messageId}
+      channel={ChannelType.Email}
       member={member}
       disabled={disabled}
       hideTitle={hideTitle}

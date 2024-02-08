@@ -14,6 +14,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.503.1",
     "@clickhouse/client": "^0.2.1",
     "@fast-csv/format": "^4.3.5",
     "@opentelemetry/api": "^1.4.1",
@@ -59,6 +60,7 @@
     "prisma": "^5.4.1",
     "remeda": "^1.24.0",
     "resend": "^2.1.0",
+    "sns-payload-validator": "^2.1.0",
     "twilio": "^4.18.0",
     "utility-types": "^3.10.0",
     "uuid": "^9.0.0"
