@@ -91,12 +91,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       value: userPropertyResources.map((userPropertyResource) => ({
         ...userPropertyResource,
         lastRecomputed: Number(new Date(Number(csps[userPropertyResource.id]))),
-        templates: templatesUsedBy[userPropertyResource.id]
-          ?.map(
-            (template) =>
-              `${template.name}|${template.id}|${(template.definition as MessageTemplateResourceDefinition).type}`,
-          )
-          ?.join(`, \n`),
+        templates: templatesUsedBy[userPropertyResource.id]?.map(
+          (template) => ({
+            id: template.id,
+            name: template.name,
+            type: (template.definition as MessageTemplateResourceDefinition)
+              .type,
+          }),
+        ),
       })),
     };
     return {

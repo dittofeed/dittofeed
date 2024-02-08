@@ -32,28 +32,30 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const { toSegmentResource } = await import("backend-lib/src/segments");
 
     const workspaceId = dfContext.workspace.id;
-    const segmentResources: (SegmentResource & {
-      definitionUpdatedAt: number;
-    })[] = (
-      await prisma().segment.findMany({
+    const [segmentsFromDB, journeys] = await Promise.all([
+      prisma().segment.findMany({
         where: {
           workspaceId,
           resourceType: {
             not: "Internal",
           },
         },
-      })
-    ).flatMap((segment) => {
+      }),
+      prisma().journey.findMany({
+        where: {
+          workspaceId,
+          resourceType: "Declarative",
+        },
+      }),
+    ]);
+    const segmentResources: (SegmentResource & {
+      definitionUpdatedAt: number;
+    })[] = segmentsFromDB.flatMap((segment) => {
       const result = toSegmentResource(segment);
       if (result.isErr()) {
         return [];
       }
       return result.value;
-    });
-    const journeys = await prisma().journey.findMany({
-      where: {
-        workspaceId,
-      },
     });
     const computedPropertyPeriods = await getPeriodsByComputedPropertyId({
       workspaceId,
@@ -100,9 +102,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       value: segmentResources.map((segment) => ({
         ...segment,
         lastRecomputed: Number(new Date(Number(csps[segment.id]))),
-        journeys: usedBy[segment.id]
-          ?.map((journey) => `${journey.name}|${journey.id}`)
-          ?.join(`, \n`),
+        journeys: usedBy[segment.id]?.map((journey) => ({
+          id: journey.id,
+          name: journey.name,
+        })),
       })),
     };
     return {

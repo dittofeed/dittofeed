@@ -1,10 +1,11 @@
-import { Button } from "@mui/material";
+import { Tooltip } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   CompletionStatus,
   DeleteUserPropertyRequest,
   EmptyResponse,
 } from "isomorphic-lib/src/types";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
 
@@ -17,7 +18,11 @@ interface Row {
   id: string;
   properties: string;
   updatedAt: string;
-  templates: string;
+  templates: {
+    id: string;
+    name: string;
+    type: string;
+  }[];
   lastRecomputed: string;
 }
 
@@ -46,7 +51,7 @@ export default function UserPropertiesTable() {
       updatedAt: userProperty.updatedAt
         ? new Date(userProperty.updatedAt).toISOString()
         : "Not Updated",
-      templates: userProperty.templates ?? "No Templates",
+      templates: userProperty.templates ?? [],
       lastRecomputed: userProperty.lastRecomputed
         ? new Date(userProperty.lastRecomputed).toISOString()
         : "Not Re-Computed",
@@ -113,47 +118,49 @@ export default function UserPropertiesTable() {
           headerName: "Templates used by",
           renderCell: ({ row }: { row: Row }) => {
             const currentRow = row;
-            if (currentRow.templates === "No Templates") {
+            if (currentRow.templates.length === 0) {
               return (
                 <div>
                   <p>No Templates</p>
                 </div>
               );
             }
-            const templates = currentRow.templates.split(",");
             return (
               <div>
-                {templates.map((template) => {
-                  const [templateName, templateId, templateType] =
-                    template.split("|");
+                {currentRow.templates.map((template) => {
                   let type = "email";
-                  if (templateType === "Email") {
+                  if (template.type === "Email") {
                     type = "email";
-                  } else if (templateType === "Sms") {
+                  } else if (template.type === "Sms") {
                     type = "sms";
-                  } else if (templateType === "MobilePush") {
+                  } else if (template.type === "MobilePush") {
                     type = "mobile-push";
                   }
                   return (
-                    <Button
-                      key={template}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push({
-                          pathname: `/templates/${type}/${templateId}`,
-                        });
-                      }}
-                      sx={{
-                        color: "inherit",
-                        textDecoration: "underline",
-                        "&:hover": {
-                          textDecoration: "none",
-                        },
-                        fontSize: "inherit",
-                      }}
-                    >
-                      {templateName}
-                    </Button>
+                    <Tooltip title={template.name} key={template.id}>
+                      <Link
+                        href={`/templates/${type}/${template.id}`}
+                        passHref
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        style={{
+                          display: "block",
+                          margin: "0.2rem 0",
+                          backgroundColor: "#f5f5f5",
+                          padding: "0.5rem",
+                          borderRadius: "0.5rem",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          textDecoration: "underline",
+                          width: 200,
+                          maxWidth: "fit-content",
+                        }}
+                      >
+                        {template.name}
+                      </Link>
+                    </Tooltip>
                   );
                 })}
               </div>

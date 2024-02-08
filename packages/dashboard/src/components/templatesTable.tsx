@@ -1,4 +1,4 @@
-import { Button } from "@mui/material";
+import { Tooltip } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -12,6 +12,7 @@ import {
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
 } from "isomorphic-lib/src/types";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
@@ -24,7 +25,7 @@ interface Row {
   id: string;
   name: string;
   updatedAt: string;
-  journeys?: string;
+  journeys?: { name: string; id: string }[];
   definition?:
     | EmailTemplateResource
     | MobilePushTemplateResource
@@ -89,7 +90,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
             acc.emailTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              journeys: template.journeys ?? "",
+              journeys: template.journeys ?? [],
               definition,
             });
             break;
@@ -97,7 +98,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
             acc.mobilePushTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              journeys: template.journeys ?? "",
+              journeys: template.journeys ?? [],
               definition,
             });
             break;
@@ -105,7 +106,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
             acc.smsTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              journeys: template.journeys ?? "",
+              journeys: template.journeys ?? [],
               definition,
             });
             break;
@@ -179,38 +180,41 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
           headerName: "Journeys Used By",
           renderCell: ({ row }: { row: Row }) => {
             const currentRow = row;
-            if (currentRow.journeys === "No Journey") {
+            if (currentRow.journeys?.length === 0) {
               return (
                 <div>
                   <p>No Journey</p>
                 </div>
               );
             }
-            const journeys = currentRow.journeys?.split(",") ?? [];
             return (
               <div>
-                {journeys.map((journey) => {
-                  const [journeyName, journeyId] = journey.split("|");
+                {currentRow.journeys?.map((journey) => {
                   return (
-                    <Button
-                      key={journey}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push({
-                          pathname: `/journeys/${journeyId}`,
-                        });
-                      }}
-                      sx={{
-                        color: "inherit",
-                        textDecoration: "underline",
-                        "&:hover": {
-                          textDecoration: "none",
-                        },
-                        fontSize: "inherit",
-                      }}
-                    >
-                      {journeyName}
-                    </Button>
+                    <Tooltip title={journey.name} key={journey.id}>
+                      <Link
+                        href={`/journeys/${journey.id}`}
+                        passHref
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        style={{
+                          display: "block",
+                          margin: "0.2rem 0",
+                          backgroundColor: "#f5f5f5",
+                          padding: "0.5rem",
+                          borderRadius: "0.5rem",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          textDecoration: "underline",
+                          width: 200,
+                          maxWidth: "fit-content",
+                        }}
+                      >
+                        {journey.name}
+                      </Link>
+                    </Tooltip>
                   );
                 })}
               </div>

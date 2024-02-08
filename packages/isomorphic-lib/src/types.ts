@@ -713,7 +713,14 @@ export const SegmentResource = Type.Object({
   definition: SegmentDefinition,
   subscriptionGroupId: Type.Optional(Type.String()),
   updatedAt: Type.Number(),
-  journeys: Type.Optional(Type.String()),
+  journeys: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+      })
+    )
+  ),
   lastRecomputed: Type.Optional(Type.Number()),
 });
 
@@ -895,7 +902,14 @@ const MessageTemplateResourceProperties = {
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(MessageTemplateResourceDefinition),
   updatedAt: Type.Number(),
-  journeys: Type.Optional(Type.String()),
+  journeys: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+      })
+    )
+  ),
 } as const;
 
 export const MessageTemplateResource = Type.Object(
@@ -1144,7 +1158,15 @@ export const UserPropertyResource = Type.Object({
   definition: UserPropertyDefinition,
   exampleValue: Type.Optional(Type.String()),
   updatedAt: Type.Number(),
-  templates: Type.Optional(Type.String()),
+  templates: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+        type: Type.String(),
+      })
+    )
+  ),
   lastRecomputed: Type.Optional(Type.Number()),
 });
 

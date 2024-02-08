@@ -1,10 +1,11 @@
-import { Button } from "@mui/material";
+import { Tooltip } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
   EmptyResponse,
 } from "isomorphic-lib/src/types";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
 import { pick } from "remeda/dist/commonjs/pick";
@@ -17,7 +18,7 @@ import DeleteDialog from "./confirmDeleteDialog";
 interface Row {
   id: string;
   name: string;
-  journeys: string;
+  journeys: { name: string; id: string }[];
   lastRecomputed: string;
   updatedAt: string;
 }
@@ -60,7 +61,7 @@ export default function SegmentsTable() {
       updatedAt: segment.updatedAt
         ? new Date(segment.updatedAt).toISOString()
         : "Not Updated",
-      journeys: segment.journeys ?? "",
+      journeys: segment.journeys ?? [],
       lastRecomputed: segment.lastRecomputed
         ? new Date(segment.lastRecomputed).toISOString()
         : "Not Re-Computed ",
@@ -133,38 +134,41 @@ export default function SegmentsTable() {
           headerName: "Journeys used by",
           renderCell: ({ row }: { row: Row }) => {
             const currentRow = row;
-            if (currentRow.journeys === "No Journey") {
+            if (currentRow.journeys.length === 0) {
               return (
                 <div>
                   <p>No Journey</p>
                 </div>
               );
             }
-            const journeys = currentRow.journeys.split(",");
             return (
               <div>
-                {journeys.map((journey) => {
-                  const [journeyName, journeyId] = journey.split("|");
+                {currentRow.journeys.map((journey) => {
                   return (
-                    <Button
-                      key={journey}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push({
-                          pathname: `/journeys/${journeyId}`,
-                        });
-                      }}
-                      sx={{
-                        color: "inherit",
-                        textDecoration: "underline",
-                        "&:hover": {
-                          textDecoration: "none",
-                        },
-                        fontSize: "inherit",
-                      }}
-                    >
-                      {journeyName}
-                    </Button>
+                    <Tooltip title={journey.name} key={journey.id}>
+                      <Link
+                        href={`/journeys/${journey.id}`}
+                        passHref
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        style={{
+                          display: "block",
+                          margin: "0.2rem 0",
+                          backgroundColor: "#f5f5f5",
+                          padding: "0.5rem",
+                          borderRadius: "0.5rem",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          textDecoration: "underline",
+                          width: 200,
+                          maxWidth: "fit-content",
+                        }}
+                      >
+                        {journey.name}
+                      </Link>
+                    </Tooltip>
                   );
                 })}
               </div>

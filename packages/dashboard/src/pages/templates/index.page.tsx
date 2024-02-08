@@ -68,12 +68,15 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const workspaceId = dfContext.workspace.id;
 
-    const templates = await findMessageTemplates({
-      workspaceId,
-    });
-    const journeys = await prisma().journey.findMany({
-      where: { workspaceId },
-    });
+    const [templates, journeys] = await Promise.all([
+      findMessageTemplates({
+        workspaceId,
+      }),
+      prisma().journey.findMany({
+        where: { workspaceId, resourceType: "Declarative" },
+      }),
+    ]);
+
     const usedBy: Record<string, Journey[]> = {};
     for (const template of templates) {
       for (const journey of journeys) {
@@ -93,12 +96,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       type: CompletionStatus.Successful,
       value: templates.map((template) => ({
         ...template,
-        journeys:
-          usedBy[template.id] && usedBy[template.id]?.length !== 0
-            ? usedBy[template.id]
-                ?.map((journey) => `${journey.name}|${journey.id}`)
-                ?.join(`, \n`)
-            : "No Journey",
+        journeys: usedBy[template.id]?.map((journey) => ({
+          id: journey.id,
+          name: journey.name,
+        })),
       })),
     };
 
