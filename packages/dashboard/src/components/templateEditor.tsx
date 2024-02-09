@@ -1,7 +1,14 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Fullscreen, FullscreenExit } from "@mui/icons-material";
+import {
+  ForwardToInboxOutlined,
+  Fullscreen,
+  FullscreenExit,
+  KeyboardDoubleArrowLeftOutlined,
+  KeyboardDoubleArrowRightOutlined,
+  PublishOutlined,
+} from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -107,6 +114,7 @@ export interface TemplateState {
   testResponse: MessageTemplateTestResponse | null;
   updateRequest: EphemeralRequestStatus<Error>;
   rendered: Record<string, string>;
+  isPropertiesCollapsed: boolean;
 }
 
 const LOREM = new LoremIpsum({
@@ -261,6 +269,7 @@ export default function TemplateEditor({
       testResponse,
       testRequest,
       updateRequest,
+      isPropertiesCollapsed,
     },
     setState,
   ] = useImmer<TemplateState>({
@@ -278,6 +287,7 @@ export default function TemplateEditor({
       type: CompletionStatus.NotStarted,
     },
     rendered: {},
+    isPropertiesCollapsed: false,
   });
 
   // following two hooks allow for client side navigation, and for local state
@@ -678,9 +688,55 @@ export default function TemplateEditor({
         }}
         spacing={1}
       >
+        <Box
+          sx={{
+            position: "absolute",
+            ml: "-15px",
+            zIndex: 1300,
+            background: "#fff",
+            border: "1px solid #eee",
+            borderRadius: "25px",
+          }}
+        >
+          {!isPropertiesCollapsed && (
+            <IconButton
+              size="small"
+              onClick={() =>
+                setState((draft) => {
+                  draft.isPropertiesCollapsed = true;
+                })
+              }
+            >
+              <KeyboardDoubleArrowLeftOutlined />
+            </IconButton>
+          )}
+          {isPropertiesCollapsed && (
+            <IconButton
+              size="small"
+              onClick={() =>
+                setState((draft) => {
+                  draft.isPropertiesCollapsed = false;
+                })
+              }
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  rowGap: "5px",
+                  flexDirection: "column",
+                }}
+              >
+                <KeyboardDoubleArrowRightOutlined />
+                <PublishOutlined />
+                <ForwardToInboxOutlined />
+              </Box>
+            </IconButton>
+          )}
+        </Box>
         <Stack
           direction="column"
           spacing={2}
+          display={isPropertiesCollapsed ? "none" : "block"}
           sx={{
             borderTopRightRadius: 1,
             width: "25%",
