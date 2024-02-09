@@ -240,8 +240,6 @@ export default function TemplateEditor({
       ? messages.value.find((m) => m.id === templateId)
       : undefined;
 
-  console.log(template, "template");
-
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
       ? workspaceResult.value
