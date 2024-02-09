@@ -1,7 +1,11 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Fullscreen, FullscreenExit } from "@mui/icons-material";
+import {
+  CheckCircleOutline,
+  Fullscreen,
+  FullscreenExit,
+} from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -86,13 +90,13 @@ const BodyBox = styled(Box, {
     border: `1px solid ${theme.palette.grey[200]}`,
     ...(direction === "left"
       ? {
-          borderTopLeftRadius: theme.shape.borderRadius * 1,
-          borderBottomLeftRadius: theme.shape.borderRadius * 1,
-        }
+        borderTopLeftRadius: theme.shape.borderRadius * 1,
+        borderBottomLeftRadius: theme.shape.borderRadius * 1,
+      }
       : {
-          borderTopRightRadius: theme.shape.borderRadius * 1,
-          borderBottomRightRadius: theme.shape.borderRadius * 1,
-        }),
+        borderTopRightRadius: theme.shape.borderRadius * 1,
+        borderBottomRightRadius: theme.shape.borderRadius * 1,
+      }),
   }),
 );
 
@@ -230,10 +234,13 @@ export default function TemplateEditor({
     "userProperties",
     "upsertMessage",
   ]);
+
   const template =
     messages.type === CompletionStatus.Successful
       ? messages.value.find((m) => m.id === templateId)
       : undefined;
+
+  console.log(template, "template");
 
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
@@ -248,6 +255,12 @@ export default function TemplateEditor({
       userProperties: userPropertiesResult.value,
     });
   }, [userPropertiesResult, member]);
+
+  const isDraftPublished = useMemo(() => {
+    return (
+      JSON.stringify(template?.draft) === JSON.stringify(template?.definition)
+    );
+  }, [template]);
 
   const [
     {
@@ -586,16 +599,16 @@ export default function TemplateEditor({
   const renderEditorParams: RenderEditorParams | null =
     definition !== null
       ? {
-          definition,
-          setDefinition: (setter) =>
-            setState((draft) => {
-              if (draft.definition === null) {
-                return draft;
-              }
-              draft.definition = setter(draft.definition);
+        definition,
+        setDefinition: (setter) =>
+          setState((draft) => {
+            if (draft.definition === null) {
               return draft;
-            }),
-        }
+            }
+            draft.definition = setter(draft.definition);
+            return draft;
+          }),
+      }
       : null;
 
   const editor = (
@@ -735,8 +748,13 @@ export default function TemplateEditor({
               variant="contained"
               onClick={() => handleSave()}
               disabled={errors.size > 0}
+              sx={{
+                alignItems: "center",
+                display: "flex",
+              }}
             >
               Publish Changes
+              {isDraftPublished ? <CheckCircleOutline sx={{ ml: 1 }} fontSize="small" /> : ""}
             </Button>
           )}
           <LoadingModal
