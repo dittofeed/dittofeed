@@ -23,7 +23,7 @@ import { immer } from "zustand/middleware/immer";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
-import { propertiesStore } from "../lib/filterStore";
+import { filterStore } from "../lib/filterStore";
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -166,12 +166,13 @@ export default function UsersTable({
   const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
 
   // used to filter by property
-  const propertyFilter = propertiesStore((store) => store.userPropertyFilter);
+  const propertyFilter = filterStore((store) => store.userPropertyFilter);
   const userPropertyFilter = useMemo(
     () => Object.values(propertyFilter),
     [propertyFilter],
   );
-  const segmentFilterFromStore = propertiesStore(
+
+  const segmentFilterFromStore = filterStore(
     (store) => store.segmentFilter,
   );
   const segmentFilter: string[] = useMemo(

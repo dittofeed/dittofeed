@@ -58,11 +58,11 @@ function getUserPropertyAssignmentConditions(userPropertyIds: UserPropertyIdsFil
 
     userPropertyIds.map((property) => {
 
-        if (property.userIds) {
+        if (property.userIds && property.userIds.length > 0) {
             userIds.push(...property.userIds)
         }
 
-        if (property.partial) {
+        if (property.partial && property.partial.length > 0) {
             fullQuery.push(Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.partial)}]))`);
         }
 

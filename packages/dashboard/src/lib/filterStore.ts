@@ -7,6 +7,27 @@ import {
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+export function camelCaseToNormalText(camelCaseString: string) {
+  // Split the camel case string into words
+  const words = camelCaseString.replace(/([a-z])([A-Z])/g, '$1 $2').split(' ');
+
+  // Capitalize each word
+  const capitalizedWords = words.map(function(word: string) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+
+  // Join the words to form the normal text
+  const normalText = capitalizedWords.join(' ');
+
+  return normalText;
+}
+
+export function filterIds(propertyValuesById: [string,string][], filterString: string): [string,string][]{
+   return propertyValuesById.filter(([propertyId, propertyValue]) => propertyValue.toLowerCase().includes(filterString.toLowerCase()));
+}
+
+
+
 export enum FilterOptions {
   "USER_PROPERTY",
   "SEGMENTS",
@@ -25,7 +46,7 @@ interface UserPropertiesState {
   propertiesValues: Record<string, Record<string, string>>;
   // String = propertyId
   // used to index propertiesValues
-  selectedProperty: string;
+  selectedId: string;
   segments: Record<string, string>;
   selectedFilter: FilterOptions;
   userPropertyFilter: Record<
@@ -44,21 +65,21 @@ interface UserPropertiesActions {
   setProperties: (val: UserPropertyResource[]) => void;
   setSegments: (val: Pick<SegmentResource, "name" | "id">[]) => void;
   setSelectedFilter: (val: FilterOptions) => void;
-  setSelectedProperty: (val: string) => void;
+  setSelectedId: (val: string) => void;
   setPropertiesValues: (val: Record<string, string>) => void;
   setSegmentFilter: (val: string) => void;
-  setUserPropertyFilter: (val: string) => void;
-  removePropertyFilter: (propertyId: string, userId?: string) => void;
+  setUserPropertyFilter: (val: string, isPartialMatch?: boolean) => void;
+  removePropertyFilter: (propertyId: string, userId?: string, isPartialMatch?: boolean) => void;
   removeSegmentFilter: (segmentId: string) => void;
   setGetUserPropertiesRequest: (val: EphemeralRequestStatus<Error>) => void;
 }
 
-export const propertiesStore = create(
+export const filterStore = create(
   immer<UserPropertiesState & UserPropertiesActions>((set) => ({
     properties: {},
     segments: {},
     selectedFilter: FilterOptions.NONE,
-    selectedProperty: "",
+    selectedId: "",
     propertiesValues: {},
     segmentFilter: [],
     userPropertyFilter: {},
@@ -76,22 +97,22 @@ export const propertiesStore = create(
     setProperties: (properties) =>
       set((state) => {
         for (const property of properties) {
-          state.properties[property.id] = property.name;
+          state.properties[property.id] = camelCaseToNormalText(property.name);
         }
       }),
     setSegments: (segments) =>
       set((state) => {
         for (const segment of segments) {
-          state.segments[segment.id] = segment.name;
+          state.segments[segment.id] = camelCaseToNormalText(segment.name);
         }
       }),
-    setSelectedProperty: (property) =>
+    setSelectedId: (property) =>
       set((state) => {
-        state.selectedProperty = property;
+        state.selectedId = property;
       }),
     setPropertiesValues: (propertyValues) =>
       set((state) => {
-        state.propertiesValues[state.selectedProperty] = propertyValues;
+        state.propertiesValues[state.selectedId] = propertyValues;
       }),
     setSegmentFilter: (selectedSegmentId) =>
       set((state) => {
@@ -99,37 +120,72 @@ export const propertiesStore = create(
           state.segmentFilter.push(selectedSegmentId);
         }
       }),
-    setUserPropertyFilter: (selectedPropertyValue) =>
+    setUserPropertyFilter: (selectedPropertyValue, isPartialMatch) =>
       set((state) => {
-        if (state.userPropertyFilter[state.selectedProperty]) {
-          state.userPropertyFilter[state.selectedProperty]?.userIds?.push(
-            selectedPropertyValue,
-          );
+        if (state.userPropertyFilter[state.selectedId]) {
+
+          if (!isPartialMatch) {
+              state.userPropertyFilter[state.selectedId]?.userIds?.push(
+                selectedPropertyValue,
+              );
+          } else {
+              state.userPropertyFilter[state.selectedId]?.partial?.push(
+                `${selectedPropertyValue}%`
+              );
+          }
+
         } else {
-          state.userPropertyFilter[state.selectedProperty] = {
-            id: state.selectedProperty,
-            userIds: [selectedPropertyValue],
-          };
+          if (!isPartialMatch) {
+              state.userPropertyFilter[state.selectedId] = {
+                id: state.selectedId,
+                userIds: [selectedPropertyValue],
+                partial: []
+              };
+          } else {
+              state.userPropertyFilter[state.selectedId] = {
+                id: state.selectedId,
+                userIds: [],
+                partial: [`${selectedPropertyValue}%`]
+              };
+          }
         }
       }),
-    removePropertyFilter: (propertyId, userIdToDelete) =>
+    removePropertyFilter: (propertyId, valueToDelete, isPartialMatch) =>
       set((state) => {
-        if (
-            // @ts-ignore
-          !userIdToDelete || state.userPropertyFilter[propertyId]?.userIds?.length < 2
-        ) {
-          delete state.userPropertyFilter[propertyId];
+        // @ts-ignore
+        const userIdsLength = state.userPropertyFilter[propertyId]?.userIds?.length as number
+        // @ts-ignore
+        const partialMatches = state.userPropertyFilter[propertyId]?.partial?.length as number
+
+        if (!valueToDelete) {
+            delete state.userPropertyFilter[propertyId];
+        } else if (isPartialMatch) {
+            if (!userIdsLength && partialMatches < 2) {
+                delete state.userPropertyFilter[propertyId];
+            } else {
+                (state.userPropertyFilter[propertyId] as any).partial = state.userPropertyFilter[propertyId]?.partial?.filter(
+                    (partialMatch) => partialMatch !== valueToDelete
+                )
+            }
         } else {
-          (state.userPropertyFilter[propertyId] as any).userIds =
-            state.userPropertyFilter[propertyId]?.userIds?.filter(
-              (userId) => userId !== userIdToDelete,
-            );
+            if (
+              !partialMatches && userIdsLength < 2
+            ) {
+              delete state.userPropertyFilter[propertyId];
+            } else {
+              (state.userPropertyFilter[propertyId] as any).userIds =
+                state.userPropertyFilter[propertyId]?.userIds?.filter(
+                  (userId) => userId !== valueToDelete,
+                );
+            }
         }
       }),
     removeSegmentFilter: (segmentId) => 
       set((state) => {
-          console.log(segmentId)
           state.segmentFilter = state.segmentFilter.filter((segment) =>  segment !== segmentId)
       })
   })),
 );
+
+
+

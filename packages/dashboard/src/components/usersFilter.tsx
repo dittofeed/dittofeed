@@ -8,37 +8,37 @@ import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
-import { propertiesStore } from "../lib/filterStore";
+import { filterStore } from "../lib/filterStore";
 import FilterSelect from "./usersFilterSelector";
 
 export function UsersFilter({ workspaceId }: { workspaceId: string }) {
-  const userPropertyFilterFromStore = propertiesStore(
+  const userPropertyFilterFromStore = filterStore(
     (store) => store.userPropertyFilter,
   );
-  const removeSegmentFilter = propertiesStore((store) => store.removeSegmentFilter);
-  const removePropertyFilter = propertiesStore((store) => store.removePropertyFilter);
+  const removeSegmentFilter = filterStore((store) => store.removeSegmentFilter);
+  const removePropertyFilter = filterStore((store) => store.removePropertyFilter);
   const userPropertyFilter = useMemo(
     () => Object.values(userPropertyFilterFromStore),
     [userPropertyFilterFromStore],
   );
-  const segmentFilterFromStore = propertiesStore(
+  const segmentFilterFromStore = filterStore(
     (store) => store.segmentFilter,
   );
   const segmentFilter = useMemo(
     () => segmentFilterFromStore,
     [segmentFilterFromStore],
   );
-  const properties = propertiesStore((store) => store.properties);
-  const segments = propertiesStore((store) => store.segments);
-  const propertiesValues = propertiesStore((store) => store.propertiesValues);
-  const getUserPropertiesRequest = propertiesStore(
+  const properties = filterStore((store) => store.properties);
+  const segments = filterStore((store) => store.segments);
+  const propertiesValues = filterStore((store) => store.propertiesValues);
+  const getUserPropertiesRequest = filterStore(
     (store) => store.getUserPropertiesRequest,
   );
-  const setGetUserPropertiesRequest = propertiesStore(
+  const setGetUserPropertiesRequest = filterStore(
     (store) => store.setGetUserPropertiesRequest,
   );
-  const setSegments = propertiesStore((store) => store.setSegments);
-  const setProperties = propertiesStore((store) => store.setProperties);
+  const setSegments = filterStore((store) => store.setSegments);
+  const setProperties = filterStore((store) => store.setProperties);
 
   const apiBase = useAppStore((store) => store.apiBase);
 
@@ -92,17 +92,30 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
           <Breadcrumbs aria-label="breadcrumb" separator=">">
             <Typography color="inherit">User Property</Typography>
             <Typography color="inherit">{properties[property.id]}</Typography>
-            {property.userIds &&
-              property.userIds.map((userId) => (
-                <Typography
-                  color="inherit"
-                  sx={{cursor: "pointer"}}
-                  key={userId}
-                  onClick={() => removePropertyFilter(property.id, userId)}
-                >
-                  {propertiesValues[property.id]![userId]}
-                </Typography>
-              ))}
+            <Breadcrumbs aria-label="breadcrumb" separator="or">
+                {property.partial &&
+                  property.partial.map((partial) => (
+                        <Typography
+                          color="inherit"
+                          sx={{cursor: "pointer"}}
+                          key={partial}
+                          onClick={() => removePropertyFilter(property.id, partial, true)}
+                        >
+                         {partial.slice(0,-1)}
+                        </Typography>
+                  ))}
+                {property.userIds &&
+                  property.userIds.map((userId) => (
+                        <Typography
+                          color="inherit"
+                          sx={{cursor: "pointer"}}
+                          key={userId}
+                          onClick={() => removePropertyFilter(property.id, userId)}
+                        >
+                          {propertiesValues[property.id]![userId]}
+                        </Typography>
+                  ))}
+             </Breadcrumbs>
           </Breadcrumbs>
         </Box>
       ))}
