@@ -90,13 +90,13 @@ const BodyBox = styled(Box, {
     border: `1px solid ${theme.palette.grey[200]}`,
     ...(direction === "left"
       ? {
-        borderTopLeftRadius: theme.shape.borderRadius * 1,
-        borderBottomLeftRadius: theme.shape.borderRadius * 1,
-      }
+          borderTopLeftRadius: theme.shape.borderRadius * 1,
+          borderBottomLeftRadius: theme.shape.borderRadius * 1,
+        }
       : {
-        borderTopRightRadius: theme.shape.borderRadius * 1,
-        borderBottomRightRadius: theme.shape.borderRadius * 1,
-      }),
+          borderTopRightRadius: theme.shape.borderRadius * 1,
+          borderBottomRightRadius: theme.shape.borderRadius * 1,
+        }),
   }),
 );
 
@@ -599,16 +599,16 @@ export default function TemplateEditor({
   const renderEditorParams: RenderEditorParams | null =
     definition !== null
       ? {
-        definition,
-        setDefinition: (setter) =>
-          setState((draft) => {
-            if (draft.definition === null) {
+          definition,
+          setDefinition: (setter) =>
+            setState((draft) => {
+              if (draft.definition === null) {
+                return draft;
+              }
+              draft.definition = setter(draft.definition);
               return draft;
-            }
-            draft.definition = setter(draft.definition);
-            return draft;
-          }),
-      }
+            }),
+        }
       : null;
 
   const editor = (
@@ -754,7 +754,11 @@ export default function TemplateEditor({
               }}
             >
               Publish Changes
-              {isDraftPublished ? <CheckCircleOutline sx={{ ml: 1 }} fontSize="small" /> : ""}
+              {isDraftPublished ? (
+                <CheckCircleOutline sx={{ ml: 1 }} fontSize="small" />
+              ) : (
+                ""
+              )}
             </Button>
           )}
           <LoadingModal
