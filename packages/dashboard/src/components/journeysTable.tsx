@@ -101,39 +101,35 @@ export default function JourneysTable() {
           width: 180,
           sortable: false,
           // eslint-disable-next-line react/no-unused-prop-types
-          renderCell: ({ row }: { row: Row }) => {
-            const onClick = () => {
-              const currentRow = row;
-              const handleDelete = apiRequestHandlerFactory({
-                request: journeyDeleteRequest,
-                setRequest: setJourneyDeleteRequest,
-                responseSchema: EmptyResponse,
-                onSuccessNotice: `Deleted journey ${currentRow.name}.`,
-                onFailureNoticeHandler: () =>
-                  `API Error: Failed to delete journey ${currentRow.name}.`,
-                setResponse: setDeleteResponse,
-                requestConfig: {
-                  method: "DELETE",
-                  url: `${apiBase}/api/journeys`,
-                  data: {
-                    id: currentRow.id,
+          renderCell: ({ row }: { row: Row }) => (
+            <DeleteDialog
+              onConfirm={() => {
+                const currentRow = row;
+                const handleDelete = apiRequestHandlerFactory({
+                  request: journeyDeleteRequest,
+                  setRequest: setJourneyDeleteRequest,
+                  responseSchema: EmptyResponse,
+                  onSuccessNotice: `Deleted journey ${currentRow.name}.`,
+                  onFailureNoticeHandler: () =>
+                    `API Error: Failed to delete journey ${currentRow.name}.`,
+                  setResponse: setDeleteResponse,
+                  requestConfig: {
+                    method: "DELETE",
+                    url: `${apiBase}/api/journeys`,
+                    data: {
+                      id: currentRow.id,
+                    },
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
                   },
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                },
-              });
-              handleDelete();
-            };
-
-            return (
-              <DeleteDialog
-                onConfirm={onClick}
-                title="Delete Journey"
-                message="Are you sure you want to delete this journey?"
-              />
-            );
-          },
+                });
+                handleDelete();
+              }}
+              title="Delete Journey"
+              message="Are you sure you want to delete this journey?"
+            />
+          ),
         },
       ].map((c) => ({ ...baseColumn, ...c }))}
       initialState={{

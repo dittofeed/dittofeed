@@ -173,39 +173,35 @@ export default function UserPropertiesTable() {
           width: 180,
           sortable: false,
           // eslint-disable-next-line react/no-unused-prop-types
-          renderCell: ({ row }: { row: Row }) => {
-            const onClick = () => {
-              const currentRow = row;
-              const handleDelete = apiRequestHandlerFactory({
-                request: userPropertyDeleteRequest,
-                setRequest: setUserPropertyDeleteRequest,
-                responseSchema: EmptyResponse,
-                setResponse: setDeleteResponse,
-                onSuccessNotice: `Deleted user property ${currentRow.properties}.`,
-                onFailureNoticeHandler: () =>
-                  `API Error: Failed to user property ${currentRow.properties}.`,
-                requestConfig: {
-                  method: "DELETE",
-                  url: `${apiBase}/api/user-properties`,
-                  data: {
-                    id: currentRow.id,
+          renderCell: ({ row }: { row: Row }) => (
+            <DeleteDialog
+              onConfirm={() => {
+                const currentRow = row;
+                const handleDelete = apiRequestHandlerFactory({
+                  request: userPropertyDeleteRequest,
+                  setRequest: setUserPropertyDeleteRequest,
+                  responseSchema: EmptyResponse,
+                  setResponse: setDeleteResponse,
+                  onSuccessNotice: `Deleted user property ${currentRow.properties}.`,
+                  onFailureNoticeHandler: () =>
+                    `API Error: Failed to user property ${currentRow.properties}.`,
+                  requestConfig: {
+                    method: "DELETE",
+                    url: `${apiBase}/api/user-properties`,
+                    data: {
+                      id: currentRow.id,
+                    },
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
                   },
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                },
-              });
-              handleDelete();
-            };
-
-            return (
-              <DeleteDialog
-                onConfirm={onClick}
-                title="Delete User Property"
-                message="Are you sure you want to delete this user property?"
-              />
-            );
-          },
+                });
+                handleDelete();
+              }}
+              title="Delete User Property"
+              message="Are you sure you want to delete this user property?"
+            />
+          ),
         },
       ].map((c) => ({ ...baseColumn, ...c }))}
       initialState={{

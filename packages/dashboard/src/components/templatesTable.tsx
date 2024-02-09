@@ -227,46 +227,42 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
           width: 180,
           sortable: false,
           // eslint-disable-next-line react/no-unused-prop-types
-          renderCell: ({ row }: { row: Row }) => {
-            const onClick = () => {
-              const currentRow = row;
-              const definition = currentRow.draft ?? currentRow.definition;
-              if (!definition) {
-                return;
-              }
+          renderCell: ({ row }: { row: Row }) => (
+            <DeleteDialog
+              onConfirm={() => {
+                const currentRow = row;
+                const definition = currentRow.draft ?? currentRow.definition;
+                if (!definition) {
+                  return;
+                }
 
-              const deleteData: DeleteMessageTemplateRequest = {
-                id: currentRow.id,
-                type: definition.type,
-              };
-              const handleDelete = apiRequestHandlerFactory({
-                request: messageTemplateDeleteRequest,
-                setRequest: setMessageTemplateDeleteRequest,
-                responseSchema: EmptyResponse,
-                setResponse: setDeleteResponse,
-                onSuccessNotice: `Deleted template ${currentRow.name}.`,
-                onFailureNoticeHandler: () =>
-                  `API Error: Failed to delete template ${currentRow.name}.`,
-                requestConfig: {
-                  method: "DELETE",
-                  url: `${apiBase}/api/content/templates`,
-                  data: deleteData,
-                  headers: {
-                    "Content-Type": "application/json",
+                const deleteData: DeleteMessageTemplateRequest = {
+                  id: currentRow.id,
+                  type: definition.type,
+                };
+                const handleDelete = apiRequestHandlerFactory({
+                  request: messageTemplateDeleteRequest,
+                  setRequest: setMessageTemplateDeleteRequest,
+                  responseSchema: EmptyResponse,
+                  setResponse: setDeleteResponse,
+                  onSuccessNotice: `Deleted template ${currentRow.name}.`,
+                  onFailureNoticeHandler: () =>
+                    `API Error: Failed to delete template ${currentRow.name}.`,
+                  requestConfig: {
+                    method: "DELETE",
+                    url: `${apiBase}/api/content/templates`,
+                    data: deleteData,
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
                   },
-                },
-              });
-              handleDelete();
-            };
-
-            return (
-              <DeleteDialog
-                onConfirm={onClick}
-                title="Delete Template"
-                message="Are you sure you want to delete this template?"
-              />
-            );
-          },
+                });
+                handleDelete();
+              }}
+              title="Delete Template"
+              message="Are you sure you want to delete this template?"
+            />
+          ),
         },
       ].map((c) => ({ ...baseColumn, ...c }))}
       initialState={{

@@ -1220,17 +1220,6 @@ export enum CursorDirectionEnum {
 
 export const CursorDirection = Type.Enum(CursorDirectionEnum);
 
-export const MessageTemplateResourceRequest = Type.Object({
-  ...MessageTemplateResourceProperties,
-  cursor: Type.Optional(Type.String()),
-  limit: Type.Optional(Type.Number()),
-  direction: Type.Optional(CursorDirection),
-});
-
-export type MessageTemplateResourceRequest = Static<
-  typeof MessageTemplateResourceRequest
->;
-
 export const GetUsersRequest = Type.Object({
   cursor: Type.Optional(Type.String()),
   segmentId: Type.Optional(Type.String()),
@@ -1269,8 +1258,6 @@ export const GetUsersResponse = Type.Object({
 });
 
 export type GetUsersResponse = Static<typeof GetUsersResponse>;
-
-export const GetBroadcastsRequest = Type.Object({});
 
 export const BaseMessageResponse = Type.Object({
   message: Type.String(),
