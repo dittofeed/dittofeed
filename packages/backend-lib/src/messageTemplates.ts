@@ -4,14 +4,16 @@ import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
 
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
+import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import {
   ResendRequiredData,
   sendMail as sendMailResend,
 } from "./destinations/resend";
-import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import { sendMail as sendMailSendgrid } from "./destinations/sendgrid";
 import { sendMail as sendMailSmtp } from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
@@ -42,7 +44,6 @@ import {
   UpsertMessageTemplateResource,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
-import { Message as PostMarkRequiredFields} from 'postmark'
 
 export function enrichMessageTemplate({
   id,
