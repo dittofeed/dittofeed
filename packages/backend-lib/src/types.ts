@@ -5,7 +5,7 @@ import {
   Segment,
   UserProperty,
 } from "@prisma/client";
-import { Optional, Static, Type } from "@sinclair/typebox";
+import { Static, Type } from "@sinclair/typebox";
 import {
   EventType,
   IntegrationDefinition,
@@ -446,17 +446,15 @@ export const ResendEvent = Type.Object({
 });
 
 export enum PostMarkEventType {
-  Delivery = "email.delivered",
-  SpamComplaint = "email.complained",
-  Bounce = "email.bounced",
-  Open = "email.opened",
-  Click = "email.clicked",
+  Delivery = "Delivery",
+  SpamComplaint = "SpamComplaint",
+  Bounce = "Bounce",
+  Open = "Open",
+  Click = "Click",
 }
 
 export const PostMarkEvent = Type.Object({
   MessageStream: Type.String(),
-  ID: Type.Number(),
-  Name: Type.String(),
   Tag: Type.String(),
   MessageID: Type.String(),
   Metadata: Type.Record(Type.String(), Type.Any()),

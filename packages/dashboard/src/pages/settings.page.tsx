@@ -796,8 +796,8 @@ function PostMarkConfig() {
           id: "postmark-section",
           fieldGroups: [
             {
-              id: "postmark-fields",
-              name: "PostMark",
+              id: "postmark-api-key",
+              name: "PostMark API Key",
               fields: [
                 {
                   id: "postmark-api-key",
@@ -805,28 +805,34 @@ function PostMarkConfig() {
                   fieldProps: {
                     name: POSTMARK_SECRET,
                     secretKey: "apiKey",
-                    label: "PostMark API Key",
+                    label: "API Key",
                     helperText:
-                      "API key, used internally by Dittofeed to send emails via PostMark.",
+                      "API key, used by Dittofeed to send emails via Postmark.",
                     type: EmailProviderType.PostMark,
                     saved:
                       secretAvailability.find((s) => s.name === POSTMARK_SECRET)
                         ?.configValue?.apiKey ?? false,
                   },
                 },
+              ],
+            },
+            {
+              id: "postmark-secret",
+              name: "PostMark Webhook Key",
+              fields: [
                 {
-                  id: "postmark-server-token",
+                  id: "postmark-webhook-key",
                   type: "secret",
                   fieldProps: {
                     name: POSTMARK_SECRET,
-                    secretKey: "serverToken",
-                    label: "Server Token",
+                    secretKey: "webhookKey",
+                    label: "Webhook Key",
                     helperText:
-                      "PostMark server token, used for sending emails.",
+                      "Auth header value (x-postmark-secret), used to authenticate PostMark webhook requests. Use a secure random string generator.",
                     type: EmailProviderType.PostMark,
                     saved:
                       secretAvailability.find((s) => s.name === POSTMARK_SECRET)
-                        ?.configValue?.serverToken ?? false,
+                        ?.configValue?.webhookKey ?? false,
                   },
                 },
               ],

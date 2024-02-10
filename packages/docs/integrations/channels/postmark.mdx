@@ -1,0 +1,49 @@
+---
+title: Postmark Integration
+---
+
+Dittofeed can integrate with Postmark to send emails efficiently and securely.
+
+## Integration Instructions
+
+1. Log in to your Postmark account.
+2. Navigate to the "Servers" tab and select or create a server to use with Dittofeed.
+3. Go to the "Message Streams" tab for your selected server.
+
+   ![Postmark Message Streams](/images/postmark-message-streams.png)
+
+4. Click on "Create Message Stream" to set up a new stream for Dittofeed or select an existing one.
+5. Once your stream is set up, go to the "API Tokens" tab.
+
+   ![Postmark API Tokens](/images/postmark-api-tokens.png)
+
+6. Create a new API token by clicking "Create API Token". Give it a descriptive name and ensure it has "Server" permissions.
+7. Copy the generated API token.
+8. Add this API token to Dittofeed on the Settings page
+
+   ![Dittofeed Settings](/images/postmark-settings.png)
+
+9. Set Postmark as your default email provider in Dittofeed's settings.
+
+## Webhooks for Tracking
+
+To track email events with Postmark, follow these steps:
+
+1. Within your server, go to the "Webhooks" tab.
+
+   ![Postmark Webhooks](/images/postmark-webhooks.png)
+
+2. Click "Add webhook" to initiate a new webhook setup.
+3. For the Post URL, input `https://dittofeed.com/api/public/webhooks/postmark`
+4. In the "Custom headers and basic auth" section, add a custom header named `x-postmark-secret`. For the value, use a secret you generate. You can generate a random key using `openssl rand -hex 32` in your terminal or use an online random key generator.
+5. Choose the events for which you wish to receive webhooks, such as Delivery, Bounce, Spam Complaint, Open, Link Click, and Subscription Change.
+
+   ![Postmark Add Webhook](/images/postmark-add-webhook.png)
+
+6. Click "Save webhook" to activate it.
+7. Copy the webhook's signing secret if provided.
+8. Paste the signing secret into Dittofeed's settings page in the "Webhook Key" field and click save.
+
+   ![Dittofeed Webhook Settings](/images/postmark-settings.png)
+
+By following these steps, you will have successfully integrated Postmark with Dittofeed for sending emails and tracking email events.
