@@ -778,12 +778,12 @@ export async function sendEmail({
     }
     case EmailProviderType.PostMark: {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (secretConfig.type !== EmailProviderType.Resend) {
+      if (secretConfig.type !== EmailProviderType.PostMark) {
         return err({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `expected resend secret config but got ${secretConfig.type}`,
+            message: `expected postmark secret config but got ${secretConfig.type}`,
           },
         });
       }
