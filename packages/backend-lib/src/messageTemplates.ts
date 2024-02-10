@@ -822,7 +822,7 @@ export async function sendEmail({
           variant: {
             type: ChannelType.Email,
             provider: {
-              type: EmailProviderType.Resend,
+              type: EmailProviderType.PostMark,
               name: result.error.ErrorCode.toString(),
               message: result.error.Message,
             },
@@ -839,7 +839,7 @@ export async function sendEmail({
           subject,
           replyTo,
           provider: {
-            type: EmailProviderType.Resend,
+            type: EmailProviderType.PostMark,
           },
         },
       });
