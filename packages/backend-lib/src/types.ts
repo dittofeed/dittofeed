@@ -15,7 +15,7 @@ import {
   UserPropertyDefinition,
 } from "isomorphic-lib/src/types";
 import { Overwrite } from "utility-types";
-
+import {MessageStatus} from 'twilio/lib/rest/api/v2010/account/message.d.ts';
 export * from "isomorphic-lib/src/types";
 
 export enum NodeEnvEnum {
@@ -145,6 +145,38 @@ export const DecodedJwt = Type.Object({
 });
 
 export type DecodedJwt = Static<typeof DecodedJwt>;
+
+export enum TwilioMessageStatus {
+  Queued = "queued",
+  Sending = "sending",
+  Sent = "sent",
+  Failed = "failed",
+  Delivered = "delivered",
+  Undelivered = "undelivered",
+  Receiving = "receiving",
+  Received = "received",
+  Accepted = "accepted",
+  Scheduled = "scheduled",
+  Read = "read",
+  PartiallyDelivered = "partially_delivered",
+  Canceled = "canceled",
+}
+
+export const TwilioEventSms = Type.Object({
+  SmsMessageSid: Type.String(),
+  SmsSid: Type.String(),
+  SmsStatus: Type.Enum(TwilioMessageStatus),
+  Body: Type.String(),
+  To: Type.String(),
+  MessagingServiceSid: Type.String(),
+  NumSegments: Type.String(),
+  MessageSid: Type.String(),
+  AccountSid: Type.String(),
+  From: Type.String(),
+  ApiVersion: Type.String(),
+});
+
+export type TwilioInboundSchema = Static<typeof TwilioEventSms>;
 
 export enum AmazonSesNotificationType {
   Bounce = "Bounce",

@@ -19,6 +19,7 @@ import {
   AmazonSNSEventTypes,
   ResendEvent,
   SendgridEvent,
+  TwilioEventSms,
 } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
@@ -31,14 +32,19 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import {
   ResendSecret,
   SendgridSecret,
+  TwilioSmsProvider,
   WorkspaceId,
 } from "isomorphic-lib/src/types";
 import { Webhook } from "svix";
-
+import formbody from "@fastify/formbody";
 import { getWorkspaceId } from "../workspace";
+import { validateRequest } from 'twilio';
+import { submitTwilioEvents } from "backend-lib/src/destinations/twilio";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
+  await fastify.register(formbody)
+
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/sendgrid",
     {
@@ -281,6 +287,71 @@ export default async function webhookController(fastify: FastifyInstance) {
       return reply.status(200).send();
     },
   );
+
+
+fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+  "/twilio",
+  {
+    schema: {
+      description: "Used to consume Twilio webhook payloads.",
+      tags: ["Webhooks"],
+      headers: Type.Object({
+        "x-twilio-signature": Type.String(),
+      }),
+      body: TwilioEventSms,
+    },
+  },
+  async (request, reply) => {
+    logger().debug({ body: request.body }, "Received Twilio events.");
+
+    const allTwilioSecrets = await prisma().secret.findMany({
+      where: {
+        name: 'twilio-key'
+      }
+    });
+
+    const twilioSecret = allTwilioSecrets
+      .find((secret) => {
+        const config = secret.configValue as unknown as TwilioSmsProvider
+        return config.accountSid === request.body?.AccountSid
+      })
+
+      const { workspaceId } = twilioSecret!
+      const { authToken} =  twilioSecret?.configValue as unknown as TwilioSmsProvider
+      
+      if (!workspaceId) {
+        return reply.status(400).send({
+          error: "workspaceId not found",
+        });
+      }
+      
+      if (!authToken) {
+        return reply.status(400).send({
+          error: "authToken not found",
+        });
+      }
+
+    const verified = validateRequest(authToken, request.headers['x-twilio-signature'], request.url, request.body);
+
+    if (!verified) {
+      logger().error(
+        {
+          workspaceId,
+        },
+        "Invalid signature for twilio webhook.",
+      );
+      return reply.status(401).send({
+        message: "Invalid signature.",
+      });
+    }
+
+    await submitTwilioEvents({
+      workspaceId,
+      events: [request.body],
+    });
+    return reply.status(200).send();
+  },
+);
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/segment",
