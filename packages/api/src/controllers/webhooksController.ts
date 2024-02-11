@@ -341,6 +341,9 @@ export default async function webhookController(fastify: FastifyInstance) {
 
       if (webhookKey !== secretHeader) {
         logger().error("Invalid signature for PostMark webhook.");
+        return reply.status(401).send({
+          message: "Invalid signature.",
+        });
       }
 
       await submitPostmarkEvents({
