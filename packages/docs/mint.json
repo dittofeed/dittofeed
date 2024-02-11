@@ -96,6 +96,7 @@
           "pages": [
             "integrations/channels/email",
             "integrations/channels/sendgrid",
+            "integrations/channels/postmark",
             "integrations/channels/smtp",
             "integrations/channels/amazonses",
             "integrations/channels/sms",

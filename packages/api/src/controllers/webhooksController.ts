@@ -340,14 +340,6 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
 
       if (webhookKey !== secretHeader) {
-        logger().error(
-          {
-            workspaceId,
-            expected: webhookKey,
-            received: secretHeader,
-          },
-          "Mismatched Postmark secret.",
-        );
         logger().error("Invalid signature for PostMark webhook.");
       }
 
