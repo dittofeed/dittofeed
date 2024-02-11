@@ -923,6 +923,7 @@ export async function sendSms({
         accountSid,
         authToken,
         messagingServiceSid,
+        subscriptionGroupId: subscriptionGroupDetails?.id,
         to,
       });
 
