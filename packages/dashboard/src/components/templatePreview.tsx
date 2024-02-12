@@ -38,7 +38,7 @@ function TemplatePreview({
     <Stack
       sx={{
         width: "100%",
-        height: "100%",
+        height: "100vh",
       }}
       spacing={1}
     >
