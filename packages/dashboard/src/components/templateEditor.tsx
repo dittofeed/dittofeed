@@ -59,6 +59,7 @@ import { useUpdateEffect } from "../lib/useUpdateEffect";
 import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
+import TemplatePreview from "./templatePreview";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -633,17 +634,9 @@ export default function TemplateEditor({
       </BodyBox>
     </Stack>
   );
-  const preview = (
-    <Stack
-      sx={{
-        width: "100%",
-        height: "100%",
-      }}
-      spacing={1}
-    >
-      <Stack>{renderPreviewHeader({ rendered, userProperties })}</Stack>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <FormLabel sx={{ paddingLeft: 1 }}>Body Preview</FormLabel>
+  const getPreviewVisibilityHandler = () => {
+    return (
+      <>
         {fullscreen === null ? (
           <IconButton
             size="small"
@@ -660,11 +653,16 @@ export default function TemplateEditor({
             <FullscreenExit />
           </IconButton>
         )}
-      </Stack>
-      <BodyBox direction="right">
-        {renderPreviewBody({ rendered, userProperties })}
-      </BodyBox>
-    </Stack>
+      </>
+    );
+  };
+  const preview = (
+    <TemplatePreview
+      previewHeader={renderPreviewHeader({ rendered, userProperties })}
+      previewBody={renderPreviewBody({ rendered, userProperties })}
+      visibilityHandler={getPreviewVisibilityHandler()}
+      bodyPreviewHeading="Body Preview"
+    />
   );
   return (
     <>

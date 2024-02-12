@@ -5,22 +5,15 @@ import {
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import {
-  Box,
   Button,
   Drawer,
-  FormLabel,
   IconButton,
   Stack,
-  styled,
-  SxProps,
-  TextField,
-  Theme,
   Tooltip,
   useTheme,
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
-import escapeHTML from "escape-html";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   ChannelType,
@@ -42,6 +35,9 @@ import { immer } from "zustand/middleware/immer";
 import { useAppStorePick } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
 import { getTemplatesLink } from "../lib/templatesLink";
+import EmailPreviewHeader from "./emailPreviewHeader";
+import SmsPreviewBody from "./smsPreviewBody";
+import TemplatePreview from "./templatePreview";
 
 interface TableItem {
   userId: string;
@@ -89,26 +85,6 @@ const initPreviewObject = () => {
     channelType: "",
   };
 };
-
-const BodyBox = styled(Box, {
-  shouldForwardProp: (prop) => prop !== "direction",
-})<{ direction: "left" | "right" } & React.ComponentProps<typeof Box>>(
-  ({ theme, direction }) => ({
-    flex: 1,
-    flexBasis: 0,
-    overflow: "scroll",
-    border: `1px solid ${theme.palette.grey[200]}`,
-    ...(direction === "left"
-      ? {
-          borderTopLeftRadius: theme.shape.borderRadius * 1,
-          borderBottomLeftRadius: theme.shape.borderRadius * 1,
-        }
-      : {
-          borderTopRightRadius: theme.shape.borderRadius * 1,
-          borderBottomRightRadius: theme.shape.borderRadius * 1,
-        }),
-  }),
-);
 
 const baseColumn: Partial<GridColDef<TableItem>> = {
   flex: 1,
@@ -209,16 +185,6 @@ export function DeliveriesTable({
     useState<PreviewObjectInterface>(initPreviewObject());
   const router = useRouter();
   const theme = useTheme();
-
-  const disabledStyles: SxProps<Theme> = {
-    "& .MuiInputBase-input.Mui-disabled": {
-      WebkitTextFillColor: theme.palette.grey[600],
-      color: theme.palette.grey[600],
-    },
-    '& .MuiFormLabel-root[data-shrink="true"]': {
-      color: theme.palette.grey[600],
-    },
-  };
 
   const previousCursor = getQueryValue(
     router.query,
@@ -456,48 +422,7 @@ export function DeliveriesTable({
   };
 
   const renderSmsPreviewBody = (body: string) => {
-    return (
-      <Stack
-        sx={{
-          width: "100%",
-          height: "100%",
-          padding: 1,
-          overflow: "hidden",
-        }}
-        direction="row"
-        justifyContent="center"
-        alignContent="center"
-      >
-        <Stack
-          sx={{
-            height: "60rem",
-            width: "24rem",
-            backgroundImage:
-              "url(https://storage.googleapis.com/dittofeed-public/sms-box.svg)",
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "contain",
-            backgroundPosition: "50% 0%",
-            justifyContent: "start",
-            alignItems: "center",
-          }}
-        >
-          <Box
-            sx={{
-              width: "80%",
-              marginTop: 14,
-              backgroundColor: "#f7f8fa",
-              border: "1px solid #ebecf2",
-              padding: 1,
-              borderRadius: 1,
-              whiteSpace: "normal", // Ensures text wraps onto the next line
-              wordWrap: "break-word", // Breaks the word at the end of the line
-            }}
-          >
-            {body}
-          </Box>
-        </Stack>
-      </Stack>
-    );
+    return <SmsPreviewBody body={body} />;
   };
 
   const renderPreviewBody = (po: PreviewObjectInterface) => {
@@ -511,63 +436,12 @@ export function DeliveriesTable({
 
   const renderEmailPreviewHeader = (po: PreviewObjectInterface) => {
     return (
-      <>
-        <TextField
-          required
-          label="To"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={escapeHTML(po.to)}
-        />
-        <TextField
-          required
-          label="From"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={escapeHTML(po.from ?? "")}
-        />
-        <TextField
-          required
-          label="Subject"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={escapeHTML(po.subject ?? "")}
-        />
-        <TextField
-          label="Reply-To"
-          variant="filled"
-          disabled
-          InputProps={{
-            sx: {
-              fontSize: ".75rem",
-              borderTopLeftRadius: 0,
-            },
-          }}
-          sx={disabledStyles}
-          value={escapeHTML(po.replyTo ?? "")}
-        />
-      </>
+      <EmailPreviewHeader
+        email={po.to}
+        from={po.from}
+        subject={po.subject}
+        replyTo={po.replyTo}
+      />
     );
   };
 
@@ -578,30 +452,23 @@ export function DeliveriesTable({
     return null;
   };
 
+  const getPreviewVisibilityHandler = () => {
+    return (
+      <VisibilityOffIcon
+        fontSize="small"
+        onClick={() => setPreviewObject(initPreviewObject())}
+        sx={{ cursor: "pointer" }}
+      />
+    );
+  };
+
   const preview = (
-    <Stack
-      sx={{
-        width: "100%",
-        height: "100vh",
-      }}
-      spacing={1}
-    >
-      <Stack>{renderPreviewHeader(previewObject)}</Stack>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        padding={1}
-      >
-        <FormLabel sx={{ paddingLeft: 1 }}>Delivery Preview</FormLabel>
-        <VisibilityOffIcon
-          fontSize="small"
-          onClick={() => setPreviewObject(initPreviewObject())}
-          sx={{ cursor: "pointer" }}
-        />
-      </Stack>
-      <BodyBox direction="left">{renderPreviewBody(previewObject)}</BodyBox>
-    </Stack>
+    <TemplatePreview
+      previewHeader={renderPreviewHeader(previewObject)}
+      previewBody={renderPreviewBody(previewObject)}
+      visibilityHandler={getPreviewVisibilityHandler()}
+      bodyPreviewHeading="Delivery Preview"
+    />
   );
 
   return (
