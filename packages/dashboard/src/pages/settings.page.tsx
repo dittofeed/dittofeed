@@ -930,6 +930,9 @@ function DefaultEmailConfig() {
       case EmailProviderType.Smtp:
         name = "SMTP";
         break;
+      case EmailProviderType.Test:
+        name = "Test";
+        break;
       case EmailProviderType.Resend:
         name = "Resend";
         break;
