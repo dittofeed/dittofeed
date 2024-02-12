@@ -92,7 +92,7 @@ export async function createUserEventsTables({
       );
       `,
     `
-        CREATE TABLE IF NOT EXISTS computed_property_state (
+        CREATE TABLE IF NOT EXISTS computed_property_state_v2 (
           workspace_id LowCardinality(String),
           type Enum('user_property' = 1, 'segment' = 2),
           computed_property_id LowCardinality(String),
@@ -100,7 +100,7 @@ export async function createUserEventsTables({
           user_id String,
           last_value AggregateFunction(argMax, String, DateTime64(3)),
           unique_count AggregateFunction(uniq, String),
-          max_event_time AggregateFunction(max, DateTime64(3)),
+          event_time DateTime64(3),
           grouped_message_ids AggregateFunction(groupArray, String),
           computed_at DateTime64(3)
         )
@@ -110,7 +110,8 @@ export async function createUserEventsTables({
           type,
           computed_property_id,
           state_id,
-          user_id
+          user_id,
+          event_time
         );
       `,
     `
@@ -179,6 +180,45 @@ export async function createUserEventsTables({
         order by assigned_at
         TTL toStartOfDay(assigned_at) + interval 100 day;
       `,
+    `
+        CREATE TABLE IF NOT EXISTS computed_property_state_index (
+            workspace_id LowCardinality(String),
+            type Enum('user_property' = 1, 'segment' = 2),
+            computed_property_id LowCardinality(String),
+            state_id LowCardinality(String),
+            user_id String,
+            indexed_value Int64,
+            INDEX primary_idx indexed_value TYPE minmax GRANULARITY 4
+        )
+        ENGINE = ReplacingMergeTree()
+        ORDER BY (
+            workspace_id,
+            type,
+            computed_property_id,
+            state_id,
+            user_id
+        );
+      `,
+    `
+        CREATE TABLE IF NOT EXISTS resolved_segment_state (
+            workspace_id LowCardinality(String),
+            segment_id LowCardinality(String),
+            state_id LowCardinality(String),
+            user_id String,
+            segment_state_value Boolean,
+            max_event_time DateTime64(3),
+            INDEX segment_state_value_idx segment_state_value TYPE minmax GRANULARITY 4,
+            computed_at DateTime64(3),
+            INDEX computed_at_idx computed_at TYPE minmax GRANULARITY 4
+        )
+        ENGINE = ReplacingMergeTree()
+        ORDER BY (
+            workspace_id,
+            segment_id,
+            state_id,
+            user_id
+        );
+      `,
   ];
 
   const kafkaBrokers =
@@ -206,8 +246,8 @@ export async function createUserEventsTables({
       clickhouseClient().exec({
         query,
         clickhouse_settings: { wait_end_of_query: 1 },
-      }),
-    ),
+      })
+    )
   );
 
   const mvQueries: string[] = [
@@ -236,7 +276,7 @@ export async function createUserEventsTables({
         state_id,
         user_id,
         computed_at
-      from computed_property_state
+      from computed_property_state_v2
       group by
         workspace_id,
         type,
@@ -260,7 +300,7 @@ export async function createUserEventsTables({
       clickhouseClient().exec({
         query,
         clickhouse_settings: { wait_end_of_query: 1 },
-      }),
-    ),
+      })
+    )
   );
 }
