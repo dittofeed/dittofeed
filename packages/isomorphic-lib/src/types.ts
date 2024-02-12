@@ -985,6 +985,8 @@ export enum EmailProviderType {
 }
 
 export const TestEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
   type: Type.Literal(EmailProviderType.Test),
 });
 
@@ -1036,6 +1038,7 @@ export const PersistedEmailProvider = Type.Union([
   PostMarkEmailProvider,
   ResendEmailProvider,
   SmtpEmailProvider,
+  TestEmailProvider
 ]);
 
 export type PersistedEmailProvider = Static<typeof PersistedEmailProvider>;
