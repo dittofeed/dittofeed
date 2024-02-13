@@ -35,6 +35,7 @@ import {
   WorkspaceMemberRoleResource,
   WorkspaceResource,
   WriteKeyResource,
+  PersistedSmsProvider
 } from "isomorphic-lib/src/types";
 import {
   GetServerSidePropsContext,
@@ -107,7 +108,7 @@ export type AppState = {
 export interface AppActions {
   toggleDrawer: () => void;
   upsertEmailProvider: (emailProvider: PersistedEmailProvider) => void;
-  upsertSmsProvider: (smsProvider: SmsProviderConfig) => void;
+  upsertSmsProvider: (smsProvider: PersistedSmsProvider) => void;
   upsertDataSourceConfiguration: (
     dataSource: DataSourceConfigurationResource,
   ) => void;

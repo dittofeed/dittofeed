@@ -36,9 +36,10 @@ import {
   MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
-  SmsProviderConfig,
   SmsProviderType,
   UpsertMessageTemplateResource,
+  PersistedSmsProvider,
+  TwilioSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -844,7 +845,7 @@ export async function sendSms({
 
   const parsedConfigResult = schemaValidateWithErr(
     smsConfig,
-    SmsProviderConfig,
+    TwilioSecret
   );
   if (parsedConfigResult.isErr()) {
     return err({

@@ -2,11 +2,11 @@ import { TWILIO_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { pickBy } from "remeda";
 
 import prisma from "./prisma";
-import { SmsProviderConfig, UpsertSmsProviderRequest } from "./types";
+import { PersistedSmsProvider, UpsertSmsProviderRequest } from "./types";
 
 export async function upsertSmsProvider(
   request: UpsertSmsProviderRequest,
-): Promise<SmsProviderConfig> {
+): Promise<PersistedSmsProvider> {
   const setDefault = request.setDefault ?? false;
 
   await prisma().$transaction(async (tx) => {
