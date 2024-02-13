@@ -15,7 +15,7 @@ import {
   UserPropertyDefinition,
 } from "isomorphic-lib/src/types";
 import { Overwrite } from "utility-types";
-import {MessageStatus} from 'twilio/lib/rest/api/v2010/account/message.d.ts';
+
 export * from "isomorphic-lib/src/types";
 
 export enum NodeEnvEnum {
@@ -168,7 +168,6 @@ export const TwilioEventSms = Type.Object({
   SmsStatus: Type.Enum(TwilioMessageStatus),
   Body: Type.String(),
   To: Type.String(),
-  MessagingServiceSid: Type.String(),
   NumSegments: Type.String(),
   MessageSid: Type.String(),
   AccountSid: Type.String(),

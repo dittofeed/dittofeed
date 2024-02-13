@@ -339,7 +339,8 @@ export default async function webhookController(fastify: FastifyInstance) {
       const verified = validateRequest(
         authToken,
         request.headers["x-twilio-signature"],
-        request.url,
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+        `${request.protocol}${request.headers.host}${request.url}`,
         request.body,
       );
 
