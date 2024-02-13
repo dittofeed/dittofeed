@@ -795,6 +795,8 @@ export async function sendEmail({
         HtmlBody: body,
         ReplyTo: replyTo,
         Metadata: {
+          recipient: to,
+          from,
           workspaceId,
           templateId,
           ...messageTags,

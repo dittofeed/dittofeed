@@ -1,7 +1,7 @@
 // postmark doesn't directly exports the types we need
 /* eslint-disable import/no-extraneous-dependencies */
 import { err, ok, Result, ResultAsync } from "neverthrow";
-import postmark, { Message } from "postmark";
+import { Message, ServerClient } from "postmark";
 import { DefaultResponse } from "postmark/dist/client/models/client/DefaultResponse";
 import { MessageSendingResponse } from "postmark/dist/client/models/message/Message";
 import { v5 as uuidv5 } from "uuid";
@@ -21,7 +21,8 @@ import {
 function guardResponseError(payload: unknown): DefaultResponse {
   const error = payload as Error;
   return {
-    ErrorCode: error.cause as DefaultResponse["ErrorCode"],
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    ErrorCode: (error.cause as DefaultResponse["ErrorCode"]) ?? "",
     Message: error.message,
   };
 }
@@ -32,7 +33,7 @@ object that's why we wrap it out in our wrapper function
 */
 
 const sendMailWrapper = async (apiKey: string, mailData: Message) => {
-  const postmarkClient = new postmark.ServerClient(apiKey);
+  const postmarkClient = new ServerClient(apiKey);
 
   const response = await postmarkClient.sendEmail(mailData);
   if (response.ErrorCode) {
@@ -56,8 +57,8 @@ export async function sendMail({
   ).map((resultArray) => resultArray);
 }
 
-function unwrapTag(tagName: string, tags: Record<string, string[]>) {
-  return tags[tagName]?.[0] ?? null;
+function unwrapTag(tagName: string, tags: Record<string, string>) {
+  return tags[tagName] ?? null;
 }
 
 export function postMarkEventToDF({
@@ -73,11 +74,10 @@ export function postMarkEventToDF({
     DeliveredAt,
     ReceivedAt,
     BouncedAt,
-    Email,
-    Recipient,
   } = postMarkEvent;
 
   const userId = unwrapTag("userId", Metadata);
+  const userEmail = unwrapTag("recipient", Metadata);
   const templateId = unwrapTag("messageId", Metadata);
 
   if (!userId) {
@@ -86,33 +86,27 @@ export function postMarkEventToDF({
 
   let eventName: InternalEventType;
   let timestamp: string | undefined;
-  let userEmail: string | undefined;
 
   switch (event) {
     case PostMarkEventType.Open:
       eventName = InternalEventType.EmailOpened;
       timestamp = ReceivedAt;
-      userEmail = Recipient;
       break;
     case PostMarkEventType.Click:
       eventName = InternalEventType.EmailClicked;
       timestamp = ReceivedAt;
-      userEmail = Recipient;
       break;
     case PostMarkEventType.Bounce:
       eventName = InternalEventType.EmailBounced;
       timestamp = BouncedAt;
-      userEmail = Email;
       break;
     case PostMarkEventType.SpamComplaint:
       eventName = InternalEventType.EmailMarkedSpam;
       timestamp = BouncedAt;
-      userEmail = Email;
       break;
     case PostMarkEventType.Delivery:
       eventName = InternalEventType.EmailDelivered;
       timestamp = DeliveredAt;
-      userEmail = Recipient;
       break;
     default:
       return err(new Error(`Unhandled event type: ${event as string}`));
@@ -125,7 +119,7 @@ export function postMarkEventToDF({
   const messageId = uuidv5(userEmail, workspaceId);
 
   let item: BatchTrackData;
-  if (postMarkEvent.userId) {
+  if (userId) {
     item = {
       type: EventType.Track,
       event: eventName,

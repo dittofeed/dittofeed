@@ -458,9 +458,6 @@ export const PostMarkEvent = Type.Object({
   Tag: Type.String(),
   MessageID: Type.String(),
   Metadata: Type.Record(Type.String(), Type.Any()),
-  Recipient: Type.Optional(Type.String()),
-  Email: Type.String(),
-  From: Type.String(),
   RecordType: Type.Enum(PostMarkEventType),
   BouncedAt: Type.Optional(Type.String()),
   DeliveredAt: Type.Optional(Type.String()),
@@ -468,7 +465,6 @@ export const PostMarkEvent = Type.Object({
   workspaceId: Type.Optional(Type.String()),
   runId: Type.Optional(Type.String()),
   messageId: Type.Optional(Type.String()),
-  userId: Type.Optional(Type.String()),
   templateId: Type.Optional(Type.String()),
   journeyId: Type.Optional(Type.String()),
 });
