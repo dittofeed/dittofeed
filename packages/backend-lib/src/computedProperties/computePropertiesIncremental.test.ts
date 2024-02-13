@@ -999,6 +999,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes HasBeen operator trait segment",
+      only: true,
       userProperties: [],
       segments: [
         {
