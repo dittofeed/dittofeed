@@ -71,24 +71,13 @@ export function resendEventToDF({
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const email = to[0]!;
 
-  const userOrAnonymousId = resendEvent.userId ?? resendEvent.anonymousId;
-  if (!userOrAnonymousId) {
+  const { userId, templateId } = resendEvent.data.tags;
+  if (!userId) {
     return err(new Error("Missing userId or anonymousId."));
   }
   const messageId = uuidv5(email_id, workspaceId);
 
   let eventName: InternalEventType;
-  const properties: Record<string, string> = R.merge(
-    { email },
-    R.pick(resendEvent, [
-      "workspaceId",
-      "journeyId",
-      "runId",
-      "messageId",
-      "userId",
-      "templateId",
-    ]),
-  );
 
   switch (event) {
     case ResendEventType.Opened:
@@ -113,27 +102,21 @@ export function resendEventToDF({
       return err(new Error(`Unhandled event type: ${event}`));
   }
 
-  const timestamp = new Date(created_at).getTime();
-  const itemTimestamp = new Date(timestamp * 1000).toISOString();
+  const timestamp = new Date(created_at).toISOString();
   let item: BatchTrackData;
-  if (resendEvent.userId) {
+  if (userId) {
     item = {
       type: EventType.Track,
       event: eventName,
-      userId: resendEvent.userId,
-      anonymousId: resendEvent.anonymousId,
-      properties,
+      userId,
       messageId,
-      timestamp: itemTimestamp,
-    };
-  } else if (resendEvent.anonymousId) {
-    item = {
-      type: EventType.Track,
-      event: eventName,
-      anonymousId: resendEvent.anonymousId,
-      properties,
-      messageId,
-      timestamp: itemTimestamp,
+      timestamp,
+      properties: {
+        email,
+        workspaceId,
+        templateId,
+        userId,
+      },
     };
   } else {
     return err(new Error("Missing userId and anonymousId."));
