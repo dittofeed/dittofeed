@@ -28,7 +28,6 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
-  SmsProviderConfig,
   SourceControlProviderEnum,
   SubscriptionGroupResource,
   UserPropertyDefinition,
@@ -38,7 +37,8 @@ import {
   WorkspaceMemberRoleResource,
   WorkspaceResource,
   WriteKeyResource,
-  PersistedSmsProvider
+  PersistedSmsProvider,
+  DefaultSmsProviderResource
 } from "isomorphic-lib/src/types";
 import {
   GetServerSidePropsContext,
@@ -90,7 +90,8 @@ export type AppState = {
   secretAvailability: SecretAvailabilityResource[];
   defaultEmailProvider: DefaultEmailProviderResource | null;
   emailProviders: PersistedEmailProvider[];
-  smsProviders: SmsProviderConfig[];
+  defaultSmsProvider: DefaultSmsProviderResource | null;
+  smsProviders: PersistedSmsProvider[];
   dataSourceConfigurations: RequestStatus<
     DataSourceConfigurationResource[],
     Error
@@ -135,6 +136,9 @@ export interface AppActions {
   setGetTraitsRequest: (request: EphemeralRequestStatus<Error>) => void;
   setDefaultEmailProvider: (
     defaultEmailProvider: DefaultEmailProviderResource,
+  ) => void;
+  setDefaultSmsProvider: (
+      defaultSmsProvider: DefaultSmsProviderResource,
   ) => void;
 }
 

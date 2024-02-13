@@ -10,6 +10,7 @@ import {
   DataSourceConfigurationResource,
   DataSourceVariantType,
   DefaultEmailProviderResource,
+  DefaultSmsProviderResource,
   DeleteWriteKeyResource,
   EmptyResponse,
   ListWriteKeyRequest,
@@ -79,6 +80,38 @@ export default async function settingsController(fastify: FastifyInstance) {
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
+    "/sms-providers/default",
+    {
+      schema: {
+        description: "Create or update default email provider settings",
+        tags: ["Settings"],
+        body: DefaultSmsProviderResource,
+        response: {
+          200: PersistedSmsProvider,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, smsProviderId } = request.body;
+
+      await prisma().defaultSmsProvider.upsert({
+        where: {
+          workspaceId,
+        },
+        create: {
+          workspaceId,
+          smsProviderId,
+        },
+        update: {
+          smsProviderId,
+        },
+      });
+
+      return reply.status(201).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/sms-providers",
     {
       schema: {
@@ -108,7 +141,7 @@ export default async function settingsController(fastify: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
+   async (request, reply) => {
       const { workspaceId, emailProviderId, fromAddress } = request.body;
 
       await prisma().defaultEmailProvider.upsert({
@@ -127,7 +160,7 @@ export default async function settingsController(fastify: FastifyInstance) {
       });
 
       return reply.status(201).send();
-    },
+    }, 
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(

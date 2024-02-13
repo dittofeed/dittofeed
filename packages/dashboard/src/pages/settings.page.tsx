@@ -32,7 +32,6 @@ import logger from "backend-lib/src/logger";
 import { getSecretAvailability } from "backend-lib/src/secrets";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { SubscriptionChange } from "backend-lib/src/types";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
   AMAZONSES_SECRET_NAME,
@@ -61,11 +60,12 @@ import {
   SmsProviderType,
   SmtpSecretKey,
   SyncIntegration,
+  SubscriptionChange,
   UpsertDataSourceConfigurationResource,
   UpsertIntegrationResource,
   UpsertSmsProviderRequest,
-  TwilioSecret,
   SmsProviderSecret,
+  DefaultSmsProviderResource
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -232,6 +232,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       integrations,
       segments,
       smsProviders,
+      defaultSmsProviderRecord,
       secretAvailability,
     ] = await Promise.all([
       getOrCreateEmailProviders({ workspaceId }),
@@ -253,6 +254,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           dbSegments.map((segment) => unwrap(toSegmentResource(segment))),
         ),
       getOrCreateSmsProviders({workspaceId}),
+      prisma().defaultSmsProvider.findFirst({
+        where: { workspaceId },
+      }),
       getSecretAvailability({
         workspaceId,
         names: Object.values(EMAIL_PROVIDER_TYPE_TO_SECRET_NAME),
@@ -290,11 +294,16 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     serverInitialState.subscriptionGroups = subscriptionGroupResources;
 
+    console.log({smsProviders})
+
     serverInitialState.smsProviders = smsProviders.flatMap((provider) => {
+        console.log({...provider})
       const configResult = schemaValidateWithErr(
         provider.secret.configValue,
         SmsProviderSecret,
       );
+
+
       if (configResult.isErr()) {
         logger().error(
           {
@@ -306,8 +315,16 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         return [];
       }
 
-      return configResult.value;
+      console.log({...configResult})
+
+      return { 
+          type: configResult.value.type, 
+          workspaceId: provider.workspaceId, 
+          id: provider.id
+      };
     });
+
+    serverInitialState.defaultSmsProvider = defaultSmsProviderRecord
 
     return {
       props: addInitialStateToProps({
@@ -1097,7 +1114,7 @@ function TwilioConfig() {
     (store) => store.updateSmsProviderRequest,
   );
 
-  const twilioProvider: TwilioConfig | null = useMemo(() => {
+  const twilioProvider: TwilioProviderConfig | null = useMemo(() => {
     for (const provider of smsProviders) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (provider.type === SmsProviderType.Twilio) {
@@ -1119,15 +1136,15 @@ function TwilioConfig() {
     return null;
   }
 
-  const body: UpsertSmsProviderRequest = {
+  const body = {
     workspaceId: workspace.value.id,
     setDefault: true,
-    smsProvider: {
-      type: SmsProviderType.Twilio,
-      accountSid,
-      authToken,
-      messagingServiceSid,
-    },
+    type: SmsProviderType.Twilio,
+    secret: {
+        accountSid,
+        authToken,
+        messagingServiceSid,
+    }
   };
 
   const apiHandler = apiRequestHandlerFactory({
@@ -1141,7 +1158,7 @@ function TwilioConfig() {
     requestConfig: {
       method: "PUT",
       url: `${apiBase}/api/settings/sms-providers`,
-      data: body,
+      data: body satisfies UpsertSmsProviderRequest,
       headers: {
         "Content-Type": "application/json",
       },
@@ -1227,14 +1244,154 @@ function TwilioConfig() {
   );
 }
 
+function DefaultSmsConfig() {
+  const {
+    smsProviders,
+    apiBase,
+    workspace,
+    defaultSmsProvider,
+    setDefaultSmsProvider,
+  } = useAppStorePick([
+    "apiBase",
+    "workspace",
+    "smsProviders",
+    "defaultSmsProvider",
+    "setDefaultSmsProvider",
+  ]);
+  const [
+    { defaultProvider, defaultProviderRequest },
+    setState,
+  ] = useImmer<{
+    defaultProvider: string | null;
+    defaultProviderRequest: EphemeralRequestStatus<Error>;
+  }>({
+    defaultProvider: defaultSmsProvider?.smsProviderId ?? null,
+    defaultProviderRequest: {
+      type: CompletionStatus.NotStarted,
+    },
+  });
+
+  const apiHandler = (smsProviderId: string) => {
+    if (workspace.type !== CompletionStatus.Successful) {
+      return;
+    }
+    apiRequestHandlerFactory({
+      request: defaultProviderRequest,
+      setRequest: (request) => {
+        setState((state) => {
+          state.defaultProviderRequest = request;
+        });
+      },
+      responseSchema: EmptyResponse,
+      onSuccessNotice: "Set default SMS configuration.",
+      onFailureNoticeHandler: () =>
+        `API Error: Failed to set default SMS configuration.`,
+      setResponse: () => {
+        if (!defaultProvider) {
+          return;
+        }
+        setDefaultSmsProvider({
+          workspaceId: workspace.value.id,
+          smsProviderId: defaultProvider,
+        });
+      },
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/settings/sms-providers/default`,
+        data: {
+          workspaceId: workspace.value.id,
+          smsProviderId,
+        } satisfies DefaultSmsProviderResource,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+  };
+
+  console.log({smsProviders})
+
+  const options = smsProviders.map((ep) => {
+    let name: string;
+    const { type } = ep;
+    switch (type) {
+      case SmsProviderType.Twilio:
+        name = "Twilio";
+        break;
+      case SmsProviderType.Test:
+        name = "Test"
+        break;
+      default:
+        assertUnreachable(type as never, `Unknown email provider type ${type}`);
+
+    }
+    return {
+      value: ep.id,
+      label: name,
+    };
+  });
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "default-sms-section",
+          fieldGroups: [
+            {
+              id: "default-sms-fields",
+              name: "Default SMS Configuration",
+              fields: [
+                {
+                  id: "default-sms-provider",
+                  type: "select",
+                  fieldProps: {
+                    label: "Default SMS Provider",
+                    value: defaultProvider ?? "",
+                    onChange: (value) => {
+                      setState((state) => {
+                        state.defaultProvider = value;
+                      });
+                    },
+                    options,
+                    helperText:
+                      "In order to use SMS, at least 1 SMS provider must be configured.",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    >
+      <Button
+        variant="contained"
+        disabled={!defaultProvider}
+        sx={{
+          alignSelf: {
+            xs: "start",
+            sm: "end",
+          },
+        }}
+        onClick={() =>
+          apiHandler(defaultProvider ?? "")
+        }
+      >
+        Save
+      </Button>
+    </Fields>
+  );
+}
+
+
+
 function SmsChannelConfig() {
   return (
     <>
       <SectionSubHeader
         id={settingsSectionIds.smsChannel}
         title="SMS"
-        description="In order to use SMS messaging, at least 1 SMS provider must be configured."
       />
+      <DefaultSmsConfig/>
       <TwilioConfig />
     </>
   );

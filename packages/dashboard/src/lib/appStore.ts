@@ -211,6 +211,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         defaultEmailProvider: null,
         drawerOpen: true,
         emailProviders: [],
+        defaultSmsProvider: null,
         smsProviders: [],
         traits: [],
         getTraitsRequest: {
@@ -781,6 +782,10 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setDefaultEmailProvider: (emailProvider) =>
           set((state) => {
             state.defaultEmailProvider = emailProvider;
+          }),
+        setDefaultSmsProvider: (smsProvider) =>
+          set((state) => {
+            state.defaultSmsProvider = smsProvider;
           }),
         ...createJourneySlice(set, ...remaining),
         ...preloadedState,
