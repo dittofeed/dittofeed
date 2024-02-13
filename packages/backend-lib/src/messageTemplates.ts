@@ -963,8 +963,23 @@ export async function sendSms({
       },
     });
   }
-  const identifier = userPropertyAssignments[identifierKey];
-  if (!identifier || typeof identifier !== "string") {
+
+  const rawIdentifier = userPropertyAssignments[identifierKey];
+  let identifier: string | null;
+  switch (typeof rawIdentifier) {
+    case "string":
+      identifier = rawIdentifier;
+      break;
+    // in the case of e.g. a phone number, convert to string
+    case "number":
+      identifier = String(rawIdentifier);
+      break;
+    default:
+      identifier = null;
+      break;
+  }
+
+  if (!identifier) {
     return err({
       type: InternalEventType.MessageSkipped,
       variant: {
