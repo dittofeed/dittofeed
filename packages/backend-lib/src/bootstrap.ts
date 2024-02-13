@@ -197,6 +197,13 @@ async function bootstrapPostgres({
       type: SubscriptionGroupType.OptOut,
       channel: ChannelType.MobilePush,
     }),
+    upsertSubscriptionGroup({
+      workspaceId,
+      id: uuidv5("sms-subscription-group", workspaceId),
+      name: `${workspaceName} - SMS`,
+      type: SubscriptionGroupType.OptOut,
+      channel: ChannelType.Sms,
+    }),
   ]);
   return { workspaceId };
 }
