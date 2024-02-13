@@ -14,7 +14,7 @@ import {
   EmptyResponse,
   ListWriteKeyRequest,
   ListWriteKeyResource,
-  SmsProviderConfig,
+  PersistedSmsProvider,
   UpsertDataSourceConfigurationResource,
   UpsertSmsProviderRequest,
   UpsertWriteKeyResource,
@@ -86,7 +86,7 @@ export default async function settingsController(fastify: FastifyInstance) {
         tags: ["Settings"],
         body: UpsertSmsProviderRequest,
         response: {
-          200: SmsProviderConfig,
+          200: PersistedSmsProvider,
         },
       },
     },

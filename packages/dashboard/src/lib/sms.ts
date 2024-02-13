@@ -1,7 +1,6 @@
-import { EmailProviderSecret, SmsProviderConfig, SmsProviderSecret, SmsProviderType } from "isomorphic-lib/src/types";
+import { SmsProviderType, SmsProviderSecret, PersistedSmsProvider} from "isomorphic-lib/src/types";
 import prisma from "./prisma";
 import logger from "backend-lib/src/logger";
-import { SmsProvider } from "@prisma/client";
 import { SMS_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
 
 async function upsertSmsProvider({
@@ -10,7 +9,7 @@ async function upsertSmsProvider({
 }: {
   workspaceId: string;
   type: SmsProviderType;
-}): Promise<SmsProvider | null> {
+}): Promise<PersistedSmsProvider | null> {
   const secretName = SMS_PROVIDER_TYPE_TO_SECRET_NAME[type];
   const secretConfig: SmsProviderSecret = {
     type,
@@ -44,7 +43,7 @@ async function upsertSmsProvider({
     },
     update: {},
   });
-  return {...smsProvider,...secret};
+  return {...smsProvider, secret};
 }
 
 
@@ -52,9 +51,12 @@ export async function getOrCreateSmsProviders({
   workspaceId,
 }: {
   workspaceId: string;
-}): Promise<SmsProviderConfig[]> {
+}): Promise<PersistedSmsProvider[]> {
   const smsProviders = await prisma().smsProvider.findMany({
     where: { workspaceId },
+    include: {
+          secret: true,
+    },
   });
 
   const upsertPromises: Promise<unknown>[] = [];
@@ -67,7 +69,7 @@ export async function getOrCreateSmsProviders({
         upsertSmsProvider({
           workspaceId,
           type,
-        }).then((smsProvider) => {
+        }).then((smsProvider: any) => {
           if (smsProvider) {
             smsProviders.push(smsProvider);
           }
@@ -94,6 +96,7 @@ export async function getOrCreateSmsProviders({
       workspaceId: ep.workspaceId,
       id: ep.id,
       type,
+      secret: ep.secret
     };
   });
   return val;

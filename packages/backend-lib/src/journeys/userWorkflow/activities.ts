@@ -47,10 +47,11 @@ import {
   JourneyNodeType,
   KnownTrackData,
   MessageTemplateResource,
-  SmsProviderConfig,
+  PersistedSmsProvider,
   SmsProviderType,
   SubscriptionGroupType,
   TrackData,
+  TwilioSecret,
 } from "../../types";
 import {
   assignmentAsString,
@@ -277,7 +278,7 @@ export async function sendSmsWithPayload(
 ): Promise<SendWithTrackingValue> {
   const buildSendValue = buildSendValueFactory(params);
 
-  return sendWithTracking<SmsProviderConfig>({
+  return sendWithTracking<TwilioSecret>({
     ...params,
     async getChannelConfig({ workspaceId }) {
       const smsProvider = await prisma().defaultSmsProvider.findUnique({
@@ -302,7 +303,7 @@ export async function sendSmsWithPayload(
       }
       const parsedConfigResult = schemaValidateWithErr(
         smsConfig,
-        SmsProviderConfig,
+        TwilioSecret 
       );
       if (parsedConfigResult.isErr()) {
         return err(
@@ -412,7 +413,7 @@ export async function sendSmsWithPayload(
           });
         }
         default: {
-          const smsType: never = channelConfig.type;
+          const smsType: never = channelConfig.type as never;
           // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           assertUnreachable(smsType, `unknown sms provider type ${smsType}`);
         }

@@ -55,15 +55,17 @@ import {
   EphemeralRequestStatus,
   IntegrationResource,
   IntegrationType,
+  PersistedSmsProvider,
   SegmentResource,
-  SmsProviderConfig,
+  TwilioProviderConfig,
   SmsProviderType,
   SmtpSecretKey,
   SyncIntegration,
-  TwilioSmsProvider,
   UpsertDataSourceConfigurationResource,
   UpsertIntegrationResource,
   UpsertSmsProviderRequest,
+  TwilioSecret,
+  SmsProviderSecret,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -97,6 +99,7 @@ import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
+import { getOrCreateSmsProviders } from "../lib/sms";
 
 async function copyToClipboard({
   value,
@@ -249,14 +252,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         .then((dbSegments) =>
           dbSegments.map((segment) => unwrap(toSegmentResource(segment))),
         ),
-      prisma().smsProvider.findMany({
-        where: {
-          workspaceId,
-        },
-        include: {
-          secret: true,
-        },
-      }),
+      getOrCreateSmsProviders({workspaceId}),
       getSecretAvailability({
         workspaceId,
         names: Object.values(EMAIL_PROVIDER_TYPE_TO_SECRET_NAME),
@@ -293,15 +289,17 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     );
 
     serverInitialState.subscriptionGroups = subscriptionGroupResources;
+
     serverInitialState.smsProviders = smsProviders.flatMap((provider) => {
       const configResult = schemaValidateWithErr(
         provider.secret.configValue,
-        SmsProviderConfig,
+        SmsProviderSecret,
       );
       if (configResult.isErr()) {
         logger().error(
           {
             err: configResult.error,
+            SmsProviderSecret         
           },
           "failed to validate sms provider config",
         );
@@ -1099,7 +1097,7 @@ function TwilioConfig() {
     (store) => store.updateSmsProviderRequest,
   );
 
-  const twilioProvider: TwilioSmsProvider | null = useMemo(() => {
+  const twilioProvider: TwilioConfig | null = useMemo(() => {
     for (const provider of smsProviders) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (provider.type === SmsProviderType.Twilio) {
@@ -1135,7 +1133,7 @@ function TwilioConfig() {
   const apiHandler = apiRequestHandlerFactory({
     request: upsertSmsProviderRequest,
     setRequest: updateSmsProviderRequest,
-    responseSchema: SmsProviderConfig,
+    responseSchema: PersistedSmsProvider,
     setResponse: upsertSmsProvider,
     onSuccessNotice: "Updated Twilio configuration.",
     onFailureNoticeHandler: () =>
