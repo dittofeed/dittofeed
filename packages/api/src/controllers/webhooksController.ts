@@ -208,13 +208,13 @@ export default async function webhookController(fastify: FastifyInstance) {
           "svix-timestamp": Type.String(),
           "svix-signature": Type.String(),
         }),
-        body: Type.Array(ResendEvent),
+        body: ResendEvent,
       },
     },
     async (request, reply) => {
       logger().debug({ body: request.body }, "Received resend events.");
 
-      const workspaceId = await getWorkspaceId(request);
+      const { workspaceId } = request.body.data.tags;
       if (!workspaceId) {
         return reply.status(400).send({
           error: "Missing workspaceId. Try setting the df-workspace-id header.",
@@ -277,7 +277,7 @@ export default async function webhookController(fastify: FastifyInstance) {
 
       await submitResendEvents({
         workspaceId,
-        events: request.body,
+        events: [request.body],
       });
       return reply.status(200).send();
     },

@@ -434,15 +434,17 @@ export const ResendEvent = Type.Object({
     from: Type.String(),
     subject: Type.String(),
     to: Type.Array(Type.String()),
+    tags: Type.Object({
+      workspaceId: Type.Optional(Type.String()),
+      runId: Type.Optional(Type.String()),
+      messageId: Type.Optional(Type.String()),
+      userId: Type.Optional(Type.String()),
+      templateId: Type.Optional(Type.String()),
+      journeyId: Type.Optional(Type.String()),
+      anonymousId: Type.Optional(Type.String()),
+    }),
   }),
   type: Type.Enum(ResendEventType),
-  workspaceId: Type.Optional(Type.String()),
-  runId: Type.Optional(Type.String()),
-  messageId: Type.Optional(Type.String()),
-  userId: Type.Optional(Type.String()),
-  templateId: Type.Optional(Type.String()),
-  journeyId: Type.Optional(Type.String()),
-  anonymousId: Type.Optional(Type.String()),
 });
 
 export type SendgridEvent = Static<typeof SendgridEvent>;
