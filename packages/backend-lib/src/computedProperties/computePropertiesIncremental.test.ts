@@ -920,6 +920,15 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description: "user is initially within segment window",
+          indexedStates: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "1",
+              indexedValue: Math.floor((now - 100) / 1000),
+            }),
+          ],
           users: [
             {
               id: "user-1",
@@ -1052,15 +1061,6 @@ describe("computeProperties", () => {
                 stuckOnboarding: null,
               },
             },
-          ],
-          indexedStates: [
-            ({ now }) => ({
-              type: "segment",
-              userId: "user-1",
-              name: "newUsers",
-              nodeId: "1",
-              indexedValue: Math.floor((now - 100) / 1000),
-            }),
           ],
           states: [
             ({ now }) => ({
