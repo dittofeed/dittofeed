@@ -1,5 +1,4 @@
 import { err, ok, Result, ResultAsync } from "neverthrow";
-import * as R from "remeda";
 import { ErrorResponse, Resend } from "resend";
 import { v5 as uuidv5 } from "uuid";
 
