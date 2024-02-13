@@ -965,9 +965,9 @@ export enum EmailProviderType {
   Sendgrid = "SendGrid",
   AmazonSes = "AmazonSes",
   Resend = "Resend",
+  PostMark = "PostMark",
   Smtp = "Smtp",
   Test = "Test",
-
 }
 
 export const TestEmailProvider = Type.Object({
@@ -1008,9 +1008,18 @@ export const ResendEmailProvider = Type.Object({
 
 export type ResendEmailProvider = Static<typeof ResendEmailProvider>;
 
+export const PostMarkEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(EmailProviderType.PostMark),
+});
+
+export type PostMarkEmailProvider = Static<typeof PostMarkEmailProvider>;
+
 export const PersistedEmailProvider = Type.Union([
   SendgridEmailProvider,
   AmazonSesEmailProvider,
+  PostMarkEmailProvider,
   ResendEmailProvider,
   SmtpEmailProvider,
 ]);
@@ -2012,9 +2021,16 @@ export const EmailResendSuccess = Type.Object({
 
 export type EmailResendSuccess = Static<typeof EmailResendSuccess>;
 
+export const EmailPostMarkSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.PostMark)
+});
+
+export type EmailPostMarkSuccess = Static<typeof EmailPostMarkSuccess>;
+
 export const EmailServiceProviderSuccess = Type.Union([
   EmailSendgridSuccess,
   EmailAmazonSesSuccess,
+  EmailPostMarkSuccess,
   EmailResendSuccess,
   EmailSmtpSuccess,
   EmailTestSuccess,
@@ -2163,10 +2179,19 @@ export const MessageResendFailure = Type.Object({
 
 export type MessageResendFailure = Static<typeof MessageResendFailure>;
 
+export const MessagePostMarkFailure = Type.Object({
+  type: Type.Literal(EmailProviderType.PostMark),
+  message: Type.String(),
+  name: Type.String(),
+});
+
+export type MessagePostMarkFailure = Static<typeof MessagePostMarkFailure>;
+
 export const EmailServiceProviderFailure = Type.Union([
   MessageSendgridServiceFailure,
   MessageAmazonSesServiceFailure,
   MessageResendFailure,
+  MessagePostMarkFailure,
   MessageSmtpFailure,
 ]);
 
@@ -2380,6 +2405,14 @@ export const SendgridSecret = Type.Object({
 
 export type SendgridSecret = Static<typeof SendgridSecret>;
 
+export const PostMarkSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.PostMark),
+  apiKey: Type.Optional(Type.String()),
+  webhookKey: Type.Optional(Type.String()),
+});
+
+export type PostMarkSecret = Static<typeof PostMarkSecret>;
+
 export const AmazonSesSecret = Type.Object({
   type: Type.Literal(EmailProviderType.AmazonSes),
   accessKeyId: Type.Optional(Type.String()),
@@ -2428,6 +2461,7 @@ export type SmtpSecretKey = keyof Omit<SmtpSecret, "type">;
 
 export const EmailProviderSecret = Type.Union([
   SendgridSecret,
+  PostMarkSecret,
   AmazonSesSecret,
   SmtpSecret,
   ResendSecret,

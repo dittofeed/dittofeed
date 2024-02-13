@@ -37,6 +37,7 @@ import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
   AMAZONSES_SECRET_NAME,
   EMAIL_PROVIDER_TYPE_TO_SECRET_NAME,
+  POSTMARK_SECRET,
   RESEND_SECRET,
   SENDGRID_SECRET,
   SMTP_SECRET_NAME,
@@ -785,6 +786,64 @@ function ResendConfig() {
   );
 }
 
+function PostMarkConfig() {
+  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+
+  return (
+    <Fields
+      sections={[
+        {
+          id: "postmark-section",
+          fieldGroups: [
+            {
+              id: "postmark-api-key",
+              name: "PostMark API Key",
+              fields: [
+                {
+                  id: "postmark-api-key",
+                  type: "secret",
+                  fieldProps: {
+                    name: POSTMARK_SECRET,
+                    secretKey: "apiKey",
+                    label: "API Key",
+                    helperText:
+                      "API key, used by Dittofeed to send emails via Postmark.",
+                    type: EmailProviderType.PostMark,
+                    saved:
+                      secretAvailability.find((s) => s.name === POSTMARK_SECRET)
+                        ?.configValue?.apiKey ?? false,
+                  },
+                },
+              ],
+            },
+            {
+              id: "postmark-secret",
+              name: "PostMark Webhook Key",
+              fields: [
+                {
+                  id: "postmark-webhook-key",
+                  type: "secret",
+                  fieldProps: {
+                    name: POSTMARK_SECRET,
+                    secretKey: "webhookKey",
+                    label: "Webhook Key",
+                    helperText:
+                      "Auth header value (x-postmark-secret), used to authenticate PostMark webhook requests. Use a secure random string generator.",
+                    type: EmailProviderType.PostMark,
+                    saved:
+                      secretAvailability.find((s) => s.name === POSTMARK_SECRET)
+                        ?.configValue?.webhookKey ?? false,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
 const SMTP_SECRET_FIELDS: {
   helperText: string;
   label: string;
@@ -933,6 +992,9 @@ function DefaultEmailConfig() {
       case EmailProviderType.Resend:
         name = "Resend";
         break;
+      case EmailProviderType.PostMark:
+        name = "PostMark";
+        break;
       default:
         assertUnreachable(type, `Unknown email provider type ${type}`);
     }
@@ -1016,6 +1078,7 @@ function EmailChannelConfig() {
       <SendGridConfig />
       <AmazonSesConfig />
       <ResendConfig />
+      <PostMarkConfig />
       <SmtpConfig />
     </>
   );

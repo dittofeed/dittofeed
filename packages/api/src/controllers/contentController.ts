@@ -232,6 +232,18 @@ export default async function contentController(fastify: FastifyInstance) {
                 },
               });
             }
+            case EmailProviderType.PostMark: {
+              const { message } = result.error.variant.provider;
+              const suggestions: string[] = [];
+              suggestions.push(message);
+              return reply.status(200).send({
+                type: JsonResultType.Err,
+                err: {
+                  suggestions,
+                  responseData: message,
+                },
+              });
+            }
             default: {
               assertUnreachable(type);
             }

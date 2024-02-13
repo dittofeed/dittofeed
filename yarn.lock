@@ -7381,6 +7381,7 @@ __metadata:
     isomorphic-lib: 0.0.3
     neverthrow: ^6.0.0
     openapi-types: ^12.1.0
+    postmark: ^4.0.2
     prettier: 3.2.4
     remeda: ^1.12.0
     resend: ^2.1.0
@@ -7663,6 +7664,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"axios@npm:^1.6.2":
+  version: 1.6.7
+  resolution: "axios@npm:1.6.7"
+  dependencies:
+    follow-redirects: ^1.15.4
+    form-data: ^4.0.0
+    proxy-from-env: ^1.1.0
+  checksum: 87d4d429927d09942771f3b3a6c13580c183e31d7be0ee12f09be6d5655304996bb033d85e54be81606f4e89684df43be7bf52d14becb73a12727bf33298a082
+  languageName: node
+  linkType: hard
+
 "axobject-query@npm:^3.1.1":
   version: 3.1.1
   resolution: "axobject-query@npm:3.1.1"
@@ -7832,6 +7844,7 @@ __metadata:
     p-limit: ^3.1.0
     pino: ^8.11.0
     pino-pretty: ^10.0.0
+    postmark: ^4.0.2
     prettier: 3.2.4
     prisma: ^5.4.1
     remeda: ^1.24.0
@@ -10703,6 +10716,16 @@ __metadata:
     debug:
       optional: true
   checksum: faa66059b66358ba65c234c2f2a37fcec029dc22775f35d9ad6abac56003268baf41e55f9ee645957b32c7d9f62baf1f0b906e68267276f54ec4b4c597c2b190
+  languageName: node
+  linkType: hard
+
+"follow-redirects@npm:^1.15.4":
+  version: 1.15.5
+  resolution: "follow-redirects@npm:1.15.5"
+  peerDependenciesMeta:
+    debug:
+      optional: true
+  checksum: 5ca49b5ce6f44338cbfc3546823357e7a70813cecc9b7b768158a1d32c1e62e7407c944402a918ea8c38ae2e78266312d617dc68783fac502cbb55e1047b34ec
   languageName: node
   linkType: hard
 
@@ -15116,6 +15139,15 @@ __metadata:
   dependencies:
     xtend: ^4.0.0
   checksum: 746b71f93805ae33b03528e429dc624706d1f9b20ee81bf743263efb6a0cd79ae02a642a8a480dbc0f09547b4315ab7df6ce5ec0be77ed700bac42730f5c76b2
+  languageName: node
+  linkType: hard
+
+"postmark@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "postmark@npm:4.0.2"
+  dependencies:
+    axios: ^1.6.2
+  checksum: 33eb47a676fb72a85ebea67df57399605bd078f89a94633224f693c0a405eb732e4289e742bb9db37cb9b7901da3b68bb0823cd073bcd7c26f6a390cebaf0bc6
   languageName: node
   linkType: hard
 

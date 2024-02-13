@@ -9,6 +9,7 @@ import {
   submitAmazonSesEvents,
   validSNSSignature,
 } from "backend-lib/src/destinations/amazonses";
+import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
 import logger from "backend-lib/src/logger";
@@ -17,18 +18,21 @@ import {
   AmazonSesEventPayload,
   AmazonSNSEvent,
   AmazonSNSEventTypes,
+  PostMarkEvent,
   ResendEvent,
   SendgridEvent,
 } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
 import {
+  POSTMARK_SECRET,
   RESEND_SECRET,
   SENDGRID_SECRET,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  PostMarkSecret,
   ResendSecret,
   SendgridSecret,
   WorkspaceId,
@@ -276,6 +280,74 @@ export default async function webhookController(fastify: FastifyInstance) {
       }
 
       await submitResendEvents({
+        workspaceId,
+        events: [request.body],
+      });
+      return reply.status(200).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/postmark",
+    {
+      schema: {
+        description: "Used to consume postmark webhook payloads.",
+        tags: ["Webhooks"],
+        headers: Type.Object({
+          "x-postmark-secret": Type.String(),
+        }),
+        body: PostMarkEvent,
+      },
+    },
+    async (request, reply) => {
+      const metadata = request.body.Metadata;
+      const { workspaceId } = metadata as { workspaceId: string };
+
+      if (!workspaceId) {
+        logger().error("Missing workspaceId in Metadata.");
+        return reply.status(400).send({
+          error: "Missing workspaceId in Metadata.",
+        });
+      }
+
+      const secret = await prisma().secret.findUnique({
+        where: {
+          workspaceId_name: {
+            name: POSTMARK_SECRET,
+            workspaceId,
+          },
+        },
+      });
+
+      const secretHeader = request.headers["x-postmark-secret"];
+
+      const webhookKey = schemaValidateWithErr(
+        secret?.configValue,
+        PostMarkSecret,
+      )
+        .map((val) => val.webhookKey)
+        .unwrapOr(null);
+
+      if (!webhookKey) {
+        logger().error(
+          {
+            workspaceId,
+          },
+          "Missing postmark webhook secret.",
+        );
+        return reply.status(400).send({
+          error: "Missing secret.",
+        });
+      }
+
+      if (webhookKey !== secretHeader) {
+        logger().error("Invalid signature for PostMark webhook.");
+        return reply.status(401).send({
+          message: "Invalid signature.",
+        });
+      }
+
+      await submitPostmarkEvents({
         workspaceId,
         events: [request.body],
       });

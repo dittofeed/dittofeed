@@ -4,9 +4,12 @@ import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
 
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
+import { sendMail as sendMailPostMark } from "./destinations/postmark";
 import {
   ResendRequiredData,
   sendMail as sendMailResend,
@@ -769,6 +772,76 @@ export async function sendEmail({
           replyTo,
           provider: {
             type: EmailProviderType.Resend,
+          },
+        },
+      });
+    }
+    case EmailProviderType.PostMark: {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (secretConfig.type !== EmailProviderType.PostMark) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `expected postmark secret config but got ${secretConfig.type}`,
+          },
+        });
+      }
+
+      const mailData: PostMarkRequiredFields = {
+        To: to,
+        From: from,
+        Subject: subject,
+        HtmlBody: body,
+        ReplyTo: replyTo,
+        Metadata: {
+          recipient: to,
+          from,
+          workspaceId,
+          templateId,
+          ...messageTags,
+        },
+      };
+
+      if (!secretConfig.apiKey) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing apiKey in PostMark secret config`,
+          },
+        });
+      }
+
+      const result = await sendMailPostMark({
+        mailData,
+        apiKey: secretConfig.apiKey,
+      });
+
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Email,
+            provider: {
+              type: EmailProviderType.PostMark,
+              name: result.error.ErrorCode.toString(),
+              message: result.error.Message,
+            },
+          },
+        });
+      }
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Email,
+          from,
+          body,
+          to,
+          subject,
+          replyTo,
+          provider: {
+            type: EmailProviderType.PostMark,
           },
         },
       });

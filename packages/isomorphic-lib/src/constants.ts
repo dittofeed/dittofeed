@@ -15,6 +15,7 @@ export const SENDGRID_WEBHOOK_SECRET_NAME = "sendgrid-webhook" as const;
 export const SENDGRID_SECRET = "sendgrid" as const;
 export const AMAZONSES_SECRET_NAME = "amazonses" as const;
 export const RESEND_SECRET = "sendgrid" as const;
+export const POSTMARK_SECRET = "postmark" as const;
 export const FCM_SECRET_NAME = "fcm-key" as const;
 export const SMTP_SECRET_NAME = "smtp" as const;
 export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
@@ -25,6 +26,7 @@ export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
   [EmailProviderType.AmazonSes]: AMAZONSES_SECRET_NAME,
   [EmailProviderType.Smtp]: SMTP_SECRET_NAME,
   [EmailProviderType.Resend]: RESEND_SECRET,
+  [EmailProviderType.PostMark]: POSTMARK_SECRET,
   [EmailProviderType.Test]: "",
 };
 
