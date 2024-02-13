@@ -361,6 +361,7 @@ interface FullSubQueryData {
   stateId: string;
   argMaxValue?: string;
   uniqValue?: string;
+  eventTimeExpression?: string;
   recordMessageId?: boolean;
   // used to force computed properties to refresh when definition changes
   version: string;
@@ -2256,13 +2257,15 @@ export async function computeState({
                   '${subQuery.stateId}',
                   ${subQuery.argMaxValue ?? "''"},
                   ${subQuery.uniqValue ?? "''"},
-                  ${subQuery.recordMessageId ? "message_id" : "''"}
+                  ${subQuery.recordMessageId ? "message_id" : "''"},
+                  ${subQuery.eventTimeExpression ?? "toDateTime64('0000-00-00 00:00:00', 3)"}
                 ),
-                (Null, Null, Null, Null, Null, Null)
+                (Null, Null, Null, Null, Null, Null, Null)
               )
             `,
           )
           .join(", ");
+        // FIXME
         const query = `
           insert into computed_property_state_v2
           select
@@ -2309,7 +2312,7 @@ export async function computeState({
                 ifNull(c.4, '') as last_value,
                 ifNull(c.5, '') as unique_count,
                 ifNull(c.6, '') as grouped_message_id,
-                event_time
+                ifNull(c.7, toDateTime64('0000-00-00 00:00:00', 3)) as event_time
               from user_events_v2 ue
               where
                 workspace_id = ${qb.addQueryValue(workspaceId, "String")}
