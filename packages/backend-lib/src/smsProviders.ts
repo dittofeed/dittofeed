@@ -9,7 +9,7 @@ export async function upsertSmsProvider(
 ): Promise<PersistedSmsProvider> {
   const setDefault = request.setDefault ?? false;
 
-  await prisma().$transaction(async (tx) => {
+  const smsProvider = await prisma().$transaction(async (tx) => {
     let secret = await tx.secret.findUnique({
       where: {
         workspaceId_name: {
@@ -21,7 +21,7 @@ export async function upsertSmsProvider(
 
     const updatedConfig = {
       ...(typeof secret?.configValue === "object" ? secret.configValue : {}),
-      ...pickBy(request.smsProvider, (v) => v !== undefined && v.length > 0),
+      ...pickBy(request.secret, (v) => v !== undefined && v.length > 0),
     };
     secret = await tx.secret.upsert({
       where: {
@@ -43,12 +43,12 @@ export async function upsertSmsProvider(
       where: {
         workspaceId_type: {
           workspaceId: request.workspaceId,
-          type: request.smsProvider.type,
+          type: request.type as string,
         },
       },
       create: {
         workspaceId: request.workspaceId,
-        type: request.smsProvider.type,
+        type: request.type as string,
         secretId: secret.id,
       },
       update: {},
@@ -67,6 +67,9 @@ export async function upsertSmsProvider(
         },
       });
     }
+
+    return smsProvider as PersistedSmsProvider
   });
-  return request.smsProvider;
+
+  return smsProvider;
 }

@@ -967,7 +967,6 @@ export enum EmailProviderType {
   Resend = "Resend",
   Smtp = "Smtp",
   Test = "Test",
-
 }
 
 export const TestEmailProvider = Type.Object({
@@ -1922,13 +1921,13 @@ export const TwilioSecret = Type.Object({
 export const TwilioSmsProvider = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
-  type: Type.Literal(SmsProviderType.Twilio),
+  type: Type.Optional(Type.Literal(SmsProviderType.Twilio)),
 });
 
 export type TwilioSecret = Static<typeof TwilioSecret>;
 
 export const TestSecret = Type.Object({
-  type: Type.Literal(SmsProviderType.Test),
+  type: Type.Optional(Type.Literal(SmsProviderType.Test)),
 });
 
 export const TestSmsProvider = Type.Object({
@@ -1959,10 +1958,18 @@ export type PersistedSmsProvider = Static<typeof PersistedSmsProvider>;
 export const UpsertSmsProviderRequest = Type.Object({
   workspaceId: Type.String(),
   setDefault: Type.Optional(Type.Boolean()),
-  smsProvider: PersistedSmsProvider
+  type: Type.Optional(Type.Enum(SmsProviderType)),
+  secret: SmsProviderSecret
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
+
+export const DefaultSmsProviderResource = Type.Object({
+  workspaceId: Type.String(),
+  smsProviderId: Type.String(),
+});
+
+export type DefaultSmsProviderResource = Static<typeof DefaultSmsProviderResource>;
 
 // Compatible as both a subset of EnrichedJourney and JourneyResource
 export interface CompatibleJourney {
