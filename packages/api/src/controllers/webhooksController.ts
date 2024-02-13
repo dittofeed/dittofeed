@@ -39,6 +39,20 @@ import { getWorkspaceId } from "../workspace";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+  fastify.addHook("onSend", async (_request, reply, payload) => {
+    if (reply.statusCode !== 400) {
+      return payload;
+    }
+    logger().error(
+      {
+        payload,
+      },
+      "Failed to validate webhook payload.",
+    );
+    return payload;
+  });
+
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
     "/sendgrid",
     {
@@ -50,19 +64,6 @@ export default async function webhookController(fastify: FastifyInstance) {
           "x-twilio-email-event-webhook-timestamp": Type.String(),
         }),
         body: Type.Array(SendgridEvent),
-      },
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      onSend: async (_request, reply, payload) => {
-        if (reply.statusCode !== 400) {
-          return payload;
-        }
-        logger().error(
-          {
-            payload,
-          },
-          "Failed to validate sendgrid webhook payload.",
-        );
-        return payload;
       },
     },
     async (request, reply) => {
