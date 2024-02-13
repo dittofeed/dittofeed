@@ -107,15 +107,15 @@ async function readStates({
   const qb = new ClickHouseQueryBuilder();
   const query = `
     select
+      workspace_id,
       type,
       computed_property_id,
       state_id,
       user_id,
       argMaxMerge(last_value) as last_value,
       uniqMerge(unique_count) as unique_count,
-      maxMerge(event_time) as max_event_time,
+      max(event_time) as max_event_time,
       groupArrayMerge(grouped_message_ids) as grouped_message_ids,
-      max(computed_at),
       max(computed_at),
       groupArray(event_time) as event_times
     from computed_property_state_v2
@@ -127,14 +127,15 @@ async function readStates({
       state_id,
       user_id
   `;
-  const response = await (
+  const response = (await (
     await clickhouseClient().query({
       query,
       query_params: qb.getQueries(),
     })
-  ).json<{ data: State[] }>();
+  ).json()) satisfies { data: State[] };
   return response.data;
 }
+
 
 interface TestState {
   type: "segment" | "user_property";
