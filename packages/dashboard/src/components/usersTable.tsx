@@ -172,9 +172,7 @@ export default function UsersTable({
     [propertyFilter],
   );
 
-  const segmentFilterFromStore = filterStore(
-    (store) => store.segmentFilter,
-  );
+  const segmentFilterFromStore = filterStore((store) => store.segmentFilter);
   const segmentFilter: string[] = useMemo(
     () =>
       segmentId

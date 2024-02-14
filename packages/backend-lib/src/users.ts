@@ -3,8 +3,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { parseUserProperty } from "isomorphic-lib/src/userProperties";
-import { err, ok, Result } from "neverthrow";
-import { validate as validateUuid } from "uuid";
+import { ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
 import logger from "./logger";
@@ -47,32 +46,34 @@ function serializeUserCursor(cursor: Cursor): string {
 }
 
 type UserPropertyIdsFilter = {
-    id: string,
-    userIds?: string[],
-    partial?: string[]
-}[]
+  id: string;
+  userIds?: string[];
+  partial?: string[];
+}[];
 
-function getUserPropertyAssignmentConditions(userPropertyIds: UserPropertyIdsFilter) {
-    const userIds: string[] = []
-    const fullQuery: Sql[] = []
+function getUserPropertyAssignmentConditions(
+  userPropertyIds: UserPropertyIdsFilter,
+) {
+  const userIds: string[] = [];
+  const fullQuery: Sql[] = [];
 
-    userPropertyIds.map((property) => {
-
-        if (property.userIds && property.userIds.length > 0) {
-            userIds.push(...property.userIds)
-        }
-
-        if (property.partial && property.partial.length > 0) {
-            fullQuery.push(Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.partial)}]))`);
-        }
-
-    })
-
-    if (userIds.length > 0) {
-        fullQuery.unshift(Prisma.sql`"userId" IN (${Prisma.join(userIds)})`)
+  for (const property of userPropertyIds) {
+    if (property.userIds && property.userIds.length > 0) {
+      userIds.push(...property.userIds);
     }
 
-    return Prisma.join(fullQuery, " OR ")
+    if (property.partial && property.partial.length > 0) {
+      fullQuery.push(
+        Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.partial)}]))`,
+      );
+    }
+  }
+
+  if (userIds.length > 0) {
+    fullQuery.unshift(Prisma.sql`"userId" IN (${Prisma.join(userIds)})`);
+  }
+
+  return Prisma.join(fullQuery, " OR ");
 }
 
 function buildUserIdQueries({
@@ -112,12 +113,11 @@ function buildUserIdQueries({
     userIdsCondition = Prisma.sql`1=1`;
   }
 
-  const segmentIdCondition =segmentFilter 
-    ? Prisma.sql`("segmentId" IN (${Prisma.join(segmentFilter.map(segmentId => Prisma.sql`${segmentId}::uuid`))}))`
-
+  const segmentIdCondition = segmentFilter
+    ? Prisma.sql`("segmentId" IN (${Prisma.join(segmentFilter.map((segmentId) => Prisma.sql`${segmentId}::uuid`))}))`
     : Prisma.sql`1=1`;
 
-  const userPropertyAssignmentCondition = userPropertyFilter 
+  const userPropertyAssignmentCondition = userPropertyFilter
     ? getUserPropertyAssignmentConditions(userPropertyFilter)
     : Prisma.sql`1=1`;
 
@@ -129,7 +129,7 @@ function buildUserIdQueries({
       AND "value" != ''
       AND (${userPropertyAssignmentCondition})
       AND ${userIdsCondition}
-  `
+  `;
   const segmentAssignmentQuery = Prisma.sql`
     SELECT "userId"
     FROM "SegmentAssignment"
@@ -138,25 +138,24 @@ function buildUserIdQueries({
       AND "inSegment" = TRUE
       AND ${segmentIdCondition}
       AND ${userIdsCondition}
-  `
+  `;
 
-  const userIdQueries = []
+  const userIdQueries = [];
 
   if (userPropertyFilter) {
-      userIdQueries.push(userPropertyAssignmentQuery)
+    userIdQueries.push(userPropertyAssignmentQuery);
   }
 
   if (segmentFilter) {
-      userIdQueries.push(segmentAssignmentQuery)
+    userIdQueries.push(segmentAssignmentQuery);
   }
 
   if (!userPropertyFilter && !segmentFilter) {
-      userIdQueries.push(segmentAssignmentQuery)
-      userIdQueries.push(userPropertyAssignmentQuery)
+    userIdQueries.push(segmentAssignmentQuery);
+    userIdQueries.push(userPropertyAssignmentQuery);
   }
 
-
-  return  Prisma.join(userIdQueries, ' UNION ALL ')
+  return Prisma.join(userIdQueries, " UNION ALL ");
 }
 
 export async function getUsers({
@@ -167,9 +166,7 @@ export async function getUsers({
   userPropertyFilter,
   direction = CursorDirectionEnum.After,
   limit = 10,
-}: GetUsersRequest): Promise<
-  Result<GetUsersResponse, Error>
-> {
+}: GetUsersRequest): Promise<Result<GetUsersResponse, Error>> {
   let cursor: Cursor | null = null;
   if (unparsedCursor) {
     try {

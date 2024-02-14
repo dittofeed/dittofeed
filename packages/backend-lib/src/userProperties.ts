@@ -4,17 +4,17 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { parseUserProperty } from "isomorphic-lib/src/userProperties";
 import { err, ok, Result } from "neverthrow";
 
+import { clickhouseClient } from "./clickhouse";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
-    ComputedPropertyAssignment,
+  ComputedPropertyAssignment,
   EnrichedUserProperty,
   JSONValue,
   SavedUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyResource,
 } from "./types";
-import { clickhouseClient } from "./clickhouse";
 
 export function enrichUserProperty(
   userProperty: UserProperty,
@@ -97,33 +97,34 @@ export async function findAllUserProperties({
   return enrichedUserProperties;
 }
 
-
 export async function findAllPropertyValues({
-    propertyId,
-    workspaceId
-} : {
-    propertyId: string;
-    workspaceId: string;
-}): Promise<{[key: string]: string}> {
-    const query = `SELECT user_property_value, user_id FROM computed_property_assignments_v2 WHERE (computed_property_id = {propertyId:String}) AND (workspace_id = {workspaceId:String})`;
+  propertyId,
+  workspaceId,
+}: {
+  propertyId: string;
+  workspaceId: string;
+}): Promise<Record<string, string>> {
+  const query = `SELECT user_property_value, user_id FROM computed_property_assignments_v2 WHERE (computed_property_id = {propertyId:String}) AND (workspace_id = {workspaceId:String})`;
 
-    const resultSet = await clickhouseClient().query({
-        query,
-        format: 'JSONEachRow',
-        query_params: {
-            propertyId,
-            workspaceId
-        }
-    })
+  const resultSet = await clickhouseClient().query({
+    query,
+    format: "JSONEachRow",
+    query_params: {
+      propertyId,
+      workspaceId,
+    },
+  });
 
+  const parsedPropertyAssignments: Record<string, string> = {};
 
-    const parsedResult: {[key: string]: string} = {}
+  const result: ComputedPropertyAssignment[] = await resultSet.json();
 
-    const result = await resultSet.json() as {user_property_value: string, user_id: string}[]
-   
-    result.map((result) => parsedResult[result.user_id] = result.user_property_value)
+  for (const computedProperty of result) {
+    parsedPropertyAssignments[computedProperty.user_id] =
+      computedProperty.user_property_value;
+  }
 
-    return parsedResult;
+  return parsedPropertyAssignments;
 }
 
 export async function findAllUserPropertyResources({

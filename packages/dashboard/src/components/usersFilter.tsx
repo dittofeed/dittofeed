@@ -16,14 +16,14 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
     (store) => store.userPropertyFilter,
   );
   const removeSegmentFilter = filterStore((store) => store.removeSegmentFilter);
-  const removePropertyFilter = filterStore((store) => store.removePropertyFilter);
+  const removePropertyFilter = filterStore(
+    (store) => store.removePropertyFilter,
+  );
   const userPropertyFilter = useMemo(
     () => Object.values(userPropertyFilterFromStore),
     [userPropertyFilterFromStore],
   );
-  const segmentFilterFromStore = filterStore(
-    (store) => store.segmentFilter,
-  );
+  const segmentFilterFromStore = filterStore((store) => store.segmentFilter);
   const segmentFilter = useMemo(
     () => segmentFilterFromStore,
     [segmentFilterFromStore],
@@ -85,7 +85,7 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
           key={property.id}
         >
           <CloseOutlinedIcon
-            sx={{ width: 10, mr: 1, cursor: "pointer"}}
+            sx={{ width: 10, mr: 1, cursor: "pointer" }}
             color="secondary"
             onClick={() => removePropertyFilter(property.id)}
           />
@@ -93,29 +93,31 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
             <Typography color="inherit">User Property</Typography>
             <Typography color="inherit">{properties[property.id]}</Typography>
             <Breadcrumbs aria-label="breadcrumb" separator="or">
-                {property.partial &&
-                  property.partial.map((partial) => (
-                        <Typography
-                          color="inherit"
-                          sx={{cursor: "pointer"}}
-                          key={partial}
-                          onClick={() => removePropertyFilter(property.id, partial, true)}
-                        >
-                         {partial.slice(0,-1)}
-                        </Typography>
-                  ))}
-                {property.userIds &&
-                  property.userIds.map((userId) => (
-                        <Typography
-                          color="inherit"
-                          sx={{cursor: "pointer"}}
-                          key={userId}
-                          onClick={() => removePropertyFilter(property.id, userId)}
-                        >
-                          {propertiesValues[property.id]![userId]}
-                        </Typography>
-                  ))}
-             </Breadcrumbs>
+              {property.partial &&
+                property.partial.map((partial) => (
+                  <Typography
+                    color="inherit"
+                    sx={{ cursor: "pointer" }}
+                    key={partial}
+                    onClick={() =>
+                      removePropertyFilter(property.id, partial, true)
+                    }
+                  >
+                    {partial.slice(0, -1)}
+                  </Typography>
+                ))}
+              {property.userIds &&
+                property.userIds.map((userId) => (
+                  <Typography
+                    color="inherit"
+                    sx={{ cursor: "pointer" }}
+                    key={userId}
+                    onClick={() => removePropertyFilter(property.id, userId)}
+                  >
+                    {propertiesValues[property.id]![userId]}
+                  </Typography>
+                ))}
+            </Breadcrumbs>
           </Breadcrumbs>
         </Box>
       ))}
@@ -130,7 +132,7 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
             paddingX="8px"
           >
             <CloseOutlinedIcon
-              sx={{ width: 10, mr: 1, cursor: "pointer"}}
+              sx={{ width: 10, mr: 1, cursor: "pointer" }}
               color="secondary"
               onClick={() => removeSegmentFilter(property)}
             />
