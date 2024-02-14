@@ -1,3 +1,4 @@
+import { Secret } from "@prisma/client";
 import {
   ContentCopyOutlined,
   InfoOutlined,
@@ -39,7 +40,9 @@ import {
   POSTMARK_SECRET,
   RESEND_SECRET,
   SENDGRID_SECRET,
+  SMS_PROVIDER_TYPE_TO_SECRET_NAME,
   SMTP_SECRET_NAME,
+  TWILIO_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -54,18 +57,14 @@ import {
   EphemeralRequestStatus,
   IntegrationResource,
   IntegrationType,
-  PersistedSmsProvider,
   SegmentResource,
-  TwilioProviderConfig,
   SmsProviderType,
   SmtpSecretKey,
   SyncIntegration,
   SubscriptionChange,
   UpsertDataSourceConfigurationResource,
   UpsertIntegrationResource,
-  UpsertSmsProviderRequest,
-  SmsProviderSecret,
-  DefaultSmsProviderResource
+  DefaultSmsProviderResource,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -259,7 +258,10 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
       getSecretAvailability({
         workspaceId,
-        names: Object.values(EMAIL_PROVIDER_TYPE_TO_SECRET_NAME),
+        names: [
+            ...Object.values(EMAIL_PROVIDER_TYPE_TO_SECRET_NAME), 
+            ...Object.values(SMS_PROVIDER_TYPE_TO_SECRET_NAME)
+        ],
       }),
     ]);
 
@@ -293,38 +295,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     );
 
     serverInitialState.subscriptionGroups = subscriptionGroupResources;
-
-    console.log({smsProviders})
-
-    serverInitialState.smsProviders = smsProviders.flatMap((provider) => {
-        console.log({...provider})
-      const configResult = schemaValidateWithErr(
-        provider.secret.configValue,
-        SmsProviderSecret,
-      );
-
-
-      if (configResult.isErr()) {
-        logger().error(
-          {
-            err: configResult.error,
-            SmsProviderSecret         
-          },
-          "failed to validate sms provider config",
-        );
-        return [];
-      }
-
-      console.log({...configResult})
-
-      return { 
-          type: configResult.value.type, 
-          workspaceId: provider.workspaceId, 
-          id: provider.id
-      };
-    });
-
     serverInitialState.defaultSmsProvider = defaultSmsProviderRecord
+    serverInitialState.smsProviders = smsProviders;
 
     return {
       props: addInitialStateToProps({
@@ -1102,151 +1074,6 @@ function EmailChannelConfig() {
   );
 }
 
-function TwilioConfig() {
-  const { smsProviders, upsertSmsProvider, apiBase, workspace } =
-    useAppStorePick([
-      "apiBase",
-      "workspace",
-      "smsProviders",
-      "upsertSmsProvider",
-    ]);
-  const upsertSmsProviderRequest = useSettingsStore(
-    (store) => store.upsertSmsProviderRequest,
-  );
-  const updateSmsProviderRequest = useSettingsStore(
-    (store) => store.updateSmsProviderRequest,
-  );
-
-  const twilioProvider: TwilioProviderConfig | null = useMemo(() => {
-    for (const provider of smsProviders) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (provider.type === SmsProviderType.Twilio) {
-        return provider;
-      }
-    }
-    return null;
-  }, [smsProviders]);
-
-  const [showAuthToken, setShowAuthKey] = useState(false);
-  const [authToken, setAuthToken] = useState(twilioProvider?.authToken ?? "");
-  const [messagingServiceSid, setMessagingServiceSid] = useState(
-    twilioProvider?.messagingServiceSid,
-  );
-  const [accountSid, setAccountSid] = useState(
-    twilioProvider?.accountSid ?? "",
-  );
-  if (workspace.type !== CompletionStatus.Successful) {
-    return null;
-  }
-
-  const body = {
-    workspaceId: workspace.value.id,
-    setDefault: true,
-    type: SmsProviderType.Twilio,
-    secret: {
-        accountSid,
-        authToken,
-        messagingServiceSid,
-    }
-  };
-
-  const apiHandler = apiRequestHandlerFactory({
-    request: upsertSmsProviderRequest,
-    setRequest: updateSmsProviderRequest,
-    responseSchema: PersistedSmsProvider,
-    setResponse: upsertSmsProvider,
-    onSuccessNotice: "Updated Twilio configuration.",
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to update Twilio configuration.`,
-    requestConfig: {
-      method: "PUT",
-      url: `${apiBase}/api/settings/sms-providers`,
-      data: body satisfies UpsertSmsProviderRequest,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-
-  return (
-    <Fields
-      sections={[
-        {
-          id: "twilio-section",
-          fieldGroups: [
-            {
-              id: "twilio-fields",
-              name: "Twilio",
-              fields: [
-                {
-                  id: "twilio-account-sid",
-                  type: "text",
-                  fieldProps: {
-                    label: "Account sid",
-                    helperText: "Twilio account sid.",
-                    onChange: (e) => setAccountSid(e.target.value),
-                    value: accountSid,
-                  },
-                },
-                {
-                  id: "twilio-messaging-service-sid",
-                  type: "text",
-                  fieldProps: {
-                    label: "Messaging service sid",
-                    helperText: "Twilio messaging service sid.",
-                    onChange: (e) => setMessagingServiceSid(e.target.value),
-                    value: messagingServiceSid,
-                  },
-                },
-                {
-                  id: "twilio-auth-token",
-                  type: "text",
-                  fieldProps: {
-                    label: "Twilio auth token",
-                    helperText:
-                      "Twilio auth token used to authenticate requests.",
-                    variant: "outlined",
-                    type: showAuthToken ? "text" : "password",
-                    placeholder: showAuthToken ? undefined : "**********",
-                    onChange: (e) => setAuthToken(e.target.value),
-                    sx: { flex: 1 },
-                    value: authToken,
-                    InputProps: {
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle password visibility"
-                            onClick={() => setShowAuthKey(!showAuthToken)}
-                          >
-                            {showAuthToken ? <Visibility /> : <VisibilityOff />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    },
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      ]}
-    >
-      <Button
-        variant="contained"
-        sx={{
-          alignSelf: {
-            xs: "start",
-            sm: "end",
-          },
-        }}
-        onClick={apiHandler}
-      >
-        Save
-      </Button>
-    </Fields>
-  );
-}
-
 function DefaultSmsConfig() {
   const {
     smsProviders,
@@ -1311,8 +1138,6 @@ function DefaultSmsConfig() {
       },
     })();
   };
-
-  console.log({smsProviders})
 
   const options = smsProviders.map((ep) => {
     let name: string;
@@ -1386,6 +1211,72 @@ function DefaultSmsConfig() {
 }
 
 
+function Twilios() {
+  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
+  return (
+    <Fields
+      sections={[
+        {
+          id: "twilio-section",
+          fieldGroups: [
+            {
+              id: "twilio-fields",
+              name: "Twilio",
+              fields: [
+                {
+                  id: "twilio-account-sid",
+                  type: "secret",
+                  fieldProps: {
+                    name: TWILIO_SECRET_NAME,
+                    secretKey: "accountSid",
+                    label: "Account SID",
+                    helperText:
+                      "Twilio Account SID",
+                    type: SmsProviderType.Twilio,
+                    saved:
+                      secretAvailability.find((s) => s.name === TWILIO_SECRET_NAME)
+                        ?.configValue?.accountSid ?? false,
+                  },
+                },
+                {
+                  id: "twilio-messaging-service-sid",
+                  type: "secret",
+                  fieldProps: {
+                    name: TWILIO_SECRET_NAME,
+                    secretKey: "messagingServiceSid",
+                    label: "Messaging Service SID",
+                    helperText:
+                      "Twilio messaging service SID",
+                    type: SmsProviderType.Twilio,
+                    saved:
+                      secretAvailability.find((s) => s.name === TWILIO_SECRET_NAME)
+                        ?.configValue?.messagingServiceSid ?? false,
+                  },
+                },
+                {
+                  id: "twilio-auth-token",
+                  type: "secret",
+                  fieldProps: {
+                    name: TWILIO_SECRET_NAME,
+                    secretKey: "authToken",
+                    label: "Twilio Auth Token",
+                    helperText:
+                      "Twilio auth token used to authenticate requests.",
+                    type: SmsProviderType.Twilio,
+                    saved:
+                      secretAvailability.find((s) => s.name === TWILIO_SECRET_NAME)
+                        ?.configValue?.authToken ?? false,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
 
 function SmsChannelConfig() {
   return (
@@ -1395,7 +1286,7 @@ function SmsChannelConfig() {
         title="SMS"
       />
       <DefaultSmsConfig/>
-      <TwilioConfig />
+      <Twilios />
     </>
   );
 }

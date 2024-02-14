@@ -48,10 +48,10 @@ import {
   KnownTrackData,
   MessageTemplateResource,
   PersistedSmsProvider,
+  SmsProviderSecret,
   SmsProviderType,
   SubscriptionGroupType,
   TrackData,
-  TwilioSecret,
 } from "../../types";
 import {
   assignmentAsString,
@@ -278,7 +278,7 @@ export async function sendSmsWithPayload(
 ): Promise<SendWithTrackingValue> {
   const buildSendValue = buildSendValueFactory(params);
 
-  return sendWithTracking<TwilioSecret>({
+  return sendWithTracking<SmsProviderSecret>({
     ...params,
     async getChannelConfig({ workspaceId }) {
       const smsProvider = await prisma().defaultSmsProvider.findUnique({
@@ -303,7 +303,7 @@ export async function sendSmsWithPayload(
       }
       const parsedConfigResult = schemaValidateWithErr(
         smsConfig,
-        TwilioSecret 
+        SmsProviderSecret 
       );
       if (parsedConfigResult.isErr()) {
         return err(

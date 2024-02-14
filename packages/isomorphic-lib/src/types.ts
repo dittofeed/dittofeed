@@ -1986,7 +1986,7 @@ export const UpsertSmsProviderRequest = Type.Object({
   workspaceId: Type.String(),
   setDefault: Type.Optional(Type.Boolean()),
   type: Type.Optional(Type.Enum(SmsProviderType)),
-  secret: SmsProviderSecret
+  secret: Type.Omit(SmsProviderSecret, ['type'])
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
@@ -2521,6 +2521,7 @@ export const EmailProviderSecret = Type.Union([
   AmazonSesSecret,
   SmtpSecret,
   ResendSecret,
+  TestSecret
 ]);
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;

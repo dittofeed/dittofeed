@@ -1,3 +1,4 @@
+import { Secret } from "@prisma/client";
 import { Config } from "backend-lib/src/config";
 import { Draft } from "immer";
 import {
@@ -112,7 +113,7 @@ export type AppState = {
 export interface AppActions {
   toggleDrawer: () => void;
   upsertEmailProvider: (emailProvider: PersistedEmailProvider) => void;
-  upsertSmsProvider: (smsProvider: PersistedSmsProvider) => void;
+  upsertSmsProvider: (response: PersistedSmsProvider) => void;
   upsertDataSourceConfiguration: (
     dataSource: DataSourceConfigurationResource,
   ) => void;
