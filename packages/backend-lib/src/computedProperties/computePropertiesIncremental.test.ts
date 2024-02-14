@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
+import { floorToNearest } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
@@ -135,7 +136,6 @@ async function readStates({
   ).json()) satisfies { data: State[] };
   return response.data;
 }
-
 
 interface TestState {
   type: "segment" | "user_property";
@@ -466,7 +466,6 @@ describe("computeProperties", () => {
   const tests: TableTest[] = [
     {
       description: "computes a trait user property",
-      only: true,
       userProperties: [
         {
           name: "email",
@@ -882,6 +881,7 @@ describe("computeProperties", () => {
       ],
     },
     {
+      // FIXME
       description: "computes within operator trait segment",
       userProperties: [],
       segments: [
@@ -1008,6 +1008,7 @@ describe("computeProperties", () => {
       ],
     },
     {
+      // FIXME
       description: "computes HasBeen operator trait segment",
       only: true,
       userProperties: [],
@@ -1070,7 +1071,9 @@ describe("computeProperties", () => {
               nodeId: "1",
               name: "stuckOnboarding",
               lastValue: "onboarding",
-              maxEventTime: new Date(now - 100 - 50).toISOString(),
+              maxEventTime: new Date(
+                floorToNearest(now - 100 - 50, 60480000),
+              ).toISOString(),
             }),
           ],
         },
@@ -1094,7 +1097,10 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "onboarding",
               maxEventTime: new Date(
-                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50,
+                floorToNearest(
+                  now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50,
+                  60480000,
+                ),
               ).toISOString(),
             }),
           ],
@@ -1140,7 +1146,10 @@ describe("computeProperties", () => {
               lastValue: "onboarding",
               // last event shouldn't update maxEventTime because has same "onboarding" value
               maxEventTime: new Date(
-                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100,
+                floorToNearest(
+                  now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100,
+                  60480000,
+                )
               ).toISOString(),
             }),
           ],
@@ -1189,7 +1198,10 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "active",
               maxEventTime: new Date(
-                now - 1000 * 60 * 60 * 24 * 7 - 100,
+                floorToNearest(
+                  now - 1000 * 60 * 60 * 24 * 7 - 100,
+                  60480000,
+                )
               ).toISOString(),
             }),
           ],
@@ -2472,6 +2484,7 @@ describe("computeProperties", () => {
       ],
     },
     {
+      // FIXME
       description: "when a performed segment has a within condition",
       userProperties: [
         {

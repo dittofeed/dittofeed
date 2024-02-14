@@ -1135,12 +1135,57 @@ export function segmentNodeToStateSubQuery({
       if (!path) {
         return [];
       }
+      /*
+      SELECT toDateTime64(
+        toStartOfInterval(
+          now64(3), 
+          toIntervalSecond(3600)
+        ), 
+        3 -- Precision of your DateTime64 column
+      ) AS roundedDateTime64
+
+      SELECT toDateTime64(
+        toStartOfInterval(
+          now64(3), 
+          toIntervalSecond(60)
+        ), 
+        3 -- Precision of your DateTime64 column
+      ) AS roundedDateTime64
+
+      SELECT toDateTime64(
+        toStartOfInterval(
+          now64(3), 
+          toIntervalSecond(60480)
+        ), 
+        3 -- Precision of your DateTime64 column
+      ) AS roundedDateTime64
+
+      SELECT toUnixTimestamp(toDateTime64(
+        toStartOfInterval(
+          now64(3), 
+          toIntervalSecond(60480)
+        ), 
+        3 -- Precision of your DateTime64 column
+      )) AS roundedDateTime64
+      */
+      let eventTimeExpression: string | undefined;
+      if (node.operator.type === SegmentOperatorType.HasBeen) {
+        // Window data within 1 / 10th of the specified period, with a minumum
+        // window of 30 seconds, and a maximum window of 1 day.
+        const eventTimeInterval = Math.min(
+          Math.max(Math.floor(node.operator.windowSeconds / 10), 30),
+          86400,
+        );
+        console.log("eventTimeInterval", eventTimeInterval);
+        eventTimeExpression = `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(${eventTimeInterval})), 3)`;
+      }
       return [
         {
           condition: `event_type == 'identify'`,
           type: "segment",
           uniqValue: "''",
           argMaxValue: `JSON_VALUE(properties, ${path})`,
+          eventTimeExpression,
           computedPropertyId: segment.id,
           stateId,
         },
@@ -2276,7 +2321,7 @@ export async function computeState({
             inner2.user_id,
             inner2.last_value,
             inner2.unique_count,
-            inner2.event_time,
+            inner2.truncated_event_time,
             inner2.grouped_message_ids,
             toDateTime64(${nowSeconds}, 3) as computed_at
           from (
@@ -2286,9 +2331,9 @@ export async function computeState({
               inner1.computed_property_id as computed_property_id,
               inner1.state_id as state_id,
               inner1.user_id as user_id,
-              argMaxState(inner1.last_value, inner1.event_time) as last_value,
+              argMaxState(inner1.last_value, inner1.full_event_time) as last_value,
               uniqState(inner1.unique_count) as unique_count,
-              inner1.event_time as event_time,
+              inner1.truncated_event_time as truncated_event_time,
               groupArrayState(inner1.grouped_message_id) as grouped_message_ids,
               argMaxMerge(cps.last_value) as existing_last_value,
               uniqMerge(cps.unique_count) as existing_unique_count
@@ -2312,7 +2357,8 @@ export async function computeState({
                 ifNull(c.4, '') as last_value,
                 ifNull(c.5, '') as unique_count,
                 ifNull(c.6, '') as grouped_message_id,
-                ifNull(c.7, toDateTime64('0000-00-00 00:00:00', 3)) as event_time
+                ifNull(c.7, toDateTime64('0000-00-00 00:00:00', 3)) as truncated_event_time,
+                event_time as full_event_time
               from user_events_v2 ue
               where
                 workspace_id = ${qb.addQueryValue(workspaceId, "String")}
@@ -2334,7 +2380,8 @@ export async function computeState({
               inner1.last_value,
               inner1.unique_count,
               inner1.grouped_message_id,
-              inner1.event_time
+              inner1.truncated_event_time,
+              inner1.full_event_time
             having
               existing_last_value != inner1.last_value
               OR inner1.unique_count != ''
