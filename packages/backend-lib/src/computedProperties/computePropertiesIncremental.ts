@@ -1116,6 +1116,16 @@ function toJsonPathParam({
   return qb.addQueryValue(unvalidated, "String");
 }
 
+function truncateEventTimeExpression(windowSeconds: number): string {
+  // Window data within 1 / 10th of the specified period, with a minumum
+  // window of 30 seconds, and a maximum window of 1 day.
+  const eventTimeInterval = Math.min(
+    Math.max(Math.floor(windowSeconds / 10), 1),
+    86400,
+  );
+  return `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(${eventTimeInterval})), 3)`;
+}
+
 export function segmentNodeToStateSubQuery({
   segment,
   node,
@@ -1135,16 +1145,12 @@ export function segmentNodeToStateSubQuery({
       if (!path) {
         return [];
       }
-      let eventTimeExpression: string | undefined;
-      if (node.operator.type === SegmentOperatorType.HasBeen || node.operator.type === SegmentOperatorType.Within) {
-        // Window data within 1 / 10th of the specified period, with a minumum
-        // window of 30 seconds, and a maximum window of 1 day.
-        const eventTimeInterval = Math.min(
-          Math.max(Math.floor(node.operator.windowSeconds / 10), 30),
-          86400,
-        );
-        eventTimeExpression = `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(${eventTimeInterval})), 3)`;
-      }
+      const eventTimeExpression: string | undefined =
+        node.operator.type === SegmentOperatorType.HasBeen ||
+        node.operator.type === SegmentOperatorType.Within
+          ? truncateEventTimeExpression(node.operator.windowSeconds)
+          : undefined;
+
       return [
         {
           condition: `event_type == 'identify'`,
@@ -1185,10 +1191,14 @@ export function segmentNodeToStateSubQuery({
       const propertyClause = propertyConditions?.length
         ? `and (${propertyConditions.join(" and ")})`
         : "";
+      const eventTimeExpression: string | undefined = node.withinSeconds
+        ? truncateEventTimeExpression(node.withinSeconds)
+        : undefined;
       return [
         {
           condition: `event_type == 'track' and event == ${event} ${propertyClause}`,
           type: "segment",
+          eventTimeExpression,
           uniqValue: "message_id",
           argMaxValue: "''",
           computedPropertyId: segment.id,
