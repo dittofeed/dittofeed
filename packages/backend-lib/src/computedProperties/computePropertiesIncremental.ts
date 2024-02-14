@@ -1135,48 +1135,14 @@ export function segmentNodeToStateSubQuery({
       if (!path) {
         return [];
       }
-      /*
-      SELECT toDateTime64(
-        toStartOfInterval(
-          now64(3), 
-          toIntervalSecond(3600)
-        ), 
-        3 -- Precision of your DateTime64 column
-      ) AS roundedDateTime64
-
-      SELECT toDateTime64(
-        toStartOfInterval(
-          now64(3), 
-          toIntervalSecond(60)
-        ), 
-        3 -- Precision of your DateTime64 column
-      ) AS roundedDateTime64
-
-      SELECT toDateTime64(
-        toStartOfInterval(
-          now64(3), 
-          toIntervalSecond(60480)
-        ), 
-        3 -- Precision of your DateTime64 column
-      ) AS roundedDateTime64
-
-      SELECT toUnixTimestamp(toDateTime64(
-        toStartOfInterval(
-          now64(3), 
-          toIntervalSecond(60480)
-        ), 
-        3 -- Precision of your DateTime64 column
-      )) AS roundedDateTime64
-      */
       let eventTimeExpression: string | undefined;
-      if (node.operator.type === SegmentOperatorType.HasBeen) {
+      if (node.operator.type === SegmentOperatorType.HasBeen || node.operator.type === SegmentOperatorType.Within) {
         // Window data within 1 / 10th of the specified period, with a minumum
         // window of 30 seconds, and a maximum window of 1 day.
         const eventTimeInterval = Math.min(
           Math.max(Math.floor(node.operator.windowSeconds / 10), 30),
           86400,
         );
-        console.log("eventTimeInterval", eventTimeInterval);
         eventTimeExpression = `toDateTime64(toStartOfInterval(event_time, toIntervalSecond(${eventTimeInterval})), 3)`;
       }
       return [

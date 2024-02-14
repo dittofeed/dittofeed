@@ -881,7 +881,6 @@ describe("computeProperties", () => {
       ],
     },
     {
-      // FIXME
       description: "computes within operator trait segment",
       userProperties: [],
       segments: [
@@ -1008,9 +1007,7 @@ describe("computeProperties", () => {
       ],
     },
     {
-      // FIXME
       description: "computes HasBeen operator trait segment",
-      only: true,
       userProperties: [],
       segments: [
         {
