@@ -1,4 +1,3 @@
-import { Secret } from "@prisma/client";
 import { Config } from "backend-lib/src/config";
 import { Draft } from "immer";
 import {
@@ -6,6 +5,7 @@ import {
   ChannelType,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
+  DefaultSmsProviderResource,
   DelayVariantType,
   DFRequestContext,
   EntryNode,
@@ -21,6 +21,7 @@ import {
   MessageTemplateResource,
   PartialExceptType,
   PersistedEmailProvider,
+  PersistedSmsProvider,
   RequestStatus,
   SecondsDelayVariant,
   SecretAvailabilityResource,
@@ -38,8 +39,6 @@ import {
   WorkspaceMemberRoleResource,
   WorkspaceResource,
   WriteKeyResource,
-  PersistedSmsProvider,
-  DefaultSmsProviderResource
 } from "isomorphic-lib/src/types";
 import {
   GetServerSidePropsContext,
@@ -139,7 +138,7 @@ export interface AppActions {
     defaultEmailProvider: DefaultEmailProviderResource,
   ) => void;
   setDefaultSmsProvider: (
-      defaultSmsProvider: DefaultSmsProviderResource,
+    defaultSmsProvider: DefaultSmsProviderResource,
   ) => void;
 }
 

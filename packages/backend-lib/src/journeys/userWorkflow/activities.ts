@@ -47,7 +47,6 @@ import {
   JourneyNodeType,
   KnownTrackData,
   MessageTemplateResource,
-  PersistedSmsProvider,
   SmsProviderSecret,
   SmsProviderType,
   SubscriptionGroupType,
@@ -303,7 +302,7 @@ export async function sendSmsWithPayload(
       }
       const parsedConfigResult = schemaValidateWithErr(
         smsConfig,
-        SmsProviderSecret 
+        SmsProviderSecret,
       );
       if (parsedConfigResult.isErr()) {
         return err(

@@ -16,7 +16,6 @@ import {
   ListWriteKeyResource,
   PersistedSmsProvider,
   UpsertDataSourceConfigurationResource,
-  UpsertSmsProviderRequest,
   UpsertWriteKeyResource,
   WriteKeyResource,
 } from "isomorphic-lib/src/types";
@@ -122,7 +121,7 @@ export default async function settingsController(fastify: FastifyInstance) {
         },
       },
     },
-   async (request, reply) => {
+    async (request, reply) => {
       const { workspaceId, emailProviderId, fromAddress } = request.body;
 
       await prisma().defaultEmailProvider.upsert({
@@ -141,7 +140,7 @@ export default async function settingsController(fastify: FastifyInstance) {
       });
 
       return reply.status(201).send();
-    }, 
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(

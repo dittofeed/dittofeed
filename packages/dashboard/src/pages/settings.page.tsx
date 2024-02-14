@@ -1,12 +1,9 @@
-import { Secret } from "@prisma/client";
 import {
   ContentCopyOutlined,
   InfoOutlined,
   Mail,
   SimCardDownload,
   SmsOutlined,
-  Visibility,
-  VisibilityOff,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import {
@@ -29,7 +26,6 @@ import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
 import { findAllEnrichedIntegrations } from "backend-lib/src/integrations";
-import logger from "backend-lib/src/logger";
 import { getSecretAvailability } from "backend-lib/src/secrets";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
@@ -45,13 +41,13 @@ import {
   TWILIO_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
   DataSourceConfigurationResource,
   DataSourceVariantType,
   DefaultEmailProviderResource,
+  DefaultSmsProviderResource,
   EmailProviderType,
   EmptyResponse,
   EphemeralRequestStatus,
@@ -60,11 +56,10 @@ import {
   SegmentResource,
   SmsProviderType,
   SmtpSecretKey,
-  SyncIntegration,
   SubscriptionChange,
+  SyncIntegration,
   UpsertDataSourceConfigurationResource,
   UpsertIntegrationResource,
-  DefaultSmsProviderResource,
 } from "isomorphic-lib/src/types";
 import {
   GetServerSideProps,
@@ -97,8 +92,8 @@ import { getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
-import { PreloadedState, PropsWithInitialState } from "../lib/types";
 import { getOrCreateSmsProviders } from "../lib/sms";
+import { PreloadedState, PropsWithInitialState } from "../lib/types";
 
 async function copyToClipboard({
   value,
@@ -252,15 +247,15 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         .then((dbSegments) =>
           dbSegments.map((segment) => unwrap(toSegmentResource(segment))),
         ),
-      getOrCreateSmsProviders({workspaceId}),
+      getOrCreateSmsProviders({ workspaceId }),
       prisma().defaultSmsProvider.findFirst({
         where: { workspaceId },
       }),
       getSecretAvailability({
         workspaceId,
         names: [
-            ...Object.values(EMAIL_PROVIDER_TYPE_TO_SECRET_NAME), 
-            ...Object.values(SMS_PROVIDER_TYPE_TO_SECRET_NAME)
+          ...Object.values(EMAIL_PROVIDER_TYPE_TO_SECRET_NAME),
+          ...Object.values(SMS_PROVIDER_TYPE_TO_SECRET_NAME),
         ],
       }),
     ]);
@@ -295,7 +290,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     );
 
     serverInitialState.subscriptionGroups = subscriptionGroupResources;
-    serverInitialState.defaultSmsProvider = defaultSmsProviderRecord
+    serverInitialState.defaultSmsProvider = defaultSmsProviderRecord;
     serverInitialState.smsProviders = smsProviders;
 
     return {
@@ -1088,10 +1083,7 @@ function DefaultSmsConfig() {
     "defaultSmsProvider",
     "setDefaultSmsProvider",
   ]);
-  const [
-    { defaultProvider, defaultProviderRequest },
-    setState,
-  ] = useImmer<{
+  const [{ defaultProvider, defaultProviderRequest }, setState] = useImmer<{
     defaultProvider: string | null;
     defaultProviderRequest: EphemeralRequestStatus<Error>;
   }>({
@@ -1147,11 +1139,10 @@ function DefaultSmsConfig() {
         name = "Twilio";
         break;
       case SmsProviderType.Test:
-        name = "Test"
+        name = "Test";
         break;
       default:
         assertUnreachable(type as never, `Unknown email provider type ${type}`);
-
     }
     return {
       value: ep.id,
@@ -1200,16 +1191,13 @@ function DefaultSmsConfig() {
             sm: "end",
           },
         }}
-        onClick={() =>
-          apiHandler(defaultProvider ?? "")
-        }
+        onClick={() => apiHandler(defaultProvider ?? "")}
       >
         Save
       </Button>
     </Fields>
   );
 }
-
 
 function Twilios() {
   const { secretAvailability } = useAppStorePick(["secretAvailability"]);
@@ -1230,12 +1218,12 @@ function Twilios() {
                     name: TWILIO_SECRET_NAME,
                     secretKey: "accountSid",
                     label: "Account SID",
-                    helperText:
-                      "Twilio Account SID",
+                    helperText: "Twilio Account SID",
                     type: SmsProviderType.Twilio,
                     saved:
-                      secretAvailability.find((s) => s.name === TWILIO_SECRET_NAME)
-                        ?.configValue?.accountSid ?? false,
+                      secretAvailability.find(
+                        (s) => s.name === TWILIO_SECRET_NAME,
+                      )?.configValue?.accountSid ?? false,
                   },
                 },
                 {
@@ -1245,12 +1233,12 @@ function Twilios() {
                     name: TWILIO_SECRET_NAME,
                     secretKey: "messagingServiceSid",
                     label: "Messaging Service SID",
-                    helperText:
-                      "Twilio messaging service SID",
+                    helperText: "Twilio messaging service SID",
                     type: SmsProviderType.Twilio,
                     saved:
-                      secretAvailability.find((s) => s.name === TWILIO_SECRET_NAME)
-                        ?.configValue?.messagingServiceSid ?? false,
+                      secretAvailability.find(
+                        (s) => s.name === TWILIO_SECRET_NAME,
+                      )?.configValue?.messagingServiceSid ?? false,
                   },
                 },
                 {
@@ -1264,8 +1252,9 @@ function Twilios() {
                       "Twilio auth token used to authenticate requests.",
                     type: SmsProviderType.Twilio,
                     saved:
-                      secretAvailability.find((s) => s.name === TWILIO_SECRET_NAME)
-                        ?.configValue?.authToken ?? false,
+                      secretAvailability.find(
+                        (s) => s.name === TWILIO_SECRET_NAME,
+                      )?.configValue?.authToken ?? false,
                   },
                 },
               ],
@@ -1277,15 +1266,11 @@ function Twilios() {
   );
 }
 
-
 function SmsChannelConfig() {
   return (
     <>
-      <SectionSubHeader
-        id={settingsSectionIds.smsChannel}
-        title="SMS"
-      />
-      <DefaultSmsConfig/>
+      <SectionSubHeader id={settingsSectionIds.smsChannel} title="SMS" />
+      <DefaultSmsConfig />
       <Twilios />
     </>
   );
