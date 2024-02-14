@@ -210,7 +210,8 @@ export default function MessagesPage() {
             if (
               !message.definition ||
               !nodeStats ||
-              nodeStats.type !== NodeStatsType.MessageNodeStats
+              nodeStats.type !== NodeStatsType.MessageNodeStats ||
+              nodeStats.channelStats.type !== ChannelType.Email
             ) {
               return [];
             }
@@ -222,11 +223,11 @@ export default function MessagesPage() {
               messageId,
               messageChannel: message.definition.type,
               messageName: message.name,
-              sendRate: nodeStats.sendRate ?? 0,
-              clickRate: nodeStats.channelStats.clickRate ?? 0,
-              deliveryRate: nodeStats.channelStats.deliveryRate ?? 0,
-              openRate: nodeStats.channelStats.openRate ?? 0,
-              spamRate: nodeStats.channelStats.spamRate ?? 0,
+              sendRate: nodeStats.sendRate,
+              clickRate: nodeStats.channelStats.clickRate,
+              deliveryRate: nodeStats.channelStats.deliveryRate,
+              openRate: nodeStats.channelStats.openRate,
+              spamRate: nodeStats.channelStats.spamRate,
             };
             return row;
           });
