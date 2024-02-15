@@ -70,6 +70,9 @@ export class ClickHouseQueryBuilder {
           }
           // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           return `['${value}']`;
+        case "Int64":
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          return `${value}`;
         default:
           throw new Error(
             `Unhandled data type in query builder debug mode: ${dataType}`,
@@ -189,6 +192,7 @@ export async function command(
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-command" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
+    logger().debug(`clickhouse-command: ${params.query}`);
     return client.command({ query_id: queryId, ...params });
   });
 }
@@ -205,6 +209,7 @@ export async function query(
   const queryId = params.query_id ?? getChCompatibleUuid();
   return withSpan({ name: "clickhouse-query" }, async (span) => {
     span.setAttributes({ queryId, query: params.query });
+    logger().debug(`clickhouse-query: ${params.query}`);
     return client.query({ query_id: queryId, ...params });
   });
 }
