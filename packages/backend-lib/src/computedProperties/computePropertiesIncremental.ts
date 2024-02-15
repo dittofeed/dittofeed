@@ -1722,8 +1722,6 @@ interface AssignmentQueryConfig {
   query: string;
   // ids of states to aggregate that need to fall within bounded time window
   stateIds: string[];
-  // ids of states to aggregate that don't need to fall within bounded time window
-  unboundedStateIds: string[];
 }
 
 type OptionalAssignmentQueryConfig = Omit<
@@ -1746,7 +1744,6 @@ function leafUserPropertyToAssignment({
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
     case UserPropertyDefinitionType.Performed: {
@@ -1754,7 +1751,6 @@ function leafUserPropertyToAssignment({
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
   }
@@ -1812,7 +1808,6 @@ function groupedUserPropertyToAssignment({
       return {
         query,
         stateIds: childNodes.flatMap((c) => c.stateIds),
-        unboundedStateIds: childNodes.flatMap((c) => c.unboundedStateIds),
       };
     }
     case UserPropertyDefinitionType.Trait: {
@@ -1894,7 +1889,6 @@ function userPropertyToAssignment({
             )
           )`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
     case UserPropertyDefinitionType.AnonymousId: {
@@ -1902,7 +1896,6 @@ function userPropertyToAssignment({
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
     case UserPropertyDefinitionType.Id: {
@@ -1910,7 +1903,6 @@ function userPropertyToAssignment({
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
-        unboundedStateIds: [],
       };
     }
     case UserPropertyDefinitionType.Performed: {
@@ -2000,6 +1992,8 @@ export async function computeState({
     const nowSeconds = now / 1000;
     const queries = Object.values(
       mapValues(subQueriesWithPeriods, async (periodSubQueries, period) => {
+        // FIXME why is this 0 (?)
+        // and processing_time >= toDateTime64(0, 3)
         const lowerBoundClause =
           period !== 0
             ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
