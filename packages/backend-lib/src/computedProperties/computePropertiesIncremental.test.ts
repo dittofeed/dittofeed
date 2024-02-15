@@ -1146,7 +1146,7 @@ describe("computeProperties", () => {
                 floorToNearest(
                   now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100,
                   60480000,
-                )
+                ),
               ).toISOString(),
             }),
           ],
@@ -1195,10 +1195,7 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "active",
               maxEventTime: new Date(
-                floorToNearest(
-                  now - 1000 * 60 * 60 * 24 * 7 - 100,
-                  60480000,
-                )
+                floorToNearest(now - 1000 * 60 * 60 * 24 * 7 - 100, 60480000),
               ).toISOString(),
             }),
           ],

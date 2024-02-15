@@ -1992,10 +1992,8 @@ export async function computeState({
     const nowSeconds = now / 1000;
     const queries = Object.values(
       mapValues(subQueriesWithPeriods, async (periodSubQueries, period) => {
-        // FIXME why is this 0 (?)
-        // and processing_time >= toDateTime64(0, 3)
         const lowerBoundClause =
-          period !== 0
+          period > 0
             ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
             : ``;
 
@@ -2018,7 +2016,7 @@ export async function computeState({
             `,
           )
           .join(", ");
-        // FIXME
+
         const query = `
           insert into computed_property_state_v2
           select
