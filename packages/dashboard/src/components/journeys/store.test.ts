@@ -95,7 +95,7 @@ describe("journeyToState", () => {
     });
 
     const uiExpectations: [string, string[]][] = [
-      [JourneyNodeType.SegmentEntryNode, ["segment-split-1"]],
+      [AdditionalJourneyNodeType.UiEntryNode, ["segment-split-1"]],
       [
         "segment-split-1",
         ["segment-split-1-child-0", "segment-split-1-child-1"],
@@ -169,7 +169,7 @@ describe("journeyToState", () => {
 
     it("produces the right ui state", async () => {
       const uiExpectations: [string, string[]][] = [
-        [JourneyNodeType.SegmentEntryNode, ["segment-split"]],
+        [AdditionalJourneyNodeType.UiEntryNode, ["segment-split"]],
         ["segment-split", ["segment-split-child-0", "segment-split-child-1"]],
         ["segment-split-child-0", ["segment-split-empty"]],
         ["segment-split-child-1", ["segment-split-empty"]],
@@ -324,7 +324,7 @@ describe("journeyToState", () => {
       );
     });
     const uiExpectations: [string, string[]][] = [
-      [JourneyNodeType.SegmentEntryNode, ["wait-for-first-deployment-1"]],
+      [AdditionalJourneyNodeType.UiEntryNode, ["wait-for-first-deployment-1"]],
       [
         "wait-for-first-deployment-1",
         [
@@ -415,7 +415,7 @@ describe("journeyToState", () => {
       uiState.journeyNodes.forEach((node) => {
         if (
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-          node.id === JourneyNodeType.SegmentEntryNode ||
+          node.id === AdditionalJourneyNodeType.UiEntryNode ||
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
           node.id === JourneyNodeType.ExitNode
         ) {
@@ -714,8 +714,8 @@ describe("journeyDefinitionFromState", () => {
           type: "workflow",
         },
         {
-          id: "EntryNode->908b9795-60b7-4333-a57c-a30f4972fb6b",
-          source: "EntryNode",
+          id: `${AdditionalJourneyNodeType.UiEntryNode}->908b9795-60b7-4333-a57c-a30f4972fb6b`,
+          source: AdditionalJourneyNodeType.UiEntryNode,
           target: "908b9795-60b7-4333-a57c-a30f4972fb6b",
           type: "workflow",
         },
@@ -764,7 +764,7 @@ describe("journeyDefinitionFromState", () => {
         },
       ],
       journeyNodesIndex: {
-        EntryNode: 0,
+        [AdditionalJourneyNodeType.UiEntryNode]: 0,
         "908b9795-60b7-4333-a57c-a30f4972fb6b": 1,
         "6940ebec-a2ca-47dc-a356-42dc0245dd2e": 2,
         "9d5367b0-882e-49c2-a6d2-4c28e5416d04": 3,
