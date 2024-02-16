@@ -253,7 +253,7 @@ export interface AddNodesParams {
 }
 
 export interface JourneyContent extends JourneyState {
-  setDraggedComponentType: (t: JourneyNodeType | null) => void;
+  setDraggedComponentType: (t: NodeTypeProps["type"] | null) => void;
   setSelectedNodeId: (t: string | null) => void;
   addNodes: (params: AddNodesParams) => void;
   setEdges: (changes: EdgeChange[]) => void;
