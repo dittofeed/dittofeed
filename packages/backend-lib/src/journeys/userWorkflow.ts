@@ -10,6 +10,7 @@ import {
 import * as wf from "@temporalio/workflow";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
+import { assertUnreachableSafe } from "../typeAssertions";
 import {
   ChannelType,
   DelayVariantType,
@@ -147,6 +148,18 @@ export async function userJourneyWorkflow({
       case JourneyNodeType.SegmentEntryNode: {
         const cn = currentNode;
         await wf.condition(() => segmentAssignedTrue(cn.segment));
+        nextNode = nodes.get(currentNode.child) ?? null;
+        if (!nextNode) {
+          logger.error("missing entry node child", {
+            ...defaultLoggingFields,
+            child: currentNode.child,
+          });
+          nextNode = definition.exitNode;
+          break;
+        }
+        break;
+      }
+      case JourneyNodeType.EventEntryNode: {
         nextNode = nodes.get(currentNode.child) ?? null;
         if (!nextNode) {
           logger.error("missing entry node child", {
@@ -321,12 +334,29 @@ export async function userJourneyWorkflow({
       case JourneyNodeType.ExitNode: {
         break nodeLoop;
       }
+      case JourneyNodeType.ExperimentSplitNode: {
+        logger.error("unable to handle un-implemented node type", {
+          ...defaultLoggingFields,
+          nodeType: currentNode.type,
+        });
+        nextNode = definition.exitNode;
+        break;
+      }
+      case JourneyNodeType.RateLimitNode: {
+        logger.error("unable to handle un-implemented node type", {
+          ...defaultLoggingFields,
+          nodeType: currentNode.type,
+        });
+        nextNode = definition.exitNode;
+        break;
+      }
       default:
         logger.error("unable to handle un-implemented node type", {
           ...defaultLoggingFields,
           nodeType: currentNode.type,
         });
         nextNode = definition.exitNode;
+        assertUnreachableSafe(currentNode, "un-implemented node type");
         break;
     }
 
