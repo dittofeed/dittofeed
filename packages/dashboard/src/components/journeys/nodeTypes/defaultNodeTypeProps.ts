@@ -6,18 +6,25 @@ import {
 import { Node } from "reactflow";
 import { v4 as uuid } from "uuid";
 
-import { NodeData, NodeTypeProps } from "../../../lib/types";
+import {
+  AdditionalJourneyNodeType,
+  NodeData,
+  NodeTypeProps,
+} from "../../../lib/types";
 
 export const defaultSegmentSplitName = "True / False Branch";
 
 export default function defaultNodeTypeProps(
-  type: JourneyNodeType,
+  type: NodeTypeProps["type"],
   nodes: Node<NodeData>[],
 ): NodeTypeProps {
   switch (type) {
-    case JourneyNodeType.SegmentEntryNode:
+    case AdditionalJourneyNodeType.UiEntryNode:
       return {
         type,
+        variant: {
+          type: JourneyNodeType.SegmentEntryNode,
+        },
       };
     case JourneyNodeType.ExitNode:
       return {
@@ -62,9 +69,5 @@ export default function defaultNodeTypeProps(
           },
         ],
       };
-    case JourneyNodeType.RateLimitNode:
-      throw new Error("Rate limit nodes are not supported yet");
-    case JourneyNodeType.ExperimentSplitNode:
-      throw new Error("Experiment split nodes are not supported yet");
   }
 }

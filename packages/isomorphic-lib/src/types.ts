@@ -2510,3 +2510,7 @@ export interface Resource {
   workspaceId: string;
   id: string;
 }
+
+export type PartialExceptType<T, TD> = Partial<Omit<T, "type">> & {
+  type: TD;
+};
