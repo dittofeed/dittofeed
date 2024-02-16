@@ -50,13 +50,23 @@ type SegmentAssignment = Pick<
 export function getUserJourneyWorkflowId({
   userId,
   journeyId,
-  eventKey
+  eventKey,
 }: {
   userId: string;
   journeyId: string;
-  eventKey?: string
+  eventKey?: string;
 }): string {
-  return [`user-journey-${userId}-${journeyId}`, eventKey].filter(Boolean).join('-');
+  return [`user-journey-${userId}-${journeyId}`, eventKey]
+    .filter(Boolean)
+    .join("-");
+}
+
+export interface UserJourneyWorkflowProps {
+  workspaceId: string;
+  userId: string;
+  definition: JourneyDefinition;
+  journeyId: string;
+  eventKey?: string;
 }
 
 export async function userJourneyWorkflow({
@@ -64,14 +74,8 @@ export async function userJourneyWorkflow({
   userId,
   definition,
   journeyId,
-  eventKey
-}: {
-  journeyId: string;
-  workspaceId: string;
-  definition: JourneyDefinition;
-  userId: string;
-  eventKey?: string
-}): Promise<void> {
+  eventKey,
+}: UserJourneyWorkflowProps): Promise<void> {
   // TODO write end to end test
   if (!(await isRunnable({ journeyId, userId }))) {
     logger.info("early exit unrunnable user journey", {
@@ -79,7 +83,7 @@ export async function userJourneyWorkflow({
       journeyId,
       userId,
       workspaceId,
-      eventKey
+      eventKey,
     });
     return;
   }
@@ -133,7 +137,7 @@ export async function userJourneyWorkflow({
       userId,
       runId,
       currentNode,
-      eventKey
+      eventKey,
     };
     logger.info("user journey node", {
       ...defaultLoggingFields,

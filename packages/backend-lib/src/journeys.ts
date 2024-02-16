@@ -22,6 +22,7 @@ import {
   NodeStatsType,
   SavedJourneyResource,
 } from "./types";
+import { startKeyedUserJourney } from "./segments/computePropertiesWorkflow/lifecycle";
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -444,6 +445,7 @@ export async function triggerEventEntryJourneys({
   const journeyDetails: {
     journeyId: string;
     event: string;
+    definition: JourneyDefinition;
   }[] = allJourneys.flatMap((j) => {
     const result = toJourneyResource(j);
     if (result.isErr()) {
@@ -466,11 +468,21 @@ export async function triggerEventEntryJourneys({
     return {
       event: journey.definition.entryNode.event,
       journeyId: journey.id,
+      definition: journey.definition,
     };
   });
-  const starts: Promise<unknown>[] = journeyDetails.flatMap(({ journeyId, event: journeyEvent }) => {
-    if (journeyEvent !== event) {
-      return [];
-    }
-  })
+  const starts: Promise<unknown>[] = journeyDetails.flatMap(
+    ({ journeyId, event: journeyEvent, definition }) => {
+      if (journeyEvent !== event) {
+        return [];
+      }
+      return startKeyedUserJourney({
+        workspaceId,
+        userId,
+        journeyId,
+        definition
+      });
+    },
+  );
+  await Promise.all(starts);
 }

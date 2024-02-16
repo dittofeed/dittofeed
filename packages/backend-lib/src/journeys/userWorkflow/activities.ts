@@ -865,7 +865,7 @@ export async function sendEmail(params: SendParams): Promise<boolean> {
 export async function isRunnable({
   userId,
   journeyId,
-  eventKey
+  eventKey,
 }: {
   journeyId: string;
   userId: string;
