@@ -389,3 +389,38 @@ group by event, node_id;`;
 
   return journeysStats;
 }
+
+export async function getEventTriggeredJourneys({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<SavedJourneyResource[]> {
+  const allJourneys = await prisma().journey.findMany({
+    where: {
+      workspaceId,
+    },
+  });
+  const allJourneyResources: SavedJourneyResource[] = allJourneys.flatMap(
+    (journey) => {
+      const result = toJourneyResource(journey);
+      if (result.isErr()) {
+        logger().error(
+          {
+            workspaceId,
+            journeyId: journey.id,
+          },
+          "Failed to convert journey to resource",
+        );
+        return [];
+      }
+      if (
+        result.value.definition.entryNode.type !==
+        JourneyNodeType.EventEntryNode
+      ) {
+        return [];
+      }
+      return result.value;
+    },
+  );
+  return allJourneyResources;
+}
