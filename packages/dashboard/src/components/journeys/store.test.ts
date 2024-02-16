@@ -11,7 +11,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { v4 as uuid } from "uuid";
 
-import { JourneyState } from "../../lib/types";
+import { AdditionalJourneyNodeType, JourneyState } from "../../lib/types";
 import {
   findDirectUiChildren,
   findDirectUiParents,
@@ -586,12 +586,15 @@ describe("journeyDefinitionFromState", () => {
       journeyStats: {},
       journeyNodes: [
         {
-          id: JourneyNodeType.SegmentEntryNode,
+          id: AdditionalJourneyNodeType.UiEntryNode,
           data: {
             type: "JourneyNode",
             nodeTypeProps: {
-              type: JourneyNodeType.SegmentEntryNode,
-              segmentId: uuid(),
+              type: AdditionalJourneyNodeType.UiEntryNode,
+              variant: {
+                type: JourneyNodeType.SegmentEntryNode,
+                segment: uuid(),
+              },
             },
           },
           position: { x: 400, y: 100 },

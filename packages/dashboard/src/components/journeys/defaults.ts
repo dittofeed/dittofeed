@@ -7,8 +7,8 @@ import defaultNodeTypeProps from "./nodeTypes/defaultNodeTypeProps";
 
 export const defaultEdges: Edge[] = [
   {
-    id: `${JourneyNodeType.SegmentEntryNode}=>${JourneyNodeType.ExitNode}`,
-    source: JourneyNodeType.SegmentEntryNode,
+    id: `${AdditionalJourneyNodeType.UiEntryNode}=>${JourneyNodeType.ExitNode}`,
+    source: AdditionalJourneyNodeType.UiEntryNode,
     target: JourneyNodeType.ExitNode,
     type: "workflow",
   },

@@ -558,9 +558,8 @@ export function journeyDefinitionFromState({
   const nodes: JourneyNode[] = [];
   const journeyNodes = buildJourneyNodeMap(state.journeyNodes);
   const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
-
   const result = journeyDefinitionFromStateBranch(
-    JourneyNodeType.SegmentEntryNode,
+    AdditionalJourneyNodeType.UiEntryNode,
     hm,
     nodes,
     journeyNodes,
@@ -1352,8 +1351,9 @@ export function journeyToState(
     return acc;
   }, new Map<string, JourneyNode>());
   const hm = buildHeritageMap(journey.definition);
+
   journeyBranchToState(
-    JourneyNodeType.SegmentEntryNode,
+    getNodeId(journey.definition.entryNode),
     journeyNodes,
     journeyEdges,
     nodes,

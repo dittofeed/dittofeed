@@ -34,6 +34,7 @@ import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../../lib/appStore";
 import {
+  AdditionalJourneyNodeType,
   DelayNodeProps,
   EntryNodeProps,
   JourneyNodeProps,
@@ -110,39 +111,56 @@ function EntryNodeFields({
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData,
   );
-
   const segments = useAppStore((state) => state.segments);
 
-  const onSegmentChangeHandler = (
-    _event: unknown,
-    segment: SegmentResource | null,
-  ) => {
-    updateJourneyNodeData(nodeId, (node) => {
-      const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.SegmentEntryNode) {
-        props.segmentId = segment?.id;
+  let variant: React.ReactNode;
+  const nodeVariant = nodeProps.variant;
+  switch (nodeVariant.type) {
+    case JourneyNodeType.SegmentEntryNode: {
+      const onSegmentChangeHandler = (
+        _event: unknown,
+        segment: SegmentResource | null,
+      ) => {
+        updateJourneyNodeData(nodeId, (node) => {
+          const props = node.data.nodeTypeProps;
+          if (
+            props.type === AdditionalJourneyNodeType.UiEntryNode &&
+            props.variant.type === JourneyNodeType.SegmentEntryNode
+          ) {
+            props.variant.segment = segment?.id;
+          }
+        });
+      };
+
+      if (segments.type !== CompletionStatus.Successful) {
+        return null;
       }
-    });
-  };
 
-  if (segments.type !== CompletionStatus.Successful) {
-    return null;
+      const segment =
+        segments.value.find((t) => t.id === nodeVariant.segment) ?? null;
+
+      variant = (
+        <Autocomplete
+          value={segment}
+          options={segments.value}
+          getOptionLabel={getSegmentLabel}
+          onChange={onSegmentChangeHandler}
+          renderInput={(params) => (
+            <TextField {...params} label="segment" variant="outlined" />
+          )}
+        />
+      );
+      break;
+    }
+    case JourneyNodeType.EventEntryNode:
+      // TODO implement event entry variant
+      variant = null;
+      break;
+    default:
+      assertUnreachable(nodeVariant);
   }
-
-  const segment =
-    segments.value.find((t) => t.id === nodeProps.segmentId) ?? null;
-
-  return (
-    <Autocomplete
-      value={segment}
-      options={segments.value}
-      getOptionLabel={getSegmentLabel}
-      onChange={onSegmentChangeHandler}
-      renderInput={(params) => (
-        <TextField {...params} label="segment" variant="outlined" />
-      )}
-    />
-  );
+  // TODO implement variant selector
+  return <>{variant}</>;
 }
 
 function getTemplateLabel(tr: MessageTemplateResource) {
@@ -579,7 +597,7 @@ function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
   const nodeProps = node.data.nodeTypeProps;
 
   switch (nodeProps.type) {
-    case JourneyNodeType.SegmentEntryNode:
+    case AdditionalJourneyNodeType.UiEntryNode:
       return (
         <NodeLayout nodeId={node.id}>
           <EntryNodeFields nodeId={node.id} nodeProps={nodeProps} />
