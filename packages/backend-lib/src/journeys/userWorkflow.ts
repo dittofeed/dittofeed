@@ -47,6 +47,18 @@ type SegmentAssignment = Pick<
   "currentlyInSegment" | "segmentVersion"
 >;
 
+export function getUserJourneyWorkflowId({
+  userId,
+  journeyId,
+  key
+}: {
+  userId: string;
+  journeyId: string;
+  key?: string
+}): string {
+  return [`user-journey-${userId}-${journeyId}`, key].filter(Boolean).join('-');
+}
+
 export async function userJourneyWorkflow({
   workspaceId,
   userId,
