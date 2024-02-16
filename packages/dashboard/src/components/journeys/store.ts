@@ -558,6 +558,7 @@ export function journeyDefinitionFromState({
   const nodes: JourneyNode[] = [];
   const journeyNodes = buildJourneyNodeMap(state.journeyNodes);
   const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+
   const result = journeyDefinitionFromStateBranch(
     AdditionalJourneyNodeType.UiEntryNode,
     hm,
@@ -1063,9 +1064,11 @@ export function journeyBranchToState(
             segment: node.segment,
           },
         };
-        nodesState.push(buildJourneyNode(nId, entryNode));
+        nodesState.push(
+          buildJourneyNode(AdditionalJourneyNodeType.UiEntryNode, entryNode),
+        );
         edgesState.push(
-          buildWorkflowEdge(JourneyNodeType.SegmentEntryNode, node.child),
+          buildWorkflowEdge(AdditionalJourneyNodeType.UiEntryNode, node.child),
         );
         nextNodeId = node.child;
         break;
@@ -1078,9 +1081,11 @@ export function journeyBranchToState(
             event: node.event,
           },
         };
-        nodesState.push(buildJourneyNode(nId, entryNode));
+        nodesState.push(
+          buildJourneyNode(AdditionalJourneyNodeType.UiEntryNode, entryNode),
+        );
         edgesState.push(
-          buildWorkflowEdge(JourneyNodeType.EventEntryNode, node.child),
+          buildWorkflowEdge(AdditionalJourneyNodeType.UiEntryNode, node.child),
         );
         nextNodeId = node.child;
         break;
