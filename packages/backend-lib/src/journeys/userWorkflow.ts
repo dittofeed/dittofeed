@@ -79,6 +79,7 @@ export async function userJourneyWorkflow({
       journeyId,
       userId,
       workspaceId,
+      eventKey
     });
     return;
   }

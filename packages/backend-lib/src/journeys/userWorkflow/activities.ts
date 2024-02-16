@@ -865,15 +865,18 @@ export async function sendEmail(params: SendParams): Promise<boolean> {
 export async function isRunnable({
   userId,
   journeyId,
+  eventKey
 }: {
   journeyId: string;
   userId: string;
+  eventKey?: string;
 }): Promise<boolean> {
   const [previousExitEvent, journey] = await Promise.all([
     prisma().userJourneyEvent.findFirst({
       where: {
         journeyId,
         userId,
+        eventKey,
         type: JourneyNodeType.ExitNode,
       },
     }),
