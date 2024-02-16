@@ -1,9 +1,15 @@
 import * as R from "remeda";
 
 import {
+  getEventTriggeredJourneys,
+  triggerEventEntryJourneys,
+} from "./journeys";
+import logger from "./logger";
+import {
   BatchAppData,
   EventType,
   IdentifyData,
+  JourneyNodeType,
   PageData,
   ScreenData,
   TrackData,
@@ -60,6 +66,21 @@ export async function submitTrack({
     workspaceId,
     userEvents: [userEvent],
   });
+
+  let userOrAnonymousId: string | null = null;
+  if ("userId" in data) {
+    userOrAnonymousId = data.userId;
+  } else if ("anonymousId" in data) {
+    userOrAnonymousId = data.anonymousId;
+  }
+
+  if (userOrAnonymousId) {
+    await triggerEventEntryJourneys({
+      workspaceId,
+      event: rest.event,
+      userId: userOrAnonymousId,
+    });
+  }
 }
 
 export async function submitPage({

@@ -13,6 +13,7 @@ import prisma from "./prisma";
 import {
   ChannelType,
   EnrichedJourney,
+  EventEntryNode,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
@@ -423,4 +424,50 @@ export async function getEventTriggeredJourneys({
     },
   );
   return allJourneyResources;
+}
+
+export async function triggerEventEntryJourneys({
+  workspaceId,
+  event,
+  userId,
+}: {
+  workspaceId: string;
+  event: string;
+  userId: string;
+}): Promise<void> {
+  const allJourneys = await prisma().journey.findMany({
+    where: {
+      workspaceId,
+    },
+  });
+  const journeyDetails: {
+    journeyId: string;
+    event: string;
+  }[] = allJourneys.flatMap((journey) => {
+    const result = toJourneyResource(journey);
+    if (result.isErr()) {
+      logger().error(
+        {
+          workspaceId,
+          journeyId: journey.id,
+        },
+        "Failed to convert journey to resource",
+      );
+      return [];
+    }
+    if (
+      result.value.definition.entryNode.type !== JourneyNodeType.EventEntryNode
+    ) {
+      return [];
+    }
+    return {
+      event: result.value.definition.entryNode.event,
+      journeyId: result.value.id,
+    };
+  });
+  const starts: Promise<unknown>[] = journeyDetails.flatMap(({ journeyId, event: journeyEvent }) => {
+    if (journeyEvent !== event) {
+      return [];
+    }
+  })
 }
