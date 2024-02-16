@@ -487,6 +487,7 @@ export type SegmentEntryNode = Static<typeof SegmentEntryNode>;
 export const EventEntryNode = Type.Object({
   type: Type.Literal(JourneyNodeType.EventEntryNode),
   event: Type.String(),
+  child: Type.String(),
 });
 
 export type EventEntryNode = Static<typeof EventEntryNode>;

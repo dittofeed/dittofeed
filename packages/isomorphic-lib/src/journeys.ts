@@ -8,6 +8,20 @@ import {
   JourneyNodeType,
 } from "./types";
 
+export function getNodeId(node: JourneyNode): string {
+  if (node.type === JourneyNodeType.SegmentEntryNode) {
+    return JourneyNodeType.SegmentEntryNode;
+  }
+  if (node.type === JourneyNodeType.EventEntryNode) {
+    return JourneyNodeType.EventEntryNode;
+  }
+  if (node.type === JourneyNodeType.ExitNode) {
+    return JourneyNodeType.ExitNode;
+  }
+  return node.id;
+}
+
+
 function nodeToSegments(node: JourneyBodyNode): string[] {
   switch (node.type) {
     case JourneyNodeType.SegmentSplitNode: {
@@ -45,7 +59,9 @@ export function getSubscribedSegments(
   definition: JourneyDefinition
 ): Set<string> {
   const subscribedSegments = new Set<string>();
-  subscribedSegments.add(definition.entryNode.segment);
+  if (definition.entryNode.type === JourneyNodeType.SegmentEntryNode) {
+    subscribedSegments.add(definition.entryNode.segment);
+  }
   for (const node of definition.nodes) {
     const segments = nodeToSegments(node);
     for (const segment of segments) {
@@ -99,6 +115,9 @@ export function findDirectChildren(
     case JourneyNodeType.SegmentEntryNode:
       children = new Set<string>([node.child]);
       break;
+    case JourneyNodeType.EventEntryNode:
+      children = new Set<string>([node.child]);
+      break;
     case JourneyNodeType.DelayNode:
       children = new Set<string>([node.child]);
       break;
@@ -122,10 +141,7 @@ export function findDirectParents(
 
   // Iterate over all nodes in the journey definition
   for (const node of [definition.entryNode, ...definition.nodes]) {
-    const id =
-      node.type === JourneyNodeType.SegmentEntryNode
-        ? JourneyNodeType.SegmentEntryNode
-        : node.id;
+    const id = getNodeId(node);
     // Get the direct children of the current node
     const children = findDirectChildren(id, definition);
 
@@ -137,16 +153,6 @@ export function findDirectParents(
   }
 
   return parents;
-}
-
-export function getNodeId(node: JourneyNode): string {
-  if (node.type === JourneyNodeType.SegmentEntryNode) {
-    return JourneyNodeType.SegmentEntryNode;
-  }
-  if (node.type === JourneyNodeType.ExitNode) {
-    return JourneyNodeType.ExitNode;
-  }
-  return node.id;
 }
 
 export interface HeritageMapEntry {
