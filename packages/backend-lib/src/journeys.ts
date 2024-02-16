@@ -1,5 +1,5 @@
 import { Row } from "@clickhouse/client";
-import { Journey, PrismaClient } from "@prisma/client";
+import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { MapWithDefault } from "isomorphic-lib/src/maps";
 import { parseInt } from "isomorphic-lib/src/numbers";
@@ -443,26 +443,28 @@ export async function triggerEventEntryJourneys({
   const journeyDetails: {
     journeyId: string;
     event: string;
-  }[] = allJourneys.flatMap((journey) => {
-    const result = toJourneyResource(journey);
+  }[] = allJourneys.flatMap((j) => {
+    const result = toJourneyResource(j);
     if (result.isErr()) {
       logger().error(
         {
           workspaceId,
-          journeyId: journey.id,
+          journeyId: j.id,
         },
         "Failed to convert journey to resource",
       );
       return [];
     }
-    if (
-      result.value.definition.entryNode.type !== JourneyNodeType.EventEntryNode
-    ) {
+    const journey = result.value;
+    if (journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
+      return [];
+    }
+    if (journey.status !== JourneyStatus.Running) {
       return [];
     }
     return {
-      event: result.value.definition.entryNode.event,
-      journeyId: result.value.id,
+      event: journey.definition.entryNode.event,
+      journeyId: journey.id,
     };
   });
   const starts: Promise<unknown>[] = journeyDetails.flatMap(({ journeyId, event: journeyEvent }) => {

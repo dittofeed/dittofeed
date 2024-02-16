@@ -50,13 +50,13 @@ type SegmentAssignment = Pick<
 export function getUserJourneyWorkflowId({
   userId,
   journeyId,
-  key
+  eventKey
 }: {
   userId: string;
   journeyId: string;
-  key?: string
+  eventKey?: string
 }): string {
-  return [`user-journey-${userId}-${journeyId}`, key].filter(Boolean).join('-');
+  return [`user-journey-${userId}-${journeyId}`, eventKey].filter(Boolean).join('-');
 }
 
 export async function userJourneyWorkflow({
@@ -64,11 +64,13 @@ export async function userJourneyWorkflow({
   userId,
   definition,
   journeyId,
+  eventKey
 }: {
   journeyId: string;
   workspaceId: string;
   definition: JourneyDefinition;
   userId: string;
+  eventKey?: string
 }): Promise<void> {
   // TODO write end to end test
   if (!(await isRunnable({ journeyId, userId }))) {
