@@ -119,7 +119,7 @@ function EntryNodeFields({
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
-      if (props.type === JourneyNodeType.EntryNode) {
+      if (props.type === JourneyNodeType.SegmentEntryNode) {
         props.segmentId = segment?.id;
       }
     });
@@ -579,7 +579,7 @@ function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
   const nodeProps = node.data.nodeTypeProps;
 
   switch (nodeProps.type) {
-    case JourneyNodeType.EntryNode:
+    case JourneyNodeType.SegmentEntryNode:
       return (
         <NodeLayout nodeId={node.id}>
           <EntryNodeFields nodeId={node.id} nodeProps={nodeProps} />

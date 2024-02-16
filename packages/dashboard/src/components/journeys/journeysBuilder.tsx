@@ -151,7 +151,7 @@ function createConnections({
       });
       break;
     }
-    case JourneyNodeType.EntryNode: {
+    case JourneyNodeType.SegmentEntryNode: {
       throw new Error("Cannot add an entry node");
     }
     case JourneyNodeType.ExitNode: {

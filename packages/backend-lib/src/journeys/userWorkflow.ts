@@ -124,7 +124,7 @@ export async function userJourneyWorkflow({
       type: currentNode.type,
     });
     switch (currentNode.type) {
-      case JourneyNodeType.EntryNode: {
+      case JourneyNodeType.SegmentEntryNode: {
         const cn = currentNode;
         await wf.condition(() => segmentAssignedTrue(cn.segment));
         nextNode = nodes.get(currentNode.child) ?? null;

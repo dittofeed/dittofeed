@@ -11,7 +11,7 @@ import {
   CompletionStatus,
   DelayNode,
   DelayVariantType,
-  EntryNode,
+  SegmentEntryNode,
   ExitNode,
   JourneyBodyNode,
   JourneyDefinition,
@@ -273,7 +273,7 @@ function journeyDefinitionFromStateBranch(
     const uiNode = getUnsafe(uiJourneyNodes, nId);
 
     switch (uiNode.type) {
-      case JourneyNodeType.EntryNode: {
+      case JourneyNodeType.SegmentEntryNode: {
         if (!uiNode.segmentId) {
           return err({
             message: "Entry node must have a segment",
@@ -283,7 +283,7 @@ function journeyDefinitionFromStateBranch(
 
         const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
         const node: EntryNode = {
-          type: JourneyNodeType.EntryNode,
+          type: JourneyNodeType.SegmentEntryNode,
           segment: uiNode.segmentId,
           child,
         };
@@ -532,7 +532,7 @@ export function journeyDefinitionFromState({
   const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
 
   const result = journeyDefinitionFromStateBranch(
-    JourneyNodeType.EntryNode,
+    JourneyNodeType.SegmentEntryNode,
     hm,
     nodes,
     journeyNodes,
@@ -547,7 +547,7 @@ export function journeyDefinitionFromState({
   const bodyNodes: JourneyBodyNode[] = [];
 
   for (const node of nodes) {
-    if (node.type === JourneyNodeType.EntryNode) {
+    if (node.type === JourneyNodeType.SegmentEntryNode) {
       entryNode = node;
     } else if (node.type === JourneyNodeType.ExitNode) {
       exitNode = node;
@@ -730,7 +730,7 @@ export function edgesForJourneyNode({
   if (
     type === JourneyNodeType.RateLimitNode ||
     type === JourneyNodeType.ExperimentSplitNode ||
-    type === JourneyNodeType.EntryNode ||
+    type === JourneyNodeType.SegmentEntryNode ||
     type === JourneyNodeType.ExitNode
   ) {
     throw new Error(`Unimplemented node type ${type}`);
@@ -1025,14 +1025,14 @@ export function journeyBranchToState(
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
     switch (node.type) {
-      case JourneyNodeType.EntryNode: {
+      case JourneyNodeType.SegmentEntryNode: {
         const entryNode: EntryNodeProps = {
-          type: JourneyNodeType.EntryNode,
+          type: JourneyNodeType.SegmentEntryNode,
           segmentId: node.segment,
         };
         nodesState.push(buildJourneyNode(nId, entryNode));
         edgesState.push(
-          buildWorkflowEdge(JourneyNodeType.EntryNode, node.child),
+          buildWorkflowEdge(JourneyNodeType.SegmentEntryNode, node.child),
         );
         nextNodeId = node.child;
         break;
@@ -1304,7 +1304,7 @@ export function journeyToState(
   }, new Map<string, JourneyNode>());
   const hm = buildHeritageMap(journey.definition);
   journeyBranchToState(
-    JourneyNodeType.EntryNode,
+    JourneyNodeType.SegmentEntryNode,
     journeyNodes,
     journeyEdges,
     nodes,

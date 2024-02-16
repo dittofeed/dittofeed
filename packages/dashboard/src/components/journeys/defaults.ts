@@ -7,8 +7,8 @@ import defaultNodeTypeProps from "./nodeTypes/defaultNodeTypeProps";
 
 export const defaultEdges: Edge[] = [
   {
-    id: `${JourneyNodeType.EntryNode}=>${JourneyNodeType.ExitNode}`,
-    source: JourneyNodeType.EntryNode,
+    id: `${JourneyNodeType.SegmentEntryNode}=>${JourneyNodeType.ExitNode}`,
+    source: JourneyNodeType.SegmentEntryNode,
     target: JourneyNodeType.ExitNode,
     type: "workflow",
   },
@@ -19,10 +19,10 @@ export const placeholderNodePosition: XYPosition = { x: 0, y: 0 };
 export const defaultNodes = layoutNodes(
   [
     {
-      id: JourneyNodeType.EntryNode,
+      id: JourneyNodeType.SegmentEntryNode,
       data: {
         type: "JourneyNode",
-        nodeTypeProps: defaultNodeTypeProps(JourneyNodeType.EntryNode, []),
+        nodeTypeProps: defaultNodeTypeProps(JourneyNodeType.SegmentEntryNode, []),
       },
       position: placeholderNodePosition,
       type: "journey",

@@ -15,7 +15,7 @@ export default function defaultNodeTypeProps(
   nodes: Node<NodeData>[],
 ): NodeTypeProps {
   switch (type) {
-    case JourneyNodeType.EntryNode:
+    case JourneyNodeType.SegmentEntryNode:
       return {
         type,
       };

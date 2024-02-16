@@ -4,7 +4,7 @@ export default function journeyNodeLabel(t: JourneyNodeType): string {
   switch (t) {
     case JourneyNodeType.DelayNode:
       return "Delay";
-    case JourneyNodeType.EntryNode:
+    case JourneyNodeType.SegmentEntryNode:
       return "Entry";
     case JourneyNodeType.ExperimentSplitNode:
       return "Experiment Split";

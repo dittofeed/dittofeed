@@ -141,7 +141,7 @@ describe("end to end journeys", () => {
 
       const journeyDefinition: JourneyDefinition = {
         entryNode: {
-          type: JourneyNodeType.EntryNode,
+          type: JourneyNodeType.SegmentEntryNode,
           segment: segment1.id,
           child: waitForNode1,
         },
@@ -481,7 +481,7 @@ describe("end to end journeys", () => {
 
         const journeyDefinition: JourneyDefinition = {
           entryNode: {
-            type: JourneyNodeType.EntryNode,
+            type: JourneyNodeType.SegmentEntryNode,
             segment: recentlyCreatedSegment.id,
             child: nodeId1,
           },
@@ -629,7 +629,7 @@ describe("end to end journeys", () => {
 
         const journeyDefinition: JourneyDefinition = {
           entryNode: {
-            type: JourneyNodeType.EntryNode,
+            type: JourneyNodeType.SegmentEntryNode,
             segment: paidAccountSegment.id,
             child: nodeId1,
           },

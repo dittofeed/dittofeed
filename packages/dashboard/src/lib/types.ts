@@ -7,7 +7,7 @@ import {
   DefaultEmailProviderResource,
   DelayVariantType,
   DFRequestContext,
-  EntryNode,
+  SegmentEntryNode,
   EphemeralRequestStatus,
   ExitNode,
   IntegrationResource,
@@ -279,7 +279,7 @@ export type PageStoreContents = SegmentEditorContents &
   SubscriptionGroupEditorContents;
 
 export interface EntryNodeProps {
-  type: JourneyNodeType.EntryNode;
+  type: JourneyNodeType.SegmentEntryNode;
   segmentId?: string;
 }
 

@@ -60,7 +60,7 @@ export function getJourneyNode(
   nodeId: string
 ): JourneyNode | null {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-  if (nodeId === JourneyNodeType.EntryNode) {
+  if (nodeId === JourneyNodeType.SegmentEntryNode) {
     return definition.entryNode;
   }
   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
@@ -96,7 +96,7 @@ export function findDirectChildren(
     case JourneyNodeType.MessageNode:
       children = new Set<string>([node.child]);
       break;
-    case JourneyNodeType.EntryNode:
+    case JourneyNodeType.SegmentEntryNode:
       children = new Set<string>([node.child]);
       break;
     case JourneyNodeType.DelayNode:
@@ -123,8 +123,8 @@ export function findDirectParents(
   // Iterate over all nodes in the journey definition
   for (const node of [definition.entryNode, ...definition.nodes]) {
     const id =
-      node.type === JourneyNodeType.EntryNode
-        ? JourneyNodeType.EntryNode
+      node.type === JourneyNodeType.SegmentEntryNode
+        ? JourneyNodeType.SegmentEntryNode
         : node.id;
     // Get the direct children of the current node
     const children = findDirectChildren(id, definition);
@@ -140,8 +140,8 @@ export function findDirectParents(
 }
 
 export function getNodeId(node: JourneyNode): string {
-  if (node.type === JourneyNodeType.EntryNode) {
-    return JourneyNodeType.EntryNode;
+  if (node.type === JourneyNodeType.SegmentEntryNode) {
+    return JourneyNodeType.SegmentEntryNode;
   }
   if (node.type === JourneyNodeType.ExitNode) {
     return JourneyNodeType.ExitNode;

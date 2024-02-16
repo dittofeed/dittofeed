@@ -55,7 +55,7 @@ export function isNodeComplete(
   state: Pick<AppState, "segments" | "messages">,
 ): boolean {
   switch (props.type) {
-    case JourneyNodeType.EntryNode: {
+    case JourneyNodeType.SegmentEntryNode: {
       if (!props.segmentId) {
         return false;
       }
@@ -130,7 +130,7 @@ function SegmentDescriptionBody({
 
 export function journeyNodeIcon(type: JourneyNodeType): JourneyNodeIcon {
   switch (type) {
-    case JourneyNodeType.EntryNode:
+    case JourneyNodeType.SegmentEntryNode:
       return ThunderboltOutlined;
     case JourneyNodeType.DelayNode:
       return ClockCircleOutlined;
@@ -152,12 +152,12 @@ export function journeyNodeIcon(type: JourneyNodeType): JourneyNodeIcon {
 function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
   const t = props.type;
   switch (t) {
-    case JourneyNodeType.EntryNode: {
+    case JourneyNodeType.SegmentEntryNode: {
       const body = <SegmentDescriptionBody segmentId={props.segmentId} />;
       return {
         sidebarColor: "transparent",
-        icon: journeyNodeIcon(JourneyNodeType.EntryNode),
-        title: journeyNodeLabel(JourneyNodeType.EntryNode),
+        icon: journeyNodeIcon(JourneyNodeType.SegmentEntryNode),
+        title: journeyNodeLabel(JourneyNodeType.SegmentEntryNode),
         disableTopHandle: true,
         body,
       };

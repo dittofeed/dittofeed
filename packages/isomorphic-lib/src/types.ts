@@ -459,7 +459,9 @@ export enum JourneyNodeType {
   RateLimitNode = "RateLimitNode",
   ExperimentSplitNode = "ExperimentSplitNode",
   ExitNode = "ExitNode",
-  EntryNode = "EntryNode",
+  // Inconsistent naming is for backwards compatibility.
+  SegmentEntryNode = "EntryNode",
+  EventEntryNode = "EventEntryNode",
   WaitForNode = "WaitForNode",
 }
 
@@ -467,18 +469,29 @@ const BaseNode = {
   id: Type.String(),
 };
 
-export const EntryNode = Type.Object(
+export const SegmentEntryNode = Type.Object(
   {
-    type: Type.Literal(JourneyNodeType.EntryNode),
+    type: Type.Literal(JourneyNodeType.SegmentEntryNode),
     segment: Type.String(),
     child: Type.String(),
   },
   {
-    title: "Entry Node",
+    title: "Segment Entry Node",
     description:
       "The first node in a journey, which limits it to a specific segment.",
   }
 );
+
+export type SegmentEntryNode = Static<typeof SegmentEntryNode>;
+
+export const EventEntryNode = Type.Object({
+  type: Type.Literal(JourneyNodeType.EventEntryNode),
+  event: Type.String(),
+});
+
+export type EventEntryNode = Static<typeof EventEntryNode>;
+
+export const EntryNode = Type.Union([SegmentEntryNode, EventEntryNode]);
 
 export type EntryNode = Static<typeof EntryNode>;
 

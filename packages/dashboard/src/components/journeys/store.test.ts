@@ -63,7 +63,7 @@ describe("journeyToState", () => {
           },
         ],
         entryNode: {
-          type: JourneyNodeType.EntryNode,
+          type: JourneyNodeType.SegmentEntryNode,
           child: "segment-split-1",
           segment: "segment-id",
         },
@@ -95,7 +95,7 @@ describe("journeyToState", () => {
     });
 
     const uiExpectations: [string, string[]][] = [
-      [JourneyNodeType.EntryNode, ["segment-split-1"]],
+      [JourneyNodeType.SegmentEntryNode, ["segment-split-1"]],
       [
         "segment-split-1",
         ["segment-split-1-child-0", "segment-split-1-child-1"],
@@ -146,7 +146,7 @@ describe("journeyToState", () => {
           },
         ],
         entryNode: {
-          type: JourneyNodeType.EntryNode,
+          type: JourneyNodeType.SegmentEntryNode,
           child: "segment-split",
           segment: "segment-id",
         },
@@ -169,7 +169,7 @@ describe("journeyToState", () => {
 
     it("produces the right ui state", async () => {
       const uiExpectations: [string, string[]][] = [
-        [JourneyNodeType.EntryNode, ["segment-split"]],
+        [JourneyNodeType.SegmentEntryNode, ["segment-split"]],
         ["segment-split", ["segment-split-child-0", "segment-split-child-1"]],
         ["segment-split-child-0", ["segment-split-empty"]],
         ["segment-split-child-1", ["segment-split-empty"]],
@@ -191,7 +191,7 @@ describe("journeyToState", () => {
       const definition = result.value;
 
       const definitionExpectations: [string, string[]][] = [
-        [JourneyNodeType.EntryNode, ["segment-split"]],
+        [JourneyNodeType.SegmentEntryNode, ["segment-split"]],
         ["segment-split", [JourneyNodeType.ExitNode]],
       ];
 
@@ -302,7 +302,7 @@ describe("journeyToState", () => {
           type: JourneyNodeType.ExitNode,
         },
         entryNode: {
-          type: JourneyNodeType.EntryNode,
+          type: JourneyNodeType.SegmentEntryNode,
           child: "wait-for-first-deployment-1",
           segment: "project-added-segment-id",
         },
@@ -324,7 +324,7 @@ describe("journeyToState", () => {
       );
     });
     const uiExpectations: [string, string[]][] = [
-      [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
+      [JourneyNodeType.SegmentEntryNode, ["wait-for-first-deployment-1"]],
       [
         "wait-for-first-deployment-1",
         [
@@ -381,7 +381,7 @@ describe("journeyToState", () => {
     );
 
     const expectations: [string, string[]][] = [
-      [JourneyNodeType.EntryNode, ["wait-for-first-deployment-1"]],
+      [JourneyNodeType.SegmentEntryNode, ["wait-for-first-deployment-1"]],
       [
         "wait-for-first-deployment-1",
         ["code-deployment-reminder-1a", "wait-for-first-deployment-2"],
@@ -415,7 +415,7 @@ describe("journeyToState", () => {
       uiState.journeyNodes.forEach((node) => {
         if (
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-          node.id === JourneyNodeType.EntryNode ||
+          node.id === JourneyNodeType.SegmentEntryNode ||
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
           node.id === JourneyNodeType.ExitNode
         ) {
@@ -439,7 +439,7 @@ describe("journeyToState", () => {
         status: "NotStarted",
         definition: {
           entryNode: {
-            type: JourneyNodeType.EntryNode,
+            type: JourneyNodeType.SegmentEntryNode,
             segment: uuid(),
             child: "message-1",
           },
@@ -499,7 +499,7 @@ describe("journeyToState", () => {
       const definition = result.value;
 
       const expectations: [string, string[]][] = [
-        [JourneyNodeType.EntryNode, ["message-1"]],
+        [JourneyNodeType.SegmentEntryNode, ["message-1"]],
         ["message-1", ["delay"]],
         ["delay", ["segment-split"]],
         ["segment-split", ["message-2", JourneyNodeType.ExitNode]],
@@ -524,7 +524,7 @@ describe("journeyToState", () => {
         status: "NotStarted",
         definition: {
           entryNode: {
-            type: JourneyNodeType.EntryNode,
+            type: JourneyNodeType.SegmentEntryNode,
             segment: uuid(),
             child: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
           },
@@ -586,11 +586,11 @@ describe("journeyDefinitionFromState", () => {
       journeyStats: {},
       journeyNodes: [
         {
-          id: JourneyNodeType.EntryNode,
+          id: JourneyNodeType.SegmentEntryNode,
           data: {
             type: "JourneyNode",
             nodeTypeProps: {
-              type: JourneyNodeType.EntryNode,
+              type: JourneyNodeType.SegmentEntryNode,
               segmentId: uuid(),
             },
           },
@@ -787,7 +787,7 @@ describe("journeyDefinitionFromState", () => {
     }
     const { exitNode, entryNode, nodes } = result.value;
     expect(entryNode).toEqual({
-      type: JourneyNodeType.EntryNode,
+      type: JourneyNodeType.SegmentEntryNode,
       segment: expect.any(String),
       child: "908b9795-60b7-4333-a57c-a30f4972fb6b",
     });
