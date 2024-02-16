@@ -235,7 +235,7 @@ export interface SegmentEditorContents extends SegmentEditorState {
 
 export interface JourneyState {
   journeyName: string;
-  journeyDraggedComponentType: JourneyNodeType | null;
+  journeyDraggedComponentType: NodeTypeProps["type"] | null;
   journeySelectedNodeId: string | null;
   journeyNodes: Node<NodeData>[];
   journeyNodesIndex: Record<string, number>;
