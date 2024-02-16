@@ -435,6 +435,7 @@ export async function triggerEventEntryJourneys({
   event: string;
   userId: string;
 }): Promise<void> {
+  // FIXME add caching
   const allJourneys = await prisma().journey.findMany({
     where: {
       workspaceId,

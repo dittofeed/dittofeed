@@ -133,6 +133,7 @@ export async function userJourneyWorkflow({
       userId,
       runId,
       currentNode,
+      eventKey
     };
     logger.info("user journey node", {
       ...defaultLoggingFields,
