@@ -784,7 +784,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `expected postmark secret config but got ${secretConfig.type}`,
+            message: `expected postmark secret config but got ${secretConfig.type ?? ""}`,
           },
         });
       }
