@@ -9,6 +9,7 @@ import {
   DFRequestContext,
   EntryNode,
   EphemeralRequestStatus,
+  EventEntryNode,
   ExitNode,
   IntegrationResource,
   JourneyNodeType,
@@ -17,11 +18,13 @@ import {
   JourneyStatsResponse,
   LocalTimeDelayVariant,
   MessageTemplateResource,
+  PartialExceptType,
   PersistedEmailProvider,
   RequestStatus,
   SecondsDelayVariant,
   SecretAvailabilityResource,
   SecretResource,
+  SegmentEntryNode,
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
@@ -232,7 +235,7 @@ export interface SegmentEditorContents extends SegmentEditorState {
 
 export interface JourneyState {
   journeyName: string;
-  journeyDraggedComponentType: JourneyNodeType | null;
+  journeyDraggedComponentType: NodeTypeProps["type"] | null;
   journeySelectedNodeId: string | null;
   journeyNodes: Node<NodeData>[];
   journeyNodesIndex: Record<string, number>;
@@ -250,7 +253,7 @@ export interface AddNodesParams {
 }
 
 export interface JourneyContent extends JourneyState {
-  setDraggedComponentType: (t: JourneyNodeType | null) => void;
+  setDraggedComponentType: (t: NodeTypeProps["type"] | null) => void;
   setSelectedNodeId: (t: string | null) => void;
   addNodes: (params: AddNodesParams) => void;
   setEdges: (changes: EdgeChange[]) => void;
@@ -278,9 +281,17 @@ export type PageStoreContents = SegmentEditorContents &
   BroadcastEditorContents &
   SubscriptionGroupEditorContents;
 
+export enum AdditionalJourneyNodeType {
+  UiEntryNode = "UiEntryNode",
+}
+
+export type UiEntryNodeVariant =
+  | PartialExceptType<SegmentEntryNode, JourneyNodeType.SegmentEntryNode>
+  | PartialExceptType<EventEntryNode, JourneyNodeType.EventEntryNode>;
+
 export interface EntryNodeProps {
-  type: JourneyNodeType.EntryNode;
-  segmentId?: string;
+  type: AdditionalJourneyNodeType.UiEntryNode;
+  variant: UiEntryNodeVariant;
 }
 
 export interface ExitNodeProps {
@@ -295,17 +306,13 @@ export interface MessageNodeProps {
   subscriptionGroupId?: string;
 }
 
-type UiDelayVariant<T, TD> = Partial<Omit<T, "type">> & {
-  type: TD;
-};
-
-export type UIDelayVariant =
-  | UiDelayVariant<LocalTimeDelayVariant, DelayVariantType.LocalTime>
-  | UiDelayVariant<SecondsDelayVariant, DelayVariantType.Second>;
+export type UiDelayVariant =
+  | PartialExceptType<LocalTimeDelayVariant, DelayVariantType.LocalTime>
+  | PartialExceptType<SecondsDelayVariant, DelayVariantType.Second>;
 
 export interface DelayNodeProps {
   type: JourneyNodeType.DelayNode;
-  variant: UIDelayVariant;
+  variant: UiDelayVariant;
 }
 
 export interface SegmentSplitNodeProps {

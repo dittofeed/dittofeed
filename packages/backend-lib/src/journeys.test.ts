@@ -29,7 +29,7 @@ describe("journeys", () => {
 
         const journeyDefinition: JourneyDefinition = {
           entryNode: {
-            type: JourneyNodeType.EntryNode,
+            type: JourneyNodeType.SegmentEntryNode,
             segment: randomUUID(),
             child: messageNodeId,
           },

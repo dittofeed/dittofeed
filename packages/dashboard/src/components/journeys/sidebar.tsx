@@ -3,8 +3,16 @@ import { JourneyNodeType } from "isomorphic-lib/src/types";
 import React from "react";
 
 import { useAppStore } from "../../lib/appStore";
+import { NodeTypeProps } from "../../lib/types";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { JourneyNodeIcon, journeyNodeIcon } from "./nodeTypes/journeyNode";
+
+const SIDEBAR_NODE_TYPES: NodeTypeProps["type"][] = [
+  JourneyNodeType.DelayNode,
+  JourneyNodeType.SegmentSplitNode,
+  JourneyNodeType.MessageNode,
+  JourneyNodeType.WaitForNode,
+];
 
 function Sidebar() {
   const theme = useTheme();
@@ -12,7 +20,7 @@ function Sidebar() {
     (store) => store.setDraggedComponentType,
   );
   const onDragStart =
-    ({ nodeType }: { nodeType: JourneyNodeType }) =>
+    ({ nodeType }: { nodeType: NodeTypeProps["type"] }) =>
     () => {
       setDraggedComponentType(nodeType);
     };
@@ -21,12 +29,8 @@ function Sidebar() {
     setDraggedComponentType(null);
   };
 
-  const nodeTypes: [JourneyNodeType, JourneyNodeIcon][] = [
-    JourneyNodeType.DelayNode,
-    JourneyNodeType.SegmentSplitNode,
-    JourneyNodeType.MessageNode,
-    JourneyNodeType.WaitForNode,
-  ].map((t) => [t, journeyNodeIcon(t)]);
+  const nodeTypes: [NodeTypeProps["type"], JourneyNodeIcon][] =
+    SIDEBAR_NODE_TYPES.map((t) => [t, journeyNodeIcon(t)]);
 
   const nodeTypesEls = nodeTypes.map(([t, Icon]) => (
     <Stack

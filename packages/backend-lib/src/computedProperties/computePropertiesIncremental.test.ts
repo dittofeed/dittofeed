@@ -2787,7 +2787,7 @@ describe("computeProperties", () => {
         }
         const definition: JourneyDefinition = {
           entryNode: {
-            type: JourneyNodeType.EntryNode,
+            type: JourneyNodeType.SegmentEntryNode,
             segment: segment.id,
             child: JourneyNodeType.ExitNode,
           },
