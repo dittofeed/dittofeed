@@ -296,7 +296,7 @@ describe("journeyToState", () => {
                 segmentId: "onboarding-segment-id",
               },
             ],
-          },
+          }
         ],
         exitNode: {
           type: JourneyNodeType.ExitNode,
