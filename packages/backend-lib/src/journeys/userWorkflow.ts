@@ -17,6 +17,7 @@ import {
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
+  JSONValue,
   SegmentUpdate,
   WaitForNode,
 } from "../types";
@@ -68,6 +69,7 @@ export interface UserJourneyWorkflowProps {
   definition: JourneyDefinition;
   journeyId: string;
   eventKey?: string;
+  context?: Record<string, JSONValue>;
 }
 
 export async function userJourneyWorkflow({
@@ -76,6 +78,7 @@ export async function userJourneyWorkflow({
   definition,
   journeyId,
   eventKey,
+  context,
 }: UserJourneyWorkflowProps): Promise<void> {
   // TODO write end to end test
   if (!(await isRunnable({ journeyId, userId }))) {
@@ -287,6 +290,7 @@ export async function userJourneyWorkflow({
         if (wf.patched("send-message-v2")) {
           shouldContinue = await sendMessageV2({
             channel: currentNode.variant.type,
+            context,
             ...messagePayload,
           });
         } else {

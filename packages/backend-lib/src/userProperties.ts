@@ -1,16 +1,19 @@
 import { Prisma, UserProperty, UserPropertyAssignment } from "@prisma/client";
 import { ValueError } from "@sinclair/typebox/errors";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { parseUserProperty } from "isomorphic-lib/src/userProperties";
+import { parseUserProperty as parseUserPropertyAssignment } from "isomorphic-lib/src/userProperties";
+import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
 
 import logger from "./logger";
 import prisma from "./prisma";
 import {
   EnrichedUserProperty,
+  GroupChildrenUserPropertyDefinitions,
   JSONValue,
   SavedUserPropertyResource,
   UserPropertyDefinition,
+  UserPropertyDefinitionType,
   UserPropertyResource,
 } from "./types";
 
@@ -206,6 +209,50 @@ export async function upsertBulkUserPropertyAssignments({
   }
 }
 
+function getAssignmentOverride(
+  definition: UserPropertyDefinition,
+  context: Record<string, JSONValue>,
+): JSONValue | null {
+  let value: JSONValue | null = null;
+  const nodes: UserPropertyDefinition[] = [definition];
+  while (nodes.length) {
+    const node = nodes.shift();
+    if (!node) {
+      break;
+    }
+    if (node.type === UserPropertyDefinitionType.Performed) {
+      const path = `$.${node.path}`;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      value = jp.query(context, path)[0] ?? null;
+      if (value !== null) {
+        return value;
+      }
+    } else if (node.type === UserPropertyDefinitionType.Group) {
+      const childrenById: Map<string, GroupChildrenUserPropertyDefinitions> =
+        node.nodes.reduce((acc, child) => {
+          if (child.id) {
+            acc.set(child.id, child);
+          }
+          return acc;
+        }, new Map<string, GroupChildrenUserPropertyDefinitions>());
+
+      let nextId: string | null = node.entry;
+      while (nextId) {
+        const next = childrenById.get(nextId);
+        if (!next) {
+          break;
+        }
+        if (next.type === UserPropertyDefinitionType.Performed) {
+          nodes.push(next);
+        }
+        nextId = next.id ?? null;
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function findAllUserPropertyAssignments({
   userId,
   workspaceId,
@@ -214,6 +261,7 @@ export async function findAllUserPropertyAssignments({
   userId: string;
   workspaceId: string;
   userProperties?: string[];
+  context?: Record<string, JSONValue>;
 }): Promise<UserPropertyAssignments> {
   const where: Prisma.UserPropertyWhereInput = {
     workspaceId,
@@ -249,9 +297,9 @@ export async function findAllUserPropertyAssignments({
     }
     const definition = definitionResult.value;
     const assignments = userProperty.UserPropertyAssignment;
-
-    for (const assignment of assignments) {
-      const parsed = parseUserProperty(definition, assignment.value);
+    const assignment = assignments[0];
+    if (assignment) {
+      const parsed = parseUserPropertyAssignment(definition, assignment.value);
       if (parsed.isErr()) {
         logger().error(
           {
