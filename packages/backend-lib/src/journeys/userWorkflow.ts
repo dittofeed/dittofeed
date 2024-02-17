@@ -366,7 +366,7 @@ export async function userJourneyWorkflow({
       node: currentNode,
       journeyStartedAt,
       journeyId,
-      eventKey
+      eventKey,
     });
     currentNode = nextNode;
   }

@@ -895,7 +895,7 @@ export async function onNodeProcessedV2({
   node,
   journeyId,
   workspaceId,
-  eventKey
+  eventKey,
 }: {
   journeyStartedAt: number;
   journeyId: string;
@@ -922,10 +922,10 @@ export async function onNodeProcessedV2({
           userId,
           type: node.type,
           nodeId,
-          eventKey
-        }
+          eventKey,
+        },
       ],
-      skipDuplicates: true
+      skipDuplicates: true,
     }),
     submitTrack({
       workspaceId,

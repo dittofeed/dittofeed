@@ -8,12 +8,12 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { err, ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
+import { startKeyedUserJourney } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
   ChannelType,
   EnrichedJourney,
-  EventEntryNode,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
@@ -22,7 +22,6 @@ import {
   NodeStatsType,
   SavedJourneyResource,
 } from "./types";
-import { startKeyedUserJourney } from "./journeys/userWorkflow/lifecycle";
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -480,7 +479,7 @@ export async function triggerEventEntryJourneys({
         workspaceId,
         userId,
         journeyId,
-        definition
+        definition,
       });
     },
   );
