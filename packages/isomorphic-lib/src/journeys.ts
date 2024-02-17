@@ -7,6 +7,7 @@ import {
   JourneyNode,
   JourneyNodeType,
 } from "./types";
+import { assertUnreachable } from "./typeAssertions";
 
 export function getNodeId(node: JourneyNode): string {
   if (node.type === JourneyNodeType.SegmentEntryNode) {
@@ -71,12 +72,14 @@ export function getSubscribedSegments(
   return subscribedSegments;
 }
 
+const ENTRY_NODE_TYPES = new Set<string>([JourneyNodeType.EventEntryNode, JourneyNodeType.SegmentEntryNode])
+
 export function getJourneyNode(
   definition: JourneyDefinition,
   nodeId: string
 ): JourneyNode | null {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-  if (nodeId === JourneyNodeType.SegmentEntryNode) {
+  if (ENTRY_NODE_TYPES.has(nodeId)) {
     return definition.entryNode;
   }
   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
@@ -128,6 +131,8 @@ export function findDirectChildren(
       throw new Error("Not implemented");
     case JourneyNodeType.RateLimitNode:
       throw new Error("Not implemented");
+    default:
+      assertUnreachable(node);
   }
 
   return children;
