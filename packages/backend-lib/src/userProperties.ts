@@ -257,6 +257,7 @@ export async function findAllUserPropertyAssignments({
   userId,
   workspaceId,
   userProperties: userPropertiesFilter,
+  context
 }: {
   userId: string;
   workspaceId: string;
@@ -296,23 +297,33 @@ export async function findAllUserPropertyAssignments({
       continue;
     }
     const definition = definitionResult.value;
-    const assignments = userProperty.UserPropertyAssignment;
-    const assignment = assignments[0];
-    if (assignment) {
-      const parsed = parseUserPropertyAssignment(definition, assignment.value);
-      if (parsed.isErr()) {
-        logger().error(
-          {
-            err: parsed.error,
-            workspaceId,
-            userProperty,
-            assignment,
-          },
-          "failed to parse user property assignment",
+    const contextAssignment = context
+      ? getAssignmentOverride(definition, context)
+      : null;
+    if (contextAssignment !== null) {
+      combinedAssignments[userProperty.name] = contextAssignment;
+    } else {
+      const assignments = userProperty.UserPropertyAssignment;
+      const assignment = assignments[0];
+      if (assignment) {
+        const parsed = parseUserPropertyAssignment(
+          definition,
+          assignment.value,
         );
-        continue;
+        if (parsed.isErr()) {
+          logger().error(
+            {
+              err: parsed.error,
+              workspaceId,
+              userProperty,
+              assignment,
+            },
+            "failed to parse user property assignment",
+          );
+          continue;
+        }
+        combinedAssignments[userProperty.name] = parsed.value;
       }
-      combinedAssignments[userProperty.name] = parsed.value;
     }
   }
   logger().debug(
