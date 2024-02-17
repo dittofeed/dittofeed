@@ -8,7 +8,6 @@ import {
   UserPropertyBulkUpsertItem,
 } from "./userProperties";
 
-
 describe("findAllUserPropertyAssignments", () => {
   describe("when passing context with a Performed user property", () => {
     it("should return the user property assignment", async () => {
@@ -22,7 +21,7 @@ describe("findAllUserPropertyAssignments", () => {
       const upId2 = randomUUID();
 
       // Create a user property
-      const userProperty = await prisma().userProperty.createMany({
+      await prisma().userProperty.createMany({
         data: [
           {
             id: upId1,
@@ -44,7 +43,7 @@ describe("findAllUserPropertyAssignments", () => {
               path: "example",
             } satisfies UserPropertyDefinition,
           },
-        ]
+        ],
       });
 
       // Existing assignment states
@@ -66,14 +65,12 @@ describe("findAllUserPropertyAssignments", () => {
       await upsertBulkUserPropertyAssignments({ data: assignments });
 
       // now find properties with contex override
-      const actualAssignments =  await findAllUserPropertyAssignments({
+      const actualAssignments = await findAllUserPropertyAssignments({
         userId: "userId",
         workspaceId: workspace.id,
         context: {
-          test: {
-            nested1: {
-              nested2: "value3",
-            },
+          nested1: {
+            nested2: "value3",
           },
         },
       });

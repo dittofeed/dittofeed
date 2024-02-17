@@ -213,7 +213,6 @@ function getAssignmentOverride(
   definition: UserPropertyDefinition,
   context: Record<string, JSONValue>,
 ): JSONValue | null {
-  let value: JSONValue | null = null;
   const nodes: UserPropertyDefinition[] = [definition];
   while (nodes.length) {
     const node = nodes.shift();
@@ -223,7 +222,7 @@ function getAssignmentOverride(
     if (node.type === UserPropertyDefinitionType.Performed) {
       const path = `$.${node.path}`;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      value = jp.query(context, path)[0] ?? null;
+      const value: JSONValue | null = jp.query(context, path)[0] ?? null;
       if (value !== null) {
         return value;
       }
@@ -257,7 +256,7 @@ export async function findAllUserPropertyAssignments({
   userId,
   workspaceId,
   userProperties: userPropertiesFilter,
-  context
+  context,
 }: {
   userId: string;
   workspaceId: string;
