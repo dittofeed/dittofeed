@@ -4,7 +4,7 @@ import { err, ok, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
-import { submitBatch } from "../apps";
+import { submitBatch } from "../apps/batch";
 import logger from "../logger";
 import {
   BatchAppData,

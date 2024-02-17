@@ -5,7 +5,7 @@ import {
   submitIdentify,
   submitPage,
   submitScreen,
-  submitTrack,
+  submitTrackWithTriggers,
 } from "backend-lib/src/apps";
 import { validateWriteKey } from "backend-lib/src/auth";
 import logger from "backend-lib/src/logger";
@@ -86,7 +86,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         });
       }
 
-      await submitTrack({
+      await submitTrackWithTriggers({
         workspaceId: workspaceIdFromWriteKey,
         data: request.body,
       });
