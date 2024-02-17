@@ -153,8 +153,25 @@ function EntryNodeFields({
       break;
     }
     case JourneyNodeType.EventEntryNode:
-      // TODO implement event entry variant
-      variant = null;
+      variant = (
+        <TextField
+          value={nodeVariant.event ?? ""}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            const newEventName = e.target.value;
+
+            updateJourneyNodeData(nodeId, (node) => {
+              const props = node.data.nodeTypeProps;
+              if (
+                props.type === AdditionalJourneyNodeType.UiEntryNode &&
+                props.variant.type === JourneyNodeType.EventEntryNode
+              ) {
+                props.variant.event = newEventName;
+              }
+            });
+          }}
+          label="Event Trigger Name"
+        />
+      );
       break;
     default:
       assertUnreachable(nodeVariant);
