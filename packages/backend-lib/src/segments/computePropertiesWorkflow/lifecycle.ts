@@ -1,15 +1,8 @@
 import { WorkflowClient } from "@temporalio/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
-import { SegmentUpdate } from "isomorphic-lib/src/types";
 
 import config from "../../config";
 import { GLOBAL_CRON_ID, globalCronWorkflow } from "../../globalCronWorkflow";
-import {
-  getUserJourneyWorkflowId,
-  segmentUpdateSignal,
-  userJourneyWorkflow,
-  UserJourneyWorkflowProps,
-} from "../../journeys/userWorkflow";
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
 import {
@@ -124,48 +117,5 @@ export async function resetComputePropertiesWorkflow({
       },
       "Failed to start compute properties workflow.",
     );
-  }
-}
-
-export async function startKeyedUserJourney({
-  journeyId,
-  workspaceId,
-  userId,
-  definition,
-  eventKey,
-}: UserJourneyWorkflowProps) {
-  const workflowClient = await connectWorkflowClient();
-  const workflowId = getUserJourneyWorkflowId({
-    userId,
-    journeyId,
-    eventKey,
-  });
-
-  try {
-    await workflowClient.start(userJourneyWorkflow, {
-      taskQueue: "default",
-      workflowId,
-      args: [
-        {
-          journeyId,
-          definition,
-          workspaceId,
-          userId,
-          eventKey
-        },
-      ],
-    });
-  } catch (e) {
-    if (e instanceof WorkflowExecutionAlreadyStartedError) {
-      logger().info("User journey already started.", {
-        workflowId,
-        journeyId,
-        userId,
-        workspaceId,
-        eventKey,
-      });
-      return;
-    }
-    throw e;
   }
 }

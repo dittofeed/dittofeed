@@ -1,15 +1,13 @@
 import * as R from "remeda";
 
+import { submitTrack } from "./apps/track";
 import {
-  getEventTriggeredJourneys,
   triggerEventEntryJourneys,
 } from "./journeys";
-import logger from "./logger";
 import {
   BatchAppData,
   EventType,
   IdentifyData,
-  JourneyNodeType,
   PageData,
   ScreenData,
   TrackData,
@@ -42,30 +40,14 @@ export async function submitIdentify({
   });
 }
 
-export async function submitTrack({
+export async function submitTrackWithTriggers({
   workspaceId,
   data,
 }: {
   workspaceId: string;
   data: TrackData;
 }) {
-  const rest = R.omit(data, ["timestamp", "properties"]);
-  const properties = data.properties ?? {};
-  const timestamp = data.timestamp ?? new Date().toISOString();
-
-  const userEvent: InsertUserEvent = {
-    messageRaw: JSON.stringify({
-      type: "track",
-      properties,
-      timestamp,
-      ...rest,
-    }),
-    messageId: data.messageId,
-  };
-  await insertUserEvents({
-    workspaceId,
-    userEvents: [userEvent],
-  });
+  await submitTrack({ workspaceId, data });
 
   let userOrAnonymousId: string | null = null;
   if ("userId" in data) {
@@ -77,7 +59,7 @@ export async function submitTrack({
   if (userOrAnonymousId) {
     await triggerEventEntryJourneys({
       workspaceId,
-      event: rest.event,
+      event: data.event,
       userId: userOrAnonymousId,
     });
   }
@@ -170,14 +152,5 @@ export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
       messageId: message.messageId,
       messageRaw: JSON.stringify(messageRaw),
     };
-  });
-}
-
-export async function submitBatch({ workspaceId, data }: SubmitBatchOptions) {
-  const userEvents = buildBatchUserEvents(data);
-
-  await insertUserEvents({
-    workspaceId,
-    userEvents,
   });
 }

@@ -22,7 +22,7 @@ import {
   NodeStatsType,
   SavedJourneyResource,
 } from "./types";
-import { startKeyedUserJourney } from "./segments/computePropertiesWorkflow/lifecycle";
+import { startKeyedUserJourney } from "./journeys/userWorkflow/lifecycle";
 
 export * from "isomorphic-lib/src/journeys";
 

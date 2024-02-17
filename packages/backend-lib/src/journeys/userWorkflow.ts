@@ -20,6 +20,7 @@ import {
   SegmentUpdate,
   WaitForNode,
 } from "../types";
+// fixme activities -> apps -> lifecycle -> userWorkflow -> activities
 import * as activities from "./userWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
@@ -32,7 +33,6 @@ const WORKFLOW_NAME = "userJourneyWorkflow";
 const {
   sendEmail,
   getSegmentAssignment,
-  onNodeProcessed,
   onNodeProcessedV2,
   isRunnable,
   sendMobilePush,
@@ -353,29 +353,21 @@ export async function userJourneyWorkflow({
       default:
         logger.error("unable to handle un-implemented node type", {
           ...defaultLoggingFields,
-          nodeType: currentNode.type,
+          nodeType: currentNode,
         });
         nextNode = definition.exitNode;
         assertUnreachableSafe(currentNode, "un-implemented node type");
         break;
     }
 
-    if (wf.patched("on-node-processed-v2")) {
-      await onNodeProcessedV2({
-        workspaceId,
-        userId,
-        node: currentNode,
-        journeyStartedAt,
-        journeyId,
-      });
-    } else {
-      await onNodeProcessed({
-        userId,
-        node: currentNode,
-        journeyStartedAt,
-        journeyId,
-      });
-    }
+    await onNodeProcessedV2({
+      workspaceId,
+      userId,
+      node: currentNode,
+      journeyStartedAt,
+      journeyId,
+      eventKey
+    });
     currentNode = nextNode;
   }
 }
