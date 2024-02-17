@@ -1,4 +1,5 @@
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
+import { Overwrite } from "utility-types";
 
 import logger from "../../logger";
 import connectWorkflowClient from "../../temporal/connectWorkflowClient";
@@ -14,7 +15,7 @@ export async function startKeyedUserJourney({
   userId,
   definition,
   eventKey,
-}: UserJourneyWorkflowProps) {
+}: Overwrite<UserJourneyWorkflowProps, { eventKey: string }>) {
   const workflowClient = await connectWorkflowClient();
   const workflowId = getUserJourneyWorkflowId({
     userId,

@@ -45,6 +45,7 @@ import {
   InternalEventType,
   JourneyNode,
   JourneyNodeType,
+  JSONValue,
   KnownTrackData,
   MessageTemplateResource,
   SmsProviderConfig,
@@ -746,6 +747,7 @@ async function sendEmailWithPayload(
 
 export interface SendParamsV2 extends SendParams {
   channel: ChannelType;
+  context?: Record<string, JSONValue>;
 }
 
 async function sendMessageInner({
