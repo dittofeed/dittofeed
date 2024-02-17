@@ -1,13 +1,7 @@
 import logger from "./logger";
 
-export function assertUnreachableSafe(x: never, message?: string): void {
+export function assertUnreachableSafe(x: never, message?: string): string {
   const messageWithDefault =
     message ?? `Unreachable code reached with value ${String(x)}`;
-
-  logger().error(
-    {
-      value: x,
-    },
-    messageWithDefault,
-  );
+  return messageWithDefault;
 }
