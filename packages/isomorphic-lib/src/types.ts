@@ -459,7 +459,9 @@ export enum JourneyNodeType {
   RateLimitNode = "RateLimitNode",
   ExperimentSplitNode = "ExperimentSplitNode",
   ExitNode = "ExitNode",
-  EntryNode = "EntryNode",
+  // Inconsistent naming is for backwards compatibility.
+  SegmentEntryNode = "EntryNode",
+  EventEntryNode = "EventEntryNode",
   WaitForNode = "WaitForNode",
 }
 
@@ -467,18 +469,30 @@ const BaseNode = {
   id: Type.String(),
 };
 
-export const EntryNode = Type.Object(
+export const SegmentEntryNode = Type.Object(
   {
-    type: Type.Literal(JourneyNodeType.EntryNode),
+    type: Type.Literal(JourneyNodeType.SegmentEntryNode),
     segment: Type.String(),
     child: Type.String(),
   },
   {
-    title: "Entry Node",
+    title: "Segment Entry Node",
     description:
       "The first node in a journey, which limits it to a specific segment.",
   }
 );
+
+export type SegmentEntryNode = Static<typeof SegmentEntryNode>;
+
+export const EventEntryNode = Type.Object({
+  type: Type.Literal(JourneyNodeType.EventEntryNode),
+  event: Type.String(),
+  child: Type.String(),
+});
+
+export type EventEntryNode = Static<typeof EventEntryNode>;
+
+export const EntryNode = Type.Union([SegmentEntryNode, EventEntryNode]);
 
 export type EntryNode = Static<typeof EntryNode>;
 
@@ -965,9 +979,9 @@ export enum EmailProviderType {
   Sendgrid = "SendGrid",
   AmazonSes = "AmazonSes",
   Resend = "Resend",
+  PostMark = "PostMark",
   Smtp = "Smtp",
   Test = "Test",
-
 }
 
 export const TestEmailProvider = Type.Object({
@@ -1008,9 +1022,18 @@ export const ResendEmailProvider = Type.Object({
 
 export type ResendEmailProvider = Static<typeof ResendEmailProvider>;
 
+export const PostMarkEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(EmailProviderType.PostMark),
+});
+
+export type PostMarkEmailProvider = Static<typeof PostMarkEmailProvider>;
+
 export const PersistedEmailProvider = Type.Union([
   SendgridEmailProvider,
   AmazonSesEmailProvider,
+  PostMarkEmailProvider,
   ResendEmailProvider,
   SmtpEmailProvider,
 ]);
@@ -2012,9 +2035,16 @@ export const EmailResendSuccess = Type.Object({
 
 export type EmailResendSuccess = Static<typeof EmailResendSuccess>;
 
+export const EmailPostMarkSuccess = Type.Object({
+  type: Type.Literal(EmailProviderType.PostMark)
+});
+
+export type EmailPostMarkSuccess = Static<typeof EmailPostMarkSuccess>;
+
 export const EmailServiceProviderSuccess = Type.Union([
   EmailSendgridSuccess,
   EmailAmazonSesSuccess,
+  EmailPostMarkSuccess,
   EmailResendSuccess,
   EmailSmtpSuccess,
   EmailTestSuccess,
@@ -2163,10 +2193,19 @@ export const MessageResendFailure = Type.Object({
 
 export type MessageResendFailure = Static<typeof MessageResendFailure>;
 
+export const MessagePostMarkFailure = Type.Object({
+  type: Type.Literal(EmailProviderType.PostMark),
+  message: Type.String(),
+  name: Type.String(),
+});
+
+export type MessagePostMarkFailure = Static<typeof MessagePostMarkFailure>;
+
 export const EmailServiceProviderFailure = Type.Union([
   MessageSendgridServiceFailure,
   MessageAmazonSesServiceFailure,
   MessageResendFailure,
+  MessagePostMarkFailure,
   MessageSmtpFailure,
 ]);
 
@@ -2380,6 +2419,14 @@ export const SendgridSecret = Type.Object({
 
 export type SendgridSecret = Static<typeof SendgridSecret>;
 
+export const PostMarkSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.PostMark),
+  apiKey: Type.Optional(Type.String()),
+  webhookKey: Type.Optional(Type.String()),
+});
+
+export type PostMarkSecret = Static<typeof PostMarkSecret>;
+
 export const AmazonSesSecret = Type.Object({
   type: Type.Literal(EmailProviderType.AmazonSes),
   accessKeyId: Type.Optional(Type.String()),
@@ -2428,6 +2475,7 @@ export type SmtpSecretKey = keyof Omit<SmtpSecret, "type">;
 
 export const EmailProviderSecret = Type.Union([
   SendgridSecret,
+  PostMarkSecret,
   AmazonSesSecret,
   SmtpSecret,
   ResendSecret,
@@ -2462,3 +2510,7 @@ export interface Resource {
   workspaceId: string;
   id: string;
 }
+
+export type PartialExceptType<T, TD> = Partial<Omit<T, "type">> & {
+  type: TD;
+};

@@ -3,7 +3,6 @@ import { lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { Stack, SxProps, TextField, Theme, useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
-import escapeHTML from "escape-html";
 import {
   ChannelType,
   RenderMessageTemplateRequestContents,
@@ -11,6 +10,7 @@ import {
 } from "isomorphic-lib/src/types";
 import React from "react";
 
+import EmailPreviewHeader from "../emailPreviewHeader";
 import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
 
 const USER_TO = "{{user.email}}";
@@ -208,63 +208,12 @@ export default function EmailEditor({
         );
       }}
       renderPreviewHeader={({ rendered, userProperties: up }) => (
-        <>
-          <TextField
-            required
-            label="To"
-            variant="filled"
-            disabled
-            InputProps={{
-              sx: {
-                fontSize: ".75rem",
-                borderTopLeftRadius: 0,
-              },
-            }}
-            sx={disabledStyles}
-            value={escapeHTML(up.email ?? "")}
-          />
-          <TextField
-            required
-            label="From"
-            variant="filled"
-            disabled
-            InputProps={{
-              sx: {
-                fontSize: ".75rem",
-                borderTopLeftRadius: 0,
-              },
-            }}
-            sx={disabledStyles}
-            value={escapeHTML(rendered.from ?? "")}
-          />
-          <TextField
-            required
-            label="Subject"
-            variant="filled"
-            disabled
-            InputProps={{
-              sx: {
-                fontSize: ".75rem",
-                borderTopLeftRadius: 0,
-              },
-            }}
-            sx={disabledStyles}
-            value={escapeHTML(rendered.subject ?? "")}
-          />
-          <TextField
-            label="Reply-To"
-            variant="filled"
-            disabled
-            InputProps={{
-              sx: {
-                fontSize: ".75rem",
-                borderTopLeftRadius: 0,
-              },
-            }}
-            sx={disabledStyles}
-            value={escapeHTML(rendered.replyTo ?? "")}
-          />
-        </>
+        <EmailPreviewHeader
+          email={up.email}
+          from={rendered.from}
+          subject={rendered.subject}
+          replyTo={rendered.replyTo}
+        />
       )}
       renderPreviewBody={({ rendered }) => (
         <iframe

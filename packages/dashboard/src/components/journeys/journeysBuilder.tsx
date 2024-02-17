@@ -1,6 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { Box } from "@mui/material";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
@@ -21,10 +22,12 @@ import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
 import {
+  AdditionalJourneyNodeType,
   AppState,
   EdgeData,
   JourneyNodeProps,
   NodeData,
+  NodeTypeProps,
 } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
 import edgeTypes from "./edgeTypes";
@@ -53,7 +56,7 @@ function createConnections({
   target,
   addNodes,
 }: {
-  nodeType: JourneyNodeType;
+  nodeType: NodeTypeProps["type"];
   nodes: AppState["journeyNodes"];
   addNodes: AppState["addNodes"];
   source: string;
@@ -151,12 +154,14 @@ function createConnections({
       });
       break;
     }
-    case JourneyNodeType.EntryNode: {
-      throw new Error("Cannot add an entry node");
+    case AdditionalJourneyNodeType.UiEntryNode: {
+      throw new Error("Cannot add entry node in the UI implementation error.");
     }
     case JourneyNodeType.ExitNode: {
-      throw new Error("Cannot add an exit node");
+      throw new Error("Cannot add exit node in the UI implementation error.");
     }
+    default:
+      assertUnreachable(nodeTypeProps);
   }
 
   addNodes({ nodes: newNodes, edges: newEdges, source, target });

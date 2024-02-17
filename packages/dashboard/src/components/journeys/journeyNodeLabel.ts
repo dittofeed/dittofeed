@@ -1,15 +1,13 @@
 import { JourneyNodeType } from "isomorphic-lib/src/types";
 
-export default function journeyNodeLabel(t: JourneyNodeType): string {
+import { AdditionalJourneyNodeType, NodeTypeProps } from "../../lib/types";
+
+export default function journeyNodeLabel(t: NodeTypeProps["type"]): string {
   switch (t) {
     case JourneyNodeType.DelayNode:
       return "Delay";
-    case JourneyNodeType.EntryNode:
+    case AdditionalJourneyNodeType.UiEntryNode:
       return "Entry";
-    case JourneyNodeType.ExperimentSplitNode:
-      return "Experiment Split";
-    case JourneyNodeType.RateLimitNode:
-      return "Rate Limit";
     case JourneyNodeType.ExitNode:
       return "Exit";
     case JourneyNodeType.SegmentSplitNode:

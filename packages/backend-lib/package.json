@@ -57,6 +57,7 @@
     "p-limit": "^3.1.0",
     "pino": "^8.11.0",
     "pino-pretty": "^10.0.0",
+    "postmark": "^4.0.2",
     "prisma": "^5.4.1",
     "remeda": "^1.24.0",
     "resend": "^2.1.0",
