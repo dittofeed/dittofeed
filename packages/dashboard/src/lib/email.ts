@@ -16,9 +16,6 @@ async function upsertEmailProvider({
   workspaceId: string;
   type: EmailProviderType;
 }): Promise<EmailProvider | null> {
-  if (type === EmailProviderType.Test) {
-    return null;
-  }
   const secretName = EMAIL_PROVIDER_TYPE_TO_SECRET_NAME[type];
   const secretConfig: EmailProviderSecret = {
     type,

@@ -1953,20 +1953,21 @@ export const TwilioSmsProvider = Type.Object({
 
 export type TwilioSecret = Static<typeof TwilioSecret>;
 
-export const TestSecret = Type.Object({
-  type: Type.Optional(Type.Literal(SmsProviderType.Test)),
+export const TestSmsSecret = Type.Object({
+  type: Type.Literal(SmsProviderType.Test),
 });
+
+export type TestSmsSecret = Static<typeof TestSmsSecret>;
 
 export const TestSmsProvider = Type.Object({
   id: Type.String(),
   workspaceId: Type.String(),
   type: Type.Literal(SmsProviderType.Test),
 });
-export type TestSecret = Static<typeof TestSecret>;
 
 export const SmsProviderSecret = Type.Union([
     TwilioSecret,
-    TestSecret
+    TestSmsSecret
 ]);
 
 export type SmsProviderSecret = Static<typeof SmsProviderSecret>;
@@ -2495,6 +2496,12 @@ export const AmazonSesMailFields = Type.Object({
 
 export type AmazonSesMailFields = Static<typeof AmazonSesMailFields>;
 
+export const TestEmailSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.Test),
+});
+
+export type TestEmailSecret = Static<typeof TestEmailSecret>;
+
 export const ResendSecret = Type.Object({
   type: Type.Literal(EmailProviderType.Resend),
   apiKey: Type.Optional(Type.String()),
@@ -2521,7 +2528,7 @@ export const EmailProviderSecret = Type.Union([
   AmazonSesSecret,
   SmtpSecret,
   ResendSecret,
-  TestSecret
+  TestEmailSecret
 ]);
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
