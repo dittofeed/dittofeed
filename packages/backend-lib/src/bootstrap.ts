@@ -86,7 +86,7 @@ async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "email",
         },
-        exampleValue: '"matt@email.com"',
+        exampleValue: '"name@email.com"',
       },
       {
         name: "phone",

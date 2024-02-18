@@ -15,6 +15,7 @@ export async function startKeyedUserJourney({
   userId,
   definition,
   eventKey,
+  context,
 }: Overwrite<UserJourneyWorkflowProps, { eventKey: string }>) {
   const workflowClient = await connectWorkflowClient();
   const workflowId = getUserJourneyWorkflowId({
@@ -34,6 +35,7 @@ export async function startKeyedUserJourney({
           workspaceId,
           userId,
           eventKey,
+          context,
         },
       ],
     });

@@ -760,10 +760,11 @@ async function sendMessageInner({
   messageId,
   subscriptionGroupId,
   channel,
+  context
 }: SendParamsV2): Promise<BackendMessageSendResult> {
   const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
-      findAllUserPropertyAssignments({ userId, workspaceId }),
+      findAllUserPropertyAssignments({ userId, workspaceId, context }),
       prisma().journey.findUnique({ where: { id: journeyId } }),
       subscriptionGroupId
         ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
