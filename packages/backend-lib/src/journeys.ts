@@ -19,7 +19,6 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JourneyStats,
-  MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
   TrackData,
@@ -338,7 +337,6 @@ group by event, node_id;`;
             childEdge: 100,
           },
           sendRate: 0,
-          channelStats: {} as MessageChannelStats,
         };
       }
 

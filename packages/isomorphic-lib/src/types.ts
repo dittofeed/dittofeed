@@ -1879,7 +1879,7 @@ const MessageNodeStats = Type.Object({
     childEdge: Type.Number(),
   }),
   sendRate: Type.Number(),
-  channelStats: MessageChannelStats,
+  channelStats: Type.Optional(MessageChannelStats),
 });
 
 const DelayNodeStats = Type.Object({
