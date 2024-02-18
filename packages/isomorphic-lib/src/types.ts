@@ -1249,6 +1249,7 @@ export const GetUsersResponse = Type.Object({
   users: Type.Array(GetUsersResponseItem),
   previousCursor: Type.Optional(Type.String()),
   nextCursor: Type.Optional(Type.String()),
+  userCount: Type.Number(),
 });
 
 export type GetUsersResponse = Static<typeof GetUsersResponse>;
