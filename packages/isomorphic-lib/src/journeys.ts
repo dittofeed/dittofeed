@@ -1,13 +1,13 @@
 import { sortBy } from "remeda/dist/commonjs/sortBy";
 
 import { getUnsafe } from "./maps";
+import { assertUnreachable } from "./typeAssertions";
 import {
   JourneyBodyNode,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
 } from "./types";
-import { assertUnreachable } from "./typeAssertions";
 
 export function getNodeId(node: JourneyNode): string {
   if (node.type === JourneyNodeType.SegmentEntryNode) {
