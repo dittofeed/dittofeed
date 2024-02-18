@@ -11,7 +11,7 @@ import {
 import { err, Result, ResultAsync } from "neverthrow";
 import SnsPayloadValidator from "sns-payload-validator";
 
-import { submitBatch } from "../apps";
+import { submitBatch } from "../apps/batch";
 import logger from "../logger";
 import {
   AmazonSesConfig,

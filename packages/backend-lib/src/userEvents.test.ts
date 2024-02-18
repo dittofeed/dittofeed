@@ -1,7 +1,7 @@
 import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 
-import { submitBatch } from "./apps";
+import { submitBatch } from "./apps/batch";
 import prisma from "./prisma";
 import { segmentIdentifyEvent } from "./segmentIO";
 import { EventType } from "./types";

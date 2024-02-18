@@ -270,10 +270,11 @@ model UserJourneyEvent {
   journeyId        String?  @db.Uuid()
   journey          Journey? @relation(fields: [journeyId], references: [id], onDelete: SetNull)
   type             String
+  eventKey         String?
   journeyStartedAt DateTime
   createdAt        DateTime @default(now())
 
-  @@unique([journeyId, userId, type, journeyStartedAt, nodeId])
+  @@unique([journeyId, userId, eventKey, type, journeyStartedAt, nodeId])
 }
 
 enum DBSubscriptionGroupType {

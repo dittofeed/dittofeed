@@ -6,7 +6,7 @@ import { DefaultResponse } from "postmark/dist/client/models/client/DefaultRespo
 import { MessageSendingResponse } from "postmark/dist/client/models/message/Message";
 import { v5 as uuidv5 } from "uuid";
 
-import { submitBatch } from "../apps";
+import { submitBatch } from "../apps/batch";
 import logger from "../logger";
 import {
   BatchAppData,

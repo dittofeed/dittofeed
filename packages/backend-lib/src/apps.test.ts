@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 
-import { submitBatch } from "./apps";
+import { submitBatch } from "./apps/batch";
 import prisma from "./prisma";
 import { EventType } from "./types";
 import { findManyEventsWithCount } from "./userEvents";

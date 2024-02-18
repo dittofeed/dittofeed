@@ -3,10 +3,85 @@ import { randomUUID } from "crypto";
 import prisma from "./prisma";
 import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
 import {
+  findAllUserPropertyAssignments,
   upsertBulkUserPropertyAssignments,
   UserPropertyBulkUpsertItem,
 } from "./userProperties";
 
+describe("findAllUserPropertyAssignments", () => {
+  describe("when passing context with a Performed user property", () => {
+    it("should return the user property assignment", async () => {
+      const workspace = await prisma().workspace.create({
+        data: {
+          name: `test-${randomUUID()}`,
+        },
+      });
+
+      const upId1 = randomUUID();
+      const upId2 = randomUUID();
+
+      // Create a user property
+      await prisma().userProperty.createMany({
+        data: [
+          {
+            id: upId1,
+            workspaceId: workspace.id,
+            name: `test-${upId1}`,
+            definition: {
+              type: UserPropertyDefinitionType.Performed,
+              event: "test",
+              path: "nested1.nested2",
+            } satisfies UserPropertyDefinition,
+          },
+          {
+            id: upId2,
+            workspaceId: workspace.id,
+            name: `test-${upId2}`,
+            definition: {
+              type: UserPropertyDefinitionType.Performed,
+              event: "test",
+              path: "example",
+            } satisfies UserPropertyDefinition,
+          },
+        ],
+      });
+
+      // Existing assignment states
+      const assignments: UserPropertyBulkUpsertItem[] = [
+        {
+          workspaceId: workspace.id,
+          userId: "userId",
+          userPropertyId: upId1,
+          value: "value1",
+        },
+        {
+          workspaceId: workspace.id,
+          userId: "userId",
+          userPropertyId: upId2,
+          value: "value2",
+        },
+      ];
+
+      await upsertBulkUserPropertyAssignments({ data: assignments });
+
+      // now find properties with contex override
+      const actualAssignments = await findAllUserPropertyAssignments({
+        userId: "userId",
+        workspaceId: workspace.id,
+        context: {
+          nested1: {
+            nested2: "value3",
+          },
+        },
+      });
+
+      expect(actualAssignments).toEqual({
+        [`test-${upId1}`]: "value3",
+        [`test-${upId2}`]: "value2",
+      });
+    });
+  });
+});
 describe("upsertBulkUserPropertyAssignments", () => {
   it("should not throw when upserting assignments to existing and non-existing user properties", async () => {
     const workspace = await prisma().workspace.create({
