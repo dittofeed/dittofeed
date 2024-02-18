@@ -1,12 +1,12 @@
 import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
-import NodeCache from "node-cache";
 import { MapWithDefault } from "isomorphic-lib/src/maps";
 import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+import NodeCache from "node-cache";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
 import { startKeyedUserJourney } from "./journeys/userWorkflow/lifecycle";
@@ -395,15 +395,21 @@ group by event, node_id;`;
 
 const EVENT_TRIGGER_JOURNEY_CACHE = new NodeCache({
   stdTTL: 30,
-  checkperiod: 120
+  checkperiod: 120,
 });
+
+interface EventTriggerJourneyDetails {
+  journeyId: string;
+  event: string;
+  definition: JourneyDefinition;
+}
 
 export async function triggerEventEntryJourneys({
   workspaceId,
   event,
   userId,
   messageId,
-  properties
+  properties,
 }: {
   workspaceId: string;
   event: string;
@@ -411,11 +417,8 @@ export async function triggerEventEntryJourneys({
   messageId: string;
   properties: TrackData["properties"];
 }): Promise<void> {
-  let journeyDetails: {
-    journeyId: string;
-    event: string;
-    definition: JourneyDefinition;
-  }[] | undefined = EVENT_TRIGGER_JOURNEY_CACHE.get(workspaceId);
+  let journeyDetails: EventTriggerJourneyDetails[] | undefined =
+    EVENT_TRIGGER_JOURNEY_CACHE.get(workspaceId);
 
   if (!journeyDetails) {
     const allJourneys = await prisma().journey.findMany({
@@ -436,7 +439,9 @@ export async function triggerEventEntryJourneys({
         return [];
       }
       const journey = result.value;
-      if (journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
+      if (
+        journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode
+      ) {
         return [];
       }
       if (journey.status !== JourneyStatus.Running) {
