@@ -53,6 +53,7 @@ export async function submitTrackWithTriggers({
       event: data.event,
       userId: userOrAnonymousId,
       messageId: data.messageId,
+      properties: data.properties,
     });
   }
 }

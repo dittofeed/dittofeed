@@ -21,6 +21,7 @@ import {
   MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
+  TrackData,
 } from "./types";
 
 export * from "isomorphic-lib/src/journeys";
@@ -431,11 +432,13 @@ export async function triggerEventEntryJourneys({
   event,
   userId,
   messageId,
+  properties
 }: {
   workspaceId: string;
   event: string;
   userId: string;
   messageId: string;
+  properties: TrackData["properties"];
 }): Promise<void> {
   // FIXME add caching
   const allJourneys = await prisma().journey.findMany({
@@ -483,6 +486,7 @@ export async function triggerEventEntryJourneys({
         journeyId,
         eventKey: messageId,
         definition,
+        context: properties,
       });
     },
   );
