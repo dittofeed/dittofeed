@@ -19,7 +19,6 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   JourneyStats,
-  MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
   TrackData,
