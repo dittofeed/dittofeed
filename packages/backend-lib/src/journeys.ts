@@ -1,6 +1,7 @@
 import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
+import NodeCache from "node-cache";
 import { MapWithDefault } from "isomorphic-lib/src/maps";
 import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -392,40 +393,10 @@ group by event, node_id;`;
   return journeysStats;
 }
 
-export async function getEventTriggeredJourneys({
-  workspaceId,
-}: {
-  workspaceId: string;
-}): Promise<SavedJourneyResource[]> {
-  const allJourneys = await prisma().journey.findMany({
-    where: {
-      workspaceId,
-    },
-  });
-  const allJourneyResources: SavedJourneyResource[] = allJourneys.flatMap(
-    (journey) => {
-      const result = toJourneyResource(journey);
-      if (result.isErr()) {
-        logger().error(
-          {
-            workspaceId,
-            journeyId: journey.id,
-          },
-          "Failed to convert journey to resource",
-        );
-        return [];
-      }
-      if (
-        result.value.definition.entryNode.type !==
-        JourneyNodeType.EventEntryNode
-      ) {
-        return [];
-      }
-      return result.value;
-    },
-  );
-  return allJourneyResources;
-}
+const EVENT_TRIGGER_JOURNEY_CACHE = new NodeCache({
+  stdTTL: 30,
+  checkperiod: 120
+});
 
 export async function triggerEventEntryJourneys({
   workspaceId,
@@ -440,41 +411,45 @@ export async function triggerEventEntryJourneys({
   messageId: string;
   properties: TrackData["properties"];
 }): Promise<void> {
-  // FIXME add caching
-  const allJourneys = await prisma().journey.findMany({
-    where: {
-      workspaceId,
-    },
-  });
-  const journeyDetails: {
+  let journeyDetails: {
     journeyId: string;
     event: string;
     definition: JourneyDefinition;
-  }[] = allJourneys.flatMap((j) => {
-    const result = toJourneyResource(j);
-    if (result.isErr()) {
-      logger().error(
-        {
-          workspaceId,
-          journeyId: j.id,
-        },
-        "Failed to convert journey to resource",
-      );
-      return [];
-    }
-    const journey = result.value;
-    if (journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
-      return [];
-    }
-    if (journey.status !== JourneyStatus.Running) {
-      return [];
-    }
-    return {
-      event: journey.definition.entryNode.event,
-      journeyId: journey.id,
-      definition: journey.definition,
-    };
-  });
+  }[] | undefined = EVENT_TRIGGER_JOURNEY_CACHE.get(workspaceId);
+
+  if (!journeyDetails) {
+    const allJourneys = await prisma().journey.findMany({
+      where: {
+        workspaceId,
+      },
+    });
+    journeyDetails = allJourneys.flatMap((j) => {
+      const result = toJourneyResource(j);
+      if (result.isErr()) {
+        logger().error(
+          {
+            workspaceId,
+            journeyId: j.id,
+          },
+          "Failed to convert journey to resource",
+        );
+        return [];
+      }
+      const journey = result.value;
+      if (journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode) {
+        return [];
+      }
+      if (journey.status !== JourneyStatus.Running) {
+        return [];
+      }
+      return {
+        event: journey.definition.entryNode.event,
+        journeyId: journey.id,
+        definition: journey.definition,
+      };
+    });
+    EVENT_TRIGGER_JOURNEY_CACHE.set(workspaceId, journeyDetails);
+  }
   const starts: Promise<unknown>[] = journeyDetails.flatMap(
     ({ journeyId, event: journeyEvent, definition }) => {
       if (journeyEvent !== event) {
