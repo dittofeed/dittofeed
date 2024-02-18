@@ -41,7 +41,6 @@ export function buildBatchUserEvents(data: BatchAppData): InsertUserEvent[] {
   });
 }
 
-// FIXME do event triggers
 export async function submitBatch({ workspaceId, data }: SubmitBatchOptions) {
   const userEvents = buildBatchUserEvents(data);
 
