@@ -404,19 +404,21 @@ interface EventTriggerJourneyDetails {
   definition: JourneyDefinition;
 }
 
+export interface TriggerEventEntryJourneysOptions {
+  workspaceId: string;
+  event: string;
+  userId: string;
+  messageId: string;
+  properties: TrackData["properties"];
+}
+
 export async function triggerEventEntryJourneys({
   workspaceId,
   event,
   userId,
   messageId,
   properties,
-}: {
-  workspaceId: string;
-  event: string;
-  userId: string;
-  messageId: string;
-  properties: TrackData["properties"];
-}): Promise<void> {
+}: TriggerEventEntryJourneysOptions): Promise<void> {
   let journeyDetails: EventTriggerJourneyDetails[] | undefined =
     EVENT_TRIGGER_JOURNEY_CACHE.get(workspaceId);
 

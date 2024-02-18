@@ -1,8 +1,18 @@
 import * as R from "remeda";
 
+import { submitBatch, SubmitBatchOptions } from "./apps/batch";
 import { submitTrack } from "./apps/track";
-import { triggerEventEntryJourneys } from "./journeys";
-import { IdentifyData, PageData, ScreenData, TrackData } from "./types";
+import {
+  triggerEventEntryJourneys,
+  TriggerEventEntryJourneysOptions,
+} from "./journeys";
+import {
+  EventType,
+  IdentifyData,
+  PageData,
+  ScreenData,
+  TrackData,
+} from "./types";
 import { InsertUserEvent, insertUserEvents } from "./userEvents";
 
 export async function submitIdentify({
@@ -56,6 +66,40 @@ export async function submitTrackWithTriggers({
       properties: data.properties,
     });
   }
+}
+
+export async function submitBatchkWithTriggers({
+  workspaceId,
+  data,
+}: SubmitBatchOptions) {
+  await submitBatch({ workspaceId, data });
+  const triggers: TriggerEventEntryJourneysOptions[] = data.batch.flatMap(
+    (message) => {
+      if (message.type !== EventType.Track) {
+        return [];
+      }
+      let userOrAnonymousId: string | null = null;
+      if ("userId" in message) {
+        userOrAnonymousId = message.userId;
+      } else if ("anonymousId" in message) {
+        userOrAnonymousId = message.anonymousId;
+      }
+      if (!userOrAnonymousId) {
+        return [];
+      }
+      return {
+        workspaceId,
+        event: message.event,
+        userId: userOrAnonymousId,
+        messageId: message.messageId,
+        properties: message.properties,
+      };
+    },
+  );
+
+  await Promise.all(
+    triggers.map((trigger) => triggerEventEntryJourneys(trigger)),
+  );
 }
 
 export async function submitPage({

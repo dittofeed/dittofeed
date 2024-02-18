@@ -760,7 +760,7 @@ async function sendMessageInner({
   messageId,
   subscriptionGroupId,
   channel,
-  context
+  context,
 }: SendParamsV2): Promise<BackendMessageSendResult> {
   const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
