@@ -18,7 +18,7 @@ import * as R from "remeda";
 import { omit } from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
-import { submitTrack } from "../../apps";
+import { submitTrack } from "../../apps/track";
 import { sendNotification } from "../../destinations/fcm";
 import {
   ResendRequiredData,
@@ -45,6 +45,7 @@ import {
   InternalEventType,
   JourneyNode,
   JourneyNodeType,
+  JSONValue,
   KnownTrackData,
   MessageTemplateResource,
   SmsProviderSecret,
@@ -746,6 +747,7 @@ async function sendEmailWithPayload(
 
 export interface SendParamsV2 extends SendParams {
   channel: ChannelType;
+  context?: Record<string, JSONValue>;
 }
 
 async function sendMessageInner({
@@ -758,10 +760,11 @@ async function sendMessageInner({
   messageId,
   subscriptionGroupId,
   channel,
+  context,
 }: SendParamsV2): Promise<BackendMessageSendResult> {
   const [userPropertyAssignments, journey, subscriptionGroup] =
     await Promise.all([
-      findAllUserPropertyAssignments({ userId, workspaceId }),
+      findAllUserPropertyAssignments({ userId, workspaceId, context }),
       prisma().journey.findUnique({ where: { id: journeyId } }),
       subscriptionGroupId
         ? getSubscriptionGroupWithAssignment({ userId, subscriptionGroupId })
@@ -865,15 +868,18 @@ export async function sendEmail(params: SendParams): Promise<boolean> {
 export async function isRunnable({
   userId,
   journeyId,
+  eventKey,
 }: {
   journeyId: string;
   userId: string;
+  eventKey?: string;
 }): Promise<boolean> {
   const [previousExitEvent, journey] = await Promise.all([
     prisma().userJourneyEvent.findFirst({
       where: {
         journeyId,
         userId,
+        eventKey,
         type: JourneyNodeType.ExitNode,
       },
     }),
@@ -886,52 +892,20 @@ export async function isRunnable({
   return previousExitEvent === null || !!journey?.canRunMultiple;
 }
 
-export async function onNodeProcessed({
-  journeyStartedAt,
-  userId,
-  node,
-  journeyId,
-}: {
-  journeyStartedAt: number;
-  journeyId: string;
-  userId: string;
-  node: JourneyNode;
-}) {
-  const journeyStartedAtDate = new Date(journeyStartedAt);
-  const nodeId = getNodeId(node);
-  await prisma().userJourneyEvent.upsert({
-    where: {
-      journeyId_userId_type_journeyStartedAt_nodeId: {
-        journeyStartedAt: journeyStartedAtDate,
-        journeyId,
-        userId,
-        type: node.type,
-        nodeId,
-      },
-    },
-    update: {},
-    create: {
-      journeyStartedAt: journeyStartedAtDate,
-      journeyId,
-      userId,
-      type: node.type,
-      nodeId,
-    },
-  });
-}
-
 export async function onNodeProcessedV2({
   journeyStartedAt,
   userId,
   node,
   journeyId,
   workspaceId,
+  eventKey,
 }: {
   journeyStartedAt: number;
   journeyId: string;
   userId: string;
   node: JourneyNode;
   workspaceId: string;
+  eventKey?: string;
 }) {
   const journeyStartedAtDate = new Date(journeyStartedAt);
   const nodeId = getNodeId(node);
@@ -943,24 +917,18 @@ export async function onNodeProcessedV2({
     nodeId,
   ].join("-");
   await Promise.all([
-    prisma().userJourneyEvent.upsert({
-      where: {
-        journeyId_userId_type_journeyStartedAt_nodeId: {
+    prisma().userJourneyEvent.createMany({
+      data: [
+        {
           journeyStartedAt: journeyStartedAtDate,
           journeyId,
           userId,
           type: node.type,
           nodeId,
+          eventKey,
         },
-      },
-      update: {},
-      create: {
-        journeyStartedAt: journeyStartedAtDate,
-        journeyId,
-        userId,
-        type: node.type,
-        nodeId,
-      },
+      ],
+      skipDuplicates: true,
     }),
     submitTrack({
       workspaceId,
@@ -978,8 +946,6 @@ export async function onNodeProcessedV2({
     }),
   ]);
 }
-
-export type OnNodeProcessed = typeof onNodeProcessed;
 
 export function getSegmentAssignment({
   workspaceId,

@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 
-import { submitTrack } from "./apps";
+import { submitTrackWithTriggers } from "./apps";
 import { getJourneysStats } from "./journeys";
 import prisma from "./prisma";
 import {
@@ -57,7 +57,7 @@ describe("journeys", () => {
         });
         journeyId = journey.id;
 
-        await submitTrack({
+        await submitTrackWithTriggers({
           workspaceId,
           data: {
             userId: randomUUID(),

@@ -1,13 +1,15 @@
 import { Row } from "@clickhouse/client";
-import { Journey, PrismaClient } from "@prisma/client";
+import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { MapWithDefault } from "isomorphic-lib/src/maps";
 import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
+import NodeCache from "node-cache";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
+import { startKeyedUserJourney } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -20,6 +22,7 @@ import {
   MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
+  TrackData,
 } from "./types";
 
 export * from "isomorphic-lib/src/journeys";
@@ -388,4 +391,86 @@ group by event, node_id;`;
   }
 
   return journeysStats;
+}
+
+const EVENT_TRIGGER_JOURNEY_CACHE = new NodeCache({
+  stdTTL: 30,
+  checkperiod: 120,
+});
+
+interface EventTriggerJourneyDetails {
+  journeyId: string;
+  event: string;
+  definition: JourneyDefinition;
+}
+
+export interface TriggerEventEntryJourneysOptions {
+  workspaceId: string;
+  event: string;
+  userId: string;
+  messageId: string;
+  properties: TrackData["properties"];
+}
+
+export async function triggerEventEntryJourneys({
+  workspaceId,
+  event,
+  userId,
+  messageId,
+  properties,
+}: TriggerEventEntryJourneysOptions): Promise<void> {
+  let journeyDetails: EventTriggerJourneyDetails[] | undefined =
+    EVENT_TRIGGER_JOURNEY_CACHE.get(workspaceId);
+
+  if (!journeyDetails) {
+    const allJourneys = await prisma().journey.findMany({
+      where: {
+        workspaceId,
+      },
+    });
+    journeyDetails = allJourneys.flatMap((j) => {
+      const result = toJourneyResource(j);
+      if (result.isErr()) {
+        logger().error(
+          {
+            workspaceId,
+            journeyId: j.id,
+          },
+          "Failed to convert journey to resource",
+        );
+        return [];
+      }
+      const journey = result.value;
+      if (
+        journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode
+      ) {
+        return [];
+      }
+      if (journey.status !== JourneyStatus.Running) {
+        return [];
+      }
+      return {
+        event: journey.definition.entryNode.event,
+        journeyId: journey.id,
+        definition: journey.definition,
+      };
+    });
+    EVENT_TRIGGER_JOURNEY_CACHE.set(workspaceId, journeyDetails);
+  }
+  const starts: Promise<unknown>[] = journeyDetails.flatMap(
+    ({ journeyId, event: journeyEvent, definition }) => {
+      if (journeyEvent !== event) {
+        return [];
+      }
+      return startKeyedUserJourney({
+        workspaceId,
+        userId,
+        journeyId,
+        eventKey: messageId,
+        definition,
+        context: properties,
+      });
+    },
+  );
+  await Promise.all(starts);
 }

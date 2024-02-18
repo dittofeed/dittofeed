@@ -24,6 +24,7 @@ import {
   ChannelType,
   CompletionStatus,
   DelayVariantType,
+  EntryNode,
   JourneyNodeType,
   MessageTemplateResource,
   SegmentResource,
@@ -153,14 +154,71 @@ function EntryNodeFields({
       break;
     }
     case JourneyNodeType.EventEntryNode:
-      // TODO implement event entry variant
-      variant = null;
+      variant = (
+        <TextField
+          value={nodeVariant.event ?? ""}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            const newEventName = e.target.value;
+
+            updateJourneyNodeData(nodeId, (node) => {
+              const props = node.data.nodeTypeProps;
+              if (
+                props.type === AdditionalJourneyNodeType.UiEntryNode &&
+                props.variant.type === JourneyNodeType.EventEntryNode
+              ) {
+                props.variant.event = newEventName;
+              }
+            });
+          }}
+          label="Event Trigger Name"
+        />
+      );
       break;
     default:
       assertUnreachable(nodeVariant);
   }
   // TODO implement variant selector
-  return <>{variant}</>;
+  return (
+    <>
+      <Select
+        value={nodeProps.variant.type}
+        onChange={(e) => {
+          updateJourneyNodeData(nodeId, (node) => {
+            const props = node.data.nodeTypeProps;
+            if (props.type !== AdditionalJourneyNodeType.UiEntryNode) {
+              return;
+            }
+            const type = e.target.value as EntryNode["type"];
+            if (props.variant.type === type) {
+              return;
+            }
+            switch (type) {
+              case JourneyNodeType.SegmentEntryNode:
+                props.variant = {
+                  type: JourneyNodeType.SegmentEntryNode,
+                };
+                break;
+              case JourneyNodeType.EventEntryNode:
+                props.variant = {
+                  type: JourneyNodeType.EventEntryNode,
+                };
+                break;
+              default:
+                assertUnreachable(type);
+            }
+          });
+        }}
+      >
+        <MenuItem value={JourneyNodeType.SegmentEntryNode}>
+          Segment Entry
+        </MenuItem>
+        <MenuItem value={JourneyNodeType.EventEntryNode}>
+          Event Triggered Entry
+        </MenuItem>
+      </Select>
+      {variant}
+    </>
+  );
 }
 
 function getTemplateLabel(tr: MessageTemplateResource) {
