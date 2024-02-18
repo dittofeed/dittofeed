@@ -19,7 +19,6 @@ import { round } from "isomorphic-lib/src/numbers";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
-  ChannelType,
   CompletionStatus,
   DelayVariantType,
   JourneyNodeType,
@@ -442,7 +441,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
       >
         {stats &&
         stats.type === NodeStatsType.MessageNodeStats &&
-        stats.channelStats.type === ChannelType.Email ? (
+        stats.channelStats ? (
           <>
             <StatCategory label="Sent" rate={stats.sendRate} />
             <StatCategory

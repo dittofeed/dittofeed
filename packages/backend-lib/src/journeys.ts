@@ -338,11 +338,6 @@ group by event, node_id;`;
             childEdge: 100,
           },
           sendRate: 0,
-          channelStats: {
-            ...(node.variant.type === ChannelType.Sms && {
-              type: ChannelType.Sms,
-            }),
-          } as MessageChannelStats,
         };
       }
 

@@ -1866,15 +1866,9 @@ export const EmailStats = Type.Object({
   spamRate: Type.Number(),
 });
 
-export const SmsStats = Type.Object({
-  type: Type.Literal(ChannelType.Sms),
-});
-
 export type EmailStats = Static<typeof EmailStats>;
 
-export type SmsStats = Static<typeof SmsStats>;
-
-export const MessageChannelStats = Type.Union([EmailStats, SmsStats]);
+export const MessageChannelStats = Type.Union([EmailStats]);
 
 export type MessageChannelStats = Static<typeof MessageChannelStats>;
 
@@ -1884,7 +1878,7 @@ const MessageNodeStats = Type.Object({
     childEdge: Type.Number(),
   }),
   sendRate: Type.Number(),
-  channelStats: MessageChannelStats,
+  channelStats: Type.Optional(MessageChannelStats),
 });
 
 const DelayNodeStats = Type.Object({
