@@ -39,8 +39,9 @@ import {
   MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
-  SmsProviderConfig,
+  SmsProviderSecret,
   SmsProviderType,
+  TwilioSecret,
   UpsertMessageTemplateResource,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
@@ -494,7 +495,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `expected sendgrid secret config but got ${secretConfig.type}`,
+            message: `expected sendgrid secret config but got ${secretConfig.type ?? ""}`,
           },
         });
       }
@@ -560,7 +561,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `expected sendgrid secret config but got ${secretConfig.type}`,
+            message: `expected sendgrid secret config but got ${secretConfig.type ?? ""}`,
           },
         });
       }
@@ -628,7 +629,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `expected amazon secret config but got ${secretConfig.type}`,
+            message: `expected amazon secret config but got ${secretConfig.type ?? ""}`,
           },
         });
       }
@@ -704,7 +705,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `expected resend secret config but got ${secretConfig.type}`,
+            message: `expected resend secret config but got ${secretConfig.type ?? ""}`,
           },
         });
       }
@@ -783,7 +784,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `expected postmark secret config but got ${secretConfig.type}`,
+            message: `expected postmark secret config but got ${secretConfig.type ?? ""}`,
           },
         });
       }
@@ -917,7 +918,7 @@ export async function sendSms({
 
   const parsedConfigResult = schemaValidateWithErr(
     smsConfig,
-    SmsProviderConfig,
+    SmsProviderSecret,
   );
   if (parsedConfigResult.isErr()) {
     return err({
@@ -994,7 +995,7 @@ export async function sendSms({
   switch (defaultProvider.smsProvider.type) {
     case SmsProviderType.Twilio: {
       const { accountSid, authToken, messagingServiceSid } =
-        parsedConfigResult.value;
+        parsedConfigResult.value as TwilioSecret;
 
       if (!accountSid || !authToken || !messagingServiceSid) {
         return err({

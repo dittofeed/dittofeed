@@ -985,6 +985,8 @@ export enum EmailProviderType {
 }
 
 export const TestEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
   type: Type.Literal(EmailProviderType.Test),
 });
 
@@ -1036,6 +1038,7 @@ export const PersistedEmailProvider = Type.Union([
   PostMarkEmailProvider,
   ResendEmailProvider,
   SmtpEmailProvider,
+  TestEmailProvider
 ]);
 
 export type PersistedEmailProvider = Static<typeof PersistedEmailProvider>;
@@ -1935,26 +1938,65 @@ export enum SmsProviderType {
   Test = "Test",
 }
 
-export const TwilioSmsProvider = Type.Object({
+export const TwilioSecret = Type.Object({
   type: Type.Literal(SmsProviderType.Twilio),
   accountSid: Type.Optional(Type.String()),
   messagingServiceSid: Type.Optional(Type.String()),
   authToken: Type.Optional(Type.String()),
 });
 
+export const TwilioSmsProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Optional(Type.Literal(SmsProviderType.Twilio)),
+});
+
+export type TwilioSecret = Static<typeof TwilioSecret>;
+
+export const TestSecret = Type.Object({
+  type: Type.Optional(Type.Literal(SmsProviderType.Test)),
+});
+
+export const TestSmsProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(SmsProviderType.Test),
+});
+export type TestSecret = Static<typeof TestSecret>;
+
+export const SmsProviderSecret = Type.Union([
+    TwilioSecret,
+    TestSecret
+]);
+
+export type SmsProviderSecret = Static<typeof SmsProviderSecret>;
+
+export type TwilioProviderConfig = Required<Pick<TwilioSecret, "accountSid" | "messagingServiceSid" | "authToken">>;
+
 export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
 
-export const SmsProviderConfig = Type.Union([TwilioSmsProvider]);
+export const PersistedSmsProvider = Type.Union([
+    TwilioSmsProvider,
+    TestSmsProvider
+]);
 
-export type SmsProviderConfig = Static<typeof SmsProviderConfig>;
+export type PersistedSmsProvider = Static<typeof PersistedSmsProvider>;
 
 export const UpsertSmsProviderRequest = Type.Object({
   workspaceId: Type.String(),
   setDefault: Type.Optional(Type.Boolean()),
-  smsProvider: SmsProviderConfig,
+  type: Type.Optional(Type.Enum(SmsProviderType)),
+  secret: Type.Omit(SmsProviderSecret, ['type'])
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
+
+export const DefaultSmsProviderResource = Type.Object({
+  workspaceId: Type.String(),
+  smsProviderId: Type.String(),
+});
+
+export type DefaultSmsProviderResource = Static<typeof DefaultSmsProviderResource>;
 
 // Compatible as both a subset of EnrichedJourney and JourneyResource
 export interface CompatibleJourney {
@@ -2479,6 +2521,7 @@ export const EmailProviderSecret = Type.Union([
   AmazonSesSecret,
   SmtpSecret,
   ResendSecret,
+  TestSecret
 ]);
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;

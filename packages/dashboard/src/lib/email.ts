@@ -87,7 +87,8 @@ export async function getOrCreateEmailProviders({
     let type: EmailProviderType;
     switch (ep.type) {
       case EmailProviderType.Test:
-        return [];
+        type = EmailProviderType.Test;
+        break;
       case EmailProviderType.Sendgrid:
         type = EmailProviderType.Sendgrid;
         break;
