@@ -41,7 +41,7 @@ export default async function usersController(fastify: FastifyInstance) {
         users,
         nextCursor,
         previousCursor,
-        userCount
+        userCount,
       });
     },
   );

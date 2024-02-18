@@ -205,7 +205,6 @@ export async function getUsers({
     FROM (${userIdQueries}) AS all_user_ids
   `;
 
-
   const [results, userProperties, countResults] = await Promise.all([
     prisma().$queryRaw(query),
     prisma().userProperty.findMany({
