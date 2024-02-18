@@ -21,7 +21,6 @@ import {
   SegmentUpdate,
   WaitForNode,
 } from "../types";
-// fixme activities -> apps -> lifecycle -> userWorkflow -> activities
 import * as activities from "./userWorkflow/activities";
 
 const { defaultWorkerLogger: logger } = proxySinks<LoggerSinks>();
