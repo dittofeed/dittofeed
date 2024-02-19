@@ -2565,3 +2565,10 @@ export interface Resource {
 export type PartialExceptType<T, TD> = Partial<Omit<T, "type">> & {
   type: TD;
 };
+
+export const AdminApiKeyDefinition = Type.Object({
+  type: Type.Literal("AdminApiKey"),
+  secretValue: Type.String(),
+});
+
+export type AdminApiKeyDefinition = Static<typeof AdminApiKeyDefinition>;
