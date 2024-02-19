@@ -1,6 +1,7 @@
 import backendConfig from "backend-lib/src/config";
 import { FastifyInstance } from "fastify";
 
+import apiKeyController from "../controllers/apiKeyController";
 import broadcastsController from "../controllers/broadcastsController";
 import contentController from "../controllers/contentController";
 import debugController from "../controllers/debugController";
@@ -19,6 +20,7 @@ import subscriptionManagementController from "../controllers/subscriptionManagem
 import userPropertiesController from "../controllers/userPropertiesController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
+import adminAuth from "./adminAuth";
 import requestContext from "./requestContext";
 
 export default async function router(fastify: FastifyInstance) {
@@ -47,6 +49,7 @@ export default async function router(fastify: FastifyInstance) {
         f.register(deliveriesController, {
           prefix: "/deliveries",
         }),
+        f.register(apiKeyController, { prefix: "/admin-keys" }),
         f.register(usersController, { prefix: "/users" }),
         // mount redundant webhooks controller at root level for backwards
         // compatibility. this is the one exception to this route namespace being auth'd.
@@ -73,6 +76,16 @@ export default async function router(fastify: FastifyInstance) {
       ]);
     },
     { prefix: "/api/public" },
+  );
+
+  // endpoints accessible by workspace members
+  await fastify.register(
+    async (f: FastifyInstance) => {
+      await f.register(adminAuth);
+
+      await Promise.all([f.register(usersController, { prefix: "/users" })]);
+    },
+    { prefix: "/api/admin" },
   );
 
   await fastify.register(
