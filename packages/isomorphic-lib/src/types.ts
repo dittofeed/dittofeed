@@ -1200,11 +1200,28 @@ export type UpsertUserPropertyResource = Static<
 >;
 
 export const DeleteUserPropertyRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
 });
 
 export type DeleteUserPropertyRequest = Static<
   typeof DeleteUserPropertyRequest
+>;
+
+export const ReadAllUserPropertiesRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type ReadAllUserPropertiesRequest = Static<
+  typeof ReadAllUserPropertiesRequest
+>;
+
+export const ReadAllUserPropertiesResponse = Type.Object({
+  userProperties: Type.Array(UserPropertyResource),
+});
+
+export type ReadAllUserPropertiesResponse = Static<
+  typeof ReadAllUserPropertiesResponse
 >;
 
 export enum CursorDirectionEnum {
