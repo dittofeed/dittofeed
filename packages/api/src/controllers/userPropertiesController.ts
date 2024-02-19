@@ -25,7 +25,7 @@ export default async function userPropertiesController(
       schema: {
         description: "Get all user properties.",
         tags: ["User Properties"],
-        body: ReadAllUserPropertiesRequest,
+        querystring: ReadAllUserPropertiesRequest,
         response: {
           200: ReadAllUserPropertiesResponse,
         },
@@ -33,7 +33,7 @@ export default async function userPropertiesController(
     },
     async (request, reply) => {
       const userProperties = await findAllUserPropertyResources({
-        workspaceId: request.body.workspaceId
+        workspaceId: request.query.workspaceId,
       });
 
       return reply.status(200).send({

@@ -778,6 +778,20 @@
                                                 "type": {
                                                   "type": "string",
                                                   "enum": [
+                                                    "PostMark"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
                                                     "Resend"
                                                   ]
                                                 }
@@ -1211,27 +1225,53 @@
                     "type": "object",
                     "properties": {
                       "entryNode": {
-                        "title": "Entry Node",
-                        "description": "The first node in a journey, which limits it to a specific segment.",
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "enum": [
-                              "EntryNode"
+                        "anyOf": [
+                          {
+                            "title": "Segment Entry Node",
+                            "description": "The first node in a journey, which limits it to a specific segment.",
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "EntryNode"
+                                ]
+                              },
+                              "segment": {
+                                "type": "string"
+                              },
+                              "child": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "segment",
+                              "child"
                             ]
                           },
-                          "segment": {
-                            "type": "string"
-                          },
-                          "child": {
-                            "type": "string"
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "EventEntryNode"
+                                ]
+                              },
+                              "event": {
+                                "type": "string"
+                              },
+                              "child": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "event",
+                              "child"
+                            ]
                           }
-                        },
-                        "required": [
-                          "type",
-                          "segment",
-                          "child"
                         ]
                       },
                       "exitNode": {
@@ -1669,27 +1709,53 @@
                       "type": "object",
                       "properties": {
                         "entryNode": {
-                          "title": "Entry Node",
-                          "description": "The first node in a journey, which limits it to a specific segment.",
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "EntryNode"
+                          "anyOf": [
+                            {
+                              "title": "Segment Entry Node",
+                              "description": "The first node in a journey, which limits it to a specific segment.",
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "EntryNode"
+                                  ]
+                                },
+                                "segment": {
+                                  "type": "string"
+                                },
+                                "child": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "segment",
+                                "child"
                               ]
                             },
-                            "segment": {
-                              "type": "string"
-                            },
-                            "child": {
-                              "type": "string"
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "EventEntryNode"
+                                  ]
+                                },
+                                "event": {
+                                  "type": "string"
+                                },
+                                "child": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "event",
+                                "child"
+                              ]
                             }
-                          },
-                          "required": [
-                            "type",
-                            "segment",
-                            "child"
                           ]
                         },
                         "exitNode": {
@@ -2233,8 +2299,7 @@
                               "required": [
                                 "type",
                                 "proportions",
-                                "sendRate",
-                                "channelStats"
+                                "sendRate"
                               ]
                             },
                             {
@@ -6174,12 +6239,12 @@
         }
       }
     },
-    "/api/settings/sms-providers": {
+    "/api/settings/sms-providers/default": {
       "put": {
         "tags": [
           "Settings"
         ],
-        "description": "Create or update sms provider settings",
+        "description": "Create or update default email provider settings",
         "requestBody": {
           "content": {
             "application/json": {
@@ -6189,36 +6254,13 @@
                   "workspaceId": {
                     "type": "string"
                   },
-                  "setDefault": {
-                    "type": "boolean"
-                  },
-                  "smsProvider": {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "enum": [
-                          "Twilio"
-                        ]
-                      },
-                      "accountSid": {
-                        "type": "string"
-                      },
-                      "messagingServiceSid": {
-                        "type": "string"
-                      },
-                      "authToken": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ]
+                  "smsProviderId": {
+                    "type": "string"
                   }
                 },
                 "required": [
                   "workspaceId",
-                  "smsProvider"
+                  "smsProviderId"
                 ]
               }
             }
@@ -6231,26 +6273,50 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "enum": [
-                        "Twilio"
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "workspaceId": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "Twilio"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "workspaceId"
                       ]
                     },
-                    "accountSid": {
-                      "type": "string"
-                    },
-                    "messagingServiceSid": {
-                      "type": "string"
-                    },
-                    "authToken": {
-                      "type": "string"
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "workspaceId": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "Test"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "workspaceId",
+                        "type"
+                      ]
                     }
-                  },
-                  "required": [
-                    "type"
                   ]
                 }
               }
@@ -6879,6 +6945,280 @@
       }
     },
     "/api/user-properties/": {
+      "get": {
+        "tags": [
+          "User Properties"
+        ],
+        "description": "Get all user properties.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userProperties": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "workspaceId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "definition": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Id"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "AnonymousId"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Group"
+                                    ]
+                                  },
+                                  "entry": {
+                                    "type": "string"
+                                  },
+                                  "nodes": {
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "AnyOf"
+                                              ]
+                                            },
+                                            "children": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            }
+                                          },
+                                          "required": [
+                                            "id",
+                                            "type",
+                                            "children"
+                                          ]
+                                        },
+                                        {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "id": {
+                                                  "type": "string"
+                                                },
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Trait"
+                                                  ]
+                                                },
+                                                "path": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "path"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "id": {
+                                                  "type": "string"
+                                                },
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Performed"
+                                                  ]
+                                                },
+                                                "event": {
+                                                  "type": "string"
+                                                },
+                                                "path": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "event",
+                                                "path"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "entry",
+                                  "nodes"
+                                ]
+                              },
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Trait"
+                                        ]
+                                      },
+                                      "path": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "path"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Performed"
+                                        ]
+                                      },
+                                      "event": {
+                                        "type": "string"
+                                      },
+                                      "path": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "event",
+                                      "path"
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PerformedMany"
+                                    ]
+                                  },
+                                  "or": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "event": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "event"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "or"
+                                ]
+                              }
+                            ]
+                          },
+                          "exampleValue": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "workspaceId",
+                          "name",
+                          "definition"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "userProperties"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
       "put": {
         "tags": [
           "User Properties"
@@ -7395,11 +7735,15 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
                   "id": {
                     "type": "string"
                   }
                 },
                 "required": [
+                  "workspaceId",
                   "id"
                 ]
               }
@@ -7928,6 +8272,20 @@
                                           "type": {
                                             "type": "string",
                                             "enum": [
+                                              "PostMark"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
                                               "Resend"
                                             ]
                                           }
@@ -8147,6 +8505,122 @@
         }
       }
     },
+    "/api/admin-keys/": {
+      "post": {
+        "tags": [
+          "API Key",
+          "Admin"
+        ],
+        "description": "Create an admin API key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "name"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "apiKey": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "apiKey",
+                    "name",
+                    "workspaceId"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "API Key",
+          "Admin"
+        ],
+        "description": "Delete an admin API key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "id"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users/": {
       "get": {
         "tags": [
@@ -8282,10 +8756,14 @@
                     },
                     "nextCursor": {
                       "type": "string"
+                    },
+                    "userCount": {
+                      "type": "number"
                     }
                   },
                   "required": [
-                    "users"
+                    "users",
+                    "userCount"
                   ]
                 }
               }
@@ -8756,120 +9234,124 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "created_at": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "created_at": {
+                "type": "object",
+                "properties": {
+                  "created_at": {
+                    "type": "string"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "email_id": {
+                        "type": "string"
+                      },
+                      "from": {
+                        "type": "string"
+                      },
+                      "subject": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "array",
+                        "items": {
                           "type": "string"
-                        },
-                        "email_id": {
-                          "type": "string"
-                        },
-                        "from": {
-                          "type": "string"
-                        },
-                        "subject": {
-                          "type": "string"
-                        },
-                        "to": {
-                          "type": "array",
-                          "items": {
+                        }
+                      },
+                      "tags": {
+                        "type": "object",
+                        "properties": {
+                          "workspaceId": {
+                            "type": "string"
+                          },
+                          "runId": {
+                            "type": "string"
+                          },
+                          "messageId": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
+                          "templateId": {
+                            "type": "string"
+                          },
+                          "journeyId": {
+                            "type": "string"
+                          },
+                          "anonymousId": {
                             "type": "string"
                           }
                         }
-                      },
-                      "required": [
-                        "created_at",
-                        "email_id",
-                        "from",
-                        "subject",
-                        "to"
-                      ]
+                      }
                     },
-                    "type": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.sent"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.delivered"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.delivery_delayed"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.complained"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.bounced"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.opened"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.clicked"
-                          ]
-                        }
-                      ]
-                    },
-                    "workspaceId": {
-                      "type": "string"
-                    },
-                    "runId": {
-                      "type": "string"
-                    },
-                    "messageId": {
-                      "type": "string"
-                    },
-                    "userId": {
-                      "type": "string"
-                    },
-                    "templateId": {
-                      "type": "string"
-                    },
-                    "journeyId": {
-                      "type": "string"
-                    },
-                    "anonymousId": {
-                      "type": "string"
-                    }
+                    "required": [
+                      "created_at",
+                      "email_id",
+                      "from",
+                      "subject",
+                      "to",
+                      "tags"
+                    ]
                   },
-                  "required": [
-                    "created_at",
-                    "data",
-                    "type"
-                  ]
-                }
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.sent"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.delivered"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.delivery_delayed"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.complained"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.bounced"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.opened"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.clicked"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "created_at",
+                  "data",
+                  "type"
+                ]
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -8894,6 +9376,119 @@
             },
             "in": "header",
             "name": "svix-signature",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/webhooks/postmark": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Used to consume postmark webhook payloads.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "MessageStream": {
+                    "type": "string"
+                  },
+                  "Tag": {
+                    "type": "string"
+                  },
+                  "MessageID": {
+                    "type": "string"
+                  },
+                  "Metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "RecordType": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Delivery"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "SpamComplaint"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Bounce"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Open"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Click"
+                        ]
+                      }
+                    ]
+                  },
+                  "BouncedAt": {
+                    "type": "string"
+                  },
+                  "DeliveredAt": {
+                    "type": "string"
+                  },
+                  "ReceivedAt": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "runId": {
+                    "type": "string"
+                  },
+                  "messageId": {
+                    "type": "string"
+                  },
+                  "templateId": {
+                    "type": "string"
+                  },
+                  "journeyId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "MessageStream",
+                  "Tag",
+                  "MessageID",
+                  "Metadata",
+                  "RecordType"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "x-postmark-secret",
             "required": true
           }
         ],
@@ -10306,120 +10901,124 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "created_at": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "created_at": {
+                "type": "object",
+                "properties": {
+                  "created_at": {
+                    "type": "string"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "email_id": {
+                        "type": "string"
+                      },
+                      "from": {
+                        "type": "string"
+                      },
+                      "subject": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "array",
+                        "items": {
                           "type": "string"
-                        },
-                        "email_id": {
-                          "type": "string"
-                        },
-                        "from": {
-                          "type": "string"
-                        },
-                        "subject": {
-                          "type": "string"
-                        },
-                        "to": {
-                          "type": "array",
-                          "items": {
+                        }
+                      },
+                      "tags": {
+                        "type": "object",
+                        "properties": {
+                          "workspaceId": {
+                            "type": "string"
+                          },
+                          "runId": {
+                            "type": "string"
+                          },
+                          "messageId": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
+                          "templateId": {
+                            "type": "string"
+                          },
+                          "journeyId": {
+                            "type": "string"
+                          },
+                          "anonymousId": {
                             "type": "string"
                           }
                         }
-                      },
-                      "required": [
-                        "created_at",
-                        "email_id",
-                        "from",
-                        "subject",
-                        "to"
-                      ]
+                      }
                     },
-                    "type": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.sent"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.delivered"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.delivery_delayed"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.complained"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.bounced"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.opened"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "email.clicked"
-                          ]
-                        }
-                      ]
-                    },
-                    "workspaceId": {
-                      "type": "string"
-                    },
-                    "runId": {
-                      "type": "string"
-                    },
-                    "messageId": {
-                      "type": "string"
-                    },
-                    "userId": {
-                      "type": "string"
-                    },
-                    "templateId": {
-                      "type": "string"
-                    },
-                    "journeyId": {
-                      "type": "string"
-                    },
-                    "anonymousId": {
-                      "type": "string"
-                    }
+                    "required": [
+                      "created_at",
+                      "email_id",
+                      "from",
+                      "subject",
+                      "to",
+                      "tags"
+                    ]
                   },
-                  "required": [
-                    "created_at",
-                    "data",
-                    "type"
-                  ]
-                }
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.sent"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.delivered"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.delivery_delayed"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.complained"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.bounced"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.opened"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email.clicked"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "created_at",
+                  "data",
+                  "type"
+                ]
               }
             }
-          }
+          },
+          "required": true
         },
         "parameters": [
           {
@@ -10444,6 +11043,119 @@
             },
             "in": "header",
             "name": "svix-signature",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/public/webhooks/postmark": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Used to consume postmark webhook payloads.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "MessageStream": {
+                    "type": "string"
+                  },
+                  "Tag": {
+                    "type": "string"
+                  },
+                  "MessageID": {
+                    "type": "string"
+                  },
+                  "Metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "RecordType": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Delivery"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "SpamComplaint"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Bounce"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Open"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Click"
+                        ]
+                      }
+                    ]
+                  },
+                  "BouncedAt": {
+                    "type": "string"
+                  },
+                  "DeliveredAt": {
+                    "type": "string"
+                  },
+                  "ReceivedAt": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "runId": {
+                    "type": "string"
+                  },
+                  "messageId": {
+                    "type": "string"
+                  },
+                  "templateId": {
+                    "type": "string"
+                  },
+                  "journeyId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "MessageStream",
+                  "Tag",
+                  "MessageID",
+                  "Metadata",
+                  "RecordType"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "x-postmark-secret",
             "required": true
           }
         ],
@@ -10505,6 +11217,1052 @@
         "responses": {
           "200": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/admin/users/": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "description": "Get list of users",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "cursor",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "segmentId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "after"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "before"
+                  ]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "direction",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "userIds",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "properties": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "value": {}
+                              },
+                              "required": [
+                                "name",
+                                "value"
+                              ]
+                            }
+                          },
+                          "segments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "properties",
+                          "segments"
+                        ]
+                      }
+                    },
+                    "previousCursor": {
+                      "type": "string"
+                    },
+                    "nextCursor": {
+                      "type": "string"
+                    },
+                    "userCount": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "users",
+                    "userCount"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "description": "Delete events, and computed properties and segments for specific users.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "userIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "userIds"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/user-properties/": {
+      "get": {
+        "tags": [
+          "User Properties"
+        ],
+        "description": "Get all user properties.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userProperties": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "workspaceId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "definition": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Id"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "AnonymousId"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Group"
+                                    ]
+                                  },
+                                  "entry": {
+                                    "type": "string"
+                                  },
+                                  "nodes": {
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "AnyOf"
+                                              ]
+                                            },
+                                            "children": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            }
+                                          },
+                                          "required": [
+                                            "id",
+                                            "type",
+                                            "children"
+                                          ]
+                                        },
+                                        {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "id": {
+                                                  "type": "string"
+                                                },
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Trait"
+                                                  ]
+                                                },
+                                                "path": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "path"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "id": {
+                                                  "type": "string"
+                                                },
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "Performed"
+                                                  ]
+                                                },
+                                                "event": {
+                                                  "type": "string"
+                                                },
+                                                "path": {
+                                                  "type": "string"
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "event",
+                                                "path"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "entry",
+                                  "nodes"
+                                ]
+                              },
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Trait"
+                                        ]
+                                      },
+                                      "path": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "path"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "Performed"
+                                        ]
+                                      },
+                                      "event": {
+                                        "type": "string"
+                                      },
+                                      "path": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "type",
+                                      "event",
+                                      "path"
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PerformedMany"
+                                    ]
+                                  },
+                                  "or": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "event": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "event"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "or"
+                                ]
+                              }
+                            ]
+                          },
+                          "exampleValue": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "workspaceId",
+                          "name",
+                          "definition"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "userProperties"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "User Properties"
+        ],
+        "description": "Create or update a user property.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "definition": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Id"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "AnonymousId"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "Group"
+                                ]
+                              },
+                              "entry": {
+                                "type": "string"
+                              },
+                              "nodes": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "AnyOf"
+                                          ]
+                                        },
+                                        "children": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "type",
+                                        "children"
+                                      ]
+                                    },
+                                    {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Trait"
+                                              ]
+                                            },
+                                            "path": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "path"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "Performed"
+                                              ]
+                                            },
+                                            "event": {
+                                              "type": "string"
+                                            },
+                                            "path": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "event",
+                                            "path"
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "entry",
+                              "nodes"
+                            ]
+                          },
+                          {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Trait"
+                                    ]
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "path"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "Performed"
+                                    ]
+                                  },
+                                  "event": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "event",
+                                  "path"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "PerformedMany"
+                                ]
+                              },
+                              "or": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "event": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "event"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "or"
+                            ]
+                          }
+                        ]
+                      },
+                      "exampleValue": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "workspaceId": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "definition": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Id"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "AnonymousId"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Group"
+                              ]
+                            },
+                            "entry": {
+                              "type": "string"
+                            },
+                            "nodes": {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "AnyOf"
+                                        ]
+                                      },
+                                      "children": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type",
+                                      "children"
+                                    ]
+                                  },
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "Trait"
+                                            ]
+                                          },
+                                          "path": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "path"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "Performed"
+                                            ]
+                                          },
+                                          "event": {
+                                            "type": "string"
+                                          },
+                                          "path": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "event",
+                                          "path"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "entry",
+                            "nodes"
+                          ]
+                        },
+                        {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Trait"
+                                  ]
+                                },
+                                "path": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "path"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Performed"
+                                  ]
+                                },
+                                "event": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "event",
+                                "path"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "PerformedMany"
+                              ]
+                            },
+                            "or": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "event": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "event"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "or"
+                          ]
+                        }
+                      ]
+                    },
+                    "exampleValue": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "workspaceId",
+                    "name",
+                    "definition"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "User Properties"
+        ],
+        "description": "Delete a user property.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "workspaceId",
+                  "id"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "An empty String",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "An empty String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
           }
         }
       }
