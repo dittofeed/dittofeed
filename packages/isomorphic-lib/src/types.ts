@@ -2565,3 +2565,42 @@ export interface Resource {
 export type PartialExceptType<T, TD> = Partial<Omit<T, "type">> & {
   type: TD;
 };
+
+export enum AdminApiKeyPermission {
+  Admin = "Admin",
+}
+
+export enum AdminApiKeyType {
+  AdminApiKey = "AdminApiKey",
+}
+
+export const AdminApiKeyDefinition = Type.Object({
+  type: Type.Literal(AdminApiKeyType.AdminApiKey),
+  key: Type.String(),
+  permissions: Type.Array(Type.Union([Type.Literal(AdminApiKeyPermission.Admin)])),
+});
+
+export type AdminApiKeyDefinition = Static<typeof AdminApiKeyDefinition>;
+
+export const CreateAdminApiKeyRequest = Type.Object({
+  workspaceId: Type.String(),
+  name: Type.String(),
+});
+
+export type CreateAdminApiKeyRequest = Static<typeof CreateAdminApiKeyRequest>;
+
+export const CreateAdminApiKeyResponse = Type.Object({
+  id: Type.String(),
+  apiKey: Type.String(),
+  name: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type CreateAdminApiKeyResponse = Static<typeof CreateAdminApiKeyResponse>;
+
+export const DeleteAdminApiKeyRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+});
+
+export type DeleteAdminApiKeyRequest = Static<typeof DeleteAdminApiKeyRequest>;
