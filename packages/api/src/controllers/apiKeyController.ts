@@ -9,10 +9,14 @@ import {
 } from "backend-lib/src/apps";
 import { validateWriteKey } from "backend-lib/src/auth";
 import logger from "backend-lib/src/logger";
+import prisma, { Prisma } from "backend-lib/src/prisma";
+import { randomBytes } from "crypto";
 import { FastifyInstance } from "fastify";
 import {
   BaseMessageResponse,
   BatchAppData,
+  CreateAdminApiKeyRequest,
+  CreateAdminApiKeyResponse,
   EmptyResponse,
   IdentifyData,
   PageData,
@@ -28,19 +32,54 @@ export default async function apiKeyController(fastify: FastifyInstance) {
       schema: {
         description: "Create an admin API key.",
         tags: ["API Key", "Admin"],
-        body: IdentifyData,
-        headers: Type.Object({
-          authorization: Type.String(),
-        }),
+        body: CreateAdminApiKeyRequest,
         response: {
-          204: EmptyResponse,
-          401: BaseMessageResponse,
+          200: CreateAdminApiKeyResponse,
+          409: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
-      return reply.status(204).send();
+      const key = randomBytes(32).toString("hex");
+      let isConflictError = false;
+
+      try {
+        await prisma().$transaction(async (tx) => {
+          try {
+            const secret = await tx.secret.create({
+              data: {
+                workspaceId: request.body.workspaceId,
+                name: `df-admin-api-key-${request.body.name}`,
+                value: key,
+              },
+            });
+            await tx.adminApiKey.create({
+              data: {
+                name: request.body.name,
+                workspaceId: request.body.workspaceId,
+                secretId: secret.id,
+              },
+            });
+          } catch (error) {
+            if (
+              error instanceof Prisma.PrismaClientKnownRequestError &&
+              error.code === "P2002"
+            ) {
+              isConflictError = true;
+            }
+            throw error;
+          }
+        });
+      } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (isConflictError) {
+          return reply.status(409).send();
+        }
+      }
+
+      return reply.status(200).send({
+        apiKey: key,
+      });
     },
   );
-
 }

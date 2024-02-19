@@ -2566,9 +2566,15 @@ export type PartialExceptType<T, TD> = Partial<Omit<T, "type">> & {
   type: TD;
 };
 
-export const AdminApiKeyDefinition = Type.Object({
-  type: Type.Literal("AdminApiKey"),
-  secretValue: Type.String(),
+export const CreateAdminApiKeyRequest = Type.Object({
+  workspaceId: Type.String(),
+  name: Type.String(),
 });
 
-export type AdminApiKeyDefinition = Static<typeof AdminApiKeyDefinition>;
+export type CreateAdminApiKeyRequest = Static<typeof CreateAdminApiKeyRequest>;
+
+export const CreateAdminApiKeyResponse = Type.Object({
+  apiKey: Type.String(),
+});
+
+export type CreateAdminApiKeyResponse = Static<typeof CreateAdminApiKeyResponse>;
