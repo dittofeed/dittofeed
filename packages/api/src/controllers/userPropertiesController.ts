@@ -1,12 +1,15 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
 import { UserProperty } from "backend-lib/src/types";
+import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { FastifyInstance } from "fastify";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   DeleteUserPropertyRequest,
   EmptyResponse,
+  ReadAllUserPropertiesRequest,
+  ReadAllUserPropertiesResponse,
   UpsertUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyResource,
@@ -22,66 +25,20 @@ export default async function userPropertiesController(
       schema: {
         description: "Get all user properties.",
         tags: ["User Properties"],
-        body: DeleteUserPropertyRequest,
+        body: ReadAllUserPropertiesRequest,
         response: {
-          204: EmptyResponse,
-          404: {},
+          200: ReadAllUserPropertiesResponse,
         },
       },
     },
     async (request, reply) => {
-      const { id } = request.body;
+      const userProperties = await findAllUserPropertyResources({
+        workspaceId: request.body.workspaceId
+      });
 
-      let deletedCount: number;
-      try {
-        await prisma().userPropertyAssignment.deleteMany({
-          where: {
-            AND: [
-              {
-                userPropertyId: id,
-              },
-              {
-                userProperty: {
-                  name: {
-                    notIn: Array.from(protectedUserProperties),
-                  },
-                },
-              },
-            ],
-          },
-        });
-        const response = await prisma().userProperty.deleteMany({
-          where: {
-            AND: [
-              {
-                id,
-              },
-              {
-                name: {
-                  notIn: Array.from(protectedUserProperties),
-                },
-              },
-            ],
-          },
-        });
-        deletedCount = response.count;
-      } catch (e) {
-        if (e instanceof Prisma.PrismaClientKnownRequestError) {
-          switch (e.code) {
-            case "P2025":
-              return reply.status(404).send();
-            case "P2023":
-              return reply.status(404).send();
-          }
-        }
-        throw e;
-      }
-
-      if (deletedCount <= 0) {
-        return reply.status(404).send();
-      }
-
-      return reply.status(204).send();
+      return reply.status(200).send({
+        userProperties,
+      });
     },
   );
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
