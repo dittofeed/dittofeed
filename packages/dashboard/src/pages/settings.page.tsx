@@ -1,6 +1,8 @@
 import {
   ContentCopyOutlined,
+  Create,
   InfoOutlined,
+  Key,
   Mail,
   SimCardDownload,
   SmsOutlined,
@@ -307,7 +309,8 @@ const settingsSectionIds = {
   emailChannel: "email-channel",
   smsChannel: "sms-channel",
   subscription: "subscriptions",
-  authentication: "authentication",
+  writeKey: "writeKey",
+  adminApiKey: "admin-api-key",
   hubspotIntegration: "hubspot-integration",
   workspaceMetadata: "workspace-metadata",
 } as const;
@@ -364,8 +367,25 @@ const menuItems: MenuItemGroup[] = [
     id: "authentication",
     title: "Authentication",
     type: "group",
-    children: [],
-    url: `/settings#${settingsSectionIds.authentication}`,
+    children: [
+      {
+        id: "write-key",
+        title: "Public Write Key",
+        type: "item",
+        url: `/settings#${settingsSectionIds.writeKey}`,
+        description: "Write key used to submit user data to Dittofeed.",
+        icon: Create,
+      },
+      {
+        id: "admin-api-key",
+        title: "Admin API Key",
+        type: "item",
+        url: `/settings#${settingsSectionIds.adminApiKey}`,
+        description: "API key used to authenticate against the Admin API.",
+        icon: Key,
+      }
+    ],
+    url: `/settings#${settingsSectionIds.writeKey}`,
   },
   {
     id: "integrations",
@@ -1298,23 +1318,23 @@ function WriteKeySettings() {
   }
 
   return (
-    <Stack spacing={3}>
+    <>
       <SectionHeader
-        id={settingsSectionIds.authentication}
-        title="Authentication"
+        id={settingsSectionIds.writeKey}
+        title="Public Write Key"
         description=""
       />
       <Fields
         sections={[
           {
-            id: "authorization-section-1",
+            id: "write-key-section-1",
             fieldGroups: [
               {
-                id: "authorization-fields",
+                id: "write-key-fields",
                 name: "Write key",
                 fields: [
                   copyToClipboardField({
-                    id: "sendgrid-api-key",
+                    id: "write-key-value",
                     successNotice: "Copied write key to clipboard.",
                     failureNotice: "Failed to copy write key to clipboard.",
                     value: keyHeader,
@@ -1327,6 +1347,30 @@ function WriteKeySettings() {
           },
         ]}
       />
+    </>
+  );
+}
+
+function AdminApiKeyTable() {
+  return (
+    <>
+      <SectionHeader
+        id={settingsSectionIds.adminApiKey}
+        title="Admin API Key"
+        description=""
+      />
+      <Fields disableDivider>
+        Mytable
+      </Fields>
+    </>
+  );
+}
+
+function AuthSettings() {
+  return (
+    <Stack spacing={3}>
+      <WriteKeySettings />
+      <AdminApiKeyTable />
     </Stack>
   );
 }
@@ -1724,7 +1768,7 @@ const Settings: NextPage<
       >
         <SegmentIoConfig />
         <MessageChannelsConfig />
-        <WriteKeySettings />
+        <AuthSettings />
         <SubscriptionManagementSettings />
         <IntegrationSettings />
         <Metadata />

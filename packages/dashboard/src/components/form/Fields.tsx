@@ -4,7 +4,7 @@ import React from "react";
 import FieldSection from "./FieldSection";
 import { FieldsProps } from "./types";
 
-function Fields({ sections, children }: FieldsProps) {
+function Fields({ sections, children, disableDivider }: FieldsProps) {
   return (
     <Stack
       sx={{
@@ -18,19 +18,21 @@ function Fields({ sections, children }: FieldsProps) {
         borderColor: "grey.200",
       }}
     >
-      {sections.map((section) => (
+      {sections?.map((section) => (
         <FieldSection key={section.id} {...section} />
       ))}
       {children ? (
         <Stack
           sx={{
-            borderTopWidth: "1px",
-            borderTopStyle: "solid",
-            borderTopColor: "grey.200",
             pt: 2,
-            mt: 4,
             display: "flex",
             justifyContent: "end",
+            ...(!disableDivider && {
+              borderTopWidth: "1px",
+              borderTopStyle: "solid",
+              borderTopColor: "grey.200",
+              mt: 4,
+            })
           }}
         >
           {children}
