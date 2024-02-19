@@ -20,6 +20,7 @@ import userPropertiesController from "../controllers/userPropertiesController";
 import usersController from "../controllers/usersController";
 import webhooksController from "../controllers/webhooksController";
 import requestContext from "./requestContext";
+import apiKeyController from "../controllers/apiKeyController";
 
 export default async function router(fastify: FastifyInstance) {
   await fastify.register(indexController, { prefix: "/api" });
@@ -73,6 +74,16 @@ export default async function router(fastify: FastifyInstance) {
       ]);
     },
     { prefix: "/api/public" },
+  );
+
+  // endpoints accessible by workspace members
+  await fastify.register(
+    async (f: FastifyInstance) => {
+      await Promise.all([
+        f.register(apiKeyController, { prefix: "/api-keys" }),
+      ]);
+    },
+    { prefix: "/api/admin" },
   );
 
   await fastify.register(
