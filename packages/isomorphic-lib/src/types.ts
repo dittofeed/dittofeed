@@ -1200,6 +1200,7 @@ export type UpsertUserPropertyResource = Static<
 >;
 
 export const DeleteUserPropertyRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
 });
 

@@ -16,6 +16,74 @@ import {
 export default async function userPropertiesController(
   fastify: FastifyInstance,
 ) {
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "Get all user properties.",
+        tags: ["User Properties"],
+        body: DeleteUserPropertyRequest,
+        response: {
+          204: EmptyResponse,
+          404: {},
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.body;
+
+      let deletedCount: number;
+      try {
+        await prisma().userPropertyAssignment.deleteMany({
+          where: {
+            AND: [
+              {
+                userPropertyId: id,
+              },
+              {
+                userProperty: {
+                  name: {
+                    notIn: Array.from(protectedUserProperties),
+                  },
+                },
+              },
+            ],
+          },
+        });
+        const response = await prisma().userProperty.deleteMany({
+          where: {
+            AND: [
+              {
+                id,
+              },
+              {
+                name: {
+                  notIn: Array.from(protectedUserProperties),
+                },
+              },
+            ],
+          },
+        });
+        deletedCount = response.count;
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError) {
+          switch (e.code) {
+            case "P2025":
+              return reply.status(404).send();
+            case "P2023":
+              return reply.status(404).send();
+          }
+        }
+        throw e;
+      }
+
+      if (deletedCount <= 0) {
+        return reply.status(404).send();
+      }
+
+      return reply.status(204).send();
+    },
+  );
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/",
     {
