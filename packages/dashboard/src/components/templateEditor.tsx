@@ -60,6 +60,7 @@ import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
 import TemplatePreview from "./templatePreview";
+import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -543,7 +544,7 @@ export default function TemplateEditor({
     },
   });
 
-  let testResponseEl: React.ReactNode = null;
+  let testModalContents: React.ReactNode = null;
   if (testResponse) {
     if (
       testResponse.type === JsonResultType.Ok &&
@@ -551,11 +552,11 @@ export default function TemplateEditor({
       testResponse.value.variant.type === channel
     ) {
       const { to } = testResponse.value.variant;
-      testResponseEl = (
+      testModalContents = (
         <Alert severity="success">Message was sent successfully to {to}</Alert>
       );
     } else if (testResponse.type === JsonResultType.Err) {
-      testResponseEl = (
+      testModalContents = (
         <Stack spacing={1}>
           <Alert severity="error">
             Failed to send test message. Suggestions:
@@ -577,6 +578,14 @@ export default function TemplateEditor({
         </Stack>
       );
     }
+  } else {
+    const identiferKey = CHANNEL_IDENTIFIERS[channel];
+    const to = userProperties[identiferKey];
+    testModalContents = (
+      <Stack spacing={1}>
+        {to ? <Box>Send message to {to}</Box> : null}
+      </Stack>
+    );
   }
 
   const handleFullscreenClose = () => {
@@ -746,7 +755,7 @@ export default function TemplateEditor({
               })
             }
           >
-            {testResponseEl}
+            {testModalContents}
           </LoadingModal>
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>
