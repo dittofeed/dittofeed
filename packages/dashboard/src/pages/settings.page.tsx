@@ -40,6 +40,7 @@ import {
   SMTP_SECRET_NAME,
   TWILIO_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
+import { emailProviderLabel } from "isomorphic-lib/src/email";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -88,7 +89,7 @@ import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
-import { emailProviderLabel, getOrCreateEmailProviders } from "../lib/email";
+import { getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";

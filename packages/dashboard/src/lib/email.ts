@@ -76,7 +76,7 @@ export async function getOrCreateEmailProviders({
           if (ep) {
             emailProviders.push(ep);
           }
-        }),
+        })
       );
     }
   }
@@ -114,23 +114,4 @@ export async function getOrCreateEmailProviders({
     };
   });
   return val;
-}
-
-export function emailProviderLabel(provider: EmailProviderType): string {
-  switch (provider) {
-    case EmailProviderType.Test:
-      return "Test";
-    case EmailProviderType.Sendgrid:
-      return "Sendgrid";
-    case EmailProviderType.AmazonSes:
-      return "Amazon SES";
-    case EmailProviderType.PostMark:
-      return "Postmark";
-    case EmailProviderType.Resend:
-      return "Resend";
-    case EmailProviderType.Smtp:
-      return "SMTP";
-    default:
-      assertUnreachable(provider);
-  }
 }

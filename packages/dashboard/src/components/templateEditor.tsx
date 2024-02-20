@@ -22,7 +22,8 @@ import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import axios from "axios";
 import hash from "fnv1a";
-import { CHANNEL_IDENTIFIERS, CHANNEL_PROVIDER_TYPES, isEmailProviderType } from "isomorphic-lib/src/channels";
+import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
+import { emailProviderLabel } from "isomorphic-lib/src/email";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -38,9 +39,11 @@ import {
   MessageTemplateResourceDefinition,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
+  MobilePushProviderType,
   RenderMessageTemplateRequest,
   RenderMessageTemplateRequestContents,
   RenderMessageTemplateResponse,
+  SmsProviderType,
   UpsertMessageTemplateResource,
   UserPropertyAssignments,
   UserPropertyResource,
@@ -64,7 +67,6 @@ import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
 import TemplatePreview from "./templatePreview";
-import { emailProviderLabel } from "../lib/email";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -114,7 +116,7 @@ function ProviderOverrideSelector<P>({
   }[];
   onChange: (value: P | null) => void;
 }) {
-  const option = options.find((o) => o.id === value);
+  const option = options.find((o) => o.id === value) ?? null;
   return (
     <Autocomplete
       value={option}
@@ -130,7 +132,7 @@ function ProviderOverrideSelector<P>({
 }
 
 
-export interface TemplateState<C extends ChannelType> {
+export interface BaseTemplateState {
   fullscreen: "preview" | "editor" | null;
   userProperties: UserPropertyAssignments;
   errors: Map<string, string>;
@@ -141,8 +143,27 @@ export interface TemplateState<C extends ChannelType> {
   testResponse: MessageTemplateTestResponse | null;
   updateRequest: EphemeralRequestStatus<Error>;
   rendered: Record<string, string>;
-  providerOverride: (typeof CHANNEL_PROVIDER_TYPES)[C] | null;
 }
+
+export interface EmailTemplateState extends BaseTemplateState {
+  channel: ChannelType.Email;
+  providerOverride: EmailProviderType | null;
+}
+
+export interface SmsTemplateState extends BaseTemplateState {
+  channel: ChannelType.Sms;
+  providerOverride: SmsProviderType | null;
+}
+
+export interface MobilePushTemplateState extends BaseTemplateState {
+  channel: ChannelType.MobilePush;
+  providerOverride: MobilePushProviderType | null;
+}
+
+export type TemplateEditorState =
+  | EmailTemplateState
+  | SmsTemplateState
+  | MobilePushTemplateState;
 
 const LOREM = new LoremIpsum({
   sentencesPerParagraph: {
@@ -284,22 +305,8 @@ export default function TemplateEditor({
     });
   }, [userPropertiesResult, member]);
 
-  const [
-    {
-      fullscreen,
-      userProperties,
-      userPropertiesJSON,
-      title,
-      definition,
-      errors,
-      rendered,
-      testResponse,
-      testRequest,
-      updateRequest,
-      providerOverride
-    },
-    setState,
-  ] = useImmer<TemplateState<typeof channel>>({
+
+  const [state, setState] = useImmer<TemplateEditorState>({
     fullscreen: null,
     definition: template?.draft ?? template?.definition ?? null,
     title: template?.name ?? "",
@@ -314,8 +321,21 @@ export default function TemplateEditor({
       type: CompletionStatus.NotStarted,
     },
     providerOverride: null,
+    channel,
     rendered: {},
   });
+  const {
+    fullscreen,
+    userProperties,
+    userPropertiesJSON,
+    title,
+    definition,
+    errors,
+    rendered,
+    testResponse,
+    testRequest,
+    updateRequest,
+  } = state;
 
   // following two hooks allow for client side navigation, and for local state
   // to become synced with zustand store
@@ -549,12 +569,27 @@ export default function TemplateEditor({
     return null;
   }
 
-  const submitTestData: MessageTemplateTestRequest = {
-    channel,
+  const submitTestDataBase: Pick<
+    MessageTemplateTestRequest,
+    "workspaceId" | "templateId" | "userProperties" 
+  > = {
     workspaceId: workspace.id,
     templateId,
     userProperties,
   };
+  let submitTestData: MessageTemplateTestRequest;
+  switch (state.channel) {
+    case ChannelType.Email:
+      submitTestData = {
+        ...submitTestDataBase,
+        channel: state.channel,
+        provider: state.providerOverride ?? undefined,
+      };
+      break;
+    default:
+      throw new Error("foo")
+  }
+
 
   const submitTest = apiRequestHandlerFactory({
     request: testRequest,
@@ -616,23 +651,18 @@ export default function TemplateEditor({
   } else {
     const identiferKey = CHANNEL_IDENTIFIERS[channel];
     const to = userProperties[identiferKey];
-    // let providerOptions: {
-    //   id: (typeof CHANNEL_PROVIDER_TYPES)[typeof channel]
-    //   label: string
-    // }[];
     let providerAutocomplete: React.ReactNode;
-    switch (channel) {
+    switch (state.channel) {
       case ChannelType.Email: {
         const providerOptions: { id: EmailProviderType; label: string }[] =
           Object.values(EmailProviderType).map((type) => ({
             id: type,
             label: emailProviderLabel(type),
           }));
-        const emailProviderOverride: unknown = providerOverride;
+
         providerAutocomplete = (
           <ProviderOverrideSelector<EmailProviderType>
-            // is there a better way to do this?
-            value={emailProviderOverride as EmailProviderType | null}
+            value={state.providerOverride}
             options={providerOptions}
             onChange={(value) => {
               setState((draft) => {
@@ -648,7 +678,7 @@ export default function TemplateEditor({
     }
 
     testModalContents = (
-      <Stack spacing={1}>
+      <Stack spacing={2}>
         {to ? <Box>Send message to {to}</Box> : null}
         {providerAutocomplete}
       </Stack>
