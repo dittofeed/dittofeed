@@ -30,6 +30,7 @@ import {
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
   ChannelType,
+  EmailProvider,
   EmailProviderSecret,
   EmailProviderType,
   EmailTemplate,
@@ -40,6 +41,7 @@ import {
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
   MobilePushProviderType,
+  Secret,
   SmsProviderSecret,
   SmsProviderType,
   TwilioSecret,
@@ -363,18 +365,54 @@ function renderValues<T extends TemplateDictionary<T>>({
   return ok(coercedResult);
 }
 
+async function getEmailProvider({
+  provider,
+  workspaceId,
+}: {
+  workspaceId: string;
+  provider?: EmailProviderType;
+}): Promise<(EmailProvider & { secret: Secret | null }) | null> {
+  if (provider) {
+    return prisma().emailProvider.findUnique({
+      where: {
+        workspaceId_type: {
+          workspaceId,
+          type: provider,
+        },
+      },
+      include: {
+        secret: true,
+      },
+    });
+  }
+  const defaultProvider = await prisma().defaultEmailProvider.findUnique({
+    where: {
+      workspaceId,
+    },
+    include: {
+      emailProvider: {
+        include: {
+          secret: true,
+        },
+      },
+    },
+  });
+  return defaultProvider?.emailProvider ?? null;
+}
+
 export async function sendEmail({
   workspaceId,
   templateId,
   userPropertyAssignments,
   subscriptionGroupDetails,
   messageTags,
+  provider,
   useDraft,
 }: Omit<
   SendMessageParametersEmail,
   "channel"
 >): Promise<BackendMessageSendResult> {
-  const [getSendModelsResult, defaultEmailProvider] = await Promise.all([
+  const [getSendModelsResult, emailProvider] = await Promise.all([
     getSendMessageModels({
       workspaceId,
       templateId,
@@ -382,17 +420,9 @@ export async function sendEmail({
       useDraft,
       subscriptionGroupDetails,
     }),
-    prisma().defaultEmailProvider.findUnique({
-      where: {
-        workspaceId,
-      },
-      include: {
-        emailProvider: {
-          include: {
-            secret: true,
-          },
-        },
-      },
+    getEmailProvider({
+      workspaceId,
+      provider,
     }),
   ]);
   if (getSendModelsResult.isErr()) {
@@ -401,7 +431,7 @@ export async function sendEmail({
   const { messageTemplateDefinition, subscriptionGroupSecret } =
     getSendModelsResult.value;
 
-  if (!defaultEmailProvider?.emailProvider) {
+  if (!emailProvider) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
@@ -475,8 +505,7 @@ export async function sendEmail({
   const { from, subject, body, replyTo } = renderedValuesResult.value;
   const to = identifier;
 
-  const unvalidatedSecretConfig =
-    defaultEmailProvider.emailProvider.secret?.configValue;
+  const unvalidatedSecretConfig = emailProvider.secret?.configValue;
 
   if (!unvalidatedSecretConfig) {
     return err({
@@ -490,7 +519,7 @@ export async function sendEmail({
   }
 
   const secretConfigResult = schemaValidateWithErr(
-    defaultEmailProvider.emailProvider.secret?.configValue,
+    emailProvider.secret?.configValue,
     EmailProviderSecret
   );
   if (secretConfigResult.isErr()) {
@@ -512,7 +541,7 @@ export async function sendEmail({
   }
   const secretConfig = secretConfigResult.value;
 
-  switch (defaultEmailProvider.emailProvider.type) {
+  switch (emailProvider.type) {
     case EmailProviderType.Smtp: {
       if (secretConfig.type !== EmailProviderType.Smtp) {
         return err({
