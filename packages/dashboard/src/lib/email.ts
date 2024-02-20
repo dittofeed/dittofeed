@@ -1,6 +1,7 @@
 import { EmailProvider } from "@prisma/client";
 import logger from "backend-lib/src/logger";
 import { EMAIL_PROVIDER_TYPE_TO_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   EmailProviderSecret,
   EmailProviderType,
@@ -8,7 +9,6 @@ import {
 } from "isomorphic-lib/src/types";
 
 import prisma from "./prisma";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 async function upsertEmailProvider({
   workspaceId,
@@ -76,7 +76,7 @@ export async function getOrCreateEmailProviders({
           if (ep) {
             emailProviders.push(ep);
           }
-        })
+        }),
       );
     }
   }

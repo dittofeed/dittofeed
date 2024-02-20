@@ -28,6 +28,7 @@ import {
   jsonParseSafe,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
@@ -67,7 +68,6 @@ import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
 import TemplatePreview from "./templatePreview";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -108,11 +108,11 @@ const BodyBox = styled(Box, {
 function ProviderOverrideSelector<P>({
   value,
   options,
-  onChange
+  onChange,
 }: {
-  value: P | null,
+  value: P | null;
   options: {
-    id: P,
+    id: P;
     label: string;
   }[];
   onChange: (value: P | null) => void;
@@ -129,9 +129,8 @@ function ProviderOverrideSelector<P>({
         <TextField {...params} label="Provider Override" />
       )}
     />
-  )
+  );
 }
-
 
 export interface BaseTemplateState {
   fullscreen: "preview" | "editor" | null;
@@ -305,7 +304,6 @@ export default function TemplateEditor({
       userProperties: userPropertiesResult.value,
     });
   }, [userPropertiesResult, member]);
-
 
   const [state, setState] = useImmer<TemplateEditorState>({
     fullscreen: null,
@@ -572,7 +570,7 @@ export default function TemplateEditor({
 
   const submitTestDataBase: Pick<
     MessageTemplateTestRequest,
-    "workspaceId" | "templateId" | "userProperties" 
+    "workspaceId" | "templateId" | "userProperties"
   > = {
     workspaceId: workspace.id,
     templateId,
@@ -604,7 +602,6 @@ export default function TemplateEditor({
     default:
       assertUnreachable(state);
   }
-
 
   const submitTest = apiRequestHandlerFactory({
     request: testRequest,
