@@ -1,7 +1,11 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Fullscreen, FullscreenExit } from "@mui/icons-material";
+import {
+  CheckCircleOutline,
+  Fullscreen,
+  FullscreenExit,
+} from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -231,6 +235,7 @@ export default function TemplateEditor({
     "userProperties",
     "upsertMessage",
   ]);
+
   const template =
     messages.type === CompletionStatus.Successful
       ? messages.value.find((m) => m.id === templateId)
@@ -249,6 +254,12 @@ export default function TemplateEditor({
       userProperties: userPropertiesResult.value,
     });
   }, [userPropertiesResult, member]);
+
+  const isDraftPublished = useMemo(() => {
+    return (
+      JSON.stringify(template?.draft) === JSON.stringify(template?.definition)
+    );
+  }, [template]);
 
   const [
     {
@@ -733,8 +744,17 @@ export default function TemplateEditor({
               variant="contained"
               onClick={() => handleSave()}
               disabled={errors.size > 0}
+              sx={{
+                alignItems: "center",
+                display: "flex",
+              }}
             >
               Publish Changes
+              {isDraftPublished ? (
+                <CheckCircleOutline sx={{ ml: 1 }} fontSize="small" />
+              ) : (
+                ""
+              )}
             </Button>
           )}
           <LoadingModal
