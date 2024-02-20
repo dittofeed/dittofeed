@@ -11,6 +11,7 @@ import {
 import { err, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
+import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
 import { MESSAGE_METADATA_FIELDS } from "../constants";
@@ -149,13 +150,16 @@ export async function submitAmazonSesEvents(
         new Error(`Unhandled Amazon SES event type: ${event.eventType}`)
       );
   }
+
+  const messageId = uuidv5(event.mail.messageId, workspaceId);
+
   const items: BatchTrackData[] = [];
   if (userId) {
     items.push({
       type: EventType.Track,
       event: eventName,
       userId,
-      messageId: event.mail.messageId,
+      messageId,
       timestamp,
       properties: {
         email: event.mail.destination[0],

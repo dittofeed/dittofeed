@@ -4,9 +4,11 @@ import { err, ok, Result, ResultAsync } from "neverthrow";
 import { Message, ServerClient } from "postmark";
 import { DefaultResponse } from "postmark/dist/client/models/client/DefaultResponse";
 import { MessageSendingResponse } from "postmark/dist/client/models/message/Message";
+import * as R from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
+import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
 import {
   BatchAppData,
@@ -78,8 +80,6 @@ export function postMarkEventToDF({
 
   const userId = unwrapTag("userId", Metadata);
   const userEmail = unwrapTag("recipient", Metadata);
-  // FIXME
-  const templateId = unwrapTag("messageId", Metadata);
 
   if (!userId) {
     return err(new Error("Missing userId"));
@@ -117,7 +117,7 @@ export function postMarkEventToDF({
     return err(new Error("Missing timestamp or userEmail"));
   }
 
-  const messageId = uuidv5(userEmail, workspaceId);
+  const messageId = uuidv5(postMarkEvent.MessageID, workspaceId);
 
   let item: BatchTrackData;
   if (userId) {
@@ -129,9 +129,7 @@ export function postMarkEventToDF({
       timestamp,
       properties: {
         email: userEmail,
-        workspaceId,
-        templateId,
-        userId,
+        ...R.pick(Metadata, MESSAGE_METADATA_FIELDS),
       },
     };
   } else {

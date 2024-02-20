@@ -5,6 +5,7 @@ import * as R from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
+import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
 import {
   BatchAppData,
@@ -14,7 +15,6 @@ import {
   InternalEventType,
   SendgridEvent,
 } from "../types";
-import { MESSAGE_METADATA_FIELDS } from "../constants";
 
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object

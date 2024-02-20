@@ -54,4 +54,4 @@ export const MESSAGE_METADATA_FIELDS = [
   "userId",
   "templateId",
   "nodeId",
-];
+] as const;
