@@ -10,7 +10,7 @@ import {
 
 describe("findAllUserPropertyAssignments", () => {
   describe("when passing context with a Performed user property", () => {
-    it("should return the user property assignment", async () => {
+    it("should return the user property assignment and override existing values", async () => {
       const workspace = await prisma().workspace.create({
         data: {
           name: `test-${randomUUID()}`,
@@ -78,6 +78,76 @@ describe("findAllUserPropertyAssignments", () => {
       expect(actualAssignments).toEqual({
         [`test-${upId1}`]: "value3",
         [`test-${upId2}`]: "value2",
+      });
+    });
+  });
+
+  describe("when passing context with a Group user property", () => {
+    it.only("should return the user property assignment and respect the precedence of earlier group by operations", async () => {
+      const workspace = await prisma().workspace.create({
+        data: {
+          name: `test-${randomUUID()}`,
+        },
+      });
+
+      const upId1 = randomUUID();
+
+      // Create a user property
+      await prisma().userProperty.createMany({
+        data: [
+          {
+            id: upId1,
+            workspaceId: workspace.id,
+            name: `test-${upId1}`,
+            definition: {
+              type: UserPropertyDefinitionType.Group,
+              entry: "1",
+              nodes: [
+                {
+                  id: "1",
+                  type: UserPropertyDefinitionType.Performed,
+                  event: "test1",
+                  path: "path1",
+                },
+                {
+                  id: "2",
+                  type: UserPropertyDefinitionType.Trait,
+                  path: "path2",
+                },
+                {
+                  id: "3",
+                  type: UserPropertyDefinitionType.Performed,
+                  event: "test1",
+                  path: "path2",
+                },
+              ]
+            } satisfies UserPropertyDefinition,
+          }
+        ],
+      });
+
+      const actualAssignments1 = await findAllUserPropertyAssignments({
+        userId: "userId",
+        workspaceId: workspace.id,
+        context: {
+          path1: 1
+        },
+      });
+
+      expect(actualAssignments1).toEqual({
+        [`test-${upId1}`]: 1,
+      });
+
+      const actualAssignments2 = await findAllUserPropertyAssignments({
+        userId: "userId",
+        workspaceId: workspace.id,
+        context: {
+          path2: 2
+        },
+      });
+
+      expect(actualAssignments2).toEqual({
+        [`test-${upId1}`]: 2,
       });
     });
   });
