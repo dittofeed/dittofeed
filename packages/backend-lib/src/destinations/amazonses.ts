@@ -9,9 +9,11 @@ import {
   SESServiceException,
 } from "@aws-sdk/client-ses";
 import { err, Result, ResultAsync } from "neverthrow";
+import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
 
 import { submitBatch } from "../apps/batch";
+import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
 import {
   AmazonSesConfig,
@@ -73,7 +75,7 @@ export async function sendMail({
               ? [{ Name: k, Value: mailData.tags[k] }, ...a]
               : a;
           },
-          [],
+          []
         ),
       }
     : {};
@@ -102,25 +104,21 @@ export async function sendMail({
   const command = new SendEmailCommand(input);
 
   return ResultAsync.fromPromise(client.send(command), guardResponseError).map(
-    (resultArray) => resultArray,
+    (resultArray) => resultArray
   );
 }
 
 export async function submitAmazonSesEvents(
-  event: AmazonSesEventPayload,
+  event: AmazonSesEventPayload
 ): Promise<ResultAsync<void, Error>> {
   // TODO: Amazon may batch requests (if we send with multiple To: addresses? or with the BatchTemplated endpoint).  We should map over the receipients.
   logger().debug(event);
 
   const workspaceId = unwrapTag("workspaceId", event.mail.tags);
   const userId = unwrapTag("userId", event.mail.tags);
-  const templateId = unwrapTag("messageId", event.mail.tags);
 
   if (!workspaceId) {
     return err(new Error("Workspace id not found"));
-  }
-  if (!userId) {
-    return err(new Error("Missing userId"));
   }
 
   let timestamp: string;
@@ -148,7 +146,7 @@ export async function submitAmazonSesEvents(
       break;
     default:
       return err(
-        new Error(`Unhandled Amazon SES event type: ${event.eventType}`),
+        new Error(`Unhandled Amazon SES event type: ${event.eventType}`)
       );
   }
   const items: BatchTrackData[] = [];
@@ -161,9 +159,7 @@ export async function submitAmazonSesEvents(
       timestamp,
       properties: {
         email: event.mail.destination[0],
-        workspaceId,
-        templateId,
-        userId,
+        ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
       },
     });
   }
@@ -172,9 +168,10 @@ export async function submitAmazonSesEvents(
       workspaceId,
       data: {
         batch: items,
+        ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
       },
     }),
-    (e) => (e instanceof Error ? e : Error(e as string)),
+    (e) => (e instanceof Error ? e : Error(e as string))
   );
 }
 
@@ -185,12 +182,12 @@ export async function validSNSSignature(payload: AmazonSNSEvent) {
 }
 
 export async function confirmSubscription(
-  payload: AmazonSNSSubscriptionEvent | AmazonSNSUnsubscribeEvent,
+  payload: AmazonSNSSubscriptionEvent | AmazonSNSUnsubscribeEvent
 ) {
   return ResultAsync.fromPromise(
     new Promise((res) => {
       Https.get(payload.SubscribeURL, res);
     }),
-    (error) => error,
+    (error) => error
   );
 }

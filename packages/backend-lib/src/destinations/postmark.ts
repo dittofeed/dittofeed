@@ -53,7 +53,7 @@ export async function sendMail({
 }): Promise<ResultAsync<MessageSendingResponse, DefaultResponse>> {
   return ResultAsync.fromPromise(
     sendMailWrapper(apiKey, mailData),
-    guardResponseError,
+    guardResponseError
   ).map((resultArray) => resultArray);
 }
 
@@ -78,6 +78,7 @@ export function postMarkEventToDF({
 
   const userId = unwrapTag("userId", Metadata);
   const userEmail = unwrapTag("recipient", Metadata);
+  // FIXME
   const templateId = unwrapTag("messageId", Metadata);
 
   if (!userId) {
@@ -153,11 +154,11 @@ export async function submitPostmarkEvents({
         .mapErr((error) => {
           logger().error(
             { err: error },
-            "Failed to convert resend event to DF.",
+            "Failed to convert resend event to DF."
           );
           return error;
         })
-        .unwrapOr([]),
+        .unwrapOr([])
     ),
   };
   await submitBatch({

@@ -45,3 +45,13 @@ export const FEATURE_INCREMENTAL_COMP = "incremental-comp" as const;
 
 export const WORKSPACE_COMPUTE_LATENCY_METRIC =
   "workspace_compute_latency" as const;
+
+export const MESSAGE_METADATA_FIELDS = [
+  "workspaceId",
+  "journeyId",
+  "runId",
+  "messageId",
+  "userId",
+  "templateId",
+  "nodeId",
+];

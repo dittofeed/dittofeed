@@ -14,6 +14,7 @@ import {
   InternalEventType,
   SendgridEvent,
 } from "../types";
+import { MESSAGE_METADATA_FIELDS } from "../constants";
 
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object
@@ -37,7 +38,7 @@ export async function sendMail({
 
   return ResultAsync.fromPromise(
     sendgridMail.send(mailData),
-    guardResponseError,
+    guardResponseError
   ).map((resultArray) => resultArray[0]);
 }
 
@@ -60,15 +61,7 @@ export function sendgridEventToDF({
   let eventName: InternalEventType;
   const properties: Record<string, string> = R.merge(
     { email },
-    R.pick(sendgridEvent, [
-      "workspaceId",
-      "journeyId",
-      "runId",
-      "messageId",
-      "userId",
-      "templateId",
-      "nodeId",
-    ]),
+    R.pick(sendgridEvent, MESSAGE_METADATA_FIELDS)
   );
 
   switch (event) {
@@ -135,11 +128,11 @@ export async function submitSendgridEvents({
         .mapErr((error) => {
           logger().error(
             { err: error },
-            "Failed to convert sendgrid event to DF.",
+            "Failed to convert sendgrid event to DF."
           );
           return error;
         })
-        .unwrapOr([]),
+        .unwrapOr([])
     ),
   };
   await submitBatch({
