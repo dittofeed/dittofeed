@@ -540,6 +540,12 @@ export async function sendEmail({
     });
   }
   const secretConfig = secretConfigResult.value;
+  logger().debug(
+    {
+      emailProvider,
+    },
+    "email provider found"
+  );
 
   switch (emailProvider.type) {
     case EmailProviderType.Smtp: {

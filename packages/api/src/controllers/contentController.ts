@@ -2,6 +2,7 @@ import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { renderLiquid } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
+  SendMessageParameters,
   sendMessage,
   upsertMessageTemplate,
 } from "backend-lib/src/messageTemplates";
@@ -102,7 +103,7 @@ export default async function contentController(fastify: FastifyInstance) {
       return reply.status(200).send({
         contents: responseContents,
       });
-    },
+    }
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
@@ -120,7 +121,7 @@ export default async function contentController(fastify: FastifyInstance) {
     async (request, reply) => {
       const resource = await upsertMessageTemplate(request.body);
       return reply.status(200).send(resource);
-    },
+    }
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().post(
@@ -144,14 +145,30 @@ export default async function contentController(fastify: FastifyInstance) {
       if (typeof userId === "string") {
         messageTags.userId = userId;
       }
-      const result = await sendMessage({
+      const baseSendMessageParams: Omit<
+        SendMessageParameters,
+        "provider" | "channel"
+      > = {
         workspaceId: request.body.workspaceId,
         templateId: request.body.templateId,
         userPropertyAssignments: request.body.userProperties,
-        channel: request.body.channel,
         useDraft: true,
         messageTags,
-      });
+      };
+      let sendMessageParams: SendMessageParameters;
+      switch (request.body.channel) {
+        case ChannelType.Email: {
+          sendMessageParams = {
+            ...baseSendMessageParams,
+            channel: request.body.channel,
+            provider: request.body.provider,
+          };
+          break;
+        }
+        default:
+          throw new Error("foo");
+      }
+      const result = await sendMessage(sendMessageParams);
       if (result.isOk()) {
         return reply.status(200).send({
           type: JsonResultType.Ok,
@@ -182,7 +199,7 @@ export default async function contentController(fastify: FastifyInstance) {
                 suggestions.push(`Sendgrid responded with status: ${status}`);
                 if (status === 403) {
                   suggestions.push(
-                    "Is the configured email domain authorized in sengrid?",
+                    "Is the configured email domain authorized in sengrid?"
                   );
                 }
               }
@@ -284,7 +301,7 @@ export default async function contentController(fastify: FastifyInstance) {
       }
       logger().error(result.error, "Unexpected error sending test message");
       return reply.status(500);
-    },
+    }
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
@@ -322,6 +339,6 @@ export default async function contentController(fastify: FastifyInstance) {
       }
 
       return reply.status(204).send();
-    },
+    }
   );
 }
