@@ -46,6 +46,7 @@ import {
   SmsProviderType,
   TwilioSecret,
   UpsertMessageTemplateResource,
+  SmsProvider,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -124,7 +125,7 @@ export async function findMessageTemplate({
 }
 
 export async function upsertMessageTemplate(
-  data: UpsertMessageTemplateResource,
+  data: UpsertMessageTemplateResource
 ): Promise<MessageTemplateResource> {
   let messageTemplate: MessageTemplate;
   if (data.name && data.workspaceId) {
@@ -240,7 +241,7 @@ async function getSendMessageModels({
         workspaceId,
         err: messageTemplateResult.error,
       },
-      message,
+      message
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -257,7 +258,7 @@ async function getSendMessageModels({
         templateId,
         workspaceId,
       },
-      "message template not found",
+      "message template not found"
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -275,7 +276,7 @@ async function getSendMessageModels({
       {
         messageTemplate,
       },
-      "message template has no definition",
+      "message template has no definition"
     );
 
     return err({
@@ -363,6 +364,41 @@ function renderValues<T extends TemplateDictionary<T>>({
 
   const coercedResult = result as { [K in keyof T]: string };
   return ok(coercedResult);
+}
+
+async function getSmsProvider({
+  provider,
+  workspaceId,
+}: {
+  workspaceId: string;
+  provider?: SmsProviderType;
+}): Promise<(SmsProvider & { secret: Secret | null }) | null> {
+  if (provider) {
+    return prisma().smsProvider.findUnique({
+      where: {
+        workspaceId_type: {
+          workspaceId,
+          type: provider,
+        },
+      },
+      include: {
+        secret: true,
+      },
+    });
+  }
+  const defaultProvider = await prisma().defaultSmsProvider.findUnique({
+    where: {
+      workspaceId,
+    },
+    include: {
+      smsProvider: {
+        include: {
+          secret: true,
+        },
+      },
+    },
+  });
+  return defaultProvider?.smsProvider ?? null;
 }
 
 async function getEmailProvider({
@@ -520,7 +556,7 @@ export async function sendEmail({
 
   const secretConfigResult = schemaValidateWithErr(
     emailProvider.secret?.configValue,
-    EmailProviderSecret,
+    EmailProviderSecret
   );
   if (secretConfigResult.isErr()) {
     logger().error(
@@ -528,7 +564,7 @@ export async function sendEmail({
         err: secretConfigResult.error,
         unvalidatedSecretConfig,
       },
-      "message service provider config malformed",
+      "message service provider config malformed"
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -544,7 +580,7 @@ export async function sendEmail({
     {
       emailProvider,
     },
-    "email provider found",
+    "email provider found"
   );
 
   switch (emailProvider.type) {
@@ -980,7 +1016,7 @@ export async function sendSms({
 
   const parsedConfigResult = schemaValidateWithErr(
     smsConfig,
-    SmsProviderSecret,
+    SmsProviderSecret
   );
   if (parsedConfigResult.isErr()) {
     return err({
@@ -1126,7 +1162,7 @@ export async function sendSms({
 }
 
 export async function sendMessage(
-  params: SendMessageParameters,
+  params: SendMessageParameters
 ): Promise<BackendMessageSendResult> {
   switch (params.channel) {
     case ChannelType.Email:
