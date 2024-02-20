@@ -4,6 +4,7 @@ import { EditorView } from "@codemirror/view";
 import { Fullscreen, FullscreenExit } from "@mui/icons-material";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Dialog,
@@ -13,6 +14,7 @@ import {
   Slide,
   Stack,
   styled,
+  TextField,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -20,6 +22,7 @@ import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import axios from "axios";
 import hash from "fnv1a";
+import { CHANNEL_IDENTIFIERS, CHANNEL_PROVIDER_TYPES, isEmailProviderType } from "isomorphic-lib/src/channels";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -27,6 +30,7 @@ import {
 import {
   ChannelType,
   CompletionStatus,
+  EmailProviderType,
   EphemeralRequestStatus,
   InternalEventType,
   JsonResultType,
@@ -60,7 +64,7 @@ import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
 import TemplatePreview from "./templatePreview";
-import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
+import { emailProviderLabel } from "../lib/email";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -98,7 +102,35 @@ const BodyBox = styled(Box, {
   }),
 );
 
-export interface TemplateState {
+function ProviderOverrideSelector<P>({
+  value,
+  options,
+  onChange
+}: {
+  value: P | null,
+  options: {
+    id: P,
+    label: string;
+  }[];
+  onChange: (value: P | null) => void;
+}) {
+  const option = options.find((o) => o.id === value);
+  return (
+    <Autocomplete
+      value={option}
+      options={options}
+      onChange={(_e, newValue) => {
+        onChange(newValue?.id ?? null);
+      }}
+      renderInput={(params) => (
+        <TextField {...params} label="Provider Override" />
+      )}
+    />
+  )
+}
+
+
+export interface TemplateState<C extends ChannelType> {
   fullscreen: "preview" | "editor" | null;
   userProperties: UserPropertyAssignments;
   errors: Map<string, string>;
@@ -109,6 +141,7 @@ export interface TemplateState {
   testResponse: MessageTemplateTestResponse | null;
   updateRequest: EphemeralRequestStatus<Error>;
   rendered: Record<string, string>;
+  providerOverride: (typeof CHANNEL_PROVIDER_TYPES)[C] | null;
 }
 
 const LOREM = new LoremIpsum({
@@ -263,9 +296,10 @@ export default function TemplateEditor({
       testResponse,
       testRequest,
       updateRequest,
+      providerOverride
     },
     setState,
-  ] = useImmer<TemplateState>({
+  ] = useImmer<TemplateState<typeof channel>>({
     fullscreen: null,
     definition: template?.draft ?? template?.definition ?? null,
     title: template?.name ?? "",
@@ -279,6 +313,7 @@ export default function TemplateEditor({
     updateRequest: {
       type: CompletionStatus.NotStarted,
     },
+    providerOverride: null,
     rendered: {},
   });
 
@@ -581,9 +616,41 @@ export default function TemplateEditor({
   } else {
     const identiferKey = CHANNEL_IDENTIFIERS[channel];
     const to = userProperties[identiferKey];
+    // let providerOptions: {
+    //   id: (typeof CHANNEL_PROVIDER_TYPES)[typeof channel]
+    //   label: string
+    // }[];
+    let providerAutocomplete: React.ReactNode;
+    switch (channel) {
+      case ChannelType.Email: {
+        const providerOptions: { id: EmailProviderType; label: string }[] =
+          Object.values(EmailProviderType).map((type) => ({
+            id: type,
+            label: emailProviderLabel(type),
+          }));
+        const emailProviderOverride: unknown = providerOverride;
+        providerAutocomplete = (
+          <ProviderOverrideSelector<EmailProviderType>
+            // is there a better way to do this?
+            value={emailProviderOverride as EmailProviderType | null}
+            options={providerOptions}
+            onChange={(value) => {
+              setState((draft) => {
+                draft.providerOverride = value;
+              });
+            }}
+          />
+        );
+        break;
+      }
+      default:
+        throw new Error("foo")
+    }
+
     testModalContents = (
       <Stack spacing={1}>
         {to ? <Box>Send message to {to}</Box> : null}
+        {providerAutocomplete}
       </Stack>
     );
   }

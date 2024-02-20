@@ -88,7 +88,7 @@ import { SubscriptionManagement } from "../components/subscriptionManagement";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
-import { getOrCreateEmailProviders } from "../lib/email";
+import { emailProviderLabel, getOrCreateEmailProviders } from "../lib/email";
 import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
@@ -959,33 +959,10 @@ function DefaultEmailConfig() {
   };
 
   const options = emailProviders.map((ep) => {
-    let name: string;
     const { type } = ep;
-    switch (type) {
-      case EmailProviderType.Sendgrid:
-        name = "SendGrid";
-        break;
-      case EmailProviderType.AmazonSes:
-        name = "AmazonSES";
-        break;
-      case EmailProviderType.Smtp:
-        name = "SMTP";
-        break;
-      case EmailProviderType.Test:
-        name = "Test";
-        break;
-      case EmailProviderType.Resend:
-        name = "Resend";
-        break;
-      case EmailProviderType.PostMark:
-        name = "PostMark";
-        break;
-      default:
-        assertUnreachable(type, `Unknown email provider type ${type}`);
-    }
     return {
       value: ep.id,
-      label: name,
+      label: emailProviderLabel(type),
     };
   });
 

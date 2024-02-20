@@ -8,6 +8,7 @@ import {
 } from "isomorphic-lib/src/types";
 
 import prisma from "./prisma";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 async function upsertEmailProvider({
   workspaceId,
@@ -113,4 +114,23 @@ export async function getOrCreateEmailProviders({
     };
   });
   return val;
+}
+
+export function emailProviderLabel(provider: EmailProviderType): string {
+  switch (provider) {
+    case EmailProviderType.Test:
+      return "Test";
+    case EmailProviderType.Sendgrid:
+      return "Sendgrid";
+    case EmailProviderType.AmazonSes:
+      return "Amazon SES";
+    case EmailProviderType.PostMark:
+      return "Postmark";
+    case EmailProviderType.Resend:
+      return "Resend";
+    case EmailProviderType.Smtp:
+      return "SMTP";
+    default:
+      assertUnreachable(provider);
+  }
 }
