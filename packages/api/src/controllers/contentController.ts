@@ -3,6 +3,7 @@ import { renderLiquid } from "backend-lib/src/liquid";
 import logger from "backend-lib/src/logger";
 import {
   sendMessage,
+  SendMessageParameters,
   upsertMessageTemplate,
 } from "backend-lib/src/messageTemplates";
 import prisma from "backend-lib/src/prisma";
@@ -144,14 +145,46 @@ export default async function contentController(fastify: FastifyInstance) {
       if (typeof userId === "string") {
         messageTags.userId = userId;
       }
-      const result = await sendMessage({
+      const baseSendMessageParams: Omit<
+        SendMessageParameters,
+        "provider" | "channel"
+      > = {
         workspaceId: request.body.workspaceId,
         templateId: request.body.templateId,
         userPropertyAssignments: request.body.userProperties,
-        channel: request.body.channel,
         useDraft: true,
         messageTags,
-      });
+      };
+      let sendMessageParams: SendMessageParameters;
+      switch (request.body.channel) {
+        case ChannelType.Email: {
+          sendMessageParams = {
+            ...baseSendMessageParams,
+            channel: request.body.channel,
+            provider: request.body.provider,
+          };
+          break;
+        }
+        case ChannelType.Sms: {
+          sendMessageParams = {
+            ...baseSendMessageParams,
+            provider: request.body.provider,
+            channel: request.body.channel,
+          };
+          break;
+        }
+        case ChannelType.MobilePush: {
+          sendMessageParams = {
+            ...baseSendMessageParams,
+            provider: request.body.provider,
+            channel: request.body.channel,
+          };
+          break;
+        }
+        default:
+          assertUnreachable(request.body);
+      }
+      const result = await sendMessage(sendMessageParams);
       if (result.isOk()) {
         return reply.status(200).send({
           type: JsonResultType.Ok,

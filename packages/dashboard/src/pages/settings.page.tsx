@@ -40,6 +40,7 @@ import {
   SMTP_SECRET_NAME,
   TWILIO_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
+import { emailProviderLabel } from "isomorphic-lib/src/email";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -959,33 +960,10 @@ function DefaultEmailConfig() {
   };
 
   const options = emailProviders.map((ep) => {
-    let name: string;
     const { type } = ep;
-    switch (type) {
-      case EmailProviderType.Sendgrid:
-        name = "SendGrid";
-        break;
-      case EmailProviderType.AmazonSes:
-        name = "AmazonSES";
-        break;
-      case EmailProviderType.Smtp:
-        name = "SMTP";
-        break;
-      case EmailProviderType.Test:
-        name = "Test";
-        break;
-      case EmailProviderType.Resend:
-        name = "Resend";
-        break;
-      case EmailProviderType.PostMark:
-        name = "PostMark";
-        break;
-      default:
-        assertUnreachable(type, `Unknown email provider type ${type}`);
-    }
     return {
       value: ep.id,
-      label: name,
+      label: emailProviderLabel(type),
     };
   });
 
