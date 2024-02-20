@@ -67,6 +67,7 @@ import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
 import TemplatePreview from "./templatePreview";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -586,8 +587,22 @@ export default function TemplateEditor({
         provider: state.providerOverride ?? undefined,
       };
       break;
+    case ChannelType.Sms:
+      submitTestData = {
+        ...submitTestDataBase,
+        channel: state.channel,
+        provider: state.providerOverride ?? undefined,
+      };
+      break;
+    case ChannelType.MobilePush:
+      submitTestData = {
+        ...submitTestDataBase,
+        channel: state.channel,
+        provider: state.providerOverride ?? undefined,
+      };
+      break;
     default:
-      throw new Error("foo")
+      assertUnreachable(state);
   }
 
 
@@ -673,8 +688,47 @@ export default function TemplateEditor({
         );
         break;
       }
+      case ChannelType.Sms: {
+        const providerOptions: { id: SmsProviderType; label: string }[] =
+          Object.values(SmsProviderType).map((type) => ({
+            id: type,
+            label: type,
+          }));
+
+        providerAutocomplete = (
+          <ProviderOverrideSelector<SmsProviderType>
+            value={state.providerOverride}
+            options={providerOptions}
+            onChange={(value) => {
+              setState((draft) => {
+                draft.providerOverride = value;
+              });
+            }}
+          />
+        );
+        break;
+      }
+      case ChannelType.MobilePush: {
+        const providerOptions: { id: MobilePushProviderType; label: string }[] =
+          Object.values(MobilePushProviderType).map((type) => ({
+            id: type,
+            label: type,
+          }));
+        providerAutocomplete = (
+          <ProviderOverrideSelector<MobilePushProviderType>
+            value={state.providerOverride}
+            options={providerOptions}
+            onChange={(value) => {
+              setState((draft) => {
+                draft.providerOverride = value;
+              });
+            }}
+          />
+        );
+        break;
+      }
       default:
-        throw new Error("foo")
+        assertUnreachable(state);
     }
 
     testModalContents = (
