@@ -168,6 +168,7 @@ export default async function contentController(fastify: FastifyInstance) {
         case ChannelType.Sms: {
           sendMessageParams = {
             ...baseSendMessageParams,
+            provider: request.body.provider,
             channel: request.body.channel,
           };
           break;
@@ -175,6 +176,7 @@ export default async function contentController(fastify: FastifyInstance) {
         case ChannelType.MobilePush: {
           sendMessageParams = {
             ...baseSendMessageParams,
+            provider: request.body.provider,
             channel: request.body.channel,
           };
           break;

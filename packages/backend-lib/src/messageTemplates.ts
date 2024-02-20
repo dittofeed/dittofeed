@@ -576,12 +576,6 @@ export async function sendEmail({
     });
   }
   const secretConfig = secretConfigResult.value;
-  logger().debug(
-    {
-      emailProvider,
-    },
-    "email provider found"
-  );
 
   switch (emailProvider.type) {
     case EmailProviderType.Smtp: {
@@ -974,11 +968,12 @@ export async function sendSms({
   userPropertyAssignments,
   subscriptionGroupDetails,
   useDraft,
+  provider,
 }: Omit<
   SendMessageParametersSms,
   "channel"
 >): Promise<BackendMessageSendResult> {
-  const [getSendModelsResult, defaultProvider] = await Promise.all([
+  const [getSendModelsResult, smsProvider] = await Promise.all([
     getSendMessageModels({
       workspaceId,
       templateId,
@@ -986,17 +981,9 @@ export async function sendSms({
       useDraft,
       subscriptionGroupDetails,
     }),
-    prisma().defaultSmsProvider.findUnique({
-      where: {
-        workspaceId,
-      },
-      include: {
-        smsProvider: {
-          include: {
-            secret: true,
-          },
-        },
-      },
+    getSmsProvider({
+      workspaceId,
+      provider,
     }),
   ]);
   if (getSendModelsResult.isErr()) {
@@ -1004,7 +991,7 @@ export async function sendSms({
   }
   const { messageTemplateDefinition } = getSendModelsResult.value;
 
-  if (!defaultProvider) {
+  if (!smsProvider?.secret) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
@@ -1012,7 +999,7 @@ export async function sendSms({
       },
     });
   }
-  const smsConfig = defaultProvider.smsProvider.secret.configValue;
+  const smsConfig = smsProvider.secret.configValue;
 
   const parsedConfigResult = schemaValidateWithErr(
     smsConfig,
@@ -1090,7 +1077,7 @@ export async function sendSms({
   const { body } = renderedValuesResult.value;
   const to = identifier;
 
-  switch (defaultProvider.smsProvider.type) {
+  switch (smsProvider.type) {
     case SmsProviderType.Twilio: {
       const { accountSid, authToken, messagingServiceSid } =
         parsedConfigResult.value as TwilioSecret;
