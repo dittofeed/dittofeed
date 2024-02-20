@@ -125,9 +125,9 @@ describe("findAllUserPropertyAssignments", () => {
                   event: "test1",
                   path: "path2",
                 },
-              ]
+              ],
             } satisfies UserPropertyDefinition,
-          }
+          },
         ],
       });
 
@@ -135,7 +135,7 @@ describe("findAllUserPropertyAssignments", () => {
         userId: "userId",
         workspaceId: workspace.id,
         context: {
-          path1: 1
+          path1: 1,
         },
       });
 
@@ -147,7 +147,7 @@ describe("findAllUserPropertyAssignments", () => {
         userId: "userId",
         workspaceId: workspace.id,
         context: {
-          path2: 2
+          path2: 2,
         },
       });
 
