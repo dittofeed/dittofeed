@@ -83,7 +83,7 @@ describe("findAllUserPropertyAssignments", () => {
   });
 
   describe("when passing context with a Group user property", () => {
-    it.only("should return the user property assignment and respect the precedence of earlier group by operations", async () => {
+    it("should return the user property assignment and respect the precedence of earlier group by operations", async () => {
       const workspace = await prisma().workspace.create({
         data: {
           name: `test-${randomUUID()}`,
@@ -101,8 +101,13 @@ describe("findAllUserPropertyAssignments", () => {
             name: `test-${upId1}`,
             definition: {
               type: UserPropertyDefinitionType.Group,
-              entry: "1",
+              entry: "0",
               nodes: [
+                {
+                  id: "0",
+                  type: UserPropertyDefinitionType.AnyOf,
+                  children: ["1", "2", "3"],
+                },
                 {
                   id: "1",
                   type: UserPropertyDefinitionType.Performed,

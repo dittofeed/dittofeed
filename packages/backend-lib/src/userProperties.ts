@@ -227,7 +227,7 @@ function getAssignmentOverride(
         return value;
       }
     } else if (node.type === UserPropertyDefinitionType.Group) {
-      const childrenById: Map<string, GroupChildrenUserPropertyDefinitions> =
+      const groupNodesById: Map<string, GroupChildrenUserPropertyDefinitions> =
         node.nodes.reduce((acc, child) => {
           if (child.id) {
             acc.set(child.id, child);
@@ -235,16 +235,15 @@ function getAssignmentOverride(
           return acc;
         }, new Map<string, GroupChildrenUserPropertyDefinitions>());
 
-      let nextId: string | null = node.entry;
-      while (nextId) {
-        const next = childrenById.get(nextId);
-        if (!next) {
-          break;
+      const groupParent = groupNodesById.get(node.entry);
+      if (groupParent?.type !== UserPropertyDefinitionType.AnyOf) {
+        continue;
+      }
+      for (const childId of groupParent.children) {
+        const child = groupNodesById.get(childId);
+        if (child?.type === UserPropertyDefinitionType.Performed) {
+          nodes.push(child);
         }
-        if (next.type === UserPropertyDefinitionType.Performed) {
-          nodes.push(next);
-        }
-        nextId = next.id ?? null;
       }
     }
   }
