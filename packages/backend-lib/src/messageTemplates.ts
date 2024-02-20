@@ -39,6 +39,7 @@ import {
   MessageTemplate,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
+  MobilePushProviderType,
   SmsProviderSecret,
   SmsProviderType,
   TwilioSecret,
@@ -121,7 +122,7 @@ export async function findMessageTemplate({
 }
 
 export async function upsertMessageTemplate(
-  data: UpsertMessageTemplateResource,
+  data: UpsertMessageTemplateResource
 ): Promise<MessageTemplateResource> {
   let messageTemplate: MessageTemplate;
   if (data.name && data.workspaceId) {
@@ -237,7 +238,7 @@ async function getSendMessageModels({
         workspaceId,
         err: messageTemplateResult.error,
       },
-      message,
+      message
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -254,7 +255,7 @@ async function getSendMessageModels({
         templateId,
         workspaceId,
       },
-      "message template not found",
+      "message template not found"
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -272,7 +273,7 @@ async function getSendMessageModels({
       {
         messageTemplate,
       },
-      "message template has no definition",
+      "message template has no definition"
     );
 
     return err({
@@ -288,15 +289,35 @@ async function getSendMessageModels({
   });
 }
 
-interface SendMessageParameters {
+export interface SendMessageParametersBase {
   workspaceId: string;
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
-  channel: ChannelType;
   subscriptionGroupDetails?: SubscriptionGroupDetails;
   messageTags?: Record<string, string>;
   useDraft: boolean;
 }
+
+export interface SendMessageParametersEmail extends SendMessageParametersBase {
+  channel: ChannelType.Email;
+  provider?: EmailProviderType;
+}
+
+export interface SendMessageParametersSms extends SendMessageParametersBase {
+  channel: ChannelType.Sms;
+  provider?: SmsProviderType;
+}
+
+export interface SendMessageParametersMobilePush
+  extends SendMessageParametersBase {
+  channel: ChannelType.MobilePush;
+  provider?: MobilePushProviderType;
+}
+
+export type SendMessageParameters =
+  | SendMessageParametersEmail
+  | SendMessageParametersSms
+  | SendMessageParametersMobilePush;
 
 type TemplateDictionary<T> = {
   [K in keyof T]: {
@@ -349,7 +370,10 @@ export async function sendEmail({
   subscriptionGroupDetails,
   messageTags,
   useDraft,
-}: Omit<SendMessageParameters, "channel">): Promise<BackendMessageSendResult> {
+}: Omit<
+  SendMessageParametersEmail,
+  "channel"
+>): Promise<BackendMessageSendResult> {
   const [getSendModelsResult, defaultEmailProvider] = await Promise.all([
     getSendMessageModels({
       workspaceId,
@@ -467,7 +491,7 @@ export async function sendEmail({
 
   const secretConfigResult = schemaValidateWithErr(
     defaultEmailProvider.emailProvider.secret?.configValue,
-    EmailProviderSecret,
+    EmailProviderSecret
   );
   if (secretConfigResult.isErr()) {
     logger().error(
@@ -475,7 +499,7 @@ export async function sendEmail({
         err: secretConfigResult.error,
         unvalidatedSecretConfig,
       },
-      "message service provider config malformed",
+      "message service provider config malformed"
     );
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -879,7 +903,10 @@ export async function sendSms({
   userPropertyAssignments,
   subscriptionGroupDetails,
   useDraft,
-}: Omit<SendMessageParameters, "channel">): Promise<BackendMessageSendResult> {
+}: Omit<
+  SendMessageParametersSms,
+  "channel"
+>): Promise<BackendMessageSendResult> {
   const [getSendModelsResult, defaultProvider] = await Promise.all([
     getSendMessageModels({
       workspaceId,
@@ -918,7 +945,7 @@ export async function sendSms({
 
   const parsedConfigResult = schemaValidateWithErr(
     smsConfig,
-    SmsProviderSecret,
+    SmsProviderSecret
   );
   if (parsedConfigResult.isErr()) {
     return err({
@@ -1064,7 +1091,7 @@ export async function sendSms({
 }
 
 export async function sendMessage(
-  params: SendMessageParameters,
+  params: SendMessageParameters
 ): Promise<BackendMessageSendResult> {
   switch (params.channel) {
     case ChannelType.Email:
