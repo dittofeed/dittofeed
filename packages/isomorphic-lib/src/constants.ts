@@ -18,13 +18,11 @@ export const RESEND_SECRET = "sendgrid" as const;
 export const POSTMARK_SECRET = "postmark" as const;
 export const FCM_SECRET_NAME = "fcm-key" as const;
 export const SMTP_SECRET_NAME = "smtp" as const;
-export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<
-  SmsProviderType,
-  string
-> = {
-  [SmsProviderType.Twilio]: TWILIO_SECRET_NAME,
-  [SmsProviderType.Test]: "",
-};
+export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
+  {
+    [SmsProviderType.Twilio]: TWILIO_SECRET_NAME,
+    [SmsProviderType.Test]: "",
+  };
 
 export const EMAIL_PROVIDER_TYPE_TO_SECRET_NAME: Record<
   EmailProviderType,

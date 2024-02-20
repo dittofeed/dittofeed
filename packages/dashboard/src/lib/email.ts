@@ -75,7 +75,7 @@ export async function getOrCreateEmailProviders({
           if (ep) {
             emailProviders.push(ep);
           }
-        })
+        }),
       );
     }
   }
