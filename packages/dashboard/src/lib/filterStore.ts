@@ -160,7 +160,7 @@ export const filterStore = create(
         const partialMatches: number | undefined =
           state.userPropertyFilter[propertyId]?.partial?.length;
 
-        if (!partialMatches || !userIdsLength) return;
+        if (!partialMatches && !userIdsLength) return;
 
         if (!valueToDelete) {
           delete state.userPropertyFilter[propertyId];
