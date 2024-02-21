@@ -53,8 +53,6 @@ export async function sendMail({
   apiKey: string;
   mailData: Message;
 }): Promise<ResultAsync<MessageSendingResponse, DefaultResponse>> {
-  logger().debug({ mailData }, "loc0 sendMail");
-
   return ResultAsync.fromPromise(
     sendMailWrapper(apiKey, mailData),
     guardResponseError,
@@ -127,7 +125,6 @@ export function postMarkEventToDF({
       email: userEmail,
       ...R.pick(Metadata, MESSAGE_METADATA_FIELDS),
     };
-    logger().debug(properties, "loc1 postMarkEventToDF");
     item = {
       type: EventType.Track,
       event: eventName,
