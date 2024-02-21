@@ -50,7 +50,7 @@ function parseCursorOffset(cursor?: string): number {
       {
         err: result.error,
       },
-      "Failed to parse deliveries cursor"
+      "Failed to parse deliveries cursor",
     );
     return 0;
   }
@@ -64,7 +64,7 @@ function serializeCursorOffset(offset: number): string {
 }
 
 export function parseSearchDeliveryRow(
-  row: SearchDeliveryRow
+  row: SearchDeliveryRow,
 ): SearchDeliveriesResponseItem | null {
   const properties = row.properties.length
     ? (JSON.parse(row.properties) as Record<string, unknown>)
@@ -81,12 +81,12 @@ export function parseSearchDeliveryRow(
       to: properties.to ?? properties.email,
       ...properties,
     } as Record<string, unknown>,
-    ["email"]
+    ["email"],
   );
 
   const itemResult = schemaValidateWithErr(
     unvalidatedItem,
-    SearchDeliveriesResponseItem
+    SearchDeliveriesResponseItem,
   );
 
   if (itemResult.isErr()) {
@@ -95,7 +95,7 @@ export function parseSearchDeliveryRow(
         unvalidatedItem,
         err: itemResult.error,
       },
-      "Failed to parse delivery item from clickhouse"
+      "Failed to parse delivery item from clickhouse",
     );
     return null;
   }
@@ -116,13 +116,13 @@ export async function searchDeliveries({
   const journeyIdClause = journeyId
     ? `AND JSONExtractString(properties, 'journeyId') = ${queryBuilder.addQueryValue(
         journeyId,
-        "String"
+        "String",
       )}`
     : "";
   const userIdClause = userId
     ? `AND user_or_anonymous_id = ${queryBuilder.addQueryValue(
         userId,
-        "String"
+        "String",
       )}`
     : "";
   const query = `
@@ -157,7 +157,7 @@ export async function searchDeliveries({
     ORDER BY sent_at DESC
     LIMIT ${queryBuilder.addQueryValue(
       offset,
-      "UInt64"
+      "UInt64",
     )},${queryBuilder.addQueryValue(limit, "UInt64")}
   `;
 
@@ -167,10 +167,8 @@ export async function searchDeliveries({
     format: "JSONEachRow",
   });
 
-  logger().debug({ query }, "loc0 searchDeliveries query");
   const items: SearchDeliveriesResponseItem[] = [];
   await streamClickhouseQuery(result, (rows) => {
-    logger().debug({ rows }, " loc1 searchDeliveries rows");
     for (const row of rows) {
       const parsedRow = unwrap(schemaValidateWithErr(row, SearchDeliveryRow));
       const parsedItem = parseSearchDeliveryRow(parsedRow);

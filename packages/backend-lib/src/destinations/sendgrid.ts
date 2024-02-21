@@ -38,7 +38,7 @@ export async function sendMail({
 
   return ResultAsync.fromPromise(
     sendgridMail.send(mailData),
-    guardResponseError
+    guardResponseError,
   ).map((resultArray) => resultArray[0]);
 }
 
@@ -61,7 +61,7 @@ export function sendgridEventToDF({
   let eventName: InternalEventType;
   const properties: Record<string, string> = R.merge(
     { email },
-    R.pick(sendgridEvent, MESSAGE_METADATA_FIELDS)
+    R.pick(sendgridEvent, MESSAGE_METADATA_FIELDS),
   );
 
   switch (event) {
@@ -128,11 +128,11 @@ export async function submitSendgridEvents({
         .mapErr((error) => {
           logger().error(
             { err: error },
-            "Failed to convert sendgrid event to DF."
+            "Failed to convert sendgrid event to DF.",
           );
           return error;
         })
-        .unwrapOr([])
+        .unwrapOr([]),
     ),
   };
   await submitBatch({

@@ -76,7 +76,7 @@ export async function sendMail({
               ? [{ Name: k, Value: mailData.tags[k] }, ...a]
               : a;
           },
-          []
+          [],
         ),
       }
     : {};
@@ -105,12 +105,12 @@ export async function sendMail({
   const command = new SendEmailCommand(input);
 
   return ResultAsync.fromPromise(client.send(command), guardResponseError).map(
-    (resultArray) => resultArray
+    (resultArray) => resultArray,
   );
 }
 
 export async function submitAmazonSesEvents(
-  event: AmazonSesEventPayload
+  event: AmazonSesEventPayload,
 ): Promise<ResultAsync<void, Error>> {
   // TODO: Amazon may batch requests (if we send with multiple To: addresses? or with the BatchTemplated endpoint).  We should map over the receipients.
   logger().debug(event);
@@ -147,7 +147,7 @@ export async function submitAmazonSesEvents(
       break;
     default:
       return err(
-        new Error(`Unhandled Amazon SES event type: ${event.eventType}`)
+        new Error(`Unhandled Amazon SES event type: ${event.eventType}`),
       );
   }
 
@@ -175,7 +175,7 @@ export async function submitAmazonSesEvents(
         ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
       },
     }),
-    (e) => (e instanceof Error ? e : Error(e as string))
+    (e) => (e instanceof Error ? e : Error(e as string)),
   );
 }
 
@@ -186,12 +186,12 @@ export async function validSNSSignature(payload: AmazonSNSEvent) {
 }
 
 export async function confirmSubscription(
-  payload: AmazonSNSSubscriptionEvent | AmazonSNSUnsubscribeEvent
+  payload: AmazonSNSSubscriptionEvent | AmazonSNSUnsubscribeEvent,
 ) {
   return ResultAsync.fromPromise(
     new Promise((res) => {
       Https.get(payload.SubscribeURL, res);
     }),
-    (error) => error
+    (error) => error,
   );
 }
