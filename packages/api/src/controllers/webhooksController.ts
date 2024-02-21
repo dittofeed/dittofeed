@@ -306,10 +306,10 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const metadata = request.body.Metadata;
-      const { workspaceId } = metadata as { workspaceId: string };
+      logger().debug({ body: request.body }, "Received postmark events.");
+      const { workspaceId } = request.body.Metadata;
 
-      if (!workspaceId) {
+      if (!workspaceId || typeof workspaceId !== "string") {
         logger().error("Missing workspaceId in Metadata.");
         return reply.status(400).send({
           error: "Missing workspaceId in Metadata.",

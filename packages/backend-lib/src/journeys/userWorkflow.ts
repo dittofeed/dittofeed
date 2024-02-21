@@ -10,12 +10,14 @@ import {
 import * as wf from "@temporalio/workflow";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
+import { assertUnreachableSafe } from "../typeAssertions";
 import {
   ChannelType,
   DelayVariantType,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
+  JSONValue,
   SegmentUpdate,
   WaitForNode,
 } from "../types";
@@ -31,7 +33,6 @@ const WORKFLOW_NAME = "userJourneyWorkflow";
 const {
   sendEmail,
   getSegmentAssignment,
-  onNodeProcessed,
   onNodeProcessedV2,
   isRunnable,
   sendMobilePush,
@@ -47,17 +48,37 @@ type SegmentAssignment = Pick<
   "currentlyInSegment" | "segmentVersion"
 >;
 
+export function getUserJourneyWorkflowId({
+  userId,
+  journeyId,
+  eventKey,
+}: {
+  userId: string;
+  journeyId: string;
+  eventKey?: string;
+}): string {
+  return [`user-journey-${userId}-${journeyId}`, eventKey]
+    .filter(Boolean)
+    .join("-");
+}
+
+export interface UserJourneyWorkflowProps {
+  workspaceId: string;
+  userId: string;
+  definition: JourneyDefinition;
+  journeyId: string;
+  eventKey?: string;
+  context?: Record<string, JSONValue>;
+}
+
 export async function userJourneyWorkflow({
   workspaceId,
   userId,
   definition,
   journeyId,
-}: {
-  journeyId: string;
-  workspaceId: string;
-  definition: JourneyDefinition;
-  userId: string;
-}): Promise<void> {
+  eventKey,
+  context,
+}: UserJourneyWorkflowProps): Promise<void> {
   // TODO write end to end test
   if (!(await isRunnable({ journeyId, userId }))) {
     logger.info("early exit unrunnable user journey", {
@@ -65,6 +86,7 @@ export async function userJourneyWorkflow({
       journeyId,
       userId,
       workspaceId,
+      eventKey,
     });
     return;
   }
@@ -118,6 +140,7 @@ export async function userJourneyWorkflow({
       userId,
       runId,
       currentNode,
+      eventKey,
     };
     logger.info("user journey node", {
       ...defaultLoggingFields,
@@ -127,6 +150,18 @@ export async function userJourneyWorkflow({
       case JourneyNodeType.SegmentEntryNode: {
         const cn = currentNode;
         await wf.condition(() => segmentAssignedTrue(cn.segment));
+        nextNode = nodes.get(currentNode.child) ?? null;
+        if (!nextNode) {
+          logger.error("missing entry node child", {
+            ...defaultLoggingFields,
+            child: currentNode.child,
+          });
+          nextNode = definition.exitNode;
+          break;
+        }
+        break;
+      }
+      case JourneyNodeType.EventEntryNode: {
         nextNode = nodes.get(currentNode.child) ?? null;
         if (!nextNode) {
           logger.error("missing entry node child", {
@@ -254,6 +289,7 @@ export async function userJourneyWorkflow({
         if (wf.patched("send-message-v2")) {
           shouldContinue = await sendMessageV2({
             channel: currentNode.variant.type,
+            context,
             ...messagePayload,
           });
         } else {
@@ -301,31 +337,40 @@ export async function userJourneyWorkflow({
       case JourneyNodeType.ExitNode: {
         break nodeLoop;
       }
-      default:
+      case JourneyNodeType.ExperimentSplitNode: {
         logger.error("unable to handle un-implemented node type", {
           ...defaultLoggingFields,
           nodeType: currentNode.type,
         });
         nextNode = definition.exitNode;
         break;
+      }
+      case JourneyNodeType.RateLimitNode: {
+        logger.error("unable to handle un-implemented node type", {
+          ...defaultLoggingFields,
+          nodeType: currentNode.type,
+        });
+        nextNode = definition.exitNode;
+        break;
+      }
+      default:
+        logger.error("unable to handle un-implemented node type", {
+          ...defaultLoggingFields,
+          nodeType: currentNode,
+        });
+        nextNode = definition.exitNode;
+        assertUnreachableSafe(currentNode, "un-implemented node type");
+        break;
     }
 
-    if (wf.patched("on-node-processed-v2")) {
-      await onNodeProcessedV2({
-        workspaceId,
-        userId,
-        node: currentNode,
-        journeyStartedAt,
-        journeyId,
-      });
-    } else {
-      await onNodeProcessed({
-        userId,
-        node: currentNode,
-        journeyStartedAt,
-        journeyId,
-      });
-    }
+    await onNodeProcessedV2({
+      workspaceId,
+      userId,
+      node: currentNode,
+      journeyStartedAt,
+      journeyId,
+      eventKey,
+    });
     currentNode = nextNode;
   }
 }

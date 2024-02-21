@@ -4,6 +4,7 @@ import { EditorView } from "@codemirror/view";
 import { Fullscreen, FullscreenExit } from "@mui/icons-material";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Dialog,
@@ -13,6 +14,7 @@ import {
   Slide,
   Stack,
   styled,
+  TextField,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -20,13 +22,17 @@ import { TransitionProps } from "@mui/material/transitions";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import axios from "axios";
 import hash from "fnv1a";
+import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
+import { emailProviderLabel } from "isomorphic-lib/src/email";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
+  EmailProviderType,
   EphemeralRequestStatus,
   InternalEventType,
   JsonResultType,
@@ -34,9 +40,11 @@ import {
   MessageTemplateResourceDefinition,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
+  MobilePushProviderType,
   RenderMessageTemplateRequest,
   RenderMessageTemplateRequestContents,
   RenderMessageTemplateResponse,
+  SmsProviderType,
   UpsertMessageTemplateResource,
   UserPropertyAssignments,
   UserPropertyResource,
@@ -97,7 +105,34 @@ const BodyBox = styled(Box, {
   }),
 );
 
-export interface TemplateState {
+function ProviderOverrideSelector<P>({
+  value,
+  options,
+  onChange,
+}: {
+  value: P | null;
+  options: {
+    id: P;
+    label: string;
+  }[];
+  onChange: (value: P | null) => void;
+}) {
+  const option = options.find((o) => o.id === value) ?? null;
+  return (
+    <Autocomplete
+      value={option}
+      options={options}
+      onChange={(_e, newValue) => {
+        onChange(newValue?.id ?? null);
+      }}
+      renderInput={(params) => (
+        <TextField {...params} label="Provider Override" />
+      )}
+    />
+  );
+}
+
+export interface BaseTemplateState {
   fullscreen: "preview" | "editor" | null;
   userProperties: UserPropertyAssignments;
   errors: Map<string, string>;
@@ -109,6 +144,26 @@ export interface TemplateState {
   updateRequest: EphemeralRequestStatus<Error>;
   rendered: Record<string, string>;
 }
+
+export interface EmailTemplateState extends BaseTemplateState {
+  channel: ChannelType.Email;
+  providerOverride: EmailProviderType | null;
+}
+
+export interface SmsTemplateState extends BaseTemplateState {
+  channel: ChannelType.Sms;
+  providerOverride: SmsProviderType | null;
+}
+
+export interface MobilePushTemplateState extends BaseTemplateState {
+  channel: ChannelType.MobilePush;
+  providerOverride: MobilePushProviderType | null;
+}
+
+export type TemplateEditorState =
+  | EmailTemplateState
+  | SmsTemplateState
+  | MobilePushTemplateState;
 
 const LOREM = new LoremIpsum({
   sentencesPerParagraph: {
@@ -250,21 +305,7 @@ export default function TemplateEditor({
     });
   }, [userPropertiesResult, member]);
 
-  const [
-    {
-      fullscreen,
-      userProperties,
-      userPropertiesJSON,
-      title,
-      definition,
-      errors,
-      rendered,
-      testResponse,
-      testRequest,
-      updateRequest,
-    },
-    setState,
-  ] = useImmer<TemplateState>({
+  const [state, setState] = useImmer<TemplateEditorState>({
     fullscreen: null,
     definition: template?.draft ?? template?.definition ?? null,
     title: template?.name ?? "",
@@ -278,8 +319,22 @@ export default function TemplateEditor({
     updateRequest: {
       type: CompletionStatus.NotStarted,
     },
+    providerOverride: null,
+    channel,
     rendered: {},
   });
+  const {
+    fullscreen,
+    userProperties,
+    userPropertiesJSON,
+    title,
+    definition,
+    errors,
+    rendered,
+    testResponse,
+    testRequest,
+    updateRequest,
+  } = state;
 
   // following two hooks allow for client side navigation, and for local state
   // to become synced with zustand store
@@ -513,12 +568,40 @@ export default function TemplateEditor({
     return null;
   }
 
-  const submitTestData: MessageTemplateTestRequest = {
-    channel,
+  const submitTestDataBase: Pick<
+    MessageTemplateTestRequest,
+    "workspaceId" | "templateId" | "userProperties"
+  > = {
     workspaceId: workspace.id,
     templateId,
     userProperties,
   };
+  let submitTestData: MessageTemplateTestRequest;
+  switch (state.channel) {
+    case ChannelType.Email:
+      submitTestData = {
+        ...submitTestDataBase,
+        channel: state.channel,
+        provider: state.providerOverride ?? undefined,
+      };
+      break;
+    case ChannelType.Sms:
+      submitTestData = {
+        ...submitTestDataBase,
+        channel: state.channel,
+        provider: state.providerOverride ?? undefined,
+      };
+      break;
+    case ChannelType.MobilePush:
+      submitTestData = {
+        ...submitTestDataBase,
+        channel: state.channel,
+        provider: state.providerOverride ?? undefined,
+      };
+      break;
+    default:
+      assertUnreachable(state);
+  }
 
   const submitTest = apiRequestHandlerFactory({
     request: testRequest,
@@ -543,7 +626,7 @@ export default function TemplateEditor({
     },
   });
 
-  let testResponseEl: React.ReactNode = null;
+  let testModalContents: React.ReactNode = null;
   if (testResponse) {
     if (
       testResponse.type === JsonResultType.Ok &&
@@ -551,11 +634,11 @@ export default function TemplateEditor({
       testResponse.value.variant.type === channel
     ) {
       const { to } = testResponse.value.variant;
-      testResponseEl = (
+      testModalContents = (
         <Alert severity="success">Message was sent successfully to {to}</Alert>
       );
     } else if (testResponse.type === JsonResultType.Err) {
-      testResponseEl = (
+      testModalContents = (
         <Stack spacing={1}>
           <Alert severity="error">
             Failed to send test message. Suggestions:
@@ -577,6 +660,80 @@ export default function TemplateEditor({
         </Stack>
       );
     }
+  } else {
+    const identiferKey = CHANNEL_IDENTIFIERS[channel];
+    const to = userProperties[identiferKey];
+    let providerAutocomplete: React.ReactNode;
+    switch (state.channel) {
+      case ChannelType.Email: {
+        const providerOptions: { id: EmailProviderType; label: string }[] =
+          Object.values(EmailProviderType).map((type) => ({
+            id: type,
+            label: emailProviderLabel(type),
+          }));
+
+        providerAutocomplete = (
+          <ProviderOverrideSelector<EmailProviderType>
+            value={state.providerOverride}
+            options={providerOptions}
+            onChange={(value) => {
+              setState((draft) => {
+                draft.providerOverride = value;
+              });
+            }}
+          />
+        );
+        break;
+      }
+      case ChannelType.Sms: {
+        const providerOptions: { id: SmsProviderType; label: string }[] =
+          Object.values(SmsProviderType).map((type) => ({
+            id: type,
+            label: type,
+          }));
+
+        providerAutocomplete = (
+          <ProviderOverrideSelector<SmsProviderType>
+            value={state.providerOverride}
+            options={providerOptions}
+            onChange={(value) => {
+              setState((draft) => {
+                draft.providerOverride = value;
+              });
+            }}
+          />
+        );
+        break;
+      }
+      case ChannelType.MobilePush: {
+        const providerOptions: { id: MobilePushProviderType; label: string }[] =
+          Object.values(MobilePushProviderType).map((type) => ({
+            id: type,
+            label: type,
+          }));
+        providerAutocomplete = (
+          <ProviderOverrideSelector<MobilePushProviderType>
+            value={state.providerOverride}
+            options={providerOptions}
+            onChange={(value) => {
+              setState((draft) => {
+                draft.providerOverride = value;
+              });
+            }}
+          />
+        );
+        break;
+      }
+      default:
+        assertUnreachable(state);
+    }
+
+    testModalContents = (
+      <Stack spacing={2}>
+        {to ? <Box>Send message to {to}</Box> : null}
+        {providerAutocomplete}
+      </Stack>
+    );
   }
 
   const handleFullscreenClose = () => {
@@ -746,7 +903,7 @@ export default function TemplateEditor({
               })
             }
           >
-            {testResponseEl}
+            {testModalContents}
           </LoadingModal>
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>

@@ -5,6 +5,7 @@ import {
   ChannelType,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
+  DefaultSmsProviderResource,
   DelayVariantType,
   DFRequestContext,
   EntryNode,
@@ -20,6 +21,7 @@ import {
   MessageTemplateResource,
   PartialExceptType,
   PersistedEmailProvider,
+  PersistedSmsProvider,
   RequestStatus,
   SecondsDelayVariant,
   SecretAvailabilityResource,
@@ -28,7 +30,6 @@ import {
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
-  SmsProviderConfig,
   SourceControlProviderEnum,
   SubscriptionGroupResource,
   UserPropertyDefinition,
@@ -89,7 +90,8 @@ export type AppState = {
   secretAvailability: SecretAvailabilityResource[];
   defaultEmailProvider: DefaultEmailProviderResource | null;
   emailProviders: PersistedEmailProvider[];
-  smsProviders: SmsProviderConfig[];
+  defaultSmsProvider: DefaultSmsProviderResource | null;
+  smsProviders: PersistedSmsProvider[];
   dataSourceConfigurations: RequestStatus<
     DataSourceConfigurationResource[],
     Error
@@ -110,7 +112,7 @@ export type AppState = {
 export interface AppActions {
   toggleDrawer: () => void;
   upsertEmailProvider: (emailProvider: PersistedEmailProvider) => void;
-  upsertSmsProvider: (smsProvider: SmsProviderConfig) => void;
+  upsertSmsProvider: (response: PersistedSmsProvider) => void;
   upsertDataSourceConfiguration: (
     dataSource: DataSourceConfigurationResource,
   ) => void;
@@ -134,6 +136,9 @@ export interface AppActions {
   setGetTraitsRequest: (request: EphemeralRequestStatus<Error>) => void;
   setDefaultEmailProvider: (
     defaultEmailProvider: DefaultEmailProviderResource,
+  ) => void;
+  setDefaultSmsProvider: (
+    defaultSmsProvider: DefaultSmsProviderResource,
   ) => void;
 }
 

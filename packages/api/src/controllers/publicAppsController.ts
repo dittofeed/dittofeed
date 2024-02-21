@@ -1,11 +1,11 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import {
-  submitBatch,
+  submitBatchkWithTriggers,
   submitIdentify,
   submitPage,
   submitScreen,
-  submitTrack,
+  submitTrackWithTriggers,
 } from "backend-lib/src/apps";
 import { validateWriteKey } from "backend-lib/src/auth";
 import logger from "backend-lib/src/logger";
@@ -86,7 +86,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
         });
       }
 
-      await submitTrack({
+      await submitTrackWithTriggers({
         workspaceId: workspaceIdFromWriteKey,
         data: request.body,
       });
@@ -225,7 +225,7 @@ export default async function publicAppsController(fastify: FastifyInstance) {
           message: "Invalid write key.",
         });
       }
-      await submitBatch({
+      await submitBatchkWithTriggers({
         workspaceId: workspaceIdFromWriteKey,
         data: request.body,
       });

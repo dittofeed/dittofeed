@@ -79,7 +79,6 @@ function Profile() {
     [options, selectedWorkspaceId],
   );
 
-  // FIXME clickaway listner screws up
   return (
     <Box sx={{ flexShrink: 0, ml: 0.75 }}>
       <ButtonBase

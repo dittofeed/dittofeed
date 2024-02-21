@@ -984,7 +984,14 @@ export enum EmailProviderType {
   Test = "Test",
 }
 
+export enum MobilePushProviderType {
+  Firebase = "Firebase",
+  Test = "Test",
+}
+
 export const TestEmailProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
   type: Type.Literal(EmailProviderType.Test),
 });
 
@@ -1036,6 +1043,7 @@ export const PersistedEmailProvider = Type.Union([
   PostMarkEmailProvider,
   ResendEmailProvider,
   SmtpEmailProvider,
+  TestEmailProvider
 ]);
 
 export type PersistedEmailProvider = Static<typeof PersistedEmailProvider>;
@@ -1197,11 +1205,28 @@ export type UpsertUserPropertyResource = Static<
 >;
 
 export const DeleteUserPropertyRequest = Type.Object({
+  workspaceId: Type.String(),
   id: Type.String(),
 });
 
 export type DeleteUserPropertyRequest = Static<
   typeof DeleteUserPropertyRequest
+>;
+
+export const ReadAllUserPropertiesRequest = Type.Object({
+  workspaceId: Type.String(),
+});
+
+export type ReadAllUserPropertiesRequest = Static<
+  typeof ReadAllUserPropertiesRequest
+>;
+
+export const ReadAllUserPropertiesResponse = Type.Object({
+  userProperties: Type.Array(UserPropertyResource),
+});
+
+export type ReadAllUserPropertiesResponse = Static<
+  typeof ReadAllUserPropertiesResponse
 >;
 
 export enum CursorDirectionEnum {
@@ -1246,6 +1271,7 @@ export const GetUsersResponse = Type.Object({
   users: Type.Array(GetUsersResponseItem),
   previousCursor: Type.Optional(Type.String()),
   nextCursor: Type.Optional(Type.String()),
+  userCount: Type.Number(),
 });
 
 export type GetUsersResponse = Static<typeof GetUsersResponse>;
@@ -1875,7 +1901,7 @@ const MessageNodeStats = Type.Object({
     childEdge: Type.Number(),
   }),
   sendRate: Type.Number(),
-  channelStats: MessageChannelStats,
+  channelStats: Type.Optional(MessageChannelStats),
 });
 
 const DelayNodeStats = Type.Object({
@@ -1935,26 +1961,66 @@ export enum SmsProviderType {
   Test = "Test",
 }
 
-export const TwilioSmsProvider = Type.Object({
+export const TwilioSecret = Type.Object({
   type: Type.Literal(SmsProviderType.Twilio),
   accountSid: Type.Optional(Type.String()),
   messagingServiceSid: Type.Optional(Type.String()),
   authToken: Type.Optional(Type.String()),
 });
 
+export const TwilioSmsProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Optional(Type.Literal(SmsProviderType.Twilio)),
+});
+
+export type TwilioSecret = Static<typeof TwilioSecret>;
+
+export const TestSmsSecret = Type.Object({
+  type: Type.Literal(SmsProviderType.Test),
+});
+
+export type TestSmsSecret = Static<typeof TestSmsSecret>;
+
+export const TestSmsProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Literal(SmsProviderType.Test),
+});
+
+export const SmsProviderSecret = Type.Union([
+    TwilioSecret,
+    TestSmsSecret
+]);
+
+export type SmsProviderSecret = Static<typeof SmsProviderSecret>;
+
+export type TwilioProviderConfig = Required<Pick<TwilioSecret, "accountSid" | "messagingServiceSid" | "authToken">>;
+
 export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
 
-export const SmsProviderConfig = Type.Union([TwilioSmsProvider]);
+export const PersistedSmsProvider = Type.Union([
+    TwilioSmsProvider,
+    TestSmsProvider
+]);
 
-export type SmsProviderConfig = Static<typeof SmsProviderConfig>;
+export type PersistedSmsProvider = Static<typeof PersistedSmsProvider>;
 
 export const UpsertSmsProviderRequest = Type.Object({
   workspaceId: Type.String(),
   setDefault: Type.Optional(Type.Boolean()),
-  smsProvider: SmsProviderConfig,
+  type: Type.Optional(Type.Enum(SmsProviderType)),
+  secret: Type.Omit(SmsProviderSecret, ['type'])
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
+
+export const DefaultSmsProviderResource = Type.Object({
+  workspaceId: Type.String(),
+  smsProviderId: Type.String(),
+});
+
+export type DefaultSmsProviderResource = Static<typeof DefaultSmsProviderResource>;
 
 // Compatible as both a subset of EnrichedJourney and JourneyResource
 export interface CompatibleJourney {
@@ -2318,12 +2384,30 @@ export type BackendMessageSendResult = Result<
   MessageSendFailure
 >;
 
-export const MessageTemplateTestRequest = Type.Object({
+const BaseMessageTemplateTestRequest = {
   workspaceId: Type.String(),
   templateId: Type.String(),
-  channel: Type.Enum(ChannelType),
   userProperties: Type.Record(Type.String(), Type.Any()),
-});
+} as const;
+
+export const MessageTemplateTestRequest = Type.Union([
+  Type.Object({
+    ...BaseMessageTemplateTestRequest,
+    channel: Type.Literal(ChannelType.Email),
+    provider: Type.Optional(Type.Enum(EmailProviderType)),
+  }),
+  Type.Object({
+    ...BaseMessageTemplateTestRequest,
+    channel: Type.Literal(ChannelType.Sms),
+    provider: Type.Optional(Type.Enum(SmsProviderType)),
+  }),
+  Type.Object({
+    ...BaseMessageTemplateTestRequest,
+    channel: Type.Literal(ChannelType.MobilePush),
+    provider: Type.Optional(Type.Enum(MobilePushProviderType)),
+  }),
+]);
+
 
 export type MessageTemplateTestRequest = Static<
   typeof MessageTemplateTestRequest
@@ -2453,6 +2537,12 @@ export const AmazonSesMailFields = Type.Object({
 
 export type AmazonSesMailFields = Static<typeof AmazonSesMailFields>;
 
+export const TestEmailSecret = Type.Object({
+  type: Type.Literal(EmailProviderType.Test),
+});
+
+export type TestEmailSecret = Static<typeof TestEmailSecret>;
+
 export const ResendSecret = Type.Object({
   type: Type.Literal(EmailProviderType.Resend),
   apiKey: Type.Optional(Type.String()),
@@ -2479,6 +2569,7 @@ export const EmailProviderSecret = Type.Union([
   AmazonSesSecret,
   SmtpSecret,
   ResendSecret,
+  TestEmailSecret
 ]);
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
@@ -2514,3 +2605,42 @@ export interface Resource {
 export type PartialExceptType<T, TD> = Partial<Omit<T, "type">> & {
   type: TD;
 };
+
+export enum AdminApiKeyPermission {
+  Admin = "Admin",
+}
+
+export enum AdminApiKeyType {
+  AdminApiKey = "AdminApiKey",
+}
+
+export const AdminApiKeyDefinition = Type.Object({
+  type: Type.Literal(AdminApiKeyType.AdminApiKey),
+  key: Type.String(),
+  permissions: Type.Array(Type.Union([Type.Literal(AdminApiKeyPermission.Admin)])),
+});
+
+export type AdminApiKeyDefinition = Static<typeof AdminApiKeyDefinition>;
+
+export const CreateAdminApiKeyRequest = Type.Object({
+  workspaceId: Type.String(),
+  name: Type.String(),
+});
+
+export type CreateAdminApiKeyRequest = Static<typeof CreateAdminApiKeyRequest>;
+
+export const CreateAdminApiKeyResponse = Type.Object({
+  id: Type.String(),
+  apiKey: Type.String(),
+  name: Type.String(),
+  workspaceId: Type.String(),
+});
+
+export type CreateAdminApiKeyResponse = Static<typeof CreateAdminApiKeyResponse>;
+
+export const DeleteAdminApiKeyRequest = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+});
+
+export type DeleteAdminApiKeyRequest = Static<typeof DeleteAdminApiKeyRequest>;

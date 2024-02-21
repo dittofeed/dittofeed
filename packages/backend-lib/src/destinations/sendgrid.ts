@@ -4,7 +4,8 @@ import { err, ok, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
-import { submitBatch } from "../apps";
+import { submitBatch } from "../apps/batch";
+import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
 import {
   BatchAppData,
@@ -60,15 +61,7 @@ export function sendgridEventToDF({
   let eventName: InternalEventType;
   const properties: Record<string, string> = R.merge(
     { email },
-    R.pick(sendgridEvent, [
-      "workspaceId",
-      "journeyId",
-      "runId",
-      "messageId",
-      "userId",
-      "templateId",
-      "nodeId",
-    ]),
+    R.pick(sendgridEvent, MESSAGE_METADATA_FIELDS),
   );
 
   switch (event) {

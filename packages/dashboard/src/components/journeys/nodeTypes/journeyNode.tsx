@@ -439,7 +439,9 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
           height: stats ? undefined : 0,
         }}
       >
-        {stats && stats.type === NodeStatsType.MessageNodeStats ? (
+        {stats &&
+        stats.type === NodeStatsType.MessageNodeStats &&
+        stats.channelStats ? (
           <>
             <StatCategory label="Sent" rate={stats.sendRate} />
             <StatCategory

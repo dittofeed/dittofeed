@@ -156,7 +156,7 @@ export async function getUsers({
           LIMIT ${limit}
       )
 
-      SELECT 
+      SELECT
         cr."userId",
         cr."type",
         cr."computedPropertyName",
@@ -200,13 +200,19 @@ export async function getUsers({
       ORDER BY "userId" ASC;
     `;
 
-  const [results, userProperties] = await Promise.all([
+  const countQuery = Prisma.sql`
+    SELECT COUNT(DISTINCT "userId") as "userCount"
+    FROM (${userIdQueries}) AS all_user_ids
+  `;
+
+  const [results, userProperties, countResults] = await Promise.all([
     prisma().$queryRaw(query),
     prisma().userProperty.findMany({
       where: {
         workspaceId,
       },
     }),
+    prisma().$queryRaw(countQuery),
   ]);
   const userPropertyMap = userProperties.reduce<Map<string, UserProperty>>(
     (acc, property) => {
@@ -284,6 +290,7 @@ export async function getUsers({
 
   const val: GetUsersResponse = {
     users: Array.from(userMap.values()),
+    userCount: (countResults as [{ userCount: number }])[0].userCount,
   };
 
   if (nextCursor) {

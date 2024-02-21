@@ -19,6 +19,7 @@ import { HUBSPOT_INTEGRATION } from "../constants";
 import { startHubspotUserIntegrationWorkflow } from "../integrations/hubspot/signalUtils";
 import { getSubscribedSegments } from "../journeys";
 import {
+  getUserJourneyWorkflowId,
   segmentUpdateSignal,
   userJourneyWorkflow,
 } from "../journeys/userWorkflow";
@@ -179,7 +180,10 @@ async function signalJourney({
   }
 
   const { workflowClient } = getContext();
-  const workflowId = `user-journey-${journey.id}-${segmentAssignment.user_id}`;
+  const workflowId = getUserJourneyWorkflowId({
+    journeyId: journey.id,
+    userId: segmentAssignment.user_id,
+  });
 
   const userId = segmentAssignment.user_id;
   await workflowClient.signalWithStart<
