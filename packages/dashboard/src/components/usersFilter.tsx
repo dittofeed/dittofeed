@@ -30,7 +30,6 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
   );
   const properties = filterStore((store) => store.properties);
   const segments = filterStore((store) => store.segments);
-  const propertiesValues = filterStore((store) => store.propertiesValues);
   const getUserPropertiesRequest = filterStore(
     (store) => store.getUserPropertiesRequest,
   );
@@ -104,17 +103,6 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
                     }
                   >
                     {partial.slice(0, -1)}
-                  </Typography>
-                ))}
-              {property.userIds &&
-                property.userIds.map((userId) => (
-                  <Typography
-                    color="inherit"
-                    sx={{ cursor: "pointer" }}
-                    key={userId}
-                    onClick={() => removePropertyFilter(property.id, userId)}
-                  >
-                    {propertiesValues[property.id]![userId]}
                   </Typography>
                 ))}
             </Breadcrumbs>

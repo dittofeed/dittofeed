@@ -12,7 +12,7 @@ export function camelCaseToNormalText(camelCaseString: string) {
   const words = camelCaseString.replace(/([a-z])([A-Z])/g, "$1 $2").split(" ");
 
   // Capitalize each word
-  const capitalizedWords = words.map(function (word: string) {
+  const capitalizedWords = words.map(function(word: string) {
     return word.charAt(0).toUpperCase() + word.slice(1);
   });
 
@@ -43,12 +43,6 @@ interface UserPropertiesState {
   // value = property_value
   // { uuid: "firstName" }
   properties: Record<string, string>;
-  // Object stores available values for selected properties.
-  // key = propertyId
-  // value = { userId: propertyValue }
-  propertiesValues: Record<string, Record<string, string>>;
-  // String = propertyId
-  // used to index propertiesValues
   selectedId: string;
   segments: Record<string, string>;
   selectedFilter: FilterOptions;
@@ -56,7 +50,6 @@ interface UserPropertiesState {
     string,
     {
       id: string;
-      userIds?: string[];
       partial?: string[];
     }
   >;
@@ -69,7 +62,6 @@ interface UserPropertiesActions {
   setSegments: (val: Pick<SegmentResource, "name" | "id">[]) => void;
   setSelectedFilter: (val: FilterOptions) => void;
   setSelectedId: (val: string) => void;
-  setPropertiesValues: (val: Record<string, string>) => void;
   setSegmentFilter: (val: string) => void;
   setUserPropertyFilter: (val: string, isPartialMatch?: boolean) => void;
   removePropertyFilter: (
@@ -117,55 +109,36 @@ export const filterStore = create(
       set((state) => {
         state.selectedId = property;
       }),
-    setPropertiesValues: (propertyValues) =>
-      set((state) => {
-        state.propertiesValues[state.selectedId] = propertyValues;
-      }),
     setSegmentFilter: (selectedSegmentId) =>
       set((state) => {
         if (!state.segmentFilter.includes(selectedSegmentId)) {
           state.segmentFilter.push(selectedSegmentId);
         }
       }),
-    setUserPropertyFilter: (selectedPropertyValue, isPartialMatch) =>
+    setUserPropertyFilter: (selectedPropertyValue) =>
       set((state) => {
         if (state.userPropertyFilter[state.selectedId]) {
-          if (!isPartialMatch) {
-            state.userPropertyFilter[state.selectedId]?.userIds?.push(
-              selectedPropertyValue,
-            );
-          } else {
-            state.userPropertyFilter[state.selectedId]?.partial?.push(
-              `${selectedPropertyValue}%`,
-            );
-          }
-        } else if (!isPartialMatch) {
-          state.userPropertyFilter[state.selectedId] = {
-            id: state.selectedId,
-            userIds: [selectedPropertyValue],
-            partial: [],
-          };
+          state.userPropertyFilter[state.selectedId]?.partial?.push(
+            `${selectedPropertyValue.toLowerCase()}%`,
+          );
         } else {
           state.userPropertyFilter[state.selectedId] = {
             id: state.selectedId,
-            userIds: [],
-            partial: [`${selectedPropertyValue}%`],
+            partial: [`${selectedPropertyValue.toLowerCase()}%`],
           };
         }
       }),
     removePropertyFilter: (propertyId, valueToDelete, isPartialMatch) =>
       set((state) => {
-        const userIdsLength: number | undefined =
-          state.userPropertyFilter[propertyId]?.userIds?.length;
-        const partialMatches: number | undefined =
+        const partialMatchesLength: number | undefined =
           state.userPropertyFilter[propertyId]?.partial?.length;
 
-        if (!partialMatches && !userIdsLength) return;
+        if (!partialMatchesLength) return;
 
-        if (!valueToDelete) {
-          delete state.userPropertyFilter[propertyId];
-        } else if (isPartialMatch) {
-          if (!userIdsLength && partialMatches < 2) {
+        if (!valueToDelete) delete state.userPropertyFilter[propertyId];
+
+        if (isPartialMatch) {
+          if (partialMatchesLength < 2) {
             delete state.userPropertyFilter[propertyId];
           } else {
             (state.userPropertyFilter[propertyId] as any).partial =
@@ -173,13 +146,6 @@ export const filterStore = create(
                 (partialMatch) => partialMatch !== valueToDelete,
               );
           }
-        } else if (!partialMatches && userIdsLength < 2) {
-          delete state.userPropertyFilter[propertyId];
-        } else {
-          (state.userPropertyFilter[propertyId] as any).userIds =
-            state.userPropertyFilter[propertyId]?.userIds?.filter(
-              (userId) => userId !== valueToDelete,
-            );
         }
       }),
     removeSegmentFilter: (segmentId) =>

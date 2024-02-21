@@ -3,11 +3,7 @@ import { Box, Stack, TextField, Typography } from "@mui/material";
 import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { GetComputedPropertyAssignmentResourcesResponse } from "isomorphic-lib/src/types";
 import * as React from "react";
-
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
 import { filterIds, FilterOptions, filterStore } from "../lib/filterStore";
 
 enum Stage {
@@ -19,20 +15,44 @@ enum Stage {
 function Options({
   handleSelection,
   filteredOptions,
+  isDisabled
 }: {
   handleSelection: (selectedProperty: string | undefined) => void;
   filteredOptions: [string, string][];
+  isDisabled: boolean
 }) {
+
   return (
     <>
-      {filteredOptions.map((property) => (
-        <MenuItem
-          key={property[0]}
-          onClick={() => handleSelection(property[0])}
-        >
-          {property[1]}
-        </MenuItem>
-      ))}
+      {isDisabled
+        ? (
+          <Stack minWidth="100%" justifyContent="center" alignItems="center">
+            <Typography
+              sx={{
+                opacity: "0.6"
+              }}
+              variant="caption"
+              paddingTop={"6px"}
+              component={"div"}
+            >
+              Filtering by {filteredOptions[0] ? filteredOptions[0][1] : null}
+            </Typography>
+          </Stack>
+        )
+        : (
+          <>
+            {filteredOptions.map((property) => (
+              <MenuItem
+                disabled={isDisabled}
+                key={property[0]}
+                onClick={() => handleSelection(property[0])}
+              >
+                {property[1]}
+              </MenuItem>
+            ))}
+          </>
+        )
+      }
     </>
   );
 }
@@ -41,7 +61,6 @@ function IdAndValueSelector({
   stage,
   handleIdSelection,
   handleValueSelection,
-  workspaceId,
   filter,
   setFilter,
 }: {
@@ -60,59 +79,9 @@ function IdAndValueSelector({
   // From filterStore, get all segments and properties
   const segments = filterStore((store) => store.segments);
   const properties = filterStore((store) => store.properties);
+  const selectedId = filterStore((store) => store.selectedId);
   /// ///////////////////////////////
   // END ID Selector Related
-  /// ///////////////////////////////
-
-  /// ///////////////////////////////
-  // START UserPropertyValue Selector Related
-  /// ///////////////////////////////
-  // Get property value request related
-  const apiBase = useAppStore((store) => store.apiBase);
-  const getUserPropertiesRequest = filterStore(
-    (store) => store.getUserPropertiesRequest,
-  );
-  const setGetUserPropertiesRequest = filterStore(
-    (store) => store.setGetUserPropertiesRequest,
-  );
-  const setPropertiesValues = filterStore((store) => store.setPropertiesValues);
-  // Record<propertyId,value>
-  const propertiesValues = filterStore((store) => store.propertiesValues);
-  // SelectedPropertyId used to index propertiesValues
-  // and GET property values if needed.
-  const selectedProperty = filterStore((store) => store.selectedId);
-
-  React.useEffect(() => {
-    const setLoadResponse = (
-      response: GetComputedPropertyAssignmentResourcesResponse,
-    ) => {
-      setPropertiesValues(response.values);
-    };
-
-    const handler = apiRequestHandlerFactory({
-      request: getUserPropertiesRequest,
-      setRequest: setGetUserPropertiesRequest,
-      responseSchema: GetComputedPropertyAssignmentResourcesResponse,
-      setResponse: setLoadResponse,
-      requestConfig: {
-        method: "GET",
-        url: `${apiBase}/api/user-properties/values`,
-        params: {
-          propertyId: selectedProperty,
-          workspaceId,
-        },
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    });
-
-    if (selectedProperty !== "" && !propertiesValues[selectedProperty]) {
-      handler();
-    }
-  }, [selectedProperty]);
-  /// ///////////////////////////////
-  // END UserPropertyValue Selector Related
   /// ///////////////////////////////
 
   /// ///////////////////////////////
@@ -126,14 +95,17 @@ function IdAndValueSelector({
         selectedFilter === FilterOptions.SEGMENTS ? segments : properties,
       );
     }
+
     if (stage === Stage.SELECTING_VALUE) {
-      return Object.entries(propertiesValues[selectedProperty] ?? {});
+      return [["", properties[selectedId]]] as [string, string][]
     }
+
     return [];
-  }, [stage, propertiesValues, segments, properties]);
+  }, [stage, segments, properties]);
 
   // Filter runs on filter and options change.
   const filteredOptions = React.useMemo(() => {
+    if (Stage.SELECTING_VALUE) return options
     return filterIds(options, filter);
   }, [filter, options]);
 
@@ -158,11 +130,13 @@ function IdAndValueSelector({
 
       {stage === Stage.SELECTING_ID ? (
         <Options
+          isDisabled={false}
           handleSelection={handleIdSelection}
           filteredOptions={filteredOptions}
         />
       ) : (
         <Options
+          isDisabled
           handleSelection={handleValueSelection}
           filteredOptions={filteredOptions}
         />
@@ -228,8 +202,8 @@ function SelectorFooter({
         onClick={() => handlePrevious()}
       />
       {selectedFilter === FilterOptions.USER_PROPERTY &&
-      stage === Stage.SELECTING_VALUE &&
-      filter !== "" ? (
+        stage === Stage.SELECTING_VALUE &&
+        filter !== "" ? (
         <Typography
           sx={{ fontSize: "10px", cursor: "pointer" }}
           onClick={() => handleValueSelection(filter, true)}
