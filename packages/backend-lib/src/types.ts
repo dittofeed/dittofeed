@@ -163,12 +163,11 @@ export enum TwilioMessageStatus {
 }
 
 export const TwilioEventSms = Type.Object({
-  SmsMessageSid: Type.String(),
   SmsSid: Type.String(),
+  MessagingServiceSid: Type.String(),
   SmsStatus: Type.Enum(TwilioMessageStatus),
-  Body: Type.String(),
+  Body: Type.Optional(Type.String()),
   To: Type.String(),
-  NumSegments: Type.String(),
   MessageSid: Type.String(),
   AccountSid: Type.String(),
   From: Type.String(),

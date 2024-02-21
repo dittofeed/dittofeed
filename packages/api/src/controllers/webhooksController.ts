@@ -48,7 +48,6 @@ import { getWorkspaceId } from "../workspace";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
-
   await fastify.register(formbody);
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   fastify.addHook("onSend", async (_request, reply, payload) => {
@@ -375,8 +374,6 @@ export default async function webhookController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      logger().debug({ body: request.body }, "Received Twilio events.");
-
       const allTwilioSecrets = await prisma().secret.findMany({
         where: {
           name: "twilio-key",
@@ -409,11 +406,13 @@ export default async function webhookController(fastify: FastifyInstance) {
         });
       }
 
+      const url =
+        process.env.TWILIO_STATUS_CALLBACK_URL ?? "https://dittofeed.com";
+
       const verified = validateRequest(
         authToken,
         request.headers["x-twilio-signature"],
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        `${request.protocol}${request.headers.host}${request.url}`,
+        `${url}${request.url}`,
         request.body,
       );
 

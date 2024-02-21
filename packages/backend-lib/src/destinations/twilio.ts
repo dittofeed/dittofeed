@@ -4,7 +4,6 @@ import RestException from "twilio/lib/base/RestException";
 
 import { submitBatch } from "../apps";
 import logger from "../logger";
-import { updateUserSubscriptions } from "../subscriptionGroups";
 import {
   BatchTrackData,
   EventType,
@@ -67,18 +66,17 @@ export async function sendSms({
 export async function submitTwilioEvents({
   workspaceId,
   TwilioEvent,
-  subscriptionGroupId,
 }: {
   workspaceId: string;
   TwilioEvent: TwilioInboundSchema;
   subscriptionGroupId: string | undefined;
 }): Promise<ResultAsync<void, Error>> {
-  const messageBody = TwilioEvent.Body.toLowerCase();
+  const messageBody = TwilioEvent.Body?.toLowerCase();
 
   let subscriptionStatus = null;
-  if (messageBody.includes("stop")) {
+  if (messageBody?.includes("stop")) {
     subscriptionStatus = SubscriptionGroupType.OptOut;
-  } else if (messageBody.includes("start")) {
+  } else if (messageBody?.includes("start")) {
     subscriptionStatus = SubscriptionGroupType.OptIn;
   }
 
@@ -117,16 +115,6 @@ export async function submitTwilioEvents({
       userId,
     },
   } as BatchTrackData;
-
-  if (subscriptionGroupId) {
-    await updateUserSubscriptions({
-      workspaceId,
-      userId,
-      changes: {
-        [subscriptionGroupId]: true,
-      },
-    });
-  }
 
   return ResultAsync.fromPromise(
     submitBatch({
