@@ -2,7 +2,7 @@ import { err, ok, Result, ResultAsync } from "neverthrow";
 import TwilioClient from "twilio";
 import RestException from "twilio/lib/base/RestException";
 
-import { submitBatch } from "../apps";
+import { submitBatch } from "../apps/batch";
 import logger from "../logger";
 import {
   BatchTrackData,

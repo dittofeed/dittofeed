@@ -38,7 +38,7 @@ import {
   PostMarkSecret,
   ResendSecret,
   SendgridSecret,
-  TwilioSmsProvider,
+  TwilioSecret,
   WorkspaceId,
 } from "isomorphic-lib/src/types";
 import { Webhook } from "svix";
@@ -381,14 +381,14 @@ export default async function webhookController(fastify: FastifyInstance) {
       });
 
       const twilioSecret = allTwilioSecrets.find((secret) => {
-        const config = secret.configValue as unknown as TwilioSmsProvider;
+        const config = secret.configValue as unknown as TwilioSecret;
         return config.accountSid === request.body.AccountSid;
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const { workspaceId } = twilioSecret!;
-      const { authToken } =
-        twilioSecret?.configValue as unknown as TwilioSmsProvider;
+      const workspaceId = twilioSecret ? twilioSecret.workspaceId : undefined;
+      const authToken = twilioSecret
+        ? (twilioSecret.configValue as TwilioSecret).authToken
+        : undefined;
 
       const { subscriptionGroupId } = request.query as {
         subscriptionGroupId: string;
