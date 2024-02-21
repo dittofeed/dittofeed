@@ -420,7 +420,6 @@ export function EventsTable({
               sx={{ width: "98%", m: 2 }}
               value={value}
               onChange={onChange}
-              autoFocus
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
