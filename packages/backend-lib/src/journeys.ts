@@ -455,6 +455,7 @@ export async function triggerEventEntryJourneys({
     });
     EVENT_TRIGGER_JOURNEY_CACHE.set(workspaceId, journeyDetails);
   }
+
   const starts: Promise<unknown>[] = journeyDetails.flatMap(
     ({ journeyId, event: journeyEvent, definition }) => {
       if (journeyEvent !== event) {

@@ -9,9 +9,12 @@ import {
   SESServiceException,
 } from "@aws-sdk/client-ses";
 import { err, Result, ResultAsync } from "neverthrow";
+import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
+import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
+import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
 import {
   AmazonSesConfig,
@@ -114,13 +117,9 @@ export async function submitAmazonSesEvents(
 
   const workspaceId = unwrapTag("workspaceId", event.mail.tags);
   const userId = unwrapTag("userId", event.mail.tags);
-  const templateId = unwrapTag("messageId", event.mail.tags);
 
   if (!workspaceId) {
     return err(new Error("Workspace id not found"));
-  }
-  if (!userId) {
-    return err(new Error("Missing userId"));
   }
 
   let timestamp: string;
@@ -151,19 +150,20 @@ export async function submitAmazonSesEvents(
         new Error(`Unhandled Amazon SES event type: ${event.eventType}`),
       );
   }
+
+  const messageId = uuidv5(event.mail.messageId, workspaceId);
+
   const items: BatchTrackData[] = [];
   if (userId) {
     items.push({
       type: EventType.Track,
       event: eventName,
       userId,
-      messageId: event.mail.messageId,
+      messageId,
       timestamp,
       properties: {
         email: event.mail.destination[0],
-        workspaceId,
-        templateId,
-        userId,
+        ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
       },
     });
   }
@@ -172,6 +172,7 @@ export async function submitAmazonSesEvents(
       workspaceId,
       data: {
         batch: items,
+        ...R.pick(event.mail.tags, MESSAGE_METADATA_FIELDS),
       },
     }),
     (e) => (e instanceof Error ? e : Error(e as string)),
