@@ -3,13 +3,39 @@ title: "Entry - Journey Node"
 description: "Define who is allowed to enter a Journey."
 ---
 
-All journeys have an entry node. An entry node requires a segment, which defines who is allowed to enter the journey.
+All journeys have an entry node. An entry node defines who is allowed to enter the journey, and when they enter it.
+
+two types of entry nodes, segment and event
+
+## Segment Entry
+
+outline:
+
+- at most 1 instance of journey per user.
+- user enter asynchronously, after segment calculattions take place.
+- useful for what might traditionally considered marketing messaging.
 
 
-## Example Use Case - Onboarding
+### Example Use Case - Onboarding
 
+{/* FIXME retake screenshot */}
 <Frame>
 ![Minimal Journey](/images/minimal-journey.png)
 </Frame>
 
 For example, an entry node might be assigned a "Stagnant Onboarding" segment, which includes all users who have had `status='onboarding'` for more than 24 hours. This journey might then send users an email encouraging them to finish onboarding with additional instructions.
+
+
+## Event Entry
+
+outline:
+- n number of instances of journey per user.
+- user enter synchronously, when event occurs.
+- useful for what might traditionally considered transactional messaging.
+- uses messaqe id of triggering event as they key used identify the journey instance.
+
+### Example Use Case - Order Cancellation
+
+- message-id: ` ``order-cancelled-${orderId}`` ` e.g. order-cancelled-123
+- 
+
