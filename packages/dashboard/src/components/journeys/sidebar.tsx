@@ -2,12 +2,9 @@ import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { JourneyNodeType } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
-import { useAppStore, useAppStorePick } from "../../lib/appStore";
+import { useAppStorePick } from "../../lib/appStore";
 import { AdditionalJourneyNodeType, NodeTypeProps } from "../../lib/types";
-import {
-  getGlobalJourneyErrors,
-  GlobalJourneyErrorType,
-} from "./globalJourneyErrors";
+import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { JourneyNodeIcon, journeyNodeIcon } from "./nodeTypes/journeyNode";
 

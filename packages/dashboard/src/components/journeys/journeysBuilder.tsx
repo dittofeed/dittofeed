@@ -1,6 +1,6 @@
 import "reactflow/dist/style.css";
 
-import { Box, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
