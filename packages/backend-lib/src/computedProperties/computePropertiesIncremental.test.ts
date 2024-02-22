@@ -2759,7 +2759,7 @@ describe("computeProperties", () => {
             entryNode: {
               type: SegmentNodeType.Trait,
               id: randomUUID(),
-              path: "value with spaces",
+              path: `$["value with spaces"]`,
               operator: {
                 type: SegmentOperatorType.Equals,
                 value: "test",
