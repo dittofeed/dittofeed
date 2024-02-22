@@ -3,7 +3,7 @@ import "reactflow/dist/style.css";
 import { Box, useTheme } from "@mui/material";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
-import React, { DragEvent, DragEventHandler, useMemo } from "react";
+import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -168,7 +168,6 @@ function createConnections({
 }
 
 function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
-  const theme = useTheme();
   const {
     setNodes,
     addNodes,

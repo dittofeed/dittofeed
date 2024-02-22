@@ -99,14 +99,14 @@ export default async function journeysController(fastify: FastifyInstance) {
       }
       const journeyDefinitionResult = schemaValidate(
         journey.definition,
-        JourneyDefinition
+        JourneyDefinition,
       );
       if (journeyDefinitionResult.isErr()) {
         logger().error(
           {
             errors: journeyDefinitionResult.error,
           },
-          "Failed to validate journey definition"
+          "Failed to validate journey definition",
         );
         return reply.status(500).send();
       }
@@ -118,7 +118,7 @@ export default async function journeysController(fastify: FastifyInstance) {
         definition: journeyDefinitionResult.value,
       };
       return reply.status(200).send(resource);
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
@@ -156,7 +156,7 @@ export default async function journeysController(fastify: FastifyInstance) {
       }
 
       return reply.status(204).send();
-    }
+    },
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
@@ -193,6 +193,6 @@ export default async function journeysController(fastify: FastifyInstance) {
         journeyIds,
       });
       return reply.status(200).send(stats);
-    }
+    },
   );
 }
