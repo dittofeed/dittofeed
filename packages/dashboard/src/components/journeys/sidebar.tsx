@@ -4,9 +4,12 @@ import React, { useMemo } from "react";
 
 import { useAppStore, useAppStorePick } from "../../lib/appStore";
 import { AdditionalJourneyNodeType, NodeTypeProps } from "../../lib/types";
+import {
+  getGlobalJourneyErrors,
+  GlobalJourneyErrorType,
+} from "./globalJourneyErrors";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { JourneyNodeIcon, journeyNodeIcon } from "./nodeTypes/journeyNode";
-import { GlobalJourneyErrorType, getGlobalJourneyErrors } from "./globalJourneyErrors";
 
 const SIDEBAR_NODE_TYPES: NodeTypeProps["type"][] = [
   JourneyNodeType.DelayNode,
@@ -18,8 +21,8 @@ const SIDEBAR_NODE_TYPES: NodeTypeProps["type"][] = [
 function Sidebar() {
   const theme = useTheme();
   const { setDraggedComponentType, journeyNodes } = useAppStorePick([
-    'setDraggedComponentType',
-    'journeyNodes'
+    "setDraggedComponentType",
+    "journeyNodes",
   ]);
 
   const isEventEntry = useMemo(
@@ -30,6 +33,11 @@ function Sidebar() {
           n.data.nodeTypeProps.type === AdditionalJourneyNodeType.UiEntryNode &&
           n.data.nodeTypeProps.variant.type === JourneyNodeType.EventEntryNode,
       ),
+    [journeyNodes],
+  );
+
+  const globalErrors = useMemo(
+    () => Array.from(getGlobalJourneyErrors({ nodes: journeyNodes }).values()),
     [journeyNodes],
   );
 
@@ -67,7 +75,9 @@ function Sidebar() {
             cursor: isDisabled ? "default" : "grabbing",
           },
           ":hover": {
-            boxShadow: isDisabled ? "none" : "rgba(0, 0, 0, 0.533) 0px 0px 2px 0px",
+            boxShadow: isDisabled
+              ? "none"
+              : "rgba(0, 0, 0, 0.533) 0px 0px 2px 0px",
           },
         }}
         key={t}
@@ -77,27 +87,53 @@ function Sidebar() {
         </Box>
         {journeyNodeLabel(t)}
       </Stack>
-  )});
+    );
+  });
 
   return (
-    <Box
-      sx={{
-        backgroundColor: "white",
-        border: `1px solid ${theme.palette.grey[200]}`,
-        width: 270,
-        padding: 2,
-      }}
-    >
-      <Stack spacing={1}>
+    <Stack spacing={2}>
+      <Box
+        sx={{
+          backgroundColor: "white",
+          border: `1px solid ${theme.palette.grey[200]}`,
+          width: 270,
+          padding: 2,
+        }}
+      >
+        <Stack spacing={1}>
+          <Typography
+            variant="h5"
+            sx={{ fontSize: theme.typography.h6.fontSize, userSelect: "none" }}
+          >
+            Journey Node Palette
+          </Typography>
+          {nodeTypesEls}
+        </Stack>
+      </Box>
+      {globalErrors.length > 0 && (
         <Typography
-          variant="h5"
-          sx={{ fontSize: theme.typography.h6.fontSize, userSelect: "none" }}
+          sx={{
+            p: 1,
+            borderColor: theme.palette.warning.light,
+            backgroundColor: theme.palette.warning.postIt,
+            color: theme.palette.warning.postItContrastText,
+            borderWidth: 2,
+            borderStyle: "solid",
+            borderRadius: 1,
+          }}
         >
-          Journey Node Palette
+          There is an issue with is the journey. Please fix it before
+          proceeding.
+          <br />
+          {globalErrors.map((e) => (
+            <>
+              &#x2022; {e}
+              <br />
+            </>
+          ))}
         </Typography>
-        {nodeTypesEls}
-      </Stack>
-    </Box>
+      )}
+    </Stack>
   );
 }
 

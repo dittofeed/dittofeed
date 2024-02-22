@@ -1,6 +1,6 @@
 import "reactflow/dist/style.css";
 
-import { Typography, Box, useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler, useMemo } from "react";
@@ -41,7 +41,6 @@ import {
   WAIT_FOR_SATISFY_LABEL,
   waitForTimeoutLabel,
 } from "./store";
-import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 
 const proOptions: ProOptions = { account: "paid-pro", hideAttribution: true };
 
@@ -233,11 +232,6 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     setEdges(changes);
   };
 
-  const globalErrors = useMemo(
-    () => getGlobalJourneyErrors({ nodes }).values(),
-    [nodes],
-  );
-  
   return (
     <Box
       sx={{
@@ -281,31 +275,6 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
         <Panel position="top-left">
           <Sidebar />
         </Panel>
-        {globalErrors.length > 0 && (
-          <Panel position="top-center">
-          <Typography
-            sx={{
-              p: 1,
-              borderColor: theme.palette.warning.light,
-              backgroundColor: theme.palette.warning.postIt,
-              color: theme.palette.warning.postItContrastText,
-              borderWidth: 2,
-              borderStyle: "solid",
-              borderRadius: 1,
-            }}
-          >
-              There is an issue with is the journey. Please fix it before
-              proceeding.
-            <br />
-            {globalErrors.map(e => <>
-              &#x2022; {e}
-              <br />
-            </>)}
-          </Typography>
-        </Panel>
-          
-          
-          )}
         <Controls position="top-right" />
         <Background
           color="#C7C7D4"
@@ -313,7 +282,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
           size={2}
         />
       </ReactFlow>
-      </Box>
+    </Box>
   );
 }
 
