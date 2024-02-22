@@ -2751,7 +2751,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a trait segment with spaces in the path",
-      only: true,
       userProperties: [],
       segments: [
         {
