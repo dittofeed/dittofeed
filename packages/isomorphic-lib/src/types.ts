@@ -798,7 +798,7 @@ export type DeleteSegmentRequest = Static<typeof DeleteSegmentRequest>;
 
 export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
-  searchTerm:Type.Optional(Type.String()),
+  searchTerm: Type.Optional(Type.String()),
   userId: Type.Optional(Type.String()),
   offset: Type.Number(),
   limit: Type.Number(),
@@ -1102,8 +1102,8 @@ export type UpsertDataSourceConfigurationResource = Static<
 
 export type DeepPartial<T> = T extends object
   ? {
-      [P in keyof T]?: DeepPartial<T[P]>;
-    }
+    [P in keyof T]?: DeepPartial<T[P]>;
+  }
   : T;
 
 export const WorkspaceResource = Type.Object({
@@ -1223,6 +1223,7 @@ export type ReadAllUserPropertiesRequest = Static<
 
 export const ReadAllUserPropertiesResponse = Type.Object({
   userProperties: Type.Array(UserPropertyResource),
+  segments: Type.Array(Type.Pick(SegmentResource, ['name', 'id']))
 });
 
 export type ReadAllUserPropertiesResponse = Static<
@@ -1243,13 +1244,13 @@ export const GetUsersRequest = Type.Object({
   direction: Type.Optional(CursorDirection),
   userIds: Type.Optional(Type.Array(Type.String())),
   userPropertyFilter: Type.Optional(
-      Type.Array(
-          Type.Object({
-            id: Type.String(),
-            userIds: Type.Optional(Type.Array(Type.String())),
-            partial: Type.Optional(Type.Array(Type.String())),
-          })
-      )
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        userIds: Type.Optional(Type.Array(Type.String())),
+        partial: Type.Optional(Type.Array(Type.String())),
+      })
+    )
   ),
   workspaceId: Type.String(),
 });
@@ -1283,20 +1284,7 @@ export const GetUsersResponse = Type.Object({
   userCount: Type.Number(),
 });
 
-export type GetUsersResponse = Static<typeof GetUsersResponse>;  
-
-export const GetUserPropertiesResponse = Type.Object({
-  properties: Type.Array(UserPropertyResource),
-  segments: Type.Array(Type.Pick(SegmentResource, ['name', 'id']))
-})
-
-export type GetUserPropertiesResponse = Static<typeof GetUserPropertiesResponse>;
-
-export const GetComputedPropertyAssignmentResourcesResponse = Type.Object({
-    values: Type.Record(Type.String(), Type.String())
-});
-
-export type GetComputedPropertyAssignmentResourcesResponse = Static<typeof GetComputedPropertyAssignmentResourcesResponse>;
+export type GetUsersResponse = Static<typeof GetUsersResponse>;
 
 export const BaseMessageResponse = Type.Object({
   message: Type.String(),
@@ -1955,7 +1943,7 @@ export type WaitForNodeStats = Static<typeof WaitForNodeStats>;
 
 export type SegmentSplitNodeStats = Static<typeof SegmentSplitNodeStats>;
 
-export const NodeStats = Type.Union([MessageNodeStats, DelayNodeStats,WaitForNodeStats , SegmentSplitNodeStats]);
+export const NodeStats = Type.Union([MessageNodeStats, DelayNodeStats, WaitForNodeStats, SegmentSplitNodeStats]);
 
 export type NodeStats = Static<typeof NodeStats>;
 
@@ -2011,8 +1999,8 @@ export const TestSmsProvider = Type.Object({
 });
 
 export const SmsProviderSecret = Type.Union([
-    TwilioSecret,
-    TestSmsSecret
+  TwilioSecret,
+  TestSmsSecret
 ]);
 
 export type SmsProviderSecret = Static<typeof SmsProviderSecret>;
@@ -2022,8 +2010,8 @@ export type TwilioProviderConfig = Required<Pick<TwilioSecret, "accountSid" | "m
 export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
 
 export const PersistedSmsProvider = Type.Union([
-    TwilioSmsProvider,
-    TestSmsProvider
+  TwilioSmsProvider,
+  TestSmsProvider
 ]);
 
 export type PersistedSmsProvider = Static<typeof PersistedSmsProvider>;
@@ -2257,7 +2245,7 @@ export const MessageSendgridServiceFailure = Type.Object({
 
 export type MessageSendgridServiceFailure = Static<
   typeof MessageSendgridServiceFailure
-  >;
+>;
 
 export const MessageAmazonSesServiceFailure = Type.Object({
   type: Type.Literal(EmailProviderType.AmazonSes),

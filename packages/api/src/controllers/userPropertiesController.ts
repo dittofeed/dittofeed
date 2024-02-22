@@ -1,19 +1,16 @@
-import { Type, TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
 import { findSegments } from "backend-lib/src/segments";
 import { UserProperty } from "backend-lib/src/types";
-import {
-  findAllPropertyValues,
-  findAllUserProperties,
-} from "backend-lib/src/userProperties";
+import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { FastifyInstance } from "fastify";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   DeleteUserPropertyRequest,
   EmptyResponse,
-  GetComputedPropertyAssignmentResourcesResponse,
-  GetUserPropertiesResponse,
+  ReadAllUserPropertiesRequest,
+  ReadAllUserPropertiesResponse,
   UpsertUserPropertyResource,
   UserPropertyDefinition,
   UserPropertyResource,
@@ -103,58 +100,28 @@ export default async function userPropertiesController(
   );
 
   fastify.withTypeProvider<TypeBoxTypeProvider>().get(
-    "/values",
-    {
-      schema: {
-        description: "Get all properties values",
-        tags: ["User Properties"],
-        querystring: Type.Object({
-          propertyId: Type.String(),
-          workspaceId: Type.String(),
-        }),
-        response: {
-          200: GetComputedPropertyAssignmentResourcesResponse,
-          500: {},
-        },
-      },
-    },
-    async (request, reply) => {
-      const result = await findAllPropertyValues({
-        propertyId: request.query.propertyId,
-        workspaceId: request.query.workspaceId,
-      });
-
-      return reply.status(200).send({
-        values: result,
-      });
-    },
-  );
-
-  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
     "/",
     {
       schema: {
-        description: "Get all user properties",
+        description: "Get all user properties.",
         tags: ["User Properties"],
-        querystring: Type.Object({
-          workspaceId: Type.String(),
-        }),
+        querystring: ReadAllUserPropertiesRequest,
         response: {
-          200: GetUserPropertiesResponse,
-          500: {},
+          200: ReadAllUserPropertiesResponse,
         },
       },
     },
     async (request, reply) => {
-      const properties = await findAllUserProperties({
+      const userProperties = await findAllUserPropertyResources({
         workspaceId: request.query.workspaceId,
       });
+
       const segments = await findSegments({
         workspaceId: request.query.workspaceId,
       });
 
       return reply.status(200).send({
-        properties,
+        userProperties,
         segments,
       });
     },

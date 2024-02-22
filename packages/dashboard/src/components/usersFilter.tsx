@@ -64,14 +64,7 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
       },
     });
     handler();
-  }, [
-    apiBase,
-    getUserPropertiesRequest,
-    setGetUserPropertiesRequest,
-    setProperties,
-    setSegments,
-    workspaceId,
-  ]);
+  }, [apiBase, workspaceId]);
 
   return (
     <Stack
@@ -138,7 +131,7 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
           </Box>
         </Stack>
       ))}
-      <FilterSelect workspaceId={workspaceId} />
+      <FilterSelect />
     </Stack>
   );
 }

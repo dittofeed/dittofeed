@@ -198,8 +198,8 @@ function SelectorFooter({
         onClick={() => handlePrevious()}
       />
       {selectedFilter === FilterOptions.USER_PROPERTY &&
-        stage === Stage.SELECTING_VALUE &&
-        filter !== "" ? (
+      stage === Stage.SELECTING_VALUE &&
+      filter !== "" ? (
         <Typography
           sx={{ fontSize: "10px", cursor: "pointer" }}
           onClick={() => handleValueSelection(filter, true)}
@@ -211,7 +211,7 @@ function SelectorFooter({
   );
 }
 
-export default function FilterSelect({ workspaceId }: { workspaceId: string }) {
+export default function FilterSelect() {
   const [filter, setFilter] = React.useState("");
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
