@@ -94,13 +94,10 @@ function buildUserIdQueries({
   let lastUserIdCondition: Sql;
   if (cursor) {
     if (direction === CursorDirectionEnum.Before) {
-      lastUserIdCondition = Prisma.sql`"userId" < ${
-        cursor[CursorKey.UserIdKey]
-      }`;
+      lastUserIdCondition = Prisma.sql`"userId" < ${cursor[CursorKey.UserIdKey]}`;
+
     } else {
-      lastUserIdCondition = Prisma.sql`"userId" > ${
-        cursor[CursorKey.UserIdKey]
-      }`;
+      lastUserIdCondition = Prisma.sql`"userId" > ${cursor[CursorKey.UserIdKey]}`;
     }
   } else {
     lastUserIdCondition = Prisma.sql`1=1`;
@@ -155,7 +152,7 @@ function buildUserIdQueries({
     userIdQueries.push(userPropertyAssignmentQuery);
   }
 
-  return Prisma.join(userIdQueries, " UNION ALL ");
+  return Prisma.join(userIdQueries, " INTERSECT ");
 }
 
 export async function getUsers({
@@ -347,9 +344,9 @@ export async function deleteUsers({
   const qb = new ClickHouseQueryBuilder();
   const query = `
     ALTER TABLE user_events_v2 DELETE WHERE workspace_id = ${qb.addQueryValue(
-      workspaceId,
-      "String",
-    )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});
+    workspaceId,
+    "String",
+  )} AND user_id IN (${qb.addQueryValue(userIds, "Array(String)")});
   `;
   await clickhouseClient().command({
     query,
