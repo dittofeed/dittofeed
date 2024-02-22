@@ -3,13 +3,12 @@ import { Box } from "@mui/material";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { GetUserPropertiesResponse } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
-
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { filterStore } from "../lib/filterStore";
 import FilterSelect from "./usersFilterSelector";
+import { ReadAllUserPropertiesResponse } from "isomorphic-lib/src/types";
 
 export function UsersFilter({ workspaceId }: { workspaceId: string }) {
   const userPropertyFilterFromStore = filterStore(
@@ -42,15 +41,15 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
   const apiBase = useAppStore((store) => store.apiBase);
 
   React.useEffect(() => {
-    const setLoadResponse = (response: GetUserPropertiesResponse) => {
-      setProperties(response.properties);
+    const setLoadResponse = (response: ReadAllUserPropertiesResponse) => {
+      setProperties(response.userProperties);
       setSegments(response.segments);
     };
 
     const handler = apiRequestHandlerFactory({
       request: getUserPropertiesRequest,
       setRequest: setGetUserPropertiesRequest,
-      responseSchema: GetUserPropertiesResponse,
+      responseSchema: ReadAllUserPropertiesResponse,
       setResponse: setLoadResponse,
       requestConfig: {
         method: "GET",

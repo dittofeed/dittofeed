@@ -5,11 +5,9 @@ import { parseUserProperty as parseUserPropertyAssignment } from "isomorphic-lib
 import jp from "jsonpath";
 import { err, ok, Result } from "neverthrow";
 
-import { clickhouseClient } from "./clickhouse";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
-  ComputedPropertyAssignment,
   EnrichedUserProperty,
   GroupChildrenUserPropertyDefinitions,
   JSONValue,
