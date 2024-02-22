@@ -64,7 +64,14 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
       },
     });
     handler();
-  }, []);
+  }, [
+    apiBase,
+    getUserPropertiesRequest,
+    setGetUserPropertiesRequest,
+    setProperties,
+    setSegments,
+    workspaceId,
+  ]);
 
   return (
     <Stack

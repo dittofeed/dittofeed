@@ -4,6 +4,7 @@ import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import * as React from "react";
+
 import { filterIds, FilterOptions, filterStore } from "../lib/filterStore";
 
 enum Stage {
@@ -15,44 +16,40 @@ enum Stage {
 function Options({
   handleSelection,
   filteredOptions,
-  isDisabled
+  isDisabled,
 }: {
   handleSelection: (selectedProperty: string | undefined) => void;
   filteredOptions: [string, string][];
-  isDisabled: boolean
+  isDisabled: boolean;
 }) {
-
   return (
     <>
-      {isDisabled
-        ? (
-          <Stack minWidth="100%" justifyContent="center" alignItems="center">
-            <Typography
-              sx={{
-                opacity: "0.6"
-              }}
-              variant="caption"
-              paddingTop={"6px"}
-              component={"div"}
+      {isDisabled ? (
+        <Stack minWidth="100%" justifyContent="center" alignItems="center">
+          <Typography
+            sx={{
+              opacity: "0.6",
+            }}
+            variant="caption"
+            paddingTop="6px"
+            component="div"
+          >
+            Filtering by {filteredOptions[0] ? filteredOptions[0][1] : null}
+          </Typography>
+        </Stack>
+      ) : (
+        <>
+          {filteredOptions.map((property) => (
+            <MenuItem
+              disabled={isDisabled}
+              key={property[0]}
+              onClick={() => handleSelection(property[0])}
             >
-              Filtering by {filteredOptions[0] ? filteredOptions[0][1] : null}
-            </Typography>
-          </Stack>
-        )
-        : (
-          <>
-            {filteredOptions.map((property) => (
-              <MenuItem
-                disabled={isDisabled}
-                key={property[0]}
-                onClick={() => handleSelection(property[0])}
-              >
-                {property[1]}
-              </MenuItem>
-            ))}
-          </>
-        )
-      }
+              {property[1]}
+            </MenuItem>
+          ))}
+        </>
+      )}
     </>
   );
 }
@@ -67,7 +64,6 @@ function IdAndValueSelector({
   stage: Stage;
   handleIdSelection: (selectedId: string | undefined) => void;
   handleValueSelection: (propertyAssignmentId: string | undefined) => void;
-  workspaceId: string;
   filter: string;
   setFilter: (value: string) => void;
 }) {
@@ -97,17 +93,17 @@ function IdAndValueSelector({
     }
 
     if (stage === Stage.SELECTING_VALUE) {
-      return [["", properties[selectedId]]] as [string, string][]
+      return [["", properties[selectedId]]] as [string, string][];
     }
 
     return [];
-  }, [stage, segments, properties]);
+  }, [stage, segments, properties, selectedFilter, selectedId]);
 
   // Filter runs on filter and options change.
   const filteredOptions = React.useMemo(() => {
-    if (Stage.SELECTING_VALUE) return options
+    if (stage === Stage.SELECTING_VALUE) return options;
     return filterIds(options, filter);
-  }, [filter, options]);
+  }, [filter, options, stage]);
 
   return (
     <>
@@ -202,8 +198,8 @@ function SelectorFooter({
         onClick={() => handlePrevious()}
       />
       {selectedFilter === FilterOptions.USER_PROPERTY &&
-        stage === Stage.SELECTING_VALUE &&
-        filter !== "" ? (
+      stage === Stage.SELECTING_VALUE &&
+      filter !== "" ? (
         <Typography
           sx={{ fontSize: "10px", cursor: "pointer" }}
           onClick={() => handleValueSelection(filter, true)}

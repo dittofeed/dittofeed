@@ -12,7 +12,7 @@ export function camelCaseToNormalText(camelCaseString: string) {
   const words = camelCaseString.replace(/([a-z])([A-Z])/g, "$1 $2").split(" ");
 
   // Capitalize each word
-  const capitalizedWords = words.map(function(word: string) {
+  const capitalizedWords = words.map((word: string) => {
     return word.charAt(0).toUpperCase() + word.slice(1);
   });
 
