@@ -3,12 +3,13 @@ import { Box } from "@mui/material";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { ReadAllUserPropertiesResponse } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
+
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { filterStore } from "../lib/filterStore";
 import FilterSelect from "./usersFilterSelector";
-import { ReadAllUserPropertiesResponse } from "isomorphic-lib/src/types";
 
 export function UsersFilter({ workspaceId }: { workspaceId: string }) {
   const userPropertyFilterFromStore = filterStore(
