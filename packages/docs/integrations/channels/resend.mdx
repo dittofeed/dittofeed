@@ -1,0 +1,64 @@
+---
+title: Resend
+---
+
+Dittofeed can integrate with Resend to send emails.
+
+## Integration Instructions
+
+Visit the Resend API Keys page [https://resend.com/api-keys](https://resend.com/api-keys).
+
+Click "Create API Key", enter a new key name, select "Sending access" under the Permissions dropdown, and choose a sender domain from the Domain dropdown.
+
+<Frame>
+![Resend API Access](/images/resend-api-access.png)
+</Frame>
+
+Click "Add". You will then be shown a "View API Key" modal containing your API key.
+
+Add this API key to Dittofeed on the Settings page `/dashboard/settings#email-channel`.
+
+<Frame>
+![Resend Config](/images/resend-config.png)
+</Frame>
+
+Finally, select Resend as your default email provider.
+
+<Frame>
+![Resend Provider](/images/resend-provider.png)
+</Frame>
+
+## Tracking
+
+To receive Resend tracking data, you'll need to create a webhook in Resend.
+
+Go to the Webhooks settings page. [https://resend.com/webhooks](https://resend.com/webhooks)
+
+Create a new webhook with the following actions to be posted.
+
+- Bounced
+- Clicked
+- Complained
+- Delivered
+- Delivery Delayed
+- Sent
+
+<Frame>
+![Resend Webhook Settings](/images/resend-webhook.png)
+</Frame>
+
+Use the Post URL `https://dittofeed.com/api/public/webhooks/resend` or your own custom domain if you're self-hosting.
+
+Click "Add" to add the webhook.
+
+You'll be redirected to the page for your new webhook. Copy the signing secret.
+
+<Frame>
+![Resend Webhook Signing Secret](/images/resend-webhook-signing-secret.png)
+</Frame>
+
+Paste the signing secret into Dittofeed's settings page in the "Webhook Key" field `/dashboard/settings#email-title` and click save.
+
+<Frame>
+![Resend Config](/images/resend-config.png)
+</Frame>

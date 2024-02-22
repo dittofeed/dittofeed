@@ -38,6 +38,7 @@ model Workspace {
   ComputedPropertyPeriod ComputedPropertyPeriod[]
   Feature                Feature[]
   WorkspaceMember        WorkspaceMember[]
+  AdminApiKey            AdminApiKey[]
 
   @@unique([name])
 }
@@ -270,10 +271,11 @@ model UserJourneyEvent {
   journeyId        String?  @db.Uuid()
   journey          Journey? @relation(fields: [journeyId], references: [id], onDelete: SetNull)
   type             String
+  eventKey         String?
   journeyStartedAt DateTime
   createdAt        DateTime @default(now())
 
-  @@unique([journeyId, userId, type, journeyStartedAt, nodeId])
+  @@unique([journeyId, userId, eventKey, type, journeyStartedAt, nodeId])
 }
 
 enum DBSubscriptionGroupType {
@@ -364,6 +366,7 @@ model Secret {
   WriteKey      WriteKey[]
   SmsProvider   SmsProvider[]
   EmailProvider EmailProvider[]
+  AdminApiKey   AdminApiKey[]
 
   @@unique([workspaceId, name])
 }
@@ -433,6 +436,19 @@ model Feature {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name        String
   enabled     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, name])
+}
+
+model AdminApiKey {
+  id          String    @id() @default(uuid()) @db.Uuid
+  workspaceId String    @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  secretId    String    @db.Uuid
+  secret      Secret    @relation(fields: [secretId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

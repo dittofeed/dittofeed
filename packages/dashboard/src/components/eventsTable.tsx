@@ -1,14 +1,23 @@
+import { Visibility } from "@mui/icons-material";
 import SearchIcon from "@mui/icons-material/Search";
-import { Box, InputAdornment, TextField, useTheme } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  InputAdornment,
+  Stack,
+  TextField,
+  useTheme,
+} from "@mui/material";
 import {
   DataGrid,
+  DataGridProps,
   GridColDef,
   GridRenderCellParams,
-  GridRowParams,
 } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
+  ChannelType,
   CompletionStatus,
   EphemeralRequestStatus,
   GetEventsRequest,
@@ -17,12 +26,15 @@ import {
 } from "isomorphic-lib/src/types";
 import React, { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
+import { v4 as uuid } from "uuid";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
+import { getTemplatesLink } from "../lib/templatesLink";
+import { EventResources } from "../lib/types";
 import EventDetailsSidebar from "./eventDetailsSidebar";
 
 interface EventsState {
@@ -80,6 +92,23 @@ const baseColumn: Partial<GridColDef<GetEventsResponseItem>> = {
   renderCell: monospaceCell,
 };
 
+function generatePreviewColumn(
+  openSideBar: (params: GridRenderCellParams<GetEventsResponseItem>) => void,
+): GridColDef {
+  return {
+    ...baseColumn,
+    field: "preview",
+    headerName: "",
+    renderCell: (params: GridRenderCellParams<GetEventsResponseItem>) => {
+      return (
+        <IconButton onClick={() => openSideBar(params)}>
+          <Visibility />
+        </IconButton>
+      );
+    },
+  };
+}
+
 export function EventsTable({
   userId,
 }: Omit<GetEventsRequest, "workspaceId" | "offset" | "limit">) {
@@ -94,6 +123,9 @@ export function EventsTable({
   const theme = useTheme();
   const workspace = useAppStore((store) => store.workspace);
   const apiBase = useAppStore((store) => store.apiBase);
+  const messagesResult = useAppStore((store) => store.messages);
+  const broadcasts = useAppStore((store) => store.broadcasts);
+  const journeys = useAppStore((store) => store.journeys);
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : null;
   const updatePagination = useEventsStore((store) => store.updatePagination);
@@ -119,7 +151,91 @@ export function EventsTable({
   );
   const updateEvents = useEventsStore((store) => store.updateEvents);
 
-  const cols = [
+  const messages =
+    messagesResult.type === CompletionStatus.Successful
+      ? messagesResult.value
+      : [];
+
+  const getBroadcastResources = (journeyId: string) => {
+    const resources = [];
+    for (const broadcast of broadcasts) {
+      if (broadcast.journeyId === journeyId) {
+        resources.push(
+          {
+            name: `${broadcast.name}`,
+            link: `/broadcasts/review/${broadcast.id}`,
+            key: uuid(),
+          },
+          {
+            name: `${broadcast.name}-Template`,
+            link: `/broadcasts/template/${broadcast.id}`,
+            key: uuid(),
+          },
+        );
+        break;
+      }
+    }
+    return resources;
+  };
+
+  const getJourneyResources = (
+    journeyId: string,
+    templateId: string,
+    templateName: string | null,
+    channelType: ChannelType | null,
+  ) => {
+    const resources = [];
+    if (journeyId) {
+      const journeyValue =
+        journeys.type === CompletionStatus.Successful ? journeys.value : [];
+
+      for (const journey of journeyValue) {
+        if (journey.id === journeyId) {
+          resources.push({
+            name: journey.name,
+            link: `/journeys/${journey.id}`,
+            key: uuid(),
+          });
+          break;
+        }
+      }
+    }
+
+    if (templateId && channelType && templateName) {
+      resources.push({
+        name: templateName,
+        link: getTemplatesLink({ channel: channelType, id: templateId }),
+        key: uuid(),
+      });
+    }
+
+    return resources;
+  };
+
+  const getResources = (parsedTraits: any) => {
+    const journeyId = parsedTraits.journeyId || "";
+    const nodeId = parsedTraits.nodeId || "";
+
+    if (nodeId === "broadcast-message") {
+      const broadcastResources = getBroadcastResources(journeyId);
+      return broadcastResources;
+    }
+
+    const templateId = parsedTraits.templateId || "";
+    const template = messages.find((t) => t.id === templateId);
+    const channelType = template?.definition?.type ?? null;
+    const templateName = template?.name ?? null;
+
+    const journeyResources = getJourneyResources(
+      journeyId,
+      templateId,
+      templateName,
+      channelType,
+    );
+    return journeyResources;
+  };
+
+  const cols: DataGridProps["columns"] = [
     {
       field: "userId",
       renderCell: ({ value }: GridRenderCellParams) => (
@@ -159,7 +275,44 @@ export function EventsTable({
       field: "messageId",
       flex: 1,
     },
-  ];
+    {
+      field: "relatedResources",
+      flex: 2,
+      valueGetter: (params: any) => JSON.parse(params.row.traits),
+      renderCell: ({ value }: GridRenderCellParams) => {
+        const relatedResources = getResources(value);
+
+        return (
+          <Stack direction="row" spacing={1}>
+            {relatedResources.map((currResource) => {
+              return (
+                <LinkCell
+                  href={currResource.link}
+                  title={currResource.name}
+                  key={currResource.key}
+                >
+                  <Box
+                    sx={{
+                      padding: 1,
+                      backgroundColor: theme.palette.grey[200],
+                      borderRadius: theme.spacing(1),
+                      maxWidth: theme.spacing(16),
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      whiteSpace: "nowrap",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    {`${currResource.name}  `}
+                  </Box>
+                </LinkCell>
+              );
+            })}
+          </Stack>
+        );
+      },
+    },
+  ].map((c) => ({ ...baseColumn, ...c }));
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -232,10 +385,15 @@ export function EventsTable({
   const [selectedEvent, setSelectedEvent] =
     useState<GetEventsResponseItem | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedEventResources, setSelectedEventResources] = useState<
+    EventResources[]
+  >([]);
 
-  const handleEventSelection = (params: GridRowParams) => {
-    const selectedRow: GetEventsResponseItem =
-      params.row as GetEventsResponseItem;
+  const handleEventSelection = (
+    params: GridRenderCellParams<GetEventsResponseItem>,
+  ) => {
+    const selectedRow = params.row;
+    setSelectedEventResources(getResources(JSON.parse(selectedRow.traits)));
     setSelectedEvent(selectedRow);
     setSidebarOpen(true);
   };
@@ -262,7 +420,6 @@ export function EventsTable({
               sx={{ width: "98%", m: 2 }}
               value={value}
               onChange={onChange}
-              autoFocus
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -281,19 +438,19 @@ export function EventsTable({
           },
         }}
         getRowId={(row) => row.messageId}
-        columns={cols.map((c) => ({ ...baseColumn, ...c }))}
+        columns={[generatePreviewColumn(handleEventSelection), ...cols]}
         rowCount={totalRowCount}
         loading={eventsPaginationRequest.type === CompletionStatus.InProgress}
         pageSizeOptions={[paginationModel.pageSize]}
         paginationModel={paginationModel}
         paginationMode="server"
         onPaginationModelChange={updatePagination}
-        onRowClick={handleEventSelection}
       />
       <EventDetailsSidebar
         open={isSidebarOpen}
         onClose={closeSidebar}
         selectedEvent={selectedEvent}
+        eventResources={selectedEventResources}
       />
     </>
   );

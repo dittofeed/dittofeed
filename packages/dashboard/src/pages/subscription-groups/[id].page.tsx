@@ -211,6 +211,7 @@ export default function SubscriptionGroupConfig() {
               value={editedSubscriptionGroup.channel}
             >
               <MenuItem value={ChannelType.Email}>Email</MenuItem>
+              <MenuItem value={ChannelType.Sms}>SMS</MenuItem>
               <MenuItem
                 disabled={!enableMobilePush}
                 value={ChannelType.MobilePush}

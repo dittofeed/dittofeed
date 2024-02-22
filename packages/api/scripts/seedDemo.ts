@@ -1,4 +1,4 @@
-import { submitBatch } from "backend-lib/src/apps";
+import { submitBatch } from "backend-lib/src/apps/batch";
 import prisma from "backend-lib/src/prisma";
 import { EventType } from "isomorphic-lib/src/types";
 import { v4 as uuid } from "uuid";

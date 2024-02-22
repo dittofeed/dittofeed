@@ -14,6 +14,7 @@
     "./*": "./dist/*.js"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.503.1",
     "@clickhouse/client": "^0.2.1",
     "@fast-csv/format": "^4.3.5",
     "@opentelemetry/api": "^1.4.1",
@@ -52,13 +53,16 @@
     "minimist": "^1.2.7",
     "mjml": "^4.14.1",
     "neverthrow": "^6.0.0",
+    "node-cache": "^5.1.2",
     "nodemailer": "^6.9.7",
     "p-limit": "^3.1.0",
     "pino": "^8.11.0",
     "pino-pretty": "^10.0.0",
+    "postmark": "^4.0.2",
     "prisma": "^5.4.1",
     "remeda": "^1.24.0",
     "resend": "^2.1.0",
+    "sns-payload-validator": "^2.1.0",
     "twilio": "^4.18.0",
     "utility-types": "^3.10.0",
     "uuid": "^9.0.0"
@@ -73,6 +77,7 @@
     "@types/minimist": "^1.2.2",
     "@types/mjml": "^4.7.1",
     "@types/node": "^18.11.18",
+    "@types/node-cache": "^4.2.5",
     "@types/nodemailer": "^6.4.14",
     "@types/uuid": "^9.0.1",
     "@typescript-eslint/eslint-plugin": "^5.60.0",

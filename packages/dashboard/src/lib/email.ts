@@ -16,9 +16,6 @@ async function upsertEmailProvider({
   workspaceId: string;
   type: EmailProviderType;
 }): Promise<EmailProvider | null> {
-  if (type === EmailProviderType.Test) {
-    return null;
-  }
   const secretName = EMAIL_PROVIDER_TYPE_TO_SECRET_NAME[type];
   const secretConfig: EmailProviderSecret = {
     type,
@@ -87,9 +84,16 @@ export async function getOrCreateEmailProviders({
     let type: EmailProviderType;
     switch (ep.type) {
       case EmailProviderType.Test:
-        return [];
+        type = EmailProviderType.Test;
+        break;
       case EmailProviderType.Sendgrid:
         type = EmailProviderType.Sendgrid;
+        break;
+      case EmailProviderType.AmazonSes:
+        type = EmailProviderType.AmazonSes;
+        break;
+      case EmailProviderType.PostMark:
+        type = EmailProviderType.PostMark;
         break;
       case EmailProviderType.Resend:
         type = EmailProviderType.Resend;

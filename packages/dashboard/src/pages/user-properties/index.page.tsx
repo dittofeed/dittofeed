@@ -98,8 +98,9 @@ function UserPropertyItem({
       method: "DELETE",
       url: `${apiBase}/api/user-properties`,
       data: {
+        workspaceId: userProperty.workspaceId,
         id: userProperty.id,
-      },
+      } satisfies DeleteUserPropertyRequest,
       headers: {
         "Content-Type": "application/json",
       },

@@ -70,24 +70,9 @@ declare module "@mui/x-data-grid" {
   }
 }
 
-function CustomPagination(props: GridSlotsComponentsProps["footer"]) {
-  const { hasNextPage, hasPreviousPage, onNextPage, onPreviousPage } =
-    props ?? {};
-
-  return (
-    <Box display="flex" justifyContent="center" alignItems="center">
-      <IconButton disabled={!hasPreviousPage} onClick={onPreviousPage}>
-        <KeyboardArrowLeft />
-      </IconButton>
-      <IconButton disabled={!hasNextPage} onClick={onNextPage}>
-        <KeyboardArrowRight />
-      </IconButton>
-    </Box>
-  );
-}
-
 interface UsersState {
   users: Record<string, GetUsersResponseItem>;
+  usersCount: number | null;
   currentPageUserIds: string[];
   getUsersRequest: EphemeralRequestStatus<Error>;
   previousCursor: string | null;
@@ -100,11 +85,13 @@ interface UsersActions {
   setGetUsersRequest: (val: EphemeralRequestStatus<Error>) => void;
   setPreviousCursor: (val: string | null) => void;
   setNextCursor: (val: string | null) => void;
+  setUsersCount: (val: number) => void;
 }
 
 export const usersStore = create(
   immer<UsersState & UsersActions>((set) => ({
     users: {},
+    usersCount: null,
     currentPageUserIds: [],
     getUsersRequest: {
       type: CompletionStatus.NotStarted,
@@ -133,8 +120,30 @@ export const usersStore = create(
       set((state) => {
         state.nextCursor = cursor;
       }),
+    setUsersCount: (count) =>
+      set((state) => {
+        state.usersCount = count;
+      }),
   })),
 );
+
+function CustomPagination(props: GridSlotsComponentsProps["footer"]) {
+  const usersCount = usersStore((store) => store.usersCount);
+  const { hasNextPage, hasPreviousPage, onNextPage, onPreviousPage } =
+    props ?? {};
+
+  return (
+    <Box display="flex" justifyContent="center" alignItems="center">
+      <Box>{usersCount === null ? "" : `Total users: ${usersCount}`}</Box>
+      <IconButton disabled={!hasPreviousPage} onClick={onPreviousPage}>
+        <KeyboardArrowLeft />
+      </IconButton>
+      <IconButton disabled={!hasNextPage} onClick={onNextPage}>
+        <KeyboardArrowRight />
+      </IconButton>
+    </Box>
+  );
+}
 
 export type OnPaginationChangeProps = Pick<
   GetUsersRequest,
@@ -164,6 +173,7 @@ export default function UsersTable({
   const setUsers = usersStore((store) => store.setUsers);
   const setUsersPage = usersStore((store) => store.setUsersPage);
   const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
+  const setUsersCount = usersStore((store) => store.setUsersCount);
 
   // used to filter by property
   const propertyFilter = filterStore((store) => store.userPropertyFilter);
@@ -209,6 +219,7 @@ export default function UsersTable({
 
   React.useEffect(() => {
     const setLoadResponse = (response: GetUsersResponse) => {
+      setUsersCount(response.userCount);
       if (response.users.length === 0 && cursor) {
         if (direction === CursorDirectionEnum.Before) {
           setNextCursor(null);

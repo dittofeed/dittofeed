@@ -1,3 +1,4 @@
+import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { bootstrapWorker } from "backend-lib/src/bootstrap";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
@@ -216,6 +217,31 @@ export async function cli() {
             })
           );
         });
+      }
+    )
+    .command(
+      "admin-api-key create",
+      "Creates an admin API key in the relevant workspace.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+          },
+          "name": {
+            type: "string",
+            alias: "n",
+            require: true,
+          },
+        }),
+      async ({ workspaceId, name }) => {
+        const result =  await createAdminApiKey({ workspaceId, name })
+        if (result.isErr()) {
+          logger().error(result.error, "Failed to create admin API key");
+          return;
+        }
+        logger().info(result.value, "Created admin API Key");
       }
     )
     .demandCommand(1, "# Please provide a valid command")

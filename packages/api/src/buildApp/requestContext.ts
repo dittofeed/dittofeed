@@ -47,4 +47,5 @@ const requestContext = fp(async (fastify: FastifyInstance) => {
     return null;
   });
 });
+
 export default requestContext;

@@ -84,7 +84,7 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 | Performance work on time-based segmentation | Optimization of [computePropertiesWorkflow](https://github.com/dittofeed/dittofeed/blob/0477114238af27d4f42f3d368266a79823956236/packages/backend-lib/src/segments/computePropertiesWorkflow.ts#L46-L113) to reduce segment update times. | - \[ ]   |
 | Replace Prisma with Drizzle   | Addresses Prisma’s excessive memory consumption and memory leak issues for self-hosting developers.                                                                       | - \[ ]   |
 | Basic White Labeling Support  | Allow workspace members to provide their own branding, for the dashboard.                                                                                                                                                                 | - \[ ]   |
-| AWS SES Support               | Support SES as an email service provider.                                                                                                                                                                      | - \[ ]   |
+| AWS SES Support               | Support SES as an email service provider.                                                                                                                                                                      | - ✅ |
 
 ---
 
@@ -114,9 +114,9 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 
 Beyond having industry-standard GUI tools, we focus on developer happiness with first-in-class dev-focused features:
 
-- Branch-based git worflows that support marketing campaign version control.
+- Branch-based git worflows that support messaging campaign version control.
 - Write email templates in your favorite editor, checked into git - not in an unversioned web based IDE.
-- Testing SDK to test your marketing campaigns in CI. No more manually QAing them in production.
+- Testing SDK to test your messaging campaigns in CI. No more manually QAing them in production.
 - Self-hostable. Protect your sensitive PII inside of your own VPC. Avoid volume-based pricing.
 - Journey monitoring and alerting.
 
