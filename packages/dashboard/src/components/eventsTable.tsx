@@ -24,7 +24,8 @@ import {
   GetEventsResponse,
   GetEventsResponseItem,
 } from "isomorphic-lib/src/types";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDebounce } from "use-debounce";
 import { v4 as uuid } from "uuid";
 import { create } from "zustand";
@@ -43,6 +44,7 @@ interface EventsState {
   totalRowCount: number;
   events: GetEventsResponseItem[];
   eventsPaginationRequest: EphemeralRequestStatus<Error>;
+  selectedEvent: string | null;
 }
 
 type PaginationModel = Pick<EventsState, "page" | "pageSize">;
@@ -54,6 +56,7 @@ interface EventsActions {
   updateEventsPaginationRequest: (
     key: EventsState["eventsPaginationRequest"],
   ) => void;
+  updateSelectedEvent: (key: string | null) => void; // Add updateSelectedEvent action
 }
 
 export const useEventsStore = create(
@@ -65,6 +68,7 @@ export const useEventsStore = create(
     eventsPaginationRequest: {
       type: CompletionStatus.NotStarted,
     },
+    selectedEvent: null, // Initialize selectedEvent to null
     updateEvents: (events) =>
       set((state) => {
         state.events = events;
@@ -82,6 +86,10 @@ export const useEventsStore = create(
       set((state) => {
         state.totalRowCount = totalRowCount;
       }),
+    updateSelectedEvent: (selectedEvent) =>
+      set((state) => {
+        state.selectedEvent = selectedEvent;
+      }), // Implement updateSelectedEvent action
   })),
 );
 
@@ -136,9 +144,13 @@ export function EventsTable({
   const updateEventsPaginationRequest = useEventsStore(
     (store) => store.updateEventsPaginationRequest,
   );
+  const updateSelectedEvent = useEventsStore(
+    (store) => store.updateSelectedEvent
+  ); // Get updateSelectedEvent action
   const eventsPaginationRequest = useEventsStore(
     (store) => store.eventsPaginationRequest,
   );
+  const selectedEvent = useEventsStore((store) => store.selectedEvent); // Get selectedEvent state
   const events = useEventsStore((store) => store.events);
   const sortedEvents = useMemo(
     () =>
@@ -315,8 +327,30 @@ export function EventsTable({
   ].map((c) => ({ ...baseColumn, ...c }));
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null); // Track selected event ID locally
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
+
+  useEffect(() => {
+    // Update URL when selected event changes
+    if (selectedEventId) {
+      const searchParams = new URLSearchParams(location.search);
+      searchParams.set('event', selectedEventId);
+      navigate(`?${searchParams.toString()}`);
+    }
+  }, [selectedEventId, navigate, location.search]);
+
+  useEffect(() => {
+    // Extract selected event ID from URL and update state
+    const searchParams = new URLSearchParams(location.search);
+    const eventId = searchParams.get('event');
+    if (eventId !== selectedEventId) {
+      setSelectedEventId(eventId);
+    }
+  }, [location.search, selectedEventId, setSelectedEventId]);
 
   React.useEffect(() => {
     (async () => {
@@ -382,8 +416,6 @@ export function EventsTable({
     apiBase,
   ]);
 
-  const [selectedEvent, setSelectedEvent] =
-    useState<GetEventsResponseItem | null>(null);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [selectedEventResources, setSelectedEventResources] = useState<
     EventResources[]
@@ -393,8 +425,10 @@ export function EventsTable({
     params: GridRenderCellParams<GetEventsResponseItem>,
   ) => {
     const selectedRow = params.row;
-    setSelectedEventResources(getResources(JSON.parse(selectedRow.traits)));
-    setSelectedEvent(selectedRow);
+    setSelectedEventResources(
+      getResources(JSON.parse(selectedRow.traits))
+    );
+    updateSelectedEvent(selectedRow.messageId);
     setSidebarOpen(true);
   };
 
@@ -446,10 +480,12 @@ export function EventsTable({
         paginationMode="server"
         onPaginationModelChange={updatePagination}
       />
+
       <EventDetailsSidebar
         open={isSidebarOpen}
         onClose={closeSidebar}
-        selectedEvent={selectedEvent}
+        // Parse the selectedEvent string to a SelectedEvent object or set it to null if it is not a valid JSON string
+        selectedEvent={selectedEvent ? JSON.parse(selectedEvent) : null}
         eventResources={selectedEventResources}
       />
     </>
