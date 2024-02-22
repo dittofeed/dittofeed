@@ -6,11 +6,6 @@ import { AdditionalJourneyNodeType, NodeData } from "../../lib/types";
 export enum GlobalJourneyErrorType {
   WaitForNodeAndEventEntryNode = "WaitForNodeAndEventEntryNode",
 }
-
-export interface GlobalJourneyError {
-  message: string;
-}
-
 export function getGlobalJourneyErrors({
   nodes,
 }: {
@@ -36,7 +31,7 @@ export function getGlobalJourneyErrors({
   if (hasEventEntry && hasWaitForNode) {
     errors.set(
       GlobalJourneyErrorType.WaitForNodeAndEventEntryNode,
-      "A journey cannot have both an Event Entry node and a Wait For node",
+      "A journey cannot have both an Event Entry node and a Wait For node"
     );
   }
   return errors;

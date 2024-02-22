@@ -4,6 +4,8 @@ import { getUnsafe } from "./maps";
 import { assertUnreachable } from "./typeAssertions";
 import {
   JourneyBodyNode,
+  JourneyConstraintViolation,
+  JourneyConstraintViolationType,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
@@ -22,6 +24,25 @@ export function getNodeId(node: JourneyNode): string {
   return node.id;
 }
 
+export function getJourneyConstraintViolations(
+  definition: JourneyDefinition
+): JourneyConstraintViolation[] {
+  const hasWaitForNode = definition.nodes.some(
+    (n) => n.type === JourneyNodeType.WaitForNode
+  );
+  const hasEventEntry =
+    definition.entryNode.type === JourneyNodeType.EventEntryNode;
+
+  const constraintViolations: JourneyConstraintViolation[] = [];
+  if (hasEventEntry && hasWaitForNode) {
+    constraintViolations.push({
+      type: JourneyConstraintViolationType.WaitForNodeAndEventEntryNode,
+      message:
+        "A journey cannot have both an Event Entry node and a Wait For node",
+    });
+  }
+  return constraintViolations;
+}
 
 function nodeToSegments(node: JourneyBodyNode): string[] {
   switch (node.type) {
@@ -72,7 +93,10 @@ export function getSubscribedSegments(
   return subscribedSegments;
 }
 
-const ENTRY_NODE_TYPES = new Set<string>([JourneyNodeType.EventEntryNode, JourneyNodeType.SegmentEntryNode])
+const ENTRY_NODE_TYPES = new Set<string>([
+  JourneyNodeType.EventEntryNode,
+  JourneyNodeType.SegmentEntryNode,
+]);
 
 export function getJourneyNode(
   definition: JourneyDefinition,
