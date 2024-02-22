@@ -11,7 +11,13 @@ import { useAppStore } from "../../lib/appStore";
 import { journeyDefinitionFromState } from "./store";
 
 // Only usable on SSR pages
-export default function SaveButton({ journeyId }: { journeyId: string }) {
+export default function SaveButton({
+  journeyId,
+  disabled,
+}: {
+  journeyId: string;
+  disabled?: boolean;
+}) {
   const journeyUpdateRequest = useAppStore(
     (store) => store.journeyUpdateRequest,
   );
@@ -74,7 +80,7 @@ export default function SaveButton({ journeyId }: { journeyId: string }) {
   };
 
   return (
-    <Button variant="contained" onClick={handleSave}>
+    <Button variant="contained" onClick={handleSave} disabled={disabled}>
       Save
     </Button>
   );

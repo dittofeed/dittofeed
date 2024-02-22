@@ -1,7 +1,9 @@
 import { Stack } from "@mui/material";
-import React from "react";
+import React, { useMemo } from "react";
 
+import { useAppStorePick } from "../../lib/appStore";
 import MainLayout from "../mainLayout";
+import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import SaveButton from "./saveButton";
 import JourneyStepper from "./stepper";
 
@@ -12,6 +14,13 @@ export default function JourneyLayout({
   children: React.ReactNode;
   journeyId?: string;
 }) {
+  const { journeyNodes } = useAppStorePick(["journeyNodes"]);
+
+  const globalJourneyErrors = useMemo(
+    () => getGlobalJourneyErrors({ nodes: journeyNodes }),
+    [journeyNodes],
+  );
+
   const body = journeyId ? (
     <Stack
       direction="column"
@@ -20,7 +29,10 @@ export default function JourneyLayout({
     >
       <Stack direction="row" spacing={1} sx={{ padding: 1 }}>
         <JourneyStepper journeyId={journeyId} />
-        <SaveButton journeyId={journeyId} />
+        <SaveButton
+          journeyId={journeyId}
+          disabled={globalJourneyErrors.size > 0}
+        />
       </Stack>
       <Stack direction="column" sx={{ flex: 1 }}>
         {children}
