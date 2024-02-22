@@ -198,8 +198,8 @@ function SelectorFooter({
         onClick={() => handlePrevious()}
       />
       {selectedFilter === FilterOptions.USER_PROPERTY &&
-      stage === Stage.SELECTING_VALUE &&
-      filter !== "" ? (
+        stage === Stage.SELECTING_VALUE &&
+        filter !== "" ? (
         <Typography
           sx={{ fontSize: "10px", cursor: "pointer" }}
           onClick={() => handleValueSelection(filter, true)}
@@ -313,7 +313,6 @@ export default function FilterSelect({ workspaceId }: { workspaceId: string }) {
               stage={stage}
               handleValueSelection={handleValueSelection}
               handleIdSelection={handleIdSelection}
-              workspaceId={workspaceId}
               filter={filter}
               setFilter={setFilter}
             />
