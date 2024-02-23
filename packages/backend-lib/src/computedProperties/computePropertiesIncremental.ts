@@ -396,9 +396,10 @@ function segmentToIndexed({
   segment: SavedSegmentResource;
   node: SegmentNode;
 }): IndexedStateConfig[] {
-  const stateId = segmentNodeStateId(segment, node.id);
   switch (node.type) {
     case SegmentNodeType.Trait: {
+      const stateId = segmentNodeStateId(segment, node.id);
+
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
           return [
@@ -419,6 +420,46 @@ function segmentToIndexed({
         default:
           return [];
       }
+    }
+    case SegmentNodeType.And: {
+      return node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "AND child node not found",
+          );
+          return [];
+        }
+        return segmentToIndexed({
+          node: childNode,
+          segment,
+        });
+      });
+    }
+    case SegmentNodeType.Or: {
+      return node.children.flatMap((child) => {
+        const childNode = segment.definition.nodes.find((n) => n.id === child);
+        if (!childNode) {
+          logger().error(
+            {
+              segment,
+              child,
+              node,
+            },
+            "OR child node not found",
+          );
+          return [];
+        }
+        return segmentToIndexed({
+          node: childNode,
+          segment,
+        });
+      });
     }
     default:
       return [];
@@ -2194,7 +2235,7 @@ export async function computeAssignments({
             segment_id,
             user_id,
             CAST((groupArray(state_id), groupArray(segment_state_value)), 'Map(String, Boolean)') as state_values,
-            max_state_event_time
+            max(max_state_event_time) as max_state_event_time
           from  (
             select
               workspace_id,
@@ -2222,8 +2263,7 @@ export async function computeAssignments({
           group by
             workspace_id,
             segment_id,
-            user_id,
-            max_state_event_time
+            user_id
         )
       `;
 

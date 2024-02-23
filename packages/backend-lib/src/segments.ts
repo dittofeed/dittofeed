@@ -60,10 +60,14 @@ export async function findAllSegmentAssignments({
     },
   });
 
-  return segments.reduce<Record<string, boolean | null>>((memo, curr) => {
-    memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? null;
-    return memo;
-  }, {});
+  const segmentAssignment = segments.reduce<Record<string, boolean | null>>(
+    (memo, curr) => {
+      memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? null;
+      return memo;
+    },
+    {},
+  );
+  return segmentAssignment;
 }
 
 export async function createSegment({
