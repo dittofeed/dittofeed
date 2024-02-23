@@ -1104,7 +1104,12 @@ function toJsonPathParam({
   path: string;
   qb: ClickHouseQueryBuilder;
 }): string | null {
-  const unvalidated = `$.${path}`;
+  let unvalidated: string;
+  if (path.startsWith("$")) {
+    unvalidated = path;
+  } else {
+    unvalidated = `$.${path}`;
+  }
   try {
     jsonPath.parse(unvalidated);
   } catch (e) {

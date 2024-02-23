@@ -7,7 +7,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { omit } from "remeda";
 
-import { buildBatchUserEvents } from "../src/apps";
+import { buildBatchUserEvents } from "../src/apps/batch";
 import logger from "../src/logger";
 import { insertUserEvents } from "../src/userEvents";
 
@@ -44,7 +44,7 @@ export async function submitBatch({
   const userEvents = buildBatchUserEvents(batchAppData).map((e, i) => {
     const testEvent = data[i]!;
     const processingTime = new Date(
-      (testEvent.processingOffsetMs ?? testEvent.offsetMs) + now,
+      (testEvent.processingOffsetMs ?? testEvent.offsetMs) + now
     ).toISOString();
 
     return {
@@ -58,7 +58,7 @@ export async function submitBatch({
       workspaceId,
       userEvents,
     },
-    "inserting user events",
+    "inserting user events"
   );
   await insertUserEvents({
     workspaceId,

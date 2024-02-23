@@ -2749,6 +2749,56 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "computes a trait segment with spaces in the path",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: `$["value with spaces"]`,
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "test",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                "value with spaces": "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
