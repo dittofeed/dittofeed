@@ -1154,15 +1154,14 @@ describe("computeProperties", () => {
               segmentStateValue: true,
             },
           ],
-          // FIXME other conditions succeeding in this assertion, just not this one
-          // users: [
-          //   {
-          //     id: "user-1",
-          //     segments: {
-          //       newUsers: true,
-          //     },
-          //   },
-          // ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: true,
+              },
+            },
+          ],
           states: [
             ({ now }) => ({
               type: "segment",
@@ -1204,7 +1203,7 @@ describe("computeProperties", () => {
               type: "segment",
               userId: "user-1",
               name: "newUsers",
-              nodeId: "1",
+              nodeId: "2",
               lastValue: new Date(now - 50 - 100).toISOString(),
             }),
           ],
@@ -1232,7 +1231,7 @@ describe("computeProperties", () => {
               type: "segment",
               userId: "user-1",
               name: "newUsers",
-              nodeId: "1",
+              nodeId: "2",
               lastValue: new Date(now - 100 - 50 - 1200000).toISOString(),
             }),
           ],
