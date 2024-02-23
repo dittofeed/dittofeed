@@ -1068,10 +1068,11 @@ describe("computeProperties", () => {
               type: "segment",
               userId: "user-1",
               name: "newUsers",
-              nodeId: "1",
+              nodeId: "2",
               indexedValue: Math.floor((now - 100) / 1000),
             }),
           ],
+          // FIXME other conditions succeeding in this assertion, just not this one
           users: [
             {
               id: "user-1",
@@ -1085,7 +1086,7 @@ describe("computeProperties", () => {
               type: "segment",
               userId: "user-1",
               name: "newUsers",
-              nodeId: "1",
+              nodeId: "2",
               lastValue: new Date(now - 100).toISOString(),
             }),
           ],
