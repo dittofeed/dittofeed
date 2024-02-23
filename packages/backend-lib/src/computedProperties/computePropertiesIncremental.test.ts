@@ -167,7 +167,7 @@ interface ResolvedSegmentState {
   segment_id: string;
   state_id: string;
   user_id: string;
-  segment_state_value: number;
+  segment_state_value: boolean;
 }
 
 interface TestResolvedSegmentState {
@@ -226,7 +226,7 @@ function toTestResolvedSegmentState(
     userId: resolvedSegmentState.user_id,
     name: segment.name,
     nodeId,
-    segmentStateValue: resolvedSegmentState.segment_state_value === 1,
+    segmentStateValue: resolvedSegmentState.segment_state_value,
   };
 }
 
