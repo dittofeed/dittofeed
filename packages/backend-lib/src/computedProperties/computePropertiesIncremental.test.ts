@@ -204,10 +204,10 @@ async function readResolvedSegmentStates({
 
 function toTestResolvedSegmentState(
   resolvedSegmentState: ResolvedSegmentState,
-  segments: SavedSegmentResource[]
+  segments: SavedSegmentResource[],
 ): TestResolvedSegmentState {
   const segment = segments.find(
-    (s) => s.id === resolvedSegmentState.segment_id
+    (s) => s.id === resolvedSegmentState.segment_id,
   );
   if (!segment) {
     throw new Error("segment not found");
@@ -258,13 +258,13 @@ async function readIndexed({
 function toTestIndexedState(
   indexedState: IndexedState,
   userProperties: SavedUserPropertyResource[],
-  segments: SavedSegmentResource[]
+  segments: SavedSegmentResource[],
 ): TestIndexedState {
   const indexedValue = parseInt(indexedState.indexed_value, 10);
   switch (indexedState.type) {
     case "segment": {
       const segment = segments.find(
-        (s) => s.id === indexedState.computed_property_id
+        (s) => s.id === indexedState.computed_property_id,
       );
       if (!segment) {
         throw new Error("segment not found");
@@ -288,7 +288,7 @@ function toTestIndexedState(
     case "user_property": {
       const userProperty: SavedUserPropertyResource | undefined =
         userProperties.find(
-          (up) => up.id === indexedState.computed_property_id
+          (up) => up.id === indexedState.computed_property_id,
         );
       if (!userProperty) {
         throw new Error("userProperty not found");
@@ -297,7 +297,7 @@ function toTestIndexedState(
       if (userProperty.definition.type === UserPropertyDefinitionType.Group) {
         nodeId = userProperty.definition.nodes.find(
           (n) =>
-            userPropertyStateId(userProperty, n.id) === indexedState.state_id
+            userPropertyStateId(userProperty, n.id) === indexedState.state_id,
         )?.id;
       }
       return {
@@ -314,7 +314,7 @@ function toTestIndexedState(
 function toTestState(
   state: State,
   userProperties: SavedUserPropertyResource[],
-  segments: SavedSegmentResource[]
+  segments: SavedSegmentResource[],
 ): TestState {
   const maxEventTime = clickhouseDateToIso(state.max_event_time);
   switch (state.type) {
@@ -350,7 +350,7 @@ function toTestState(
       let nodeId: string | undefined;
       if (userProperty.definition.type === UserPropertyDefinitionType.Group) {
         nodeId = userProperty.definition.nodes.find(
-          (n) => userPropertyStateId(userProperty, n.id) === state.state_id
+          (n) => userPropertyStateId(userProperty, n.id) === state.state_id,
         )?.id;
       }
       return {
@@ -498,7 +498,7 @@ async function upsertComputedProperties({
           },
         });
         return unwrap(toSavedUserPropertyResource(model));
-      })
+      }),
     ),
     Promise.all(
       segments.map(async (s) => {
@@ -521,7 +521,7 @@ async function upsertComputedProperties({
           },
         });
         return unwrap(toSegmentResource(model));
-      })
+      }),
     ),
   ]);
   return {
@@ -1300,7 +1300,7 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "onboarding",
               maxEventTime: new Date(
-                floorToNearest(now - 100 - 50, 60480000)
+                floorToNearest(now - 100 - 50, 60480000),
               ).toISOString(),
             }),
           ],
@@ -1327,8 +1327,8 @@ describe("computeProperties", () => {
               maxEventTime: new Date(
                 floorToNearest(
                   now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50,
-                  60480000
-                )
+                  60480000,
+                ),
               ).toISOString(),
             }),
           ],
@@ -1376,8 +1376,8 @@ describe("computeProperties", () => {
               maxEventTime: new Date(
                 floorToNearest(
                   now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100,
-                  60480000
-                )
+                  60480000,
+                ),
               ).toISOString(),
             }),
           ],
@@ -1426,7 +1426,7 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "active",
               maxEventTime: new Date(
-                floorToNearest(now - 1000 * 60 * 60 * 24 * 7 - 100, 60480000)
+                floorToNearest(now - 1000 * 60 * 60 * 24 * 7 - 100, 60480000),
               ).toISOString(),
             }),
           ],
@@ -2234,7 +2234,7 @@ describe("computeProperties", () => {
                     event: "test2",
                     timestamp: format(
                       utcToZonedTime(new Date(now - 100), "UTC"),
-                      "yyyy-MM-dd'T'HH:mm:ss"
+                      "yyyy-MM-dd'T'HH:mm:ss",
                     ),
                     properties: {
                       prop2: "value2",
@@ -2244,7 +2244,7 @@ describe("computeProperties", () => {
                     event: "test1",
                     timestamp: format(
                       utcToZonedTime(new Date(now - 1000 * 60), "UTC"),
-                      "yyyy-MM-dd'T'HH:mm:ss"
+                      "yyyy-MM-dd'T'HH:mm:ss",
                     ),
                     properties: {
                       prop1: "value1",
@@ -3036,8 +3036,8 @@ describe("computeProperties", () => {
 
   test.concurrent.each(
     tests.filter(
-      (t) => t.skip !== true && (only === null || only === t.description)
-    )
+      (t) => t.skip !== true && (only === null || only === t.description),
+    ),
   )("$description", async (test) => {
     if (only && test.description !== only) {
       return;
@@ -3063,7 +3063,7 @@ describe("computeProperties", () => {
         const segment = segments.find((s) => s.name === entrySegmentName);
         if (!segment) {
           throw new Error(
-            `could not find segment with name: ${entrySegmentName}`
+            `could not find segment with name: ${entrySegmentName}`,
           );
         }
         const definition: JourneyDefinition = {
@@ -3091,10 +3091,10 @@ describe("computeProperties", () => {
           },
           update: {},
         });
-      }) ?? []
+      }) ?? [],
     );
     const journeyResources: SavedJourneyResource[] = journeys.map((j) =>
-      unwrap(toJourneyResource(j))
+      unwrap(toJourneyResource(j)),
     );
 
     for (const step of test.steps) {
@@ -3125,7 +3125,7 @@ describe("computeProperties", () => {
             {
               assignments,
             },
-            "debug assignments"
+            "debug assignments",
           );
           break;
         }
@@ -3173,8 +3173,8 @@ describe("computeProperties", () => {
                         up,
                         `${
                           step.description ? `${step.description}: ` : ""
-                        }user properties for: ${user.id}`
-                      ).toEqual(user.properties)
+                        }user properties for: ${user.id}`,
+                      ).toEqual(user.properties),
                     )
                   : null,
                 user.segments
@@ -3186,7 +3186,7 @@ describe("computeProperties", () => {
                         s,
                         `${
                           step.description ? `${step.description}: ` : ""
-                        }segments for: ${user.id}`
+                        }segments for: ${user.id}`,
                       ).toEqual(user.segments);
                     })
                   : null,
@@ -3196,7 +3196,7 @@ describe("computeProperties", () => {
               ? (async () => {
                   const states = await readStates({ workspaceId });
                   const actualTestStates = states.map((s) =>
-                    toTestState(s, userProperties, segments)
+                    toTestState(s, userProperties, segments),
                   );
                   for (const expected of step.states ?? []) {
                     const expectedState =
@@ -3209,7 +3209,7 @@ describe("computeProperties", () => {
                         s.userId === expectedState.userId &&
                         s.name === expectedState.name &&
                         s.type === expectedState.type &&
-                        s.nodeId === expectedState.nodeId
+                        s.nodeId === expectedState.nodeId,
                     );
                     expect(
                       actualState,
@@ -3218,29 +3218,29 @@ describe("computeProperties", () => {
                         .join(" - ")}:\n\n${JSON.stringify(
                         expectedState,
                         null,
-                        2
+                        2,
                       )}\n\nto be found in actual states:\n\n${JSON.stringify(
                         actualTestStates,
                         null,
-                        2
-                      )}`
+                        2,
+                      )}`,
                     ).not.toBeUndefined();
                     if (expectedState.lastValue) {
                       expect(actualState, step.description).toHaveProperty(
                         "lastValue",
-                        expectedState.lastValue
+                        expectedState.lastValue,
                       );
                     }
                     if (expectedState.uniqueCount) {
                       expect(actualState, step.description).toHaveProperty(
                         "uniqueCount",
-                        expectedState.uniqueCount
+                        expectedState.uniqueCount,
                       );
                     }
                     if (expectedState.maxEventTime) {
                       expect(actualState, step.description).toHaveProperty(
                         "maxEventTime",
-                        expectedState.maxEventTime
+                        expectedState.maxEventTime,
                       );
                     }
                   }
@@ -3250,7 +3250,7 @@ describe("computeProperties", () => {
               ? (async () => {
                   const indexedStates = await readIndexed({ workspaceId });
                   const actualTestStates = indexedStates.map((s) =>
-                    toTestIndexedState(s, userProperties, segments)
+                    toTestIndexedState(s, userProperties, segments),
                   );
                   for (const expected of step.indexedStates ?? []) {
                     const expectedState =
@@ -3263,7 +3263,7 @@ describe("computeProperties", () => {
                         s.userId === expectedState.userId &&
                         s.name === expectedState.name &&
                         s.type === expectedState.type &&
-                        s.nodeId === expectedState.nodeId
+                        s.nodeId === expectedState.nodeId,
                     );
                     expect(
                       actualState,
@@ -3272,17 +3272,17 @@ describe("computeProperties", () => {
                         .join(" - ")}:\n\n${JSON.stringify(
                         expectedState,
                         null,
-                        2
+                        2,
                       )}\n\nto be found in actual indexed states:\n\n${JSON.stringify(
                         actualTestStates,
                         null,
-                        2
-                      )}`
+                        2,
+                      )}`,
                     ).not.toBeUndefined();
 
                     expect(actualState, step.description).toHaveProperty(
                       "indexedValue",
-                      expectedState.indexedValue
+                      expectedState.indexedValue,
                     );
                   }
                 })()
@@ -3309,7 +3309,7 @@ describe("computeProperties", () => {
                     return s;
                   });
                   expect(simplifiedPeriods, step.description).toEqual(
-                    step.periods
+                    step.periods,
                   );
                 })()
               : null,
@@ -3318,15 +3318,16 @@ describe("computeProperties", () => {
                   const resolvedSegmentStates = await readResolvedSegmentStates(
                     {
                       workspaceId,
-                    }
+                    },
                   );
                   const actualTestStates = resolvedSegmentStates.map((s) =>
-                    toTestResolvedSegmentState(s, segments)
+                    toTestResolvedSegmentState(s, segments),
                   );
                   for (const expected of step.resolvedSegmentStates ?? []) {
                     const actualState = actualTestStates.find(
                       (s) =>
-                        s.userId === expected.userId && s.name === expected.name
+                        s.userId === expected.userId &&
+                        s.name === expected.name,
                     );
                     expect(
                       actualState,
@@ -3335,12 +3336,12 @@ describe("computeProperties", () => {
                         .join(" - ")}:\n\n${JSON.stringify(
                         expected,
                         null,
-                        2
+                        2,
                       )}\n\nto be found in actual resolved segment states:\n\n${JSON.stringify(
                         actualTestStates,
                         null,
-                        2
-                      )}`
+                        2,
+                      )}`,
                     ).not.toBeUndefined();
 
                     expect(
@@ -3350,10 +3351,10 @@ describe("computeProperties", () => {
                         step.description,
                       ]
                         .filter((s) => !!s)
-                        .join(" - ")}:\n\n${JSON.stringify(expected, null, 2)}`
+                        .join(" - ")}:\n\n${JSON.stringify(expected, null, 2)}`,
                     ).toHaveProperty(
                       "segmentStateValue",
-                      expected.segmentStateValue
+                      expected.segmentStateValue,
                     );
                   }
                 })()
@@ -3361,16 +3362,16 @@ describe("computeProperties", () => {
           ]);
           for (const assertedJourney of step.journeys ?? []) {
             const journey = journeyResources.find(
-              (j) => j.name === assertedJourney.journeyName
+              (j) => j.name === assertedJourney.journeyName,
             );
             if (!journey) {
               throw new Error(
-                `could not find journey with name: ${assertedJourney.journeyName}`
+                `could not find journey with name: ${assertedJourney.journeyName}`,
               );
             }
             if (assertedJourney.times !== undefined) {
               expect(signalWithStart).toHaveBeenCalledTimes(
-                assertedJourney.times
+                assertedJourney.times,
               );
             }
             if (
@@ -3385,7 +3386,7 @@ describe("computeProperties", () => {
                       journeyId: journey.id,
                     }),
                   ],
-                })
+                }),
               );
             }
           }

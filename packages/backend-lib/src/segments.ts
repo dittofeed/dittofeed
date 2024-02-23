@@ -67,7 +67,6 @@ export async function findAllSegmentAssignments({
     },
     {},
   );
-  console.log("loc3", segmentAssignment);
   return segmentAssignment;
 }
 
