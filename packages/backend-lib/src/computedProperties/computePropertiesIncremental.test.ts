@@ -418,6 +418,7 @@ interface AssertStep {
   states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: TestPeriod[];
   journeys?: TestSignals[];
+  resolvedSegmentStates?: TestResolvedSegmentState[];
   indexedStates?: (
     | TestIndexedState
     | ((ctx: StepContext) => TestIndexedState)
@@ -3292,6 +3293,43 @@ describe("computeProperties", () => {
                   expect(simplifiedPeriods, step.description).toEqual(
                     step.periods
                   );
+                })()
+              : null,
+            step.resolvedSegmentStates
+              ? (async () => {
+                  const resolvedSegmentStates = await readResolvedSegmentStates(
+                    {
+                      workspaceId,
+                    }
+                  );
+                  const actualTestStates = resolvedSegmentStates.map((s) =>
+                    toTestResolvedSegmentState(s, segments)
+                  );
+                  for (const expected of step.resolvedSegmentStates ?? []) {
+                    const actualState = actualTestStates.find(
+                      (s) =>
+                        s.userId === expected.userId && s.name === expected.name
+                    );
+                    expect(
+                      actualState,
+                      `${["expected resolved segment state", step.description]
+                        .filter((s) => !!s)
+                        .join(" - ")}:\n\n${JSON.stringify(
+                        expected,
+                        null,
+                        2
+                      )}\n\nto be found in actual resolved segment states:\n\n${JSON.stringify(
+                        actualTestStates,
+                        null,
+                        2
+                      )}`
+                    ).not.toBeUndefined();
+
+                    expect(actualState, step.description).toHaveProperty(
+                      "segmentStateValue",
+                      expected.segmentStateValue
+                    );
+                  }
                 })()
               : null,
           ]);
