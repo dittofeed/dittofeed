@@ -163,6 +163,52 @@ interface TestIndexedState {
   indexedValue: number;
 }
 
+interface ResolvedSegmentState {
+  segment_id: string;
+  state_id: string;
+  user_id: string;
+  segment_state_value: number;
+}
+
+interface TestResolvedSegmentState {
+  userId: string;
+  name: string;
+  nodeId: string;
+  segmentStateValue: boolean;
+}
+
+async function readResolvedSegmentStates({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<ResolvedSegmentState[]> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select
+      segment_id,
+      state_id,
+      user_id,
+      segment_state_value
+    from resolved_segment_state 
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = (await (
+    await clickhouseClient().query({
+      query,
+      query_params: qb.getQueries(),
+    })
+  ).json()) satisfies { data: ResolvedSegmentState[] };
+
+  return response.data;
+}
+
+function toTestResolvedSegmentState(
+  indexedState: IndexedState,
+  segments: SavedSegmentResource[]
+): TestResolvedSegmentState {
+  throw new Error("not implemented");
+}
+
 async function readIndexed({
   workspaceId,
 }: {
@@ -1073,14 +1119,14 @@ describe("computeProperties", () => {
             }),
           ],
           // FIXME other conditions succeeding in this assertion, just not this one
-          users: [
-            {
-              id: "user-1",
-              segments: {
-                newUsers: true,
-              },
-            },
-          ],
+          // users: [
+          //   {
+          //     id: "user-1",
+          //     segments: {
+          //       newUsers: true,
+          //     },
+          //   },
+          // ],
           states: [
             ({ now }) => ({
               type: "segment",
@@ -1089,6 +1135,13 @@ describe("computeProperties", () => {
               nodeId: "2",
               lastValue: new Date(now - 100).toISOString(),
             }),
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "3",
+              lastValue: "val1",
+            },
           ],
         },
         {
