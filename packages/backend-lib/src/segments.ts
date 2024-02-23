@@ -25,11 +25,11 @@ import {
 } from "./types";
 
 export function enrichSegment(
-  segment: Segment,
+  segment: Segment
 ): Result<EnrichedSegment, Error> {
   const definitionResult = schemaValidateWithErr(
     segment.definition,
-    SegmentDefinition,
+    SegmentDefinition
   );
   if (definitionResult.isErr()) {
     return err(definitionResult.error);
@@ -60,10 +60,15 @@ export async function findAllSegmentAssignments({
     },
   });
 
-  return segments.reduce<Record<string, boolean | null>>((memo, curr) => {
-    memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? null;
-    return memo;
-  }, {});
+  const segmentAssignment = segments.reduce<Record<string, boolean | null>>(
+    (memo, curr) => {
+      memo[curr.name] = curr.SegmentAssignment[0]?.inSegment ?? null;
+      return memo;
+    },
+    {}
+  );
+  console.log("loc3", segmentAssignment);
+  return segmentAssignment;
 }
 
 export async function createSegment({
@@ -85,7 +90,7 @@ export async function createSegment({
 }
 
 export function toSegmentResource(
-  segment: Segment,
+  segment: Segment
 ): Result<SavedSegmentResource, Error> {
   const result = enrichSegment(segment);
   if (result.isErr()) {
@@ -106,7 +111,7 @@ export function toSegmentResource(
 }
 
 export async function findEnrichedSegment(
-  segmentId: string,
+  segmentId: string
 ): Promise<Result<EnrichedSegment | null, Error>> {
   const segment = await prisma().segment.findFirst({
     where: { id: segmentId },
@@ -141,7 +146,7 @@ export async function findEnrichedSegments({
   for (const segment of segments) {
     const definitionResult = schemaValidateWithErr(
       segment.definition,
-      SegmentDefinition,
+      SegmentDefinition
     );
     if (definitionResult.isErr()) {
       return err(definitionResult.error);
@@ -185,7 +190,7 @@ export async function findManyEnrichedSegments({
   for (const segment of segments) {
     const definitionResult = schemaValidate(
       segment.definition,
-      SegmentDefinition,
+      SegmentDefinition
     );
     if (definitionResult.isErr()) {
       return err(definitionResult.error);
@@ -225,7 +230,7 @@ export async function findManySegmentResourcesSafe({
     },
   });
   const results: Result<SavedSegmentResource, Error>[] = segments.map(
-    (segment) => toSegmentResource(segment),
+    (segment) => toSegmentResource(segment)
   );
   return results;
 }
@@ -236,7 +241,7 @@ export async function findManySegmentResourcesSafe({
  * @returns
  */
 export async function upsertSegment(
-  segment: UpsertSegmentResource,
+  segment: UpsertSegmentResource
 ): Promise<SegmentResource> {
   const { id, workspaceId, name, definition } = segment;
   const query = Prisma.sql`
@@ -362,7 +367,7 @@ export async function buildSegmentsFile({
         }
       });
       return csvAssignment;
-    },
+    }
   );
   const fileContent = await writeToString(assignments, {
     headers: [...downloadCsvHeaders, ...identifiers],
@@ -400,7 +405,7 @@ export async function upsertBulkSegmentAssignments({
           new: item,
           workspaceId: item.workspaceId,
         },
-        "duplicate segment assignment in bulk upsert",
+        "duplicate segment assignment in bulk upsert"
       );
       continue;
     }
@@ -461,7 +466,7 @@ export async function upsertBulkSegmentAssignments({
 
 export function getSegmentNode(
   definition: SegmentDefinition,
-  id: string,
+  id: string
 ): SegmentNode | null {
   if (definition.entryNode.id === id) {
     return definition.entryNode;

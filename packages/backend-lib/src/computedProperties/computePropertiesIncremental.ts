@@ -550,6 +550,7 @@ function segmentToResolvedState({
 }): string[] {
   const nowSeconds = now / 1000;
   const stateId = segmentNodeStateId(segment, node.id);
+  console.log("loc4 segmentToResolvedState");
   switch (node.type) {
     case SegmentNodeType.Performed: {
       const operator: string = node.timesOperator ?? RelationalOperators.Equals;
@@ -653,8 +654,10 @@ function segmentToResolvedState({
       ];
     }
     case SegmentNodeType.Trait: {
+      console.log("loc5 segmentToResolvedState");
       switch (node.operator.type) {
         case SegmentOperatorType.Within: {
+          // FIXME not seeing this
           const withinLowerBound = Math.round(
             Math.max(nowSeconds - node.operator.windowSeconds, 0)
           );
@@ -835,6 +838,7 @@ function segmentToResolvedState({
           return [query];
         }
         case SegmentOperatorType.Equals: {
+          console.log("loc7 segmentToResolvedState");
           return [
             buildRecentUpdateSegmentQuery({
               workspaceId,

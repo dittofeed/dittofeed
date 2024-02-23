@@ -203,10 +203,25 @@ async function readResolvedSegmentStates({
 }
 
 function toTestResolvedSegmentState(
-  indexedState: IndexedState,
+  resolvedSegmentState: ResolvedSegmentState,
   segments: SavedSegmentResource[]
 ): TestResolvedSegmentState {
-  throw new Error("not implemented");
+  const segment = segments.find(
+    (s) => s.id === resolvedSegmentState.segment_id
+  );
+  if (!segment) {
+    throw new Error("segment not found");
+  }
+  const nodeId = [
+    segment.definition.entryNode,
+    ...segment.definition.nodes,
+  ].find((n) => n.id === resolvedSegmentState.state_id)?.id;
+  return {
+    userId: resolvedSegmentState.user_id,
+    name: segment.name,
+    nodeId,
+    segmentStateValue: resolvedSegmentState.segment_state_value === 1,
+  };
 }
 
 async function readIndexed({
