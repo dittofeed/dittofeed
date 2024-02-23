@@ -144,9 +144,24 @@ export async function cli() {
     .command(
       "reset-compute-properties",
       "Resets compute properties workflow.",
-      () => {},
-      async () => {
-        const workspaces = await prisma().workspace.findMany();
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            describe:
+              "The workspace id of computed property workflows to reset. Can provide multiple comma separated ids. If not provided will apply to all workspaces.",
+          },
+        }),
+      async ({ workspaceId }) => {
+        const workspaceIds = workspaceId?.split(",");
+        const workspaces = await prisma().workspace.findMany({
+          where: {
+            id: {
+              in: workspaceIds,
+            },
+          },
+        });
         await Promise.all(
           workspaces.map(async (workspace) => {
             await resetComputePropertiesWorkflow({
@@ -229,14 +244,14 @@ export async function cli() {
             alias: "w",
             require: true,
           },
-          "name": {
+          name: {
             type: "string",
             alias: "n",
             require: true,
           },
         }),
       async ({ workspaceId, name }) => {
-        const result =  await createAdminApiKey({ workspaceId, name })
+        const result = await createAdminApiKey({ workspaceId, name });
         if (result.isErr()) {
           logger().error(result.error, "Failed to create admin API key");
           return;
