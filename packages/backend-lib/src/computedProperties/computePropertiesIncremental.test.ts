@@ -212,10 +212,16 @@ function toTestResolvedSegmentState(
   if (!segment) {
     throw new Error("segment not found");
   }
-  const nodeId = [
-    segment.definition.entryNode,
-    ...segment.definition.nodes,
-  ].find((n) => n.id === resolvedSegmentState.state_id)?.id;
+  const nodes = [segment.definition.entryNode, ...segment.definition.nodes];
+
+  const nodeId = nodes.find((n) => {
+    const stateId = segmentNodeStateId(segment, n.id);
+    return resolvedSegmentState.state_id === stateId;
+  })?.id;
+
+  if (!nodeId) {
+    throw new Error(`nodeId not found`);
+  }
   return {
     userId: resolvedSegmentState.user_id,
     name: segment.name,
@@ -1133,6 +1139,20 @@ describe("computeProperties", () => {
               nodeId: "2",
               indexedValue: Math.floor((now - 100) / 1000),
             }),
+          ],
+          resolvedSegmentStates: [
+            {
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "2",
+              segmentStateValue: true,
+            },
+            {
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "3",
+              segmentStateValue: true,
+            },
           ],
           // FIXME other conditions succeeding in this assertion, just not this one
           // users: [
@@ -3325,7 +3345,15 @@ describe("computeProperties", () => {
                       )}`
                     ).not.toBeUndefined();
 
-                    expect(actualState, step.description).toHaveProperty(
+                    expect(
+                      actualState,
+                      `${[
+                        "expected resolved segment state to have a different value",
+                        step.description,
+                      ]
+                        .filter((s) => !!s)
+                        .join(" - ")}:\n\n${JSON.stringify(expected, null, 2)}`
+                    ).toHaveProperty(
                       "segmentStateValue",
                       expected.segmentStateValue
                     );
