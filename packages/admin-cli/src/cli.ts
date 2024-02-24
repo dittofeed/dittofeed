@@ -1,13 +1,16 @@
 import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { bootstrapWorker } from "backend-lib/src/bootstrap";
+import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import backendConfig from "backend-lib/src/config";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
+import { findManySegmentResourcesSafe } from "backend-lib/src/segments";
 import {
   resetComputePropertiesWorkflow,
   resetGlobalCron,
 } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
+import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import {
   SENDGRID_SECRET,
   SENDGRID_WEBHOOK_SECRET_NAME,
@@ -257,6 +260,49 @@ export async function cli() {
           return;
         }
         logger().info(result.value, "Created admin API Key");
+      }
+    )
+    .command(
+      "compute-state",
+      "Manually re-run the computeState step of the compute properties workflow.",
+      (cmd) =>
+        cmd.options({
+          "workspace-id": {
+            type: "string",
+            alias: "w",
+            require: true,
+          },
+          "end-date": {
+            type: "number",
+            alias: "e",
+            require: true,
+            describe:
+              "The end date of the compute state step as a unix timestamp in ms.",
+          },
+        }),
+      async ({ workspaceId, endDate }) => {
+        const [userProperties, segments] = await Promise.all([
+          findAllUserPropertyResources({
+            workspaceId,
+          }),
+          findManySegmentResourcesSafe({
+            workspaceId,
+          }),
+        ]);
+
+        await computeState({
+          workspaceId,
+          segments: segments.flatMap((s) => {
+            if (s.isErr()) {
+              logger().error({ err: s.error }, "failed to enrich segment");
+              return [];
+            }
+            return s.value;
+          }),
+          userProperties,
+          now: endDate,
+        });
+        logger().info("Done.");
       }
     )
     .demandCommand(1, "# Please provide a valid command")
