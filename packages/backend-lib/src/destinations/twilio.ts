@@ -21,6 +21,7 @@ export async function sendSms({
   messagingServiceSid,
   to,
   subscriptionGroupId,
+  userId,
 }: {
   body: string;
   to: string;
@@ -28,6 +29,7 @@ export async function sendSms({
   messagingServiceSid: string;
   authToken: string;
   subscriptionGroupId: string | undefined;
+  userId: string | undefined;
 }): Promise<Result<{ sid: string }, RestException | Error>> {
   try {
     logger().debug(
@@ -47,7 +49,7 @@ export async function sendSms({
       messagingServiceSid,
       body,
       to,
-      statusCallback: `${statusCallbackBaseURL}?subscriptionGroupId=${subscriptionGroupId ?? ""}`,
+      statusCallback: `${statusCallbackBaseURL}?subscriptionGroupId=${subscriptionGroupId ?? ""}&userId=${userId ?? ""}`,
     });
     logger().debug({ response }, "SMS sent");
     return ok({ sid: response.sid });

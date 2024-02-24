@@ -390,8 +390,9 @@ export default async function webhookController(fastify: FastifyInstance) {
         ? (twilioSecret.configValue as TwilioSecret).authToken
         : undefined;
 
-      const { subscriptionGroupId } = request.query as {
+      const { subscriptionGroupId, userId } = request.query as {
         subscriptionGroupId: string;
+        userId: string;
       };
 
       if (!workspaceId) {
@@ -430,6 +431,7 @@ export default async function webhookController(fastify: FastifyInstance) {
 
       await submitTwilioEvents({
         workspaceId,
+        userId,
         TwilioEvent: request.body,
         subscriptionGroupId,
       });
