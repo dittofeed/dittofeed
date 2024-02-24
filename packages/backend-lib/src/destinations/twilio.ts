@@ -8,11 +8,9 @@ import {
   BatchTrackData,
   EventType,
   InternalEventType,
-  SubscriptionGroupType,
   TwilioInboundSchema,
   TwilioMessageStatus,
 } from "../types";
-import { findUserIdByMessageId } from "../userEvents";
 
 export const TwilioRestException = RestException;
 
@@ -66,20 +64,13 @@ export async function sendSms({
 export async function submitTwilioEvents({
   workspaceId,
   TwilioEvent,
+  userId,
 }: {
   workspaceId: string;
   TwilioEvent: TwilioInboundSchema;
   subscriptionGroupId: string | undefined;
+  userId: string;
 }): Promise<ResultAsync<void, Error>> {
-  const messageBody = TwilioEvent.Body?.toLowerCase();
-
-  let subscriptionStatus = null;
-  if (messageBody?.includes("stop")) {
-    subscriptionStatus = SubscriptionGroupType.OptOut;
-  } else if (messageBody?.includes("start")) {
-    subscriptionStatus = SubscriptionGroupType.OptIn;
-  }
-
   let eventName: InternalEventType;
 
   switch (TwilioEvent.SmsStatus) {
@@ -95,13 +86,8 @@ export async function submitTwilioEvents({
       );
   }
 
-  const userId = await findUserIdByMessageId({
-    messageId: TwilioEvent.MessageSid,
-    workspaceId,
-  });
-
-  if (!userId || !subscriptionStatus) {
-    return err(new Error("Missing userId and anonymousId."));
+  if (!userId) {
+    return err(new Error("Missing userId."));
   }
 
   const item = {
