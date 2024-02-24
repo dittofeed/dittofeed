@@ -322,6 +322,7 @@ export async function sendSmsWithPayload(
       channelConfig,
       identifier,
       subscriptionSecret,
+      userId,
     }) {
       const render = (template?: string) =>
         template &&
@@ -380,9 +381,11 @@ export async function sendSmsWithPayload(
               },
             );
           }
+
           const smsResult = await sendSmsTwilio({
             body,
             to: identifier,
+            userId,
             accountSid: channelConfig.accountSid,
             messagingServiceSid: channelConfig.messagingServiceSid,
             authToken: channelConfig.authToken,
@@ -797,6 +800,7 @@ async function sendMessageInner({
     channel,
     useDraft: false,
     templateId,
+    userId,
     userPropertyAssignments,
     subscriptionGroupDetails,
     messageTags: {
