@@ -367,6 +367,7 @@ interface FullSubQueryData {
   uniqValue?: string;
   eventTimeExpression?: string;
   recordMessageId?: boolean;
+  joinPriorStateValue?: boolean;
   // used to force computed properties to refresh when definition changes
   version: string;
 }
@@ -1205,6 +1206,8 @@ export function segmentNodeToStateSubQuery({
         {
           condition: `event_type == 'identify'`,
           type: "segment",
+          joinPriorStateValue:
+            node.operator.type === SegmentOperatorType.HasBeen,
           uniqValue: "''",
           argMaxValue: `JSON_VALUE(properties, ${path})`,
           eventTimeExpression,
@@ -2067,6 +2070,22 @@ export async function computeState({
           )
           .join(", ");
 
+        const joinedPrior = periodSubQueries.flatMap((subQuery) => {
+          if (!subQuery.joinPriorStateValue) {
+            return [];
+          }
+          return `
+            (
+              type = '${subQuery.type}'
+              and computed_property_id = ${qb.addQueryValue(
+                subQuery.computedPropertyId,
+                "String",
+              )}
+              and state_id = ${qb.addQueryValue(subQuery.stateId, "String")} 
+            )
+          `;
+        });
+
         const query = `
           insert into computed_property_state_v2
           select
@@ -2121,7 +2140,20 @@ export async function computeState({
                 and processing_time <= toDateTime64(${nowSeconds}, 3)
                 ${lowerBoundClause}
             ) as inner1
-            left join computed_property_state_v2 cps on
+            left join (
+              select
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id,
+                last_value,
+                unique_count
+              from computed_property_state_v2 as cps_inner
+              where
+                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                and (${joinedPrior.length > 0 ? joinedPrior.join(" or ") : "False"})
+            ) as cps on
               inner1.workspace_id = cps.workspace_id
               and inner1.type = cps.type
               and inner1.computed_property_id = cps.computed_property_id
