@@ -97,7 +97,7 @@ export async function submitTwilioEvents({
     event: eventName,
     userId,
     messageId: TwilioEvent.MessageSid,
-    timestamp: new Date().toString(),
+    timestamp: new Date().toISOString(),
     properties: {
       workspaceId,
       userId,
