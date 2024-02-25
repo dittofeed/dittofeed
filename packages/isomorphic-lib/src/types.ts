@@ -913,7 +913,7 @@ export const MessageTemplateResource = Type.Object(
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
 
 export type NarrowedMessageTemplateResource<
-  T extends MessageTemplateResourceDefinition
+  T extends MessageTemplateResourceDefinition,
 > = Omit<MessageTemplateResource, "definition"> & {
   definition: T;
 };
@@ -1043,7 +1043,7 @@ export const PersistedEmailProvider = Type.Union([
   PostMarkEmailProvider,
   ResendEmailProvider,
   SmtpEmailProvider,
-  TestEmailProvider
+  TestEmailProvider,
 ]);
 
 export type PersistedEmailProvider = Static<typeof PersistedEmailProvider>;
@@ -1943,7 +1943,12 @@ export type WaitForNodeStats = Static<typeof WaitForNodeStats>;
 
 export type SegmentSplitNodeStats = Static<typeof SegmentSplitNodeStats>;
 
-export const NodeStats = Type.Union([MessageNodeStats, DelayNodeStats, WaitForNodeStats, SegmentSplitNodeStats]);
+export const NodeStats = Type.Union([
+  MessageNodeStats,
+  DelayNodeStats,
+  WaitForNodeStats,
+  SegmentSplitNodeStats,
+]);
 
 export type NodeStats = Static<typeof NodeStats>;
 
@@ -1998,20 +2003,16 @@ export const TestSmsProvider = Type.Object({
   type: Type.Literal(SmsProviderType.Test),
 });
 
-export const SmsProviderSecret = Type.Union([
-  TwilioSecret,
-  TestSmsSecret
-]);
+export const SmsProviderSecret = Type.Union([TwilioSecret, TestSmsSecret]);
 
 export type SmsProviderSecret = Static<typeof SmsProviderSecret>;
 
-export type TwilioProviderConfig = Required<Pick<TwilioSecret, "accountSid" | "messagingServiceSid" | "authToken">>;
 
 export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
 
 export const PersistedSmsProvider = Type.Union([
   TwilioSmsProvider,
-  TestSmsProvider
+  TestSmsProvider,
 ]);
 
 export type PersistedSmsProvider = Static<typeof PersistedSmsProvider>;
@@ -2020,7 +2021,7 @@ export const UpsertSmsProviderRequest = Type.Object({
   workspaceId: Type.String(),
   setDefault: Type.Optional(Type.Boolean()),
   type: Type.Optional(Type.Enum(SmsProviderType)),
-  secret: Type.Omit(SmsProviderSecret, ['type'])
+  secret: Type.Omit(SmsProviderSecret, ["type"]),
 });
 
 export type UpsertSmsProviderRequest = Static<typeof UpsertSmsProviderRequest>;
@@ -2030,7 +2031,9 @@ export const DefaultSmsProviderResource = Type.Object({
   smsProviderId: Type.String(),
 });
 
-export type DefaultSmsProviderResource = Static<typeof DefaultSmsProviderResource>;
+export type DefaultSmsProviderResource = Static<
+  typeof DefaultSmsProviderResource
+>;
 
 // Compatible as both a subset of EnrichedJourney and JourneyResource
 export interface CompatibleJourney {
@@ -2106,13 +2109,13 @@ export const EmailSmtpSuccess = Type.Object({
 export type EmailSmtpSuccess = Static<typeof EmailSmtpSuccess>;
 
 export const EmailResendSuccess = Type.Object({
-  type: Type.Literal(EmailProviderType.Resend)
+  type: Type.Literal(EmailProviderType.Resend),
 });
 
 export type EmailResendSuccess = Static<typeof EmailResendSuccess>;
 
 export const EmailPostMarkSuccess = Type.Object({
-  type: Type.Literal(EmailProviderType.PostMark)
+  type: Type.Literal(EmailProviderType.PostMark),
 });
 
 export type EmailPostMarkSuccess = Static<typeof EmailPostMarkSuccess>;
@@ -2252,7 +2255,9 @@ export const MessageAmazonSesServiceFailure = Type.Object({
   message: Type.Optional(Type.String()),
 });
 
-export type MessageAmazonSesServiceFailure = Static<typeof MessageAmazonSesServiceFailure>;
+export type MessageAmazonSesServiceFailure = Static<
+  typeof MessageAmazonSesServiceFailure
+>;
 
 export const MessageSmtpFailure = Type.Object({
   type: Type.Literal(EmailProviderType.Smtp),
@@ -2418,7 +2423,6 @@ export const MessageTemplateTestRequest = Type.Union([
   }),
 ]);
 
-
 export type MessageTemplateTestRequest = Static<
   typeof MessageTemplateTestRequest
 >;
@@ -2530,7 +2534,9 @@ export const AmazonSesSecret = Type.Object({
 
 export type AmazonSesSecret = Static<typeof AmazonSesSecret>;
 
-export type AmazonSesConfig = Required<Pick<AmazonSesSecret, "accessKeyId" | "secretAccessKey" | "region">>;
+export type AmazonSesConfig = Required<
+  Pick<AmazonSesSecret, "accessKeyId" | "secretAccessKey" | "region">
+>;
 
 export const AmazonSesMailFields = Type.Object({
   from: Type.String(),
@@ -2538,12 +2544,8 @@ export const AmazonSesMailFields = Type.Object({
   subject: Type.String(),
   html: Type.String(),
   replyTo: Type.Optional(Type.String()),
-  tags: Type.Optional(
-    Type.Record(
-      Type.String(), Type.String()
-    )
-  ),
-})
+  tags: Type.Optional(Type.Record(Type.String(), Type.String())),
+});
 
 export type AmazonSesMailFields = Static<typeof AmazonSesMailFields>;
 
@@ -2579,7 +2581,7 @@ export const EmailProviderSecret = Type.Union([
   AmazonSesSecret,
   SmtpSecret,
   ResendSecret,
-  TestEmailSecret
+  TestEmailSecret,
 ]);
 
 export type EmailProviderSecret = Static<typeof EmailProviderSecret>;
@@ -2627,7 +2629,9 @@ export enum AdminApiKeyType {
 export const AdminApiKeyDefinition = Type.Object({
   type: Type.Literal(AdminApiKeyType.AdminApiKey),
   key: Type.String(),
-  permissions: Type.Array(Type.Union([Type.Literal(AdminApiKeyPermission.Admin)])),
+  permissions: Type.Array(
+    Type.Union([Type.Literal(AdminApiKeyPermission.Admin)])
+  ),
 });
 
 export type AdminApiKeyDefinition = Static<typeof AdminApiKeyDefinition>;
@@ -2646,7 +2650,9 @@ export const CreateAdminApiKeyResponse = Type.Object({
   workspaceId: Type.String(),
 });
 
-export type CreateAdminApiKeyResponse = Static<typeof CreateAdminApiKeyResponse>;
+export type CreateAdminApiKeyResponse = Static<
+  typeof CreateAdminApiKeyResponse
+>;
 
 export const DeleteAdminApiKeyRequest = Type.Object({
   workspaceId: Type.String(),
@@ -2654,3 +2660,42 @@ export const DeleteAdminApiKeyRequest = Type.Object({
 });
 
 export type DeleteAdminApiKeyRequest = Static<typeof DeleteAdminApiKeyRequest>;
+
+export enum JourneyConstraintViolationType {
+  WaitForNodeAndEventEntryNode = "WaitForNodeAndEventEntryNode",
+}
+
+export const JourneyConstraintViolation = Type.Object({
+  type: Type.Enum(JourneyConstraintViolationType),
+  message: Type.String(),
+});
+
+export type JourneyConstraintViolation = Static<
+  typeof JourneyConstraintViolation
+>;
+
+export enum JourneyUpsertValidationErrorType {
+  ConstraintViolation = "ConstraintViolation",
+}
+
+export const JourneyUpsertValidationConstraintViolationError = Type.Object({
+  type: Type.Literal(JourneyUpsertValidationErrorType.ConstraintViolation),
+  violations: Type.Array(JourneyConstraintViolation),
+});
+
+export type JourneyUpsertValidationConstraintViolationError = Static<
+  typeof JourneyUpsertValidationConstraintViolationError
+>;
+
+export const JourneyUpsertValidationErrorVariant = Type.Union([
+  JourneyUpsertValidationConstraintViolationError,
+]);
+
+export type JourneyUpsertValidationErrorVariant = Static<
+  typeof JourneyUpsertValidationErrorVariant
+>;
+
+export const JourneyUpsertValidationError = Type.Object({
+  message: Type.String(),
+  variant: JourneyUpsertValidationErrorVariant,
+});

@@ -17,6 +17,7 @@ services:
     image: dittofeed/dittofeed-dashboard:${IMAGE_TAG:-v0.8.3}
     ports:
       - "3000:3000"
+    restart: always
     depends_on:
       - postgres
       - temporal
@@ -29,6 +30,7 @@ services:
       - dittofeed-network
   api:
     image: dittofeed/dittofeed-api:${IMAGE_TAG:-v0.8.3}
+    restart: always
     ports:
       - "3001:3001"
     depends_on:
@@ -43,6 +45,7 @@ services:
       - dittofeed-network
   worker:
     image: dittofeed/dittofeed-worker:${IMAGE_TAG:-v0.8.3}
+    restart: always
     depends_on:
       - postgres
       - temporal
