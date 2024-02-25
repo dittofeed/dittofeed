@@ -5,34 +5,40 @@ description: "Define who is allowed to enter a Journey."
 
 All journeys have an entry node. An entry node defines who is allowed to enter the journey, and when they enter it.
 
-two types of entry nodes, segment and event
+There are two types of journey entry nodes, Segment Entry Nodes and Event Entry Node. Users enter journeys with Segment Entry Nodes when they enter specified corresponding segment. Users enter journeys with Event Entry Nodes immediately, when they trigger a specified event.
 
 ## Segment Entry
 
-outline:
+Users enter journeys with Segment Entry Nodes when they enter specified corresponding segment. Segment Entry Nodes are useful for what might traditionally considered marketing messaging. For example, drip campaigns, onboarding, or re-engagement campaigns.
 
-- at most 1 instance of journey per user.
-- user enter asynchronously, after segment calculattions take place.
-- useful for what might traditionally considered marketing messaging.
+Journeys with Segment Entry Nodes have at most one instance per user.
 
-
-### Example Use Case - Onboarding
+### Example Use Case - Welcome email
 
 {/* FIXME retake screenshot */}
 <Frame>
 ![Minimal Journey](/images/minimal-journey.png)
 </Frame>
 
-For example, an entry node might be assigned a "Stagnant Onboarding" segment, which includes all users who have had `status='onboarding'` for more than 24 hours. This journey might then send users an email encouraging them to finish onboarding with additional instructions.
+For example, an entry node might be assigned a "New Users" segment, which includes all users who have a `createdAt` date within the last 24 hours. This journey might encourage users to finishing setting up their prorfile, and inform them about new features.
 
 
 ## Event Entry
+
+Users enter journeys with Event Entry Nodes immediately, when they trigger a specified event. Event Entry Nodes are useful for what might traditionally considered transactional messaging. For example, order confirmation, password reset, or order cancellation.
+
+With every matching event, a new instance of the journey is created for the user. This is in contrast to Segment Entry Nodes, where only one instance of the journey can exist at any given time for each user.
+
+## With Performed User Properties
+
+## The Role of Message Ids
 
 outline:
 - n number of instances of journey per user.
 - user enter synchronously, when event occurs.
 - useful for what might traditionally considered transactional messaging.
 - uses messaqe id of triggering event as they key used identify the journey instance.
+- user properties
 
 ### Example Use Case - Order Cancellation
 
