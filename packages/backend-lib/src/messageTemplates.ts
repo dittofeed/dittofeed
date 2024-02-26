@@ -1102,6 +1102,7 @@ export async function sendSms({
         messagingServiceSid,
         subscriptionGroupId: subscriptionGroupDetails?.id,
         to,
+        workspaceId,
       });
 
       if (result.isErr()) {

@@ -31,6 +31,7 @@ import {
   POSTMARK_SECRET,
   RESEND_SECRET,
   SENDGRID_SECRET,
+  TWILIO_SECRET_NAME,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -45,6 +46,8 @@ import { Webhook } from "svix";
 import { validateRequest } from "twilio";
 
 import { getWorkspaceId } from "../workspace";
+
+const TWILIO_CONFIG_ERR_MSG = "Twilio configuration not found";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
@@ -371,47 +374,51 @@ export default async function webhookController(fastify: FastifyInstance) {
           "x-twilio-signature": Type.String(),
         }),
         body: TwilioEventSms,
+        querystring: Type.Object({
+          workspaceId: Type.String(),
+          userId: Type.String(),
+          subscriptionGroupId: Type.Optional(Type.String()),
+        }),
       },
     },
     async (request, reply) => {
-      const allTwilioSecrets = await prisma().secret.findMany({
+      const { workspaceId, userId, subscriptionGroupId } = request.query;
+
+      const twilioSecretModel = await prisma().secret.findUnique({
         where: {
-          name: "twilio-key",
+          workspaceId_name: {
+            name: TWILIO_SECRET_NAME,
+            workspaceId,
+          },
         },
       });
 
-      const twilioSecret = allTwilioSecrets.find((secret) => {
-        const config = secret.configValue as unknown as TwilioSecret;
-        return config.accountSid === request.body.AccountSid;
-      });
-
-      const workspaceId = twilioSecret ? twilioSecret.workspaceId : undefined;
-      const authToken = twilioSecret
-        ? (twilioSecret.configValue as TwilioSecret).authToken
-        : undefined;
-
-      const { subscriptionGroupId, userId } = request.query as {
-        subscriptionGroupId: string;
-        userId: string;
-      };
-
-      if (!workspaceId) {
-        return reply.status(400).send({
-          error: "workspaceId not found",
+      const twilioSecretResult = schemaValidateWithErr(
+        twilioSecretModel?.configValue,
+        TwilioSecret,
+      );
+      if (twilioSecretResult.isErr()) {
+        return reply.status(503).send({
+          message: TWILIO_CONFIG_ERR_MSG,
+        });
+      }
+      const twilioSecret = twilioSecretResult.value;
+      if (
+        !twilioSecret.authToken ||
+        !twilioSecret.accountSid ||
+        !twilioSecret.messagingServiceSid
+      ) {
+        return reply.status(503).send({
+          message: TWILIO_CONFIG_ERR_MSG,
         });
       }
 
-      if (!authToken) {
-        return reply.status(400).send({
-          error: "authToken not found",
-        });
-      }
-
+      // TODO refactor this into the backend config, using just the host not the path
       const url =
         process.env.TWILIO_STATUS_CALLBACK_URL ?? "https://dittofeed.com";
 
       const verified = validateRequest(
-        authToken,
+        twilioSecret.authToken,
         request.headers["x-twilio-signature"],
         `${url}${request.url}`,
         request.body,

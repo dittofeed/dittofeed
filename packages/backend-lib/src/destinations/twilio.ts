@@ -22,6 +22,7 @@ export async function sendSms({
   to,
   subscriptionGroupId,
   userId,
+  workspaceId,
 }: {
   body: string;
   to: string;
@@ -29,7 +30,8 @@ export async function sendSms({
   messagingServiceSid: string;
   authToken: string;
   subscriptionGroupId: string | undefined;
-  userId: string | undefined;
+  userId: string;
+  workspaceId: string;
 }): Promise<Result<{ sid: string }, RestException | Error>> {
   try {
     logger().debug(
@@ -41,6 +43,7 @@ export async function sendSms({
       },
       "Sending SMS",
     );
+    // TODO refactor this into the backend config, using just the host not the path
     const statusCallbackBaseURL =
       process.env.TWILIO_STATUS_CALLBACK_URL ??
       "https://dittofeed.com/api/public/webhooks/twilio";
@@ -49,7 +52,7 @@ export async function sendSms({
       messagingServiceSid,
       body,
       to,
-      statusCallback: `${statusCallbackBaseURL}?subscriptionGroupId=${subscriptionGroupId ?? ""}&userId=${userId ?? ""}`,
+      statusCallback: `${statusCallbackBaseURL}?subscriptionGroupId=${subscriptionGroupId ?? ""}&userId=${userId}&workspaceId=${workspaceId}`,
     });
     logger().debug({ response }, "SMS sent");
     return ok({ sid: response.sid });
