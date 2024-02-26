@@ -105,3 +105,37 @@ export async function terminateComputePropertiesWorkflow({
     );
   }
 }
+
+export async function resetComputePropertiesWorkflow({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  const client = await connectWorkflowClient();
+  try {
+    await client
+      .getHandle(generateComputePropertiesId(workspaceId))
+      .terminate();
+  } catch (e) {
+    logger().info(
+      {
+        err: e,
+      },
+      "Failed to terminate compute properties workflow."
+    );
+  }
+
+  try {
+    await startComputePropertiesWorkflow({
+      workspaceId,
+      client,
+    });
+  } catch (e) {
+    logger().error(
+      {
+        err: e,
+      },
+      "Failed to start compute properties workflow."
+    );
+  }
+}

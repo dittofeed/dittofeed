@@ -1,3 +1,4 @@
+import { command } from "backend-lib/src/clickhouse";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
@@ -8,7 +9,6 @@ import { Workspace } from "backend-lib/src/types";
 import { createUserEventsTables } from "backend-lib/src/userEvents/clickhouse";
 
 import { spawnWithEnv } from "./spawn";
-import { command } from "backend-lib/src/clickhouse";
 
 async function upgradeWorkspaceV010Pre(workspace: Workspace) {
   logger().info(
