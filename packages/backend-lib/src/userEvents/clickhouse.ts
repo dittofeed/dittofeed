@@ -268,7 +268,7 @@ export async function createUserEventsTables({
         assigned_at;
     `,
     `
-      create materialized view if not exists updated_computed_property_state_mv to updated_computed_property_state
+      create materialized view if not exists updated_computed_property_state_v2_mv to updated_computed_property_state
       as select
         workspace_id,
         type,
