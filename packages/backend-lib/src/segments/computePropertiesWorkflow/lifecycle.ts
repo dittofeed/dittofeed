@@ -56,7 +56,7 @@ export async function startGlobalCron({
         {
           err: e,
         },
-        "Failed to start global cron.",
+        "Failed to start global cron."
       );
     }
   }
@@ -71,7 +71,7 @@ export async function resetGlobalCron() {
       {
         err: e,
       },
-      "Failed to terminate global cron.",
+      "Failed to terminate global cron."
     );
   }
   try {
@@ -81,12 +81,12 @@ export async function resetGlobalCron() {
       {
         err: e,
       },
-      "Failed to start global cron.",
+      "Failed to start global cron."
     );
   }
 }
 
-export async function resetComputePropertiesWorkflow({
+export async function terminateComputePropertiesWorkflow({
   workspaceId,
 }: {
   workspaceId: string;
@@ -101,21 +101,7 @@ export async function resetComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to terminate compute properties workflow.",
-    );
-  }
-
-  try {
-    await startComputePropertiesWorkflow({
-      workspaceId,
-      client,
-    });
-  } catch (e) {
-    logger().error(
-      {
-        err: e,
-      },
-      "Failed to start compute properties workflow.",
+      "Failed to terminate compute properties workflow."
     );
   }
 }
