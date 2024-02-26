@@ -42,7 +42,7 @@ export async function startComputePropertiesWorkflow({
         {
           workspaceId,
         },
-        "Compute properties workflow already started."
+        "Compute properties workflow already started.",
       );
     }
   }
@@ -68,7 +68,7 @@ export async function startGlobalCron({
         {
           err: e,
         },
-        "Failed to start global cron."
+        "Failed to start global cron.",
       );
     }
   }
@@ -83,7 +83,7 @@ export async function resetGlobalCron() {
       {
         err: e,
       },
-      "Failed to terminate global cron."
+      "Failed to terminate global cron.",
     );
   }
   try {
@@ -93,7 +93,7 @@ export async function resetGlobalCron() {
       {
         err: e,
       },
-      "Failed to start global cron."
+      "Failed to start global cron.",
     );
   }
 }
@@ -113,7 +113,7 @@ export async function terminateComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to terminate compute properties workflow."
+      "Failed to terminate compute properties workflow.",
     );
   }
 }
@@ -133,7 +133,7 @@ export async function resetComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to terminate compute properties workflow."
+      "Failed to terminate compute properties workflow.",
     );
   }
 
@@ -147,7 +147,7 @@ export async function resetComputePropertiesWorkflow({
       {
         err: e,
       },
-      "Failed to start compute properties workflow."
+      "Failed to start compute properties workflow.",
     );
   }
 }

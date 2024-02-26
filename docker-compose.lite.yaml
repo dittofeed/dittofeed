@@ -19,7 +19,7 @@ x-backend-app-env: &backend-app-env
   PASSWORD: ${PASSWORD:-password}
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.8.3}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.9.0}
     build:
       context: .
       dockerfile: ./packages/lite/Dockerfile
