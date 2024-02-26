@@ -20,6 +20,7 @@ x-backend-app-env: &backend-app-env
 services:
   lite:
     image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.8.3}
+    restart: always
     ports:
       - "3000:3000"
     depends_on:
