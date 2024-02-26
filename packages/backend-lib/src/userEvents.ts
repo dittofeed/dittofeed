@@ -144,6 +144,28 @@ export async function findManyInternalEvents({
   return results;
 }
 
+export async function findUserIdByMessageId({
+  messageId,
+  workspaceId,
+}: {
+  messageId: string;
+  workspaceId: string;
+}): Promise<string | null> {
+  const query = `SELECT user_id FROM user_events_v2 WHERE message_id = {messageId:String} AND workspace_id = {workspaceId:String} LIMIT 1`;
+
+  const resultSet = await clickhouseClient().query({
+    query,
+    format: "JSONEachRow",
+    query_params: {
+      messageId,
+      workspaceId,
+    },
+  });
+
+  const results = await resultSet.json<{ user_id: string }[]>();
+  return results[0]?.user_id ?? null;
+}
+
 export interface InternalEvent {
   event: InternalEventType;
   userId: string;

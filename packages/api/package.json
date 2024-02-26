@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^8.1.0",
+    "@fastify/formbody": "^7.4.0",
     "@fastify/multipart": "^7.6.0",
     "@fastify/request-context": "^4.2.0",
     "@fastify/secure-session": "^7.1.0",
@@ -47,6 +48,7 @@
     "remeda": "^1.12.0",
     "resend": "^2.1.0",
     "svix": "^1.15.0",
+    "twilio": "^4.22.0",
     "utility-types": "^3.10.0",
     "uuid": "^9.0.0",
     "yargs": "^17.7.2"

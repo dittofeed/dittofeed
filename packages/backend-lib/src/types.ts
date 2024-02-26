@@ -146,6 +146,36 @@ export const DecodedJwt = Type.Object({
 
 export type DecodedJwt = Static<typeof DecodedJwt>;
 
+export enum TwilioMessageStatus {
+  Queued = "queued",
+  Sending = "sending",
+  Sent = "sent",
+  Failed = "failed",
+  Delivered = "delivered",
+  Undelivered = "undelivered",
+  Receiving = "receiving",
+  Received = "received",
+  Accepted = "accepted",
+  Scheduled = "scheduled",
+  Read = "read",
+  PartiallyDelivered = "partially_delivered",
+  Canceled = "canceled",
+}
+
+export const TwilioEventSms = Type.Object({
+  SmsSid: Type.String(),
+  MessagingServiceSid: Type.String(),
+  SmsStatus: Type.Enum(TwilioMessageStatus),
+  Body: Type.Optional(Type.String()),
+  To: Type.String(),
+  MessageSid: Type.String(),
+  AccountSid: Type.String(),
+  From: Type.String(),
+  ApiVersion: Type.String(),
+});
+
+export type TwilioInboundSchema = Static<typeof TwilioEventSms>;
+
 export enum AmazonSesNotificationType {
   Bounce = "Bounce",
   Complaint = "Complaint",

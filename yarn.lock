@@ -1600,6 +1600,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fastify/formbody@npm:^7.4.0":
+  version: 7.4.0
+  resolution: "@fastify/formbody@npm:7.4.0"
+  dependencies:
+    fast-querystring: ^1.0.0
+    fastify-plugin: ^4.0.0
+  checksum: 5bff8180b71343179e3e5bd8b2f88b17459062cf55035c60fbda8db1e8d9682645b2f47ce8b898190814ae241631fee0345edd4e4f396e34fab6fb7eb681381d
+  languageName: node
+  linkType: hard
+
 "@fastify/multipart@npm:^7.6.0":
   version: 7.6.0
   resolution: "@fastify/multipart@npm:7.6.0"
@@ -7360,6 +7370,7 @@ __metadata:
   resolution: "api@workspace:packages/api"
   dependencies:
     "@fastify/cors": ^8.1.0
+    "@fastify/formbody": ^7.4.0
     "@fastify/multipart": ^7.6.0
     "@fastify/request-context": ^4.2.0
     "@fastify/secure-session": ^7.1.0
@@ -7410,6 +7421,7 @@ __metadata:
     resend: ^2.1.0
     svix: ^1.15.0
     ts-node: ^10.9.1
+    twilio: ^4.22.0
     ts-node-dev: ^2.0.0
     typescript: ^5.2.2
     utility-types: ^3.10.0
@@ -7687,7 +7699,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.6.2":
+"axios@npm:^1.6.0, axios@npm:^1.6.2":
   version: 1.6.7
   resolution: "axios@npm:1.6.7"
   dependencies:
@@ -17594,6 +17606,22 @@ __metadata:
     url-parse: ^1.5.9
     xmlbuilder: ^13.0.2
   checksum: 1d48443e9afc2d233e915977f619afafb00fdbc0480617cad0fce9303bd9611975d09d1a1f0321af41343fcf44a4db730082f85d686591787c0637b3d999faa5
+  languageName: node
+  linkType: hard
+
+"twilio@npm:^4.22.0":
+  version: 4.22.0
+  resolution: "twilio@npm:4.22.0"
+  dependencies:
+    axios: ^1.6.0
+    dayjs: ^1.11.9
+    https-proxy-agent: ^5.0.0
+    jsonwebtoken: ^9.0.0
+    qs: ^6.9.4
+    scmp: ^2.1.0
+    url-parse: ^1.5.9
+    xmlbuilder: ^13.0.2
+  checksum: 11995ac2d05043f5fba50100db489ca43b0666f265b1fbe2da39f4499867d03962dff15e447eea5bf79a4a627a23f6de26b03a4899f062f34e8cc90592c283cd
   languageName: node
   linkType: hard
 
