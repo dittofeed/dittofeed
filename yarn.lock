@@ -7421,8 +7421,8 @@ __metadata:
     resend: ^2.1.0
     svix: ^1.15.0
     ts-node: ^10.9.1
-    twilio: ^4.22.0
     ts-node-dev: ^2.0.0
+    twilio: ^4.22.0
     typescript: ^5.2.2
     utility-types: ^3.10.0
     uuid: ^9.0.0

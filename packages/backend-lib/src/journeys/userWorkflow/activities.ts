@@ -388,6 +388,7 @@ export async function sendSmsWithPayload(
             userId,
             accountSid: channelConfig.accountSid,
             messagingServiceSid: channelConfig.messagingServiceSid,
+            workspaceId,
             authToken: channelConfig.authToken,
             subscriptionGroupId: params.subscriptionGroupId,
           });
