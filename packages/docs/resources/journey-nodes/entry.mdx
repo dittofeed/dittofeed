@@ -1,6 +1,6 @@
 ---
 title: "Entry - Journey Node"
-description: "Define who is allowed to enter a Journey."
+description: "Define who is allowed to enter a Journey, and when they enter it."
 ---
 
 All journeys have an entry node. An entry node defines who is allowed to enter the journey, and when they enter it.
@@ -30,7 +30,7 @@ Users enter journeys with Event Entry Nodes immediately, when they trigger a spe
 
 With every matching event, a new instance of the journey is created for the user. This is in contrast to Segment Entry Nodes, where only one instance of the journey can exist at any given time for each user.
 
-## The Role of Message Ids
+### The Role of Message Ids
 
 In Dittofeed, message id's are used to uniquely identify events. In the case of journeys with Event Entry Nodes, the message id of the triggering event is used to identify the journey instance, and to ensure if you accidentally send duplicate events with the same message id, the user will not receive duplicate messages.
 
@@ -38,20 +38,12 @@ In most cases, events' message id's can safely be assigned an arbitrary unique v
 
 For example, when sending an event to trigger a journey for an order cancellation, the message id might be `order-cancelled-${orderId}`.
 
-## With Performed User Properties
+### Performed User Properties
 
-## Limitations
+[User properties](/resources/user-properties) are usually calculated "asynchronously", meaning user properties are calculated some time after when an event is submitted.
 
+However, an exception is made in the case of journeys with Event Entry Nodes. When a user enters a journey with an Event Entry Node, ["Performed User Properties"](/resources/user-property-types/performed) are calculated immediately, and made available within the journey and its message nodes.
 
-outline:
-- n number of instances of journey per user.
-- user enter synchronously, when event occurs.
-- useful for what might traditionally considered transactional messaging.
-- uses messaqe id of triggering event as they key used identify the journey instance.
-- user properties
+### Limitations
 
-### Example Use Case - Order Cancellation
-
-- message-id: ` ``order-cancelled-${orderId}`` ` e.g. order-cancelled-123
-- 
-
+Currently, journeys with Event Entry Nodes can not contain ["Wait-For" journey nodes](/resources/journey-nodes/wait-for).
