@@ -22,18 +22,30 @@ export async function startComputePropertiesWorkflow({
     computePropertiesWorkflowTaskTimeout,
     defaultUserEventsTableVersion,
   } = config();
-  await temporalClient.start(computePropertiesWorkflow, {
-    taskQueue: "default",
-    workflowId: generateComputePropertiesId(workspaceId),
-    workflowTaskTimeout: computePropertiesWorkflowTaskTimeout,
-    args: [
-      {
-        tableVersion: defaultUserEventsTableVersion,
-        workspaceId,
-        shouldContinueAsNew: true,
-      },
-    ],
-  });
+
+  try {
+    await temporalClient.start(computePropertiesWorkflow, {
+      taskQueue: "default",
+      workflowId: generateComputePropertiesId(workspaceId),
+      workflowTaskTimeout: computePropertiesWorkflowTaskTimeout,
+      args: [
+        {
+          tableVersion: defaultUserEventsTableVersion,
+          workspaceId,
+          shouldContinueAsNew: true,
+        },
+      ],
+    });
+  } catch (e) {
+    if (e instanceof WorkflowExecutionAlreadyStartedError) {
+      logger().info(
+        {
+          workspaceId,
+        },
+        "Compute properties workflow already started.",
+      );
+    }
+  }
 }
 
 export async function startGlobalCron({
@@ -82,6 +94,26 @@ export async function resetGlobalCron() {
         err: e,
       },
       "Failed to start global cron.",
+    );
+  }
+}
+
+export async function terminateComputePropertiesWorkflow({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  const client = await connectWorkflowClient();
+  try {
+    await client
+      .getHandle(generateComputePropertiesId(workspaceId))
+      .terminate();
+  } catch (e) {
+    logger().info(
+      {
+        err: e,
+      },
+      "Failed to terminate compute properties workflow.",
     );
   }
 }

@@ -23,6 +23,7 @@ import yargs from "yargs/yargs";
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
+import { upgradeV010Post, upgradeV010Pre } from "./upgrades";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.
@@ -305,7 +306,25 @@ export async function cli() {
         logger().info("Done.");
       }
     )
+    .command(
+      "upgrade-0-10-0-pre",
+      "Run the pre-upgrade steps for the 0.10.0 prior to updating your Dittofeed application version.",
+      () => {},
+      async () => {
+        await upgradeV010Pre();
+      }
+    )
+    .command(
+      "upgrade-0-10-0-post",
+      "Run the post-upgrade steps for the 0.10.0 after updating your Dittofeed application version.",
+      () => {},
+      async () => {
+        await upgradeV010Post();
+      }
+    )
     .demandCommand(1, "# Please provide a valid command")
+    .strictCommands()
+    .recommendCommands()
     .help()
     .parse();
 }
