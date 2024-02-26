@@ -19,7 +19,10 @@ x-backend-app-env: &backend-app-env
   PASSWORD: ${PASSWORD:-password}
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.9.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.8.3}
+    build:
+      context: .
+      dockerfile: ./packages/lite/Dockerfile
     restart: always
     ports:
       - "3000:3000"
@@ -29,16 +32,15 @@ services:
       - clickhouse-server
     environment:
       <<: *backend-app-env
+      # uncomment while upgrading dittofeed
+      # BOOTSTRAP: "false"
     env_file:
       - .env
     networks:
       - dittofeed-network-lite
   # useful for upgrading dittofeed
   admin-cli:
-    # image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.10.0}
-    build:
-      context: .
-      dockerfile: ./packages/admin-cli/Dockerfile
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.10.0-alpha.26}
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null

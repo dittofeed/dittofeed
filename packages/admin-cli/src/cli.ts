@@ -307,7 +307,7 @@ export async function cli() {
       }
     )
     .command(
-      "upgrade 0-10-0 pre",
+      "upgrade-0-10-0-pre",
       "Run the pre-upgrade steps for the 0.10.0 prior to updating your Dittofeed application version.",
       () => {},
       async () => {
@@ -315,14 +315,16 @@ export async function cli() {
       }
     )
     .command(
-      "upgrade 0-10-0 post",
-      "Run the post-upgrade steps for the 0.10.0 prior to updating your Dittofeed application version.",
+      "upgrade-0-10-0-post",
+      "Run the post-upgrade steps for the 0.10.0 after updating your Dittofeed application version.",
       () => {},
       async () => {
         await upgradeV010Post();
       }
     )
     .demandCommand(1, "# Please provide a valid command")
+    .strictCommands()
+    .recommendCommands()
     .help()
     .parse();
 }

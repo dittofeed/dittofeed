@@ -56,10 +56,9 @@ export async function upgradeV010Post() {
   await prisma().computedPropertyPeriod.deleteMany({});
   const workspaces = await prisma().workspace.findMany();
   await Promise.all(workspaces.map(upgradeWorkspaceV010Post));
-  const chQueries: string[] = [];
-  for (const query of chQueries) {
-    // eslint-disable-next-line no-await-in-loop
-    await command({ query, clickhouse_settings: { wait_end_of_query: 1 } });
-  }
+  await command({
+    query: "drop view if exists updated_computed_property_state_mv;",
+    clickhouse_settings: { wait_end_of_query: 1 },
+  });
   logger().info("Performing post-upgrade steps for v0.10.0 completed.");
 }
