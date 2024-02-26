@@ -5,15 +5,13 @@ description: "Define who is allowed to enter a Journey, and when they enter it."
 
 All journeys have an entry node. An entry node defines who is allowed to enter the journey, and when they enter it.
 
-There are two types of journey entry nodes, Segment Entry Nodes and Event Entry Node. Users enter journeys with Segment Entry Nodes when they enter specified corresponding segment. Users enter journeys with Event Entry Nodes immediately, when they trigger a specified event.
+There are two types of journey entry nodes, Segment Entry Nodes and Event Entry Nodes. Users enter journeys with Segment Entry Nodes when they enter the specified segment. Users enter journeys with Event Entry Nodes immediately, when they trigger the specified event.
 
 ## Segment Entry
 
-Users enter journeys with Segment Entry Nodes when they enter specified corresponding segment.
+Users enter journeys with Segment Entry Nodes when they enter the specified segment.  Segment Entry Nodes are useful for what might traditionally considered marketing messaging. Example use cases include drip campaigns, onboarding, or re-engagement campaigns.
 
-Segment Entry Nodes are useful for what might traditionally considered marketing messaging. For example, drip campaigns, onboarding, or re-engagement campaigns.
-
-Journeys with Segment Entry Nodes have at most one instance per user.
+Journeys with Segment Entry Nodes have at most one running instance per user.
 
 ### Example Use Case - Welcome email
 
@@ -21,20 +19,30 @@ Journeys with Segment Entry Nodes have at most one instance per user.
 ![Minimal Welcome Journey](/images/minimal-welcome-journey.png)
 </Frame>
 
-For example, an entry node might be assigned a "New Users" segment as described [here](/resources/segment-nodes/trait#example-use-case-new-users), which includes all users who have a `createdAt` date within the last 24 hours. This journey might encourage users to finishing setting up their prorfile, and inform them about new features.
+For example, an entry node might be assigned a "New Users" segment as described [here](/resources/segment-nodes/trait#example-use-case-new-users), which includes all users who have a `createdAt` date within the last 30 minutes. This journey might encourage users to finishing setting up their prorfile, and inform them about new features.
 
 
 ## Event Entry
 
-Users enter journeys with Event Entry Nodes immediately, when they trigger a specified event. Event Entry Nodes are useful for what might traditionally considered transactional messaging. For example, journeys with Event Entry Nodes are appropriate for sending order confirmation, password reset, or order cancellation emails.
+Users enter journeys with Event Entry Nodes immediately when they send a `TRACK` event with the specified name. Event Entry Nodes are useful for what might traditionally considered transactional messaging. For example, journeys with Event Entry Nodes are appropriate for sending order confirmation, password reset, or order cancellation emails.
 
 With every matching event, a new instance of the journey is created for the user. This is in contrast to Segment Entry Nodes, where only one instance of the journey can exist at any given time for each user.
 
+### Example Use Case - Order Cancellation
+
+For example, one might trigger a journey with `ORDER_CANCELLED` events. This journey might include a message node that sends an email to the user, informing them that their order has been cancelled.
+
+A user can have multiple instances of the journey running at the same time, if they trigger multiple `ORDER_CANCELLED` events concurrently.
+
+<Frame>
+![Order Cancellation Journey](/images/order-cancellation-journey.png)
+</Frame>
+
 ### The Role of Message Ids
 
-In Dittofeed, message id's are used to uniquely identify events. In the case of journeys with Event Entry Nodes, the message id of the triggering event is used to identify the journey instance, and to ensure if you accidentally send duplicate events with the same message id, the user will not receive duplicate messages.
+In Dittofeed, message id's are used to uniquely identify events. In the case of journeys with Event Entry Nodes, the message id of the triggering event is also used to identify the journey instance, and to ensure that if you accidentally send duplicate events with the same message id, the user will not receive duplicate messages.
 
-In most cases, events' message id's can safely be assigned an arbitrary unique value, like a UUID. However, when sending events that used to trigger Event Entry Nodes, one should ideally assign a message id that identifies the corresponding operation in the context of your application.
+In most cases, events' message id's can safely be assigned an arbitrary unique value, like a UUID. However, when sending events that are used to trigger Event Entry Nodes, one should ideally assign a message id that identifies the corresponding operation in the context of your application.
 
 For example, when sending an event to trigger a journey for an order cancellation, the message id might be `order-cancelled-${orderId}`.
 
