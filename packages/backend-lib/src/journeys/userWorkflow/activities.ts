@@ -1,6 +1,7 @@
 import {
   EmailProvider,
   JourneyStatus,
+  Prisma,
   SegmentAssignment,
 } from "@prisma/client";
 import { MailDataRequired } from "@sendgrid/mail";
@@ -922,16 +923,21 @@ export async function onNodeProcessedV2({
     node.type,
     nodeId,
   ].join("-");
+
+  const trackedFields: Omit<Prisma.UserJourneyEventCreateManyInput, "userId"> =
+    {
+      journeyStartedAt: journeyStartedAtDate,
+      journeyId,
+      type: node.type,
+      nodeId,
+      eventKey,
+    };
   await Promise.all([
     prisma().userJourneyEvent.createMany({
       data: [
         {
-          journeyStartedAt: journeyStartedAtDate,
-          journeyId,
+          ...trackedFields,
           userId,
-          type: node.type,
-          nodeId,
-          eventKey,
         },
       ],
       skipDuplicates: true,
@@ -942,12 +948,7 @@ export async function onNodeProcessedV2({
         userId,
         event: InternalEventType.JourneyNodeProcessed,
         messageId: uuidv5(messageIdName, workspaceId),
-        properties: {
-          journeyId,
-          journeyStartedAt,
-          type: node.type,
-          nodeId,
-        },
+        properties: trackedFields,
       },
     }),
   ]);
