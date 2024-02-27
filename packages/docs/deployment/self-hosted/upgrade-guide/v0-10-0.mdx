@@ -1,0 +1,101 @@
+---
+title: "Upgrading from v0.9.0 to v0.10.0"
+---
+
+Upgrading from v0.9.0 to v0.10.0 takes some care as it includes changes to the underlying ClickHouse schema. This guide will walk you through the necessary steps to upgrade your existing installation.
+
+## Step 1: Setting Up Your `docker-compose.lite.yaml` File
+
+First, add the environment variable `BOOTSTRAP: "false"` to your `docker-compose.lite.yaml` file. This will prevent your lite instance from running bootstrap operations when it restarts. 
+
+Next, make sure you have an `admin-cli` instance specified in our `docker-compose.lite.yaml` file. We'll be using this service to run the upgrade scripts.
+
+Your `docker-compose.lite.yaml` file should look something like this:
+
+```yaml
+...
+services:
+  lite:
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.9.0}
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
+      # uncomment while upgrading dittofeed
+      BOOTSTRAP: "false"
+    env_file:
+      - .env
+    networks:
+      - dittofeed-network-lite
+  # useful for upgrading dittofeed
+  admin-cli:
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.10.0}
+    entrypoint: []
+    profiles: ["admin-cli"]
+    command: tail -f /dev/null
+    tty: true
+    depends_on:
+      - postgres
+      - temporal
+      - clickhouse-server
+    environment:
+      <<: *backend-app-env
+    env_file:
+      - .env
+    networks:
+      - dittofeed-network-lite
+...
+```
+
+## Step 2: Start the `admin-cli` Service
+
+Next, run the following command to start your `admin-cli` service:
+
+```bash
+docker compose --profile admin-cli -f docker-compose.lite.yaml up admin-cli -d
+```
+
+## Step 3: Run the Pre-Upgrade Script
+
+Then run the following command to run the pre-upgrade script:
+
+```bash
+./scripts/admin-lite.sh upgrade-0-10-0-pre
+```
+
+## Step 4: Upgrade Your `docker-compose.lite.yaml` File
+
+Upgrade the version in your docker-compose.lite.yaml file to v0.10.0:
+
+```yaml
+...
+services:
+  lite:
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.10.0}
+...
+```
+
+Now restart your lite instance:
+
+```bash
+docker compose -f docker-compose.lite.yaml up lite -d --force-recreate
+```
+
+## Step 5: Run the Post-Upgrade Script
+
+Finally, run the post-upgrade script:
+
+```bash
+./scripts/admin-lite.sh upgrade-0-10-0-post
+```
+
+And stop the `admin-cli` service:
+
+```bash
+docker compose --profile admin-cli -f docker-compose.lite.yaml stop admin-cli
+```
