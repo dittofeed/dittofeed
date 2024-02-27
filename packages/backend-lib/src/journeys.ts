@@ -342,7 +342,8 @@ group by event, node_id;`;
 
       if (
         node.type !== JourneyNodeType.MessageNode ||
-        node.variant.type !== ChannelType.Email
+        (node.variant.type !== ChannelType.Email &&
+          node.variant.type !== ChannelType.Sms)
       ) {
         continue;
       }
@@ -363,9 +364,16 @@ group by event, node_id;`;
       let openRate = 0;
       let clickRate = 0;
       let spamRate = 0;
+
       if (total > 0) {
         sendRate = sent / total;
-        deliveryRate = delivered / total;
+        deliveryRate =
+          node.variant.type === ChannelType.Email
+            ? delivered / total
+            : (sent - messageFailure) / total;
+      }
+
+      if (node.variant.type === ChannelType.Email && total > 0) {
         openRate = opened / total;
         clickRate = clicked / total;
         spamRate = spam / total;
@@ -378,8 +386,9 @@ group by event, node_id;`;
         },
         sendRate,
         channelStats: {
-          type: ChannelType.Email,
+          type: node.variant.type,
           deliveryRate,
+          failRate: messageFailure,
           openRate,
           spamRate,
           clickRate,
