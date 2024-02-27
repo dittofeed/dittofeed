@@ -28,16 +28,16 @@ export * from "isomorphic-lib/src/journeys";
 
 const isValueInEnum = <T extends Record<string, string>>(
   value: string,
-  enumObject: T,
+  enumObject: T
 ): value is T[keyof T] =>
   Object.values(enumObject).includes(value as T[keyof T]);
 
 export function enrichJourney(
-  journey: Journey,
+  journey: Journey
 ): Result<EnrichedJourney, Error> {
   const definitionResult = schemaValidateWithErr(
     journey.definition,
-    JourneyDefinition,
+    JourneyDefinition
   );
   if (definitionResult.isErr()) {
     return err(definitionResult.error);
@@ -51,7 +51,7 @@ export function enrichJourney(
 type FindManyParams = Parameters<PrismaClient["journey"]["findMany"]>[0];
 
 export async function findManyJourneys(
-  params: FindManyParams,
+  params: FindManyParams
 ): Promise<Result<EnrichedJourney[], Error>> {
   const journeys = await prisma().journey.findMany(params);
 
@@ -71,7 +71,7 @@ export async function findManyJourneys(
 }
 
 export function toJourneyResource(
-  journey: Journey,
+  journey: Journey
 ): Result<SavedJourneyResource, Error> {
   const result = enrichJourney(journey);
   if (result.isErr()) {
@@ -101,18 +101,18 @@ export function toJourneyResource(
 }
 
 export async function findManyJourneyResourcesSafe(
-  params: FindManyParams,
+  params: FindManyParams
 ): Promise<Result<SavedJourneyResource, Error>[]> {
   const journeys = await prisma().journey.findMany(params);
   const results: Result<SavedJourneyResource, Error>[] = journeys.map(
-    (journey) => toJourneyResource(journey),
+    (journey) => toJourneyResource(journey)
   );
   return results;
 }
 
 // TODO don't use this method for activities. Don't want to retry failures typically.
 export async function findManyJourneysUnsafe(
-  params: FindManyParams,
+  params: FindManyParams
 ): Promise<EnrichedJourney[]> {
   const result = await findManyJourneys(params);
   return unwrap(result);
@@ -123,6 +123,8 @@ const JourneyMessageStatsRow = Type.Object({
   node_id: Type.String(),
   count: Type.String(),
 });
+
+type NodeEventMap = MapWithDefault<InternalEventType, number>;
 
 export async function getJourneysStats({
   workspaceId,
@@ -203,7 +205,10 @@ group by event, node_id;`;
   ]);
 
   const stream = statsResultSet.stream();
-  const statsMap = new Map<string, MapWithDefault<InternalEventType, number>>();
+  // map from node_id to event to count
+  const statsMap = new MapWithDefault<string, NodeEventMap>(
+    new MapWithDefault(0)
+  );
   const nodeProcessedMap = new Map<string, number>();
 
   const rowPromises: Promise<unknown>[] = [];
@@ -215,13 +220,13 @@ group by event, node_id;`;
         if (validated.isErr()) {
           logger().error(
             { workspaceId, err: validated.error },
-            "Failed to validate row from clickhouse for journey stats",
+            "Failed to validate row from clickhouse for journey stats"
           );
           return;
         }
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { event, node_id, count } = validated.value;
-        const eventMap = statsMap.get(node_id) ?? new MapWithDefault(0);
+        const eventMap: NodeEventMap = statsMap.get(node_id);
 
         if (!isValueInEnum(event, InternalEventType)) {
           logger().error(
@@ -229,7 +234,7 @@ group by event, node_id;`;
               event,
               workspaceId,
             },
-            "got unknown event type in journey stats",
+            "got unknown event type in journey stats"
           );
           return;
         }
@@ -255,7 +260,7 @@ group by event, node_id;`;
   ]);
 
   const enrichedJourneys = journeys.map((journey) =>
-    unwrap(enrichJourney(journey)),
+    unwrap(enrichJourney(journey))
   );
 
   const journeysStats: JourneyStats[] = [];
@@ -279,7 +284,7 @@ group by event, node_id;`;
         continue;
       }
 
-      const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
+      const nodeStats = statsMap.get(node.id);
 
       if (node.type === JourneyNodeType.SegmentSplitNode) {
         const parentNodeProcessed = nodeProcessedMap.get(node.id);
@@ -350,7 +355,7 @@ group by event, node_id;`;
 
       const sent = nodeStats.get(InternalEventType.MessageSent);
       const badConfig = nodeStats.get(
-        InternalEventType.BadWorkspaceConfiguration,
+        InternalEventType.BadWorkspaceConfiguration
       );
       const messageFailure = nodeStats.get(InternalEventType.MessageFailure);
       const delivered = nodeStats.get(InternalEventType.EmailDelivered);
@@ -443,7 +448,7 @@ export async function triggerEventEntryJourneys({
             workspaceId,
             journeyId: j.id,
           },
-          "Failed to convert journey to resource",
+          "Failed to convert journey to resource"
         );
         return [];
       }
@@ -478,7 +483,7 @@ export async function triggerEventEntryJourneys({
         definition,
         context: properties,
       });
-    },
+    }
   );
   await Promise.all(starts);
 }
