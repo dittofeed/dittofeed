@@ -19,6 +19,7 @@ import { round } from "isomorphic-lib/src/numbers";
 import { isStringPresent } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
+  ChannelType,
   CompletionStatus,
   DelayVariantType,
   JourneyNodeType,
@@ -275,7 +276,13 @@ function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
 
 const borderRadius = 2;
 
-function StatCategory({ label, rate }: { label: string; rate: number }) {
+function StatCategory({
+  label,
+  rate,
+}: {
+  label: string;
+  rate: number | string;
+}) {
   return (
     <Stack direction="column">
       <Typography variant="subtitle2">{label}</Typography>
@@ -284,7 +291,7 @@ function StatCategory({ label, rate }: { label: string; rate: number }) {
           fontFamily: "monospace",
         }}
       >
-        {round(rate * 100, 2)}%
+        {typeof rate === "number" ? `${round(rate * 100, 2)}%` : rate}
       </Box>
     </Stack>
   );
@@ -448,9 +455,30 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
               label="Delivered"
               rate={stats.channelStats.deliveryRate}
             />
-            <StatCategory label="Opened" rate={stats.channelStats.openRate} />
-            <StatCategory label="Clicked" rate={stats.channelStats.clickRate} />
-            <StatCategory label="Spam" rate={stats.channelStats.spamRate} />
+            <StatCategory
+              label="Opened"
+              rate={
+                stats.channelStats.type === ChannelType.Email
+                  ? stats.channelStats.openRate
+                  : "N/A"
+              }
+            />
+            <StatCategory
+              label="Clicked"
+              rate={
+                stats.channelStats.type === ChannelType.Email
+                  ? stats.channelStats.clickRate
+                  : "N/A"
+              }
+            />
+            <StatCategory
+              label="Spam"
+              rate={
+                stats.channelStats.type === ChannelType.Email
+                  ? stats.channelStats.spamRate
+                  : "N/A"
+              }
+            />
           </>
         ) : null}
       </Stack>
