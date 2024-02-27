@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 
-import { submitTrackWithTriggers } from "./apps";
 import { getJourneysStats } from "./journeys";
 import prisma from "./prisma";
 import {
@@ -10,6 +9,7 @@ import {
   JourneyNodeType,
   NodeStatsType,
 } from "./types";
+import { submitTrack } from "./apps/track";
 
 describe("journeys", () => {
   describe("getJourneysStats", () => {
@@ -57,7 +57,7 @@ describe("journeys", () => {
         });
         journeyId = journey.id;
 
-        await submitTrackWithTriggers({
+        await submitTrack({
           workspaceId,
           data: {
             userId: randomUUID(),
@@ -99,5 +99,7 @@ describe("journeys", () => {
         ]);
       });
     });
+
+    describe("when the journey node has nested segment splits", () => {});
   });
 });
