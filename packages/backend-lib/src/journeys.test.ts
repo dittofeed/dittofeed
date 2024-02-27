@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 
+import { submitTrack } from "./apps/track";
 import { getJourneysStats } from "./journeys";
 import prisma from "./prisma";
 import {
@@ -8,14 +9,16 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   NodeStatsType,
+  SegmentSplitNode,
+  SegmentSplitVariantType,
 } from "./types";
-import { submitTrack } from "./apps/track";
 
 describe("journeys", () => {
   describe("getJourneysStats", () => {
+    let workspaceId: string;
+    let journeyId: string;
+
     describe("when a journey node has associated message stats", () => {
-      let workspaceId: string;
-      let journeyId: string;
       let messageNodeId: string;
 
       beforeEach(async () => {
@@ -100,6 +103,37 @@ describe("journeys", () => {
       });
     });
 
-    describe("when the journey node has nested segment splits", () => {});
+    // FIXME test when ending in exit node
+    describe("when a journey node has associated segment stats", () => {});
+
+    describe("when the journey node has nested segment splits", () => {
+      beforeEach(async () => {
+        const workspace = await prisma().workspace.create({
+          data: {
+            name: randomUUID(),
+          },
+        });
+        workspaceId = workspace.id;
+        const journeyDefinition: JourneyDefinition = {
+          entryNode: {
+            type: JourneyNodeType.SegmentEntryNode,
+            segment: randomUUID(),
+            child: "split-node-1",
+          },
+          nodes: [
+            {
+              id: "split-node-1",
+              type: JourneyNodeType.SegmentSplitNode,
+              variant: {
+                type: SegmentSplitVariantType.Boolean,
+                segment: randomUUID(),
+                trueChild: ,
+
+              },
+            } satisfies SegmentSplitNode
+          ]
+        };
+      });
+    });
   });
 });
