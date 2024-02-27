@@ -72,7 +72,13 @@
             "deployment/self-hosted/docker-compose",
             "deployment/self-hosted/kubernetes",
             "deployment/self-hosted/cloudformation",
-            "deployment/self-hosted/auth-modes"
+            "deployment/self-hosted/auth-modes",
+            {
+              "group": "Upgrade Guide",
+              "pages": [
+                "deployment/self-hosted/upgrade-guide/v0-10-0"
+              ]
+            }
           ]
         },
         "deployment/cloud"
