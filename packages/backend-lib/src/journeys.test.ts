@@ -210,7 +210,7 @@ describe("journeys", () => {
             recordNodeProcessed({
               journeyStartedAt,
               journeyId,
-              node: splitNode1,
+              node: splitNode2,
               workspaceId,
               userId: `user-${i + 1}`,
             })
@@ -223,6 +223,14 @@ describe("journeys", () => {
             userId: `user-2`,
           }),
         ]);
+      });
+
+      it.only("calculates the correct journey percentages", async () => {
+        const stats = await getJourneysStats({
+          workspaceId,
+          journeyIds: [journeyId],
+        });
+        console.log(JSON.stringify(stats, null, 2));
       });
     });
     describe("when the journey node has nested segment splits ending in exit", () => {});
