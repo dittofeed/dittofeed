@@ -1,5 +1,6 @@
 import { Row } from "@clickhouse/client";
-import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
+import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
+import { v5 as uuidv5 } from "uuid";
 import { Type } from "@sinclair/typebox";
 import { MapWithDefault } from "isomorphic-lib/src/maps";
 import { parseInt } from "isomorphic-lib/src/numbers";
@@ -17,12 +18,15 @@ import {
   EnrichedJourney,
   InternalEventType,
   JourneyDefinition,
+  JourneyNode,
   JourneyNodeType,
   JourneyStats,
   NodeStatsType,
   SavedJourneyResource,
   TrackData,
 } from "./types";
+import { submitTrack } from "./apps/track";
+import { getNodeId } from "isomorphic-lib/src/journeys";
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -486,4 +490,61 @@ export async function triggerEventEntryJourneys({
     }
   );
   await Promise.all(starts);
+}
+export interface RecordNodeProcessedParams {
+  journeyStartedAt: number;
+  journeyId: string;
+  userId: string;
+  node: JourneyNode;
+  workspaceId: string;
+  eventKey?: string;
+}
+
+export async function recordNodeProcessed({
+  journeyStartedAt,
+  userId,
+  node,
+  journeyId,
+  workspaceId,
+  eventKey,
+}: RecordNodeProcessedParams) {
+  const journeyStartedAtDate = new Date(journeyStartedAt);
+  const nodeId = getNodeId(node);
+
+  const messageIdName = [
+    journeyStartedAt,
+    journeyId,
+    userId,
+    node.type,
+    nodeId,
+  ].join("-");
+
+  const trackedFields: Omit<Prisma.UserJourneyEventCreateManyInput, "userId"> =
+    {
+      journeyStartedAt: journeyStartedAtDate,
+      journeyId,
+      type: node.type,
+      nodeId,
+      eventKey,
+    };
+  await Promise.all([
+    prisma().userJourneyEvent.createMany({
+      data: [
+        {
+          ...trackedFields,
+          userId,
+        },
+      ],
+      skipDuplicates: true,
+    }),
+    submitTrack({
+      workspaceId,
+      data: {
+        userId,
+        event: InternalEventType.JourneyNodeProcessed,
+        messageId: uuidv5(messageIdName, workspaceId),
+        properties: trackedFields,
+      },
+    }),
+  ]);
 }
