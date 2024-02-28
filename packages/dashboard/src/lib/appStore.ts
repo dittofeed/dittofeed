@@ -1,5 +1,6 @@
 import {
   CompletionStatus,
+  FeatureNames,
   InternalEventType,
   RelationalOperators,
   SecretResource,
@@ -18,13 +19,14 @@ import { immer } from "zustand/middleware/immer";
 
 import { createJourneySlice } from "../components/journeys/store";
 import { AppContents, AppState, PreloadedState } from "./types";
+import { Feature } from "@prisma/client";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();
 export const { Provider } = zustandContext;
 export const useAppStore = zustandContext.useStore;
 export function useAppStorePick<K extends keyof AppContents>(
-  params: K[],
+  params: K[]
 ): Pick<AppContents, K> {
   return useAppStore((store) => pick(store, params));
 }
@@ -58,13 +60,13 @@ function removeOrphanedSegmentNodes(segmentDefinition: SegmentDefinition) {
   }
 
   segmentDefinition.nodes = segmentDefinition.nodes.filter((n) =>
-    nonOrphanNodes.has(n.id),
+    nonOrphanNodes.has(n.id)
   );
 }
 
 function mapSegmentNodeToNewType(
   node: SegmentNode,
-  type: SegmentNodeType,
+  type: SegmentNodeType
 ): { primary: SegmentNode; secondary: SegmentNode[] } {
   switch (type) {
     case SegmentNodeType.And: {
@@ -217,6 +219,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         getTraitsRequest: {
           type: CompletionStatus.NotStarted,
         },
+        features: {},
         upsertTraits: (traits) =>
           set((state) => {
             state.traits = Array.from(new Set(traits.concat(state.traits)));
@@ -267,7 +270,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               return state;
             }
             state.messages.value = state.messages.value.filter(
-              (m) => m.id !== id,
+              (m) => m.id !== id
             );
             return state;
           }),
@@ -318,7 +321,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               return state;
             }
             state.segments.value = state.segments.value.filter(
-              (s) => s.id !== segmentId,
+              (s) => s.id !== segmentId
             );
             return state;
           }),
@@ -349,7 +352,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               return state;
             }
             state.journeys.value = state.journeys.value.filter(
-              (s) => s.id !== journeyId,
+              (s) => s.id !== journeyId
             );
             return state;
           }),
@@ -395,7 +398,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               return state;
             }
             state.userProperties.value = state.userProperties.value.filter(
-              (s) => s.id !== userPropertyId,
+              (s) => s.id !== userPropertyId
             );
             return state;
           }),
@@ -491,7 +494,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         deleteSubscriptionGroup: (id) =>
           set((state) => {
             state.subscriptionGroups = state.subscriptionGroups.filter(
-              (m) => m.id !== id,
+              (m) => m.id !== id
             );
             return state;
           }),
@@ -502,7 +505,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
                 map.set(secret.name, secret);
                 return map;
               },
-              new Map(),
+              new Map()
             );
             for (const secret of state.secrets) {
               const newVal = secretsToCreate.get(secret.name);
@@ -513,7 +516,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             }
 
             state.secrets = state.secrets.concat(
-              Array.from(secretsToCreate.values()),
+              Array.from(secretsToCreate.values())
             );
           });
         },
@@ -536,7 +539,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               return state;
             }
             state.editedUserProperty.definition = updater(
-              state.editedUserProperty.definition,
+              state.editedUserProperty.definition
             );
             return state;
           }),
@@ -655,7 +658,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               parentId === state.editedSegment.definition.entryNode.id
                 ? state.editedSegment.definition.entryNode
                 : state.editedSegment.definition.nodes.find(
-                    (n) => n.id === parentId,
+                    (n) => n.id === parentId
                   );
 
             if (
@@ -747,7 +750,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               const newType = mapSegmentNodeToNewType(node, nodeType);
               editedSegment.definition.entryNode = newType.primary;
               editedSegment.definition.nodes = newType.secondary.concat(
-                editedSegment.definition.nodes,
+                editedSegment.definition.nodes
               );
             } else {
               editedSegment.definition.nodes.forEach((node) => {
@@ -763,11 +766,11 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
                 const newType = mapSegmentNodeToNewType(node, nodeType);
 
                 editedSegment.definition.nodes = newType.secondary.concat(
-                  editedSegment.definition.nodes,
+                  editedSegment.definition.nodes
                 );
                 editedSegment.definition.nodes =
                   editedSegment.definition.nodes.map((n) =>
-                    n.id === nodeId ? newType.primary : n,
+                    n.id === nodeId ? newType.primary : n
                   );
               });
             }
@@ -792,7 +795,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
       };
 
       return appContents;
-    }),
+    })
   );
 
 type AppStore = ReturnType<typeof initializeStore>;
@@ -807,7 +810,7 @@ type UseStoreState = typeof initializeStore extends (
 // TODO adapt code to allow serializable state to have different type than app
 // state, to support non-serializable types like Map, Set etc.
 export const useCreateStore = (
-  serverInitialState?: Partial<AppState>,
+  serverInitialState?: Partial<AppState>
 ): (() => AppStore) => {
   // For SSR & SSG, always use a new store.
   if (typeof window === "undefined") {
@@ -843,7 +846,7 @@ export const useCreateStore = (
           // but reset all other properties.
           ...serverInitialState,
         },
-        true, // replace states, rather than shallow merging
+        true // replace states, rather than shallow merging
       );
     }
   });

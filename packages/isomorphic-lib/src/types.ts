@@ -2692,3 +2692,7 @@ export const JourneyUpsertValidationError = Type.Object({
   message: Type.String(),
   variant: JourneyUpsertValidationErrorVariant,
 });
+
+export enum FeatureNames {
+  DisplayJourneyPercentages = "DisplayJourneyPercentages",
+}

@@ -12,6 +12,7 @@ import {
   EphemeralRequestStatus,
   EventEntryNode,
   ExitNode,
+  FeatureNames,
   IntegrationResource,
   JourneyNodeType,
   JourneyResource,
@@ -64,7 +65,7 @@ export type GetDFServerSideProps<
   D extends PreviewData = PreviewData,
 > = (
   context: GetServerSidePropsContext<Q, D>,
-  dfContext: DFRequestContext,
+  dfContext: DFRequestContext
 ) => Promise<GetServerSidePropsResult<P>>;
 
 // README: properties get shallowly overridden when merging serverside state
@@ -73,6 +74,9 @@ export type GetDFServerSideProps<
 export type AppState = {
   apiBase: string;
   dashboardUrl: string;
+  features: {
+    [K in keyof typeof FeatureNames]?: string;
+  };
   workspace: RequestStatus<WorkspaceResource, Error>;
   member: WorkspaceMemberResource | null;
   memberRoles: WorkspaceMemberRoleResource[];
@@ -114,7 +118,7 @@ export interface AppActions {
   upsertEmailProvider: (emailProvider: PersistedEmailProvider) => void;
   upsertSmsProvider: (response: PersistedSmsProvider) => void;
   upsertDataSourceConfiguration: (
-    dataSource: DataSourceConfigurationResource,
+    dataSource: DataSourceConfigurationResource
   ) => void;
   upsertMessage: (message: MessageTemplateResource) => void;
   upsertBroadcast: (message: BroadcastResource) => void;
@@ -126,7 +130,7 @@ export interface AppActions {
   upsertSecrets: (secrets: SecretResource[]) => void;
   deleteSecret: (secretName: string) => void;
   upsertSubscriptionGroup: (
-    subscriptionGroup: SubscriptionGroupResource,
+    subscriptionGroup: SubscriptionGroupResource
   ) => void;
   deleteSubscriptionGroup: (id: string) => void;
   upsertUserProperty: (userProperty: UserPropertyResource) => void;
@@ -135,10 +139,10 @@ export interface AppActions {
   upsertTraits: (traits: string[]) => void;
   setGetTraitsRequest: (request: EphemeralRequestStatus<Error>) => void;
   setDefaultEmailProvider: (
-    defaultEmailProvider: DefaultEmailProviderResource,
+    defaultEmailProvider: DefaultEmailProviderResource
   ) => void;
   setDefaultSmsProvider: (
-    defaultSmsProvider: DefaultSmsProviderResource,
+    defaultSmsProvider: DefaultSmsProviderResource
   ) => void;
 }
 
@@ -152,7 +156,7 @@ export interface SegmentIndexContent {
 export interface UserPropertyIndexContent {
   userPropertyDeleteRequest: EphemeralRequestStatus<Error>;
   setUserPropertyDeleteRequest: (
-    request: EphemeralRequestStatus<Error>,
+    request: EphemeralRequestStatus<Error>
   ) => void;
 }
 
@@ -160,15 +164,15 @@ export interface UserPropertyEditorContent {
   editedUserProperty: UserPropertyResource | null;
   updateUserPropertyDefinition: (
     updater: (
-      currentValue: Draft<UserPropertyDefinition>,
-    ) => Draft<UserPropertyDefinition>,
+      currentValue: Draft<UserPropertyDefinition>
+    ) => Draft<UserPropertyDefinition>
   ) => void;
   userPropertyUpdateRequest: EphemeralRequestStatus<Error>;
   setUserPropertyUpdateRequest: (
-    request: EphemeralRequestStatus<Error>,
+    request: EphemeralRequestStatus<Error>
   ) => void;
   updateEditedUserProperty: (
-    userProperty: Partial<Omit<UserPropertyResource, "id" | "workspaceId">>,
+    userProperty: Partial<Omit<UserPropertyResource, "id" | "workspaceId">>
   ) => void;
 }
 
@@ -185,7 +189,7 @@ export interface UserIndexContent {
 export interface MessageTemplateIndexContent {
   messageTemplateDeleteRequest: EphemeralRequestStatus<Error>;
   setMessageTemplateDeleteRequest: (
-    request: EphemeralRequestStatus<Error>,
+    request: EphemeralRequestStatus<Error>
   ) => void;
 }
 
@@ -208,13 +212,13 @@ export interface SubscriptionGroupEditorContents {
   subscriptionGroupUpdateRequest: EphemeralRequestStatus<Error>;
   subscriptionGroupDeleteRequest: EphemeralRequestStatus<Error>;
   setSubscriptionGroupUpdateRequest: (
-    request: EphemeralRequestStatus<Error>,
+    request: EphemeralRequestStatus<Error>
   ) => void;
   setSubscriptionGroupDeleteRequest: (
-    request: EphemeralRequestStatus<Error>,
+    request: EphemeralRequestStatus<Error>
   ) => void;
   updateEditedSubscriptionGroup: (
-    broadcast: Partial<SubscriptionGroupResource>,
+    broadcast: Partial<SubscriptionGroupResource>
   ) => void;
 }
 
@@ -229,11 +233,11 @@ export interface SegmentEditorContents extends SegmentEditorState {
   removeEditableSegmentChild: (parentId: string, nodeId: string) => void;
   updateEditableSegmentNodeType: (
     nodeId: string,
-    nodeType: SegmentNodeType,
+    nodeType: SegmentNodeType
   ) => void;
   updateEditableSegmentNodeData: (
     nodeId: string,
-    updater: (currentValue: Draft<SegmentNode>) => void,
+    updater: (currentValue: Draft<SegmentNode>) => void
   ) => void;
   setSegmentUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
@@ -266,7 +270,7 @@ export interface JourneyContent extends JourneyState {
   deleteJourneyNode: (nodeId: string) => void;
   updateJourneyNodeData: (
     nodeId: string,
-    updater: (currentValue: Draft<Node<JourneyNodeProps>>) => void,
+    updater: (currentValue: Draft<Node<JourneyNodeProps>>) => void
   ) => void;
   setJourneyUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   setJourneyName: (name: string) => void;
