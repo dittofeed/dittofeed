@@ -1,6 +1,7 @@
 import {
   EmailProvider,
   JourneyStatus,
+  Prisma,
   SegmentAssignment,
 } from "@prisma/client";
 import { MailDataRequired } from "@sendgrid/mail";
@@ -322,6 +323,7 @@ export async function sendSmsWithPayload(
       channelConfig,
       identifier,
       subscriptionSecret,
+      userId,
     }) {
       const render = (template?: string) =>
         template &&
@@ -380,12 +382,16 @@ export async function sendSmsWithPayload(
               },
             );
           }
+
           const smsResult = await sendSmsTwilio({
             body,
             to: identifier,
+            userId,
             accountSid: channelConfig.accountSid,
             messagingServiceSid: channelConfig.messagingServiceSid,
+            workspaceId,
             authToken: channelConfig.authToken,
+            subscriptionGroupId: params.subscriptionGroupId,
           });
 
           if (smsResult.isErr()) {
@@ -796,6 +802,7 @@ async function sendMessageInner({
     channel,
     useDraft: false,
     templateId,
+    userId,
     userPropertyAssignments,
     subscriptionGroupDetails,
     messageTags: {
@@ -916,16 +923,21 @@ export async function onNodeProcessedV2({
     node.type,
     nodeId,
   ].join("-");
+
+  const trackedFields: Omit<Prisma.UserJourneyEventCreateManyInput, "userId"> =
+    {
+      journeyStartedAt: journeyStartedAtDate,
+      journeyId,
+      type: node.type,
+      nodeId,
+      eventKey,
+    };
   await Promise.all([
     prisma().userJourneyEvent.createMany({
       data: [
         {
-          journeyStartedAt: journeyStartedAtDate,
-          journeyId,
+          ...trackedFields,
           userId,
-          type: node.type,
-          nodeId,
-          eventKey,
         },
       ],
       skipDuplicates: true,
@@ -936,12 +948,7 @@ export async function onNodeProcessedV2({
         userId,
         event: InternalEventType.JourneyNodeProcessed,
         messageId: uuidv5(messageIdName, workspaceId),
-        properties: {
-          journeyId,
-          journeyStartedAt,
-          type: node.type,
-          nodeId,
-        },
+        properties: trackedFields,
       },
     }),
   ]);

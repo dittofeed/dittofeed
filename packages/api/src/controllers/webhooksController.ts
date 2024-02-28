@@ -1,3 +1,4 @@
+import formbody from "@fastify/formbody";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { Type } from "@sinclair/typebox";
 import {
@@ -12,6 +13,7 @@ import {
 import { submitPostmarkEvents } from "backend-lib/src/destinations/postmark";
 import { submitResendEvents } from "backend-lib/src/destinations/resend";
 import { submitSendgridEvents } from "backend-lib/src/destinations/sendgrid";
+import { submitTwilioEvents } from "backend-lib/src/destinations/twilio";
 import logger from "backend-lib/src/logger";
 import prisma from "backend-lib/src/prisma";
 import {
@@ -21,6 +23,7 @@ import {
   PostMarkEvent,
   ResendEvent,
   SendgridEvent,
+  TwilioEventSms,
 } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
@@ -28,6 +31,7 @@ import {
   POSTMARK_SECRET,
   RESEND_SECRET,
   SENDGRID_SECRET,
+  TWILIO_SECRET_NAME,
   WORKSPACE_ID_HEADER,
 } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -35,14 +39,19 @@ import {
   PostMarkSecret,
   ResendSecret,
   SendgridSecret,
+  TwilioSecret,
   WorkspaceId,
 } from "isomorphic-lib/src/types";
 import { Webhook } from "svix";
+import { validateRequest } from "twilio";
 
 import { getWorkspaceId } from "../workspace";
 
+const TWILIO_CONFIG_ERR_MSG = "Twilio configuration not found";
+
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function webhookController(fastify: FastifyInstance) {
+  await fastify.register(formbody);
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   fastify.addHook("onSend", async (_request, reply, payload) => {
     if (reply.statusCode !== 400) {
@@ -350,6 +359,88 @@ export default async function webhookController(fastify: FastifyInstance) {
       await submitPostmarkEvents({
         workspaceId,
         events: [request.body],
+      });
+      return reply.status(200).send();
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().post(
+    "/twilio",
+    {
+      schema: {
+        description: "Used to consume Twilio webhook payloads.",
+        tags: ["Webhooks"],
+        headers: Type.Object({
+          "x-twilio-signature": Type.String(),
+        }),
+        body: TwilioEventSms,
+        querystring: Type.Object({
+          workspaceId: Type.String(),
+          userId: Type.String(),
+          subscriptionGroupId: Type.Optional(Type.String()),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId, userId, subscriptionGroupId } = request.query;
+
+      const twilioSecretModel = await prisma().secret.findUnique({
+        where: {
+          workspaceId_name: {
+            name: TWILIO_SECRET_NAME,
+            workspaceId,
+          },
+        },
+      });
+
+      const twilioSecretResult = schemaValidateWithErr(
+        twilioSecretModel?.configValue,
+        TwilioSecret,
+      );
+      if (twilioSecretResult.isErr()) {
+        return reply.status(503).send({
+          message: TWILIO_CONFIG_ERR_MSG,
+        });
+      }
+      const twilioSecret = twilioSecretResult.value;
+      if (
+        !twilioSecret.authToken ||
+        !twilioSecret.accountSid ||
+        !twilioSecret.messagingServiceSid
+      ) {
+        return reply.status(503).send({
+          message: TWILIO_CONFIG_ERR_MSG,
+        });
+      }
+
+      // TODO refactor this into the backend config, using just the host not the path
+      const url =
+        process.env.TWILIO_STATUS_CALLBACK_URL ?? "https://dittofeed.com";
+
+      const verified = validateRequest(
+        twilioSecret.authToken,
+        request.headers["x-twilio-signature"],
+        `${url}${request.url}`,
+        request.body,
+      );
+
+      if (!verified) {
+        logger().error(
+          {
+            workspaceId,
+          },
+          "Invalid signature for twilio webhook.",
+        );
+        return reply.status(401).send({
+          message: "Invalid signature.",
+        });
+      }
+
+      await submitTwilioEvents({
+        workspaceId,
+        userId,
+        TwilioEvent: request.body,
+        subscriptionGroupId,
       });
       return reply.status(200).send();
     },

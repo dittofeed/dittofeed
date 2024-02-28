@@ -76,3 +76,11 @@ yarn workspace worker dev
 ### How can I submit events?
 
 See the documentation on [Using Dittofeed's REST API as a source](/integrations/sources/api).
+
+### How can I view Dittofeed's local Postgres data?
+
+Run `./packages/backend-lib/scripts/local-pg-access.sh` to open a psql shell to Dittofeed's postgres database started from the development `docker-compose.yaml` file.
+
+### How can I view dittofeed's local ClickHouse data?
+
+Run `./packages/backend-lib/scripts/local-ch-access.sh` to open a ClickHouse shell to Dittofeed's ClickHouse database started from the development `docker-compose.yaml` file.

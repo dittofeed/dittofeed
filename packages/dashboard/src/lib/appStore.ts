@@ -217,6 +217,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         getTraitsRequest: {
           type: CompletionStatus.NotStarted,
         },
+        features: {},
         upsertTraits: (traits) =>
           set((state) => {
             state.traits = Array.from(new Set(traits.concat(state.traits)));

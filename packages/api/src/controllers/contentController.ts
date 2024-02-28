@@ -151,6 +151,7 @@ export default async function contentController(fastify: FastifyInstance) {
       > = {
         workspaceId: request.body.workspaceId,
         templateId: request.body.templateId,
+        userId: messageTags.userId ?? "test-user",
         userPropertyAssignments: request.body.userProperties,
         useDraft: true,
         messageTags,

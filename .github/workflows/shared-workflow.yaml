@@ -10,6 +10,10 @@ on:
         required: false
         default: 'false'
         type: string
+      check_openapi:
+        required: false
+        default: 'false'
+        type: string
 
 jobs:
   lint:
@@ -38,3 +42,28 @@ jobs:
 
     - name: Run Typecheck
       run: yarn workspace ${{ inputs.package-name }} check
+
+
+    - name: Start API server
+      run: nohup yarn workspace api dev &
+      if: ${{ inputs.check_openapi == 'true' }}
+
+    - name: Check if Open API documentation needs updating
+      if: ${{ inputs.check_openapi == 'true' }}
+      run: |
+        timeout=120 # Timeout in seconds
+        end=$((SECONDS+timeout))
+        while true; do
+          if curl -s -o /dev/null -w "%{http_code}" "http://localhost:3001/documentation/json" | grep -q "200"; then
+            curl "http://localhost:3001/documentation/json" | jq "." > packages/docs/open-api.json
+            git diff --quiet packages/docs/open-api.json || { echo >&2 "Error: Please update open-api.json file by running: 
+            curl 'http://localhost:3001/documentation/json' | jq '.' > packages/docs/open-api.json"; exit 1; }
+            break
+          elif [ $SECONDS -ge $end ]; then
+            echo "Timeout reached, exiting..."
+            exit 1
+          else
+            echo "Waiting for API server to be up..."
+            sleep 2
+          fi
+        done

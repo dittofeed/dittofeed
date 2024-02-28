@@ -19,3 +19,4 @@ jobs:
     with:
       package-name: 'api'
       is_backend: 'true'
+      check_openapi: 'true'
