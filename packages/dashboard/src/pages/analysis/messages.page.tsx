@@ -127,14 +127,14 @@ interface MessageRow {
   spamRate: number;
 }
 
-function StatCell({ value }: { value: number }) {
+function StatCell({ value }: { value: number | string }) {
   return (
     <Box
       sx={{
         fontFamily: "monospace",
       }}
     >
-      {round(value * 100, 2)}%
+      {typeof value === "number" ? `${round(value * 100, 2)}%` : value}
     </Box>
   );
 }
@@ -223,10 +223,19 @@ export default function MessagesPage() {
               messageChannel: message.definition.type,
               messageName: message.name,
               sendRate: nodeStats.sendRate,
-              clickRate: nodeStats.channelStats?.clickRate ?? 0,
+              clickRate:
+                nodeStats.channelStats?.type === ChannelType.Email
+                  ? nodeStats.channelStats.clickRate
+                  : 0,
               deliveryRate: nodeStats.channelStats?.deliveryRate ?? 0,
-              openRate: nodeStats.channelStats?.openRate ?? 0,
-              spamRate: nodeStats.channelStats?.spamRate ?? 0,
+              spamRate:
+                nodeStats.channelStats?.type === ChannelType.Email
+                  ? nodeStats.channelStats.spamRate
+                  : 0,
+              openRate:
+                nodeStats.channelStats?.type === ChannelType.Email
+                  ? nodeStats.channelStats.openRate
+                  : 0,
             };
             return row;
           });
@@ -311,7 +320,15 @@ export default function MessagesPage() {
             renderHeader: () => (
               <Typography variant="subtitle2">Open Rate</Typography>
             ),
-            renderCell: (params) => <StatCell value={params.row.openRate} />,
+            renderCell: (params) => (
+              <StatCell
+                value={
+                  params.row.messageChannel === ChannelType.Email
+                    ? params.row.openRate
+                    : "N/A"
+                }
+              />
+            ),
           },
           {
             field: "clickRate",
@@ -319,7 +336,15 @@ export default function MessagesPage() {
             renderHeader: () => (
               <Typography variant="subtitle2">Click Rate</Typography>
             ),
-            renderCell: (params) => <StatCell value={params.row.clickRate} />,
+            renderCell: (params) => (
+              <StatCell
+                value={
+                  params.row.messageChannel === ChannelType.Email
+                    ? params.row.clickRate
+                    : "N/A"
+                }
+              />
+            ),
           },
           {
             field: "spamRate",
@@ -327,7 +352,15 @@ export default function MessagesPage() {
             renderHeader: () => (
               <Typography variant="subtitle2">Spam Rate</Typography>
             ),
-            renderCell: (params) => <StatCell value={params.row.spamRate} />,
+            renderCell: (params) => (
+              <StatCell
+                value={
+                  params.row.messageChannel === ChannelType.Email
+                    ? params.row.spamRate
+                    : "N/A"
+                }
+              />
+            ),
           },
         ]}
       />
