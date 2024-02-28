@@ -8,6 +8,7 @@ import {
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
+  MessageNode,
   NodeStatsType,
   SegmentSplitNode,
   SegmentSplitVariantType,
@@ -103,9 +104,6 @@ describe("journeys", () => {
       });
     });
 
-    // FIXME test when ending in exit node
-    describe("when a journey node has associated segment stats", () => {});
-
     describe("when the journey node has nested segment splits", () => {
       beforeEach(async () => {
         const workspace = await prisma().workspace.create({
@@ -127,13 +125,42 @@ describe("journeys", () => {
               variant: {
                 type: SegmentSplitVariantType.Boolean,
                 segment: randomUUID(),
-                trueChild: ,
-
+                trueChild: "message-node-1",
+                falseChild: "split-node-2",
               },
-            } satisfies SegmentSplitNode
-          ]
+            },
+            {
+              id: "split-node-2",
+              type: JourneyNodeType.SegmentSplitNode,
+              variant: {
+                type: SegmentSplitVariantType.Boolean,
+                segment: randomUUID(),
+                trueChild: "message-node-1",
+                falseChild: "message-node-2",
+              },
+            },
+            {
+              id: "message-node-1",
+              type: JourneyNodeType.MessageNode,
+              child: JourneyNodeType.ExitNode,
+              variant: {
+                type: ChannelType.Email,
+                templateId: randomUUID(),
+              },
+            },
+            {
+              id: "message-node-2",
+              type: JourneyNodeType.MessageNode,
+              child: "message-node-1",
+              variant: {
+                type: ChannelType.Email,
+                templateId: randomUUID(),
+              },
+            },
+          ],
         };
       });
     });
+    describe("when the journey node has nested segment splits ending in exit", () => {});
   });
 });
