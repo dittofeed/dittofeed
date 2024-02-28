@@ -1,12 +1,7 @@
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 import prisma from "./prisma";
-import {
-  FeatureMap,
-  FeatureMapEnum,
-  FeatureNames,
-  FeatureNamesEnum,
-} from "./types";
+import { FeatureMap, FeatureNames, FeatureNamesEnum } from "./types";
 
 export async function getFeature({
   name,
@@ -32,7 +27,7 @@ export async function getFeatures({
 }: {
   workspaceId: string;
   names: FeatureNamesEnum[];
-}): Promise<FeatureMapEnum> {
+}): Promise<FeatureMap> {
   const features = await prisma().feature.findMany({
     where: {
       workspaceId,

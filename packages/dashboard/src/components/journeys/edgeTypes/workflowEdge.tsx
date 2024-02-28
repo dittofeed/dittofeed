@@ -1,9 +1,9 @@
-import { NodeStatsType } from "isomorphic-lib/src/types";
+import { FeatureNamesEnum, NodeStatsType } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "reactflow";
 
-import { useAppStore } from "../../../lib/appStore";
+import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import { EdgeData } from "../../../lib/types";
 import findNode from "../findNode";
 import styles from "./edgeTypes.module.css";
@@ -23,11 +23,17 @@ export default function WorkflowEdge({
 }: EdgeProps<EdgeData>) {
   const path = useRouter();
 
-  const journeyStats = useAppStore((store) => store.journeyStats);
+  const { journeyStats, journeyDraggedComponentType, features } =
+    useAppStorePick([
+      "journeyStats",
+      "journeyDraggedComponentType",
+      "features",
+    ]);
+
+  const isDragging = !!journeyDraggedComponentType;
+  const isDisplayJourneyPercentagesEnabled =
+    !!features[FeatureNamesEnum.DisplayJourneyPercentages];
   const [isDropzoneActive, setDropzoneActive] = useState<boolean>(false);
-  const isDragging = useAppStore(
-    (store) => !!store.journeyDraggedComponentType,
-  );
 
   const onDrop = () => {
     setDropzoneActive(false);
@@ -152,7 +158,7 @@ export default function WorkflowEdge({
           +
         </text>
       </g>
-      {getLabelText().length > 0 && (
+      {isDisplayJourneyPercentagesEnabled && getLabelText().length > 0 && (
         <EdgeLabelRenderer>
           <div
             style={{
