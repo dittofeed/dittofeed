@@ -37,7 +37,7 @@ module.exports = {
       {
         props: true,
         // naming convention so that can use array reduce
-        ignorePropertyModificationsFor: ["memo"],
+        ignorePropertyModificationsFor: ["memo", "acc"],
       },
     ],
     "@typescript-eslint/no-unused-vars": [

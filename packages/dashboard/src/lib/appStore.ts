@@ -1,6 +1,5 @@
 import {
   CompletionStatus,
-  FeatureNames,
   InternalEventType,
   RelationalOperators,
   SecretResource,
@@ -19,7 +18,6 @@ import { immer } from "zustand/middleware/immer";
 
 import { createJourneySlice } from "../components/journeys/store";
 import { AppContents, AppState, PreloadedState } from "./types";
-import { Feature } from "@prisma/client";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();

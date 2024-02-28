@@ -12,7 +12,7 @@ import {
   EphemeralRequestStatus,
   EventEntryNode,
   ExitNode,
-  FeatureNames,
+  FeatureMap,
   IntegrationResource,
   JourneyNodeType,
   JourneyResource,
@@ -74,9 +74,7 @@ export type GetDFServerSideProps<
 export type AppState = {
   apiBase: string;
   dashboardUrl: string;
-  features: {
-    [K in keyof typeof FeatureNames]?: string;
-  };
+  features: FeatureMap;
   workspace: RequestStatus<WorkspaceResource, Error>;
   member: WorkspaceMemberResource | null;
   memberRoles: WorkspaceMemberRoleResource[];

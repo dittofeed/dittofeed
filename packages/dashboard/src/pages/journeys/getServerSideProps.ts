@@ -2,7 +2,7 @@ import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { CompletionStatus, FeatureNamesEnum } from "isomorphic-lib/src/types";
 import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
@@ -32,7 +32,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [journey, segments, templateResources, subscriptionGroups] =
+    const [journey, segments, templateResources, subscriptionGroups, features] =
       await Promise.all([
         await prisma().journey.findUnique({
           where: { id },
@@ -48,6 +48,14 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         findMessageTemplates({ workspaceId }),
         prisma().subscriptionGroup.findMany({
           where: { workspaceId },
+        }),
+        prisma().feature.findMany({
+          where: {
+            workspaceId,
+            name: {
+              in: [FeatureNamesEnum.DisplayJourneyPercentages],
+            },
+          },
         }),
       ]);
 
@@ -78,7 +86,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     }
 
     const segmentResourceResult = Result.combine(
-      segments.map(toSegmentResource),
+      segments.map(toSegmentResource)
     );
 
     if (segmentResourceResult.isOk()) {
