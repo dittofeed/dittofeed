@@ -1,3 +1,4 @@
+import { getFeatures } from "backend-lib/src/features";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { toSegmentResource } from "backend-lib/src/segments";
@@ -49,13 +50,9 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         prisma().subscriptionGroup.findMany({
           where: { workspaceId },
         }),
-        prisma().feature.findMany({
-          where: {
-            workspaceId,
-            name: {
-              in: [FeatureNamesEnum.DisplayJourneyPercentages],
-            },
-          },
+        getFeatures({
+          workspaceId,
+          names: [FeatureNamesEnum.DisplayJourneyPercentages],
         }),
       ]);
 
@@ -65,6 +62,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         value: templateResources,
       },
       subscriptionGroups: subscriptionGroups.map(subscriptionGroupToResource),
+      features,
     };
 
     const journeyResourceResult =
