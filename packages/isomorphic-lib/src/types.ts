@@ -2692,3 +2692,13 @@ export const JourneyUpsertValidationError = Type.Object({
   message: Type.String(),
   variant: JourneyUpsertValidationErrorVariant,
 });
+
+export enum FeatureNamesEnum {
+  DisplayJourneyPercentages = "DisplayJourneyPercentages",
+}
+
+export const FeatureNames = Type.Enum(FeatureNamesEnum);
+
+export type FeatureMap = {
+  [K in FeatureNamesEnum]?: boolean;
+};

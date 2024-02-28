@@ -1,8 +1,9 @@
+import { getFeatures } from "backend-lib/src/features";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import { CompletionStatus } from "isomorphic-lib/src/types";
+import { CompletionStatus, FeatureNamesEnum } from "isomorphic-lib/src/types";
 import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
@@ -32,7 +33,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     }
 
     const workspaceId = dfContext.workspace.id;
-    const [journey, segments, templateResources, subscriptionGroups] =
+    const [journey, segments, templateResources, subscriptionGroups, features] =
       await Promise.all([
         await prisma().journey.findUnique({
           where: { id },
@@ -49,6 +50,10 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         prisma().subscriptionGroup.findMany({
           where: { workspaceId },
         }),
+        getFeatures({
+          workspaceId,
+          names: [FeatureNamesEnum.DisplayJourneyPercentages],
+        }),
       ]);
 
     const serverInitialState: PreloadedState = {
@@ -57,6 +62,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         value: templateResources,
       },
       subscriptionGroups: subscriptionGroups.map(subscriptionGroupToResource),
+      features,
     };
 
     const journeyResourceResult =

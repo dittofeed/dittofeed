@@ -26,6 +26,12 @@ import {
 
 export * from "isomorphic-lib/src/journeys";
 
+const isValueInEnum = <T extends Record<string, string>>(
+  value: string,
+  enumObject: T,
+): value is T[keyof T] =>
+  Object.values(enumObject).includes(value as T[keyof T]);
+
 export function enrichJourney(
   journey: Journey,
 ): Result<EnrichedJourney, Error> {
@@ -117,12 +123,6 @@ const JourneyMessageStatsRow = Type.Object({
   node_id: Type.String(),
   count: Type.String(),
 });
-
-const isValueInEnum = <T extends Record<string, string>>(
-  value: string,
-  enumObject: T,
-): value is T[keyof T] =>
-  Object.values(enumObject).includes(value as T[keyof T]);
 
 export async function getJourneysStats({
   workspaceId,
