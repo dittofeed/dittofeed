@@ -1135,40 +1135,89 @@ export type DefaultEmailProviderResource = Static<
   typeof DefaultEmailProviderResource
 >;
 
-export const JourneyResourceStatus = Type.Union([
-  Type.Literal("NotStarted"),
-  Type.Literal("Running"),
-  Type.Literal("Paused"),
-  Type.Literal("Broadcast"),
-]);
+export const JourneyResourceStatusEnum = {
+  NotStarted: "NotStarted",
+  Running: "Running",
+  Paused: "Paused",
+  Broadcast: "Broadcast",
+} as const;
+
+export const JourneyResourceStatus = Type.KeyOf(
+  Type.Const(JourneyResourceStatusEnum),
+);
 
 export type JourneyResourceStatus = Static<typeof JourneyResourceStatus>;
 
-export const JourneyResource = Type.Object({
+const baseJourneyResource = {
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
-  status: JourneyResourceStatus,
-  definition: JourneyDefinition,
   canRunMultiple: Type.Optional(Type.Boolean()),
   updatedAt: Type.Number(),
+} as const;
+
+export const NotStartedJourneyResource = Type.Object({
+  ...baseJourneyResource,
+  status: Type.Literal(JourneyResourceStatusEnum.NotStarted),
+  definition: Type.Optional(JourneyDefinition),
 });
+
+export type NotStartedJourneyResource = Static<
+  typeof NotStartedJourneyResource
+>;
+
+export const HasStartedJourneyResource = Type.Object({
+  ...baseJourneyResource,
+  status: Type.Union([
+    Type.Literal(JourneyResourceStatusEnum.Running),
+    Type.Literal(JourneyResourceStatusEnum.Paused),
+    Type.Literal(JourneyResourceStatusEnum.Broadcast),
+  ]),
+  definition: JourneyDefinition,
+});
+
+export type HasStartedJourneyResource = Static<
+  typeof HasStartedJourneyResource
+>;
+
+export const JourneyResource = Type.Union([
+  NotStartedJourneyResource,
+  HasStartedJourneyResource,
+]);
 
 export type JourneyResource = Static<typeof JourneyResource>;
 
-export const SavedJourneyResource = Type.Composite([
-  JourneyResource,
-  Type.Object({
-    createdAt: Type.Number(),
-    updatedAt: Type.Number(),
-  }),
+export const SavedJourneyResource = Type.Union([
+  Type.Composite([
+    NotStartedJourneyResource,
+    Type.Object({
+      createdAt: Type.Number(),
+      updatedAt: Type.Number(),
+    }),
+  ]),
+  Type.Composite([
+    HasStartedJourneyResource,
+    Type.Object({
+      createdAt: Type.Number(),
+      updatedAt: Type.Number(),
+    }),
+  ]),
 ]);
 
 export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
 
 export const UpsertJourneyResource = Type.Composite([
-  Type.Omit(Type.Partial(JourneyResource), ["id"]),
-  Type.Pick(JourneyResource, ["id"]),
+  Type.Object({
+    id: Type.String(),
+    workspaceId: Type.String(),
+  }),
+  Type.Partial(
+    Type.Object({
+      ...baseJourneyResource,
+      definition: JourneyDefinition,
+      status: Type.Enum(JourneyResourceStatusEnum),
+    }),
+  ),
 ]);
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
@@ -2058,14 +2107,6 @@ export const DefaultSmsProviderResource = Type.Object({
 export type DefaultSmsProviderResource = Static<
   typeof DefaultSmsProviderResource
 >;
-
-// Compatible as both a subset of EnrichedJourney and JourneyResource
-export interface CompatibleJourney {
-  workspaceId: string;
-  id: string;
-  name: string;
-  definition: JourneyDefinition;
-}
 
 export const MessageTemplateTestErrorResponse = Type.Object({});
 
