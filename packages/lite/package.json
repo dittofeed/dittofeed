@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@fastify/secure-session": "^7.1.0",
-    "@sinclair/typebox": "^0.31.5",
+    "@sinclair/typebox": "^0.32.14",
     "@temporalio/worker": "1.8.4",
     "admin-cli": "0.0.1",
     "api": "0.0.3",
