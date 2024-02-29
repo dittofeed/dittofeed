@@ -1,7 +1,6 @@
 import {
   EmailProvider,
   JourneyStatus,
-  Prisma,
   SegmentAssignment,
 } from "@prisma/client";
 import { MailDataRequired } from "@sendgrid/mail";
@@ -11,13 +10,11 @@ import {
   FCM_SECRET_NAME,
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
-import { getNodeId } from "isomorphic-lib/src/journeys";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
 import { omit } from "remeda";
-import { v5 as uuidv5 } from "uuid";
 
 import { submitTrack } from "../../apps/track";
 import { sendNotification } from "../../destinations/fcm";
@@ -30,7 +27,6 @@ import {
   sendSms as sendSmsTwilio,
   TwilioRestException,
 } from "../../destinations/twilio";
-import { RecordNodeProcessedParams, recordNodeProcessed } from "../../journeys";
 import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
 import { findMessageTemplate, sendMessage } from "../../messageTemplates";
@@ -45,7 +41,6 @@ import {
   ChannelType,
   EmailProviderType,
   InternalEventType,
-  JourneyNode,
   JourneyNodeType,
   JSONValue,
   KnownTrackData,
@@ -59,6 +54,10 @@ import {
   assignmentAsString,
   findAllUserPropertyAssignments,
 } from "../../userProperties";
+import {
+  recordNodeProcessed,
+  RecordNodeProcessedParams,
+} from "../recordNodeProcessed";
 
 export { findNextLocalizedTime } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
@@ -91,7 +90,7 @@ interface SendWithTrackingParams<C> extends BaseSendParams {
       userPropertyAssignments: Awaited<
         ReturnType<typeof findAllUserPropertyAssignments>
       >;
-    }
+    },
   ) => Promise<SendWithTrackingValue>;
 }
 
@@ -107,7 +106,7 @@ function buildSendValueFactory(trackingProperties: TrackingProperties) {
   return function buildSendValue(
     success: boolean,
     event: InternalEventType,
-    properties?: TrackData["properties"]
+    properties?: TrackData["properties"],
   ): SendWithTrackingValue {
     return [
       success,
@@ -125,7 +124,7 @@ function buildSendValueFactory(trackingProperties: TrackingProperties) {
 }
 
 async function sendWithTracking<C>(
-  params: SendWithTrackingParams<C>
+  params: SendWithTrackingParams<C>,
 ): Promise<SendWithTrackingValue> {
   const {
     journeyId,
@@ -191,7 +190,7 @@ async function sendWithTracking<C>(
         ...trackingProperties,
         error: messageTemplateResult.error,
       },
-      "malformed message template"
+      "malformed message template",
     );
     return [false, null];
   }
@@ -216,7 +215,7 @@ async function sendWithTracking<C>(
         InternalEventType.BadWorkspaceConfiguration,
         {
           message: "subscription group not found",
-        }
+        },
       );
     }
 
@@ -276,7 +275,7 @@ interface MobilePushChannelConfig {
 }
 
 export async function sendSmsWithPayload(
-  params: BaseSendParams
+  params: BaseSendParams,
 ): Promise<SendWithTrackingValue> {
   const buildSendValue = buildSendValueFactory(params);
 
@@ -300,18 +299,18 @@ export async function sendSmsWithPayload(
         return err(
           buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
             message: "SMS provider not found",
-          })
+          }),
         );
       }
       const parsedConfigResult = schemaValidateWithErr(
         smsConfig,
-        SmsProviderSecret
+        SmsProviderSecret,
       );
       if (parsedConfigResult.isErr()) {
         return err(
           buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
             message: `SMS provider config is invalid: ${parsedConfigResult.error.message}`,
-          })
+          }),
         );
       }
       return ok(parsedConfigResult.value);
@@ -345,7 +344,7 @@ export async function sendSmsWithPayload(
           InternalEventType.BadWorkspaceConfiguration,
           {
             message: "Message template is not a sms template",
-          }
+          },
         );
       }
       let body: string | undefined;
@@ -358,7 +357,7 @@ export async function sendSmsWithPayload(
           InternalEventType.BadWorkspaceConfiguration,
           {
             message: `render failure: ${error.message}`,
-          }
+          },
         );
       }
 
@@ -380,7 +379,7 @@ export async function sendSmsWithPayload(
               InternalEventType.BadWorkspaceConfiguration,
               {
                 message: "Twilio config is invalid",
-              }
+              },
             );
           }
 
@@ -443,7 +442,7 @@ export async function sendSms(params: SendParams): Promise<boolean> {
 }
 
 export async function sendMobilePushWithPayload(
-  params: BaseSendParams
+  params: BaseSendParams,
 ): Promise<SendWithTrackingValue> {
   const buildSendValue = buildSendValueFactory(params);
 
@@ -463,7 +462,7 @@ export async function sendMobilePushWithPayload(
         return err(
           buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
             message: "FCM key not found",
-          })
+          }),
         );
       }
       return ok({ fcmKey: fcmKey.value });
@@ -496,7 +495,7 @@ export async function sendMobilePushWithPayload(
           InternalEventType.BadWorkspaceConfiguration,
           {
             message: "Message template is not a mobile push template",
-          }
+          },
         );
       }
       let title: string | undefined;
@@ -511,7 +510,7 @@ export async function sendMobilePushWithPayload(
           InternalEventType.BadWorkspaceConfiguration,
           {
             message: `render failure: ${error.message}`,
-          }
+          },
         );
       }
 
@@ -556,7 +555,7 @@ interface EmailChannelConfig {
 
 // TODO write test
 async function sendEmailWithPayload(
-  params: BaseSendParams
+  params: BaseSendParams,
 ): Promise<SendWithTrackingValue> {
   const buildSendValue = buildSendValueFactory(params);
 
@@ -575,7 +574,7 @@ async function sendEmailWithPayload(
         return err(
           buildSendValue(false, InternalEventType.BadWorkspaceConfiguration, {
             message: "Default email provider not found",
-          })
+          }),
         );
       }
       return ok({ emailProvider: defaultEmailProvider.emailProvider });
@@ -615,7 +614,7 @@ async function sendEmailWithPayload(
           InternalEventType.BadWorkspaceConfiguration,
           {
             message: "Message template is not a mobile push template",
-          }
+          },
         );
       }
       let from: string;
@@ -636,7 +635,7 @@ async function sendEmailWithPayload(
           InternalEventType.BadWorkspaceConfiguration,
           {
             message: `render failure: ${error.message}`,
-          }
+          },
         );
       }
 
@@ -744,7 +743,7 @@ async function sendEmailWithPayload(
             InternalEventType.BadWorkspaceConfiguration,
             {
               message: `Unknown email provider type: ${channelConfig.emailProvider.type}`,
-            }
+            },
           );
         }
       }

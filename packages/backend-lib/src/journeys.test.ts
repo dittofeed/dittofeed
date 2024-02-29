@@ -2,7 +2,8 @@ import { randomUUID } from "crypto";
 import * as R from "remeda";
 
 import { submitTrack } from "./apps/track";
-import { getJourneysStats, recordNodeProcessed } from "./journeys";
+import { getJourneysStats } from "./journeys";
+import { recordNodeProcessed } from "./journeys/recordNodeProcessed";
 import prisma from "./prisma";
 import {
   ChannelType,
@@ -127,8 +128,8 @@ describe("journeys", () => {
           variant: {
             type: SegmentSplitVariantType.Boolean,
             segment: randomUUID(),
-            trueChild: "message-node-1",
-            falseChild: "split-node-2",
+            falseChild: "message-node-1",
+            trueChild: "split-node-2",
           },
         };
         const splitNode2: SegmentSplitNode = {
@@ -137,8 +138,8 @@ describe("journeys", () => {
           variant: {
             type: SegmentSplitVariantType.Boolean,
             segment: randomUUID(),
-            trueChild: "message-node-1",
-            falseChild: "message-node-2",
+            falseChild: "message-node-1",
+            trueChild: "message-node-2",
           },
         };
         const messageNode1: MessageNode = {
@@ -186,7 +187,7 @@ describe("journeys", () => {
               node: entryNode,
               workspaceId,
               userId: `user-${i}`,
-            })
+            }),
           ),
           ...R.times(3, (i) =>
             recordNodeProcessed({
@@ -195,7 +196,7 @@ describe("journeys", () => {
               node: splitNode1,
               workspaceId,
               userId: `user-${i}`,
-            })
+            }),
           ),
           ...R.times(3, (i) =>
             recordNodeProcessed({
@@ -204,7 +205,7 @@ describe("journeys", () => {
               node: messageNode1,
               workspaceId,
               userId: `user-${i}`,
-            })
+            }),
           ),
           ...R.times(2, (i) =>
             recordNodeProcessed({
@@ -213,7 +214,7 @@ describe("journeys", () => {
               node: splitNode2,
               workspaceId,
               userId: `user-${i + 1}`,
-            })
+            }),
           ),
           recordNodeProcessed({
             journeyStartedAt,
@@ -230,7 +231,55 @@ describe("journeys", () => {
           workspaceId,
           journeyIds: [journeyId],
         });
-        console.log(JSON.stringify(stats, null, 2));
+
+        if (
+          stats[0]?.nodeStats["split-node-1"]?.type !==
+          NodeStatsType.SegmentSplitNodeStats
+        ) {
+          throw new Error(
+            "Expected split-node-1 to be a SegmentSplitNodeStats",
+          );
+        }
+        expect(
+          Math.floor(
+            stats[0]?.nodeStats["split-node-1"]?.proportions.falseChildEdge ??
+              0,
+          ),
+        ).toEqual(33);
+
+        if (
+          stats[0]?.nodeStats["split-node-2"]?.type !==
+          NodeStatsType.SegmentSplitNodeStats
+        ) {
+          throw new Error(
+            "Expected split-node-2 to be a SegmentSplitNodeStats",
+          );
+        }
+        expect(
+          stats[0]?.nodeStats["split-node-2"]?.proportions.falseChildEdge,
+        ).toEqual(50);
+
+        if (
+          stats[0]?.nodeStats["message-node-1"]?.type !==
+          NodeStatsType.MessageNodeStats
+        ) {
+          throw new Error("Expected message-node-1 to be a MessageNodeStats");
+        }
+
+        expect(
+          stats[0]?.nodeStats["message-node-1"].proportions.childEdge,
+        ).toEqual(100);
+
+        if (
+          stats[0]?.nodeStats["message-node-2"]?.type !==
+          NodeStatsType.MessageNodeStats
+        ) {
+          throw new Error("Expected message-node-2 to be a MessageNodeStats");
+        }
+
+        expect(
+          stats[0]?.nodeStats["message-node-2"].proportions.childEdge,
+        ).toEqual(100);
       });
     });
     describe("when the journey node has nested segment splits ending in exit", () => {});
