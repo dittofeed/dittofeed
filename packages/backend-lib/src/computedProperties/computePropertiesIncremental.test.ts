@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
+import { floorToNearest } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
@@ -107,29 +108,32 @@ async function readStates({
   const qb = new ClickHouseQueryBuilder();
   const query = `
     select
+      workspace_id,
       type,
       computed_property_id,
       state_id,
       user_id,
       argMaxMerge(last_value) as last_value,
       uniqMerge(unique_count) as unique_count,
-      maxMerge(max_event_time) as max_event_time,
+      max(event_time) as max_event_time,
       groupArrayMerge(grouped_message_ids) as grouped_message_ids,
-      max(computed_at)
-    from computed_property_state
+      max(computed_at),
+      groupArray(event_time) as event_times
+    from computed_property_state_v2
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
     group by
+      workspace_id,
       type,
       computed_property_id,
       state_id,
       user_id
   `;
-  const response = await (
+  const response = (await (
     await clickhouseClient().query({
       query,
       query_params: qb.getQueries(),
     })
-  ).json<{ data: State[] }>();
+  ).json()) satisfies { data: State[] };
   return response.data;
 }
 
@@ -141,6 +145,170 @@ interface TestState {
   lastValue?: string;
   uniqueCount?: number;
   maxEventTime?: string;
+}
+
+interface IndexedState {
+  type: "segment" | "user_property";
+  computed_property_id: string;
+  state_id: string;
+  user_id: string;
+  indexed_value: string;
+}
+
+interface TestIndexedState {
+  type: "segment" | "user_property";
+  userId: string;
+  name: string;
+  nodeId?: string;
+  indexedValue: number;
+}
+
+interface ResolvedSegmentState {
+  segment_id: string;
+  state_id: string;
+  user_id: string;
+  segment_state_value: boolean;
+}
+
+interface TestResolvedSegmentState {
+  userId: string;
+  name: string;
+  nodeId: string;
+  segmentStateValue: boolean;
+}
+
+async function readResolvedSegmentStates({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<ResolvedSegmentState[]> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select
+      segment_id,
+      state_id,
+      user_id,
+      segment_state_value
+    from resolved_segment_state 
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = (await (
+    await clickhouseClient().query({
+      query,
+      query_params: qb.getQueries(),
+    })
+  ).json()) satisfies { data: ResolvedSegmentState[] };
+
+  return response.data;
+}
+
+function toTestResolvedSegmentState(
+  resolvedSegmentState: ResolvedSegmentState,
+  segments: SavedSegmentResource[],
+): TestResolvedSegmentState {
+  const segment = segments.find(
+    (s) => s.id === resolvedSegmentState.segment_id,
+  );
+  if (!segment) {
+    throw new Error("segment not found");
+  }
+  const nodes = [segment.definition.entryNode, ...segment.definition.nodes];
+
+  const nodeId = nodes.find((n) => {
+    const stateId = segmentNodeStateId(segment, n.id);
+    return resolvedSegmentState.state_id === stateId;
+  })?.id;
+
+  if (!nodeId) {
+    throw new Error(`nodeId not found`);
+  }
+  return {
+    userId: resolvedSegmentState.user_id,
+    name: segment.name,
+    nodeId,
+    segmentStateValue: resolvedSegmentState.segment_state_value,
+  };
+}
+
+async function readIndexed({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<IndexedState[]> {
+  const qb = new ClickHouseQueryBuilder();
+  const query = `
+    select
+      type,
+      computed_property_id,
+      state_id,
+      user_id,
+      indexed_value
+    from computed_property_state_index
+    where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+  `;
+  const response = (await (
+    await clickhouseClient().query({
+      query,
+      query_params: qb.getQueries(),
+    })
+  ).json()) satisfies { data: IndexedState[] };
+  return response.data;
+}
+
+function toTestIndexedState(
+  indexedState: IndexedState,
+  userProperties: SavedUserPropertyResource[],
+  segments: SavedSegmentResource[],
+): TestIndexedState {
+  const indexedValue = parseInt(indexedState.indexed_value, 10);
+  switch (indexedState.type) {
+    case "segment": {
+      const segment = segments.find(
+        (s) => s.id === indexedState.computed_property_id,
+      );
+      if (!segment) {
+        throw new Error("segment not found");
+      }
+      const nodeId = [
+        segment.definition.entryNode,
+        ...segment.definition.nodes,
+      ].find((n) => {
+        const stateId = segmentNodeStateId(segment, n.id);
+        return indexedState.state_id === stateId;
+      })?.id;
+
+      return {
+        type: "segment",
+        name: segment.name,
+        nodeId,
+        userId: indexedState.user_id,
+        indexedValue,
+      };
+    }
+    case "user_property": {
+      const userProperty: SavedUserPropertyResource | undefined =
+        userProperties.find(
+          (up) => up.id === indexedState.computed_property_id,
+        );
+      if (!userProperty) {
+        throw new Error("userProperty not found");
+      }
+      let nodeId: string | undefined;
+      if (userProperty.definition.type === UserPropertyDefinitionType.Group) {
+        nodeId = userProperty.definition.nodes.find(
+          (n) =>
+            userPropertyStateId(userProperty, n.id) === indexedState.state_id,
+        )?.id;
+      }
+      return {
+        type: "user_property",
+        name: userProperty.name,
+        userId: indexedState.user_id,
+        nodeId,
+        indexedValue,
+      };
+    }
+  }
 }
 
 function toTestState(
@@ -256,6 +424,11 @@ interface AssertStep {
   states?: (TestState | ((ctx: StepContext) => TestState))[];
   periods?: TestPeriod[];
   journeys?: TestSignals[];
+  resolvedSegmentStates?: TestResolvedSegmentState[];
+  indexedStates?: (
+    | TestIndexedState
+    | ((ctx: StepContext) => TestIndexedState)
+  )[];
 }
 
 type TestUserProperty = Pick<UserPropertyResource, "name" | "definition">;
@@ -815,6 +988,15 @@ describe("computeProperties", () => {
         {
           type: EventsStepType.Assert,
           description: "user is initially within segment window",
+          indexedStates: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "1",
+              indexedValue: Math.floor((now - 100) / 1000),
+            }),
+          ],
           users: [
             {
               id: "user-1",
@@ -893,6 +1075,169 @@ describe("computeProperties", () => {
       ],
     },
     {
+      description: "computes grouped within operator trait segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "newUsers",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.And,
+              id: "1",
+              children: ["2", "3"],
+            },
+            nodes: [
+              {
+                type: SegmentNodeType.Trait,
+                id: "2",
+                path: "createdAt",
+                operator: {
+                  type: SegmentOperatorType.Within,
+                  windowSeconds: 60,
+                },
+              },
+              {
+                type: SegmentNodeType.Trait,
+                id: "3",
+                path: "path1",
+                operator: {
+                  type: SegmentOperatorType.Equals,
+                  value: "val1",
+                },
+              },
+            ],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            ({ now }) => ({
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                path1: "val1",
+                createdAt: new Date(now - 100).toISOString(),
+              },
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user is initially within segment window",
+          indexedStates: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "2",
+              indexedValue: Math.floor((now - 100) / 1000),
+            }),
+          ],
+          resolvedSegmentStates: [
+            {
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "2",
+              segmentStateValue: true,
+            },
+            {
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "3",
+              segmentStateValue: true,
+            },
+          ],
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: true,
+              },
+            },
+          ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "2",
+              lastValue: new Date(now - 100).toISOString(),
+            }),
+            {
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "3",
+              lastValue: "val1",
+            },
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 50,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description:
+            "user continues to be within the segment window after waiting for a short period",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: true,
+              },
+            },
+          ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "2",
+              lastValue: new Date(now - 50 - 100).toISOString(),
+            }),
+          ],
+        },
+        {
+          type: EventsStepType.Sleep,
+          timeMs: 1200000,
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          description: "user falls outside of segment window after waiting",
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                newUsers: false,
+              },
+            },
+          ],
+          states: [
+            ({ now }) => ({
+              type: "segment",
+              userId: "user-1",
+              name: "newUsers",
+              nodeId: "2",
+              lastValue: new Date(now - 100 - 50 - 1200000).toISOString(),
+            }),
+          ],
+        },
+      ],
+    },
+    {
       description: "computes HasBeen operator trait segment",
       userProperties: [],
       segments: [
@@ -954,7 +1299,9 @@ describe("computeProperties", () => {
               nodeId: "1",
               name: "stuckOnboarding",
               lastValue: "onboarding",
-              maxEventTime: new Date(now - 100 - 50).toISOString(),
+              maxEventTime: new Date(
+                floorToNearest(now - 100 - 50, 60480000),
+              ).toISOString(),
             }),
           ],
         },
@@ -978,7 +1325,10 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "onboarding",
               maxEventTime: new Date(
-                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50,
+                floorToNearest(
+                  now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 100 - 50,
+                  60480000,
+                ),
               ).toISOString(),
             }),
           ],
@@ -1022,8 +1372,12 @@ describe("computeProperties", () => {
               nodeId: "1",
               name: "stuckOnboarding",
               lastValue: "onboarding",
+              // last event shouldn't update maxEventTime because has same "onboarding" value
               maxEventTime: new Date(
-                now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100,
+                floorToNearest(
+                  now - (1000 * 60 * 60 * 24 * 7 + 60 * 1000) - 50 - 500 - 100,
+                  60480000,
+                ),
               ).toISOString(),
             }),
           ],
@@ -1072,7 +1426,7 @@ describe("computeProperties", () => {
               name: "stuckOnboarding",
               lastValue: "active",
               maxEventTime: new Date(
-                now - 1000 * 60 * 60 * 24 * 7 - 100,
+                floorToNearest(now - 1000 * 60 * 60 * 24 * 7 - 100, 60480000),
               ).toISOString(),
             }),
           ],
@@ -2527,6 +2881,155 @@ describe("computeProperties", () => {
         },
       ],
     },
+    {
+      description: "computes a negative trait segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: "env",
+              operator: {
+                type: SegmentOperatorType.NotEquals,
+                value: "prod",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes an exists trait segment",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: "env",
+              operator: {
+                type: SegmentOperatorType.Exists,
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                env: "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      description: "computes a trait segment with spaces in the path",
+      userProperties: [],
+      segments: [
+        {
+          name: "test",
+          definition: {
+            entryNode: {
+              type: SegmentNodeType.Trait,
+              id: randomUUID(),
+              path: '$["value with spaces"]',
+              operator: {
+                type: SegmentOperatorType.Equals,
+                value: "test",
+              },
+            },
+            nodes: [],
+          },
+        },
+      ],
+      steps: [
+        {
+          type: EventsStepType.SubmitEvents,
+          events: [
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-1",
+              traits: {
+                "value with spaces": "test",
+              },
+            },
+          ],
+        },
+        {
+          type: EventsStepType.ComputeProperties,
+        },
+        {
+          type: EventsStepType.Assert,
+          users: [
+            {
+              id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+          ],
+        },
+      ],
+    },
   ];
   const only: null | string =
     tests.find((t) => t.only === true)?.description ?? null;
@@ -2565,7 +3068,7 @@ describe("computeProperties", () => {
         }
         const definition: JourneyDefinition = {
           entryNode: {
-            type: JourneyNodeType.EntryNode,
+            type: JourneyNodeType.SegmentEntryNode,
             segment: segment.id,
             child: JourneyNodeType.ExitNode,
           },
@@ -2743,6 +3246,47 @@ describe("computeProperties", () => {
                   }
                 })()
               : null,
+            step.indexedStates
+              ? (async () => {
+                  const indexedStates = await readIndexed({ workspaceId });
+                  const actualTestStates = indexedStates.map((s) =>
+                    toTestIndexedState(s, userProperties, segments),
+                  );
+                  for (const expected of step.indexedStates ?? []) {
+                    const expectedState =
+                      typeof expected === "function"
+                        ? expected(stepContext)
+                        : expected;
+
+                    const actualState = actualTestStates.find(
+                      (s) =>
+                        s.userId === expectedState.userId &&
+                        s.name === expectedState.name &&
+                        s.type === expectedState.type &&
+                        s.nodeId === expectedState.nodeId,
+                    );
+                    expect(
+                      actualState,
+                      `${["expected indexed state", step.description]
+                        .filter((s) => !!s)
+                        .join(" - ")}:\n\n${JSON.stringify(
+                        expectedState,
+                        null,
+                        2,
+                      )}\n\nto be found in actual indexed states:\n\n${JSON.stringify(
+                        actualTestStates,
+                        null,
+                        2,
+                      )}`,
+                    ).not.toBeUndefined();
+
+                    expect(actualState, step.description).toHaveProperty(
+                      "indexedValue",
+                      expectedState.indexedValue,
+                    );
+                  }
+                })()
+              : null,
             step.periods
               ? (async () => {
                   const periods =
@@ -2767,6 +3311,52 @@ describe("computeProperties", () => {
                   expect(simplifiedPeriods, step.description).toEqual(
                     step.periods,
                   );
+                })()
+              : null,
+            step.resolvedSegmentStates
+              ? (async () => {
+                  const resolvedSegmentStates = await readResolvedSegmentStates(
+                    {
+                      workspaceId,
+                    },
+                  );
+                  const actualTestStates = resolvedSegmentStates.map((s) =>
+                    toTestResolvedSegmentState(s, segments),
+                  );
+                  for (const expected of step.resolvedSegmentStates ?? []) {
+                    const actualState = actualTestStates.find(
+                      (s) =>
+                        s.userId === expected.userId &&
+                        s.name === expected.name,
+                    );
+                    expect(
+                      actualState,
+                      `${["expected resolved segment state", step.description]
+                        .filter((s) => !!s)
+                        .join(" - ")}:\n\n${JSON.stringify(
+                        expected,
+                        null,
+                        2,
+                      )}\n\nto be found in actual resolved segment states:\n\n${JSON.stringify(
+                        actualTestStates,
+                        null,
+                        2,
+                      )}`,
+                    ).not.toBeUndefined();
+
+                    expect(
+                      actualState,
+                      `${[
+                        "expected resolved segment state to have a different value",
+                        step.description,
+                      ]
+                        .filter((s) => !!s)
+                        .join(" - ")}:\n\n${JSON.stringify(expected, null, 2)}`,
+                    ).toHaveProperty(
+                      "segmentStateValue",
+                      expected.segmentStateValue,
+                    );
+                  }
                 })()
               : null,
           ]);

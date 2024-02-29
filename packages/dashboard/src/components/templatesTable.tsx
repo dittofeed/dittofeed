@@ -1,4 +1,10 @@
-import { Tooltip } from "@mui/material";
+import {
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Tooltip,
+} from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
@@ -149,6 +155,12 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
       sx={{
         height: "100%",
         width: "100%",
+        ".MuiDataGrid-row:first-child": {
+          borderTop: "1px solid lightgray",
+        },
+        ".MuiDataGrid-row": {
+          borderBottom: "1px solid lightgray",
+        },
         // disable cell selection style
         ".MuiDataGrid-cell:focus": {
           outline: "none",
@@ -181,42 +193,53 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
           renderCell: ({ row }: { row: Row }) => {
             const currentRow = row;
             if (currentRow.journeys?.length === 0) {
-              return (
-                <div>
-                  <p>No Journey</p>
-                </div>
-              );
+              return;
             }
             return (
-              <div>
-                {currentRow.journeys?.map((journey) => {
-                  return (
-                    <Tooltip title={journey.name} key={journey.id}>
-                      <Link
-                        href={`/journeys/${journey.id}`}
-                        passHref
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        style={{
-                          display: "block",
-                          margin: "0.2rem 0",
-                          backgroundColor: "#f5f5f5",
-                          padding: "0.5rem",
-                          borderRadius: "0.5rem",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          textDecoration: "underline",
-                          width: 200,
-                          maxWidth: "fit-content",
-                        }}
-                      >
-                        {journey.name}
-                      </Link>
-                    </Tooltip>
-                  );
-                })}
+              <div
+                style={{
+                  padding: "0.5rem",
+                }}
+              >
+                <FormControl
+                  sx={{
+                    width: 200,
+                    height: 40,
+                  }}
+                  size="small"
+                >
+                  <InputLabel>
+                    {currentRow.journeys?.length}{" "}
+                    {currentRow.journeys?.length === 1 ? "Journey" : "Journeys"}
+                  </InputLabel>
+                  <Select label="Journeys">
+                    {currentRow.journeys?.map((journey) => {
+                      return (
+                        <MenuItem key={journey.id}>
+                          <Tooltip title={journey.name}>
+                            <Link
+                              href={`/journeys/${journey.id}`}
+                              passHref
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                              style={{
+                                color: "black",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                textDecoration: "none",
+                                width: 200,
+                              }}
+                            >
+                              {journey.name}
+                            </Link>
+                          </Tooltip>
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
               </div>
             );
           },

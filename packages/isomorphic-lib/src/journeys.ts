@@ -1,12 +1,48 @@
 import { sortBy } from "remeda/dist/commonjs/sortBy";
 
 import { getUnsafe } from "./maps";
+import { assertUnreachable } from "./typeAssertions";
 import {
   JourneyBodyNode,
+  JourneyConstraintViolation,
+  JourneyConstraintViolationType,
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
 } from "./types";
+
+export function getNodeId(node: JourneyNode): string {
+  if (node.type === JourneyNodeType.SegmentEntryNode) {
+    return JourneyNodeType.SegmentEntryNode;
+  }
+  if (node.type === JourneyNodeType.EventEntryNode) {
+    return JourneyNodeType.EventEntryNode;
+  }
+  if (node.type === JourneyNodeType.ExitNode) {
+    return JourneyNodeType.ExitNode;
+  }
+  return node.id;
+}
+
+export function getJourneyConstraintViolations(
+  definition: JourneyDefinition
+): JourneyConstraintViolation[] {
+  const hasWaitForNode = definition.nodes.some(
+    (n) => n.type === JourneyNodeType.WaitForNode
+  );
+  const hasEventEntry =
+    definition.entryNode.type === JourneyNodeType.EventEntryNode;
+
+  const constraintViolations: JourneyConstraintViolation[] = [];
+  if (hasEventEntry && hasWaitForNode) {
+    constraintViolations.push({
+      type: JourneyConstraintViolationType.WaitForNodeAndEventEntryNode,
+      message:
+        "A journey cannot have both an Event Entry node and a Wait For node",
+    });
+  }
+  return constraintViolations;
+}
 
 function nodeToSegments(node: JourneyBodyNode): string[] {
   switch (node.type) {
@@ -45,7 +81,9 @@ export function getSubscribedSegments(
   definition: JourneyDefinition
 ): Set<string> {
   const subscribedSegments = new Set<string>();
-  subscribedSegments.add(definition.entryNode.segment);
+  if (definition.entryNode.type === JourneyNodeType.SegmentEntryNode) {
+    subscribedSegments.add(definition.entryNode.segment);
+  }
   for (const node of definition.nodes) {
     const segments = nodeToSegments(node);
     for (const segment of segments) {
@@ -55,12 +93,17 @@ export function getSubscribedSegments(
   return subscribedSegments;
 }
 
+const ENTRY_NODE_TYPES = new Set<string>([
+  JourneyNodeType.EventEntryNode,
+  JourneyNodeType.SegmentEntryNode,
+]);
+
 export function getJourneyNode(
   definition: JourneyDefinition,
   nodeId: string
 ): JourneyNode | null {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-  if (nodeId === JourneyNodeType.EntryNode) {
+  if (ENTRY_NODE_TYPES.has(nodeId)) {
     return definition.entryNode;
   }
   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
@@ -96,7 +139,10 @@ export function findDirectChildren(
     case JourneyNodeType.MessageNode:
       children = new Set<string>([node.child]);
       break;
-    case JourneyNodeType.EntryNode:
+    case JourneyNodeType.SegmentEntryNode:
+      children = new Set<string>([node.child]);
+      break;
+    case JourneyNodeType.EventEntryNode:
       children = new Set<string>([node.child]);
       break;
     case JourneyNodeType.DelayNode:
@@ -109,6 +155,8 @@ export function findDirectChildren(
       throw new Error("Not implemented");
     case JourneyNodeType.RateLimitNode:
       throw new Error("Not implemented");
+    default:
+      assertUnreachable(node);
   }
 
   return children;
@@ -122,10 +170,7 @@ export function findDirectParents(
 
   // Iterate over all nodes in the journey definition
   for (const node of [definition.entryNode, ...definition.nodes]) {
-    const id =
-      node.type === JourneyNodeType.EntryNode
-        ? JourneyNodeType.EntryNode
-        : node.id;
+    const id = getNodeId(node);
     // Get the direct children of the current node
     const children = findDirectChildren(id, definition);
 
@@ -137,16 +182,6 @@ export function findDirectParents(
   }
 
   return parents;
-}
-
-export function getNodeId(node: JourneyNode): string {
-  if (node.type === JourneyNodeType.EntryNode) {
-    return JourneyNodeType.EntryNode;
-  }
-  if (node.type === JourneyNodeType.ExitNode) {
-    return JourneyNodeType.ExitNode;
-  }
-  return node.id;
 }
 
 export interface HeritageMapEntry {

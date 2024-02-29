@@ -77,7 +77,11 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     for (const segmentResource of segmentResources) {
       for (const journey of journeys) {
         const journeyDefinition = journey.definition as JourneyDefinition;
-        if (journeyDefinition.entryNode.segment === segmentResource.id) {
+        if (
+          journeyDefinition.entryNode.type ===
+            JourneyNodeType.SegmentEntryNode &&
+          journeyDefinition.entryNode.segment === segmentResource.id
+        ) {
           usedBy[segmentResource.id] = usedBy[segmentResource.id] ?? [];
           if (!usedBy[segmentResource.id]?.includes(journey))
             usedBy[segmentResource.id]?.push(journey);

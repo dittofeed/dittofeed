@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import { round } from "isomorphic-lib/src/numbers";
+import { isStringPresent } from "isomorphic-lib/src/strings";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
@@ -27,7 +28,12 @@ import { useRouter } from "next/router";
 import { Handle, NodeProps, Position } from "reactflow";
 
 import { useAppStore, useAppStorePick } from "../../../lib/appStore";
-import { AppState, JourneyNodeProps, NodeTypeProps } from "../../../lib/types";
+import {
+  AdditionalJourneyNodeType,
+  AppState,
+  JourneyNodeProps,
+  NodeTypeProps,
+} from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
 import styles from "./nodeTypes.module.css";
@@ -55,17 +61,29 @@ export function isNodeComplete(
   state: Pick<AppState, "segments" | "messages">,
 ): boolean {
   switch (props.type) {
-    case JourneyNodeType.EntryNode: {
-      if (!props.segmentId) {
-        return false;
+    case AdditionalJourneyNodeType.UiEntryNode: {
+      const { variant } = props;
+
+      switch (variant.type) {
+        case JourneyNodeType.SegmentEntryNode: {
+          if (!variant.segment) {
+            return false;
+          }
+          if (state.segments.type !== CompletionStatus.Successful) {
+            return true;
+          }
+          const segment = state.segments.value.find(
+            (s) => s.id === variant.segment,
+          );
+          return segment !== undefined;
+        }
+        case JourneyNodeType.EventEntryNode: {
+          return isStringPresent(variant.event);
+        }
+        default:
+          assertUnreachable(variant);
       }
-      if (state.segments.type !== CompletionStatus.Successful) {
-        return true;
-      }
-      const segment = state.segments.value.find(
-        (s) => s.id === props.segmentId,
-      );
-      return segment !== undefined;
+      break;
     }
     case JourneyNodeType.ExitNode:
       return true;
@@ -128,9 +146,28 @@ function SegmentDescriptionBody({
   );
 }
 
-export function journeyNodeIcon(type: JourneyNodeType): JourneyNodeIcon {
+function EventTriggerDescriptionBody({ event }: { event?: string }) {
+  const theme = useTheme();
+  return (
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Box>Triggered by Track Event</Box>
+      <Typography
+        sx={{
+          padding: 1,
+          borderRadius: 1,
+          fontFamily: "monospace",
+          backgroundColor: theme.palette.grey[200],
+        }}
+      >
+        {event}
+      </Typography>
+    </Stack>
+  );
+}
+
+export function journeyNodeIcon(type: NodeTypeProps["type"]): JourneyNodeIcon {
   switch (type) {
-    case JourneyNodeType.EntryNode:
+    case AdditionalJourneyNodeType.UiEntryNode:
       return ThunderboltOutlined;
     case JourneyNodeType.DelayNode:
       return ClockCircleOutlined;
@@ -142,22 +179,23 @@ export function journeyNodeIcon(type: JourneyNodeType): JourneyNodeIcon {
       return DeliveredProcedureOutlined;
     case JourneyNodeType.WaitForNode:
       return BackHandOutlined;
-    case JourneyNodeType.ExperimentSplitNode:
-      throw new Error("Not implemented");
-    case JourneyNodeType.RateLimitNode:
-      throw new Error("Not implemented");
   }
 }
 
 function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
   const t = props.type;
   switch (t) {
-    case JourneyNodeType.EntryNode: {
-      const body = <SegmentDescriptionBody segmentId={props.segmentId} />;
+    case AdditionalJourneyNodeType.UiEntryNode: {
+      const body =
+        props.variant.type === JourneyNodeType.SegmentEntryNode ? (
+          <SegmentDescriptionBody segmentId={props.variant.segment} />
+        ) : (
+          <EventTriggerDescriptionBody event={props.variant.event} />
+        );
       return {
         sidebarColor: "transparent",
-        icon: journeyNodeIcon(JourneyNodeType.EntryNode),
-        title: journeyNodeLabel(JourneyNodeType.EntryNode),
+        icon: journeyNodeIcon(t),
+        title: journeyNodeLabel(t),
         disableTopHandle: true,
         body,
       };
@@ -401,7 +439,9 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
           height: stats ? undefined : 0,
         }}
       >
-        {stats && stats.type === NodeStatsType.MessageNodeStats ? (
+        {stats &&
+        stats.type === NodeStatsType.MessageNodeStats &&
+        stats.channelStats ? (
           <>
             <StatCategory label="Sent" rate={stats.sendRate} />
             <StatCategory

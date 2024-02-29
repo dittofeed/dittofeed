@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { times } from "remeda";
 
-import { submitBatch } from "./apps";
+import { submitBatch } from "./apps/batch";
 import {
   parseSearchDeliveryRow,
   searchDeliveries,

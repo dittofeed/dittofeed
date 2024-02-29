@@ -42,7 +42,7 @@ export function durationDescription(
     return "0 days";
   }
   const durationMilliseconds = durationSeconds * 1000;
-  return humanizeDuration(durationMilliseconds);
+  return humanizeDuration(durationMilliseconds, { largest: 2 });
 }
 
 export default function DurationDescription({

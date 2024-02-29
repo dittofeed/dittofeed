@@ -43,6 +43,13 @@ export default function BroadcastsTable() {
       sx={{
         height: "100%",
         width: "100%",
+        ".MuiDataGrid-row:first-child": {
+          borderTop: "1px solid lightgray",
+        },
+        ".MuiDataGrid-row": {
+          borderBottom: "1px solid lightgray",
+          paddingY: "0.5rem",
+        },
         // disable cell selection style
         ".MuiDataGrid-cell:focus": {
           outline: "none",

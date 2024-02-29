@@ -128,7 +128,7 @@ export async function searchDeliveries({
   const query = `
     SELECT 
       argMax(event, event_time) last_event,
-      argMax(properties, if(empty(properties), 0, toUnixTimestamp(event_time))) properties,
+      any(if(properties = '', NULL, properties)) properties,
       max(event_time) updated_at,
       min(event_time) sent_at,
       user_or_anonymous_id,
@@ -138,7 +138,7 @@ export async function searchDeliveries({
       SELECT
         workspace_id,
         user_or_anonymous_id,
-        JSONExtractString(message_raw, 'properties') properties,
+        if(event = 'DFInternalMessageSent', JSONExtractString(message_raw, 'properties'), '') properties,
         event,
         event_time,
         if(event = '${

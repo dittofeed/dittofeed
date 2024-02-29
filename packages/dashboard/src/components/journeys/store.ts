@@ -12,6 +12,7 @@ import {
   DelayNode,
   DelayVariantType,
   EntryNode,
+  EventEntryNode,
   ExitNode,
   JourneyBodyNode,
   JourneyDefinition,
@@ -19,6 +20,7 @@ import {
   JourneyNodeType,
   JourneyResource,
   MessageNode,
+  SegmentEntryNode,
   SegmentSplitNode,
   SegmentSplitVariantType,
   WaitForNode,
@@ -37,6 +39,7 @@ import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { type immer } from "zustand/middleware/immer";
 
 import {
+  AdditionalJourneyNodeType,
   AddNodesParams,
   DelayNodeProps,
   EdgeData,
@@ -50,7 +53,7 @@ import {
   NodeTypeProps,
   NonJourneyNodeData,
   SegmentSplitNodeProps,
-  UIDelayVariant,
+  UiDelayVariant,
   WaitForNodeProps,
 } from "../../lib/types";
 import { durationDescription } from "../durationDescription";
@@ -273,22 +276,47 @@ function journeyDefinitionFromStateBranch(
     const uiNode = getUnsafe(uiJourneyNodes, nId);
 
     switch (uiNode.type) {
-      case JourneyNodeType.EntryNode: {
-        if (!uiNode.segmentId) {
-          return err({
-            message: "Entry node must have a segment",
-            nodeId: nId,
-          });
-        }
-
+      case AdditionalJourneyNodeType.UiEntryNode: {
         const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
-        const node: EntryNode = {
-          type: JourneyNodeType.EntryNode,
-          segment: uiNode.segmentId,
-          child,
-        };
-        nodes.push(node);
-        nextId = child;
+
+        switch (uiNode.variant.type) {
+          case JourneyNodeType.SegmentEntryNode: {
+            if (!uiNode.variant.segment) {
+              return err({
+                message: "Entry node must have a segment",
+                nodeId: nId,
+              });
+            }
+
+            const node: SegmentEntryNode = {
+              type: JourneyNodeType.SegmentEntryNode,
+              segment: uiNode.variant.segment,
+              child,
+            };
+            nodes.push(node);
+            nextId = child;
+            break;
+          }
+          case JourneyNodeType.EventEntryNode: {
+            if (!uiNode.variant.event) {
+              return err({
+                message: "Entry node must have an event",
+                nodeId: nId,
+              });
+            }
+            const node: EventEntryNode = {
+              type: JourneyNodeType.EventEntryNode,
+              event: uiNode.variant.event,
+              child,
+            };
+            nodes.push(node);
+            nextId = child;
+            break;
+          }
+          default:
+            assertUnreachable(uiNode.variant);
+            break;
+        }
         break;
       }
       case JourneyNodeType.ExitNode: {
@@ -532,7 +560,7 @@ export function journeyDefinitionFromState({
   const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
 
   const result = journeyDefinitionFromStateBranch(
-    JourneyNodeType.EntryNode,
+    AdditionalJourneyNodeType.UiEntryNode,
     hm,
     nodes,
     journeyNodes,
@@ -547,7 +575,10 @@ export function journeyDefinitionFromState({
   const bodyNodes: JourneyBodyNode[] = [];
 
   for (const node of nodes) {
-    if (node.type === JourneyNodeType.EntryNode) {
+    if (
+      node.type === JourneyNodeType.SegmentEntryNode ||
+      node.type === JourneyNodeType.EventEntryNode
+    ) {
       entryNode = node;
     } else if (node.type === JourneyNodeType.ExitNode) {
       exitNode = node;
@@ -730,7 +761,7 @@ export function edgesForJourneyNode({
   if (
     type === JourneyNodeType.RateLimitNode ||
     type === JourneyNodeType.ExperimentSplitNode ||
-    type === JourneyNodeType.EntryNode ||
+    type === JourneyNodeType.SegmentEntryNode ||
     type === JourneyNodeType.ExitNode
   ) {
     throw new Error(`Unimplemented node type ${type}`);
@@ -1025,14 +1056,36 @@ export function journeyBranchToState(
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
   while (true) {
     switch (node.type) {
-      case JourneyNodeType.EntryNode: {
+      case JourneyNodeType.SegmentEntryNode: {
         const entryNode: EntryNodeProps = {
-          type: JourneyNodeType.EntryNode,
-          segmentId: node.segment,
+          type: AdditionalJourneyNodeType.UiEntryNode,
+          variant: {
+            type: JourneyNodeType.SegmentEntryNode,
+            segment: node.segment,
+          },
         };
-        nodesState.push(buildJourneyNode(nId, entryNode));
+        nodesState.push(
+          buildJourneyNode(AdditionalJourneyNodeType.UiEntryNode, entryNode),
+        );
         edgesState.push(
-          buildWorkflowEdge(JourneyNodeType.EntryNode, node.child),
+          buildWorkflowEdge(AdditionalJourneyNodeType.UiEntryNode, node.child),
+        );
+        nextNodeId = node.child;
+        break;
+      }
+      case JourneyNodeType.EventEntryNode: {
+        const entryNode: EntryNodeProps = {
+          type: AdditionalJourneyNodeType.UiEntryNode,
+          variant: {
+            type: JourneyNodeType.EventEntryNode,
+            event: node.event,
+          },
+        };
+        nodesState.push(
+          buildJourneyNode(AdditionalJourneyNodeType.UiEntryNode, entryNode),
+        );
+        edgesState.push(
+          buildWorkflowEdge(AdditionalJourneyNodeType.UiEntryNode, node.child),
         );
         nextNodeId = node.child;
         break;
@@ -1053,7 +1106,7 @@ export function journeyBranchToState(
         break;
       }
       case JourneyNodeType.DelayNode: {
-        let variant: UIDelayVariant;
+        let variant: UiDelayVariant;
         switch (node.variant.type) {
           case DelayVariantType.Second: {
             variant = {
@@ -1303,8 +1356,9 @@ export function journeyToState(
     return acc;
   }, new Map<string, JourneyNode>());
   const hm = buildHeritageMap(journey.definition);
+
   journeyBranchToState(
-    JourneyNodeType.EntryNode,
+    getNodeId(journey.definition.entryNode),
     journeyNodes,
     journeyEdges,
     nodes,

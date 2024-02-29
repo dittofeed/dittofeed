@@ -1,4 +1,10 @@
-import { Tooltip } from "@mui/material";
+import {
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Tooltip,
+} from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   CompletionStatus,
@@ -36,6 +42,9 @@ const baseColumn: Partial<GridColDef<Row>> = {
 export default function UserPropertiesTable() {
   const router = useRouter();
 
+  const workspace = useAppStore((store) => store.workspace);
+  const workspaceId =
+    workspace.type === CompletionStatus.Successful ? workspace.value.id : "";
   const userPropertiesResult = useAppStore((store) => store.userProperties);
   const userProperties =
     userPropertiesResult.type === CompletionStatus.Successful
@@ -84,6 +93,12 @@ export default function UserPropertiesTable() {
       sx={{
         height: "100%",
         width: "100%",
+        ".MuiDataGrid-row:first-child": {
+          borderTop: "1px solid lightgray",
+        },
+        ".MuiDataGrid-row": {
+          borderBottom: "1px solid lightgray",
+        },
         // disable cell selection style
         ".MuiDataGrid-cell:focus": {
           outline: "none",
@@ -99,7 +114,7 @@ export default function UserPropertiesTable() {
           pathname: `/user-properties/${params.id}`,
         });
       }}
-      autoPageSize
+      // autoPageSize
       columns={[
         {
           field: "properties",
@@ -115,54 +130,67 @@ export default function UserPropertiesTable() {
         },
         {
           field: "templates",
-          headerName: "Templates used by",
+          headerName: "Templates Used By",
           renderCell: ({ row }: { row: Row }) => {
             const currentRow = row;
             if (currentRow.templates.length === 0) {
-              return (
-                <div>
-                  <p>No Templates</p>
-                </div>
-              );
+              return;
             }
             return (
-              <div>
-                {currentRow.templates.map((template) => {
-                  let type = "email";
-                  if (template.type === "Email") {
-                    type = "email";
-                  } else if (template.type === "Sms") {
-                    type = "sms";
-                  } else if (template.type === "MobilePush") {
-                    type = "mobile-push";
-                  }
-                  return (
-                    <Tooltip title={template.name} key={template.id}>
-                      <Link
-                        href={`/templates/${type}/${template.id}`}
-                        passHref
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        style={{
-                          display: "block",
-                          margin: "0.2rem 0",
-                          backgroundColor: "#f5f5f5",
-                          padding: "0.5rem",
-                          borderRadius: "0.5rem",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          textDecoration: "underline",
-                          width: 200,
-                          maxWidth: "fit-content",
-                        }}
-                      >
-                        {template.name}
-                      </Link>
-                    </Tooltip>
-                  );
-                })}
+              <div
+                style={{
+                  padding: "0.5rem",
+                }}
+              >
+                <FormControl
+                  sx={{
+                    width: 200,
+                    height: 40,
+                  }}
+                  size="small"
+                >
+                  <InputLabel>
+                    {currentRow.templates.length}{" "}
+                    {currentRow.templates.length === 1
+                      ? "Template"
+                      : "Templates"}
+                  </InputLabel>
+                  <Select label="Templates">
+                    {currentRow.templates.map((template) => {
+                      let type = "email";
+                      if (template.type === "Email") {
+                        type = "email";
+                      } else if (template.type === "Sms") {
+                        type = "sms";
+                      } else if (template.type === "MobilePush") {
+                        type = "mobile-push";
+                      }
+                      return (
+                        <MenuItem key={template.id}>
+                          <Tooltip title={template.name}>
+                            <Link
+                              href={`/templates/${type}/${template.id}`}
+                              passHref
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                              style={{
+                                color: "black",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                textDecoration: "none",
+                                width: 200,
+                              }}
+                            >
+                              {template.name}
+                            </Link>
+                          </Tooltip>
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
               </div>
             );
           },
@@ -190,6 +218,7 @@ export default function UserPropertiesTable() {
                     url: `${apiBase}/api/user-properties`,
                     data: {
                       id: currentRow.id,
+                      workspaceId,
                     },
                     headers: {
                       "Content-Type": "application/json",
@@ -213,6 +242,8 @@ export default function UserPropertiesTable() {
       }}
       pageSizeOptions={[1, 5, 10, 25]}
       getRowHeight={() => "auto"}
+      // autoHeight
+      autoPageSize
     />
   );
 }

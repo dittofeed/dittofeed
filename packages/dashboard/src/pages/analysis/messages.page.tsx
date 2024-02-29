@@ -222,11 +222,11 @@ export default function MessagesPage() {
               messageId,
               messageChannel: message.definition.type,
               messageName: message.name,
-              sendRate: nodeStats.sendRate ?? 0,
-              clickRate: nodeStats.channelStats.clickRate ?? 0,
-              deliveryRate: nodeStats.channelStats.deliveryRate ?? 0,
-              openRate: nodeStats.channelStats.openRate ?? 0,
-              spamRate: nodeStats.channelStats.spamRate ?? 0,
+              sendRate: nodeStats.sendRate,
+              clickRate: nodeStats.channelStats?.clickRate ?? 0,
+              deliveryRate: nodeStats.channelStats?.deliveryRate ?? 0,
+              openRate: nodeStats.channelStats?.openRate ?? 0,
+              spamRate: nodeStats.channelStats?.spamRate ?? 0,
             };
             return row;
           });

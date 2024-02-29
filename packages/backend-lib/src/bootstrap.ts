@@ -86,7 +86,7 @@ async function bootstrapPostgres({
           type: UserPropertyDefinitionType.Trait,
           path: "email",
         },
-        exampleValue: '"matt@email.com"',
+        exampleValue: '"name@email.com"',
       },
       {
         name: "phone",
@@ -196,6 +196,13 @@ async function bootstrapPostgres({
       name: `${workspaceName} - Mobile Push`,
       type: SubscriptionGroupType.OptOut,
       channel: ChannelType.MobilePush,
+    }),
+    upsertSubscriptionGroup({
+      workspaceId,
+      id: uuidv5("sms-subscription-group", workspaceId),
+      name: `${workspaceName} - SMS`,
+      type: SubscriptionGroupType.OptOut,
+      channel: ChannelType.Sms,
     }),
   ]);
   return { workspaceId };

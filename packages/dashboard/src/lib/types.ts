@@ -5,10 +5,12 @@ import {
   ChannelType,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
+  DefaultSmsProviderResource,
   DelayVariantType,
   DFRequestContext,
   EntryNode,
   EphemeralRequestStatus,
+  EventEntryNode,
   ExitNode,
   IntegrationResource,
   JourneyNodeType,
@@ -17,15 +19,17 @@ import {
   JourneyStatsResponse,
   LocalTimeDelayVariant,
   MessageTemplateResource,
+  PartialExceptType,
   PersistedEmailProvider,
+  PersistedSmsProvider,
   RequestStatus,
   SecondsDelayVariant,
   SecretAvailabilityResource,
   SecretResource,
+  SegmentEntryNode,
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
-  SmsProviderConfig,
   SourceControlProviderEnum,
   SubscriptionGroupResource,
   UserPropertyDefinition,
@@ -86,7 +90,8 @@ export type AppState = {
   secretAvailability: SecretAvailabilityResource[];
   defaultEmailProvider: DefaultEmailProviderResource | null;
   emailProviders: PersistedEmailProvider[];
-  smsProviders: SmsProviderConfig[];
+  defaultSmsProvider: DefaultSmsProviderResource | null;
+  smsProviders: PersistedSmsProvider[];
   dataSourceConfigurations: RequestStatus<
     DataSourceConfigurationResource[],
     Error
@@ -107,7 +112,7 @@ export type AppState = {
 export interface AppActions {
   toggleDrawer: () => void;
   upsertEmailProvider: (emailProvider: PersistedEmailProvider) => void;
-  upsertSmsProvider: (smsProvider: SmsProviderConfig) => void;
+  upsertSmsProvider: (response: PersistedSmsProvider) => void;
   upsertDataSourceConfiguration: (
     dataSource: DataSourceConfigurationResource,
   ) => void;
@@ -131,6 +136,9 @@ export interface AppActions {
   setGetTraitsRequest: (request: EphemeralRequestStatus<Error>) => void;
   setDefaultEmailProvider: (
     defaultEmailProvider: DefaultEmailProviderResource,
+  ) => void;
+  setDefaultSmsProvider: (
+    defaultSmsProvider: DefaultSmsProviderResource,
   ) => void;
 }
 
@@ -232,7 +240,7 @@ export interface SegmentEditorContents extends SegmentEditorState {
 
 export interface JourneyState {
   journeyName: string;
-  journeyDraggedComponentType: JourneyNodeType | null;
+  journeyDraggedComponentType: NodeTypeProps["type"] | null;
   journeySelectedNodeId: string | null;
   journeyNodes: Node<NodeData>[];
   journeyNodesIndex: Record<string, number>;
@@ -250,7 +258,7 @@ export interface AddNodesParams {
 }
 
 export interface JourneyContent extends JourneyState {
-  setDraggedComponentType: (t: JourneyNodeType | null) => void;
+  setDraggedComponentType: (t: NodeTypeProps["type"] | null) => void;
   setSelectedNodeId: (t: string | null) => void;
   addNodes: (params: AddNodesParams) => void;
   setEdges: (changes: EdgeChange[]) => void;
@@ -278,9 +286,17 @@ export type PageStoreContents = SegmentEditorContents &
   BroadcastEditorContents &
   SubscriptionGroupEditorContents;
 
+export enum AdditionalJourneyNodeType {
+  UiEntryNode = "UiEntryNode",
+}
+
+export type UiEntryNodeVariant =
+  | PartialExceptType<SegmentEntryNode, JourneyNodeType.SegmentEntryNode>
+  | PartialExceptType<EventEntryNode, JourneyNodeType.EventEntryNode>;
+
 export interface EntryNodeProps {
-  type: JourneyNodeType.EntryNode;
-  segmentId?: string;
+  type: AdditionalJourneyNodeType.UiEntryNode;
+  variant: UiEntryNodeVariant;
 }
 
 export interface ExitNodeProps {
@@ -295,17 +311,13 @@ export interface MessageNodeProps {
   subscriptionGroupId?: string;
 }
 
-type UiDelayVariant<T, TD> = Partial<Omit<T, "type">> & {
-  type: TD;
-};
-
-export type UIDelayVariant =
-  | UiDelayVariant<LocalTimeDelayVariant, DelayVariantType.LocalTime>
-  | UiDelayVariant<SecondsDelayVariant, DelayVariantType.Second>;
+export type UiDelayVariant =
+  | PartialExceptType<LocalTimeDelayVariant, DelayVariantType.LocalTime>
+  | PartialExceptType<SecondsDelayVariant, DelayVariantType.Second>;
 
 export interface DelayNodeProps {
   type: JourneyNodeType.DelayNode;
-  variant: UIDelayVariant;
+  variant: UiDelayVariant;
 }
 
 export interface SegmentSplitNodeProps {

@@ -174,7 +174,7 @@ export async function upsertBroadcast({
 
   const journeyDefinition: JourneyDefinition = {
     entryNode: {
-      type: JourneyNodeType.EntryNode,
+      type: JourneyNodeType.SegmentEntryNode,
       segment: segment.id,
       child: "broadcast-message",
     },

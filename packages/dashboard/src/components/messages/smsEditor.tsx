@@ -1,6 +1,6 @@
 import { lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Box, Stack, useTheme } from "@mui/material";
+import { useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
@@ -9,6 +9,7 @@ import {
 } from "isomorphic-lib/src/types";
 import React from "react";
 
+import SmsPreviewBody from "../smsPreviewBody";
 import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
 
 function fieldToReadable(field: string) {
@@ -89,48 +90,10 @@ export default function SmsEditor({
         );
       }}
       renderPreviewHeader={() => null}
-      renderPreviewBody={({ rendered }) => (
-        <Stack
-          sx={{
-            width: "100%",
-            height: "100%",
-            padding: 1,
-            overflow: "hidden",
-          }}
-          direction="row"
-          justifyContent="center"
-          alignContent="center"
-        >
-          <Stack
-            sx={{
-              height: "60rem",
-              width: "24rem",
-              backgroundImage:
-                "url(https://storage.googleapis.com/dittofeed-public/sms-box.svg)",
-              backgroundRepeat: "no-repeat",
-              backgroundSize: "contain",
-              backgroundPosition: "50% 0%",
-              justifyContent: "start",
-              alignItems: "center",
-            }}
-          >
-            <Box
-              sx={{
-                width: "80%",
-                marginTop: 14,
-                backgroundColor: "#f7f8fa",
-                border: "1px solid #ebecf2",
-                padding: 1,
-                borderRadius: 1,
-                whiteSpace: "normal", // Ensures text wraps onto the next line
-                wordWrap: "break-word", // Breaks the word at the end of the line
-              }}
-            >
-              {rendered.body}
-            </Box>
-          </Stack>
-        </Stack>
-      )}
+      renderPreviewBody={({ rendered }) => {
+        if (!rendered.body) return null;
+        return <SmsPreviewBody body={rendered.body} />;
+      }}
       definitionToPreview={definitionToPreview}
       fieldToReadable={fieldToReadable}
     />

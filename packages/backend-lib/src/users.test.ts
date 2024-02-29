@@ -2,7 +2,7 @@ import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
-import { submitBatch } from "./apps";
+import { submitBatch } from "./apps/batch";
 import { clickhouseClient } from "./clickhouse";
 import prisma from "./prisma";
 import {
