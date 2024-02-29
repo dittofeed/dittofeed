@@ -87,7 +87,8 @@ model Journey {
   workspaceId      String             @db.Uuid
   name             String
   status           JourneyStatus      @default(NotStarted)
-  definition       Json
+  definition       Json?
+  draft            Json?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   resourceType     DBResourceType     @default(Declarative)
