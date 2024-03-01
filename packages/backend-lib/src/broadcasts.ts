@@ -6,7 +6,7 @@ import {
   JourneyDefinition,
   JourneyNodeType,
   MessageTemplateResource,
-  SavedJourneyResource,
+  SavedHasStartedJourneyResource,
   SavedSegmentResource,
   SegmentDefinition,
 } from "isomorphic-lib/src/types";
@@ -14,6 +14,7 @@ import {
 import { WELCOME_TEMPLATE } from "./bootstrap/messageTemplates";
 import { DEFAULT_SEGMENT_DEFINITION } from "./constants";
 import { toJourneyResource } from "./journeys";
+import logger from "./logger";
 import { enrichMessageTemplate } from "./messageTemplates";
 import prisma from "./prisma";
 import { toSegmentResource } from "./segments";
@@ -64,7 +65,7 @@ export interface BroadcastResources {
   broadcast: BroadcastResource;
   segment: SavedSegmentResource;
   messageTemplate: MessageTemplateResource;
-  journey: SavedJourneyResource;
+  journey: SavedHasStartedJourneyResource;
 }
 
 export async function getBroadcast({
@@ -109,12 +110,24 @@ export async function getBroadcast({
       },
     },
   });
+
   if (!broadcast || !segment || !messageTemplate || !journey) {
+    return null;
+  }
+
+  const journeyResource = unwrap(toJourneyResource(journey));
+  if (journeyResource.status !== "Broadcast") {
+    logger().error(
+      {
+        journey: journeyResource,
+      },
+      "Journey does not have the broadcast status.",
+    );
     return null;
   }
   return {
     broadcast: toBroadcastResource(broadcast),
-    journey: unwrap(toJourneyResource(journey)),
+    journey: journeyResource,
     messageTemplate: unwrap(enrichMessageTemplate(messageTemplate)),
     segment: unwrap(toSegmentResource(segment)),
   };
@@ -128,12 +141,7 @@ export async function upsertBroadcast({
   broadcastId: string;
   workspaceId: string;
   subscriptionGroupId?: string;
-}): Promise<{
-  broadcast: BroadcastResource;
-  segment: SavedSegmentResource;
-  messageTemplate: MessageTemplateResource;
-  journey: SavedJourneyResource;
-}> {
+}): Promise<BroadcastResources> {
   const segmentDefinition: SegmentDefinition = DEFAULT_SEGMENT_DEFINITION;
   const broadcastSegmentName = getBroadcastSegmentName({ broadcastId: id });
   const broadcastTemplateName = getBroadcastTemplateName({ broadcastId: id });
@@ -227,9 +235,14 @@ export async function upsertBroadcast({
     update: {},
   });
 
+  const journeyResource = unwrap(toJourneyResource(journey));
+  if (journeyResource.status !== "Broadcast") {
+    throw new Error("Journey does not have the broadcast status.");
+  }
+
   return {
     broadcast: toBroadcastResource(broadcast),
-    journey: unwrap(toJourneyResource(journey)),
+    journey: journeyResource,
     messageTemplate: unwrap(enrichMessageTemplate(messageTemplate)),
     segment: unwrap(toSegmentResource(segment)),
   };

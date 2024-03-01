@@ -1187,21 +1187,32 @@ export const JourneyResource = Type.Union([
 
 export type JourneyResource = Static<typeof JourneyResource>;
 
+const Timestamps = Type.Object({
+  createdAt: Type.Number(),
+  updatedAt: Type.Number(),
+});
+
+export const SavedHasStartedJourneyResource = Type.Composite([
+  HasStartedJourneyResource,
+  Timestamps,
+]);
+
+export type SavedHasStartedJourneyResource = Static<
+  typeof SavedHasStartedJourneyResource
+>;
+
+export const SavedNotStartedJourneyResource = Type.Composite([
+  NotStartedJourneyResource,
+  Timestamps,
+]);
+
+export type SavedNotStartedJourneyResource = Static<
+  typeof SavedNotStartedJourneyResource
+>;
+
 export const SavedJourneyResource = Type.Union([
-  Type.Composite([
-    NotStartedJourneyResource,
-    Type.Object({
-      createdAt: Type.Number(),
-      updatedAt: Type.Number(),
-    }),
-  ]),
-  Type.Composite([
-    HasStartedJourneyResource,
-    Type.Object({
-      createdAt: Type.Number(),
-      updatedAt: Type.Number(),
-    }),
-  ]),
+  SavedNotStartedJourneyResource,
+  SavedHasStartedJourneyResource,
 ]);
 
 export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
