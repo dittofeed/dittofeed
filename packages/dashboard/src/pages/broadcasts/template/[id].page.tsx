@@ -147,7 +147,7 @@ function getBroadcastMessageNode(
     return null;
   }
   const journey = journeys.value.find((j) => j.id === journeyId);
-  if (!journey) {
+  if (!journey || !journey.definition) {
     return null;
   }
   let messageNode: MessageNode | null = null;
@@ -197,7 +197,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         return;
       }
       const journey = journeys.value.find((j) => j.id === journeyId);
-      if (!journey) {
+      if (!journey?.definition) {
         return;
       }
       const nodes: JourneyBodyNode[] = journey.definition.nodes.map((node) => {
@@ -212,6 +212,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       });
       const body: UpsertJourneyResource = {
         id: journeyId,
+        workspaceId: journey.workspaceId,
         definition: {
           ...journey.definition,
           nodes,

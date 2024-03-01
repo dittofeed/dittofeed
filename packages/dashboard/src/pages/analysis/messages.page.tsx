@@ -192,6 +192,9 @@ export default function MessagesPage() {
     journeys.type === CompletionStatus.Successful
       ? journeys.value.flatMap((journey) => {
           const stats = journeyStats[journey.id];
+          if (!journey.definition) {
+            return [];
+          }
 
           return journey.definition.nodes.flatMap((node) => {
             if (node.type !== JourneyNodeType.MessageNode) {

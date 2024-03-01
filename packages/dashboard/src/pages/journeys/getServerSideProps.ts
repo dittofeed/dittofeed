@@ -68,7 +68,10 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     const journeyResourceResult =
       journey?.workspaceId === workspaceId ? toJourneyResource(journey) : null;
 
-    if (journeyResourceResult?.isOk()) {
+    if (
+      journeyResourceResult?.isOk() &&
+      journeyResourceResult.value.status !== "NotStarted"
+    ) {
       const journeyResource = journeyResourceResult.value;
       serverInitialState.journeys = {
         type: CompletionStatus.Successful,

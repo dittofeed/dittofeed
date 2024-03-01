@@ -37,6 +37,7 @@ import {
   NodeChange,
 } from "reactflow";
 import { sortBy } from "remeda/dist/commonjs/sortBy";
+import { Overwrite } from "utility-types";
 import { type immer } from "zustand/middleware/immer";
 
 import {
@@ -1350,7 +1351,10 @@ export function journeyBranchToState(
 }
 
 export function journeyToState(
-  journey: Omit<JourneyResource, "id" | "status" | "workspaceId">,
+  journey: Overwrite<
+    Omit<JourneyResource, "id" | "status" | "workspaceId">,
+    { definition: JourneyDefinition }
+  >,
 ): JourneyStateForResource {
   const journeyEdges: Edge<EdgeData>[] = [];
   let journeyNodes: Node<NodeData>[] = [];

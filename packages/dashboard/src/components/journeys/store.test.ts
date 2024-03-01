@@ -9,6 +9,7 @@ import {
   JourneyResource,
   SegmentSplitVariantType,
 } from "isomorphic-lib/src/types";
+import { Overwrite } from "utility-types";
 import { v4 as uuid } from "uuid";
 
 import { AdditionalJourneyNodeType, JourneyState } from "../../lib/types";
@@ -21,7 +22,10 @@ import {
 } from "./store";
 
 describe("journeyToState", () => {
-  let journeyResource: JourneyResource;
+  let journeyResource: Overwrite<
+    JourneyResource,
+    { definition: JourneyDefinition }
+  >;
   let journeyId: string;
   let workspaceId: string;
   let uiState: JourneyStateForResource;
