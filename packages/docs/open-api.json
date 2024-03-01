@@ -632,12 +632,12 @@
             }
           },
           "404": {
-            "description": "Default Response",
+            "description": "An empty String",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {}
+                  "description": "An empty String",
+                  "type": "string"
                 }
               }
             }
@@ -2354,12 +2354,12 @@
             }
           },
           "404": {
-            "description": "Default Response",
+            "description": "An empty String",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {}
+                  "description": "An empty String",
+                  "type": "string"
                 }
               }
             }
@@ -6294,12 +6294,12 @@
             }
           },
           "404": {
-            "description": "Default Response",
+            "description": "An empty String",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {}
+                  "description": "An empty String",
+                  "type": "string"
                 }
               }
             }
@@ -7961,12 +7961,12 @@
             }
           },
           "404": {
-            "description": "Default Response",
+            "description": "An empty String",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {}
+                  "description": "An empty String",
+                  "type": "string"
                 }
               }
             }
@@ -12801,12 +12801,12 @@
             }
           },
           "404": {
-            "description": "Default Response",
+            "description": "An empty String",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {}
+                  "description": "An empty String",
+                  "type": "string"
                 }
               }
             }
