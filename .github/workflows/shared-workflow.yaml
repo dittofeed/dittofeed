@@ -17,7 +17,7 @@ on:
 
 jobs:
   lint:
-    name: Run Checks
+    name: Run Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -64,6 +64,9 @@ jobs:
       - name: Prisma generate
         if: ${{ inputs.is_backend == 'true' }}
         run: yarn workspace backend-lib prisma generate
+
+      - name: Build Package
+        run: yarn workspace ${{ inputs.package-name }} check
 
       - name: Run Tests
         run: yarn jest "packages/${{ inputs.package-name }}"
