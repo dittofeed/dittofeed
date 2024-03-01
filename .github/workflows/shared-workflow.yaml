@@ -17,7 +17,7 @@ on:
 
 jobs:
   lint:
-    name: Run lint
+    name: Run lint and Check
     runs-on: ubuntu-latest
 
     steps:
@@ -43,13 +43,24 @@ jobs:
     - name: Run Typecheck
       run: yarn workspace ${{ inputs.package-name }} check
 
+  open_api_check:
+    name: Run Open API Check
+    if: ${{ inputs.check_openapi == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'yarn'
 
     - name: Start API server
       run: nohup yarn workspace api dev &
-      if: ${{ inputs.check_openapi == 'true' }}
 
     - name: Check if Open API documentation needs updating
-      if: ${{ inputs.check_openapi == 'true' }}
       run: |
         timeout=120 # Timeout in seconds
         end=$((SECONDS+timeout))
