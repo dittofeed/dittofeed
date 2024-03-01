@@ -330,7 +330,7 @@ export default async function contentController(fastify: FastifyInstance) {
         body: DeleteMessageTemplateRequest,
         response: {
           204: EmptyResponse,
-          404: {},
+          404: EmptyResponse,
         },
       },
     },
