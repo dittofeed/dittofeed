@@ -3,68 +3,56 @@ import { Box } from "@mui/material";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { ReadAllUserPropertiesResponse } from "isomorphic-lib/src/types";
-import React, { useMemo } from "react";
+import { CompletionStatus } from "isomorphic-lib/src/types";
+import React from "react";
 
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
-import { filterStore } from "../lib/filterStore";
+import { useAppStorePick } from "../lib/appStore";
+import { filterStorePick } from "../lib/filterStore";
 import FilterSelect from "./usersFilterSelector";
 
 export function UsersFilter({ workspaceId }: { workspaceId: string }) {
-  const userPropertyFilterFromStore = filterStore(
-    (store) => store.userPropertyFilter,
-  );
-  const removeSegmentFilter = filterStore((store) => store.removeSegmentFilter);
-  const removePropertyFilter = filterStore(
-    (store) => store.removePropertyFilter,
-  );
-  const userPropertyFilter = useMemo(
-    () => Object.values(userPropertyFilterFromStore),
-    [userPropertyFilterFromStore],
-  );
-  const segmentFilterFromStore = filterStore((store) => store.segmentFilter);
-  const segmentFilter = useMemo(
-    () => segmentFilterFromStore,
-    [segmentFilterFromStore],
-  );
-  const properties = filterStore((store) => store.properties);
-  const segments = filterStore((store) => store.segments);
-  const getUserPropertiesRequest = filterStore(
-    (store) => store.getUserPropertiesRequest,
-  );
-  const setGetUserPropertiesRequest = filterStore(
-    (store) => store.setGetUserPropertiesRequest,
-  );
-  const setSegments = filterStore((store) => store.setSegments);
-  const setProperties = filterStore((store) => store.setProperties);
+  const { userProperties: userPropertiesResult, segments: segmentResult } =
+    useAppStorePick(["userProperties", "segments"]);
 
-  const apiBase = useAppStore((store) => store.apiBase);
+  const {
+    removeUserProperty: removeUserPropertyFilter,
+    removeSegment: removeSegmentFilter,
+    userProperties: filterUserProperties,
+    segments: filterSegments,
+  } = filterStorePick([
+    "removeUserProperty",
+    "removeSegment",
+    "userProperties",
+    "segments",
+  ]);
 
-  React.useEffect(() => {
-    const setLoadResponse = (response: ReadAllUserPropertiesResponse) => {
-      setProperties(response.userProperties);
-      setSegments(response.segments);
-    };
+  const joinedFilterSegments: {
+    id: string;
+    name: string;
+  }[] = React.useMemo(() => {
+    if (segmentResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    const segmentNames = segmentResult.value.reduce((acc, segment) => {
+      acc.set(segment.id, segment.name);
+      return acc;
+    }, new Map<string, string>());
 
-    const handler = apiRequestHandlerFactory({
-      request: getUserPropertiesRequest,
-      setRequest: setGetUserPropertiesRequest,
-      responseSchema: ReadAllUserPropertiesResponse,
-      setResponse: setLoadResponse,
-      requestConfig: {
-        method: "GET",
-        url: `${apiBase}/api/user-properties`,
-        params: {
-          workspaceId,
-        },
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
+    return Array.from(filterSegments).flatMap((id) => {
+      const name = segmentNames.get(id);
+      if (!name) {
+        return [];
+      }
+      return { id, name };
     });
-    handler();
-  }, [apiBase, workspaceId]);
+  }, [filterSegments, segmentResult]);
+
+  // FIXME
+  const joinedUserPropertyFilters: {
+    id: string;
+    name: string;
+    values: string[];
+  }[] = [];
 
   return (
     <Stack
@@ -73,7 +61,7 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
       justifyItems="center"
       alignItems="center"
     >
-      {userPropertyFilter.map((property) => (
+      {joinedUserPropertyFilters.map((property) => (
         <Box
           display="flex"
           flexDirection="row"
@@ -83,33 +71,31 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
           paddingX="8px"
           key={property.id}
         >
+          {/* FIXME icon button */}
           <CloseOutlinedIcon
             sx={{ width: 10, mr: 1, cursor: "pointer" }}
             color="secondary"
-            onClick={() => removePropertyFilter(property.id)}
+            onClick={() => removeUserPropertyFilter(property.id)}
           />
           <Breadcrumbs aria-label="breadcrumb" separator=">">
             <Typography color="inherit">User Property</Typography>
-            <Typography color="inherit">{properties[property.id]}</Typography>
+            <Typography color="inherit">{property.name}</Typography>
             <Breadcrumbs aria-label="breadcrumb" separator="or">
-              {property.partial?.map((partial) => (
+              {property.values.map((value) => (
                 <Typography
                   color="inherit"
                   sx={{ cursor: "pointer" }}
-                  key={partial}
-                  onClick={() =>
-                    removePropertyFilter(property.id, partial, true)
-                  }
+                  key={value}
                 >
-                  {partial.slice(0, -1)}
+                  {value}
                 </Typography>
               ))}
             </Breadcrumbs>
           </Breadcrumbs>
         </Box>
       ))}
-      {segmentFilter.map((property) => (
-        <Stack key={segments[property]}>
+      {joinedFilterSegments.map((segment) => (
+        <Stack key={segment.id}>
           <Box
             display="flex"
             flexDirection="row"
@@ -118,14 +104,15 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
             paddingY="5px"
             paddingX="8px"
           >
+            {/* FIXME icon button */}
             <CloseOutlinedIcon
               sx={{ width: 10, mr: 1, cursor: "pointer" }}
               color="secondary"
-              onClick={() => removeSegmentFilter(property)}
+              onClick={() => removeSegmentFilter(segment.id)}
             />
             <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
               <Typography color="inherit">Segment</Typography>
-              <Typography color="inherit">{segments[property]}</Typography>
+              <Typography color="inherit">{segment.name}</Typography>
             </Breadcrumbs>
           </Box>
         </Stack>
