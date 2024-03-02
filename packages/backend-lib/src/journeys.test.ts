@@ -226,7 +226,7 @@ describe("journeys", () => {
         ]);
       });
 
-      it.only("calculates the correct journey percentages", async () => {
+      it("calculates the correct journey percentages", async () => {
         const stats = await getJourneysStats({
           workspaceId,
           journeyIds: [journeyId],
@@ -283,6 +283,5 @@ describe("journeys", () => {
         ).toEqual(100);
       });
     });
-    describe("when the journey node has nested segment splits ending in exit", () => {});
   });
 });
