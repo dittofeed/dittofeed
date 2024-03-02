@@ -23,6 +23,7 @@ import { immer } from "zustand/middleware/immer";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
+import { filterStore } from "../lib/filterStore";
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -155,7 +156,7 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
 
 export default function UsersTable({
   workspaceId,
-  segmentId,
+  segmentFilter: segmentId,
   direction,
   cursor,
   onPaginationChange,
@@ -173,6 +174,22 @@ export default function UsersTable({
   const setUsersPage = usersStore((store) => store.setUsersPage);
   const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
   const setUsersCount = usersStore((store) => store.setUsersCount);
+
+  // used to filter by property
+  const propertyFilter = filterStore((store) => store.userPropertyFilter);
+  const userPropertyFilter = useMemo(
+    () => Object.values(propertyFilter),
+    [propertyFilter],
+  );
+
+  const segmentFilterFromStore = filterStore((store) => store.segmentFilter);
+  const segmentFilter: string[] = useMemo(
+    () =>
+      segmentId
+        ? ([...segmentFilterFromStore, ...segmentId] as string[])
+        : segmentFilterFromStore,
+    [segmentFilterFromStore, segmentId],
+  );
 
   const usersPage = useMemo(
     () =>
@@ -218,10 +235,12 @@ export default function UsersTable({
     };
 
     const params: GetUsersRequest = {
-      segmentId,
+      segmentFilter: segmentFilter.length > 0 ? segmentFilter : undefined,
       cursor,
       direction,
       workspaceId,
+      userPropertyFilter:
+        userPropertyFilter.length > 0 ? userPropertyFilter : undefined,
     };
 
     const handler = apiRequestHandlerFactory({
@@ -230,9 +249,9 @@ export default function UsersTable({
       responseSchema: GetUsersResponse,
       setResponse: setLoadResponse,
       requestConfig: {
-        method: "GET",
+        method: "POST",
         url: `${apiBase}/api/users`,
-        params,
+        data: JSON.stringify(params),
         headers: {
           "Content-Type": "application/json",
         },
@@ -241,7 +260,7 @@ export default function UsersTable({
     handler();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segmentId, cursor, direction]);
+  }, [segmentFilter, cursor, direction, userPropertyFilter, segmentFilter]);
 
   const isLoading = getUsersRequest.type === CompletionStatus.InProgress;
 

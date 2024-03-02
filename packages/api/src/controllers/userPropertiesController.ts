@@ -1,5 +1,6 @@
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import prisma, { Prisma } from "backend-lib/src/prisma";
+import { findSegments } from "backend-lib/src/segments";
 import { UserProperty } from "backend-lib/src/types";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { FastifyInstance } from "fastify";
@@ -19,28 +20,6 @@ import {
 export default async function userPropertiesController(
   fastify: FastifyInstance,
 ) {
-  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
-    "/",
-    {
-      schema: {
-        description: "Get all user properties.",
-        tags: ["User Properties"],
-        querystring: ReadAllUserPropertiesRequest,
-        response: {
-          200: ReadAllUserPropertiesResponse,
-        },
-      },
-    },
-    async (request, reply) => {
-      const userProperties = await findAllUserPropertyResources({
-        workspaceId: request.query.workspaceId,
-      });
-
-      return reply.status(200).send({
-        userProperties,
-      });
-    },
-  );
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/",
     {
@@ -117,6 +96,34 @@ export default async function userPropertiesController(
       };
 
       return reply.status(200).send(resource);
+    },
+  );
+
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "Get all user properties.",
+        tags: ["User Properties"],
+        querystring: ReadAllUserPropertiesRequest,
+        response: {
+          200: ReadAllUserPropertiesResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const userProperties = await findAllUserPropertyResources({
+        workspaceId: request.query.workspaceId,
+      });
+
+      const segments = await findSegments({
+        workspaceId: request.query.workspaceId,
+      });
+
+      return reply.status(200).send({
+        userProperties,
+        segments,
+      });
     },
   );
 

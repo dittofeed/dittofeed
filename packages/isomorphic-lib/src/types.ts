@@ -1102,8 +1102,8 @@ export type UpsertDataSourceConfigurationResource = Static<
 
 export type DeepPartial<T> = T extends object
   ? {
-      [P in keyof T]?: DeepPartial<T[P]>;
-    }
+    [P in keyof T]?: DeepPartial<T[P]>;
+  }
   : T;
 
 export const WorkspaceResource = Type.Object({
@@ -1223,6 +1223,7 @@ export type ReadAllUserPropertiesRequest = Static<
 
 export const ReadAllUserPropertiesResponse = Type.Object({
   userProperties: Type.Array(UserPropertyResource),
+  segments: Type.Array(Type.Pick(SegmentResource, ['name', 'id']))
 });
 
 export type ReadAllUserPropertiesResponse = Static<
@@ -1238,10 +1239,19 @@ export const CursorDirection = Type.Enum(CursorDirectionEnum);
 
 export const GetUsersRequest = Type.Object({
   cursor: Type.Optional(Type.String()),
-  segmentId: Type.Optional(Type.String()),
+  segmentFilter: Type.Optional(Type.Array(Type.String())),
   limit: Type.Optional(Type.Number()),
   direction: Type.Optional(CursorDirection),
   userIds: Type.Optional(Type.Array(Type.String())),
+  userPropertyFilter: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        userIds: Type.Optional(Type.Array(Type.String())),
+        partial: Type.Optional(Type.Array(Type.String())),
+      })
+    )
+  ),
   workspaceId: Type.String(),
 });
 
@@ -2005,9 +2015,6 @@ export const SmsProviderSecret = Type.Union([TwilioSecret, TestSmsSecret]);
 
 export type SmsProviderSecret = Static<typeof SmsProviderSecret>;
 
-export type TwilioProviderConfig = Required<
-  Pick<TwilioSecret, "accountSid" | "messagingServiceSid" | "authToken">
->;
 
 export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
 

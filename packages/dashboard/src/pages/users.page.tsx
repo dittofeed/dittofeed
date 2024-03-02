@@ -5,9 +5,10 @@ import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidati
 import { CompletionStatus, GetUsersRequest } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 
 import MainLayout from "../components/mainLayout";
+import { UsersFilter } from "../components/usersFilter";
 import UsersTable, { OnPaginationChangeProps } from "../components/usersTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import { useAppStore } from "../lib/appStore";
@@ -50,6 +51,7 @@ export default function SegmentUsers() {
       },
     });
   };
+
   return (
     <MainLayout>
       <Stack
@@ -61,7 +63,12 @@ export default function SegmentUsers() {
           backgroundColor: theme.palette.grey[100],
         }}
       >
-        <Typography variant="h4">Users</Typography>
+        <Stack direction="row">
+          <Typography variant="h4">Users</Typography>
+        </Stack>
+        <div>
+          <UsersFilter workspaceId={workspace.value.id} />
+        </div>
         <UsersTable
           {...queryParams}
           workspaceId={workspace.value.id}

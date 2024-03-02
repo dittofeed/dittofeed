@@ -3,8 +3,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { parseUserProperty } from "isomorphic-lib/src/userProperties";
-import { err, ok, Result } from "neverthrow";
-import { validate as validateUuid } from "uuid";
+import { ok, Result } from "neverthrow";
 
 import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
 import logger from "./logger";
@@ -46,29 +45,58 @@ function serializeUserCursor(cursor: Cursor): string {
   return serializeCursor(cursor);
 }
 
+type UserPropertyIdsFilter = {
+  id: string;
+  userIds?: string[];
+  partial?: string[];
+}[];
+
+function getUserPropertyAssignmentConditions(
+  userPropertyIds: UserPropertyIdsFilter,
+) {
+  const userIds: string[] = [];
+  const fullQuery: Sql[] = [];
+
+  for (const property of userPropertyIds) {
+    if (property.userIds && property.userIds.length > 0) {
+      userIds.push(...property.userIds);
+    }
+
+    if (property.partial && property.partial.length > 0) {
+      fullQuery.push(
+        Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.partial)}]))`,
+      );
+    }
+  }
+
+  if (userIds.length > 0) {
+    fullQuery.unshift(Prisma.sql`"userId" IN (${Prisma.join(userIds)})`);
+  }
+
+  return Prisma.join(fullQuery, " OR ");
+}
+
 function buildUserIdQueries({
   workspaceId,
   direction,
-  segmentId,
+  segmentFilter,
+  userPropertyFilter,
   userIds,
   cursor,
 }: {
   workspaceId: string;
-  segmentId?: string;
+  segmentFilter?: string[];
   cursor: Cursor | null;
   direction: CursorDirectionEnum;
   userIds?: string[];
+  userPropertyFilter?: UserPropertyIdsFilter;
 }): Sql {
   let lastUserIdCondition: Sql;
   if (cursor) {
     if (direction === CursorDirectionEnum.Before) {
-      lastUserIdCondition = Prisma.sql`"userId" < ${
-        cursor[CursorKey.UserIdKey]
-      }`;
+      lastUserIdCondition = Prisma.sql`"userId" < ${cursor[CursorKey.UserIdKey]}`;
     } else {
-      lastUserIdCondition = Prisma.sql`"userId" > ${
-        cursor[CursorKey.UserIdKey]
-      }`;
+      lastUserIdCondition = Prisma.sql`"userId" > ${cursor[CursorKey.UserIdKey]}`;
     }
   } else {
     lastUserIdCondition = Prisma.sql`1=1`;
@@ -81,25 +109,24 @@ function buildUserIdQueries({
     userIdsCondition = Prisma.sql`1=1`;
   }
 
-  const segmentIdCondition = segmentId
-    ? Prisma.sql`"segmentId" = CAST(${segmentId} AS UUID)`
+  const segmentIdCondition = segmentFilter
+    ? Prisma.sql`("segmentId" IN (${Prisma.join(segmentFilter.map((segmentId) => Prisma.sql`${segmentId}::uuid`))}))`
     : Prisma.sql`1=1`;
 
-  const userPropertyAssignmentCondition = segmentId
-    ? Prisma.sql`1=0`
+  const userPropertyAssignmentCondition = userPropertyFilter
+    ? getUserPropertyAssignmentConditions(userPropertyFilter)
     : Prisma.sql`1=1`;
 
-  const userIdQueries = Prisma.sql`
+  const userPropertyAssignmentQuery = Prisma.sql`
     SELECT "userId"
     FROM "UserPropertyAssignment"
     WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
       AND ${lastUserIdCondition}
       AND "value" != ''
-      AND ${userPropertyAssignmentCondition}
+      AND (${userPropertyAssignmentCondition})
       AND ${userIdsCondition}
-
-    UNION ALL
-
+  `;
+  const segmentAssignmentQuery = Prisma.sql`
     SELECT "userId"
     FROM "SegmentAssignment"
     WHERE "workspaceId" = CAST(${workspaceId} AS UUID)
@@ -109,22 +136,34 @@ function buildUserIdQueries({
       AND ${userIdsCondition}
   `;
 
-  return userIdQueries;
+  const userIdQueries = [];
+
+  if (userPropertyFilter) {
+    userIdQueries.push(userPropertyAssignmentQuery);
+  }
+
+  if (segmentFilter) {
+    userIdQueries.push(segmentAssignmentQuery);
+  }
+
+  if (!userPropertyFilter && !segmentFilter) {
+    userIdQueries.push(segmentAssignmentQuery);
+    userIdQueries.push(userPropertyAssignmentQuery);
+    return Prisma.join(userIdQueries, " UNION ALL ");
+  }
+
+  return Prisma.join(userIdQueries, " INTERSECT ");
 }
 
 export async function getUsers({
   workspaceId,
   cursor: unparsedCursor,
-  segmentId,
-  direction = CursorDirectionEnum.After,
+  segmentFilter,
   userIds,
+  userPropertyFilter,
+  direction = CursorDirectionEnum.After,
   limit = 10,
-}: GetUsersRequest & { workspaceId: string }): Promise<
-  Result<GetUsersResponse, Error>
-> {
-  if (segmentId && !validateUuid(segmentId)) {
-    return err(new Error("segmentId is invalid uuid"));
-  }
+}: GetUsersRequest): Promise<Result<GetUsersResponse, Error>> {
   let cursor: Cursor | null = null;
   if (unparsedCursor) {
     try {
@@ -144,7 +183,8 @@ export async function getUsers({
     workspaceId,
     userIds,
     cursor,
-    segmentId,
+    userPropertyFilter,
+    segmentFilter,
     direction,
   });
 
