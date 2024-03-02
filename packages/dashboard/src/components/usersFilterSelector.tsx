@@ -6,6 +6,7 @@ import MenuItem from "@mui/material/MenuItem";
 import * as React from "react";
 
 import {
+  FilterSegmentStage,
   FilterStage,
   FilterStageType,
   FilterStageWithBack,
@@ -59,6 +60,33 @@ function Options({
 interface Option {
   id: string;
   label: string;
+}
+
+function SegmentSelector({ stage }: { stage: FilterSegmentStage }) {
+  const { segments: segmentsResult } = useAppStorePick(["segments"]);
+  const { addSegment } = filterStorePick(["addSegment"]);
+
+  const options: Option[] = React.useMemo(() => {
+    if (segmentsResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    return segmentsResult.value.map((segment) => ({
+      id: segment.id,
+      label: segment.name,
+    }));
+  }, [segmentsResult]);
+
+  return (
+    <Autocomplete
+      options={options}
+      onChange={(_, value) => {
+        if (value) {
+          addSegment(value.id);
+        }
+      }}
+      renderInput={(params) => <TextField {...params} label="Segment" />}
+    />
+  );
 }
 
 function IdAndValueSelector({
@@ -223,6 +251,7 @@ function FilterSelectors() {
           onClick={() =>
             setStage({
               type: option.type,
+              filter: "",
             })
           }
         >
@@ -288,50 +317,37 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
 }
 
 export default function FilterSelect() {
-  const [filter, setFilter] = React.useState("");
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  // FIXME use null value of store
   const open = Boolean(anchorEl);
   const { stage, setStage } = filterStorePick(["setStage", "stage"]);
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
+    setStage({
+      type: FilterStageType.ComputedPropertyType,
+    });
   };
 
   const handleClose = () => {
     setAnchorEl(null);
-    setTimeout(() => setStage(null), 300);
+    setStage(null);
   };
 
-  const handleFilterSelection = (filterOption: FilterStageType) => {
-    setSelectedFilter(filterOption);
-    setStage(Stage.SELECTING_ID);
-  };
-
-  const handleIdSelection = (selectedId: string | undefined) => {
-    if (!selectedId) return;
-    setFilter("");
-    if (selectedFilter === FilterStageType.USER_PROPERTY) {
-      setSelectedId(selectedId);
-      setStage(Stage.SELECTING_VALUE);
-    } else {
-      setSegmentFilter(selectedId);
-      handleClose();
+  let stageEl: React.ReactNode = null;
+  if (stage) {
+    switch (stage.type) {
+      case FilterStageType.ComputedPropertyType:
+        stageEl = <FilterSelectors />;
+        break;
+      case FilterStageType.Segment:
+        stageEl = <SegmentSelector stage={stage} />;
+        break;
+      default:
+        throw new Error("unimplemented");
+        // FIXME
+        break;
     }
-  };
-
-  const handleValueSelection = (
-    propertyAssignmentId: string | undefined,
-    isPartialMatch?: boolean,
-  ) => {
-    setFilter("");
-
-    if (propertyAssignmentId) {
-      setUserPropertyFilter(propertyAssignmentId, isPartialMatch);
-    }
-
-    handleClose();
-  };
+  }
 
   return (
     <div>
@@ -340,7 +356,7 @@ export default function FilterSelect() {
         aria-controls={open ? "basic-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
-        onClick={handleClick}
+        onClick={handleOpen}
       >
         Add filter
       </Button>
@@ -359,11 +375,7 @@ export default function FilterSelect() {
           maxWidth="150px"
           overflow="scroll"
         >
-          {stage?.type === FilterStageType.ComputedPropertyType ? (
-            <FilterSelectors />
-          ) : (
-            <IdAndValueSelector />
-          )}
+          {stageEl}
         </Box>
         {stage && stage.type !== FilterStageType.ComputedPropertyType && (
           <SelectorFooter stage={stage} />

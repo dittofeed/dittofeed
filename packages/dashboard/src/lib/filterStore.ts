@@ -9,40 +9,40 @@ export enum FilterStageType {
   Segment = "Segment",
 }
 
-interface ComputedPropertyTypeStage {
+export interface FilterComputedPropertyTypeStage {
   type: FilterStageType.ComputedPropertyType;
 }
 
-interface UserPropertyStage {
+export interface FilterUserPropertyStage {
   type: FilterStageType.UserProperty;
   filter: string;
 }
 
-interface UserPropertyValueStage {
+export interface FilterUserPropertyValueStage {
   type: FilterStageType.UserPropertyValue;
   id: string;
   value: string;
 }
 
-interface SegmentStage {
+export interface FilterSegmentStage {
   type: FilterStageType.Segment;
   filter: string;
 }
 
 export type FilterStageWithBack =
-  | UserPropertyStage
-  | SegmentStage
-  | UserPropertyValueStage;
+  | FilterUserPropertyStage
+  | FilterSegmentStage
+  | FilterUserPropertyValueStage;
 
 export type FilterStage =
-  | UserPropertyStage
-  | UserPropertyValueStage
-  | SegmentStage
-  | ComputedPropertyTypeStage;
+  | FilterUserPropertyStage
+  | FilterUserPropertyValueStage
+  | FilterSegmentStage
+  | FilterComputedPropertyTypeStage;
 
 interface UserFilterState {
   // map from user property id to user property value
-  userProperties: Map<string, string>;
+  userProperties: Map<string, Set<string>>;
   // set of segment ids
   segments: Set<string>;
   stage: FilterStage | null;
@@ -69,7 +69,9 @@ export const filterStore = create(
           return state;
         }
         const { id, value } = state.stage;
-        state.userProperties.set(id, value);
+        const values = state.userProperties.get(id) ?? new Set();
+        values.add(value);
+        state.userProperties.set(id, values);
         state.stage = null;
         return state;
       });
