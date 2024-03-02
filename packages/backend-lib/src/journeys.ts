@@ -1,7 +1,7 @@
 import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
-import { MapWithDefault } from "isomorphic-lib/src/maps";
+import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
 import { parseInt } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -16,28 +16,31 @@ import {
   ChannelType,
   EnrichedJourney,
   InternalEventType,
+  JourneyBodyNode,
   JourneyDefinition,
+  JourneyNode,
   JourneyNodeType,
   JourneyStats,
   NodeStatsType,
   SavedJourneyResource,
   TrackData,
 } from "./types";
+import { HeritageMap } from "isomorphic-lib/src/journeys";
 
 export * from "isomorphic-lib/src/journeys";
 
 const isValueInEnum = <T extends Record<string, string>>(
   value: string,
-  enumObject: T,
+  enumObject: T
 ): value is T[keyof T] =>
   Object.values(enumObject).includes(value as T[keyof T]);
 
 export function enrichJourney(
-  journey: Journey,
+  journey: Journey
 ): Result<EnrichedJourney, Error> {
   const definitionResult = schemaValidateWithErr(
     journey.definition,
-    JourneyDefinition,
+    JourneyDefinition
   );
   if (definitionResult.isErr()) {
     return err(definitionResult.error);
@@ -51,7 +54,7 @@ export function enrichJourney(
 type FindManyParams = Parameters<PrismaClient["journey"]["findMany"]>[0];
 
 export async function findManyJourneys(
-  params: FindManyParams,
+  params: FindManyParams
 ): Promise<Result<EnrichedJourney[], Error>> {
   const journeys = await prisma().journey.findMany(params);
 
@@ -71,7 +74,7 @@ export async function findManyJourneys(
 }
 
 export function toJourneyResource(
-  journey: Journey,
+  journey: Journey
 ): Result<SavedJourneyResource, Error> {
   const result = enrichJourney(journey);
   if (result.isErr()) {
@@ -101,18 +104,18 @@ export function toJourneyResource(
 }
 
 export async function findManyJourneyResourcesSafe(
-  params: FindManyParams,
+  params: FindManyParams
 ): Promise<Result<SavedJourneyResource, Error>[]> {
   const journeys = await prisma().journey.findMany(params);
   const results: Result<SavedJourneyResource, Error>[] = journeys.map(
-    (journey) => toJourneyResource(journey),
+    (journey) => toJourneyResource(journey)
   );
   return results;
 }
 
 // TODO don't use this method for activities. Don't want to retry failures typically.
 export async function findManyJourneysUnsafe(
-  params: FindManyParams,
+  params: FindManyParams
 ): Promise<EnrichedJourney[]> {
   const result = await findManyJourneys(params);
   return unwrap(result);
@@ -125,6 +128,48 @@ const JourneyMessageStatsRow = Type.Object({
 });
 
 type NodeEventMap = MapWithDefault<InternalEventType, number>;
+
+function getEdgePercent({
+  definition,
+  originNode,
+  targetNode,
+  heritageMap,
+  nodeProcessedMap,
+}: {
+  definition: JourneyDefinition;
+  originNode: JourneyBodyNode;
+  targetNode: JourneyBodyNode;
+  heritageMap: HeritageMap;
+  nodeProcessedMap: Map<string, number>;
+}): number {
+  const originMapEntry = getUnsafe(heritageMap, originNode.id);
+  if (!originMapEntry.children.has(targetNode.id)) {
+    return 0;
+  }
+
+  const originCount = getUnsafe(nodeProcessedMap, originNode.id);
+  const targetCount = getUnsafe(nodeProcessedMap, targetNode.id);
+  if (originCount === 0 || targetCount === 0) {
+    return 0;
+  }
+
+  if (originMapEntry.children.size === 1) {
+    return 1;
+  }
+
+  const targetMapEntry = getUnsafe(heritageMap, targetNode.id);
+  if (targetMapEntry.parents.size === 1) {
+    return targetCount / originCount;
+  }
+  let siblingsCount = 0;
+  for (const parentId of targetMapEntry.parents) {
+    if (originMapEntry.descendants.has(parentId)) {
+      const siblingCount = getUnsafe(nodeProcessedMap, parentId);
+      siblingsCount += siblingCount;
+    }
+  }
+  return (originCount - siblingsCount) / originCount;
+}
 
 export async function getJourneysStats({
   workspaceId,
@@ -207,7 +252,7 @@ group by event, node_id;`;
   const stream = statsResultSet.stream();
   // map from node_id to event to count
   const statsMap = new MapWithDefault<string, NodeEventMap>(
-    new MapWithDefault(0),
+    new MapWithDefault(0)
   );
   const nodeProcessedMap = new Map<string, number>();
 
@@ -220,7 +265,7 @@ group by event, node_id;`;
         if (validated.isErr()) {
           logger().error(
             { workspaceId, err: validated.error },
-            "Failed to validate row from clickhouse for journey stats",
+            "Failed to validate row from clickhouse for journey stats"
           );
           return;
         }
@@ -234,7 +279,7 @@ group by event, node_id;`;
               event,
               workspaceId,
             },
-            "got unknown event type in journey stats",
+            "got unknown event type in journey stats"
           );
           return;
         }
@@ -260,7 +305,7 @@ group by event, node_id;`;
   ]);
 
   const enrichedJourneys = journeys.map((journey) =>
-    unwrap(enrichJourney(journey)),
+    unwrap(enrichJourney(journey))
   );
 
   const journeysStats: JourneyStats[] = [];
@@ -355,7 +400,7 @@ group by event, node_id;`;
 
       const sent = nodeStats.get(InternalEventType.MessageSent);
       const badConfig = nodeStats.get(
-        InternalEventType.BadWorkspaceConfiguration,
+        InternalEventType.BadWorkspaceConfiguration
       );
       const messageFailure = nodeStats.get(InternalEventType.MessageFailure);
       const delivered = nodeStats.get(InternalEventType.EmailDelivered);
@@ -448,7 +493,7 @@ export async function triggerEventEntryJourneys({
             workspaceId,
             journeyId: j.id,
           },
-          "Failed to convert journey to resource",
+          "Failed to convert journey to resource"
         );
         return [];
       }
@@ -483,7 +528,7 @@ export async function triggerEventEntryJourneys({
         definition,
         context: properties,
       });
-    },
+    }
   );
   await Promise.all(starts);
 }
