@@ -21,7 +21,7 @@ export const JsonErr = <E extends TSchema>(type: E) =>
 // necessary because neverthrow's result is not json serializable
 export const JsonResult = <T extends TSchema, E extends TSchema>(
   resultType: T,
-  errorType: E
+  errorType: E,
 ) => Type.Union([JsonOk(resultType), JsonErr(errorType)]);
 
 export const Nullable = <T extends TSchema>(type: T) =>
@@ -199,8 +199,8 @@ export const PerformedSegmentNode = Type.Object({
       Type.Object({
         path: Type.String(),
         operator: SegmentOperator,
-      })
-    )
+      }),
+    ),
   ),
 });
 
@@ -244,8 +244,8 @@ export const LastPerformedSegmentNode = Type.Object({
       {
         description:
           "Used to select which events are eligible to be considered.",
-      }
-    )
+      },
+    ),
   ),
   hasProperties: Type.Array(
     Type.Object({
@@ -255,7 +255,7 @@ export const LastPerformedSegmentNode = Type.Object({
     {
       description:
         "Used to evaluate whether the user is in the segment based on the properties of the selected event.",
-    }
+    },
   ),
 });
 
@@ -479,7 +479,7 @@ export const SegmentEntryNode = Type.Object(
     title: "Segment Entry Node",
     description:
       "The first node in a journey, which limits it to a specific segment.",
-  }
+  },
 );
 
 export type SegmentEntryNode = Static<typeof SegmentEntryNode>;
@@ -515,7 +515,7 @@ export const WaitForNode = Type.Object(
     title: "Wait For Node",
     description:
       "A node which waits for a user to enter a segment before progressing.",
-  }
+  },
 );
 
 export type WaitForNode = Static<typeof WaitForNode>;
@@ -574,7 +574,7 @@ export const DelayNode = Type.Object(
     title: "Delay Node",
     description:
       "Delays a users progression through the journey for either a set amount of time, or until a specific date time.",
-  }
+  },
 );
 
 export type DelayNode = Static<typeof DelayNode>;
@@ -588,7 +588,7 @@ export const RateLimitNode = Type.Object(
     title: "Rate Limit Node",
     description:
       "Used to limit the frequency with which users are contacted by a given Journey.",
-  }
+  },
 );
 
 export type RateLimitNode = Static<typeof RateLimitNode>;
@@ -634,7 +634,7 @@ export const MessageNode = Type.Object(
   {
     title: "Message Node",
     description: "Used to contact a user on a message channel.",
-  }
+  },
 );
 
 export type MessageNode = Static<typeof MessageNode>;
@@ -665,7 +665,7 @@ export const SegmentSplitNode = Type.Object(
     title: "Segment Split Node",
     description:
       "Used to split users among audiences, based on the behavior and attributes.",
-  }
+  },
 );
 
 export type SegmentSplitNode = Static<typeof SegmentSplitNode>;
@@ -679,7 +679,7 @@ export const ExperimentSplitNode = Type.Object(
     title: "Experiment Split Node",
     description:
       "Used to split users among experiment paths, to test their effectiveness.",
-  }
+  },
 );
 
 export type ExperimentSplitNode = Static<typeof ExperimentSplitNode>;
@@ -692,7 +692,7 @@ export const ExitNode = Type.Object(
     title: "Exit Node",
     description:
       "Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.",
-  }
+  },
 );
 
 export type ExitNode = Static<typeof ExitNode>;
@@ -743,7 +743,7 @@ export type SavedSegmentResource = Static<typeof SavedSegmentResource>;
 
 export const UpsertSubscriptionGroupResource = Type.Omit(
   SubscriptionGroupResource,
-  ["createdAt"]
+  ["createdAt"],
 );
 
 export type UpsertSubscriptionGroupResource = Static<
@@ -867,7 +867,7 @@ export const MobilePushTemplateResource = Type.Object({
       notification: Type.Object({
         channelId: Type.Optional(Type.String()),
       }),
-    })
+    }),
   ),
 });
 
@@ -907,7 +907,7 @@ const MessageTemplateResourceProperties = {
 } as const;
 
 export const MessageTemplateResource = Type.Object(
-  MessageTemplateResourceProperties
+  MessageTemplateResourceProperties,
 );
 
 export type MessageTemplateResource = Static<typeof MessageTemplateResource>;
@@ -1093,7 +1093,7 @@ export type DataSourceConfigurationResource = Static<
 
 export const UpsertDataSourceConfigurationResource = Type.Omit(
   DataSourceConfigurationResource,
-  ["id"]
+  ["id"],
 );
 
 export type UpsertDataSourceConfigurationResource = Static<
@@ -1102,8 +1102,8 @@ export type UpsertDataSourceConfigurationResource = Static<
 
 export type DeepPartial<T> = T extends object
   ? {
-    [P in keyof T]?: DeepPartial<T[P]>;
-  }
+      [P in keyof T]?: DeepPartial<T[P]>;
+    }
   : T;
 
 export const WorkspaceResource = Type.Object({
@@ -1223,7 +1223,6 @@ export type ReadAllUserPropertiesRequest = Static<
 
 export const ReadAllUserPropertiesResponse = Type.Object({
   userProperties: Type.Array(UserPropertyResource),
-  segments: Type.Array(Type.Pick(SegmentResource, ['name', 'id']))
 });
 
 export type ReadAllUserPropertiesResponse = Static<
@@ -1249,8 +1248,8 @@ export const GetUsersRequest = Type.Object({
         id: Type.String(),
         userIds: Type.Optional(Type.Array(Type.String())),
         partial: Type.Optional(Type.Array(Type.String())),
-      })
-    )
+      }),
+    ),
   ),
   workspaceId: Type.String(),
 });
@@ -1265,13 +1264,13 @@ const GetUsersResponseItem = Type.Object({
     Type.Object({
       name: Type.String(),
       value: Type.Any(),
-    })
+    }),
   ),
   segments: Type.Array(
     Type.Object({
       id: Type.String(),
       name: Type.String(),
-    })
+    }),
   ),
 });
 
@@ -1389,7 +1388,7 @@ export const SubscriptionParams = Type.Object(
     s: Type.Optional(
       Type.String({
         description: "Subscription group Id.",
-      })
+      }),
     ),
     sub: Type.Optional(
       Type.Union([
@@ -1399,13 +1398,13 @@ export const SubscriptionParams = Type.Object(
         Type.Literal("0", {
           description: "Unsubscribing user from subscription group.",
         }),
-      ])
+      ]),
     ),
   },
   {
     description:
       "Subscription management parameters with shorted parameter names for efficient query param serialization.",
-  }
+  },
 );
 
 export type SubscriptionParams = Static<typeof SubscriptionParams>;
@@ -1450,7 +1449,7 @@ export type RenderMessageTemplateRequestContent = Static<
 
 export const RenderMessageTemplateRequestContents = Type.Record(
   Type.String(),
-  RenderMessageTemplateRequestContent
+  RenderMessageTemplateRequestContent,
 );
 
 export type RenderMessageTemplateRequestContents = Static<
@@ -1471,7 +1470,7 @@ export type RenderMessageTemplateRequest = Static<
 
 export const RenderMessageTemplateResponseContent = JsonResult(
   Type.String(),
-  Type.String()
+  Type.String(),
 );
 
 export type RenderMessageTemplateResponseContent = Static<
@@ -1495,7 +1494,7 @@ export type DeleteSubscriptionGroupRequest = Static<
 >;
 
 export const AppDataContext = Type.Optional(
-  Type.Record(Type.String(), Type.Any())
+  Type.Record(Type.String(), Type.Any()),
 );
 
 export type AppDataContext = Static<typeof AppDataContext>;
@@ -1742,7 +1741,7 @@ export const BatchAppData = Type.Object(
         ],
       },
     ],
-  }
+  },
 );
 
 export type BatchAppData = Static<typeof BatchAppData>;
@@ -2015,7 +2014,6 @@ export const SmsProviderSecret = Type.Union([TwilioSecret, TestSmsSecret]);
 
 export type SmsProviderSecret = Static<typeof SmsProviderSecret>;
 
-
 export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
 
 export const PersistedSmsProvider = Type.Union([
@@ -2197,13 +2195,13 @@ export const BadWorkspaceConfigurationVariant = Type.Union([
   }),
   Type.Object({
     type: Type.Literal(
-      BadWorkspaceConfigurationType.MessageTemplateMisconfigured
+      BadWorkspaceConfigurationType.MessageTemplateMisconfigured,
     ),
     message: Type.String(),
   }),
   Type.Object({
     type: Type.Literal(
-      BadWorkspaceConfigurationType.MessageTemplateRenderError
+      BadWorkspaceConfigurationType.MessageTemplateRenderError,
     ),
     field: Type.String(),
     error: Type.String(),
@@ -2219,17 +2217,17 @@ export const BadWorkspaceConfigurationVariant = Type.Union([
   }),
   Type.Object({
     type: Type.Literal(
-      BadWorkspaceConfigurationType.SubscriptionSecretNotFound
+      BadWorkspaceConfigurationType.SubscriptionSecretNotFound,
     ),
   }),
   Type.Object({
     type: Type.Literal(
-      BadWorkspaceConfigurationType.MessageServiceProviderNotFound
+      BadWorkspaceConfigurationType.MessageServiceProviderNotFound,
     ),
   }),
   Type.Object({
     type: Type.Literal(
-      BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured
+      BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
     ),
     message: Type.Optional(Type.String()),
   }),
@@ -2440,7 +2438,7 @@ export const MessageTemplateTestResponse = JsonResult(
   Type.Object({
     suggestions: Type.Array(Type.String()),
     responseData: Type.Optional(Type.String()),
-  })
+  }),
 );
 
 export const GetTraitsRequest = Type.Object({
@@ -2638,7 +2636,7 @@ export const AdminApiKeyDefinition = Type.Object({
   type: Type.Literal(AdminApiKeyType.AdminApiKey),
   key: Type.String(),
   permissions: Type.Array(
-    Type.Union([Type.Literal(AdminApiKeyPermission.Admin)])
+    Type.Union([Type.Literal(AdminApiKeyPermission.Admin)]),
   ),
 });
 

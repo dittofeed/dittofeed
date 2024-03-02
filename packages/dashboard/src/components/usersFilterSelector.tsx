@@ -1,11 +1,11 @@
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
-import { Box, Stack, TextField, Typography } from "@mui/material";
+import { Autocomplete, Box, Stack, TextField, Typography } from "@mui/material";
 import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import * as React from "react";
 
-import { filterIds, FilterOptions, filterStore } from "../lib/filterStore";
+import { FilterOptions, filterStore } from "../lib/filterStore";
 
 enum Stage {
   "SELECTING_FILTER",
@@ -100,14 +100,26 @@ function IdAndValueSelector({
   }, [stage, segments, properties, selectedFilter, selectedId]);
 
   // Filter runs on filter and options change.
-  const filteredOptions = React.useMemo(() => {
-    if (stage === Stage.SELECTING_VALUE) return options;
-    return filterIds(options, filter);
-  }, [filter, options, stage]);
+  // const filteredOptions = React.useMemo(() => {
+  //   if (stage === Stage.SELECTING_VALUE) return options;
+  //   // FIXME
+  //   return filterIds(options, filter);
+  // }, [filter, options, stage]);
 
+  // FIXM
+  if (stage === Stage.SELECTING_VALUE) {
+    return (
+      <>foo</>
+      // <Autocomplete
+      // handleSelection={handleValueSelection}
+      // filteredOptions={options}
+      // />
+    );
+  }
+  return <>bar</>;
   return (
     <>
-      <Stack display="flex" alignItems="center" justifyContent="center">
+      {/* <Stack display="flex" alignItems="center" justifyContent="center">
         <TextField
           style={{
             width: "95%",
@@ -136,7 +148,7 @@ function IdAndValueSelector({
           handleSelection={handleValueSelection}
           filteredOptions={filteredOptions}
         />
-      )}
+      )} */}
     </>
   );
 }

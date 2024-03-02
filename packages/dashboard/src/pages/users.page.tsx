@@ -1,6 +1,8 @@
 import { Typography, useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { Type } from "@sinclair/typebox";
+import { findSegmentResources } from "backend-lib/src/segments";
+import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { CompletionStatus, GetUsersRequest } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -18,13 +20,32 @@ import { PropsWithInitialState } from "../lib/types";
 const QueryParams = Type.Pick(GetUsersRequest, ["cursor", "direction"]);
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
-  requestContext(async (_ctx, dfContext) => ({
-    props: addInitialStateToProps({
-      serverInitialState: {},
-      dfContext,
-      props: {},
-    }),
-  }));
+  requestContext(async (_ctx, dfContext) => {
+    const [segments, userProperties] = await Promise.all([
+      findSegmentResources({
+        workspaceId: dfContext.workspace.id,
+      }),
+      findAllUserPropertyResources({
+        workspaceId: dfContext.workspace.id,
+      }),
+    ]);
+    return {
+      props: addInitialStateToProps({
+        serverInitialState: {
+          segments: {
+            type: CompletionStatus.Successful,
+            value: segments,
+          },
+          userProperties: {
+            type: CompletionStatus.Successful,
+            value: userProperties,
+          },
+        },
+        dfContext,
+        props: {},
+      }),
+    };
+  });
 
 export default function SegmentUsers() {
   const theme = useTheme();

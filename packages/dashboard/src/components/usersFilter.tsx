@@ -92,19 +92,18 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
             <Typography color="inherit">User Property</Typography>
             <Typography color="inherit">{properties[property.id]}</Typography>
             <Breadcrumbs aria-label="breadcrumb" separator="or">
-              {property.partial &&
-                property.partial.map((partial) => (
-                  <Typography
-                    color="inherit"
-                    sx={{ cursor: "pointer" }}
-                    key={partial}
-                    onClick={() =>
-                      removePropertyFilter(property.id, partial, true)
-                    }
-                  >
-                    {partial.slice(0, -1)}
-                  </Typography>
-                ))}
+              {property.partial?.map((partial) => (
+                <Typography
+                  color="inherit"
+                  sx={{ cursor: "pointer" }}
+                  key={partial}
+                  onClick={() =>
+                    removePropertyFilter(property.id, partial, true)
+                  }
+                >
+                  {partial.slice(0, -1)}
+                </Typography>
+              ))}
             </Breadcrumbs>
           </Breadcrumbs>
         </Box>
