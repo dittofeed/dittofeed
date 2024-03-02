@@ -136,7 +136,7 @@ export default async function userPropertiesController(
         body: DeleteUserPropertyRequest,
         response: {
           204: EmptyResponse,
-          404: {},
+          404: EmptyResponse,
         },
       },
     },

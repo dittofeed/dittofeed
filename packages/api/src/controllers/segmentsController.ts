@@ -39,7 +39,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
         body: DeleteSegmentRequest,
         response: {
           204: EmptyResponse,
-          404: {},
+          404: EmptyResponse,
         },
       },
     },
