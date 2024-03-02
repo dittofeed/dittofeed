@@ -8,7 +8,6 @@ import * as React from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 import {
-  FilterSegmentStage,
   FilterStageType,
   FilterStageWithBack,
   filterStorePick,
