@@ -6,6 +6,8 @@ import MenuItem from "@mui/material/MenuItem";
 import * as React from "react";
 
 import { FilterOptions, filterStore } from "../lib/filterStore";
+import { useAppStorePick } from "../lib/appStore";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 
 enum Stage {
   "SELECTING_FILTER",
@@ -54,6 +56,11 @@ function Options({
   );
 }
 
+interface Option {
+  id: string;
+  label: string;
+}
+
 function IdAndValueSelector({
   stage,
   handleIdSelection,
@@ -73,9 +80,23 @@ function IdAndValueSelector({
   // Selected filter can be either Segments or Properties
   const selectedFilter = filterStore((store) => store.selectedFilter);
   // From filterStore, get all segments and properties
-  const segments = filterStore((store) => store.segments);
-  const properties = filterStore((store) => store.properties);
   const selectedId = filterStore((store) => store.selectedId);
+  const { segments: segmentsResult, userProperties: userPropertiesResult } =
+    useAppStorePick(["segments", "userProperties"]);
+
+  const { segments, userProperties } = React.useMemo(() => {
+    return {
+      segments:
+        segmentsResult.type === CompletionStatus.Successful
+          ? segmentsResult.value
+          : [],
+      userProperties:
+        userPropertiesResult.type === CompletionStatus.Successful
+          ? userPropertiesResult.value
+          : [],
+    };
+  }, [segmentsResult, userPropertiesResult]);
+
   /// ///////////////////////////////
   // END ID Selector Related
   /// ///////////////////////////////
@@ -85,19 +106,32 @@ function IdAndValueSelector({
   /// ///////////////////////////////
   // Options to filter are based on the selector's
   // current stage and filter type
-  const options = React.useMemo(() => {
+  const options: Option[] = React.useMemo(() => {
     if (stage === Stage.SELECTING_ID) {
-      return Object.entries(
-        selectedFilter === FilterOptions.SEGMENTS ? segments : properties,
-      );
+      if (selectedFilter === FilterOptions.SEGMENTS) {
+        return segments.map((segment) => ({
+          id: segment.id,
+          label: segment.name,
+        }));
+      }
+      if (selectedFilter === FilterOptions.USER_PROPERTY) {
+        return userProperties.map((property) => ({
+          id: property.id,
+          label: property.name,
+        }));
+      }
     }
 
     if (stage === Stage.SELECTING_VALUE) {
-      return [["", properties[selectedId]]] as [string, string][];
+      const name = userProperties.find(
+        (property) => property.id === selectedId,
+      )?.name;
+      if (!name) return [];
+      return [{ id: selectedId, label: name }];
     }
 
     return [];
-  }, [stage, segments, properties, selectedFilter, selectedId]);
+  }, [stage, segments, userProperties, selectedFilter, selectedId]);
 
   // Filter runs on filter and options change.
   // const filteredOptions = React.useMemo(() => {
