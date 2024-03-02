@@ -5,15 +5,14 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import * as React from "react";
 
-import { FilterStages, filterStore } from "../lib/filterStore";
+import {
+  FilterStage,
+  FilterStageType,
+  filterStore,
+  filterStorePick,
+} from "../lib/filterStore";
 import { useAppStorePick } from "../lib/appStore";
 import { CompletionStatus } from "isomorphic-lib/src/types";
-
-enum Stage {
-  "SELECTING_FILTER",
-  "SELECTING_ID",
-  "SELECTING_VALUE",
-}
 
 function Options({
   handleSelection,
@@ -108,13 +107,13 @@ function IdAndValueSelector({
   // current stage and filter type
   const options: Option[] = React.useMemo(() => {
     if (stage === Stage.SELECTING_ID) {
-      if (selectedFilter === FilterStages.SEGMENTS) {
+      if (selectedFilter === FilterStageType.SEGMENTS) {
         return segments.map((segment) => ({
           id: segment.id,
           label: segment.name,
         }));
       }
-      if (selectedFilter === FilterStages.USER_PROPERTY) {
+      if (selectedFilter === FilterStageType.USER_PROPERTY) {
         return userProperties.map((property) => ({
           id: property.id,
           label: property.name,
@@ -203,16 +202,16 @@ function IdAndValueSelector({
 function FilterSelectors({
   handleFilterSelection,
 }: {
-  handleFilterSelection: (selectedFilter: FilterStages) => void;
+  handleFilterSelection: (selectedFilter: FilterStageType) => void;
 }) {
   const FilterOptionsArray = [
     {
       title: "User Property",
-      type: FilterStages.USER_PROPERTY,
+      type: FilterStageType.USER_PROPERTY,
     },
     {
       title: "Segment",
-      type: FilterStages.SEGMENTS,
+      type: FilterStageType.SEGMENTS,
     },
   ];
   return (
@@ -232,15 +231,11 @@ function FilterSelectors({
 function SelectorFooter({
   stage,
   handlePrevious,
-  selectedFilter,
-  filter,
-  handleValueSelection,
+  handleSubmit,
 }: {
-  stage: Stage;
-  filter: string;
-  selectedFilter: FilterStages;
+  stage: FilterStage;
   handlePrevious: () => void;
-  handleValueSelection: (value: string, isPartial?: boolean) => void;
+  handleSubmit: () => void;
 }) {
   return (
     <Box
@@ -252,18 +247,17 @@ function SelectorFooter({
       alignItems="center"
       mt="5px"
     >
+      {/* // FIXME icon button */}
       <KeyboardBackspaceIcon
         sx={{ width: "15px", cursor: "pointer" }}
         onClick={() => handlePrevious()}
       />
-      {selectedFilter === FilterStages.USER_PROPERTY &&
-      stage === Stage.SELECTING_VALUE &&
-      filter !== "" ? (
+      {stage.type === FilterStageType.UserPropertyValue ? (
         <Typography
           sx={{ fontSize: "10px", cursor: "pointer" }}
-          onClick={() => handleValueSelection(filter, true)}
+          onClick={handleSubmit}
         >
-          Submit partial match
+          Submit
         </Typography>
       ) : null}
     </Box>
@@ -273,15 +267,9 @@ function SelectorFooter({
 export default function FilterSelect() {
   const [filter, setFilter] = React.useState("");
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  // FIXME use null value of store
   const open = Boolean(anchorEl);
-  const [stage, setStage] = React.useState<Stage>(Stage.SELECTING_FILTER);
-  const setSelectedId = filterStore((store) => store.setSelectedId);
-  const setUserPropertyFilter = filterStore(
-    (store) => store.setUserPropertyFilter,
-  );
-  const setSegmentFilter = filterStore((store) => store.setSegmentFilter);
-  const setSelectedFilter = filterStore((store) => store.setSelectedFilter);
-  const selectedFilter = filterStore((store) => store.selectedFilter);
+  const { stage, setStage } = filterStorePick(["setStage", "stage"]);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -289,14 +277,10 @@ export default function FilterSelect() {
 
   const handleClose = () => {
     setAnchorEl(null);
-    setTimeout(() => {
-      setSelectedId("");
-      setSelectedFilter(FilterStages.NONE);
-      setStage(Stage.SELECTING_FILTER);
-    }, 300);
+    setTimeout(() => setStage(null), 300);
   };
 
-  const handleFilterSelection = (filterOption: FilterStages) => {
+  const handleFilterSelection = (filterOption: FilterStageType) => {
     setSelectedFilter(filterOption);
     setStage(Stage.SELECTING_ID);
   };
@@ -304,7 +288,7 @@ export default function FilterSelect() {
   const handleIdSelection = (selectedId: string | undefined) => {
     if (!selectedId) return;
     setFilter("");
-    if (selectedFilter === FilterStages.USER_PROPERTY) {
+    if (selectedFilter === FilterStageType.USER_PROPERTY) {
       setSelectedId(selectedId);
       setStage(Stage.SELECTING_VALUE);
     } else {
@@ -329,7 +313,7 @@ export default function FilterSelect() {
   const handlePrevious = () => {
     setFilter("");
     if (stage === Stage.SELECTING_ID) {
-      setSelectedFilter(FilterStages.NONE);
+      setSelectedFilter(FilterStageType.NONE);
       setStage(Stage.SELECTING_FILTER);
     }
 
@@ -365,7 +349,7 @@ export default function FilterSelect() {
           maxWidth="150px"
           overflow="scroll"
         >
-          {stage === Stage.SELECTING_FILTER ? (
+          {stage?.type === FilterStageType.ComputedPropertyType ? (
             <FilterSelectors handleFilterSelection={handleFilterSelection} />
           ) : (
             <IdAndValueSelector
@@ -377,13 +361,12 @@ export default function FilterSelect() {
             />
           )}
         </Box>
-        {stage !== Stage.SELECTING_FILTER && (
+        {stage && stage.type !== FilterStageType.ComputedPropertyType && (
           <SelectorFooter
             stage={stage}
-            filter={filter}
-            selectedFilter={selectedFilter}
             handlePrevious={handlePrevious}
-            handleValueSelection={handleValueSelection}
+            // FIXME
+            handleSubmit={() => {}}
           />
         )}
       </Menu>

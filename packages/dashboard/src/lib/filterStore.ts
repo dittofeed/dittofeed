@@ -1,7 +1,8 @@
+import { pick } from "remeda/dist/commonjs/pick";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-export enum FilterStages {
+export enum FilterStageType {
   ComputedPropertyType = "ComputedPropertyType",
   UserProperty = "UserProperty",
   UserPropertyValue = "UserPropertyValue",
@@ -9,26 +10,26 @@ export enum FilterStages {
 }
 
 interface ComputedPropertyTypeStage {
-  type: FilterStages.ComputedPropertyType;
+  type: FilterStageType.ComputedPropertyType;
 }
 
 interface UserPropertyStage {
-  type: FilterStages.UserProperty;
+  type: FilterStageType.UserProperty;
   id: string;
 }
 
 interface UserPropertyValueStage {
-  type: FilterStages.UserProperty;
+  type: FilterStageType.UserPropertyValue;
   id: string;
   value: string;
 }
 
 interface SegmentStage {
-  type: FilterStages.Segment;
+  type: FilterStageType.Segment;
   id: string;
 }
 
-type Stage =
+export type FilterStage =
   | UserPropertyStage
   | UserPropertyValueStage
   | SegmentStage
@@ -39,25 +40,34 @@ interface UserFilterState {
   userProperties: Map<string, string>;
   // set of segment ids
   segments: Set<string>;
-  Stage: Stage | null;
+  stage: FilterStage | null;
 }
 
 interface UserFilterActions {
   addUserProperty: (propertyId: string, propertyValue: string) => void;
-  removeUserProperty: (propertyId: string) => void;
   addSegment: (segmentId: string) => void;
+  removeUserProperty: (propertyId: string) => void;
   removeSegment: (segmentId: string) => void;
-  setSelected: (selected: Stage) => void;
+  setStage: (stage: FilterStage | null) => void;
 }
 
+export type FilterStoreContents = UserFilterState & UserFilterActions;
+
 export const filterStore = create(
-  immer<UserFilterState & UserFilterActions>((set) => ({
+  immer<FilterStoreContents>((set) => ({
     userProperties: new Map(),
     segments: new Set(),
-    Stage: null,
+    stage: null,
     addUserProperty: (propertyId, propertyValue) => {
       set((state) => {
         state.userProperties.set(propertyId, propertyValue);
+        state.stage = null;
+      });
+    },
+    addSegment: (segmentId) => {
+      set((state) => {
+        state.segments.add(segmentId);
+        state.stage = null;
       });
     },
     removeUserProperty: (propertyId) => {
@@ -65,20 +75,21 @@ export const filterStore = create(
         state.userProperties.delete(propertyId);
       });
     },
-    addSegment: (segmentId) => {
-      set((state) => {
-        state.segments.add(segmentId);
-      });
-    },
     removeSegment: (segmentId) => {
       set((state) => {
         state.segments.delete(segmentId);
       });
     },
-    setSelected: (selected) => {
+    setStage: (stage) => {
       set((state) => {
-        state.Stage = selected;
+        state.stage = stage;
       });
     },
   })),
 );
+
+export function filterStorePick<K extends keyof FilterStoreContents>(
+  params: K[],
+): Pick<FilterStoreContents, K> {
+  return filterStore((store) => pick(store, params));
+}
