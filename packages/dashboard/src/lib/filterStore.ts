@@ -1,30 +1,45 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-export enum FilterOptions {
+export enum FilterStages {
+  ComputedPropertyType = "ComputedPropertyType",
   UserProperty = "UserProperty",
+  UserPropertyValue = "UserPropertyValue",
   Segment = "Segment",
 }
 
-interface SelectedUserPropertyFilter {
-  type: FilterOptions.UserProperty;
-  id: string;
-  value?: string;
+interface ComputedPropertyTypeStage {
+  type: FilterStages.ComputedPropertyType;
 }
 
-interface SelectedSegmentFilter {
-  type: FilterOptions.Segment;
+interface UserPropertyStage {
+  type: FilterStages.UserProperty;
   id: string;
 }
 
-type SelectedFilter = SelectedUserPropertyFilter | SelectedSegmentFilter;
+interface UserPropertyValueStage {
+  type: FilterStages.UserProperty;
+  id: string;
+  value: string;
+}
+
+interface SegmentStage {
+  type: FilterStages.Segment;
+  id: string;
+}
+
+type Stage =
+  | UserPropertyStage
+  | UserPropertyValueStage
+  | SegmentStage
+  | ComputedPropertyTypeStage;
 
 interface UserFilterState {
   // map from user property id to user property value
   userProperties: Map<string, string>;
   // set of segment ids
   segments: Set<string>;
-  selected: SelectedFilter | null;
+  Stage: Stage | null;
 }
 
 interface UserFilterActions {
@@ -32,14 +47,14 @@ interface UserFilterActions {
   removeUserProperty: (propertyId: string) => void;
   addSegment: (segmentId: string) => void;
   removeSegment: (segmentId: string) => void;
-  setSelected: (selected: SelectedFilter) => void;
+  setSelected: (selected: Stage) => void;
 }
 
 export const filterStore = create(
   immer<UserFilterState & UserFilterActions>((set) => ({
     userProperties: new Map(),
     segments: new Set(),
-    selected: null,
+    Stage: null,
     addUserProperty: (propertyId, propertyValue) => {
       set((state) => {
         state.userProperties.set(propertyId, propertyValue);
@@ -62,7 +77,7 @@ export const filterStore = create(
     },
     setSelected: (selected) => {
       set((state) => {
-        state.selected = selected;
+        state.Stage = selected;
       });
     },
   })),

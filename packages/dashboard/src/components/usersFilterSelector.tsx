@@ -5,7 +5,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import * as React from "react";
 
-import { FilterOptions, filterStore } from "../lib/filterStore";
+import { FilterStages, filterStore } from "../lib/filterStore";
 import { useAppStorePick } from "../lib/appStore";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 
@@ -108,13 +108,13 @@ function IdAndValueSelector({
   // current stage and filter type
   const options: Option[] = React.useMemo(() => {
     if (stage === Stage.SELECTING_ID) {
-      if (selectedFilter === FilterOptions.SEGMENTS) {
+      if (selectedFilter === FilterStages.SEGMENTS) {
         return segments.map((segment) => ({
           id: segment.id,
           label: segment.name,
         }));
       }
-      if (selectedFilter === FilterOptions.USER_PROPERTY) {
+      if (selectedFilter === FilterStages.USER_PROPERTY) {
         return userProperties.map((property) => ({
           id: property.id,
           label: property.name,
@@ -203,16 +203,16 @@ function IdAndValueSelector({
 function FilterSelectors({
   handleFilterSelection,
 }: {
-  handleFilterSelection: (selectedFilter: FilterOptions) => void;
+  handleFilterSelection: (selectedFilter: FilterStages) => void;
 }) {
   const FilterOptionsArray = [
     {
       title: "User Property",
-      type: FilterOptions.USER_PROPERTY,
+      type: FilterStages.USER_PROPERTY,
     },
     {
       title: "Segment",
-      type: FilterOptions.SEGMENTS,
+      type: FilterStages.SEGMENTS,
     },
   ];
   return (
@@ -238,7 +238,7 @@ function SelectorFooter({
 }: {
   stage: Stage;
   filter: string;
-  selectedFilter: FilterOptions;
+  selectedFilter: FilterStages;
   handlePrevious: () => void;
   handleValueSelection: (value: string, isPartial?: boolean) => void;
 }) {
@@ -256,7 +256,7 @@ function SelectorFooter({
         sx={{ width: "15px", cursor: "pointer" }}
         onClick={() => handlePrevious()}
       />
-      {selectedFilter === FilterOptions.USER_PROPERTY &&
+      {selectedFilter === FilterStages.USER_PROPERTY &&
       stage === Stage.SELECTING_VALUE &&
       filter !== "" ? (
         <Typography
@@ -291,12 +291,12 @@ export default function FilterSelect() {
     setAnchorEl(null);
     setTimeout(() => {
       setSelectedId("");
-      setSelectedFilter(FilterOptions.NONE);
+      setSelectedFilter(FilterStages.NONE);
       setStage(Stage.SELECTING_FILTER);
     }, 300);
   };
 
-  const handleFilterSelection = (filterOption: FilterOptions) => {
+  const handleFilterSelection = (filterOption: FilterStages) => {
     setSelectedFilter(filterOption);
     setStage(Stage.SELECTING_ID);
   };
@@ -304,7 +304,7 @@ export default function FilterSelect() {
   const handleIdSelection = (selectedId: string | undefined) => {
     if (!selectedId) return;
     setFilter("");
-    if (selectedFilter === FilterOptions.USER_PROPERTY) {
+    if (selectedFilter === FilterStages.USER_PROPERTY) {
       setSelectedId(selectedId);
       setStage(Stage.SELECTING_VALUE);
     } else {
@@ -329,7 +329,7 @@ export default function FilterSelect() {
   const handlePrevious = () => {
     setFilter("");
     if (stage === Stage.SELECTING_ID) {
-      setSelectedFilter(FilterOptions.NONE);
+      setSelectedFilter(FilterStages.NONE);
       setStage(Stage.SELECTING_FILTER);
     }
 
