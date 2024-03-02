@@ -2,97 +2,68 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 export enum FilterOptions {
-  "USER_PROPERTY",
-  "SEGMENTS",
-  "NONE",
+  UserProperty = "UserProperty",
+  Segment = "Segment",
 }
 
-interface UserPropertiesState {
-  selectedId: string;
-  selectedFilter: FilterOptions;
-  userPropertyFilter: Record<
-    string,
-    {
-      id: string;
-      partial?: string[];
-    }
-  >;
-  segmentFilter: string[];
+interface SelectedUserPropertyFilter {
+  type: FilterOptions.UserProperty;
+  id: string;
+  value?: string;
 }
 
-interface UserPropertiesActions {
-  setSelectedFilter: (val: FilterOptions) => void;
-  setSelectedId: (val: string) => void;
-  setSegmentFilter: (val: string) => void;
-  setUserPropertyFilter: (val: string, isPartialMatch?: boolean) => void;
-  removePropertyFilter: (
-    propertyId: string,
-    userId?: string,
-    isPartialMatch?: boolean,
-  ) => void;
-  removeSegmentFilter: (segmentId: string) => void;
+interface SelectedSegmentFilter {
+  type: FilterOptions.Segment;
+  id: string;
+}
+
+type SelectedFilter = SelectedUserPropertyFilter | SelectedSegmentFilter;
+
+interface UserFilterState {
+  // map from user property id to user property value
+  userProperties: Map<string, string>;
+  // set of segment ids
+  segments: Set<string>;
+  selected: SelectedFilter | null;
+}
+
+interface UserFilterActions {
+  addUserProperty: (propertyId: string, propertyValue: string) => void;
+  removeUserProperty: (propertyId: string) => void;
+  addSegment: (segmentId: string) => void;
+  removeSegment: (segmentId: string) => void;
+  setSelected: (selected: SelectedFilter) => void;
 }
 
 export const filterStore = create(
-  immer<UserPropertiesState & UserPropertiesActions>((set) => ({
-    selectedFilter: FilterOptions.NONE,
-    selectedId: "",
-    propertiesValues: {},
-    segmentFilter: [],
-    userPropertyFilter: {},
-    setSelectedFilter: (filterOption) =>
+  immer<UserFilterState & UserFilterActions>((set) => ({
+    userProperties: new Map(),
+    segments: new Set(),
+    selected: null,
+    addUserProperty: (propertyId, propertyValue) => {
       set((state) => {
-        state.selectedFilter = filterOption;
-      }),
-    setSelectedId: (property) =>
+        state.userProperties.set(propertyId, propertyValue);
+      });
+    },
+    removeUserProperty: (propertyId) => {
       set((state) => {
-        state.selectedId = property;
-      }),
-    setSegmentFilter: (selectedSegmentId) =>
+        state.userProperties.delete(propertyId);
+      });
+    },
+    addSegment: (segmentId) => {
       set((state) => {
-        if (!state.segmentFilter.includes(selectedSegmentId)) {
-          state.segmentFilter.push(selectedSegmentId);
-        }
-      }),
-    setUserPropertyFilter: (selectedPropertyValue) =>
+        state.segments.add(segmentId);
+      });
+    },
+    removeSegment: (segmentId) => {
       set((state) => {
-        if (state.userPropertyFilter[state.selectedId]) {
-          state.userPropertyFilter[state.selectedId]?.partial?.push(
-            `${selectedPropertyValue.toLowerCase()}%`,
-          );
-        } else {
-          state.userPropertyFilter[state.selectedId] = {
-            id: state.selectedId,
-            partial: [`${selectedPropertyValue.toLowerCase()}%`],
-          };
-        }
-      }),
-    removePropertyFilter: (propertyId, valueToDelete, isPartialMatch) =>
+        state.segments.delete(segmentId);
+      });
+    },
+    setSelected: (selected) => {
       set((state) => {
-        const partialMatchesLength: number | undefined =
-          state.userPropertyFilter[propertyId]?.partial?.length;
-
-        if (!partialMatchesLength) return;
-
-        // FIXME use map
-        if (!valueToDelete) delete state.userPropertyFilter[propertyId];
-
-        if (isPartialMatch) {
-          if (partialMatchesLength < 2) {
-            delete state.userPropertyFilter[propertyId];
-          } else {
-            (state.userPropertyFilter[propertyId] as any).partial =
-              state.userPropertyFilter[propertyId]?.partial?.filter(
-                (partialMatch) => partialMatch !== valueToDelete,
-              );
-          }
-        }
-      }),
-    removeSegmentFilter: (segmentId) =>
-      set((state) => {
-        state.segmentFilter = state.segmentFilter.filter(
-          (segment) => segment !== segmentId,
-        );
-      }),
+        state.selected = selected;
+      });
+    },
   })),
 );

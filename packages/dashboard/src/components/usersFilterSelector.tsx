@@ -133,6 +133,9 @@ function IdAndValueSelector({
     return [];
   }, [stage, segments, userProperties, selectedFilter, selectedId]);
 
+  const selectedOption =
+    options.find((option) => option.id === selectedId) ?? null;
+
   // Filter runs on filter and options change.
   // const filteredOptions = React.useMemo(() => {
   //   if (stage === Stage.SELECTING_VALUE) return options;
@@ -143,14 +146,24 @@ function IdAndValueSelector({
   // FIXM
   if (stage === Stage.SELECTING_VALUE) {
     return (
-      <>foo</>
+      <>Foo</>
       // <Autocomplete
       // handleSelection={handleValueSelection}
       // filteredOptions={options}
       // />
     );
   }
-  return <>bar</>;
+  return (
+    <Autocomplete
+      value={selectedOption}
+      options={options}
+      onChange={(_, newValue) => {
+        if (newValue) {
+          handleIdSelection(newValue.id);
+        }
+      }}
+    />
+  );
   return (
     <>
       {/* <Stack display="flex" alignItems="center" justifyContent="center">
