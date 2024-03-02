@@ -245,6 +245,7 @@ describe("journeys", () => {
             stats[0]?.nodeStats["split-node-1"]?.proportions.falseChildEdge ??
               0,
           ),
+          "one third of the users should have gone down the false edge",
         ).toEqual(33);
 
         if (

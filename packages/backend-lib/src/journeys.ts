@@ -1,8 +1,13 @@
 import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
+import {
+  buildHeritageMap,
+  getNodeId,
+  HeritageMap,
+} from "isomorphic-lib/src/journeys";
 import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
-import { parseInt } from "isomorphic-lib/src/numbers";
+import { parseInt, round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
@@ -25,22 +30,21 @@ import {
   SavedJourneyResource,
   TrackData,
 } from "./types";
-import { HeritageMap } from "isomorphic-lib/src/journeys";
 
 export * from "isomorphic-lib/src/journeys";
 
 const isValueInEnum = <T extends Record<string, string>>(
   value: string,
-  enumObject: T
+  enumObject: T,
 ): value is T[keyof T] =>
   Object.values(enumObject).includes(value as T[keyof T]);
 
 export function enrichJourney(
-  journey: Journey
+  journey: Journey,
 ): Result<EnrichedJourney, Error> {
   const definitionResult = schemaValidateWithErr(
     journey.definition,
-    JourneyDefinition
+    JourneyDefinition,
   );
   if (definitionResult.isErr()) {
     return err(definitionResult.error);
@@ -54,7 +58,7 @@ export function enrichJourney(
 type FindManyParams = Parameters<PrismaClient["journey"]["findMany"]>[0];
 
 export async function findManyJourneys(
-  params: FindManyParams
+  params: FindManyParams,
 ): Promise<Result<EnrichedJourney[], Error>> {
   const journeys = await prisma().journey.findMany(params);
 
@@ -74,7 +78,7 @@ export async function findManyJourneys(
 }
 
 export function toJourneyResource(
-  journey: Journey
+  journey: Journey,
 ): Result<SavedJourneyResource, Error> {
   const result = enrichJourney(journey);
   if (result.isErr()) {
@@ -104,18 +108,18 @@ export function toJourneyResource(
 }
 
 export async function findManyJourneyResourcesSafe(
-  params: FindManyParams
+  params: FindManyParams,
 ): Promise<Result<SavedJourneyResource, Error>[]> {
   const journeys = await prisma().journey.findMany(params);
   const results: Result<SavedJourneyResource, Error>[] = journeys.map(
-    (journey) => toJourneyResource(journey)
+    (journey) => toJourneyResource(journey),
   );
   return results;
 }
 
 // TODO don't use this method for activities. Don't want to retry failures typically.
 export async function findManyJourneysUnsafe(
-  params: FindManyParams
+  params: FindManyParams,
 ): Promise<EnrichedJourney[]> {
   const result = await findManyJourneys(params);
   return unwrap(result);
@@ -129,27 +133,44 @@ const JourneyMessageStatsRow = Type.Object({
 
 type NodeEventMap = MapWithDefault<InternalEventType, number>;
 
-function getEdgePercent({
-  definition,
-  originNode,
-  targetNode,
-  heritageMap,
-  nodeProcessedMap,
-}: {
-  definition: JourneyDefinition;
-  originNode: JourneyBodyNode;
-  targetNode: JourneyBodyNode;
+interface GetEdgePercentParams {
+  originId: string;
+  targetId: string;
   heritageMap: HeritageMap;
   nodeProcessedMap: Map<string, number>;
-}): number {
-  const originMapEntry = getUnsafe(heritageMap, originNode.id);
-  if (!originMapEntry.children.has(targetNode.id)) {
+}
+
+function getEdgePercentRaw({
+  originId,
+  targetId,
+  heritageMap,
+  nodeProcessedMap,
+}: GetEdgePercentParams): number {
+  const originMapEntry = getUnsafe(heritageMap, originId);
+  if (!originMapEntry.children.has(targetId)) {
+    logger().debug(
+      {
+        children: Array.from(originMapEntry.children),
+        targetId,
+        originId,
+      },
+      "targetId not in originId children",
+    );
     return 0;
   }
 
-  const originCount = getUnsafe(nodeProcessedMap, originNode.id);
-  const targetCount = getUnsafe(nodeProcessedMap, targetNode.id);
+  const originCount = getUnsafe(nodeProcessedMap, originId);
+  const targetCount = getUnsafe(nodeProcessedMap, targetId);
   if (originCount === 0 || targetCount === 0) {
+    logger().debug(
+      {
+        originCount,
+        targetCount,
+        originId,
+        targetId,
+      },
+      "either the origin or target have no processed nodes, returning 0 edge percent",
+    );
     return 0;
   }
 
@@ -157,18 +178,47 @@ function getEdgePercent({
     return 1;
   }
 
-  const targetMapEntry = getUnsafe(heritageMap, targetNode.id);
+  const targetMapEntry = getUnsafe(heritageMap, targetId);
   if (targetMapEntry.parents.size === 1) {
     return targetCount / originCount;
   }
   let siblingsCount = 0;
   for (const parentId of targetMapEntry.parents) {
     if (originMapEntry.descendants.has(parentId)) {
+      logger().debug(
+        {
+          parentId,
+          targetId,
+          originId,
+        },
+        "found parent in origin descendants",
+      );
       const siblingCount = getUnsafe(nodeProcessedMap, parentId);
       siblingsCount += siblingCount;
     }
   }
+  logger().debug(
+    {
+      siblingsCount,
+      originCount,
+      targetId,
+      originId,
+    },
+    "got siblings count",
+  );
   return (originCount - siblingsCount) / originCount;
+}
+
+function getEdgePercent(params: GetEdgePercentParams): number {
+  const raw = getEdgePercentRaw(params);
+  logger().debug(
+    {
+      raw,
+      ...params,
+    },
+    "got raw edge percent",
+  );
+  return round(raw * 100, 1);
 }
 
 export async function getJourneysStats({
@@ -252,7 +302,7 @@ group by event, node_id;`;
   const stream = statsResultSet.stream();
   // map from node_id to event to count
   const statsMap = new MapWithDefault<string, NodeEventMap>(
-    new MapWithDefault(0)
+    new MapWithDefault(0),
   );
   const nodeProcessedMap = new Map<string, number>();
 
@@ -265,7 +315,7 @@ group by event, node_id;`;
         if (validated.isErr()) {
           logger().error(
             { workspaceId, err: validated.error },
-            "Failed to validate row from clickhouse for journey stats"
+            "Failed to validate row from clickhouse for journey stats",
           );
           return;
         }
@@ -279,7 +329,7 @@ group by event, node_id;`;
               event,
               workspaceId,
             },
-            "got unknown event type in journey stats"
+            "got unknown event type in journey stats",
           );
           return;
         }
@@ -305,7 +355,7 @@ group by event, node_id;`;
   ]);
 
   const enrichedJourneys = journeys.map((journey) =>
-    unwrap(enrichJourney(journey))
+    unwrap(enrichJourney(journey)),
   );
 
   const journeysStats: JourneyStats[] = [];
@@ -320,6 +370,7 @@ group by event, node_id;`;
       nodeStats: {},
     };
     journeysStats.push(stats);
+    const heritageMap = buildHeritageMap(definition);
 
     for (const node of definition.nodes) {
       if (
@@ -332,24 +383,38 @@ group by event, node_id;`;
       const nodeStats = statsMap.get(node.id);
 
       if (node.type === JourneyNodeType.SegmentSplitNode) {
-        const parentNodeProcessed = nodeProcessedMap.get(node.id);
-        const falseChildNodesProcessed =
-          nodeProcessedMap.get(node.variant.falseChild) ?? 0;
+        console.log("loc1");
+        logger().debug("loc2");
+        stats.nodeStats[node.id] = {
+          type: NodeStatsType.SegmentSplitNodeStats,
+          proportions: {
+            falseChildEdge: getEdgePercent({
+              originId: node.id,
+              targetId: node.variant.falseChild,
+              heritageMap,
+              nodeProcessedMap,
+            }),
+          },
+        };
+        // const parentNodeProcessed = nodeProcessedMap.get(node.id);
+        // const falseChildNodesProcessed =
+        //   nodeProcessedMap.get(node.variant.falseChild) ?? 0;
 
-        if (parentNodeProcessed) {
-          const falseChildNodeProcessedRate =
-            falseChildNodesProcessed / parentNodeProcessed;
-          const falseChildEdgeProportion = (
-            falseChildNodeProcessedRate * 100
-          ).toFixed(1);
+        // if (parentNodeProcessed) {
+        //   const falseChildNodeProcessedRate =
+        //     falseChildNodesProcessed / parentNodeProcessed;
 
-          stats.nodeStats[node.id] = {
-            type: NodeStatsType.SegmentSplitNodeStats,
-            proportions: {
-              falseChildEdge: parseFloat(falseChildEdgeProportion),
-            },
-          };
-        }
+        //   const falseChildEdgeProportion = (
+        //     falseChildNodeProcessedRate * 100
+        //   ).toFixed(1);
+
+        //   stats.nodeStats[node.id] = {
+        //     type: NodeStatsType.SegmentSplitNodeStats,
+        //     proportions: {
+        //       falseChildEdge: parseFloat(falseChildEdgeProportion),
+        //     },
+        //   };
+        // }
       } else if (node.type === JourneyNodeType.WaitForNode) {
         const parentNodeProcessed = nodeProcessedMap.get(node.id);
         let segmentChildNodesProcessed = 0;
@@ -400,7 +465,7 @@ group by event, node_id;`;
 
       const sent = nodeStats.get(InternalEventType.MessageSent);
       const badConfig = nodeStats.get(
-        InternalEventType.BadWorkspaceConfiguration
+        InternalEventType.BadWorkspaceConfiguration,
       );
       const messageFailure = nodeStats.get(InternalEventType.MessageFailure);
       const delivered = nodeStats.get(InternalEventType.EmailDelivered);
@@ -493,7 +558,7 @@ export async function triggerEventEntryJourneys({
             workspaceId,
             journeyId: j.id,
           },
-          "Failed to convert journey to resource"
+          "Failed to convert journey to resource",
         );
         return [];
       }
@@ -528,7 +593,7 @@ export async function triggerEventEntryJourneys({
         definition,
         context: properties,
       });
-    }
+    },
   );
   await Promise.all(starts);
 }
