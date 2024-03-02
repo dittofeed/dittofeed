@@ -32,7 +32,7 @@ import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
   AppState,
-  JourneyNodeProps,
+  JourneyNodeUiDefinitionProps,
   NodeTypeProps,
 } from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
@@ -297,7 +297,10 @@ function StatCategory({
   );
 }
 
-export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
+export function JourneyNode({
+  id,
+  data,
+}: NodeProps<JourneyNodeUiDefinitionProps>) {
   const path = useRouter();
   const theme = useTheme();
   const {

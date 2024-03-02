@@ -257,7 +257,7 @@ export interface JourneyState {
   journeyName: string;
   journeyDraggedComponentType: NodeTypeProps["type"] | null;
   journeySelectedNodeId: string | null;
-  journeyNodes: Node<NodeData>[];
+  journeyNodes: Node<JourneyNodeUiProps>[];
   journeyNodesIndex: Record<string, number>;
   journeyEdges: Edge<EdgeData>[];
   journeyUpdateRequest: EphemeralRequestStatus<Error>;
@@ -268,7 +268,7 @@ export interface JourneyState {
 export interface AddNodesParams {
   source: string;
   target: string;
-  nodes: Node<NodeData>[];
+  nodes: Node<JourneyNodeUiProps>[];
   edges: Edge[];
 }
 
@@ -281,7 +281,7 @@ export interface JourneyContent extends JourneyState {
   deleteJourneyNode: (nodeId: string) => void;
   updateJourneyNodeData: (
     nodeId: string,
-    updater: (currentValue: Draft<Node<JourneyNodeProps>>) => void,
+    updater: (currentValue: Draft<Node<JourneyNodeUiDefinitionProps>>) => void,
   ) => void;
   setJourneyUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   setJourneyName: (name: string) => void;
@@ -369,25 +369,32 @@ export type JourneyNodePairing =
   | [SegmentSplitNodeProps, SegmentNode]
   | [WaitForNodeProps, WaitForNode];
 
-export interface JourneyNodeProps {
+export interface JourneyNodeUiDefinitionProps {
+  // FIXME
   type: "JourneyNode";
   nodeTypeProps: NodeTypeProps;
 }
 
-export interface EmptyNodeProps {
+export interface JourneyNodeUiEmptyProps {
+  // FIXME
   type: "EmptyNode";
 }
 
-export interface LabelNodeProps {
+export interface JourneyNodeUiLabelProps {
+  // FIXME
   type: "LabelNode";
   title: string;
 }
 
+export type JourneyNodeUiPresentationalProps =
+  | JourneyNodeUiLabelProps
+  | JourneyNodeUiEmptyProps;
+
+export type JourneyNodeUiProps =
+  | JourneyNodeUiDefinitionProps
+  | JourneyNodeUiPresentationalProps;
+
 export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
-
-export type NonJourneyNodeData = LabelNodeProps | EmptyNodeProps;
-
-export type NodeData = JourneyNodeProps | NonJourneyNodeData;
 
 export interface WorkflowEdgeProps {
   type: "WorkflowEdge";

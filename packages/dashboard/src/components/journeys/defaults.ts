@@ -1,7 +1,7 @@
 import { JourneyNodeType } from "isomorphic-lib/src/types";
 import { Edge, Node, XYPosition } from "reactflow";
 
-import { AdditionalJourneyNodeType, NodeData } from "../../lib/types";
+import { AdditionalJourneyNodeType, JourneyNodeUiProps } from "../../lib/types";
 import { layoutNodes } from "./layoutNodes";
 import defaultNodeTypeProps from "./nodeTypes/defaultNodeTypeProps";
 
@@ -44,7 +44,7 @@ export const defaultNodes = layoutNodes(
 );
 
 export function buildNodesIndex(
-  nodes: Node<NodeData>[],
+  nodes: Node<JourneyNodeUiProps>[],
 ): Record<string, number> {
   return nodes.reduce<Record<string, number>>((memo, node, i) => {
     memo[node.id] = i;

@@ -2,14 +2,17 @@ import dagre from "dagre";
 import { useEffect } from "react";
 import { Edge, Node, ReactFlowState, useReactFlow, useStore } from "reactflow";
 
-import { NodeData } from "../../lib/types";
+import { JourneyNodeUiProps } from "../../lib/types";
 import { JOURNEY_NODE_WIDTH } from "./nodeTypes/styles";
 
 export const nodeHeight = 200;
 
 // the layouting function
 // accepts current nodes and edges and returns the layouted nodes with their updated positions
-export function layoutNodes(nodes: Node<NodeData>[], edges: Edge[]): Node[] {
+export function layoutNodes(
+  nodes: Node<JourneyNodeUiProps>[],
+  edges: Edge[],
+): Node[] {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 

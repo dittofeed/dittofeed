@@ -38,7 +38,7 @@ import {
   AdditionalJourneyNodeType,
   DelayNodeProps,
   EntryNodeProps,
-  JourneyNodeProps,
+  JourneyNodeUiDefinitionProps,
   MessageNodeProps,
   SegmentSplitNodeProps,
   WaitForNodeProps,
@@ -651,7 +651,7 @@ function NodeLayout({
   );
 }
 
-function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
+function NodeFields({ node }: { node: Node<JourneyNodeUiDefinitionProps> }) {
   const nodeProps = node.data.nodeTypeProps;
 
   switch (nodeProps.type) {
@@ -691,7 +691,11 @@ function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
   }
 }
 
-function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
+function NodeEditorContents({
+  node,
+}: {
+  node: Node<JourneyNodeUiDefinitionProps>;
+}) {
   const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
   const closeNodeEditor = () => {
     setSelectedNodeId(null);

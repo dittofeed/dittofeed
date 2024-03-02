@@ -48,12 +48,12 @@ import {
   EntryNodeProps,
   ExitNodeProps,
   JourneyContent,
-  JourneyNodeProps,
+  JourneyNodeUiDefinitionProps,
   JourneyState,
   MessageNodeProps,
-  NodeData,
+  JourneyNodeUiProps,
   NodeTypeProps,
-  NonJourneyNodeData,
+  JourneyNodeUiPresentationalProps,
   SegmentSplitNodeProps,
   UiDelayVariant,
   WaitForNodeProps,
@@ -103,7 +103,9 @@ export function waitForTimeoutLabel(timeoutSeconds?: number): string {
 
 type JourneyNodeMap = Map<string, NodeTypeProps>;
 
-function buildJourneyNodeMap(journeyNodes: Node<NodeData>[]): JourneyNodeMap {
+function buildJourneyNodeMap(
+  journeyNodes: Node<JourneyNodeUiProps>[],
+): JourneyNodeMap {
   const jn: JourneyNodeMap = journeyNodes.reduce((acc, node) => {
     if (node.data.type === "JourneyNode") {
       acc.set(node.id, node.data.nodeTypeProps);
@@ -114,7 +116,7 @@ function buildJourneyNodeMap(journeyNodes: Node<NodeData>[]): JourneyNodeMap {
 }
 
 function buildUiHeritageMap(
-  nodes: Node<NodeData>[],
+  nodes: Node<JourneyNodeUiProps>[],
   edges: Edge<EdgeData>[],
 ): HeritageMap {
   const map: HeritageMap = new Map();
@@ -625,7 +627,7 @@ export function dualNodeNonJourneyNodes({
 }: DualNodeParams & {
   leftLabel: string;
   rightLabel: string;
-}): Node<NonJourneyNodeData>[] {
+}): Node<JourneyNodeUiPresentationalProps>[] {
   return [
     {
       id: leftId,
@@ -810,11 +812,11 @@ export function newStateFromNodes({
   edges,
   existingEdges,
 }: AddNodesParams & {
-  existingNodes: Node<NodeData>[];
+  existingNodes: Node<JourneyNodeUiProps>[];
   existingEdges: Edge<EdgeData>[];
 }): {
   edges: Edge<EdgeData>[];
-  nodes: Node<NodeData>[];
+  nodes: Node<JourneyNodeUiProps>[];
 } {
   const newEdges = existingEdges
     .filter((e) => !(e.source === source && e.target === target))
@@ -861,7 +863,7 @@ export function findAllDescendants(
 
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
-function buildLabelNode(id: string, title: string): Node<NodeData> {
+function buildLabelNode(id: string, title: string): Node<JourneyNodeUiProps> {
   return {
     id,
     position: placeholderNodePosition,
@@ -873,7 +875,7 @@ function buildLabelNode(id: string, title: string): Node<NodeData> {
   };
 }
 
-function buildEmptyNode(id: string): Node<NodeData> {
+function buildEmptyNode(id: string): Node<JourneyNodeUiProps> {
   return {
     id,
     position: placeholderNodePosition,
@@ -911,7 +913,7 @@ function buildPlaceholderEdge(source: string, target: string): Edge<EdgeData> {
 function buildJourneyNode(
   id: string,
   nodeTypeProps: NodeTypeProps,
-): Node<JourneyNodeProps> {
+): Node<JourneyNodeUiDefinitionProps> {
   return {
     id,
     position: placeholderNodePosition,
@@ -1049,7 +1051,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
 
 export function journeyBranchToState(
   initialNodeId: string,
-  nodesState: Node<NodeData>[],
+  nodesState: Node<JourneyNodeUiProps>[],
   edgesState: Edge<EdgeData>[],
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap,
@@ -1357,7 +1359,7 @@ export function journeyToState(
   >,
 ): JourneyStateForResource {
   const journeyEdges: Edge<EdgeData>[] = [];
-  let journeyNodes: Node<NodeData>[] = [];
+  let journeyNodes: Node<JourneyNodeUiProps>[] = [];
   const nodes = [
     journey.definition.entryNode,
     ...journey.definition.nodes,

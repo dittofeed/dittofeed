@@ -25,8 +25,8 @@ import {
   AdditionalJourneyNodeType,
   AppState,
   EdgeData,
-  JourneyNodeProps,
-  NodeData,
+  JourneyNodeUiDefinitionProps,
+  JourneyNodeUiProps,
   NodeTypeProps,
 } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
@@ -65,7 +65,7 @@ function createConnections({
   // TODO create an incremental ID based on the number of elements already in the graph
   const newTargetId = uuid();
 
-  const newJourneyNode: Node<JourneyNodeProps> = {
+  const newJourneyNode: Node<JourneyNodeUiDefinitionProps> = {
     id: newTargetId,
     data: {
       type: "JourneyNode",
@@ -74,7 +74,7 @@ function createConnections({
     position: { x: 0, y: 0 }, // no need to pass a position as it is computed by the layout hook
     type: "journey",
   };
-  let newNodes: Node<NodeData>[] = [newJourneyNode];
+  let newNodes: Node<JourneyNodeUiProps>[] = [newJourneyNode];
   let newEdges: Edge<EdgeData>[];
 
   const { nodeTypeProps } = newJourneyNode.data;

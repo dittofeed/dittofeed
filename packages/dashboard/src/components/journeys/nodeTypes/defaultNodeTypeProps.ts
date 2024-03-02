@@ -8,7 +8,7 @@ import { v4 as uuid } from "uuid";
 
 import {
   AdditionalJourneyNodeType,
-  NodeData,
+  JourneyNodeUiProps,
   NodeTypeProps,
 } from "../../../lib/types";
 
@@ -16,7 +16,7 @@ export const defaultSegmentSplitName = "True / False Branch";
 
 export default function defaultNodeTypeProps(
   type: NodeTypeProps["type"],
-  nodes: Node<NodeData>[],
+  nodes: Node<JourneyNodeUiProps>[],
 ): NodeTypeProps {
   switch (type) {
     case AdditionalJourneyNodeType.UiEntryNode:
