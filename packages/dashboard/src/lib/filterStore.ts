@@ -15,6 +15,7 @@ interface ComputedPropertyTypeStage {
 
 interface UserPropertyStage {
   type: FilterStageType.UserProperty;
+  filter: string;
 }
 
 interface UserPropertyValueStage {
@@ -25,6 +26,7 @@ interface UserPropertyValueStage {
 
 interface SegmentStage {
   type: FilterStageType.Segment;
+  filter: string;
 }
 
 export type FilterStageWithBack =

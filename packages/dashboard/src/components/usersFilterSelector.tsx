@@ -244,6 +244,7 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
       case FilterStageType.UserPropertyValue:
         setStage({
           type: FilterStageType.UserProperty,
+          filter: "",
         });
         break;
       case FilterStageType.UserProperty:
