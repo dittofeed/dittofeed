@@ -199,19 +199,19 @@ function IdAndValueSelector({
   );
 }
 
-function FilterSelectors({
-  handleFilterSelection,
-}: {
-  handleFilterSelection: (selectedFilter: FilterStageType) => void;
-}) {
-  const FilterOptionsArray = [
+function FilterSelectors() {
+  const { setStage } = filterStorePick(["setStage"]);
+  const FilterOptionsArray: {
+    title: string;
+    type: FilterStageType.Segment | FilterStageType.UserProperty;
+  }[] = [
     {
       title: "User Property",
-      type: FilterStageType.USER_PROPERTY,
+      type: FilterStageType.UserProperty,
     },
     {
       title: "Segment",
-      type: FilterStageType.SEGMENTS,
+      type: FilterStageType.Segment,
     },
   ];
   return (
@@ -219,7 +219,11 @@ function FilterSelectors({
       {FilterOptionsArray.map((option) => (
         <MenuItem
           key={option.title}
-          onClick={() => handleFilterSelection(option.type)}
+          onClick={() =>
+            setStage({
+              type: option.type,
+            })
+          }
         >
           {option.title}
         </MenuItem>
@@ -350,7 +354,7 @@ export default function FilterSelect() {
           overflow="scroll"
         >
           {stage?.type === FilterStageType.ComputedPropertyType ? (
-            <FilterSelectors handleFilterSelection={handleFilterSelection} />
+            <FilterSelectors />
           ) : (
             <IdAndValueSelector
               stage={stage}

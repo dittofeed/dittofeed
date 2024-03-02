@@ -15,18 +15,15 @@ interface ComputedPropertyTypeStage {
 
 interface UserPropertyStage {
   type: FilterStageType.UserProperty;
-  id: string;
 }
 
 interface UserPropertyValueStage {
   type: FilterStageType.UserPropertyValue;
   id: string;
-  value: string;
 }
 
 interface SegmentStage {
   type: FilterStageType.Segment;
-  id: string;
 }
 
 export type FilterStage =
