@@ -116,13 +116,8 @@ export default async function userPropertiesController(
         workspaceId: request.query.workspaceId,
       });
 
-      const segments = await findSegments({
-        workspaceId: request.query.workspaceId,
-      });
-
       return reply.status(200).send({
         userProperties,
-        segments,
       });
     },
   );

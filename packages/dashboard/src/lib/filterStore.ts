@@ -1,35 +1,5 @@
-import {
-  CompletionStatus,
-  EphemeralRequestStatus,
-  SegmentResource,
-  UserPropertyResource,
-} from "isomorphic-lib/src/types";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-
-export function camelCaseToNormalText(camelCaseString: string) {
-  // Split the camel case string into words
-  const words = camelCaseString.replace(/([a-z])([A-Z])/g, "$1 $2").split(" ");
-
-  // Capitalize each word
-  const capitalizedWords = words.map((word: string) => {
-    return word.charAt(0).toUpperCase() + word.slice(1);
-  });
-
-  // Join the words to form the normal text
-  const normalText = capitalizedWords.join(" ");
-
-  return normalText;
-}
-
-export function filterIds(
-  propertyValuesById: [string, string][],
-  filterString: string,
-): [string, string][] {
-  return propertyValuesById.filter(([propertyValue]) =>
-    propertyValue.toLowerCase().includes(filterString.toLowerCase()),
-  );
-}
 
 export enum FilterOptions {
   "USER_PROPERTY",
@@ -38,13 +8,7 @@ export enum FilterOptions {
 }
 
 interface UserPropertiesState {
-  // Object stores a list of available properties where
-  // key = propertyId
-  // value = property_value
-  // { uuid: "firstName" }
-  properties: Record<string, string>;
   selectedId: string;
-  segments: Record<string, string>;
   selectedFilter: FilterOptions;
   userPropertyFilter: Record<
     string,
@@ -54,12 +18,9 @@ interface UserPropertiesState {
     }
   >;
   segmentFilter: string[];
-  getUserPropertiesRequest: EphemeralRequestStatus<Error>;
 }
 
 interface UserPropertiesActions {
-  setProperties: (val: UserPropertyResource[]) => void;
-  setSegments: (val: Pick<SegmentResource, "name" | "id">[]) => void;
   setSelectedFilter: (val: FilterOptions) => void;
   setSelectedId: (val: string) => void;
   setSegmentFilter: (val: string) => void;
@@ -70,40 +31,18 @@ interface UserPropertiesActions {
     isPartialMatch?: boolean,
   ) => void;
   removeSegmentFilter: (segmentId: string) => void;
-  setGetUserPropertiesRequest: (val: EphemeralRequestStatus<Error>) => void;
 }
 
 export const filterStore = create(
   immer<UserPropertiesState & UserPropertiesActions>((set) => ({
-    properties: {},
-    segments: {},
     selectedFilter: FilterOptions.NONE,
     selectedId: "",
     propertiesValues: {},
     segmentFilter: [],
     userPropertyFilter: {},
-    getUserPropertiesRequest: {
-      type: CompletionStatus.NotStarted,
-    },
     setSelectedFilter: (filterOption) =>
       set((state) => {
         state.selectedFilter = filterOption;
-      }),
-    setGetUserPropertiesRequest: (request) =>
-      set((state) => {
-        state.getUserPropertiesRequest = request;
-      }),
-    setProperties: (properties) =>
-      set((state) => {
-        for (const property of properties) {
-          state.properties[property.id] = camelCaseToNormalText(property.name);
-        }
-      }),
-    setSegments: (segments) =>
-      set((state) => {
-        for (const segment of segments) {
-          state.segments[segment.id] = camelCaseToNormalText(segment.name);
-        }
       }),
     setSelectedId: (property) =>
       set((state) => {
@@ -135,6 +74,7 @@ export const filterStore = create(
 
         if (!partialMatchesLength) return;
 
+        // FIXME use map
         if (!valueToDelete) delete state.userPropertyFilter[propertyId];
 
         if (isPartialMatch) {
