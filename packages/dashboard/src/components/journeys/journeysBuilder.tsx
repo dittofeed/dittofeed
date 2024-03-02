@@ -24,10 +24,11 @@ import { useAppStorePick } from "../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
   AppState,
-  EdgeData,
-  JourneyNodeUiDefinitionProps,
   JourneyNodeUiProps,
-  NodeTypeProps,
+  JourneyUiEdgeData,
+  JourneyUiNodeDefinitionProps,
+  JourneyUiNodeType,
+  JourneyUiNodeTypeProps,
 } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
 import edgeTypes from "./edgeTypes";
@@ -56,7 +57,7 @@ function createConnections({
   target,
   addNodes,
 }: {
-  nodeType: NodeTypeProps["type"];
+  nodeType: JourneyUiNodeTypeProps["type"];
   nodes: AppState["journeyNodes"];
   addNodes: AppState["addNodes"];
   source: string;
@@ -65,17 +66,17 @@ function createConnections({
   // TODO create an incremental ID based on the number of elements already in the graph
   const newTargetId = uuid();
 
-  const newJourneyNode: Node<JourneyNodeUiDefinitionProps> = {
+  const newJourneyNode: Node<JourneyUiNodeDefinitionProps> = {
     id: newTargetId,
     data: {
-      type: "JourneyNode",
+      type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
       nodeTypeProps: defaultNodeTypeProps(nodeType, nodes),
     },
     position: { x: 0, y: 0 }, // no need to pass a position as it is computed by the layout hook
     type: "journey",
   };
   let newNodes: Node<JourneyNodeUiProps>[] = [newJourneyNode];
-  let newEdges: Edge<EdgeData>[];
+  let newEdges: Edge<JourneyUiEdgeData>[];
 
   const { nodeTypeProps } = newJourneyNode.data;
   switch (nodeTypeProps.type) {
@@ -154,7 +155,7 @@ function createConnections({
       });
       break;
     }
-    case AdditionalJourneyNodeType.UiEntryNode: {
+    case AdditionalJourneyNodeType.EntryUiNode: {
       throw new Error("Cannot add entry node in the UI implementation error.");
     }
     case JourneyNodeType.ExitNode: {

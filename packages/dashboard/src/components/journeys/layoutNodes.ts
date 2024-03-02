@@ -2,7 +2,7 @@ import dagre from "dagre";
 import { useEffect } from "react";
 import { Edge, Node, ReactFlowState, useReactFlow, useStore } from "reactflow";
 
-import { JourneyNodeUiProps } from "../../lib/types";
+import { JourneyNodeUiProps, JourneyUiNodeType } from "../../lib/types";
 import { JOURNEY_NODE_WIDTH } from "./nodeTypes/styles";
 
 export const nodeHeight = 200;
@@ -18,7 +18,10 @@ export function layoutNodes(
 
   // Maintains consistent ordering of nodes so that the layout function can be applied consistently
   nodes.sort((n1, n2) => {
-    if (n1.data.type === "LabelNode" && n2.data.type === "LabelNode") {
+    if (
+      n1.data.type === JourneyUiNodeType.JourneyUiNodeLabelProps &&
+      n2.data.type === JourneyUiNodeType.JourneyUiNodeLabelProps
+    ) {
       return n1.data.title.localeCompare(n2.data.title);
     }
 

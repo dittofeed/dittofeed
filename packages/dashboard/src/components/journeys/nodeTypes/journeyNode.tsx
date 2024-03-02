@@ -32,8 +32,8 @@ import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
   AppState,
-  JourneyNodeUiDefinitionProps,
-  NodeTypeProps,
+  JourneyUiNodeDefinitionProps,
+  JourneyUiNodeTypeProps,
 } from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
@@ -58,11 +58,11 @@ interface JourneyNodeConfig {
  * @returns
  */
 export function isNodeComplete(
-  props: NodeTypeProps,
+  props: JourneyUiNodeTypeProps,
   state: Pick<AppState, "segments" | "messages">,
 ): boolean {
   switch (props.type) {
-    case AdditionalJourneyNodeType.UiEntryNode: {
+    case AdditionalJourneyNodeType.EntryUiNode: {
       const { variant } = props;
 
       switch (variant.type) {
@@ -166,9 +166,11 @@ function EventTriggerDescriptionBody({ event }: { event?: string }) {
   );
 }
 
-export function journeyNodeIcon(type: NodeTypeProps["type"]): JourneyNodeIcon {
+export function journeyNodeIcon(
+  type: JourneyUiNodeTypeProps["type"],
+): JourneyNodeIcon {
   switch (type) {
-    case AdditionalJourneyNodeType.UiEntryNode:
+    case AdditionalJourneyNodeType.EntryUiNode:
       return ThunderboltOutlined;
     case JourneyNodeType.DelayNode:
       return ClockCircleOutlined;
@@ -183,10 +185,12 @@ export function journeyNodeIcon(type: NodeTypeProps["type"]): JourneyNodeIcon {
   }
 }
 
-function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
+function journNodeTypeToConfig(
+  props: JourneyUiNodeTypeProps,
+): JourneyNodeConfig {
   const t = props.type;
   switch (t) {
-    case AdditionalJourneyNodeType.UiEntryNode: {
+    case AdditionalJourneyNodeType.EntryUiNode: {
       const body =
         props.variant.type === JourneyNodeType.SegmentEntryNode ? (
           <SegmentDescriptionBody segmentId={props.variant.segment} />
@@ -300,7 +304,7 @@ function StatCategory({
 export function JourneyNode({
   id,
   data,
-}: NodeProps<JourneyNodeUiDefinitionProps>) {
+}: NodeProps<JourneyUiNodeDefinitionProps>) {
   const path = useRouter();
   const theme = useTheme();
   const {

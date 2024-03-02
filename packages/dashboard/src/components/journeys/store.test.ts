@@ -1,3 +1,4 @@
+// FIXME run these tests
 import { findDirectChildren } from "isomorphic-lib/src/journeys";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
@@ -12,7 +13,12 @@ import {
 import { Overwrite } from "utility-types";
 import { v4 as uuid } from "uuid";
 
-import { AdditionalJourneyNodeType, JourneyState } from "../../lib/types";
+import {
+  AdditionalJourneyNodeType,
+  JourneyState,
+  JourneyUiEdgeType,
+  JourneyUiNodeType,
+} from "../../lib/types";
 import {
   findDirectUiChildren,
   findDirectUiParents,
@@ -596,11 +602,11 @@ describe("journeyDefinitionFromState", () => {
       journeyStats: {},
       journeyNodes: [
         {
-          id: AdditionalJourneyNodeType.UiEntryNode,
+          id: AdditionalJourneyNodeType.EntryUiNode,
           data: {
-            type: "JourneyNode",
+            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: {
-              type: AdditionalJourneyNodeType.UiEntryNode,
+              type: AdditionalJourneyNodeType.EntryUiNode,
               variant: {
                 type: JourneyNodeType.SegmentEntryNode,
                 segment: uuid(),
@@ -616,7 +622,7 @@ describe("journeyDefinitionFromState", () => {
         {
           id: "908b9795-60b7-4333-a57c-a30f4972fb6b",
           data: {
-            type: "JourneyNode",
+            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: {
               type: JourneyNodeType.MessageNode,
               name: "Message 1",
@@ -632,7 +638,7 @@ describe("journeyDefinitionFromState", () => {
         {
           id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
           data: {
-            type: "JourneyNode",
+            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: {
               type: JourneyNodeType.DelayNode,
               variant: {
@@ -650,7 +656,7 @@ describe("journeyDefinitionFromState", () => {
         {
           id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
           data: {
-            type: "JourneyNode",
+            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: {
               type: JourneyNodeType.SegmentSplitNode,
               segmentId: uuid(),
@@ -666,7 +672,10 @@ describe("journeyDefinitionFromState", () => {
         },
         {
           id: "c1191029-49bd-4947-8ff9-9a43b64261e9",
-          data: { type: "LabelNode", title: "true" },
+          data: {
+            type: JourneyUiNodeType.JourneyUiNodeLabelProps,
+            title: "true",
+          },
           position: { x: 200, y: 900 },
           type: "label",
           width: 44,
@@ -675,7 +684,7 @@ describe("journeyDefinitionFromState", () => {
         {
           id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
           data: {
-            type: "JourneyNode",
+            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: {
               type: JourneyNodeType.MessageNode,
               channel: ChannelType.Email,
@@ -690,7 +699,7 @@ describe("journeyDefinitionFromState", () => {
         },
         {
           id: "0492df84-8c15-419a-9d8d-8856ae2a4e73",
-          data: { type: "EmptyNode" },
+          data: { type: JourneyUiNodeType.JourneyUiNodeEmptyProps },
           position: { x: 400, y: 1300 },
           type: "empty",
           width: 8,
@@ -699,7 +708,7 @@ describe("journeyDefinitionFromState", () => {
         {
           id: JourneyNodeType.ExitNode,
           data: {
-            type: "JourneyNode",
+            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: { type: JourneyNodeType.ExitNode },
           },
           position: { x: 400, y: 1500 },
@@ -709,7 +718,10 @@ describe("journeyDefinitionFromState", () => {
         },
         {
           id: "70c82013-c7a5-4b55-93ba-4158c500b79d",
-          data: { type: "LabelNode", title: "false" },
+          data: {
+            type: JourneyUiNodeType.JourneyUiNodeLabelProps,
+            title: "false",
+          },
           position: { x: 600, y: 900 },
           type: "label",
           width: 49,
@@ -751,7 +763,10 @@ describe("journeyDefinitionFromState", () => {
           id: "70c82013-c7a5-4b55-93ba-4158c500b79d->0492df84-8c15-419a-9d8d-8856ae2a4e73",
           source: "70c82013-c7a5-4b55-93ba-4158c500b79d",
           target: "0492df84-8c15-419a-9d8d-8856ae2a4e73",
-          data: { type: "WorkflowEdge", disableMarker: true },
+          data: {
+            type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+            disableMarker: true,
+          },
           type: "workflow",
         },
         {

@@ -3,12 +3,16 @@ import { JourneyNodeType } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import { AdditionalJourneyNodeType, NodeTypeProps } from "../../lib/types";
+import {
+  AdditionalJourneyNodeType,
+  JourneyUiNodeType,
+  JourneyUiNodeTypeProps,
+} from "../../lib/types";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { JourneyNodeIcon, journeyNodeIcon } from "./nodeTypes/journeyNode";
 
-const SIDEBAR_NODE_TYPES: NodeTypeProps["type"][] = [
+const SIDEBAR_NODE_TYPES: JourneyUiNodeTypeProps["type"][] = [
   JourneyNodeType.DelayNode,
   JourneyNodeType.SegmentSplitNode,
   JourneyNodeType.MessageNode,
@@ -26,8 +30,8 @@ function Sidebar() {
     () =>
       journeyNodes.find(
         (n) =>
-          n.data.type === "JourneyNode" &&
-          n.data.nodeTypeProps.type === AdditionalJourneyNodeType.UiEntryNode &&
+          n.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps &&
+          n.data.nodeTypeProps.type === AdditionalJourneyNodeType.EntryUiNode &&
           n.data.nodeTypeProps.variant.type === JourneyNodeType.EventEntryNode,
       ),
     [journeyNodes],
@@ -39,7 +43,7 @@ function Sidebar() {
   );
 
   const onDragStart =
-    ({ nodeType }: { nodeType: NodeTypeProps["type"] }) =>
+    ({ nodeType }: { nodeType: JourneyUiNodeTypeProps["type"] }) =>
     () => {
       setDraggedComponentType(nodeType);
     };
@@ -48,7 +52,7 @@ function Sidebar() {
     setDraggedComponentType(null);
   };
 
-  const nodeTypes: [NodeTypeProps["type"], JourneyNodeIcon][] =
+  const nodeTypes: [JourneyUiNodeTypeProps["type"], JourneyNodeIcon][] =
     SIDEBAR_NODE_TYPES.map((t) => [t, journeyNodeIcon(t)]);
 
   const nodeTypesEls = nodeTypes.map(([t, Icon]) => {

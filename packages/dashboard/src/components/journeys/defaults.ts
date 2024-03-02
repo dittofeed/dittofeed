@@ -1,14 +1,18 @@
 import { JourneyNodeType } from "isomorphic-lib/src/types";
 import { Edge, Node, XYPosition } from "reactflow";
 
-import { AdditionalJourneyNodeType, JourneyNodeUiProps } from "../../lib/types";
+import {
+  AdditionalJourneyNodeType,
+  JourneyNodeUiProps,
+  JourneyUiNodeType,
+} from "../../lib/types";
 import { layoutNodes } from "./layoutNodes";
 import defaultNodeTypeProps from "./nodeTypes/defaultNodeTypeProps";
 
 export const defaultEdges: Edge[] = [
   {
-    id: `${AdditionalJourneyNodeType.UiEntryNode}=>${JourneyNodeType.ExitNode}`,
-    source: AdditionalJourneyNodeType.UiEntryNode,
+    id: `${AdditionalJourneyNodeType.EntryUiNode}=>${JourneyNodeType.ExitNode}`,
+    source: AdditionalJourneyNodeType.EntryUiNode,
     target: JourneyNodeType.ExitNode,
     type: "workflow",
   },
@@ -19,11 +23,11 @@ export const placeholderNodePosition: XYPosition = { x: 0, y: 0 };
 export const defaultNodes = layoutNodes(
   [
     {
-      id: AdditionalJourneyNodeType.UiEntryNode,
+      id: AdditionalJourneyNodeType.EntryUiNode,
       data: {
-        type: "JourneyNode",
+        type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
         nodeTypeProps: defaultNodeTypeProps(
-          AdditionalJourneyNodeType.UiEntryNode,
+          AdditionalJourneyNodeType.EntryUiNode,
           [],
         ),
       },
@@ -33,7 +37,7 @@ export const defaultNodes = layoutNodes(
     {
       id: JourneyNodeType.ExitNode,
       data: {
-        type: "JourneyNode",
+        type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
         nodeTypeProps: defaultNodeTypeProps(JourneyNodeType.ExitNode, []),
       },
       position: placeholderNodePosition,

@@ -36,12 +36,12 @@ import { shallow } from "zustand/shallow";
 import { useAppStore } from "../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
-  DelayNodeProps,
-  EntryNodeProps,
-  JourneyNodeUiDefinitionProps,
-  MessageNodeProps,
-  SegmentSplitNodeProps,
-  WaitForNodeProps,
+  DelayUiNodeProps,
+  EntryUiNodeProps,
+  JourneyUiNodeDefinitionProps,
+  MessageUiNodeProps,
+  SegmentSplitUiNodeProps,
+  WaitForUiNodeProps,
 } from "../../lib/types";
 import DurationSelect from "../durationSelect";
 import { SubtleHeader } from "../headers";
@@ -62,7 +62,7 @@ function SegmentSplitNodeFields({
   nodeProps,
 }: {
   nodeId: string;
-  nodeProps: SegmentSplitNodeProps;
+  nodeProps: SegmentSplitUiNodeProps;
 }) {
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData,
@@ -107,7 +107,7 @@ function EntryNodeFields({
   nodeProps,
 }: {
   nodeId: string;
-  nodeProps: EntryNodeProps;
+  nodeProps: EntryUiNodeProps;
 }) {
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData,
@@ -125,7 +125,7 @@ function EntryNodeFields({
         updateJourneyNodeData(nodeId, (node) => {
           const props = node.data.nodeTypeProps;
           if (
-            props.type === AdditionalJourneyNodeType.UiEntryNode &&
+            props.type === AdditionalJourneyNodeType.EntryUiNode &&
             props.variant.type === JourneyNodeType.SegmentEntryNode
           ) {
             props.variant.segment = segment?.id;
@@ -163,7 +163,7 @@ function EntryNodeFields({
             updateJourneyNodeData(nodeId, (node) => {
               const props = node.data.nodeTypeProps;
               if (
-                props.type === AdditionalJourneyNodeType.UiEntryNode &&
+                props.type === AdditionalJourneyNodeType.EntryUiNode &&
                 props.variant.type === JourneyNodeType.EventEntryNode
               ) {
                 props.variant.event = newEventName;
@@ -185,7 +185,7 @@ function EntryNodeFields({
         onChange={(e) => {
           updateJourneyNodeData(nodeId, (node) => {
             const props = node.data.nodeTypeProps;
-            if (props.type !== AdditionalJourneyNodeType.UiEntryNode) {
+            if (props.type !== AdditionalJourneyNodeType.EntryUiNode) {
               return;
             }
             const type = e.target.value as EntryNode["type"];
@@ -230,7 +230,7 @@ function MessageNodeFields({
   nodeProps,
 }: {
   nodeId: string;
-  nodeProps: MessageNodeProps;
+  nodeProps: MessageUiNodeProps;
 }) {
   const { enableMobilePush, updateJourneyNodeData, messages } = useAppStore(
     (store) => ({
@@ -368,7 +368,7 @@ function DelayNodeFields({
   nodeProps,
 }: {
   nodeId: string;
-  nodeProps: DelayNodeProps;
+  nodeProps: DelayUiNodeProps;
 }) {
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData,
@@ -525,7 +525,7 @@ function WaitForNodeFields({
   nodeProps,
 }: {
   nodeId: string;
-  nodeProps: WaitForNodeProps;
+  nodeProps: WaitForUiNodeProps;
 }) {
   const { updateJourneyNodeData, segments, updateLabelNode } = useAppStore(
     (store) => ({
@@ -651,11 +651,11 @@ function NodeLayout({
   );
 }
 
-function NodeFields({ node }: { node: Node<JourneyNodeUiDefinitionProps> }) {
+function NodeFields({ node }: { node: Node<JourneyUiNodeDefinitionProps> }) {
   const nodeProps = node.data.nodeTypeProps;
 
   switch (nodeProps.type) {
-    case AdditionalJourneyNodeType.UiEntryNode:
+    case AdditionalJourneyNodeType.EntryUiNode:
       return (
         <NodeLayout nodeId={node.id}>
           <EntryNodeFields nodeId={node.id} nodeProps={nodeProps} />
@@ -694,7 +694,7 @@ function NodeFields({ node }: { node: Node<JourneyNodeUiDefinitionProps> }) {
 function NodeEditorContents({
   node,
 }: {
-  node: Node<JourneyNodeUiDefinitionProps>;
+  node: Node<JourneyUiNodeDefinitionProps>;
 }) {
   const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
   const closeNodeEditor = () => {

@@ -1,7 +1,11 @@
 import { JourneyNodeType } from "isomorphic-lib/src/types";
 import { Node } from "reactflow";
 
-import { AdditionalJourneyNodeType, JourneyNodeUiProps } from "../../lib/types";
+import {
+  AdditionalJourneyNodeType,
+  JourneyNodeUiProps,
+  JourneyUiNodeType,
+} from "../../lib/types";
 
 export enum GlobalJourneyErrorType {
   WaitForNodeAndEventEntryNode = "WaitForNodeAndEventEntryNode",
@@ -14,10 +18,10 @@ export function getGlobalJourneyErrors({
   let hasEventEntry = false;
   let hasWaitForNode = false;
   for (const node of nodes) {
-    if (node.data.type === "JourneyNode") {
+    if (node.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps) {
       const { nodeTypeProps } = node.data;
       if (
-        nodeTypeProps.type === AdditionalJourneyNodeType.UiEntryNode &&
+        nodeTypeProps.type === AdditionalJourneyNodeType.EntryUiNode &&
         nodeTypeProps.variant.type === JourneyNodeType.EventEntryNode
       ) {
         hasEventEntry = true;

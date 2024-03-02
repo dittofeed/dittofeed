@@ -1,12 +1,16 @@
 import { Node } from "reactflow";
 
 import {
-  JourneyNodeUiDefinitionProps,
   JourneyNodeUiProps,
+  JourneyUiNodeDefinitionProps,
+  JourneyUiNodeType,
 } from "../../lib/types";
 
 export function isJourneyNode(
   node: Node<JourneyNodeUiProps>,
-): node is Node<JourneyNodeUiDefinitionProps> {
-  return node.type === "journey" && node.data.type === "JourneyNode";
+): node is Node<JourneyUiNodeDefinitionProps> {
+  return (
+    node.type === "journey" &&
+    node.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps
+  );
 }

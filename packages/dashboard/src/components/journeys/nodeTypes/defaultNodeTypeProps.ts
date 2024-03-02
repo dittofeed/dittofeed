@@ -9,17 +9,18 @@ import { v4 as uuid } from "uuid";
 import {
   AdditionalJourneyNodeType,
   JourneyNodeUiProps,
-  NodeTypeProps,
+  JourneyUiNodeType,
+  JourneyUiNodeTypeProps,
 } from "../../../lib/types";
 
 export const defaultSegmentSplitName = "True / False Branch";
 
 export default function defaultNodeTypeProps(
-  type: NodeTypeProps["type"],
+  type: JourneyUiNodeTypeProps["type"],
   nodes: Node<JourneyNodeUiProps>[],
-): NodeTypeProps {
+): JourneyUiNodeTypeProps {
   switch (type) {
-    case AdditionalJourneyNodeType.UiEntryNode:
+    case AdditionalJourneyNodeType.EntryUiNode:
       return {
         type,
         variant: {
@@ -34,7 +35,7 @@ export default function defaultNodeTypeProps(
       const numMessages =
         nodes.filter(
           (n) =>
-            n.data.type === "JourneyNode" &&
+            n.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps &&
             n.data.nodeTypeProps.type === JourneyNodeType.MessageNode,
         ).length + 1;
       return {
