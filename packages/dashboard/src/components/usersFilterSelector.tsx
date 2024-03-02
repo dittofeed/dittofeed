@@ -8,6 +8,7 @@ import * as React from "react";
 import {
   FilterStage,
   FilterStageType,
+  FilterStageWithBack,
   filterStore,
   filterStorePick,
 } from "../lib/filterStore";
@@ -232,15 +233,32 @@ function FilterSelectors() {
   );
 }
 
-function SelectorFooter({
-  stage,
-  handlePrevious,
-  handleSubmit,
-}: {
-  stage: FilterStage;
-  handlePrevious: () => void;
-  handleSubmit: () => void;
-}) {
+function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
+  const { setStage, addUserProperty } = filterStorePick([
+    "setStage",
+    "addUserProperty",
+  ]);
+
+  const handlePrevious = () => {
+    switch (stage.type) {
+      case FilterStageType.UserPropertyValue:
+        setStage({
+          type: FilterStageType.UserProperty,
+        });
+        break;
+      case FilterStageType.UserProperty:
+        setStage({
+          type: FilterStageType.ComputedPropertyType,
+        });
+        break;
+      case FilterStageType.Segment:
+        setStage({
+          type: FilterStageType.ComputedPropertyType,
+        });
+        break;
+    }
+  };
+
   return (
     <Box
       paddingX="5%"
@@ -259,7 +277,7 @@ function SelectorFooter({
       {stage.type === FilterStageType.UserPropertyValue ? (
         <Typography
           sx={{ fontSize: "10px", cursor: "pointer" }}
-          onClick={handleSubmit}
+          onClick={addUserProperty}
         >
           Submit
         </Typography>
@@ -314,19 +332,6 @@ export default function FilterSelect() {
     handleClose();
   };
 
-  const handlePrevious = () => {
-    setFilter("");
-    if (stage === Stage.SELECTING_ID) {
-      setSelectedFilter(FilterStageType.NONE);
-      setStage(Stage.SELECTING_FILTER);
-    }
-
-    if (stage === Stage.SELECTING_VALUE) {
-      setSelectedId("");
-      setStage(Stage.SELECTING_ID);
-    }
-  };
-
   return (
     <div>
       <Button
@@ -356,22 +361,11 @@ export default function FilterSelect() {
           {stage?.type === FilterStageType.ComputedPropertyType ? (
             <FilterSelectors />
           ) : (
-            <IdAndValueSelector
-              stage={stage}
-              handleValueSelection={handleValueSelection}
-              handleIdSelection={handleIdSelection}
-              filter={filter}
-              setFilter={setFilter}
-            />
+            <IdAndValueSelector />
           )}
         </Box>
         {stage && stage.type !== FilterStageType.ComputedPropertyType && (
-          <SelectorFooter
-            stage={stage}
-            handlePrevious={handlePrevious}
-            // FIXME
-            handleSubmit={() => {}}
-          />
+          <SelectorFooter stage={stage} />
         )}
       </Menu>
     </div>

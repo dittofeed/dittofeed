@@ -20,11 +20,17 @@ interface UserPropertyStage {
 interface UserPropertyValueStage {
   type: FilterStageType.UserPropertyValue;
   id: string;
+  value: string;
 }
 
 interface SegmentStage {
   type: FilterStageType.Segment;
 }
+
+export type FilterStageWithBack =
+  | UserPropertyStage
+  | SegmentStage
+  | UserPropertyValueStage;
 
 export type FilterStage =
   | UserPropertyStage
@@ -41,8 +47,8 @@ interface UserFilterState {
 }
 
 interface UserFilterActions {
-  addUserProperty: (propertyId: string, propertyValue: string) => void;
-  addSegment: (segmentId: string) => void;
+  addUserProperty: () => void;
+  addSegment: (id: string) => void;
   removeUserProperty: (propertyId: string) => void;
   removeSegment: (segmentId: string) => void;
   setStage: (stage: FilterStage | null) => void;
@@ -55,16 +61,25 @@ export const filterStore = create(
     userProperties: new Map(),
     segments: new Set(),
     stage: null,
-    addUserProperty: (propertyId, propertyValue) => {
+    addUserProperty: () => {
       set((state) => {
-        state.userProperties.set(propertyId, propertyValue);
+        if (state.stage?.type !== FilterStageType.UserPropertyValue) {
+          return state;
+        }
+        const { id, value } = state.stage;
+        state.userProperties.set(id, value);
         state.stage = null;
+        return state;
       });
     },
-    addSegment: (segmentId) => {
+    addSegment: (id) => {
       set((state) => {
-        state.segments.add(segmentId);
+        if (state.stage?.type !== FilterStageType.Segment) {
+          return state;
+        }
+        state.segments.add(id);
         state.stage = null;
+        return state;
       });
     },
     removeUserProperty: (propertyId) => {
