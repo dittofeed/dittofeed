@@ -1,11 +1,7 @@
 import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
-import {
-  buildHeritageMap,
-  getNodeId,
-  HeritageMap,
-} from "isomorphic-lib/src/journeys";
+import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
 import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
 import { parseInt, round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -21,9 +17,7 @@ import {
   ChannelType,
   EnrichedJourney,
   InternalEventType,
-  JourneyBodyNode,
   JourneyDefinition,
-  JourneyNode,
   JourneyNodeType,
   JourneyStats,
   NodeStatsType,
@@ -182,42 +176,23 @@ function getEdgePercentRaw({
   if (targetMapEntry.parents.size === 1) {
     return targetCount / originCount;
   }
+
+  // when the target has multiple parents, we need to calculate the siblings
+  // count in order to handle the case of a re-joined e.g segment-split
   let siblingsCount = 0;
-  for (const parentId of targetMapEntry.parents) {
-    if (originMapEntry.descendants.has(parentId)) {
-      logger().debug(
-        {
-          parentId,
-          targetId,
-          originId,
-        },
-        "found parent in origin descendants",
-      );
-      const siblingCount = getUnsafe(nodeProcessedMap, parentId);
-      siblingsCount += siblingCount;
+  for (const childId of originMapEntry.children) {
+    if (childId === targetId) {
+      continue;
     }
+    const siblingCount = getUnsafe(nodeProcessedMap, childId);
+    siblingsCount += siblingCount;
   }
-  logger().debug(
-    {
-      siblingsCount,
-      originCount,
-      targetId,
-      originId,
-    },
-    "got siblings count",
-  );
+
   return (originCount - siblingsCount) / originCount;
 }
 
 function getEdgePercent(params: GetEdgePercentParams): number {
   const raw = getEdgePercentRaw(params);
-  logger().debug(
-    {
-      raw,
-      ...params,
-    },
-    "got raw edge percent",
-  );
   return round(raw * 100, 1);
 }
 
@@ -383,8 +358,6 @@ group by event, node_id;`;
       const nodeStats = statsMap.get(node.id);
 
       if (node.type === JourneyNodeType.SegmentSplitNode) {
-        console.log("loc1");
-        logger().debug("loc2");
         stats.nodeStats[node.id] = {
           type: NodeStatsType.SegmentSplitNodeStats,
           proportions: {
@@ -396,45 +369,18 @@ group by event, node_id;`;
             }),
           },
         };
-        // const parentNodeProcessed = nodeProcessedMap.get(node.id);
-        // const falseChildNodesProcessed =
-        //   nodeProcessedMap.get(node.variant.falseChild) ?? 0;
-
-        // if (parentNodeProcessed) {
-        //   const falseChildNodeProcessedRate =
-        //     falseChildNodesProcessed / parentNodeProcessed;
-
-        //   const falseChildEdgeProportion = (
-        //     falseChildNodeProcessedRate * 100
-        //   ).toFixed(1);
-
-        //   stats.nodeStats[node.id] = {
-        //     type: NodeStatsType.SegmentSplitNodeStats,
-        //     proportions: {
-        //       falseChildEdge: parseFloat(falseChildEdgeProportion),
-        //     },
-        //   };
-        // }
       } else if (node.type === JourneyNodeType.WaitForNode) {
-        const parentNodeProcessed = nodeProcessedMap.get(node.id);
-        let segmentChildNodesProcessed = 0;
-
-        if (node.segmentChildren[0]) {
-          segmentChildNodesProcessed =
-            nodeProcessedMap.get(node.segmentChildren[0].id) ?? 0;
-        }
-
-        if (parentNodeProcessed) {
-          const segmentChildNodeProcessedRate =
-            segmentChildNodesProcessed / parentNodeProcessed;
-          const segmentChildEdgeProportion = (
-            segmentChildNodeProcessedRate * 100
-          ).toFixed(1);
-
+        const segmentChild = node.segmentChildren[0];
+        if (segmentChild) {
           stats.nodeStats[node.id] = {
             type: NodeStatsType.WaitForNodeStats,
             proportions: {
-              segmentChildEdge: parseFloat(segmentChildEdgeProportion),
+              segmentChildEdge: getEdgePercent({
+                originId: node.id,
+                targetId: segmentChild.id,
+                heritageMap,
+                nodeProcessedMap,
+              }),
             },
           };
         }
