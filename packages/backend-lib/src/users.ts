@@ -149,6 +149,7 @@ function buildUserIdQueries({
   if (!userPropertyFilter && !segmentFilter) {
     userIdQueries.push(segmentAssignmentQuery);
     userIdQueries.push(userPropertyAssignmentQuery);
+    return Prisma.join(userIdQueries, " UNION ALL ");
   }
 
   return Prisma.join(userIdQueries, " INTERSECT ");
