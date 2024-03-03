@@ -261,11 +261,11 @@ export async function findManyEventsWithCount({
     : "";
 
   const startDateClause = startDate
-    ? `AND event_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
+    ? `AND processing_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
     : "";
 
   const endDateClause = endDate
-    ? `AND event_time <= ${qb.addQueryValue(endDate, "DateTime64(3)")}`
+    ? `AND processing_time <= ${qb.addQueryValue(endDate, "DateTime64(3)")}`
     : "";
 
   const userIdClause = userId
