@@ -2,7 +2,11 @@ import { ClickHouseSettings, Row } from "@clickhouse/client";
 import { arrayDefault } from "isomorphic-lib/src/arrays";
 import { ok, Result } from "neverthrow";
 
-import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
+import {
+  clickhouseClient,
+  ClickHouseQueryBuilder,
+  query as chQuery,
+} from "./clickhouse";
 import config from "./config";
 import { kafkaProducer } from "./kafka";
 import prisma from "./prisma";
@@ -153,7 +157,7 @@ export async function findUserIdByMessageId({
 }): Promise<string | null> {
   const query = `SELECT user_id FROM user_events_v2 WHERE message_id = {messageId:String} AND workspace_id = {workspaceId:String} LIMIT 1`;
 
-  const resultSet = await clickhouseClient().query({
+  const resultSet = await chQuery({
     query,
     format: "JSONEachRow",
     query_params: {
@@ -213,7 +217,7 @@ export async function findIdentifyTraits({
     WHERE workspace_id = {workspaceId:String}
   `;
 
-  const resultSet = await clickhouseClient().query({
+  const resultSet = await chQuery({
     query,
     format: "JSONEachRow",
     query_params: {
@@ -332,12 +336,12 @@ export async function findManyEventsWithCount({
   `;
 
   const [eventsResultSet, countResultSet] = await Promise.all([
-    clickhouseClient().query({
+    chQuery({
       query: eventsQuery,
       format: "JSONEachRow",
       query_params: qb.getQueries(),
     }),
-    clickhouseClient().query({
+    chQuery({
       query: countQuery,
       format: "JSONEachRow",
       query_params: qb.getQueries(),
