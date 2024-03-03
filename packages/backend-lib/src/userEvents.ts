@@ -250,7 +250,6 @@ export async function findManyEventsWithCount({
   searchTerm?: string;
 }): Promise<{ events: UserEventsWithTraits[]; count: number }> {
   const qb = new ClickHouseQueryBuilder();
-
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
   const paginationClause = limit
@@ -295,7 +294,7 @@ export async function findManyEventsWithCount({
         processing_time,
         JSONExtractRaw(message_raw, 'traits') AS traits,
         JSONExtractRaw(message_raw, 'properties') AS properties
-    FROM dittofeed.user_events_v2
+    FROM user_events_v2
     WHERE
       workspace_id = ${workspaceIdParam}
       ${startDateClause}
