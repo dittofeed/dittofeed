@@ -2,15 +2,15 @@ import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
 import {
   Autocomplete,
   Box,
+  IconButton,
   Popover,
   TextField,
   Typography,
-  useAutocomplete,
   useTheme,
 } from "@mui/material";
 import Button from "@mui/material/Button";
-import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import * as React from "react";
 
@@ -19,6 +19,7 @@ import {
   FilterStageType,
   FilterStageWithBack,
   filterStorePick,
+  FilterUserPropertyValueStage,
 } from "../lib/filterStore";
 
 interface Option {
@@ -44,7 +45,7 @@ function ComputedPropertyAutocomplete({
       autoComplete
       disablePortal
       renderInput={(params) => (
-        <TextField {...params} variant="filled" label={label} />
+        <TextField {...params} variant="filled" label={label} autoFocus />
       )}
       renderOption={(props, option) => {
         return (
@@ -119,7 +120,40 @@ function UserPropertySelector() {
   );
 }
 
-function FilterSelectors() {
+function UserPropertyValueSelector({
+  stage,
+  closeDropdown,
+}: {
+  stage: FilterUserPropertyValueStage;
+  closeDropdown: () => void;
+}) {
+  const { setStage, addUserProperty } = filterStorePick([
+    "setStage",
+    "addUserProperty",
+  ]);
+  return (
+    <TextField
+      label="Value"
+      value={stage.value}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          addUserProperty();
+          closeDropdown();
+        }
+      }}
+      onChange={(e) => {
+        const { value } = e.target;
+        setStage({
+          type: FilterStageType.UserPropertyValue,
+          id: stage.id,
+          value,
+        });
+      }}
+    />
+  );
+}
+
+function ComputedPropertyTypeSelector() {
   const { setStage } = filterStorePick(["setStage"]);
   const FilterOptionsArray: {
     title: string;
@@ -180,19 +214,16 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
 
   return (
     <Box
-      paddingX="5%"
       textAlign="left"
-      height="18px"
       display="flex"
       justifyContent="space-between"
+      sx={{ p: 1 }}
       alignItems="center"
-      mt="5px"
     >
-      {/* // FIXME icon button */}
-      <KeyboardBackspaceIcon
-        sx={{ width: "15px", cursor: "pointer" }}
-        onClick={() => handlePrevious()}
-      />
+      <IconButton size="small" onClick={() => handlePrevious()}>
+        <KeyboardBackspaceIcon />
+      </IconButton>
+
       {stage.type === FilterStageType.UserPropertyValue ? (
         <Typography
           sx={{ fontSize: "10px", cursor: "pointer" }}
@@ -228,7 +259,7 @@ export default function UsersFilterSelector() {
   if (stage) {
     switch (stage.type) {
       case FilterStageType.ComputedPropertyType:
-        stageEl = <FilterSelectors />;
+        stageEl = <ComputedPropertyTypeSelector />;
         break;
       case FilterStageType.Segment:
         stageEl = <SegmentSelector closeDropdown={handleClose} />;
@@ -236,10 +267,16 @@ export default function UsersFilterSelector() {
       case FilterStageType.UserProperty:
         stageEl = <UserPropertySelector />;
         break;
-      default:
-        throw new Error("unimplemented");
-        // FIXME
+      case FilterStageType.UserPropertyValue:
+        stageEl = (
+          <UserPropertyValueSelector
+            stage={stage}
+            closeDropdown={handleClose}
+          />
+        );
         break;
+      default:
+        assertUnreachable(stage);
     }
   }
 
@@ -264,10 +301,10 @@ export default function UsersFilterSelector() {
         }}
         onClose={handleClose}
       >
-        <Box>{stageEl}</Box>
         {stage && stage.type !== FilterStageType.ComputedPropertyType && (
           <SelectorFooter stage={stage} />
         )}
+        <Box>{stageEl}</Box>
       </Popover>
     </div>
   );
