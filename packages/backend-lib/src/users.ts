@@ -53,11 +53,12 @@ function getUserPropertyAssignmentConditions(
 
   for (const property of userPropertyFilter) {
     fullQuery.push(
-      Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.values)}]))`,
+      Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND "value" ILIKE ANY (ARRAY[${Prisma.join(property.values)}]))`,
     );
   }
 
-  return Prisma.join(fullQuery, " AND ");
+  // TODO this isn't right. Should be an AND but have to do a group by first
+  return Prisma.join(fullQuery, " OR ");
 }
 
 function buildUserIdQueries({
