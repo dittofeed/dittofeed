@@ -26,8 +26,43 @@ interface Option {
   label: string;
 }
 
-function SegmentSelector({ closeDropdown }: { closeDropdown: () => void }) {
+function ComputedPropertyAutocomplete({
+  options,
+  onClick,
+  label,
+}: {
+  options: Option[];
+  onClick: (id: string) => void;
+  label: string;
+}) {
   const theme = useTheme();
+  return (
+    <Autocomplete
+      options={options}
+      open
+      sx={{ width: theme.spacing(18), height: "100%" }}
+      autoComplete
+      disablePortal
+      renderInput={(params) => (
+        <TextField {...params} variant="filled" label={label} />
+      )}
+      renderOption={(props, option) => {
+        return (
+          <MenuItem
+            {...props}
+            onClick={() => {
+              onClick(option.id);
+            }}
+          >
+            {option.label}
+          </MenuItem>
+        );
+      }}
+    />
+  );
+}
+
+function SegmentSelector({ closeDropdown }: { closeDropdown: () => void }) {
   const { segments: segmentsResult } = useAppStorePick(["segments"]);
   const { addSegment } = filterStorePick(["addSegment"]);
 
@@ -42,28 +77,44 @@ function SegmentSelector({ closeDropdown }: { closeDropdown: () => void }) {
   }, [segmentsResult]);
 
   return (
-    <Autocomplete
+    <ComputedPropertyAutocomplete
       options={options}
-      open
-      sx={{ width: theme.spacing(14), height: "100%" }}
-      autoComplete
-      disablePortal
-      renderInput={(params) => (
-        <TextField {...params} variant="filled" label="Segment" />
-      )}
-      renderOption={(props, option) => {
-        return (
-          <MenuItem
-            {...props}
-            onClick={() => {
-              addSegment(option.id);
-              closeDropdown();
-            }}
-          >
-            {option.label}
-          </MenuItem>
-        );
+      onClick={(id) => {
+        addSegment(id);
+        closeDropdown();
       }}
+      label="Segment"
+    />
+  );
+}
+
+function UserPropertySelector() {
+  const { userProperties: userPropertiesResult } = useAppStorePick([
+    "userProperties",
+  ]);
+  const { setStage } = filterStorePick(["setStage"]);
+
+  const options: Option[] = React.useMemo(() => {
+    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    return userPropertiesResult.value.map((up) => ({
+      id: up.id,
+      label: up.name,
+    }));
+  }, [userPropertiesResult]);
+
+  return (
+    <ComputedPropertyAutocomplete
+      options={options}
+      onClick={(id) => {
+        setStage({
+          type: FilterStageType.UserPropertyValue,
+          id,
+          value: "",
+        });
+      }}
+      label="User Property"
     />
   );
 }
@@ -181,6 +232,9 @@ export default function UsersFilterSelector() {
         break;
       case FilterStageType.Segment:
         stageEl = <SegmentSelector closeDropdown={handleClose} />;
+        break;
+      case FilterStageType.UserProperty:
+        stageEl = <UserPropertySelector />;
         break;
       default:
         throw new Error("unimplemented");
