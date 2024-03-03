@@ -206,6 +206,8 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
           type: FilterStageType.ComputedPropertyType,
         });
         break;
+      default:
+        assertUnreachable(stage);
     }
   };
 
