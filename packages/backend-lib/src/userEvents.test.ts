@@ -1,7 +1,7 @@
 import { Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 
-import { submitBatch } from "./apps/batch";
+import { submitBatch } from "../test/testEvents";
 import prisma from "./prisma";
 import { segmentIdentifyEvent } from "./segmentIO";
 import { EventType } from "./types";
@@ -66,31 +66,31 @@ describe("userEvents", () => {
         messageId1 = randomUUID();
         messageId2 = randomUUID();
         messageId3 = randomUUID();
+        const now = new Date("2023-01-01T00:00:00.000Z").getTime();
 
         await submitBatch({
           workspaceId: workspace.id,
-          data: {
-            batch: [
-              {
-                type: EventType.Identify,
-                messageId: messageId1,
-                userId: "user1",
-                timestamp: "2023-01-05T00:00:00.000Z",
-              },
-              {
-                type: EventType.Identify,
-                messageId: messageId2,
-                userId: "user1",
-                timestamp: "2023-01-10T00:00:00.000Z",
-              },
-              {
-                type: EventType.Identify,
-                messageId: messageId3,
-                userId: "user1",
-                timestamp: "2023-01-15T00:00:00.000Z",
-              },
-            ],
-          },
+          now,
+          data: [
+            {
+              type: EventType.Identify,
+              messageId: messageId1,
+              userId: "user1",
+              offsetMs: 4 * 24 * 60 * 60 * 1000,
+            },
+            {
+              type: EventType.Identify,
+              messageId: messageId2,
+              userId: "user1",
+              offsetMs: 9 * 24 * 60 * 60 * 1000,
+            },
+            {
+              type: EventType.Identify,
+              messageId: messageId3,
+              userId: "user1",
+              offsetMs: 14 * 24 * 60 * 60 * 1000,
+            },
+          ],
         });
       });
 
