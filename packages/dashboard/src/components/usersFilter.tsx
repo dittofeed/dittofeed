@@ -113,10 +113,12 @@ export function UsersFilter() {
       justifyItems="center"
       alignItems="center"
     >
-      {joinedUserPropertyFilters.map((property) => (
+      {joinedUserPropertyFilters.flatMap((property) => (
         <AppliedFilter
           key={property.id}
-          name={property.name}
+          name={property.values
+            .map((value) => `${property.name} = "${value}"`)
+            .join(" OR ")}
           label="User Property"
           remove={() => removeUserPropertyFilter(property.id)}
         />
