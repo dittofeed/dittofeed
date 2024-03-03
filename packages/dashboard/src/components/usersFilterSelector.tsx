@@ -53,7 +53,18 @@ function ComputedPropertyAutocomplete({
         <TextField {...params} variant="filled" label={label} autoFocus />
       )}
       renderOption={(props, option) => {
-        return <MenuItem {...props}>{option.label}</MenuItem>;
+        return (
+          <MenuItem
+            {...props}
+            sx={{
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {option.label}
+          </MenuItem>
+        );
       }}
     />
   );
