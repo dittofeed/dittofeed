@@ -1,158 +1,107 @@
-import {
-  CompletionStatus,
-  EphemeralRequestStatus,
-  SegmentResource,
-  UserPropertyResource,
-} from "isomorphic-lib/src/types";
+import { pick } from "remeda/dist/commonjs/pick";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-export function camelCaseToNormalText(camelCaseString: string) {
-  // Split the camel case string into words
-  const words = camelCaseString.replace(/([a-z])([A-Z])/g, "$1 $2").split(" ");
-
-  // Capitalize each word
-  const capitalizedWords = words.map((word: string) => {
-    return word.charAt(0).toUpperCase() + word.slice(1);
-  });
-
-  // Join the words to form the normal text
-  const normalText = capitalizedWords.join(" ");
-
-  return normalText;
+export enum FilterStageType {
+  ComputedPropertyType = "ComputedPropertyType",
+  UserProperty = "UserProperty",
+  UserPropertyValue = "UserPropertyValue",
+  Segment = "Segment",
 }
 
-export function filterIds(
-  propertyValuesById: [string, string][],
-  filterString: string,
-): [string, string][] {
-  return propertyValuesById.filter(([propertyValue]) =>
-    propertyValue.toLowerCase().includes(filterString.toLowerCase()),
-  );
+export interface FilterComputedPropertyTypeStage {
+  type: FilterStageType.ComputedPropertyType;
 }
 
-export enum FilterOptions {
-  "USER_PROPERTY",
-  "SEGMENTS",
-  "NONE",
+export interface FilterUserPropertyStage {
+  type: FilterStageType.UserProperty;
 }
 
-interface UserPropertiesState {
-  // Object stores a list of available properties where
-  // key = propertyId
-  // value = property_value
-  // { uuid: "firstName" }
-  properties: Record<string, string>;
-  selectedId: string;
-  segments: Record<string, string>;
-  selectedFilter: FilterOptions;
-  userPropertyFilter: Record<
-    string,
-    {
-      id: string;
-      partial?: string[];
-    }
-  >;
-  segmentFilter: string[];
-  getUserPropertiesRequest: EphemeralRequestStatus<Error>;
+export interface FilterUserPropertyValueStage {
+  type: FilterStageType.UserPropertyValue;
+  id: string;
+  value: string;
 }
 
-interface UserPropertiesActions {
-  setProperties: (val: UserPropertyResource[]) => void;
-  setSegments: (val: Pick<SegmentResource, "name" | "id">[]) => void;
-  setSelectedFilter: (val: FilterOptions) => void;
-  setSelectedId: (val: string) => void;
-  setSegmentFilter: (val: string) => void;
-  setUserPropertyFilter: (val: string, isPartialMatch?: boolean) => void;
-  removePropertyFilter: (
-    propertyId: string,
-    userId?: string,
-    isPartialMatch?: boolean,
-  ) => void;
-  removeSegmentFilter: (segmentId: string) => void;
-  setGetUserPropertiesRequest: (val: EphemeralRequestStatus<Error>) => void;
+export interface FilterSegmentStage {
+  type: FilterStageType.Segment;
 }
+
+export type FilterStageWithBack =
+  | FilterUserPropertyStage
+  | FilterSegmentStage
+  | FilterUserPropertyValueStage;
+
+export type FilterStage =
+  | FilterUserPropertyStage
+  | FilterUserPropertyValueStage
+  | FilterSegmentStage
+  | FilterComputedPropertyTypeStage;
+
+interface UserFilterState {
+  // map from user property id to user property value
+  userProperties: Map<string, Set<string>>;
+  // set of segment ids
+  segments: Set<string>;
+  stage: FilterStage | null;
+}
+
+interface UserFilterActions {
+  addUserProperty: () => void;
+  addSegment: (id: string) => void;
+  removeUserProperty: (propertyId: string) => void;
+  removeSegment: (segmentId: string) => void;
+  setStage: (stage: FilterStage | null) => void;
+}
+
+export type FilterStoreContents = UserFilterState & UserFilterActions;
 
 export const filterStore = create(
-  immer<UserPropertiesState & UserPropertiesActions>((set) => ({
-    properties: {},
-    segments: {},
-    selectedFilter: FilterOptions.NONE,
-    selectedId: "",
-    propertiesValues: {},
-    segmentFilter: [],
-    userPropertyFilter: {},
-    getUserPropertiesRequest: {
-      type: CompletionStatus.NotStarted,
+  immer<FilterStoreContents>((set) => ({
+    userProperties: new Map(),
+    segments: new Set(),
+    stage: null,
+    addUserProperty: () => {
+      set((state) => {
+        if (state.stage?.type !== FilterStageType.UserPropertyValue) {
+          return state;
+        }
+        const { id, value } = state.stage;
+        const values = state.userProperties.get(id) ?? new Set();
+        values.add(value);
+        state.userProperties.set(id, values);
+        return state;
+      });
     },
-    setSelectedFilter: (filterOption) =>
+    addSegment: (id) => {
       set((state) => {
-        state.selectedFilter = filterOption;
-      }),
-    setGetUserPropertiesRequest: (request) =>
-      set((state) => {
-        state.getUserPropertiesRequest = request;
-      }),
-    setProperties: (properties) =>
-      set((state) => {
-        for (const property of properties) {
-          state.properties[property.id] = camelCaseToNormalText(property.name);
+        if (state.stage?.type !== FilterStageType.Segment) {
+          return state;
         }
-      }),
-    setSegments: (segments) =>
+        state.segments.add(id);
+        return state;
+      });
+    },
+    removeUserProperty: (propertyId) => {
       set((state) => {
-        for (const segment of segments) {
-          state.segments[segment.id] = camelCaseToNormalText(segment.name);
-        }
-      }),
-    setSelectedId: (property) =>
+        state.userProperties.delete(propertyId);
+      });
+    },
+    removeSegment: (segmentId) => {
       set((state) => {
-        state.selectedId = property;
-      }),
-    setSegmentFilter: (selectedSegmentId) =>
+        state.segments.delete(segmentId);
+      });
+    },
+    setStage: (stage) => {
       set((state) => {
-        if (!state.segmentFilter.includes(selectedSegmentId)) {
-          state.segmentFilter.push(selectedSegmentId);
-        }
-      }),
-    setUserPropertyFilter: (selectedPropertyValue) =>
-      set((state) => {
-        if (state.userPropertyFilter[state.selectedId]) {
-          state.userPropertyFilter[state.selectedId]?.partial?.push(
-            `${selectedPropertyValue.toLowerCase()}%`,
-          );
-        } else {
-          state.userPropertyFilter[state.selectedId] = {
-            id: state.selectedId,
-            partial: [`${selectedPropertyValue.toLowerCase()}%`],
-          };
-        }
-      }),
-    removePropertyFilter: (propertyId, valueToDelete, isPartialMatch) =>
-      set((state) => {
-        const partialMatchesLength: number | undefined =
-          state.userPropertyFilter[propertyId]?.partial?.length;
-
-        if (!partialMatchesLength) return;
-
-        if (!valueToDelete) delete state.userPropertyFilter[propertyId];
-
-        if (isPartialMatch) {
-          if (partialMatchesLength < 2) {
-            delete state.userPropertyFilter[propertyId];
-          } else {
-            (state.userPropertyFilter[propertyId] as any).partial =
-              state.userPropertyFilter[propertyId]?.partial?.filter(
-                (partialMatch) => partialMatch !== valueToDelete,
-              );
-          }
-        }
-      }),
-    removeSegmentFilter: (segmentId) =>
-      set((state) => {
-        state.segmentFilter = state.segmentFilter.filter(
-          (segment) => segment !== segmentId,
-        );
-      }),
+        state.stage = stage;
+      });
+    },
   })),
 );
+
+export function filterStorePick<K extends keyof FilterStoreContents>(
+  params: K[],
+): Pick<FilterStoreContents, K> {
+  return filterStore((store) => pick(store, params));
+}

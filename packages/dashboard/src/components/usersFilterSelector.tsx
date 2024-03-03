@@ -1,159 +1,168 @@
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
-import { Box, Stack, TextField, Typography } from "@mui/material";
+import {
+  Autocomplete,
+  Box,
+  IconButton,
+  Popover,
+  TextField,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import Button from "@mui/material/Button";
-import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import * as React from "react";
 
-import { filterIds, FilterOptions, filterStore } from "../lib/filterStore";
+import { useAppStorePick } from "../lib/appStore";
+import {
+  FilterStageType,
+  FilterStageWithBack,
+  filterStorePick,
+  FilterUserPropertyValueStage,
+} from "../lib/filterStore";
 
-enum Stage {
-  "SELECTING_FILTER",
-  "SELECTING_ID",
-  "SELECTING_VALUE",
+interface Option {
+  id: string;
+  label: string;
 }
 
-function Options({
-  handleSelection,
-  filteredOptions,
-  isDisabled,
+function ComputedPropertyAutocomplete({
+  options,
+  onChange,
+  label,
 }: {
-  handleSelection: (selectedProperty: string | undefined) => void;
-  filteredOptions: [string, string][];
-  isDisabled: boolean;
+  options: Option[];
+  onChange: (id: string) => void;
+  label: string;
 }) {
+  const theme = useTheme();
   return (
-    <>
-      {isDisabled ? (
-        <Stack minWidth="100%" justifyContent="center" alignItems="center">
-          <Typography
-            sx={{
-              opacity: "0.6",
-            }}
-            variant="caption"
-            paddingTop="6px"
-            component="div"
-          >
-            Filtering by {filteredOptions[0] ? filteredOptions[0][1] : null}
-          </Typography>
-        </Stack>
-      ) : (
-        <>
-          {filteredOptions.map((property) => (
-            <MenuItem
-              disabled={isDisabled}
-              key={property[0]}
-              onClick={() => handleSelection(property[0])}
-            >
-              {property[1]}
-            </MenuItem>
-          ))}
-        </>
+    <Autocomplete
+      onChange={(_, value) => {
+        if (value) {
+          onChange(value.id);
+        }
+      }}
+      options={options}
+      open
+      sx={{ width: theme.spacing(18), height: "100%" }}
+      autoComplete
+      disablePortal
+      renderInput={(params) => (
+        <TextField {...params} variant="filled" label={label} autoFocus />
       )}
-    </>
+      renderOption={(props, option) => {
+        return <MenuItem {...props}>{option.label}</MenuItem>;
+      }}
+    />
   );
 }
 
-function IdAndValueSelector({
+function SegmentSelector({ closeDropdown }: { closeDropdown: () => void }) {
+  const { segments: segmentsResult } = useAppStorePick(["segments"]);
+  const { addSegment } = filterStorePick(["addSegment"]);
+
+  const options: Option[] = React.useMemo(() => {
+    if (segmentsResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    return segmentsResult.value.map((segment) => ({
+      id: segment.id,
+      label: segment.name,
+    }));
+  }, [segmentsResult]);
+
+  return (
+    <ComputedPropertyAutocomplete
+      options={options}
+      onChange={(id) => {
+        addSegment(id);
+        closeDropdown();
+      }}
+      label="Segment"
+    />
+  );
+}
+
+function UserPropertySelector() {
+  const { userProperties: userPropertiesResult } = useAppStorePick([
+    "userProperties",
+  ]);
+  const { setStage } = filterStorePick(["setStage"]);
+
+  const options: Option[] = React.useMemo(() => {
+    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    return userPropertiesResult.value.map((up) => ({
+      id: up.id,
+      label: up.name,
+    }));
+  }, [userPropertiesResult]);
+
+  return (
+    <ComputedPropertyAutocomplete
+      options={options}
+      onChange={(id) => {
+        setStage({
+          type: FilterStageType.UserPropertyValue,
+          id,
+          value: "",
+        });
+      }}
+      label="User Property"
+    />
+  );
+}
+
+function UserPropertyValueSelector({
   stage,
-  handleIdSelection,
-  handleValueSelection,
-  filter,
-  setFilter,
+  closeDropdown,
 }: {
-  stage: Stage;
-  handleIdSelection: (selectedId: string | undefined) => void;
-  handleValueSelection: (propertyAssignmentId: string | undefined) => void;
-  filter: string;
-  setFilter: (value: string) => void;
+  stage: FilterUserPropertyValueStage;
+  closeDropdown: () => void;
 }) {
-  /// ///////////////////////////////
-  // START ID Selector Related
-  /// ///////////////////////////////
-  // Selected filter can be either Segments or Properties
-  const selectedFilter = filterStore((store) => store.selectedFilter);
-  // From filterStore, get all segments and properties
-  const segments = filterStore((store) => store.segments);
-  const properties = filterStore((store) => store.properties);
-  const selectedId = filterStore((store) => store.selectedId);
-  /// ///////////////////////////////
-  // END ID Selector Related
-  /// ///////////////////////////////
-
-  /// ///////////////////////////////
-  // START Filter Related
-  /// ///////////////////////////////
-  // Options to filter are based on the selector's
-  // current stage and filter type
-  const options = React.useMemo(() => {
-    if (stage === Stage.SELECTING_ID) {
-      return Object.entries(
-        selectedFilter === FilterOptions.SEGMENTS ? segments : properties,
-      );
-    }
-
-    if (stage === Stage.SELECTING_VALUE) {
-      return [["", properties[selectedId]]] as [string, string][];
-    }
-
-    return [];
-  }, [stage, segments, properties, selectedFilter, selectedId]);
-
-  // Filter runs on filter and options change.
-  const filteredOptions = React.useMemo(() => {
-    if (stage === Stage.SELECTING_VALUE) return options;
-    return filterIds(options, filter);
-  }, [filter, options, stage]);
-
+  const { setStage, addUserProperty } = filterStorePick([
+    "setStage",
+    "addUserProperty",
+  ]);
   return (
-    <>
-      <Stack display="flex" alignItems="center" justifyContent="center">
-        <TextField
-          style={{
-            width: "95%",
-          }}
-          InputProps={{
-            style: {
-              height: "40px",
-            },
-          }}
-          id="outlined-basic"
-          variant="outlined"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-      </Stack>
-
-      {stage === Stage.SELECTING_ID ? (
-        <Options
-          isDisabled={false}
-          handleSelection={handleIdSelection}
-          filteredOptions={filteredOptions}
-        />
-      ) : (
-        <Options
-          isDisabled
-          handleSelection={handleValueSelection}
-          filteredOptions={filteredOptions}
-        />
-      )}
-    </>
+    <TextField
+      label="Value"
+      value={stage.value}
+      autoFocus
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          addUserProperty();
+          closeDropdown();
+        }
+      }}
+      onChange={(e) => {
+        const { value } = e.target;
+        setStage({
+          type: FilterStageType.UserPropertyValue,
+          id: stage.id,
+          value,
+        });
+      }}
+    />
   );
 }
 
-function FilterSelectors({
-  handleFilterSelection,
-}: {
-  handleFilterSelection: (selectedFilter: FilterOptions) => void;
-}) {
-  const FilterOptionsArray = [
+function ComputedPropertyTypeSelector() {
+  const { setStage } = filterStorePick(["setStage"]);
+  const FilterOptionsArray: {
+    title: string;
+    type: FilterStageType.Segment | FilterStageType.UserProperty;
+  }[] = [
     {
       title: "User Property",
-      type: FilterOptions.USER_PROPERTY,
+      type: FilterStageType.UserProperty,
     },
     {
       title: "Segment",
-      type: FilterOptions.SEGMENTS,
+      type: FilterStageType.Segment,
     },
   ];
   return (
@@ -161,7 +170,11 @@ function FilterSelectors({
       {FilterOptionsArray.map((option) => (
         <MenuItem
           key={option.title}
-          onClick={() => handleFilterSelection(option.type)}
+          onClick={() =>
+            setStage({
+              type: option.type,
+            })
+          }
         >
           {option.title}
         </MenuItem>
@@ -170,164 +183,133 @@ function FilterSelectors({
   );
 }
 
-function SelectorFooter({
-  stage,
-  handlePrevious,
-  selectedFilter,
-  filter,
-  handleValueSelection,
-}: {
-  stage: Stage;
-  filter: string;
-  selectedFilter: FilterOptions;
-  handlePrevious: () => void;
-  handleValueSelection: (value: string, isPartial?: boolean) => void;
-}) {
+function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
+  const { setStage, addUserProperty } = filterStorePick([
+    "setStage",
+    "addUserProperty",
+  ]);
+
+  const handlePrevious = () => {
+    switch (stage.type) {
+      case FilterStageType.UserPropertyValue:
+        setStage({
+          type: FilterStageType.UserProperty,
+        });
+        break;
+      case FilterStageType.UserProperty:
+        setStage({
+          type: FilterStageType.ComputedPropertyType,
+        });
+        break;
+      case FilterStageType.Segment:
+        setStage({
+          type: FilterStageType.ComputedPropertyType,
+        });
+        break;
+      default:
+        assertUnreachable(stage);
+    }
+  };
+
   return (
     <Box
-      paddingX="5%"
       textAlign="left"
-      height="18px"
       display="flex"
       justifyContent="space-between"
+      sx={{ p: 1 }}
       alignItems="center"
-      mt="5px"
     >
-      <KeyboardBackspaceIcon
-        sx={{ width: "15px", cursor: "pointer" }}
-        onClick={() => handlePrevious()}
-      />
-      {selectedFilter === FilterOptions.USER_PROPERTY &&
-      stage === Stage.SELECTING_VALUE &&
-      filter !== "" ? (
+      <IconButton size="small" onClick={() => handlePrevious()}>
+        <KeyboardBackspaceIcon />
+      </IconButton>
+
+      {stage.type === FilterStageType.UserPropertyValue ? (
         <Typography
           sx={{ fontSize: "10px", cursor: "pointer" }}
-          onClick={() => handleValueSelection(filter, true)}
+          onClick={addUserProperty}
         >
-          Submit partial match
+          Submit
         </Typography>
       ) : null}
     </Box>
   );
 }
 
-export default function FilterSelect() {
-  const [filter, setFilter] = React.useState("");
+export default function UsersFilterSelector() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-  const [stage, setStage] = React.useState<Stage>(Stage.SELECTING_FILTER);
-  const setSelectedId = filterStore((store) => store.setSelectedId);
-  const setUserPropertyFilter = filterStore(
-    (store) => store.setUserPropertyFilter,
-  );
-  const setSegmentFilter = filterStore((store) => store.setSegmentFilter);
-  const setSelectedFilter = filterStore((store) => store.setSelectedFilter);
-  const selectedFilter = filterStore((store) => store.selectedFilter);
+  const { stage, setStage } = filterStorePick(["setStage", "stage"]);
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (stage !== null) {
+      return;
+    }
     setAnchorEl(event.currentTarget);
+    setStage({
+      type: FilterStageType.ComputedPropertyType,
+    });
   };
 
   const handleClose = () => {
     setAnchorEl(null);
     setTimeout(() => {
-      setSelectedId("");
-      setSelectedFilter(FilterOptions.NONE);
-      setStage(Stage.SELECTING_FILTER);
+      setStage(null);
     }, 300);
   };
 
-  const handleFilterSelection = (filterOption: FilterOptions) => {
-    setSelectedFilter(filterOption);
-    setStage(Stage.SELECTING_ID);
-  };
-
-  const handleIdSelection = (selectedId: string | undefined) => {
-    if (!selectedId) return;
-    setFilter("");
-    if (selectedFilter === FilterOptions.USER_PROPERTY) {
-      setSelectedId(selectedId);
-      setStage(Stage.SELECTING_VALUE);
-    } else {
-      setSegmentFilter(selectedId);
-      handleClose();
+  let stageEl: React.ReactNode = null;
+  if (stage) {
+    switch (stage.type) {
+      case FilterStageType.ComputedPropertyType:
+        stageEl = <ComputedPropertyTypeSelector />;
+        break;
+      case FilterStageType.Segment:
+        stageEl = <SegmentSelector closeDropdown={handleClose} />;
+        break;
+      case FilterStageType.UserProperty:
+        stageEl = <UserPropertySelector />;
+        break;
+      case FilterStageType.UserPropertyValue:
+        stageEl = (
+          <UserPropertyValueSelector
+            stage={stage}
+            closeDropdown={handleClose}
+          />
+        );
+        break;
+      default:
+        assertUnreachable(stage);
     }
-  };
-
-  const handleValueSelection = (
-    propertyAssignmentId: string | undefined,
-    isPartialMatch?: boolean,
-  ) => {
-    setFilter("");
-
-    if (propertyAssignmentId) {
-      setUserPropertyFilter(propertyAssignmentId, isPartialMatch);
-    }
-
-    handleClose();
-  };
-
-  const handlePrevious = () => {
-    setFilter("");
-    if (stage === Stage.SELECTING_ID) {
-      setSelectedFilter(FilterOptions.NONE);
-      setStage(Stage.SELECTING_FILTER);
-    }
-
-    if (stage === Stage.SELECTING_VALUE) {
-      setSelectedId("");
-      setStage(Stage.SELECTING_ID);
-    }
-  };
+  }
 
   return (
-    <div>
+    <>
       <Button
-        id="basic-button"
         aria-controls={open ? "basic-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
-        onClick={handleClick}
+        onClick={handleOpen}
+        type="button"
       >
         Add filter
       </Button>
-      <Menu
+      <Popover
         id="basic-menu"
         anchorEl={anchorEl}
         open={open}
-        onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
+        onClick={(e) => e.stopPropagation()}
+        sx={{
+          "& .MuiPopover-paper": {
+            overflow: "visible",
+          },
         }}
+        onClose={handleClose}
       >
-        <Box
-          maxHeight="200px"
-          minWidth="150px"
-          maxWidth="150px"
-          overflow="scroll"
-        >
-          {stage === Stage.SELECTING_FILTER ? (
-            <FilterSelectors handleFilterSelection={handleFilterSelection} />
-          ) : (
-            <IdAndValueSelector
-              stage={stage}
-              handleValueSelection={handleValueSelection}
-              handleIdSelection={handleIdSelection}
-              filter={filter}
-              setFilter={setFilter}
-            />
-          )}
-        </Box>
-        {stage !== Stage.SELECTING_FILTER && (
-          <SelectorFooter
-            stage={stage}
-            filter={filter}
-            selectedFilter={selectedFilter}
-            handlePrevious={handlePrevious}
-            handleValueSelection={handleValueSelection}
-          />
+        {stage && stage.type !== FilterStageType.ComputedPropertyType && (
+          <SelectorFooter stage={stage} />
         )}
-      </Menu>
-    </div>
+        <Box>{stageEl}</Box>
+      </Popover>
+    </>
   );
 }

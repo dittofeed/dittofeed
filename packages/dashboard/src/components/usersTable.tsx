@@ -14,6 +14,7 @@ import {
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
+  GetUsersUserPropertyFilter,
 } from "isomorphic-lib/src/types";
 import { NextRouter, useRouter } from "next/router";
 import React, { useMemo } from "react";
@@ -23,7 +24,7 @@ import { immer } from "zustand/middleware/immer";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
-import { filterStore } from "../lib/filterStore";
+import { filterStorePick } from "../lib/filterStore";
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -156,7 +157,7 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
 
 export default function UsersTable({
   workspaceId,
-  segmentFilter: segmentId,
+  segmentFilter: segmentIds,
   direction,
   cursor,
   onPaginationChange,
@@ -176,20 +177,8 @@ export default function UsersTable({
   const setUsersCount = usersStore((store) => store.setUsersCount);
 
   // used to filter by property
-  const propertyFilter = filterStore((store) => store.userPropertyFilter);
-  const userPropertyFilter = useMemo(
-    () => Object.values(propertyFilter),
-    [propertyFilter],
-  );
-
-  const segmentFilterFromStore = filterStore((store) => store.segmentFilter);
-  const segmentFilter: string[] = useMemo(
-    () =>
-      segmentId
-        ? ([...segmentFilterFromStore, ...segmentId] as string[])
-        : segmentFilterFromStore,
-    [segmentFilterFromStore, segmentId],
-  );
+  const { userProperties: filterUserProperties, segments: filterSegments } =
+    filterStorePick(["userProperties", "segments"]);
 
   const usersPage = useMemo(
     () =>
@@ -234,13 +223,28 @@ export default function UsersTable({
       }
     };
 
+    const requestUserPropertyFilter: GetUsersUserPropertyFilter | undefined =
+      filterUserProperties.size > 0
+        ? Array.from(filterUserProperties).map((up) => ({
+            id: up[0],
+            values: Array.from(up[1]),
+          }))
+        : undefined;
+
+    const allFilterSegments = new Set<string>(filterSegments);
+    if (segmentIds) {
+      for (const segmentId of segmentIds) {
+        allFilterSegments.add(segmentId);
+      }
+    }
+
     const params: GetUsersRequest = {
-      segmentFilter: segmentFilter.length > 0 ? segmentFilter : undefined,
+      segmentFilter:
+        allFilterSegments.size > 0 ? Array.from(allFilterSegments) : undefined,
       cursor,
       direction,
       workspaceId,
-      userPropertyFilter:
-        userPropertyFilter.length > 0 ? userPropertyFilter : undefined,
+      userPropertyFilter: requestUserPropertyFilter,
     };
 
     const handler = apiRequestHandlerFactory({
@@ -260,7 +264,7 @@ export default function UsersTable({
     handler();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segmentFilter, cursor, direction, userPropertyFilter, segmentFilter]);
+  }, [cursor, direction, segmentIds, filterUserProperties, filterSegments]);
 
   const isLoading = getUsersRequest.type === CompletionStatus.InProgress;
 

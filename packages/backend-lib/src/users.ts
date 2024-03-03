@@ -15,6 +15,7 @@ import {
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
+  GetUsersUserPropertyFilter,
   Prisma,
   UserProperty,
   UserPropertyDefinition,
@@ -45,34 +46,18 @@ function serializeUserCursor(cursor: Cursor): string {
   return serializeCursor(cursor);
 }
 
-type UserPropertyIdsFilter = {
-  id: string;
-  userIds?: string[];
-  partial?: string[];
-}[];
-
 function getUserPropertyAssignmentConditions(
-  userPropertyIds: UserPropertyIdsFilter,
+  userPropertyFilter: GetUsersUserPropertyFilter,
 ) {
-  const userIds: string[] = [];
   const fullQuery: Sql[] = [];
 
-  for (const property of userPropertyIds) {
-    if (property.userIds && property.userIds.length > 0) {
-      userIds.push(...property.userIds);
-    }
-
-    if (property.partial && property.partial.length > 0) {
-      fullQuery.push(
-        Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND LOWER("value") LIKE ANY (ARRAY[${Prisma.join(property.partial)}]))`,
-      );
-    }
+  for (const property of userPropertyFilter) {
+    fullQuery.push(
+      Prisma.sql`("userPropertyId" = CAST(${property.id} AS UUID) AND "value" ILIKE ANY (ARRAY[${Prisma.join(property.values)}]))`,
+    );
   }
 
-  if (userIds.length > 0) {
-    fullQuery.unshift(Prisma.sql`"userId" IN (${Prisma.join(userIds)})`);
-  }
-
+  // TODO this isn't right. Should be an AND but have to do a group by first
   return Prisma.join(fullQuery, " OR ");
 }
 
@@ -89,7 +74,7 @@ function buildUserIdQueries({
   cursor: Cursor | null;
   direction: CursorDirectionEnum;
   userIds?: string[];
-  userPropertyFilter?: UserPropertyIdsFilter;
+  userPropertyFilter?: GetUsersUserPropertyFilter;
 }): Sql {
   let lastUserIdCondition: Sql;
   if (cursor) {

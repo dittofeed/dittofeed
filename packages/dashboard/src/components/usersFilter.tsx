@@ -1,70 +1,110 @@
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
-import { Box } from "@mui/material";
+import { IconButton, useTheme } from "@mui/material";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { ReadAllUserPropertiesResponse } from "isomorphic-lib/src/types";
-import React, { useMemo } from "react";
+import { CompletionStatus } from "isomorphic-lib/src/types";
+import React from "react";
 
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
-import { filterStore } from "../lib/filterStore";
-import FilterSelect from "./usersFilterSelector";
+import { useAppStorePick } from "../lib/appStore";
+import { filterStorePick } from "../lib/filterStore";
+import UsersFilterSelector from "./usersFilterSelector";
 
-export function UsersFilter({ workspaceId }: { workspaceId: string }) {
-  const userPropertyFilterFromStore = filterStore(
-    (store) => store.userPropertyFilter,
+function CloseIconButton({ onClick }: { onClick: () => void }) {
+  return (
+    <IconButton size="small" color="secondary" onClick={onClick}>
+      <CloseOutlinedIcon />
+    </IconButton>
   );
-  const removeSegmentFilter = filterStore((store) => store.removeSegmentFilter);
-  const removePropertyFilter = filterStore(
-    (store) => store.removePropertyFilter,
-  );
-  const userPropertyFilter = useMemo(
-    () => Object.values(userPropertyFilterFromStore),
-    [userPropertyFilterFromStore],
-  );
-  const segmentFilterFromStore = filterStore((store) => store.segmentFilter);
-  const segmentFilter = useMemo(
-    () => segmentFilterFromStore,
-    [segmentFilterFromStore],
-  );
-  const properties = filterStore((store) => store.properties);
-  const segments = filterStore((store) => store.segments);
-  const getUserPropertiesRequest = filterStore(
-    (store) => store.getUserPropertiesRequest,
-  );
-  const setGetUserPropertiesRequest = filterStore(
-    (store) => store.setGetUserPropertiesRequest,
-  );
-  const setSegments = filterStore((store) => store.setSegments);
-  const setProperties = filterStore((store) => store.setProperties);
+}
 
-  const apiBase = useAppStore((store) => store.apiBase);
+function AppliedFilter({
+  remove,
+  name,
+  label,
+}: {
+  name: string;
+  label: string;
+  remove: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      sx={{
+        borderRadius: 1,
+        backgroundColor: theme.palette.grey[300],
+      }}
+      pr={1}
+    >
+      <CloseIconButton onClick={() => remove()} />
+      <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
+        <Typography color="inherit">{label}</Typography>
+        <Typography color="inherit">{name}</Typography>
+      </Breadcrumbs>
+    </Stack>
+  );
+}
 
-  React.useEffect(() => {
-    const setLoadResponse = (response: ReadAllUserPropertiesResponse) => {
-      setProperties(response.userProperties);
-      setSegments(response.segments);
-    };
+export function UsersFilter() {
+  const { userProperties: userPropertiesResult, segments: segmentResult } =
+    useAppStorePick(["userProperties", "segments"]);
 
-    const handler = apiRequestHandlerFactory({
-      request: getUserPropertiesRequest,
-      setRequest: setGetUserPropertiesRequest,
-      responseSchema: ReadAllUserPropertiesResponse,
-      setResponse: setLoadResponse,
-      requestConfig: {
-        method: "GET",
-        url: `${apiBase}/api/user-properties`,
-        params: {
-          workspaceId,
-        },
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
+  const {
+    removeUserProperty: removeUserPropertyFilter,
+    removeSegment: removeSegmentFilter,
+    userProperties: filterUserProperties,
+    segments: filterSegments,
+  } = filterStorePick([
+    "removeUserProperty",
+    "removeSegment",
+    "userProperties",
+    "segments",
+  ]);
+
+  const joinedFilterSegments: {
+    id: string;
+    name: string;
+  }[] = React.useMemo(() => {
+    if (segmentResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    const segmentNames = segmentResult.value.reduce((acc, segment) => {
+      acc.set(segment.id, segment.name);
+      return acc;
+    }, new Map<string, string>());
+
+    return Array.from(filterSegments).flatMap((id) => {
+      const name = segmentNames.get(id);
+      if (!name) {
+        return [];
+      }
+      return { id, name };
     });
-    handler();
-  }, [apiBase, workspaceId]);
+  }, [filterSegments, segmentResult]);
+
+  const joinedUserPropertyFilters: {
+    id: string;
+    name: string;
+    values: string[];
+  }[] = React.useMemo(() => {
+    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    const userPropertyNames = userPropertiesResult.value.reduce((acc, up) => {
+      acc.set(up.id, up.name);
+      return acc;
+    }, new Map<string, string>());
+
+    return Array.from(filterUserProperties).flatMap(([id, values]) => {
+      const name = userPropertyNames.get(id);
+      if (!name) {
+        return [];
+      }
+      return { id, name, values: Array.from(values) };
+    });
+  }, [filterUserProperties, userPropertiesResult]);
 
   return (
     <Stack
@@ -73,65 +113,25 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
       justifyItems="center"
       alignItems="center"
     >
-      {userPropertyFilter.map((property) => (
-        <Box
-          display="flex"
-          flexDirection="row"
-          bgcolor="grey.300"
-          color="text.primary"
-          paddingY="5px"
-          paddingX="8px"
+      {joinedUserPropertyFilters.flatMap((property) => (
+        <AppliedFilter
           key={property.id}
-        >
-          <CloseOutlinedIcon
-            sx={{ width: 10, mr: 1, cursor: "pointer" }}
-            color="secondary"
-            onClick={() => removePropertyFilter(property.id)}
-          />
-          <Breadcrumbs aria-label="breadcrumb" separator=">">
-            <Typography color="inherit">User Property</Typography>
-            <Typography color="inherit">{properties[property.id]}</Typography>
-            <Breadcrumbs aria-label="breadcrumb" separator="or">
-              {property.partial &&
-                property.partial.map((partial) => (
-                  <Typography
-                    color="inherit"
-                    sx={{ cursor: "pointer" }}
-                    key={partial}
-                    onClick={() =>
-                      removePropertyFilter(property.id, partial, true)
-                    }
-                  >
-                    {partial.slice(0, -1)}
-                  </Typography>
-                ))}
-            </Breadcrumbs>
-          </Breadcrumbs>
-        </Box>
+          name={property.values
+            .map((value) => `${property.name} = "${value}"`)
+            .join(" OR ")}
+          label="User Property"
+          remove={() => removeUserPropertyFilter(property.id)}
+        />
       ))}
-      {segmentFilter.map((property) => (
-        <Stack key={segments[property]}>
-          <Box
-            display="flex"
-            flexDirection="row"
-            bgcolor="grey.300"
-            color="text.primary"
-            paddingY="5px"
-            paddingX="8px"
-          >
-            <CloseOutlinedIcon
-              sx={{ width: 10, mr: 1, cursor: "pointer" }}
-              color="secondary"
-              onClick={() => removeSegmentFilter(property)}
-            />
-            <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
-              <Typography color="inherit">Segment</Typography>
-              <Typography color="inherit">{segments[property]}</Typography>
-            </Breadcrumbs>
-          </Box>
-        </Stack>
+      {joinedFilterSegments.map((segment) => (
+        <AppliedFilter
+          key={segment.id}
+          name={segment.name}
+          label="Segment"
+          remove={() => removeSegmentFilter(segment.id)}
+        />
       ))}
-      <FilterSelect />
+      <UsersFilterSelector />
     </Stack>
   );
 }
