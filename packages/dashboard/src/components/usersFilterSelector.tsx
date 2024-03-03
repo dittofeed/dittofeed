@@ -1,5 +1,13 @@
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
-import { Autocomplete, Box, TextField, Typography } from "@mui/material";
+import {
+  Autocomplete,
+  Box,
+  Popover,
+  TextField,
+  Typography,
+  useAutocomplete,
+  useTheme,
+} from "@mui/material";
 import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -18,7 +26,8 @@ interface Option {
   label: string;
 }
 
-function SegmentSelector() {
+function SegmentSelector({ closeDropdown }: { closeDropdown: () => void }) {
+  const theme = useTheme();
   const { segments: segmentsResult } = useAppStorePick(["segments"]);
   const { addSegment } = filterStorePick(["addSegment"]);
 
@@ -35,12 +44,26 @@ function SegmentSelector() {
   return (
     <Autocomplete
       options={options}
-      onChange={(_, value) => {
-        if (value) {
-          addSegment(value.id);
-        }
+      open
+      sx={{ width: theme.spacing(14), height: "100%" }}
+      autoComplete
+      disablePortal
+      renderInput={(params) => (
+        <TextField {...params} variant="filled" label="Segment" />
+      )}
+      renderOption={(props, option) => {
+        return (
+          <MenuItem
+            {...props}
+            onClick={() => {
+              addSegment(option.id);
+              closeDropdown();
+            }}
+          >
+            {option.label}
+          </MenuItem>
+        );
       }}
-      renderInput={(params) => <TextField {...params} label="Segment" />}
     />
   );
 }
@@ -68,7 +91,6 @@ function FilterSelectors() {
           onClick={() =>
             setStage({
               type: option.type,
-              filter: "",
             })
           }
         >
@@ -90,7 +112,6 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
       case FilterStageType.UserPropertyValue:
         setStage({
           type: FilterStageType.UserProperty,
-          filter: "",
         });
         break;
       case FilterStageType.UserProperty:
@@ -133,7 +154,7 @@ function SelectorFooter({ stage }: { stage: FilterStageWithBack }) {
   );
 }
 
-export default function FilterSelect() {
+export default function UsersFilterSelector() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const { stage, setStage } = filterStorePick(["setStage", "stage"]);
@@ -147,7 +168,9 @@ export default function FilterSelect() {
 
   const handleClose = () => {
     setAnchorEl(null);
-    setStage(null);
+    setTimeout(() => {
+      setStage(null);
+    }, 300);
   };
 
   let stageEl: React.ReactNode = null;
@@ -157,7 +180,7 @@ export default function FilterSelect() {
         stageEl = <FilterSelectors />;
         break;
       case FilterStageType.Segment:
-        stageEl = <SegmentSelector />;
+        stageEl = <SegmentSelector closeDropdown={handleClose} />;
         break;
       default:
         throw new Error("unimplemented");
@@ -169,7 +192,6 @@ export default function FilterSelect() {
   return (
     <div>
       <Button
-        id="basic-button"
         aria-controls={open ? "basic-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
@@ -177,27 +199,22 @@ export default function FilterSelect() {
       >
         Add filter
       </Button>
-      <Menu
+      <Popover
         id="basic-menu"
         anchorEl={anchorEl}
         open={open}
-        onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
+        sx={{
+          "& .MuiPopover-paper": {
+            overflow: "visible",
+          },
         }}
+        onClose={handleClose}
       >
-        <Box
-          maxHeight="200px"
-          minWidth="150px"
-          maxWidth="150px"
-          overflow="scroll"
-        >
-          {stageEl}
-        </Box>
+        <Box>{stageEl}</Box>
         {stage && stage.type !== FilterStageType.ComputedPropertyType && (
           <SelectorFooter stage={stage} />
         )}
-      </Menu>
+      </Popover>
     </div>
   );
 }

@@ -15,7 +15,6 @@ export interface FilterComputedPropertyTypeStage {
 
 export interface FilterUserPropertyStage {
   type: FilterStageType.UserProperty;
-  filter: string;
 }
 
 export interface FilterUserPropertyValueStage {
@@ -26,7 +25,6 @@ export interface FilterUserPropertyValueStage {
 
 export interface FilterSegmentStage {
   type: FilterStageType.Segment;
-  filter: string;
 }
 
 export type FilterStageWithBack =
@@ -72,7 +70,6 @@ export const filterStore = create(
         const values = state.userProperties.get(id) ?? new Set();
         values.add(value);
         state.userProperties.set(id, values);
-        state.stage = null;
         return state;
       });
     },
@@ -82,7 +79,6 @@ export const filterStore = create(
           return state;
         }
         state.segments.add(id);
-        state.stage = null;
         return state;
       });
     },

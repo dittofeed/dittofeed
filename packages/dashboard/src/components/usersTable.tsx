@@ -247,6 +247,7 @@ export default function UsersTable({
       userPropertyFilter: requestUserPropertyFilter,
     };
 
+    console.log("apiBase", apiBase);
     const handler = apiRequestHandlerFactory({
       request: getUsersRequest,
       setRequest: setGetUsersRequest,
@@ -264,7 +265,7 @@ export default function UsersTable({
     handler();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segmentFilter, cursor, direction, userPropertyFilter, segmentFilter]);
+  }, [cursor, direction, segmentIds, filterUserProperties, filterSegments]);
 
   const isLoading = getUsersRequest.type === CompletionStatus.InProgress;
 

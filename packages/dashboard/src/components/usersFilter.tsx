@@ -8,7 +8,7 @@ import React from "react";
 
 import { useAppStorePick } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
-import FilterSelect from "./usersFilterSelector";
+import UsersFilterSelector from "./usersFilterSelector";
 
 export function UsersFilter({ workspaceId }: { workspaceId: string }) {
   const { userProperties: userPropertiesResult, segments: segmentResult } =
@@ -117,7 +117,7 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
           </Box>
         </Stack>
       ))}
-      <FilterSelect />
+      <UsersFilterSelector />
     </Stack>
   );
 }
