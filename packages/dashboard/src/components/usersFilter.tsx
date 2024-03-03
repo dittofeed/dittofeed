@@ -1,5 +1,5 @@
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
-import { Box, IconButton } from "@mui/material";
+import { IconButton, useTheme } from "@mui/material";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -17,7 +17,37 @@ function CloseIconButton({ onClick }: { onClick: () => void }) {
     </IconButton>
   );
 }
-export function UsersFilter({ workspaceId }: { workspaceId: string }) {
+
+function AppliedFilter({
+  remove,
+  name,
+  label,
+}: {
+  name: string;
+  label: string;
+  remove: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      sx={{
+        borderRadius: 1,
+        backgroundColor: theme.palette.grey[300],
+      }}
+      pr={1}
+    >
+      <CloseIconButton onClick={() => remove()} />
+      <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
+        <Typography color="inherit">{label}</Typography>
+        <Typography color="inherit">{name}</Typography>
+      </Breadcrumbs>
+    </Stack>
+  );
+}
+
+export function UsersFilter() {
   const { userProperties: userPropertiesResult, segments: segmentResult } =
     useAppStorePick(["userProperties", "segments"]);
 
@@ -54,12 +84,27 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
     });
   }, [filterSegments, segmentResult]);
 
-  // FIXME
   const joinedUserPropertyFilters: {
     id: string;
     name: string;
     values: string[];
-  }[] = [];
+  }[] = React.useMemo(() => {
+    if (userPropertiesResult.type !== CompletionStatus.Successful) {
+      return [];
+    }
+    const userPropertyNames = userPropertiesResult.value.reduce((acc, up) => {
+      acc.set(up.id, up.name);
+      return acc;
+    }, new Map<string, string>());
+
+    return Array.from(filterUserProperties).flatMap(([id, values]) => {
+      const name = userPropertyNames.get(id);
+      if (!name) {
+        return [];
+      }
+      return { id, name, values: Array.from(values) };
+    });
+  }, [filterUserProperties, userPropertiesResult]);
 
   return (
     <Stack
@@ -69,47 +114,20 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
       alignItems="center"
     >
       {joinedUserPropertyFilters.map((property) => (
-        <Stack
-          bgcolor="grey.300"
-          color="text.primary"
+        <AppliedFilter
           key={property.id}
-          direction="row"
-        >
-          <CloseIconButton
-            onClick={() => removeUserPropertyFilter(property.id)}
-          />
-          <Breadcrumbs aria-label="breadcrumb" separator=">">
-            <Typography color="inherit">User Property</Typography>
-            <Typography color="inherit">{property.name}</Typography>
-            <Breadcrumbs aria-label="breadcrumb" separator="or">
-              {property.values.map((value) => (
-                <Typography
-                  color="inherit"
-                  sx={{ cursor: "pointer" }}
-                  key={value}
-                >
-                  {value}
-                </Typography>
-              ))}
-            </Breadcrumbs>
-          </Breadcrumbs>
-        </Stack>
+          name={property.name}
+          label="User Property"
+          remove={() => removeUserPropertyFilter(property.id)}
+        />
       ))}
       {joinedFilterSegments.map((segment) => (
-        <Stack
+        <AppliedFilter
           key={segment.id}
-          bgcolor="grey.300"
-          color="text.primary"
-          direction="row"
-          alignItems="center"
-          pr={1}
-        >
-          <CloseIconButton onClick={() => removeSegmentFilter(segment.id)} />
-          <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
-            <Typography color="inherit">Segment</Typography>
-            <Typography color="inherit">{segment.name}</Typography>
-          </Breadcrumbs>
-        </Stack>
+          name={segment.name}
+          label="Segment"
+          remove={() => removeSegmentFilter(segment.id)}
+        />
       ))}
       <UsersFilterSelector />
     </Stack>

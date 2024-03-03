@@ -87,9 +87,7 @@ export default function SegmentUsers() {
         <Stack direction="row">
           <Typography variant="h4">Users</Typography>
         </Stack>
-        <div>
-          <UsersFilter workspaceId={workspace.value.id} />
-        </div>
+        <UsersFilter />
         <UsersTable
           {...queryParams}
           workspaceId={workspace.value.id}

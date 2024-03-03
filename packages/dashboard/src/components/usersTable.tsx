@@ -24,7 +24,7 @@ import { immer } from "zustand/middleware/immer";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
-import { filterStore, filterStorePick } from "../lib/filterStore";
+import { filterStorePick } from "../lib/filterStore";
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -247,7 +247,6 @@ export default function UsersTable({
       userPropertyFilter: requestUserPropertyFilter,
     };
 
-    console.log("apiBase", apiBase);
     const handler = apiRequestHandlerFactory({
       request: getUsersRequest,
       setRequest: setGetUsersRequest,

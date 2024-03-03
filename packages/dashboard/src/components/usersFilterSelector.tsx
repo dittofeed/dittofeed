@@ -280,11 +280,6 @@ export default function UsersFilterSelector() {
     }
   }
 
-  console.log({
-    open,
-    anchorEl,
-    stage,
-  });
   return (
     <>
       <Button
@@ -293,7 +288,6 @@ export default function UsersFilterSelector() {
         aria-expanded={open ? "true" : undefined}
         onClick={handleOpen}
         type="button"
-        // FIXME responding to enter
       >
         Add filter
       </Button>
