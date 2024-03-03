@@ -250,7 +250,6 @@ export async function findManyEventsWithCount({
   searchTerm?: string;
 }): Promise<{ events: UserEventsWithTraits[]; count: number }> {
   const qb = new ClickHouseQueryBuilder();
-
   const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
 
   const paginationClause = limit
@@ -261,11 +260,11 @@ export async function findManyEventsWithCount({
     : "";
 
   const startDateClause = startDate
-    ? `AND event_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
+    ? `AND processing_time >= ${qb.addQueryValue(startDate, "DateTime64(3)")}`
     : "";
 
   const endDateClause = endDate
-    ? `AND event_time <= ${qb.addQueryValue(endDate, "DateTime64(3)")}`
+    ? `AND processing_time <= ${qb.addQueryValue(endDate, "DateTime64(3)")}`
     : "";
 
   const userIdClause = userId
@@ -284,17 +283,17 @@ export async function findManyEventsWithCount({
 
   const innerQuery = `
     SELECT
-      workspace_id,
-      user_id,
-      user_or_anonymous_id,
-      event_time,
-      anonymous_id,
-      message_id,
-      event,
-      event_type,
-      max(processing_time) AS max_processing_time,
-      JSONExtractRaw(argMax(message_raw, processing_time) AS last_message_raw, 'traits') AS traits,
-      JSONExtractRaw(last_message_raw, 'properties') AS properties
+        workspace_id,
+        user_id,
+        user_or_anonymous_id,
+        event_time,
+        anonymous_id,
+        message_id,
+        event,
+        event_type,
+        processing_time,
+        JSONExtractRaw(message_raw, 'traits') AS traits,
+        JSONExtractRaw(message_raw, 'properties') AS properties
     FROM user_events_v2
     WHERE
       workspace_id = ${workspaceIdParam}
@@ -302,32 +301,11 @@ export async function findManyEventsWithCount({
       ${endDateClause}
       ${userIdClause}
       ${searchClause}
-    GROUP BY
-      workspace_id,
-      user_id,
-      event,
-      user_or_anonymous_id,
-      event_time,
-      anonymous_id,
-      event_type,
-      message_id
-    ORDER BY event_time DESC, message_id
+    ORDER BY processing_time DESC
   `;
 
   const eventsQuery = `
-    SELECT
-      workspace_id,
-      user_id,
-      anonymous_id,
-      user_or_anonymous_id,
-      message_id,
-      event_time,
-      max_processing_time AS processing_time,
-      event_type,
-      event,
-      traits,
-      properties
-    FROM (${innerQuery}) AS inner_query
+    ${innerQuery}
     ${paginationClause}
   `;
   const countQuery = `
