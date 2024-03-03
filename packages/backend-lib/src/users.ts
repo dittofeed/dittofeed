@@ -57,7 +57,7 @@ function getUserPropertyAssignmentConditions(
     );
   }
 
-  return Prisma.join(fullQuery, " OR ");
+  return Prisma.join(fullQuery, " AND ");
 }
 
 function buildUserIdQueries({
