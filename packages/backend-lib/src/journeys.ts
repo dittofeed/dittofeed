@@ -1,8 +1,9 @@
 import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
-import { MapWithDefault } from "isomorphic-lib/src/maps";
-import { parseInt } from "isomorphic-lib/src/numbers";
+import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
+import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
+import { parseInt, round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
@@ -124,6 +125,77 @@ const JourneyMessageStatsRow = Type.Object({
   count: Type.String(),
 });
 
+type NodeEventMap = MapWithDefault<InternalEventType, number>;
+
+interface GetEdgePercentParams {
+  originId: string;
+  targetId: string;
+  heritageMap: HeritageMap;
+  nodeProcessedMap: Map<string, number>;
+}
+
+function getEdgePercentRaw({
+  originId,
+  targetId,
+  heritageMap,
+  nodeProcessedMap,
+}: GetEdgePercentParams): number {
+  const originMapEntry = getUnsafe(heritageMap, originId);
+  if (!originMapEntry.children.has(targetId)) {
+    logger().debug(
+      {
+        children: Array.from(originMapEntry.children),
+        targetId,
+        originId,
+      },
+      "targetId not in originId children",
+    );
+    return 0;
+  }
+
+  const originCount = getUnsafe(nodeProcessedMap, originId);
+  const targetCount = getUnsafe(nodeProcessedMap, targetId);
+  if (originCount === 0 || targetCount === 0) {
+    logger().debug(
+      {
+        originCount,
+        targetCount,
+        originId,
+        targetId,
+      },
+      "either the origin or target have no processed nodes, returning 0 edge percent",
+    );
+    return 0;
+  }
+
+  if (originMapEntry.children.size === 1) {
+    return 1;
+  }
+
+  const targetMapEntry = getUnsafe(heritageMap, targetId);
+  if (targetMapEntry.parents.size === 1) {
+    return targetCount / originCount;
+  }
+
+  // when the target has multiple parents, we need to calculate the siblings
+  // count in order to handle the case of a re-joined e.g segment-split
+  let siblingsCount = 0;
+  for (const childId of originMapEntry.children) {
+    if (childId === targetId) {
+      continue;
+    }
+    const siblingCount = getUnsafe(nodeProcessedMap, childId);
+    siblingsCount += siblingCount;
+  }
+
+  return (originCount - siblingsCount) / originCount;
+}
+
+function getEdgePercent(params: GetEdgePercentParams): number {
+  const raw = getEdgePercentRaw(params);
+  return round(raw * 100, 1);
+}
+
 export async function getJourneysStats({
   workspaceId,
   journeyIds,
@@ -203,7 +275,10 @@ group by event, node_id;`;
   ]);
 
   const stream = statsResultSet.stream();
-  const statsMap = new Map<string, MapWithDefault<InternalEventType, number>>();
+  // map from node_id to event to count
+  const statsMap = new MapWithDefault<string, NodeEventMap>(
+    new MapWithDefault(0),
+  );
   const nodeProcessedMap = new Map<string, number>();
 
   const rowPromises: Promise<unknown>[] = [];
@@ -221,7 +296,7 @@ group by event, node_id;`;
         }
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const { event, node_id, count } = validated.value;
-        const eventMap = statsMap.get(node_id) ?? new MapWithDefault(0);
+        const eventMap: NodeEventMap = statsMap.get(node_id);
 
         if (!isValueInEnum(event, InternalEventType)) {
           logger().error(
@@ -270,6 +345,7 @@ group by event, node_id;`;
       nodeStats: {},
     };
     journeysStats.push(stats);
+    const heritageMap = buildHeritageMap(definition);
 
     for (const node of definition.nodes) {
       if (
@@ -279,47 +355,32 @@ group by event, node_id;`;
         continue;
       }
 
-      const nodeStats = statsMap.get(node.id) ?? new MapWithDefault(0);
+      const nodeStats = statsMap.get(node.id);
 
       if (node.type === JourneyNodeType.SegmentSplitNode) {
-        const parentNodeProcessed = nodeProcessedMap.get(node.id);
-        const falseChildNodesProcessed =
-          nodeProcessedMap.get(node.variant.falseChild) ?? 0;
-
-        if (parentNodeProcessed) {
-          const falseChildNodeProcessedRate =
-            falseChildNodesProcessed / parentNodeProcessed;
-          const falseChildEdgeProportion = (
-            falseChildNodeProcessedRate * 100
-          ).toFixed(1);
-
-          stats.nodeStats[node.id] = {
-            type: NodeStatsType.SegmentSplitNodeStats,
-            proportions: {
-              falseChildEdge: parseFloat(falseChildEdgeProportion),
-            },
-          };
-        }
+        stats.nodeStats[node.id] = {
+          type: NodeStatsType.SegmentSplitNodeStats,
+          proportions: {
+            falseChildEdge: getEdgePercent({
+              originId: node.id,
+              targetId: node.variant.falseChild,
+              heritageMap,
+              nodeProcessedMap,
+            }),
+          },
+        };
       } else if (node.type === JourneyNodeType.WaitForNode) {
-        const parentNodeProcessed = nodeProcessedMap.get(node.id);
-        let segmentChildNodesProcessed = 0;
-
-        if (node.segmentChildren[0]) {
-          segmentChildNodesProcessed =
-            nodeProcessedMap.get(node.segmentChildren[0].id) ?? 0;
-        }
-
-        if (parentNodeProcessed) {
-          const segmentChildNodeProcessedRate =
-            segmentChildNodesProcessed / parentNodeProcessed;
-          const segmentChildEdgeProportion = (
-            segmentChildNodeProcessedRate * 100
-          ).toFixed(1);
-
+        const segmentChild = node.segmentChildren[0];
+        if (segmentChild) {
           stats.nodeStats[node.id] = {
             type: NodeStatsType.WaitForNodeStats,
             proportions: {
-              segmentChildEdge: parseFloat(segmentChildEdgeProportion),
+              segmentChildEdge: getEdgePercent({
+                originId: node.id,
+                targetId: segmentChild.id,
+                heritageMap,
+                nodeProcessedMap,
+              }),
             },
           };
         }
