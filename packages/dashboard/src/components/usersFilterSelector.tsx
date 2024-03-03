@@ -29,16 +29,21 @@ interface Option {
 
 function ComputedPropertyAutocomplete({
   options,
-  onClick,
+  onChange,
   label,
 }: {
   options: Option[];
-  onClick: (id: string) => void;
+  onChange: (id: string) => void;
   label: string;
 }) {
   const theme = useTheme();
   return (
     <Autocomplete
+      onChange={(_, value) => {
+        if (value) {
+          onChange(value.id);
+        }
+      }}
       options={options}
       open
       sx={{ width: theme.spacing(18), height: "100%" }}
@@ -48,16 +53,7 @@ function ComputedPropertyAutocomplete({
         <TextField {...params} variant="filled" label={label} autoFocus />
       )}
       renderOption={(props, option) => {
-        return (
-          <MenuItem
-            {...props}
-            onClick={() => {
-              onClick(option.id);
-            }}
-          >
-            {option.label}
-          </MenuItem>
-        );
+        return <MenuItem {...props}>{option.label}</MenuItem>;
       }}
     />
   );
@@ -80,7 +76,7 @@ function SegmentSelector({ closeDropdown }: { closeDropdown: () => void }) {
   return (
     <ComputedPropertyAutocomplete
       options={options}
-      onClick={(id) => {
+      onChange={(id) => {
         addSegment(id);
         closeDropdown();
       }}
@@ -108,7 +104,7 @@ function UserPropertySelector() {
   return (
     <ComputedPropertyAutocomplete
       options={options}
-      onClick={(id) => {
+      onChange={(id) => {
         setStage({
           type: FilterStageType.UserPropertyValue,
           id,
@@ -135,6 +131,7 @@ function UserPropertyValueSelector({
     <TextField
       label="Value"
       value={stage.value}
+      autoFocus
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           addUserProperty();
@@ -242,6 +239,9 @@ export default function UsersFilterSelector() {
   const { stage, setStage } = filterStorePick(["setStage", "stage"]);
 
   const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (stage !== null) {
+      return;
+    }
     setAnchorEl(event.currentTarget);
     setStage({
       type: FilterStageType.ComputedPropertyType,
@@ -280,13 +280,20 @@ export default function UsersFilterSelector() {
     }
   }
 
+  console.log({
+    open,
+    anchorEl,
+    stage,
+  });
   return (
-    <div>
+    <>
       <Button
         aria-controls={open ? "basic-menu" : undefined}
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
         onClick={handleOpen}
+        type="button"
+        // FIXME responding to enter
       >
         Add filter
       </Button>
@@ -294,6 +301,7 @@ export default function UsersFilterSelector() {
         id="basic-menu"
         anchorEl={anchorEl}
         open={open}
+        onClick={(e) => e.stopPropagation()}
         sx={{
           "& .MuiPopover-paper": {
             overflow: "visible",
@@ -306,6 +314,6 @@ export default function UsersFilterSelector() {
         )}
         <Box>{stageEl}</Box>
       </Popover>
-    </div>
+    </>
   );
 }

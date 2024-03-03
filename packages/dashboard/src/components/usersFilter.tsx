@@ -1,5 +1,5 @@
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
-import { Box } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -10,6 +10,13 @@ import { useAppStorePick } from "../lib/appStore";
 import { filterStorePick } from "../lib/filterStore";
 import UsersFilterSelector from "./usersFilterSelector";
 
+function CloseIconButton({ onClick }: { onClick: () => void }) {
+  return (
+    <IconButton size="small" color="secondary" onClick={onClick}>
+      <CloseOutlinedIcon />
+    </IconButton>
+  );
+}
 export function UsersFilter({ workspaceId }: { workspaceId: string }) {
   const { userProperties: userPropertiesResult, segments: segmentResult } =
     useAppStorePick(["userProperties", "segments"]);
@@ -62,19 +69,13 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
       alignItems="center"
     >
       {joinedUserPropertyFilters.map((property) => (
-        <Box
-          display="flex"
-          flexDirection="row"
+        <Stack
           bgcolor="grey.300"
           color="text.primary"
-          paddingY="5px"
-          paddingX="8px"
           key={property.id}
+          direction="row"
         >
-          {/* FIXME icon button */}
-          <CloseOutlinedIcon
-            sx={{ width: 10, mr: 1, cursor: "pointer" }}
-            color="secondary"
+          <CloseIconButton
             onClick={() => removeUserPropertyFilter(property.id)}
           />
           <Breadcrumbs aria-label="breadcrumb" separator=">">
@@ -92,29 +93,22 @@ export function UsersFilter({ workspaceId }: { workspaceId: string }) {
               ))}
             </Breadcrumbs>
           </Breadcrumbs>
-        </Box>
+        </Stack>
       ))}
       {joinedFilterSegments.map((segment) => (
-        <Stack key={segment.id}>
-          <Box
-            display="flex"
-            flexDirection="row"
-            bgcolor="grey.300"
-            color="text.primary"
-            paddingY="5px"
-            paddingX="8px"
-          >
-            {/* FIXME icon button */}
-            <CloseOutlinedIcon
-              sx={{ width: 10, mr: 1, cursor: "pointer" }}
-              color="secondary"
-              onClick={() => removeSegmentFilter(segment.id)}
-            />
-            <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
-              <Typography color="inherit">Segment</Typography>
-              <Typography color="inherit">{segment.name}</Typography>
-            </Breadcrumbs>
-          </Box>
+        <Stack
+          key={segment.id}
+          bgcolor="grey.300"
+          color="text.primary"
+          direction="row"
+          alignItems="center"
+          pr={1}
+        >
+          <CloseIconButton onClick={() => removeSegmentFilter(segment.id)} />
+          <Breadcrumbs aria-label="breadcrumb" separator=">" id="hello">
+            <Typography color="inherit">Segment</Typography>
+            <Typography color="inherit">{segment.name}</Typography>
+          </Breadcrumbs>
         </Stack>
       ))}
       <UsersFilterSelector />
