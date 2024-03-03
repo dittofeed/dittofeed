@@ -284,50 +284,29 @@ export async function findManyEventsWithCount({
 
   const innerQuery = `
     SELECT
-      workspace_id,
-      user_id,
-      user_or_anonymous_id,
-      event_time,
-      anonymous_id,
-      message_id,
-      event,
-      event_type,
-      max(processing_time) AS max_processing_time,
-      JSONExtractRaw(argMax(message_raw, processing_time) AS last_message_raw, 'traits') AS traits,
-      JSONExtractRaw(last_message_raw, 'properties') AS properties
-    FROM user_events_v2
+        workspace_id,
+        user_id,
+        user_or_anonymous_id,
+        event_time,
+        anonymous_id,
+        message_id,
+        event,
+        event_type,
+        processing_time,
+        JSONExtractRaw(message_raw, 'traits') AS traits,
+        JSONExtractRaw(message_raw, 'properties') AS properties
+    FROM dittofeed.user_events_v2
     WHERE
       workspace_id = ${workspaceIdParam}
       ${startDateClause}
       ${endDateClause}
       ${userIdClause}
       ${searchClause}
-    GROUP BY
-      workspace_id,
-      user_id,
-      event,
-      user_or_anonymous_id,
-      event_time,
-      anonymous_id,
-      event_type,
-      message_id
-    ORDER BY event_time DESC, message_id
+    ORDER BY processing_time DESC
   `;
 
   const eventsQuery = `
-    SELECT
-      workspace_id,
-      user_id,
-      anonymous_id,
-      user_or_anonymous_id,
-      message_id,
-      event_time,
-      max_processing_time AS processing_time,
-      event_type,
-      event,
-      traits,
-      properties
-    FROM (${innerQuery}) AS inner_query
+    ${innerQuery}
     ${paginationClause}
   `;
   const countQuery = `
