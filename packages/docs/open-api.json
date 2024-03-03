@@ -2282,13 +2282,9 @@
                             "type": "object",
                             "properties": {
                               "type": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "WaitForNodeAndEventEntryNode"
-                                    ]
-                                  }
+                                "type": "string",
+                                "enum": [
+                                  "WaitForNodeAndEventEntryNode"
                                 ]
                               },
                               "message": {
@@ -6746,6 +6742,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
                   "definition": {
                     "type": "object",
                     "properties": {
@@ -6773,9 +6772,6 @@
                       "subscribedSegments",
                       "subscribedUserProperties"
                     ]
-                  },
-                  "enabled": {
-                    "type": "boolean"
                   },
                   "workspaceId": {
                     "type": "string"
@@ -7910,29 +7906,10 @@
                           "definition"
                         ]
                       }
-                    },
-                    "segments": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ]
-                      }
                     }
                   },
                   "required": [
-                    "userProperties",
-                    "segments"
+                    "userProperties"
                   ]
                 }
               }
@@ -8891,13 +8868,7 @@
                         "id": {
                           "type": "string"
                         },
-                        "userIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "partial": {
+                        "values": {
                           "type": "array",
                           "items": {
                             "type": "string"
@@ -8905,7 +8876,8 @@
                         }
                       },
                       "required": [
-                        "id"
+                        "id",
+                        "values"
                       ]
                     }
                   },
@@ -11853,13 +11825,7 @@
                         "id": {
                           "type": "string"
                         },
-                        "userIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "partial": {
+                        "values": {
                           "type": "array",
                           "items": {
                             "type": "string"
@@ -11867,7 +11833,8 @@
                         }
                       },
                       "required": [
-                        "id"
+                        "id",
+                        "values"
                       ]
                     }
                   },
@@ -12793,29 +12760,10 @@
                           "definition"
                         ]
                       }
-                    },
-                    "segments": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ]
-                      }
                     }
                   },
                   "required": [
-                    "userProperties",
-                    "segments"
+                    "userProperties"
                   ]
                 }
               }
