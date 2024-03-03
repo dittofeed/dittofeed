@@ -5,6 +5,7 @@ import {
   IconButton,
   Popover,
   TextField,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -46,7 +47,7 @@ function ComputedPropertyAutocomplete({
       }}
       options={options}
       open
-      sx={{ width: theme.spacing(18), height: "100%" }}
+      sx={{ width: theme.spacing(20), height: "100%" }}
       autoComplete
       disablePortal
       renderInput={(params) => (
@@ -54,15 +55,19 @@ function ComputedPropertyAutocomplete({
       )}
       renderOption={(props, option) => {
         return (
-          <MenuItem
-            {...props}
-            sx={{
-              textOverflow: "ellipsis",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {option.label}
+          <MenuItem {...props}>
+            <Tooltip title={option.label}>
+              <Box
+                sx={{
+                  width: theme.spacing(20),
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {option.label}
+              </Box>
+            </Tooltip>
           </MenuItem>
         );
       }}
