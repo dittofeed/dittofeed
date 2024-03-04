@@ -1435,12 +1435,13 @@ export function journeyStateToDraft(state: JourneyStateForDraft): JourneyDraft {
       if (child) {
         nextJourneyChildId = childId;
       } else {
-        const childHmEntry = getUnsafe(hm, childId);
-        for (const grandChildId of childHmEntry.children) {
-          if (journeyNodes.has(grandChildId)) {
-            nextJourneyChildId = grandChildId;
-            break;
-          }
+        nextJourneyChildId = findNextJourneyNode(childId, hm, journeyNodes);
+        if (!nextJourneyChildId) {
+          console.log("loc1", {
+            nodeId: node.id,
+            childId,
+            journeyNodes,
+          });
         }
       }
       if (!nextJourneyChildId) {

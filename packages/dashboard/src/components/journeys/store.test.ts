@@ -31,6 +31,219 @@ import {
   journeyToState,
 } from "./store";
 
+const EXAMPLE_JOURNEY_STATE: JourneyState = {
+  journeySelectedNodeId: null,
+  journeyUpdateRequest: {
+    type: CompletionStatus.NotStarted,
+  },
+  journeyStatsRequest: {
+    type: CompletionStatus.NotStarted,
+  },
+  journeyStats: {},
+  journeyNodes: [
+    {
+      id: AdditionalJourneyNodeType.EntryUiNode,
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
+        nodeTypeProps: {
+          type: AdditionalJourneyNodeType.EntryUiNode,
+          variant: {
+            type: JourneyNodeType.SegmentEntryNode,
+            segment: "segment-id-1",
+          },
+        },
+      },
+      position: { x: 400, y: 100 },
+      type: "journey",
+      width: 300,
+      height: 90,
+      selected: false,
+    },
+    {
+      id: "message-node-1",
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
+        nodeTypeProps: {
+          type: JourneyNodeType.MessageNode,
+          name: "Message 1",
+          channel: ChannelType.Email,
+          templateId: "template-id-1",
+        },
+      },
+      position: { x: 400, y: 300 },
+      type: "journey",
+      width: 300,
+      height: 90,
+    },
+    {
+      id: "delay-node-1",
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
+        nodeTypeProps: {
+          type: JourneyNodeType.DelayNode,
+          variant: {
+            type: DelayVariantType.Second,
+            seconds: 1800,
+          },
+        },
+      },
+      position: { x: 400, y: 500 },
+      type: "journey",
+      width: 300,
+      height: 82,
+      selected: false,
+    },
+    {
+      id: "segment-split-node-1",
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
+        nodeTypeProps: {
+          type: JourneyNodeType.SegmentSplitNode,
+          segmentId: "segment-id-2",
+          name: "True / False Branch",
+          trueLabelNodeId: "true-label-node",
+          falseLabelNodeId: "false-label-node",
+        },
+      },
+      position: { x: 400, y: 700 },
+      type: "journey",
+      width: 300,
+      height: 90,
+    },
+    {
+      id: "true-label-node",
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeLabelProps,
+        title: "true",
+      },
+      position: { x: 200, y: 900 },
+      type: "label",
+      width: 44,
+      height: 38,
+    },
+    {
+      id: "message-node-2",
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
+        nodeTypeProps: {
+          type: JourneyNodeType.MessageNode,
+          channel: ChannelType.Email,
+          name: "Message 2",
+          templateId: "template-id-2",
+        },
+      },
+      position: { x: 200, y: 1100 },
+      type: "journey",
+      width: 300,
+      height: 90,
+    },
+    {
+      id: "empty-node-1", // Human-readable ID
+      data: { type: JourneyUiNodeType.JourneyUiNodeEmptyProps },
+      position: { x: 400, y: 1300 },
+      type: "empty",
+      width: 8,
+      height: 8,
+    },
+    {
+      id: JourneyNodeType.ExitNode,
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
+        nodeTypeProps: { type: JourneyNodeType.ExitNode },
+      },
+      position: { x: 400, y: 1500 },
+      type: "journey",
+      width: 300,
+      height: 60,
+    },
+    {
+      id: "false-label-node", // Human-readable ID
+      data: {
+        type: JourneyUiNodeType.JourneyUiNodeLabelProps,
+        title: "false",
+      },
+      position: { x: 600, y: 900 },
+      type: "label",
+      width: 49,
+      height: 38,
+    },
+  ],
+  journeyEdges: [
+    // Edges now use the new human-readable node IDs
+    {
+      id: `${AdditionalJourneyNodeType}->message-node-1`,
+      source: AdditionalJourneyNodeType.EntryUiNode,
+      target: "message-node-1",
+      type: "workflow",
+    },
+    {
+      id: "message-node-1->delay-node-1",
+      source: "message-node-1",
+      target: "delay-node-1",
+      type: "workflow",
+    },
+    {
+      id: "delay-node-1->segment-split-node-1",
+      source: "delay-node-1",
+      target: "segment-split-node-1",
+      type: "workflow",
+    },
+    {
+      id: "segment-split-node-1->true-label-node",
+      source: "segment-split-node-1",
+      target: "true-label-node",
+      type: "placeholder",
+    },
+    {
+      id: "segment-split-node-1->false-label-node",
+      source: "segment-split-node-1",
+      target: "false-label-node",
+      type: "placeholder",
+    },
+    {
+      id: "false-label-node->empty-node-1",
+      source: "false-label-node",
+      target: "empty-node-1",
+      type: "workflow",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
+        disableMarker: true,
+      },
+    },
+    {
+      id: `empty-node-1->${JourneyNodeType.ExitNode}`,
+      source: "empty-node-1",
+      target: JourneyNodeType.ExitNode,
+      type: "workflow",
+    },
+    {
+      id: "message-node-2->empty-node-1",
+      source: "message-node-2",
+      target: "empty-node-1",
+      type: "workflow",
+    },
+    {
+      id: "true-label-node->message-node-2",
+      source: "true-label-node",
+      target: "message-node-2",
+      type: "workflow",
+    },
+  ],
+  journeyNodesIndex: {
+    [AdditionalJourneyNodeType.EntryUiNode]: 0,
+    "message-node-1": 1,
+    "delay-node-1": 2,
+    "segment-split-node-1": 3,
+    "true-label-node": 4,
+    "message-node-2": 5,
+    "empty-node-1": 6,
+    [JourneyNodeType.ExitNode]: 7,
+    "false-label-node": 8,
+  },
+  journeyDraggedComponentType: null,
+  journeyName: "My Journey",
+};
+
 describe("journeyToState", () => {
   let journeyResource: Overwrite<
     JourneyResource,
@@ -592,226 +805,9 @@ describe("journeyToState", () => {
 });
 
 describe("journeyDefinitionFromState", () => {
-  let state: JourneyState;
-
-  beforeEach(() => {
-    state = {
-      journeySelectedNodeId: null,
-      journeyUpdateRequest: {
-        type: CompletionStatus.NotStarted,
-      },
-      journeyStatsRequest: {
-        type: CompletionStatus.NotStarted,
-      },
-      journeyStats: {},
-      journeyNodes: [
-        {
-          id: AdditionalJourneyNodeType.EntryUiNode,
-          data: {
-            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-            nodeTypeProps: {
-              type: AdditionalJourneyNodeType.EntryUiNode,
-              variant: {
-                type: JourneyNodeType.SegmentEntryNode,
-                segment: uuid(), // Assuming uuid() calls are placeholders for unique values
-              },
-            },
-          },
-          position: { x: 400, y: 100 },
-          type: "journey",
-          width: 300,
-          height: 90,
-          selected: false,
-        },
-        {
-          id: "message-node-1", // Human-readable ID
-          data: {
-            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-            nodeTypeProps: {
-              type: JourneyNodeType.MessageNode,
-              name: "Message 1",
-              channel: ChannelType.Email,
-              templateId: uuid(),
-            },
-          },
-          position: { x: 400, y: 300 },
-          type: "journey",
-          width: 300,
-          height: 90,
-        },
-        {
-          id: "delay-node-1",
-          data: {
-            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-            nodeTypeProps: {
-              type: JourneyNodeType.DelayNode,
-              variant: {
-                type: DelayVariantType.Second,
-                seconds: 1800,
-              },
-            },
-          },
-          position: { x: 400, y: 500 },
-          type: "journey",
-          width: 300,
-          height: 82,
-          selected: false,
-        },
-        {
-          id: "segment-split-node-1",
-          data: {
-            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-            nodeTypeProps: {
-              type: JourneyNodeType.SegmentSplitNode,
-              segmentId: uuid(),
-              name: "True / False Branch",
-              trueLabelNodeId: "true-label-node",
-              falseLabelNodeId: "false-label-node",
-            },
-          },
-          position: { x: 400, y: 700 },
-          type: "journey",
-          width: 300,
-          height: 90,
-        },
-        {
-          id: "true-label-node",
-          data: {
-            type: JourneyUiNodeType.JourneyUiNodeLabelProps,
-            title: "true",
-          },
-          position: { x: 200, y: 900 },
-          type: "label",
-          width: 44,
-          height: 38,
-        },
-        {
-          id: "message-node-2",
-          data: {
-            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-            nodeTypeProps: {
-              type: JourneyNodeType.MessageNode,
-              channel: ChannelType.Email,
-              name: "Message 2",
-              templateId: uuid(),
-            },
-          },
-          position: { x: 200, y: 1100 },
-          type: "journey",
-          width: 300,
-          height: 90,
-        },
-        {
-          id: "empty-node-1", // Human-readable ID
-          data: { type: JourneyUiNodeType.JourneyUiNodeEmptyProps },
-          position: { x: 400, y: 1300 },
-          type: "empty",
-          width: 8,
-          height: 8,
-        },
-        {
-          id: JourneyNodeType.ExitNode,
-          data: {
-            type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-            nodeTypeProps: { type: JourneyNodeType.ExitNode },
-          },
-          position: { x: 400, y: 1500 },
-          type: "journey",
-          width: 300,
-          height: 60,
-        },
-        {
-          id: "false-label-node", // Human-readable ID
-          data: {
-            type: JourneyUiNodeType.JourneyUiNodeLabelProps,
-            title: "false",
-          },
-          position: { x: 600, y: 900 },
-          type: "label",
-          width: 49,
-          height: 38,
-        },
-      ],
-      journeyEdges: [
-        // Edges now use the new human-readable node IDs
-        {
-          id: `${AdditionalJourneyNodeType}->message-node-1`,
-          source: AdditionalJourneyNodeType.EntryUiNode,
-          target: "message-node-1",
-          type: "workflow",
-        },
-        {
-          id: "message-node-1->delay-node-1",
-          source: "message-node-1",
-          target: "delay-node-1",
-          type: "workflow",
-        },
-        {
-          id: "delay-node-1->segment-split-node-1",
-          source: "delay-node-1",
-          target: "segment-split-node-1",
-          type: "workflow",
-        },
-        {
-          id: "segment-split-node-1->true-label-node",
-          source: "segment-split-node-1",
-          target: "true-label-node",
-          type: "placeholder",
-        },
-        {
-          id: "segment-split-node-1->false-label-node",
-          source: "segment-split-node-1",
-          target: "false-label-node",
-          type: "placeholder",
-        },
-        {
-          id: "false-label-node->empty-node-1",
-          source: "false-label-node",
-          target: "empty-node-1",
-          type: "workflow",
-          data: {
-            type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
-            disableMarker: true,
-          },
-        },
-        {
-          id: `empty-node-1->${JourneyNodeType.ExitNode}`,
-          source: "empty-node-1",
-          target: JourneyNodeType.ExitNode,
-          type: "workflow",
-        },
-        {
-          id: "message-node-2->empty-node-1",
-          source: "message-node-2",
-          target: "empty-node-1",
-          type: "workflow",
-        },
-        {
-          id: "true-label-node->message-node-2",
-          source: "true-label-node",
-          target: "message-node-2",
-          type: "workflow",
-        },
-      ],
-      journeyNodesIndex: {
-        [AdditionalJourneyNodeType.EntryUiNode]: 0,
-        "message-node-1": 1,
-        "delay-node-1": 2,
-        "segment-split-node-1": 3,
-        "true-label-node": 4,
-        "message-node-2": 5,
-        "empty-node-1": 6,
-        [JourneyNodeType.ExitNode]: 7,
-        "false-label-node": 8,
-      },
-      journeyDraggedComponentType: null,
-      journeyName: "My Journey",
-    };
-  });
-
   it("returns a journey definition", () => {
     const result = journeyDefinitionFromState({
-      state,
+      state: EXAMPLE_JOURNEY_STATE,
     });
     if (result.isErr()) {
       throw new Error(
@@ -877,15 +873,97 @@ describe("journeyDefinitionFromState", () => {
     let stateForDraft: JourneyStateForDraft;
 
     beforeEach(() => {
+      const { journeyNodes, journeyEdges } = EXAMPLE_JOURNEY_STATE;
+
       stateForDraft = {
-        journeyEdges: [],
-        journeyNodes: [],
+        journeyEdges,
+        journeyNodes,
       };
     });
     it("returns a journey draft", () => {
       const expected: JourneyDraft = {
-        nodes: [],
-        edges: [],
+        nodes: [
+          {
+            id: AdditionalJourneyNodeType.EntryUiNode,
+            data: {
+              type: AdditionalJourneyNodeType.EntryUiNode,
+              variant: {
+                type: JourneyNodeType.SegmentEntryNode,
+                segment: "segment-id-1",
+              },
+            },
+          },
+          {
+            id: "message-node-1",
+            data: {
+              type: JourneyNodeType.MessageNode,
+              name: "Message 1",
+              channel: ChannelType.Email,
+              templateId: "template-id-1",
+            },
+          },
+          {
+            id: "delay-node-1",
+            data: {
+              type: JourneyNodeType.DelayNode,
+              variant: {
+                type: DelayVariantType.Second,
+                seconds: 1800,
+              },
+            },
+          },
+          {
+            id: "segment-split-node-1",
+            data: {
+              type: JourneyNodeType.SegmentSplitNode,
+              segmentId: "segment-id-2",
+              name: "True / False Branch",
+              trueLabelNodeId: "true-label-node",
+              falseLabelNodeId: "false-label-node",
+            },
+          },
+          {
+            id: "message-node-2",
+            data: {
+              type: JourneyNodeType.MessageNode,
+              channel: ChannelType.Email,
+              name: "Message 2",
+              templateId: "template-id-2",
+            },
+          },
+          {
+            id: JourneyNodeType.ExitNode,
+            data: {
+              type: JourneyNodeType.ExitNode,
+            },
+          },
+        ],
+        edges: [
+          {
+            source: AdditionalJourneyNodeType.EntryUiNode,
+            target: "message-node-1",
+          },
+          {
+            source: "message-node-1",
+            target: "delay-node-1",
+          },
+          {
+            source: "delay-node-1",
+            target: "segment-split-node-1",
+          },
+          {
+            source: "segment-split-node-1",
+            target: "message-node-2",
+          },
+          {
+            source: "segment-split-node-1",
+            target: JourneyNodeType.ExitNode,
+          },
+          {
+            source: "message-node-2",
+            target: JourneyNodeType.ExitNode,
+          },
+        ],
       };
       expect(journeyStateToDraft(stateForDraft)).toEqual(expected);
     });
