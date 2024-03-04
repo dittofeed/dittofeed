@@ -2694,6 +2694,9 @@ export type PartialExceptType<T, TD> = Partial<Omit<T, "type">> & {
   type: TD;
 };
 
+export const PartialExceptType = <T extends TSchema>(schema: T) =>
+  Type.Partial(Type.Omit(schema, ["type"]));
+
 export enum AdminApiKeyPermission {
   Admin = "Admin",
 }
@@ -2820,24 +2823,31 @@ export interface DelayUiNodeProps {
   variant: DelayUiNodeVariant;
 }
 
-export interface SegmentSplitUiNodeProps {
-  type: JourneyNodeType.SegmentSplitNode;
-  name: string;
-  segmentId?: string;
-  trueLabelNodeId: string;
-  falseLabelNodeId: string;
-}
+export const SegmentSplitUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.SegmentSplitNode),
+  name: Type.String(),
+  segmentId: Type.Optional(Type.String()),
+  trueLabelNodeId: Type.String(),
+  falseLabelNodeId: Type.String(),
+});
 
-export interface WaitForUiNodeProps {
-  type: JourneyNodeType.WaitForNode;
-  timeoutSeconds?: number;
-  timeoutLabelNodeId: string;
-  segmentChildren: {
-    labelNodeId: string;
-    segmentId?: string;
-  }[];
-}
+export type SegmentSplitUiNodeProps = Static<typeof SegmentSplitUiNodeProps>;
 
+export const WaitForUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.WaitForNode),
+  timeoutSeconds: Type.Optional(Type.Number()),
+  timeoutLabelNodeId: Type.String(),
+  segmentChildren: Type.Array(
+    Type.Object({
+      labelNodeId: Type.String(),
+      segmentId: Type.Optional(Type.String()),
+    }),
+  ),
+});
+
+export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
+
+// FIXME move into typebox
 export type JourneyUiNodeTypeProps =
   | EntryUiNodeProps
   | ExitUiNodeProps
@@ -2901,3 +2911,17 @@ export interface JourneyUiPlaceholderEdgeProps {
 export type JourneyUiEdgeData =
   | JourneyUiDefinitionEdgeProps
   | JourneyUiPlaceholderEdgeProps;
+
+export const JourneyUiDraftEdge = Type.Object({
+  source: Type.String(),
+  target: Type.String(),
+});
+
+export type JourneyUiDraftEdge = Static<typeof JourneyUiDraftEdge>;
+
+export const JourneyDraft = Type.Object({
+  nodes: Type.Array(Type.Literal("FIXME")),
+  edges: Type.Array(JourneyUiDraftEdge),
+});
+
+export type JourneyDraft = Static<typeof JourneyDraft>;
