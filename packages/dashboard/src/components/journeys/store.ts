@@ -1,4 +1,5 @@
 import { idxUnsafe } from "isomorphic-lib/src/arrays";
+import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import {
   buildHeritageMap,
   getNearestFromChildren,
@@ -67,7 +68,6 @@ import findJourneyNode from "./findJourneyNode";
 import findNode from "./findNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
-import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 
 export type JourneyStateForResource = Pick<
   JourneyState,
