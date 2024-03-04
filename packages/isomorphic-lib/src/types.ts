@@ -2939,6 +2939,8 @@ export const JourneyUiDraftNode = Type.Object({
   data: JourneyUiNodeTypeProps,
 });
 
+export type JourneyUiDraftNode = Static<typeof JourneyUiDraftNode>;
+
 export const JourneyDraft = Type.Object({
   nodes: Type.Array(JourneyUiDraftNode),
   edges: Type.Array(JourneyUiDraftEdge),

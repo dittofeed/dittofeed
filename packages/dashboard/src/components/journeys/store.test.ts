@@ -879,7 +879,6 @@ describe("journeyDefinitionFromState", () => {
       stateForDraft = {
         journeyEdges: [],
         journeyNodes: [],
-        journeyNodesIndex: {},
       };
     });
     it("returns a journey draft", () => {

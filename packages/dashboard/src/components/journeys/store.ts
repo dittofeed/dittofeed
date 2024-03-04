@@ -51,6 +51,8 @@ import {
   JourneyContent,
   JourneyNodeUiProps,
   JourneyState,
+  JourneyUiDraftEdge,
+  JourneyUiDraftNode,
   JourneyUiEdgeData,
   JourneyUiEdgeType,
   JourneyUiNodeDefinitionProps,
@@ -1398,22 +1400,67 @@ export function journeyToState(
 
 export type JourneyStateForDraft = Pick<
   JourneyState,
-  // FIXME need index?
-  "journeyNodes" | "journeyEdges" | "journeyNodesIndex"
+  "journeyNodes" | "journeyEdges"
 >;
 
-export function journeyStateToDraft(
-  state: JourneyStateForDraft,
-): Result<JourneyDraft, { message: string }> {
+export function journeyStateToDraft(state: JourneyStateForDraft): JourneyDraft {
   const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
-  const edges: JourneyUiDraftEdge[] = state.journeyEdges.flatMap((e) => {
-    // FIXME wront need to find child target
-    return {
-      source: e.source,
-      target: e.target,
-    };
-  });
-  throw new Error("Not implemented");
+  const journeyNodes = state.journeyNodes.reduce((acc, node) => {
+    if (
+      node.type !== "journey" ||
+      node.data.type !== JourneyUiNodeType.JourneyUiNodeDefinitionProps
+    ) {
+      return acc;
+    }
+    const { nodeTypeProps } = node.data;
+    acc.set(node.id, nodeTypeProps);
+    return acc;
+  }, new Map<string, JourneyUiNodeTypeProps>());
+
+  const nodes: JourneyUiDraftNode[] = [];
+  const edges: JourneyUiDraftEdge[] = [];
+
+  for (const node of state.journeyNodes) {
+    if (
+      node.type !== "journey" ||
+      node.data.type !== JourneyUiNodeType.JourneyUiNodeDefinitionProps
+    ) {
+      continue;
+    }
+    const hmEntry = getUnsafe(hm, node.id);
+    for (const childId of hmEntry.children) {
+      const child = journeyNodes.get(childId);
+      let nextJourneyChildId: string | null = null;
+
+      if (child) {
+        nextJourneyChildId = childId;
+      } else {
+        const childHmEntry = getUnsafe(hm, childId);
+        for (const grandChildId of childHmEntry.children) {
+          if (journeyNodes.has(grandChildId)) {
+            nextJourneyChildId = grandChildId;
+            break;
+          }
+        }
+      }
+      if (!nextJourneyChildId) {
+        throw new Error("Missing next journey child id");
+      }
+      const edge = {
+        source: node.id,
+        target: nextJourneyChildId,
+      };
+      edges.push(edge);
+    }
+    nodes.push({
+      id: node.id,
+      data: node.data.nodeTypeProps,
+    });
+  }
+  return {
+    nodes,
+    edges,
+  };
 }
 
 export function journeyDraftToState(
