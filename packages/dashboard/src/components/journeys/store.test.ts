@@ -415,7 +415,7 @@ describe("journeyToState", () => {
       uiState.journeyNodes.forEach((node) => {
         if (
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-          node.id === JourneyNodeType.SegmentEntryNode ||
+          node.id === AdditionalJourneyNodeType.UiEntryNode ||
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
           node.id === JourneyNodeType.ExitNode
         ) {
