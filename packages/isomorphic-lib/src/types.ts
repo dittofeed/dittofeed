@@ -2785,3 +2785,119 @@ export const FeatureNames = Type.Enum(FeatureNamesEnum);
 export type FeatureMap = {
   [K in FeatureNamesEnum]?: boolean;
 };
+
+export enum AdditionalJourneyNodeType {
+  EntryUiNode = "EntryUiNode",
+}
+
+export type EntryUiNodeVariant =
+  | PartialExceptType<SegmentEntryNode, JourneyNodeType.SegmentEntryNode>
+  | PartialExceptType<EventEntryNode, JourneyNodeType.EventEntryNode>;
+
+export interface EntryUiNodeProps {
+  type: AdditionalJourneyNodeType.EntryUiNode;
+  variant: EntryUiNodeVariant;
+}
+
+export interface ExitUiNodeProps {
+  type: JourneyNodeType.ExitNode;
+}
+
+export interface MessageUiNodeProps {
+  type: JourneyNodeType.MessageNode;
+  name: string;
+  templateId?: string;
+  channel: ChannelType;
+  subscriptionGroupId?: string;
+}
+
+export type DelayUiNodeVariant =
+  | PartialExceptType<LocalTimeDelayVariant, DelayVariantType.LocalTime>
+  | PartialExceptType<SecondsDelayVariant, DelayVariantType.Second>;
+
+export interface DelayUiNodeProps {
+  type: JourneyNodeType.DelayNode;
+  variant: DelayUiNodeVariant;
+}
+
+export interface SegmentSplitUiNodeProps {
+  type: JourneyNodeType.SegmentSplitNode;
+  name: string;
+  segmentId?: string;
+  trueLabelNodeId: string;
+  falseLabelNodeId: string;
+}
+
+export interface WaitForUiNodeProps {
+  type: JourneyNodeType.WaitForNode;
+  timeoutSeconds?: number;
+  timeoutLabelNodeId: string;
+  segmentChildren: {
+    labelNodeId: string;
+    segmentId?: string;
+  }[];
+}
+
+export type JourneyUiNodeTypeProps =
+  | EntryUiNodeProps
+  | ExitUiNodeProps
+  | MessageUiNodeProps
+  | DelayUiNodeProps
+  | SegmentSplitUiNodeProps
+  | WaitForUiNodeProps;
+
+export type JourneyUiNodePairing =
+  | [EntryUiNodeProps, EntryNode]
+  | [ExitUiNodeProps, ExitNode]
+  | [MessageUiNodeProps, SegmentNode]
+  | [DelayUiNodeProps, SegmentNode]
+  | [SegmentSplitUiNodeProps, SegmentNode]
+  | [WaitForUiNodeProps, WaitForNode];
+
+export enum JourneyUiNodeType {
+  JourneyUiNodeDefinitionProps = "JourneyUiNodeDefinitionProps",
+  JourneyUiNodeEmptyProps = "JourneyUiNodeEmptyProps",
+  JourneyUiNodeLabelProps = "JourneyUiNodeLabelProps",
+}
+
+export interface JourneyUiNodeDefinitionProps {
+  type: JourneyUiNodeType.JourneyUiNodeDefinitionProps;
+  nodeTypeProps: JourneyUiNodeTypeProps;
+}
+
+export interface JourneyUiNodeEmptyProps {
+  type: JourneyUiNodeType.JourneyUiNodeEmptyProps;
+}
+
+export interface JourneyUiNodeLabelProps {
+  type: JourneyUiNodeType.JourneyUiNodeLabelProps;
+  title: string;
+}
+
+export type JourneyUiNodePresentationalProps =
+  | JourneyUiNodeLabelProps
+  | JourneyUiNodeEmptyProps;
+
+export type JourneyNodeUiProps =
+  | JourneyUiNodeDefinitionProps
+  | JourneyUiNodePresentationalProps;
+
+export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
+
+export enum JourneyUiEdgeType {
+  JourneyUiDefinitionEdgeProps = "JourneyUiDefinitionEdgeProps",
+  JourneyUiPlaceholderEdgeProps = "JourneyUiPlaceholderEdgeProps",
+}
+
+export interface JourneyUiDefinitionEdgeProps {
+  type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps;
+  disableMarker?: boolean;
+}
+
+export interface JourneyUiPlaceholderEdgeProps {
+  type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps;
+}
+
+export type JourneyUiEdgeData =
+  | JourneyUiDefinitionEdgeProps
+  | JourneyUiPlaceholderEdgeProps;

@@ -1,42 +1,54 @@
 import { Config } from "backend-lib/src/config";
 import { Draft } from "immer";
 import {
+  AdditionalJourneyNodeType,
   BroadcastResource,
   ChannelType,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
   DefaultSmsProviderResource,
-  DelayVariantType,
+  DelayUiNodeProps,
+  DelayUiNodeVariant,
   DFRequestContext,
-  EntryNode,
+  EntryUiNodeProps,
+  EntryUiNodeVariant,
   EphemeralRequestStatus,
-  EventEntryNode,
-  ExitNode,
+  ExitUiNodeProps,
   FeatureMap,
   IntegrationResource,
-  JourneyNodeType,
+  JourneyNodeUiProps,
   JourneyResource,
   JourneyStats,
   JourneyStatsResponse,
-  LocalTimeDelayVariant,
+  JourneyUiDefinitionEdgeProps,
+  JourneyUiEdgeData,
+  JourneyUiEdgeType,
+  JourneyUiNodeDefinitionProps,
+  JourneyUiNodeEmptyProps,
+  JourneyUiNodeLabelProps,
+  JourneyUiNodePairing,
+  JourneyUiNodePresentationalProps,
+  JourneyUiNodeType,
+  JourneyUiNodeTypeProps,
+  JourneyUiPlaceholderEdgeProps,
   MessageTemplateResource,
-  PartialExceptType,
+  MessageUiNodeProps,
   PersistedEmailProvider,
   PersistedSmsProvider,
   RequestStatus,
   SavedSubscriptionGroupResource,
-  SecondsDelayVariant,
   SecretAvailabilityResource,
   SecretResource,
-  SegmentEntryNode,
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
+  SegmentSplitUiNodeProps,
   SourceControlProviderEnum,
   SubscriptionGroupResource,
+  TimeUnit,
   UserPropertyDefinition,
   UserPropertyResource,
-  WaitForNode,
+  WaitForUiNodeProps,
   WorkspaceMemberResource,
   WorkspaceMemberRoleResource,
   WorkspaceResource,
@@ -50,6 +62,32 @@ import {
 import { ParsedUrlQuery } from "querystring";
 import { Edge, EdgeChange, Node, NodeChange } from "reactflow";
 import { Optional } from "utility-types";
+
+// re-exporting for convenience
+export {
+  AdditionalJourneyNodeType,
+  type DelayUiNodeProps,
+  type DelayUiNodeVariant,
+  type EntryUiNodeProps,
+  type EntryUiNodeVariant,
+  type ExitUiNodeProps,
+  type JourneyNodeUiProps,
+  type JourneyUiDefinitionEdgeProps,
+  type JourneyUiEdgeData,
+  JourneyUiEdgeType,
+  type JourneyUiNodeDefinitionProps,
+  type JourneyUiNodeEmptyProps,
+  type JourneyUiNodeLabelProps,
+  type JourneyUiNodePairing,
+  type JourneyUiNodePresentationalProps,
+  JourneyUiNodeType,
+  type JourneyUiNodeTypeProps,
+  type JourneyUiPlaceholderEdgeProps,
+  type MessageUiNodeProps,
+  type SegmentSplitUiNodeProps,
+  type TimeUnit,
+  type WaitForUiNodeProps,
+};
 
 export type PropsWithInitialState<T = object> = {
   serverInitialState: PreloadedState;
@@ -300,122 +338,6 @@ export type PageStoreContents = SegmentEditorContents &
   JourneyContent &
   BroadcastEditorContents &
   SubscriptionGroupEditorContents;
-
-export enum AdditionalJourneyNodeType {
-  EntryUiNode = "EntryUiNode",
-}
-
-export type EntryUiNodeVariant =
-  | PartialExceptType<SegmentEntryNode, JourneyNodeType.SegmentEntryNode>
-  | PartialExceptType<EventEntryNode, JourneyNodeType.EventEntryNode>;
-
-export interface EntryUiNodeProps {
-  type: AdditionalJourneyNodeType.EntryUiNode;
-  variant: EntryUiNodeVariant;
-}
-
-export interface ExitUiNodeProps {
-  type: JourneyNodeType.ExitNode;
-}
-
-export interface MessageUiNodeProps {
-  type: JourneyNodeType.MessageNode;
-  name: string;
-  templateId?: string;
-  channel: ChannelType;
-  subscriptionGroupId?: string;
-}
-
-export type DelayUiNodeVariant =
-  | PartialExceptType<LocalTimeDelayVariant, DelayVariantType.LocalTime>
-  | PartialExceptType<SecondsDelayVariant, DelayVariantType.Second>;
-
-export interface DelayUiNodeProps {
-  type: JourneyNodeType.DelayNode;
-  variant: DelayUiNodeVariant;
-}
-
-export interface SegmentSplitUiNodeProps {
-  type: JourneyNodeType.SegmentSplitNode;
-  name: string;
-  segmentId?: string;
-  trueLabelNodeId: string;
-  falseLabelNodeId: string;
-}
-
-export interface WaitForUiNodeProps {
-  type: JourneyNodeType.WaitForNode;
-  timeoutSeconds?: number;
-  timeoutLabelNodeId: string;
-  segmentChildren: {
-    labelNodeId: string;
-    segmentId?: string;
-  }[];
-}
-
-export type JourneyUiNodeTypeProps =
-  | EntryUiNodeProps
-  | ExitUiNodeProps
-  | MessageUiNodeProps
-  | DelayUiNodeProps
-  | SegmentSplitUiNodeProps
-  | WaitForUiNodeProps;
-
-export type JourneyUiNodePairing =
-  | [EntryUiNodeProps, EntryNode]
-  | [ExitUiNodeProps, ExitNode]
-  | [MessageUiNodeProps, SegmentNode]
-  | [DelayUiNodeProps, SegmentNode]
-  | [SegmentSplitUiNodeProps, SegmentNode]
-  | [WaitForUiNodeProps, WaitForNode];
-
-export enum JourneyUiNodeType {
-  JourneyUiNodeDefinitionProps = "JourneyUiNodeDefinitionProps",
-  JourneyUiNodeEmptyProps = "JourneyUiNodeEmptyProps",
-  JourneyUiNodeLabelProps = "JourneyUiNodeLabelProps",
-}
-
-export interface JourneyUiNodeDefinitionProps {
-  type: JourneyUiNodeType.JourneyUiNodeDefinitionProps;
-  nodeTypeProps: JourneyUiNodeTypeProps;
-}
-
-export interface JourneyUiNodeEmptyProps {
-  type: JourneyUiNodeType.JourneyUiNodeEmptyProps;
-}
-
-export interface JourneyUiNodeLabelProps {
-  type: JourneyUiNodeType.JourneyUiNodeLabelProps;
-  title: string;
-}
-
-export type JourneyUiNodePresentationalProps =
-  | JourneyUiNodeLabelProps
-  | JourneyUiNodeEmptyProps;
-
-export type JourneyNodeUiProps =
-  | JourneyUiNodeDefinitionProps
-  | JourneyUiNodePresentationalProps;
-
-export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
-
-export enum JourneyUiEdgeType {
-  JourneyUiDefinitionEdgeProps = "JourneyUiDefinitionEdgeProps",
-  JourneyUiPlaceholderEdgeProps = "JourneyUiPlaceholderEdgeProps",
-}
-
-export interface JourneyUiDefinitionEdgeProps {
-  type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps;
-  disableMarker?: boolean;
-}
-
-export interface JourneyUiPlaceholderEdgeProps {
-  type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps;
-}
-
-export type JourneyUiEdgeData =
-  | JourneyUiDefinitionEdgeProps
-  | JourneyUiPlaceholderEdgeProps;
 
 export interface GroupedOption<T> {
   id: T;
