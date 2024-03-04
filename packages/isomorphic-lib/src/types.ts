@@ -2934,8 +2934,13 @@ export const JourneyUiDraftEdge = Type.Object({
 
 export type JourneyUiDraftEdge = Static<typeof JourneyUiDraftEdge>;
 
+export const JourneyUiDraftNode = Type.Object({
+  id: Type.String(),
+  data: JourneyUiNodeTypeProps,
+});
+
 export const JourneyDraft = Type.Object({
-  nodes: Type.Array(Type.Literal("FIXME")),
+  nodes: Type.Array(JourneyUiDraftNode),
   edges: Type.Array(JourneyUiDraftEdge),
 });
 
