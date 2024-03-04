@@ -17,6 +17,7 @@ import {
   ExitNode,
   JourneyBodyNode,
   JourneyDefinition,
+  JourneyDraft,
   JourneyNode,
   JourneyNodeType,
   JourneyResource,
@@ -1393,4 +1394,21 @@ export function journeyToState(
     journeyNodesIndex,
     journeyEdges,
   };
+}
+
+export type JourneyStateForDraft = Pick<
+  JourneyState,
+  "journeyNodes" | "journeyEdges" | "journeyNodesIndex"
+>;
+
+export function journeyStateToDraft(
+  state: JourneyStateForDraft,
+): Result<JourneyDraft, { message: string }> {
+  throw new Error("Not implemented");
+}
+
+export function journeyDraftToState(
+  draft: JourneyDraft,
+): Result<JourneyStateForDraft, { message: string }> {
+  throw new Error("Not implemented");
 }
