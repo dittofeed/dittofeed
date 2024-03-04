@@ -1,4 +1,5 @@
 import { idxUnsafe } from "isomorphic-lib/src/arrays";
+import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import {
   buildHeritageMap,
   getNearestFromChildren,
@@ -74,17 +75,23 @@ export type JourneyStateForResource = Pick<
 >;
 
 export function findDirectUiParents(
-  parentId: string,
+  childId: string,
   edges: JourneyContent["journeyEdges"],
 ): string[] {
-  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
+  const isEntry = ENTRY_TYPES.has(childId);
+  if (isEntry) {
+    return [];
+  }
+  return edges.flatMap((e) => (e.target === childId ? e.source : []));
 }
 
 export function findDirectUiChildren(
   parentId: string,
   edges: JourneyContent["journeyEdges"],
 ): string[] {
-  return edges.flatMap((e) => (e.source === parentId ? e.target : []));
+  const isEntry = ENTRY_TYPES.has(parentId);
+  const idToMatch = isEntry ? AdditionalJourneyNodeType.UiEntryNode : parentId;
+  return edges.flatMap((e) => (e.source === idToMatch ? e.target : []));
 }
 
 export const WAIT_FOR_SATISFY_LABEL = "In segment";
