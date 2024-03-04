@@ -1,4 +1,3 @@
-// FIXME run these tests
 import { findDirectChildren } from "isomorphic-lib/src/journeys";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
@@ -242,6 +241,91 @@ const EXAMPLE_JOURNEY_STATE: JourneyState = {
   },
   journeyDraggedComponentType: null,
   journeyName: "My Journey",
+};
+
+const EXAMPLE_JOURNEY_DRAFT: JourneyDraft = {
+  nodes: [
+    {
+      id: AdditionalJourneyNodeType.EntryUiNode,
+      data: {
+        type: AdditionalJourneyNodeType.EntryUiNode,
+        variant: {
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: "segment-id-1",
+        },
+      },
+    },
+    {
+      id: "message-node-1",
+      data: {
+        type: JourneyNodeType.MessageNode,
+        name: "Message 1",
+        channel: ChannelType.Email,
+        templateId: "template-id-1",
+      },
+    },
+    {
+      id: "delay-node-1",
+      data: {
+        type: JourneyNodeType.DelayNode,
+        variant: {
+          type: DelayVariantType.Second,
+          seconds: 1800,
+        },
+      },
+    },
+    {
+      id: "segment-split-node-1",
+      data: {
+        type: JourneyNodeType.SegmentSplitNode,
+        segmentId: "segment-id-2",
+        name: "True / False Branch",
+        trueLabelNodeId: "true-label-node",
+        falseLabelNodeId: "false-label-node",
+      },
+    },
+    {
+      id: "message-node-2",
+      data: {
+        type: JourneyNodeType.MessageNode,
+        channel: ChannelType.Email,
+        name: "Message 2",
+        templateId: "template-id-2",
+      },
+    },
+    {
+      id: JourneyNodeType.ExitNode,
+      data: {
+        type: JourneyNodeType.ExitNode,
+      },
+    },
+  ],
+  edges: [
+    {
+      source: AdditionalJourneyNodeType.EntryUiNode,
+      target: "message-node-1",
+    },
+    {
+      source: "message-node-1",
+      target: "delay-node-1",
+    },
+    {
+      source: "delay-node-1",
+      target: "segment-split-node-1",
+    },
+    {
+      source: "segment-split-node-1",
+      target: "message-node-2",
+    },
+    {
+      source: "segment-split-node-1",
+      target: JourneyNodeType.ExitNode,
+    },
+    {
+      source: "message-node-2",
+      target: JourneyNodeType.ExitNode,
+    },
+  ],
 };
 
 describe("journeyToState", () => {
@@ -881,92 +965,24 @@ describe("journeyDefinitionFromState", () => {
       };
     });
     it("returns a journey draft", () => {
-      const expected: JourneyDraft = {
-        nodes: [
-          {
-            id: AdditionalJourneyNodeType.EntryUiNode,
-            data: {
-              type: AdditionalJourneyNodeType.EntryUiNode,
-              variant: {
-                type: JourneyNodeType.SegmentEntryNode,
-                segment: "segment-id-1",
-              },
-            },
-          },
-          {
-            id: "message-node-1",
-            data: {
-              type: JourneyNodeType.MessageNode,
-              name: "Message 1",
-              channel: ChannelType.Email,
-              templateId: "template-id-1",
-            },
-          },
-          {
-            id: "delay-node-1",
-            data: {
-              type: JourneyNodeType.DelayNode,
-              variant: {
-                type: DelayVariantType.Second,
-                seconds: 1800,
-              },
-            },
-          },
-          {
-            id: "segment-split-node-1",
-            data: {
-              type: JourneyNodeType.SegmentSplitNode,
-              segmentId: "segment-id-2",
-              name: "True / False Branch",
-              trueLabelNodeId: "true-label-node",
-              falseLabelNodeId: "false-label-node",
-            },
-          },
-          {
-            id: "message-node-2",
-            data: {
-              type: JourneyNodeType.MessageNode,
-              channel: ChannelType.Email,
-              name: "Message 2",
-              templateId: "template-id-2",
-            },
-          },
-          {
-            id: JourneyNodeType.ExitNode,
-            data: {
-              type: JourneyNodeType.ExitNode,
-            },
-          },
-        ],
-        edges: [
-          {
-            source: AdditionalJourneyNodeType.EntryUiNode,
-            target: "message-node-1",
-          },
-          {
-            source: "message-node-1",
-            target: "delay-node-1",
-          },
-          {
-            source: "delay-node-1",
-            target: "segment-split-node-1",
-          },
-          {
-            source: "segment-split-node-1",
-            target: "message-node-2",
-          },
-          {
-            source: "segment-split-node-1",
-            target: JourneyNodeType.ExitNode,
-          },
-          {
-            source: "message-node-2",
-            target: JourneyNodeType.ExitNode,
-          },
-        ],
-      };
-      expect(journeyStateToDraft(stateForDraft)).toEqual(expected);
+      expect(journeyStateToDraft(stateForDraft)).toEqual(EXAMPLE_JOURNEY_DRAFT);
     });
   });
-  describe("journeyDraftToState", () => {});
+
+  describe.only("journeyDraftToState", () => {
+    it("returns a journey state", () => {
+      expect(journeyDraftToState(EXAMPLE_JOURNEY_DRAFT)).toEqual({
+        ...EXAMPLE_JOURNEY_STATE,
+        nodes: EXAMPLE_JOURNEY_STATE.journeyNodes.map((node) => ({
+          ...node,
+          position: {
+            x: expect.any(Number),
+            y: expect.any(Number),
+          },
+          height: expect.any(Number),
+          width: expect.any(Number),
+        })),
+      });
+    });
+  });
 });

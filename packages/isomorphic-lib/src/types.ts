@@ -2860,13 +2860,21 @@ export const WaitForUiNodeProps = Type.Object({
 
 export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
 
-export const JourneyUiNodeTypeProps = Type.Union([
-  EntryUiNodeProps,
-  ExitUiNodeProps,
+export const JourneyUiBodyNodeTypeProps = Type.Union([
   MessageUiNodeProps,
   DelayUiNodeProps,
   SegmentSplitUiNodeProps,
   WaitForUiNodeProps,
+]);
+
+export type JourneyUiBodyNodeTypeProps = Static<
+  typeof JourneyUiBodyNodeTypeProps
+>;
+
+export const JourneyUiNodeTypeProps = Type.Union([
+  EntryUiNodeProps,
+  ExitUiNodeProps,
+  JourneyUiBodyNodeTypeProps,
 ]);
 
 export type JourneyUiNodeTypeProps = Static<typeof JourneyUiNodeTypeProps>;

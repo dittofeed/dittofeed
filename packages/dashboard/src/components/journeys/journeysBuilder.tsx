@@ -50,7 +50,7 @@ const handleDragOver: DragEventHandler<HTMLDivElement> = (e) => {
 };
 
 // this function adds a new node and connects it to the source node
-function createConnections({
+function createNewConnections({
   nodes,
   nodeType,
   source,
@@ -213,7 +213,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
 
       if (source && target) {
         // now we can create a connection to the drop target node
-        createConnections({
+        createNewConnections({
           nodeType: draggedComponentType,
           source,
           target,

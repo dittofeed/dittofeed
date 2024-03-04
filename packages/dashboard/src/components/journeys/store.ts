@@ -21,6 +21,7 @@ import {
   JourneyNode,
   JourneyNodeType,
   JourneyResource,
+  JourneyUiBodyNodeTypeProps,
   MessageNode,
   SegmentEntryNode,
   SegmentSplitNode,
@@ -1464,8 +1465,57 @@ export function journeyStateToDraft(state: JourneyStateForDraft): JourneyDraft {
   };
 }
 
+export interface CreateConnectionsEntryNodeParams {
+  id: string;
+  target: string;
+  definitionNode: EntryUiNodeProps;
+}
+
+export interface CreateConnectionsExitNodeParams {
+  id: string;
+  source: string;
+  definitionNode: ExitUiNodeProps;
+}
+
+export interface CreateConnectionsBodyNodeParams {
+  id: string;
+  source: string;
+  target: string;
+  definitionNode: JourneyUiBodyNodeTypeProps;
+}
+
+export type CreateConnectionsParams =
+  | CreateConnectionsEntryNodeParams
+  | CreateConnectionsExitNodeParams
+  | CreateConnectionsBodyNodeParams;
+
+export function createConnections(params: CreateConnectionsParams): {
+  newNodes: Node<JourneyNodeUiProps>[];
+  newEdges: Edge<JourneyUiEdgeData>[];
+} {
+  const newNodes: Node<JourneyNodeUiProps>[] = [];
+  const newEdges: Edge<JourneyUiEdgeData>[] = [];
+
+  return {
+    newNodes,
+    newEdges,
+  };
+}
+
 export function journeyDraftToState(
   draft: JourneyDraft,
 ): Result<JourneyStateForDraft, { message: string }> {
+  const nodesById = draft.nodes.reduce((acc, node) => {
+    acc.set(node.id, node.data);
+    return acc;
+  }, new Map<string, JourneyUiNodeTypeProps>());
+
+  const targetsBySource = draft.edges.reduce((acc, edge) => {
+    const children = acc.get(edge.source) ?? new Set<string>();
+    children.add(edge.target);
+    acc.set(edge.source, children);
+    return acc;
+  }, new Map<string, Set<string>>());
+
   throw new Error("Not implemented");
 }
