@@ -75,10 +75,14 @@ export type JourneyStateForResource = Pick<
 >;
 
 export function findDirectUiParents(
-  parentId: string,
+  childId: string,
   edges: JourneyContent["journeyEdges"],
 ): string[] {
-  return edges.flatMap((e) => (e.target === parentId ? e.source : []));
+  const isEntry = ENTRY_TYPES.has(childId);
+  if (isEntry) {
+    return [];
+  }
+  return edges.flatMap((e) => (e.target === childId ? e.source : []));
 }
 
 export function findDirectUiChildren(
