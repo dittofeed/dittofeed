@@ -94,7 +94,7 @@ export function findDirectUiChildren(
   edges: JourneyContent["journeyEdges"],
 ): string[] {
   const isEntry = ENTRY_TYPES.has(parentId);
-  const idToMatch = isEntry ? AdditionalJourneyNodeType.UiEntryNode : parentId;
+  const idToMatch = isEntry ? AdditionalJourneyNodeType.EntryUiNode : parentId;
   return edges.flatMap((e) => (e.source === idToMatch ? e.target : []));
 }
 
@@ -1398,12 +1398,21 @@ export function journeyToState(
 
 export type JourneyStateForDraft = Pick<
   JourneyState,
+  // FIXME need index?
   "journeyNodes" | "journeyEdges" | "journeyNodesIndex"
 >;
 
 export function journeyStateToDraft(
   state: JourneyStateForDraft,
 ): Result<JourneyDraft, { message: string }> {
+  const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
+  const edges: JourneyUiDraftEdge[] = state.journeyEdges.flatMap((e) => {
+    // FIXME wront need to find child target
+    return {
+      source: e.source,
+      target: e.target,
+    };
+  });
   throw new Error("Not implemented");
 }
 

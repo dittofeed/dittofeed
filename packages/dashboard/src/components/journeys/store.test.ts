@@ -6,6 +6,7 @@ import {
   CompletionStatus,
   DelayVariantType,
   JourneyDefinition,
+  JourneyDraft,
   JourneyNodeType,
   JourneyResource,
   SegmentSplitVariantType,
@@ -23,7 +24,10 @@ import {
   findDirectUiChildren,
   findDirectUiParents,
   journeyDefinitionFromState,
+  journeyDraftToState,
+  JourneyStateForDraft,
   JourneyStateForResource,
+  journeyStateToDraft,
   journeyToState,
 } from "./store";
 
@@ -429,7 +433,7 @@ describe("journeyToState", () => {
       uiState.journeyNodes.forEach((node) => {
         if (
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-          node.id === AdditionalJourneyNodeType.UiEntryNode ||
+          node.id === AdditionalJourneyNodeType.EntryUiNode ||
           // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
           node.id === JourneyNodeType.ExitNode
         ) {
@@ -736,8 +740,8 @@ describe("journeyDefinitionFromState", () => {
           type: "workflow",
         },
         {
-          id: `${AdditionalJourneyNodeType.UiEntryNode}->908b9795-60b7-4333-a57c-a30f4972fb6b`,
-          source: AdditionalJourneyNodeType.UiEntryNode,
+          id: `${AdditionalJourneyNodeType.EntryUiNode}->908b9795-60b7-4333-a57c-a30f4972fb6b`,
+          source: AdditionalJourneyNodeType.EntryUiNode,
           target: "908b9795-60b7-4333-a57c-a30f4972fb6b",
           type: "workflow",
         },
@@ -867,4 +871,24 @@ describe("journeyDefinitionFromState", () => {
     expect(nodes).toEqual(expect.arrayContaining(expectedNodes));
     expect(nodes).toHaveLength(expectedNodes.length);
   });
+
+  describe("journeyStateToDraft", () => {
+    let stateForDraft: JourneyStateForDraft;
+
+    beforeEach(() => {
+      stateForDraft = {
+        journeyEdges: [],
+        journeyNodes: [],
+        journeyNodesIndex: {},
+      };
+    });
+    it("returns a journey draft", () => {
+      const expected: JourneyDraft = {
+        nodes: [],
+        edges: [],
+      };
+      expect(journeyStateToDraft(stateForDraft)).toEqual(expected);
+    });
+  });
+  describe("journeyDraftToState", () => {});
 });
