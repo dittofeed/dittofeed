@@ -1,0 +1,7 @@
+## Path Syntax
+
+Paths use JSON path syntax as documented in the [JSONPath](https://goessner.net/articles/JsonPath/) specification, with one deviation.
+
+If the path starts with a `$`, it is treated as a JSONPath expression. Otherwise, it is automatically prefixed with `$.`. So, for example, the path `$.store.book[0].title` and `store.book[0].title` are equivalent.
+
+Prefixing the path with `$` is optional, but it is useful when your path contains whitespace or other characters that are not valid in JSONPath expressions. For example, the path `$['property name with spaces']` is valid, but `['property name with spaces']` is not.

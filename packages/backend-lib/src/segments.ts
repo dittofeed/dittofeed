@@ -158,6 +158,34 @@ export async function findEnrichedSegments({
   return ok(enrichedSegments);
 }
 
+export async function findSegmentResources({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<SegmentResource[]> {
+  const segments = await prisma().segment.findMany({
+    where: {
+      workspaceId,
+      status: "Running",
+      resourceType: "Declarative",
+    },
+  });
+  return segments.flatMap((segment) => {
+    const result = toSegmentResource(segment);
+    if (result.isErr()) {
+      logger().error(
+        {
+          error: result.error,
+          segment,
+        },
+        "Failed to convert segment to resource",
+      );
+      return [];
+    }
+    return result.value;
+  });
+}
+
 export async function findManyEnrichedSegments({
   workspaceId,
   segmentIds,

@@ -297,6 +297,7 @@ async function getSendMessageModels({
 
 export interface SendMessageParametersBase {
   workspaceId: string;
+  userId: string;
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
   subscriptionGroupDetails?: SubscriptionGroupDetails;
@@ -972,6 +973,7 @@ export async function sendSms({
   subscriptionGroupDetails,
   useDraft,
   provider,
+  userId,
 }: Omit<
   SendMessageParametersSms,
   "channel"
@@ -1099,8 +1101,11 @@ export async function sendSms({
         body,
         accountSid,
         authToken,
+        userId,
         messagingServiceSid,
+        subscriptionGroupId: subscriptionGroupDetails?.id,
         to,
+        workspaceId,
       });
 
       if (result.isErr()) {

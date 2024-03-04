@@ -8,33 +8,65 @@ on:
         type: string
       is_backend:
         required: false
-        default: 'false'
+        default: "false"
+        type: string
+      run_tests:
+        required: false
+        default: "false"
         type: string
 
 jobs:
   lint:
-    name: Run lint
+    name: Run Lint
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Use Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'yarn'
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "yarn"
 
-    - name: Install dependencies
-      run: yarn workspaces focus ${{ inputs.package-name }}
+      - name: Install dependencies
+        run: yarn workspaces focus ${{ inputs.package-name }}
 
-    - name: Prisma generate
-      if: ${{ inputs.is_backend == 'true' }}
-      run: yarn workspace backend-lib prisma generate
+      - name: Prisma generate
+        if: ${{ inputs.is_backend == 'true' }}
+        run: yarn workspace backend-lib prisma generate
 
-    - name: Run lint
-      run: yarn workspace ${{ inputs.package-name }} lint
+      - name: Run lint
+        run: yarn workspace ${{ inputs.package-name }} lint
 
-    - name: Run Typecheck
-      run: yarn workspace ${{ inputs.package-name }} check
+      - name: Run Typecheck
+        run: yarn workspace ${{ inputs.package-name }} check
+
+  test:
+    name: Run Tests
+    if: ${{ inputs.run_tests == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Prisma generate
+        if: ${{ inputs.is_backend == 'true' }}
+        run: yarn workspace backend-lib prisma generate
+
+      - name: Build Package
+        run: yarn workspace ${{ inputs.package-name }} check
+
+      - name: Run Tests
+        run: yarn jest "packages/${{ inputs.package-name }}"

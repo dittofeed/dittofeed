@@ -131,7 +131,7 @@ export default async function journeysController(fastify: FastifyInstance) {
         body: DeleteJourneyRequest,
         response: {
           204: EmptyResponse,
-          404: {},
+          404: EmptyResponse,
         },
       },
     },

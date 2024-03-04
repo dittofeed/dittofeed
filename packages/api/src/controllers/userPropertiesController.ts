@@ -19,28 +19,6 @@ import {
 export default async function userPropertiesController(
   fastify: FastifyInstance,
 ) {
-  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
-    "/",
-    {
-      schema: {
-        description: "Get all user properties.",
-        tags: ["User Properties"],
-        querystring: ReadAllUserPropertiesRequest,
-        response: {
-          200: ReadAllUserPropertiesResponse,
-        },
-      },
-    },
-    async (request, reply) => {
-      const userProperties = await findAllUserPropertyResources({
-        workspaceId: request.query.workspaceId,
-      });
-
-      return reply.status(200).send({
-        userProperties,
-      });
-    },
-  );
   fastify.withTypeProvider<TypeBoxTypeProvider>().put(
     "/",
     {
@@ -121,6 +99,29 @@ export default async function userPropertiesController(
     },
   );
 
+  fastify.withTypeProvider<TypeBoxTypeProvider>().get(
+    "/",
+    {
+      schema: {
+        description: "Get all user properties.",
+        tags: ["User Properties"],
+        querystring: ReadAllUserPropertiesRequest,
+        response: {
+          200: ReadAllUserPropertiesResponse,
+        },
+      },
+    },
+    async (request, reply) => {
+      const userProperties = await findAllUserPropertyResources({
+        workspaceId: request.query.workspaceId,
+      });
+
+      return reply.status(200).send({
+        userProperties,
+      });
+    },
+  );
+
   fastify.withTypeProvider<TypeBoxTypeProvider>().delete(
     "/",
     {
@@ -130,7 +131,7 @@ export default async function userPropertiesController(
         body: DeleteUserPropertyRequest,
         response: {
           204: EmptyResponse,
-          404: {},
+          404: EmptyResponse,
         },
       },
     },

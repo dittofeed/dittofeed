@@ -10,13 +10,11 @@ import {
   FCM_SECRET_NAME,
   SUBSCRIPTION_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
-import { getNodeId } from "isomorphic-lib/src/journeys";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import * as R from "remeda";
 import { omit } from "remeda";
-import { v5 as uuidv5 } from "uuid";
 
 import { submitTrack } from "../../apps/track";
 import { sendNotification } from "../../destinations/fcm";
@@ -43,7 +41,6 @@ import {
   ChannelType,
   EmailProviderType,
   InternalEventType,
-  JourneyNode,
   JourneyNodeType,
   JSONValue,
   KnownTrackData,
@@ -57,6 +54,10 @@ import {
   assignmentAsString,
   findAllUserPropertyAssignments,
 } from "../../userProperties";
+import {
+  recordNodeProcessed,
+  RecordNodeProcessedParams,
+} from "../recordNodeProcessed";
 
 export { findNextLocalizedTime } from "../../dates";
 export { findAllUserPropertyAssignments } from "../../userProperties";
@@ -322,6 +323,7 @@ export async function sendSmsWithPayload(
       channelConfig,
       identifier,
       subscriptionSecret,
+      userId,
     }) {
       const render = (template?: string) =>
         template &&
@@ -380,12 +382,16 @@ export async function sendSmsWithPayload(
               },
             );
           }
+
           const smsResult = await sendSmsTwilio({
             body,
             to: identifier,
+            userId,
             accountSid: channelConfig.accountSid,
             messagingServiceSid: channelConfig.messagingServiceSid,
+            workspaceId,
             authToken: channelConfig.authToken,
+            subscriptionGroupId: params.subscriptionGroupId,
           });
 
           if (smsResult.isErr()) {
@@ -796,6 +802,7 @@ async function sendMessageInner({
     channel,
     useDraft: false,
     templateId,
+    userId,
     userPropertyAssignments,
     subscriptionGroupDetails,
     messageTags: {
@@ -892,59 +899,8 @@ export async function isRunnable({
   return previousExitEvent === null || !!journey?.canRunMultiple;
 }
 
-export async function onNodeProcessedV2({
-  journeyStartedAt,
-  userId,
-  node,
-  journeyId,
-  workspaceId,
-  eventKey,
-}: {
-  journeyStartedAt: number;
-  journeyId: string;
-  userId: string;
-  node: JourneyNode;
-  workspaceId: string;
-  eventKey?: string;
-}) {
-  const journeyStartedAtDate = new Date(journeyStartedAt);
-  const nodeId = getNodeId(node);
-  const messageIdName = [
-    journeyStartedAt,
-    journeyId,
-    userId,
-    node.type,
-    nodeId,
-  ].join("-");
-  await Promise.all([
-    prisma().userJourneyEvent.createMany({
-      data: [
-        {
-          journeyStartedAt: journeyStartedAtDate,
-          journeyId,
-          userId,
-          type: node.type,
-          nodeId,
-          eventKey,
-        },
-      ],
-      skipDuplicates: true,
-    }),
-    submitTrack({
-      workspaceId,
-      data: {
-        userId,
-        event: InternalEventType.JourneyNodeProcessed,
-        messageId: uuidv5(messageIdName, workspaceId),
-        properties: {
-          journeyId,
-          journeyStartedAt,
-          type: node.type,
-          nodeId,
-        },
-      },
-    }),
-  ]);
+export async function onNodeProcessedV2(params: RecordNodeProcessedParams) {
+  await recordNodeProcessed(params);
 }
 
 export function getSegmentAssignment({

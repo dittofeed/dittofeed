@@ -63,10 +63,15 @@ async function startLite() {
 
   const app = await buildApp();
 
-  const args = await yargs(hideBin(process.argv)).options(BOOTSTRAP_OPTIONS)
-    .argv;
+  if (liteConfig().bootstrap) {
+    logger().info("Bootstrapping");
+    const args = await yargs(hideBin(process.argv)).options(BOOTSTRAP_OPTIONS)
+      .argv;
 
-  await bootstrapHandler(args);
+    await bootstrapHandler(args);
+  } else {
+    logger().info("Skipping bootstrap");
+  }
 
   const { port, host, nodeEnv } = liteConfig();
 

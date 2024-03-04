@@ -14,6 +14,7 @@ import {
   GetUsersRequest,
   GetUsersResponse,
   GetUsersResponseItem,
+  GetUsersUserPropertyFilter,
 } from "isomorphic-lib/src/types";
 import { NextRouter, useRouter } from "next/router";
 import React, { useMemo } from "react";
@@ -23,6 +24,7 @@ import { immer } from "zustand/middleware/immer";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
+import { filterStorePick } from "../lib/filterStore";
 
 export const UsersTableParams = Type.Pick(GetUsersRequest, [
   "cursor",
@@ -155,7 +157,7 @@ export type UsersTableProps = Omit<GetUsersRequest, "limit"> & {
 
 export default function UsersTable({
   workspaceId,
-  segmentId,
+  segmentFilter: segmentIds,
   direction,
   cursor,
   onPaginationChange,
@@ -173,6 +175,10 @@ export default function UsersTable({
   const setUsersPage = usersStore((store) => store.setUsersPage);
   const setPreviousCursor = usersStore((store) => store.setPreviousCursor);
   const setUsersCount = usersStore((store) => store.setUsersCount);
+
+  // used to filter by property
+  const { userProperties: filterUserProperties, segments: filterSegments } =
+    filterStorePick(["userProperties", "segments"]);
 
   const usersPage = useMemo(
     () =>
@@ -217,11 +223,28 @@ export default function UsersTable({
       }
     };
 
+    const requestUserPropertyFilter: GetUsersUserPropertyFilter | undefined =
+      filterUserProperties.size > 0
+        ? Array.from(filterUserProperties).map((up) => ({
+            id: up[0],
+            values: Array.from(up[1]),
+          }))
+        : undefined;
+
+    const allFilterSegments = new Set<string>(filterSegments);
+    if (segmentIds) {
+      for (const segmentId of segmentIds) {
+        allFilterSegments.add(segmentId);
+      }
+    }
+
     const params: GetUsersRequest = {
-      segmentId,
+      segmentFilter:
+        allFilterSegments.size > 0 ? Array.from(allFilterSegments) : undefined,
       cursor,
       direction,
       workspaceId,
+      userPropertyFilter: requestUserPropertyFilter,
     };
 
     const handler = apiRequestHandlerFactory({
@@ -230,9 +253,9 @@ export default function UsersTable({
       responseSchema: GetUsersResponse,
       setResponse: setLoadResponse,
       requestConfig: {
-        method: "GET",
+        method: "POST",
         url: `${apiBase}/api/users`,
-        params,
+        data: JSON.stringify(params),
         headers: {
           "Content-Type": "application/json",
         },
@@ -241,7 +264,7 @@ export default function UsersTable({
     handler();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segmentId, cursor, direction]);
+  }, [cursor, direction, segmentIds, filterUserProperties, filterSegments]);
 
   const isLoading = getUsersRequest.type === CompletionStatus.InProgress;
 
