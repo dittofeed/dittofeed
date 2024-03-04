@@ -2690,10 +2690,6 @@ export interface Resource {
   id: string;
 }
 
-export type PartialExceptType<T, TD> = Partial<Omit<T, "type">> & {
-  type: TD;
-};
-
 export const PartialExceptType = <T extends TSchema>(schema: T) =>
   Type.Partial(Type.Omit(schema, ["type"]));
 
@@ -2793,14 +2789,19 @@ export enum AdditionalJourneyNodeType {
   EntryUiNode = "EntryUiNode",
 }
 
-export type EntryUiNodeVariant =
-  | PartialExceptType<SegmentEntryNode, JourneyNodeType.SegmentEntryNode>
-  | PartialExceptType<EventEntryNode, JourneyNodeType.EventEntryNode>;
+export const EntryUiNodeVariant = Type.Union([
+  PartialExceptType(SegmentEntryNode),
+  PartialExceptType(EventEntryNode),
+]);
 
-export interface EntryUiNodeProps {
-  type: AdditionalJourneyNodeType.EntryUiNode;
-  variant: EntryUiNodeVariant;
-}
+export type EntryUiNodeVariant = Static<typeof EntryUiNodeVariant>;
+
+export const EntryUiNodeProps = Type.Object({
+  type: Type.Literal(AdditionalJourneyNodeType.EntryUiNode),
+  variant: EntryUiNodeVariant,
+});
+
+export type EntryUiNodeProps = Static<typeof EntryUiNodeProps>;
 
 export interface ExitUiNodeProps {
   type: JourneyNodeType.ExitNode;
@@ -2814,14 +2815,19 @@ export interface MessageUiNodeProps {
   subscriptionGroupId?: string;
 }
 
-export type DelayUiNodeVariant =
-  | PartialExceptType<LocalTimeDelayVariant, DelayVariantType.LocalTime>
-  | PartialExceptType<SecondsDelayVariant, DelayVariantType.Second>;
+export const DelayUiNodeVariant = Type.Union([
+  PartialExceptType(LocalTimeDelayVariant),
+  PartialExceptType(SecondsDelayVariant),
+]);
 
-export interface DelayUiNodeProps {
-  type: JourneyNodeType.DelayNode;
-  variant: DelayUiNodeVariant;
-}
+export type DelayUiNodeVariant = Static<typeof DelayUiNodeVariant>;
+
+export const DelayUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.DelayNode),
+  variant: DelayUiNodeVariant,
+});
+
+export type DelayUiNodeProps = Static<typeof DelayUiNodeProps>;
 
 export const SegmentSplitUiNodeProps = Type.Object({
   type: Type.Literal(JourneyNodeType.SegmentSplitNode),
