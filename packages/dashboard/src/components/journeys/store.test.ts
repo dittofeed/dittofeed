@@ -613,7 +613,7 @@ describe("journeyDefinitionFromState", () => {
               type: AdditionalJourneyNodeType.EntryUiNode,
               variant: {
                 type: JourneyNodeType.SegmentEntryNode,
-                segment: uuid(),
+                segment: uuid(), // Assuming uuid() calls are placeholders for unique values
               },
             },
           },
@@ -624,7 +624,7 @@ describe("journeyDefinitionFromState", () => {
           selected: false,
         },
         {
-          id: "908b9795-60b7-4333-a57c-a30f4972fb6b",
+          id: "message-node-1", // Human-readable ID
           data: {
             type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: {
@@ -640,7 +640,7 @@ describe("journeyDefinitionFromState", () => {
           height: 90,
         },
         {
-          id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
+          id: "delay-node-1",
           data: {
             type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: {
@@ -658,15 +658,15 @@ describe("journeyDefinitionFromState", () => {
           selected: false,
         },
         {
-          id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+          id: "segment-split-node-1",
           data: {
             type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: {
               type: JourneyNodeType.SegmentSplitNode,
               segmentId: uuid(),
               name: "True / False Branch",
-              trueLabelNodeId: "c1191029-49bd-4947-8ff9-9a43b64261e9",
-              falseLabelNodeId: "70c82013-c7a5-4b55-93ba-4158c500b79d",
+              trueLabelNodeId: "true-label-node",
+              falseLabelNodeId: "false-label-node",
             },
           },
           position: { x: 400, y: 700 },
@@ -675,7 +675,7 @@ describe("journeyDefinitionFromState", () => {
           height: 90,
         },
         {
-          id: "c1191029-49bd-4947-8ff9-9a43b64261e9",
+          id: "true-label-node",
           data: {
             type: JourneyUiNodeType.JourneyUiNodeLabelProps,
             title: "true",
@@ -686,7 +686,7 @@ describe("journeyDefinitionFromState", () => {
           height: 38,
         },
         {
-          id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+          id: "message-node-2",
           data: {
             type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
             nodeTypeProps: {
@@ -702,7 +702,7 @@ describe("journeyDefinitionFromState", () => {
           height: 90,
         },
         {
-          id: "0492df84-8c15-419a-9d8d-8856ae2a4e73",
+          id: "empty-node-1", // Human-readable ID
           data: { type: JourneyUiNodeType.JourneyUiNodeEmptyProps },
           position: { x: 400, y: 1300 },
           type: "empty",
@@ -721,7 +721,7 @@ describe("journeyDefinitionFromState", () => {
           height: 60,
         },
         {
-          id: "70c82013-c7a5-4b55-93ba-4158c500b79d",
+          id: "false-label-node", // Human-readable ID
           data: {
             type: JourneyUiNodeType.JourneyUiNodeLabelProps,
             title: "false",
@@ -733,75 +733,76 @@ describe("journeyDefinitionFromState", () => {
         },
       ],
       journeyEdges: [
+        // Edges now use the new human-readable node IDs
         {
-          id: "908b9795-60b7-4333-a57c-a30f4972fb6b->6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-          source: "908b9795-60b7-4333-a57c-a30f4972fb6b",
-          target: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-          type: "workflow",
-        },
-        {
-          id: `${AdditionalJourneyNodeType.EntryUiNode}->908b9795-60b7-4333-a57c-a30f4972fb6b`,
+          id: `${AdditionalJourneyNodeType}->message-node-1`,
           source: AdditionalJourneyNodeType.EntryUiNode,
-          target: "908b9795-60b7-4333-a57c-a30f4972fb6b",
+          target: "message-node-1",
           type: "workflow",
         },
         {
-          id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e->9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-          source: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
-          target: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+          id: "message-node-1->delay-node-1",
+          source: "message-node-1",
+          target: "delay-node-1",
           type: "workflow",
         },
         {
-          id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04->c1191029-49bd-4947-8ff9-9a43b64261e9",
-          source: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-          target: "c1191029-49bd-4947-8ff9-9a43b64261e9",
+          id: "delay-node-1->segment-split-node-1",
+          source: "delay-node-1",
+          target: "segment-split-node-1",
+          type: "workflow",
+        },
+        {
+          id: "segment-split-node-1->true-label-node",
+          source: "segment-split-node-1",
+          target: "true-label-node",
           type: "placeholder",
         },
         {
-          id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04->70c82013-c7a5-4b55-93ba-4158c500b79d",
-          source: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
-          target: "70c82013-c7a5-4b55-93ba-4158c500b79d",
+          id: "segment-split-node-1->false-label-node",
+          source: "segment-split-node-1",
+          target: "false-label-node",
           type: "placeholder",
         },
         {
-          id: "70c82013-c7a5-4b55-93ba-4158c500b79d->0492df84-8c15-419a-9d8d-8856ae2a4e73",
-          source: "70c82013-c7a5-4b55-93ba-4158c500b79d",
-          target: "0492df84-8c15-419a-9d8d-8856ae2a4e73",
+          id: "false-label-node->empty-node-1",
+          source: "false-label-node",
+          target: "empty-node-1",
+          type: "workflow",
           data: {
             type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
             disableMarker: true,
           },
+        },
+        {
+          id: `empty-node-1->${JourneyNodeType.ExitNode}`,
+          source: "empty-node-1",
+          target: JourneyNodeType.ExitNode,
           type: "workflow",
         },
         {
-          id: "0492df84-8c15-419a-9d8d-8856ae2a4e73->ExitNode",
-          source: "0492df84-8c15-419a-9d8d-8856ae2a4e73",
-          target: "ExitNode",
+          id: "message-node-2->empty-node-1",
+          source: "message-node-2",
+          target: "empty-node-1",
           type: "workflow",
         },
         {
-          id: "6ce89301-2a35-4562-b1db-54689bfe0e05->0492df84-8c15-419a-9d8d-8856ae2a4e73",
-          source: "6ce89301-2a35-4562-b1db-54689bfe0e05",
-          target: "0492df84-8c15-419a-9d8d-8856ae2a4e73",
-          type: "workflow",
-        },
-        {
-          id: "c1191029-49bd-4947-8ff9-9a43b64261e9->6ce89301-2a35-4562-b1db-54689bfe0e05",
-          source: "c1191029-49bd-4947-8ff9-9a43b64261e9",
-          target: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+          id: "true-label-node->message-node-2",
+          source: "true-label-node",
+          target: "message-node-2",
           type: "workflow",
         },
       ],
       journeyNodesIndex: {
-        EntryNode: 0,
-        "908b9795-60b7-4333-a57c-a30f4972fb6b": 1,
-        "6940ebec-a2ca-47dc-a356-42dc0245dd2e": 2,
-        "9d5367b0-882e-49c2-a6d2-4c28e5416d04": 3,
-        "c1191029-49bd-4947-8ff9-9a43b64261e9": 4,
-        "6ce89301-2a35-4562-b1db-54689bfe0e05": 5,
-        "0492df84-8c15-419a-9d8d-8856ae2a4e73": 6,
-        ExitNode: 7,
-        "70c82013-c7a5-4b55-93ba-4158c500b79d": 8,
+        [AdditionalJourneyNodeType.EntryUiNode]: 0,
+        "message-node-1": 1,
+        "delay-node-1": 2,
+        "segment-split-node-1": 3,
+        "true-label-node": 4,
+        "message-node-2": 5,
+        "empty-node-1": 6,
+        [JourneyNodeType.ExitNode]: 7,
+        "false-label-node": 8,
       },
       journeyDraggedComponentType: null,
       journeyName: "My Journey",
@@ -821,7 +822,7 @@ describe("journeyDefinitionFromState", () => {
     expect(entryNode).toEqual({
       type: JourneyNodeType.SegmentEntryNode,
       segment: expect.any(String),
-      child: "908b9795-60b7-4333-a57c-a30f4972fb6b",
+      child: "message-node-1",
     });
     expect(exitNode).toEqual({
       type: JourneyNodeType.ExitNode,
@@ -829,9 +830,9 @@ describe("journeyDefinitionFromState", () => {
 
     const expectedNodes = [
       {
-        id: "908b9795-60b7-4333-a57c-a30f4972fb6b",
+        id: "message-node-1",
         type: JourneyNodeType.MessageNode,
-        child: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
+        child: "delay-node-1",
         name: "Message 1",
         variant: {
           type: ChannelType.Email,
@@ -839,26 +840,26 @@ describe("journeyDefinitionFromState", () => {
         },
       },
       {
-        id: "6940ebec-a2ca-47dc-a356-42dc0245dd2e",
+        id: "delay-node-1",
         type: JourneyNodeType.DelayNode,
-        child: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+        child: "segment-split-node-1",
         variant: {
           type: "Second",
           seconds: 1800,
         },
       },
       {
-        id: "9d5367b0-882e-49c2-a6d2-4c28e5416d04",
+        id: "segment-split-node-1",
         type: JourneyNodeType.SegmentSplitNode,
         variant: {
           type: SegmentSplitVariantType.Boolean,
           segment: expect.any(String),
-          trueChild: "6ce89301-2a35-4562-b1db-54689bfe0e05",
-          falseChild: "ExitNode",
+          trueChild: "message-node-2",
+          falseChild: JourneyNodeType.ExitNode,
         },
       },
       {
-        id: "6ce89301-2a35-4562-b1db-54689bfe0e05",
+        id: "message-node-2",
         type: JourneyNodeType.MessageNode,
         name: "Message 2",
         child: JourneyNodeType.ExitNode,
