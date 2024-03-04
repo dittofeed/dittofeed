@@ -714,8 +714,8 @@ describe("journeyDefinitionFromState", () => {
           type: "workflow",
         },
         {
-          id: "EntryNode->908b9795-60b7-4333-a57c-a30f4972fb6b",
-          source: "EntryNode",
+          id: `${AdditionalJourneyNodeType.UiEntryNode}->908b9795-60b7-4333-a57c-a30f4972fb6b`,
+          source: AdditionalJourneyNodeType.UiEntryNode,
           target: "908b9795-60b7-4333-a57c-a30f4972fb6b",
           type: "workflow",
         },
