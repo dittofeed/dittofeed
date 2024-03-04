@@ -2690,8 +2690,11 @@ export interface Resource {
   id: string;
 }
 
-export const PartialExceptType = <T extends TSchema>(schema: T) =>
-  Type.Partial(Type.Omit(schema, ["type"]));
+export const PartialExceptType = <T1 extends TSchema>(schema: T1) =>
+  Type.Composite([
+    Type.Partial(Type.Omit(schema, ["type"])),
+    Type.Pick(schema, ["type"]),
+  ]);
 
 export enum AdminApiKeyPermission {
   Admin = "Admin",
@@ -2803,17 +2806,21 @@ export const EntryUiNodeProps = Type.Object({
 
 export type EntryUiNodeProps = Static<typeof EntryUiNodeProps>;
 
-export interface ExitUiNodeProps {
-  type: JourneyNodeType.ExitNode;
-}
+export const ExitUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.ExitNode),
+});
 
-export interface MessageUiNodeProps {
-  type: JourneyNodeType.MessageNode;
-  name: string;
-  templateId?: string;
-  channel: ChannelType;
-  subscriptionGroupId?: string;
-}
+export type ExitUiNodeProps = Static<typeof ExitUiNodeProps>;
+
+export const MessageUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.MessageNode),
+  name: Type.String(),
+  templateId: Type.Optional(Type.String()),
+  channel: Type.Enum(ChannelType),
+  subscriptionGroupId: Type.Optional(Type.String()),
+});
+
+export type MessageUiNodeProps = Static<typeof MessageUiNodeProps>;
 
 export const DelayUiNodeVariant = Type.Union([
   PartialExceptType(LocalTimeDelayVariant),
@@ -2853,14 +2860,16 @@ export const WaitForUiNodeProps = Type.Object({
 
 export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
 
-// FIXME move into typebox
-export type JourneyUiNodeTypeProps =
-  | EntryUiNodeProps
-  | ExitUiNodeProps
-  | MessageUiNodeProps
-  | DelayUiNodeProps
-  | SegmentSplitUiNodeProps
-  | WaitForUiNodeProps;
+export const JourneyUiNodeTypeProps = Type.Union([
+  EntryUiNodeProps,
+  ExitUiNodeProps,
+  MessageUiNodeProps,
+  DelayUiNodeProps,
+  SegmentSplitUiNodeProps,
+  WaitForUiNodeProps,
+]);
+
+export type JourneyUiNodeTypeProps = Static<typeof JourneyUiNodeTypeProps>;
 
 export type JourneyUiNodePairing =
   | [EntryUiNodeProps, EntryNode]
