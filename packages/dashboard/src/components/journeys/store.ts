@@ -67,6 +67,7 @@ import findJourneyNode from "./findJourneyNode";
 import findNode from "./findNode";
 import { isLabelNode } from "./isLabelNode";
 import { layoutNodes } from "./layoutNodes";
+import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 
 export type JourneyStateForResource = Pick<
   JourneyState,
@@ -84,7 +85,9 @@ export function findDirectUiChildren(
   parentId: string,
   edges: JourneyContent["journeyEdges"],
 ): string[] {
-  return edges.flatMap((e) => (e.source === parentId ? e.target : []));
+  const isEntry = ENTRY_TYPES.has(parentId);
+  const idToMatch = isEntry ? AdditionalJourneyNodeType.UiEntryNode : parentId;
+  return edges.flatMap((e) => (e.source === idToMatch ? e.target : []));
 }
 
 export const WAIT_FOR_SATISFY_LABEL = "In segment";
