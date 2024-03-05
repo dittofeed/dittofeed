@@ -1,4 +1,9 @@
-import { ChannelType, EmailProviderType, SmsProviderType } from "./types";
+import {
+  ChannelType,
+  EmailProviderType,
+  JourneyNodeType,
+  SmsProviderType,
+} from "./types";
 
 export const WORKSPACE_ID_HEADER = "df-workspace-id" as const;
 export const SUBSRIPTION_GROUP_ID_HEADER = "df-subscription-group-id" as const;
@@ -43,3 +48,8 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
 };
 
 export const DAY_INDICES = [0, 1, 2, 3, 4, 5, 6] as const;
+
+export const ENTRY_TYPES = new Set<string>([
+  JourneyNodeType.SegmentEntryNode,
+  JourneyNodeType.EventEntryNode,
+]);
