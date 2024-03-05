@@ -754,7 +754,7 @@ export function edgesForJourneyNode({
 }: {
   type: JourneyNodeType;
   nodeId: string;
-  source: string;
+  source?: string;
   target: string;
   leftId?: string;
   rightId?: string;
@@ -766,6 +766,9 @@ export function edgesForJourneyNode({
   ) {
     if (!leftId || !rightId || !emptyId) {
       throw new Error("Missing dual node ids");
+    }
+    if (!source) {
+      throw new Error("Missing source");
     }
     return dualNodeEdges({
       source,
@@ -779,14 +782,14 @@ export function edgesForJourneyNode({
   if (
     type === JourneyNodeType.RateLimitNode ||
     type === JourneyNodeType.ExperimentSplitNode ||
-    type === JourneyNodeType.SegmentEntryNode ||
     type === JourneyNodeType.ExitNode
   ) {
     throw new Error(`Unimplemented node type ${type}`);
   }
 
-  const edges: Edge<JourneyUiEdgeData>[] = [
-    {
+  const edges: Edge<JourneyUiEdgeData>[] = [];
+  if (source) {
+    edges.push({
       id: `${source}=>${nodeId}`,
       source,
       target: nodeId,
@@ -795,8 +798,8 @@ export function edgesForJourneyNode({
       data: {
         type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
       },
-    },
-  ];
+    });
+  }
   if (target) {
     edges.push({
       id: `${nodeId}=>${target}`,
@@ -1614,7 +1617,19 @@ export function createConnections(params: CreateConnectionsParams): {
     }
     // FIXME
     case AdditionalJourneyNodeType.EntryUiNode: {
-      throw new Error("Cannot add entry node in the UI implementation error.");
+      newNodes.push(
+        buildBaseJourneyNode({
+          id: params.id,
+          nodeTypeProps: omit(params, ["id", "target"]),
+        }),
+      );
+      newEdges = edgesForJourneyNode({
+        type: params.type,
+        nodeId: params.id,
+        source: params.source,
+        target: params.target,
+      });
+      break;
     }
     case JourneyNodeType.ExitNode: {
       throw new Error("Cannot add exit node in the UI implementation error.");
@@ -1636,6 +1651,7 @@ export type JourneyResourceWithDraftForState = Overwrite<
 
 export function journeyDraftToState({
   draft,
+  name,
 }: JourneyResourceWithDraftForState): JourneyStateForResource {
   const nodesById = draft.nodes.reduce((acc, node) => {
     acc.set(node.id, node.data);
@@ -1670,22 +1686,37 @@ export function journeyDraftToState({
         break;
       }
       case JourneyNodeType.ExitNode: {
-        const source = idxUnsafe(
-          Array.from(getUnsafe(targetsBySource, node.id)),
-          0,
-        );
-        // FIXME not right
-        // connections = createConnections({
-        //   ...node.data,
-        //   source,
-        //   id: node.id,
-        //   type: JourneyNodeType.ExitNode,
-        // });
+        connections = createConnections({
+          ...node.data,
+          id: node.id,
+          type: JourneyNodeType.ExitNode,
+        });
         break;
       }
+      default: {
+        // FIXME is this right?
+        connections = createConnections({
+          ...node.data,
+          id: node.id,
+          source: node.id,
+          target: idxUnsafe(Array.from(getUnsafe(targetsBySource, node.id)), 0),
+        });
+      }
+    }
+    const { newNodes, newEdges } = connections;
+    for (const n of newNodes) {
+      nodes.push(n);
+    }
+    for (const e of newEdges) {
+      edges.push(e);
     }
   }
 
-  // fixme build index, layout
-  throw new Error("Not implemented");
+  // FIXME layout
+  return {
+    journeyName: name,
+    journeyNodes: nodes,
+    journeyEdges: edges,
+    journeyNodesIndex: buildNodesIndex(nodes),
+  };
 }
