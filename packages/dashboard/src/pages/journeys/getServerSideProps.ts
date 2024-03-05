@@ -13,11 +13,18 @@ import {
   defaultEdges,
   defaultNodes,
 } from "../../components/journeys/defaults";
-import { journeyToState } from "../../components/journeys/store";
+import {
+  JourneyResourceWithDefinitionForState,
+  JourneyResourceWithDraftForState,
+  JourneyStateForResource,
+  journeyDraftToState,
+  journeyToState,
+} from "../../components/journeys/store";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
+import logger from "backend-lib/src/logger";
 
 export type JourneyGetServerSideProps =
   GetServerSideProps<PropsWithInitialState>;
@@ -56,6 +63,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         }),
       ]);
 
+    console.log("journey loc1", journey);
     const serverInitialState: PreloadedState = {
       messages: {
         type: CompletionStatus.Successful,
@@ -68,16 +76,37 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     const journeyResourceResult =
       journey?.workspaceId === workspaceId ? toJourneyResource(journey) : null;
 
-    if (
-      journeyResourceResult?.isOk() &&
-      journeyResourceResult.value.status !== "NotStarted"
-    ) {
+    logger().debug(journeyResourceResult, "journey loc2");
+    if (journeyResourceResult?.isOk()) {
       const journeyResource = journeyResourceResult.value;
       serverInitialState.journeys = {
         type: CompletionStatus.Successful,
         value: [journeyResource],
       };
-      const stateFromJourney = journeyToState(journeyResource);
+      // FIXME
+      let stateFromJourney: JourneyStateForResource;
+      if (journeyResource.draft) {
+        const resource: JourneyResourceWithDraftForState = {
+          ...journeyResource,
+          draft: journeyResource.draft,
+        };
+        stateFromJourney = journeyDraftToState(resource);
+      } else if (journeyResource.definition !== undefined) {
+        const resource: JourneyResourceWithDefinitionForState = {
+          ...journeyResource,
+          definition: journeyResource.definition,
+        };
+        stateFromJourney = journeyToState(resource);
+      } else {
+        // FIXME cleanup dedup
+        stateFromJourney = {
+          journeyName: `New Journey - ${id}`,
+          journeyNodes: defaultNodes,
+          journeyEdges: defaultEdges,
+          journeyNodesIndex: buildNodesIndex(defaultNodes),
+        };
+      }
+
       Object.assign(serverInitialState, stateFromJourney);
     } else {
       serverInitialState.journeyName = `New Journey - ${id}`;
@@ -97,6 +126,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         value: segmentResource,
       };
     }
+    logger().debug(serverInitialState, "journey loc3");
 
     const props = addInitialStateToProps({
       serverInitialState,

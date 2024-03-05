@@ -1366,11 +1366,13 @@ export function journeyBranchToState(
   };
 }
 
+export type JourneyResourceWithDefinitionForState = Overwrite<
+  Omit<JourneyResource, "id" | "status" | "workspaceId">,
+  { definition: JourneyDefinition }
+>;
+
 export function journeyToState(
-  journey: Overwrite<
-    Omit<JourneyResource, "id" | "status" | "workspaceId">,
-    { definition: JourneyDefinition }
-  >,
+  journey: JourneyResourceWithDefinitionForState,
 ): JourneyStateForResource {
   const journeyEdges: Edge<JourneyUiEdgeData>[] = [];
   let journeyNodes: Node<JourneyNodeUiProps>[] = [];
@@ -1630,9 +1632,14 @@ export function createConnections(params: CreateConnectionsParams): {
   };
 }
 
-export function journeyDraftToState(
-  draft: JourneyDraft,
-): Result<JourneyStateForDraft, { message: string }> {
+export type JourneyResourceWithDraftForState = Overwrite<
+  Omit<JourneyResource, "id" | "status" | "workspaceId">,
+  { draft: JourneyDraft }
+>;
+
+export function journeyDraftToState({
+  draft,
+}: JourneyResourceWithDraftForState): JourneyStateForResource {
   const nodesById = draft.nodes.reduce((acc, node) => {
     acc.set(node.id, node.data);
     return acc;
@@ -1645,5 +1652,6 @@ export function journeyDraftToState(
     return acc;
   }, new Map<string, Set<string>>());
 
+  // fixme build index, layout
   throw new Error("Not implemented");
 }

@@ -1142,6 +1142,180 @@ export const JourneyResourceStatusEnum = {
   Broadcast: "Broadcast",
 } as const;
 
+export enum AdditionalJourneyNodeType {
+  EntryUiNode = "EntryUiNode",
+}
+
+export const PartialExceptType = <T1 extends TSchema>(schema: T1) =>
+  Type.Composite([
+    Type.Partial(Type.Omit(schema, ["type"])),
+    Type.Pick(schema, ["type"]),
+  ]);
+
+export const EntryUiNodeVariant = Type.Union([
+  PartialExceptType(SegmentEntryNode),
+  PartialExceptType(EventEntryNode),
+]);
+
+export type EntryUiNodeVariant = Static<typeof EntryUiNodeVariant>;
+
+export const EntryUiNodeProps = Type.Object({
+  type: Type.Literal(AdditionalJourneyNodeType.EntryUiNode),
+  variant: EntryUiNodeVariant,
+});
+
+export type EntryUiNodeProps = Static<typeof EntryUiNodeProps>;
+
+export const ExitUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.ExitNode),
+});
+
+export type ExitUiNodeProps = Static<typeof ExitUiNodeProps>;
+
+export const MessageUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.MessageNode),
+  name: Type.String(),
+  templateId: Type.Optional(Type.String()),
+  channel: Type.Enum(ChannelType),
+  subscriptionGroupId: Type.Optional(Type.String()),
+});
+
+export type MessageUiNodeProps = Static<typeof MessageUiNodeProps>;
+
+export const DelayUiNodeVariant = Type.Union([
+  PartialExceptType(LocalTimeDelayVariant),
+  PartialExceptType(SecondsDelayVariant),
+]);
+
+export type DelayUiNodeVariant = Static<typeof DelayUiNodeVariant>;
+
+export const DelayUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.DelayNode),
+  variant: DelayUiNodeVariant,
+});
+
+export type DelayUiNodeProps = Static<typeof DelayUiNodeProps>;
+
+export const SegmentSplitUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.SegmentSplitNode),
+  name: Type.String(),
+  segmentId: Type.Optional(Type.String()),
+  trueLabelNodeId: Type.String(),
+  falseLabelNodeId: Type.String(),
+});
+
+export type SegmentSplitUiNodeProps = Static<typeof SegmentSplitUiNodeProps>;
+
+export const WaitForUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.WaitForNode),
+  timeoutSeconds: Type.Optional(Type.Number()),
+  timeoutLabelNodeId: Type.String(),
+  segmentChildren: Type.Array(
+    Type.Object({
+      labelNodeId: Type.String(),
+      segmentId: Type.Optional(Type.String()),
+    }),
+  ),
+});
+
+export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
+
+export const JourneyUiBodyNodeTypeProps = Type.Union([
+  MessageUiNodeProps,
+  DelayUiNodeProps,
+  SegmentSplitUiNodeProps,
+  WaitForUiNodeProps,
+]);
+
+export type JourneyUiBodyNodeTypeProps = Static<
+  typeof JourneyUiBodyNodeTypeProps
+>;
+
+export const JourneyUiNodeTypeProps = Type.Union([
+  EntryUiNodeProps,
+  ExitUiNodeProps,
+  JourneyUiBodyNodeTypeProps,
+]);
+
+export type JourneyUiNodeTypeProps = Static<typeof JourneyUiNodeTypeProps>;
+
+export type JourneyUiNodePairing =
+  | [EntryUiNodeProps, EntryNode]
+  | [ExitUiNodeProps, ExitNode]
+  | [MessageUiNodeProps, SegmentNode]
+  | [DelayUiNodeProps, SegmentNode]
+  | [SegmentSplitUiNodeProps, SegmentNode]
+  | [WaitForUiNodeProps, WaitForNode];
+
+export enum JourneyUiNodeType {
+  JourneyUiNodeDefinitionProps = "JourneyUiNodeDefinitionProps",
+  JourneyUiNodeEmptyProps = "JourneyUiNodeEmptyProps",
+  JourneyUiNodeLabelProps = "JourneyUiNodeLabelProps",
+}
+
+export interface JourneyUiNodeDefinitionProps {
+  type: JourneyUiNodeType.JourneyUiNodeDefinitionProps;
+  nodeTypeProps: JourneyUiNodeTypeProps;
+}
+
+export interface JourneyUiNodeEmptyProps {
+  type: JourneyUiNodeType.JourneyUiNodeEmptyProps;
+}
+
+export interface JourneyUiNodeLabelProps {
+  type: JourneyUiNodeType.JourneyUiNodeLabelProps;
+  title: string;
+}
+
+export type JourneyUiNodePresentationalProps =
+  | JourneyUiNodeLabelProps
+  | JourneyUiNodeEmptyProps;
+
+export type JourneyNodeUiProps =
+  | JourneyUiNodeDefinitionProps
+  | JourneyUiNodePresentationalProps;
+
+export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
+
+export enum JourneyUiEdgeType {
+  JourneyUiDefinitionEdgeProps = "JourneyUiDefinitionEdgeProps",
+  JourneyUiPlaceholderEdgeProps = "JourneyUiPlaceholderEdgeProps",
+}
+
+export interface JourneyUiDefinitionEdgeProps {
+  type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps;
+  disableMarker?: boolean;
+}
+
+export interface JourneyUiPlaceholderEdgeProps {
+  type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps;
+}
+
+export type JourneyUiEdgeData =
+  | JourneyUiDefinitionEdgeProps
+  | JourneyUiPlaceholderEdgeProps;
+
+export const JourneyUiDraftEdge = Type.Object({
+  source: Type.String(),
+  target: Type.String(),
+});
+
+export type JourneyUiDraftEdge = Static<typeof JourneyUiDraftEdge>;
+
+export const JourneyUiDraftNode = Type.Object({
+  id: Type.String(),
+  data: JourneyUiNodeTypeProps,
+});
+
+export type JourneyUiDraftNode = Static<typeof JourneyUiDraftNode>;
+
+export const JourneyDraft = Type.Object({
+  nodes: Type.Array(JourneyUiDraftNode),
+  edges: Type.Array(JourneyUiDraftEdge),
+});
+
+export type JourneyDraft = Static<typeof JourneyDraft>;
+
 export const JourneyResourceStatus = Type.KeyOf(
   Type.Const(JourneyResourceStatusEnum),
 );
@@ -1153,7 +1327,11 @@ const baseJourneyResource = {
   workspaceId: Type.String(),
   name: Type.String(),
   canRunMultiple: Type.Optional(Type.Boolean()),
+<<<<<<< HEAD
   updatedAt: Type.Number(),
+=======
+  draft: Type.Optional(JourneyDraft),
+>>>>>>> 403fcd86 (wip)
 } as const;
 
 export const NotStartedJourneyResource = Type.Object({
@@ -2690,12 +2868,6 @@ export interface Resource {
   id: string;
 }
 
-export const PartialExceptType = <T1 extends TSchema>(schema: T1) =>
-  Type.Composite([
-    Type.Partial(Type.Omit(schema, ["type"])),
-    Type.Pick(schema, ["type"]),
-  ]);
-
 export enum AdminApiKeyPermission {
   Admin = "Admin",
 }
@@ -2787,171 +2959,3 @@ export const FeatureNames = Type.Enum(FeatureNamesEnum);
 export type FeatureMap = {
   [K in FeatureNamesEnum]?: boolean;
 };
-
-export enum AdditionalJourneyNodeType {
-  EntryUiNode = "EntryUiNode",
-}
-
-export const EntryUiNodeVariant = Type.Union([
-  PartialExceptType(SegmentEntryNode),
-  PartialExceptType(EventEntryNode),
-]);
-
-export type EntryUiNodeVariant = Static<typeof EntryUiNodeVariant>;
-
-export const EntryUiNodeProps = Type.Object({
-  type: Type.Literal(AdditionalJourneyNodeType.EntryUiNode),
-  variant: EntryUiNodeVariant,
-});
-
-export type EntryUiNodeProps = Static<typeof EntryUiNodeProps>;
-
-export const ExitUiNodeProps = Type.Object({
-  type: Type.Literal(JourneyNodeType.ExitNode),
-});
-
-export type ExitUiNodeProps = Static<typeof ExitUiNodeProps>;
-
-export const MessageUiNodeProps = Type.Object({
-  type: Type.Literal(JourneyNodeType.MessageNode),
-  name: Type.String(),
-  templateId: Type.Optional(Type.String()),
-  channel: Type.Enum(ChannelType),
-  subscriptionGroupId: Type.Optional(Type.String()),
-});
-
-export type MessageUiNodeProps = Static<typeof MessageUiNodeProps>;
-
-export const DelayUiNodeVariant = Type.Union([
-  PartialExceptType(LocalTimeDelayVariant),
-  PartialExceptType(SecondsDelayVariant),
-]);
-
-export type DelayUiNodeVariant = Static<typeof DelayUiNodeVariant>;
-
-export const DelayUiNodeProps = Type.Object({
-  type: Type.Literal(JourneyNodeType.DelayNode),
-  variant: DelayUiNodeVariant,
-});
-
-export type DelayUiNodeProps = Static<typeof DelayUiNodeProps>;
-
-export const SegmentSplitUiNodeProps = Type.Object({
-  type: Type.Literal(JourneyNodeType.SegmentSplitNode),
-  name: Type.String(),
-  segmentId: Type.Optional(Type.String()),
-  trueLabelNodeId: Type.String(),
-  falseLabelNodeId: Type.String(),
-});
-
-export type SegmentSplitUiNodeProps = Static<typeof SegmentSplitUiNodeProps>;
-
-export const WaitForUiNodeProps = Type.Object({
-  type: Type.Literal(JourneyNodeType.WaitForNode),
-  timeoutSeconds: Type.Optional(Type.Number()),
-  timeoutLabelNodeId: Type.String(),
-  segmentChildren: Type.Array(
-    Type.Object({
-      labelNodeId: Type.String(),
-      segmentId: Type.Optional(Type.String()),
-    }),
-  ),
-});
-
-export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
-
-export const JourneyUiBodyNodeTypeProps = Type.Union([
-  MessageUiNodeProps,
-  DelayUiNodeProps,
-  SegmentSplitUiNodeProps,
-  WaitForUiNodeProps,
-]);
-
-export type JourneyUiBodyNodeTypeProps = Static<
-  typeof JourneyUiBodyNodeTypeProps
->;
-
-export const JourneyUiNodeTypeProps = Type.Union([
-  EntryUiNodeProps,
-  ExitUiNodeProps,
-  JourneyUiBodyNodeTypeProps,
-]);
-
-export type JourneyUiNodeTypeProps = Static<typeof JourneyUiNodeTypeProps>;
-
-export type JourneyUiNodePairing =
-  | [EntryUiNodeProps, EntryNode]
-  | [ExitUiNodeProps, ExitNode]
-  | [MessageUiNodeProps, SegmentNode]
-  | [DelayUiNodeProps, SegmentNode]
-  | [SegmentSplitUiNodeProps, SegmentNode]
-  | [WaitForUiNodeProps, WaitForNode];
-
-export enum JourneyUiNodeType {
-  JourneyUiNodeDefinitionProps = "JourneyUiNodeDefinitionProps",
-  JourneyUiNodeEmptyProps = "JourneyUiNodeEmptyProps",
-  JourneyUiNodeLabelProps = "JourneyUiNodeLabelProps",
-}
-
-export interface JourneyUiNodeDefinitionProps {
-  type: JourneyUiNodeType.JourneyUiNodeDefinitionProps;
-  nodeTypeProps: JourneyUiNodeTypeProps;
-}
-
-export interface JourneyUiNodeEmptyProps {
-  type: JourneyUiNodeType.JourneyUiNodeEmptyProps;
-}
-
-export interface JourneyUiNodeLabelProps {
-  type: JourneyUiNodeType.JourneyUiNodeLabelProps;
-  title: string;
-}
-
-export type JourneyUiNodePresentationalProps =
-  | JourneyUiNodeLabelProps
-  | JourneyUiNodeEmptyProps;
-
-export type JourneyNodeUiProps =
-  | JourneyUiNodeDefinitionProps
-  | JourneyUiNodePresentationalProps;
-
-export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
-
-export enum JourneyUiEdgeType {
-  JourneyUiDefinitionEdgeProps = "JourneyUiDefinitionEdgeProps",
-  JourneyUiPlaceholderEdgeProps = "JourneyUiPlaceholderEdgeProps",
-}
-
-export interface JourneyUiDefinitionEdgeProps {
-  type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps;
-  disableMarker?: boolean;
-}
-
-export interface JourneyUiPlaceholderEdgeProps {
-  type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps;
-}
-
-export type JourneyUiEdgeData =
-  | JourneyUiDefinitionEdgeProps
-  | JourneyUiPlaceholderEdgeProps;
-
-export const JourneyUiDraftEdge = Type.Object({
-  source: Type.String(),
-  target: Type.String(),
-});
-
-export type JourneyUiDraftEdge = Static<typeof JourneyUiDraftEdge>;
-
-export const JourneyUiDraftNode = Type.Object({
-  id: Type.String(),
-  data: JourneyUiNodeTypeProps,
-});
-
-export type JourneyUiDraftNode = Static<typeof JourneyUiDraftNode>;
-
-export const JourneyDraft = Type.Object({
-  nodes: Type.Array(JourneyUiDraftNode),
-  edges: Type.Array(JourneyUiDraftEdge),
-});
-
-export type JourneyDraft = Static<typeof JourneyDraft>;

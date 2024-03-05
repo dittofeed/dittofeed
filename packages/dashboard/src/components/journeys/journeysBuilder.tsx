@@ -108,6 +108,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "setJourneyStatsRequest",
     "upsertJourneyStats",
   ]);
+  console.log("journeyNodes", nodes);
 
   useJourneyStats({
     journeyIds: [journeyId],

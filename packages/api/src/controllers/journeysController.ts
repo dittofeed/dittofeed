@@ -118,6 +118,7 @@ export default async function journeysController(fastify: FastifyInstance) {
         definition: journeyDefinitionResult.value,
         updatedAt: Number(journey.updatedAt),
       };
+      console.log("resource", resource);
       return reply.status(200).send(resource);
     },
   );
