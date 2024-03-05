@@ -1518,7 +1518,6 @@ export function createConnections(params: CreateConnectionsParams): {
   switch (params.type) {
     case JourneyNodeType.SegmentSplitNode: {
       const { trueLabelNodeId, falseLabelNodeId } = params;
-      // this code can't identify that it's part of a body params so target and source aren't guaranteed to exist. why?
       const { target, source } = params;
       const emptyId = uuid();
 
@@ -1548,51 +1547,69 @@ export function createConnections(params: CreateConnectionsParams): {
       break;
     }
     case JourneyNodeType.WaitForNode: {
-      const segmentChild = nodeTypeProps.segmentChildren[0];
+      const segmentChild = params.segmentChildren[0];
       if (!segmentChild) {
         throw new Error("Malformed journey, WaitForNode has no children.");
       }
 
       const segmentChildLabelNodeId = segmentChild.labelNodeId;
-      const { timeoutLabelNodeId } = nodeTypeProps;
+      const { timeoutLabelNodeId } = params;
       const emptyId = uuid();
 
-      newNodes = newNodes.concat(
-        dualNodeNonJourneyNodes({
-          emptyId,
-          leftId: segmentChildLabelNodeId,
-          rightId: timeoutLabelNodeId,
-          leftLabel: WAIT_FOR_SATISFY_LABEL,
-          rightLabel: waitForTimeoutLabel(nodeTypeProps.timeoutSeconds),
-        }),
-      );
+      newNodes = [
+        ...newNodes.concat(
+          buildBaseJourneyNode({
+            id: params.id,
+            nodeTypeProps: omit(params, ["id", "source", "target"]),
+          }),
+          dualNodeNonJourneyNodes({
+            emptyId,
+            leftId: segmentChildLabelNodeId,
+            rightId: timeoutLabelNodeId,
+            leftLabel: WAIT_FOR_SATISFY_LABEL,
+            rightLabel: waitForTimeoutLabel(params.timeoutSeconds),
+          }),
+        ),
+      ];
 
       newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
+        type: params.type,
+        nodeId: params.id,
         emptyId,
         leftId: segmentChildLabelNodeId,
         rightId: timeoutLabelNodeId,
-        source,
-        target,
+        source: params.source,
+        target: params.target,
       });
       break;
     }
     case JourneyNodeType.DelayNode: {
+      newNodes.push(
+        buildBaseJourneyNode({
+          id: params.id,
+          nodeTypeProps: omit(params, ["id", "source", "target"]),
+        }),
+      );
       newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        source,
-        target,
+        type: params.type,
+        nodeId: params.id,
+        source: params.source,
+        target: params.target,
       });
       break;
     }
     case JourneyNodeType.MessageNode: {
+      newNodes.push(
+        buildBaseJourneyNode({
+          id: params.id,
+          nodeTypeProps: omit(params, ["id", "source", "target"]),
+        }),
+      );
       newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        source,
-        target,
+        type: params.type,
+        nodeId: params.id,
+        source: params.source,
+        target: params.target,
       });
       break;
     }
@@ -1603,7 +1620,7 @@ export function createConnections(params: CreateConnectionsParams): {
       throw new Error("Cannot add exit node in the UI implementation error.");
     }
     default:
-      assertUnreachable(nodeTypeProps);
+      assertUnreachable(params);
   }
 
   return {
