@@ -19,13 +19,13 @@ import {
   SmsTemplateResource,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
 import DeleteDialog from "./confirmDeleteDialog";
+import { RESOURCE_TABLE_STYLE } from "./resourceTable";
 
 interface Row {
   id: string;
@@ -54,7 +54,6 @@ export interface TemplatesTableProps {
 }
 
 export default function TemplatesTable({ label }: TemplatesTableProps) {
-  const router = useRouter();
   const messagesResult = useAppStore((store) => store.messages);
 
   const setMessageTemplateDeleteRequest = useAppStore(
@@ -153,35 +152,14 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     <DataGrid
       rows={rows}
       sx={{
-        height: "100%",
-        width: "100%",
-        ".MuiDataGrid-row:first-child": {
-          borderTop: "1px solid lightgray",
-        },
-        ".MuiDataGrid-row": {
-          borderBottom: "1px solid lightgray",
-        },
-        // disable cell selection style
-        ".MuiDataGrid-cell:focus": {
-          outline: "none",
-        },
-        // pointer cursor on ALL rows
-        "& .MuiDataGrid-row:hover": {
-          cursor: "pointer",
-        },
+        ...RESOURCE_TABLE_STYLE,
       }}
       getRowId={(row) => row.id}
-      onRowClick={(params) => {
-        router.push({
-          pathname: `/templates/${routeName}/${params.id}`,
-        });
-      }}
       autoPageSize
       columns={[
         {
           field: "name",
           headerName: "Name",
-          width: 50,
         },
         {
           field: "updatedAt",
@@ -212,7 +190,12 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
                     {currentRow.journeys?.length}{" "}
                     {currentRow.journeys?.length === 1 ? "Journey" : "Journeys"}
                   </InputLabel>
-                  <Select label="Journeys">
+                  <Select
+                    label="Journeys"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
                     {currentRow.journeys?.map((journey) => {
                       return (
                         <MenuItem key={journey.id}>
@@ -247,8 +230,6 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
         {
           field: "actions",
           headerName: "Action",
-          width: 180,
-          sortable: false,
           // eslint-disable-next-line react/no-unused-prop-types
           renderCell: ({ row }: { row: Row }) => (
             <DeleteDialog
@@ -287,7 +268,29 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
             />
           ),
         },
-      ].map((c) => ({ ...baseColumn, ...c }))}
+      ].map((c) => ({
+        ...baseColumn,
+        ...c,
+        // eslint-disable-next-line react/no-unused-prop-types
+        renderCell: ({ row }: { row: Row }) => (
+          <Link
+            href={`/templates/${routeName}/${row.id}`}
+            passHref
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            style={{
+              color: "black",
+              textDecoration: "none",
+              width: "100%",
+            }}
+          >
+            {c.renderCell === undefined
+              ? String(row[c.field as keyof Row])
+              : c.renderCell({ row })}
+          </Link>
+        ),
+      }))}
       initialState={{
         pagination: {
           paginationModel: {

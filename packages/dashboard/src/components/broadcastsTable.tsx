@@ -1,9 +1,10 @@
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { useRouter } from "next/router";
+import Link from "next/link";
 import React from "react";
 
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
+import { RESOURCE_TABLE_STYLE } from "./resourceTable";
 
 interface Row {
   id: string;
@@ -20,7 +21,6 @@ const baseColumn: Partial<GridColDef<Row>> = {
 };
 
 export default function BroadcastsTable() {
-  const router = useRouter();
   const broadcasts = useAppStore((store) => store.broadcasts);
 
   const broadcastsRow: Row[] = [];
@@ -41,30 +41,9 @@ export default function BroadcastsTable() {
     <DataGrid
       rows={broadcastsRow}
       sx={{
-        height: "100%",
-        width: "100%",
-        ".MuiDataGrid-row:first-child": {
-          borderTop: "1px solid lightgray",
-        },
-        ".MuiDataGrid-row": {
-          borderBottom: "1px solid lightgray",
-          paddingY: "0.5rem",
-        },
-        // disable cell selection style
-        ".MuiDataGrid-cell:focus": {
-          outline: "none",
-        },
-        // pointer cursor on ALL rows
-        "& .MuiDataGrid-row:hover": {
-          cursor: "pointer",
-        },
+        ...RESOURCE_TABLE_STYLE,
       }}
       getRowId={(row) => row.id}
-      onRowClick={(params) => {
-        router.push({
-          pathname: `/broadcasts/segment/${params.id}`,
-        });
-      }}
       autoPageSize
       columns={[
         {
@@ -79,7 +58,27 @@ export default function BroadcastsTable() {
           field: "triggeredAt",
           headerName: "Sent At",
         },
-      ].map((c) => ({ ...baseColumn, ...c }))}
+      ].map((c) => ({
+        ...baseColumn,
+        ...c,
+        // eslint-disable-next-line react/no-unused-prop-types
+        renderCell: ({ row }: { row: Row }) => (
+          <Link
+            href={`/broadcasts/segment/${row.id}`}
+            passHref
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            style={{
+              color: "black",
+              textDecoration: "none",
+              width: "100%",
+            }}
+          >
+            {String(row[c.field as keyof Row])}
+          </Link>
+        ),
+      }))}
       initialState={{
         pagination: {
           paginationModel: {

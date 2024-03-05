@@ -4,13 +4,14 @@ import {
   DeleteJourneyRequest,
   EmptyResponse,
 } from "isomorphic-lib/src/types";
-import { useRouter } from "next/router";
+import Link from "next/link";
 import React from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
 import DeleteDialog from "./confirmDeleteDialog";
+import { RESOURCE_TABLE_STYLE } from "./resourceTable";
 
 interface Row {
   id: string;
@@ -26,8 +27,6 @@ const baseColumn: Partial<GridColDef<Row>> = {
 };
 
 export default function JourneysTable() {
-  const router = useRouter();
-
   const setJourneyDeleteRequest = useAppStore(
     (store) => store.setJourneyDeleteRequest,
   );
@@ -68,29 +67,9 @@ export default function JourneysTable() {
     <DataGrid
       rows={journeysRow}
       sx={{
-        height: "100%",
-        width: "100%",
-        ".MuiDataGrid-row:first-child": {
-          borderTop: "1px solid lightgray",
-        },
-        ".MuiDataGrid-row": {
-          borderBottom: "1px solid lightgray",
-        },
-        // disable cell selection style
-        ".MuiDataGrid-cell:focus": {
-          outline: "none",
-        },
-        // pointer cursor on ALL rows
-        "& .MuiDataGrid-row:hover": {
-          cursor: "pointer",
-        },
+        ...RESOURCE_TABLE_STYLE,
       }}
       getRowId={(row) => row.id}
-      onRowClick={(params) => {
-        router.push({
-          pathname: `/journeys/${params.id}`,
-        });
-      }}
       autoPageSize
       columns={[
         {
@@ -137,7 +116,29 @@ export default function JourneysTable() {
             />
           ),
         },
-      ].map((c) => ({ ...baseColumn, ...c }))}
+      ].map((c) => ({
+        ...baseColumn,
+        ...c,
+        // eslint-disable-next-line react/no-unused-prop-types
+        renderCell: ({ row }: { row: Row }) => (
+          <Link
+            href={`/journeys/${row.id}`}
+            passHref
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            style={{
+              color: "black",
+              textDecoration: "none",
+              width: "100%",
+            }}
+          >
+            {c.renderCell === undefined
+              ? String(row[c.field as keyof Row])
+              : c.renderCell({ row })}
+          </Link>
+        ),
+      }))}
       initialState={{
         pagination: {
           paginationModel: {

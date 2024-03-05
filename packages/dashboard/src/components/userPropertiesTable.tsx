@@ -12,13 +12,13 @@ import {
   EmptyResponse,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import React from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { monospaceCell } from "../lib/datagridCells";
 import DeleteDialog from "./confirmDeleteDialog";
+import { RESOURCE_TABLE_STYLE } from "./resourceTable";
 
 interface Row {
   id: string;
@@ -40,8 +40,6 @@ const baseColumn: Partial<GridColDef<Row>> = {
 };
 
 export default function UserPropertiesTable() {
-  const router = useRouter();
-
   const workspace = useAppStore((store) => store.workspace);
   const workspaceId =
     workspace.type === CompletionStatus.Successful ? workspace.value.id : "";
@@ -91,30 +89,10 @@ export default function UserPropertiesTable() {
     <DataGrid
       rows={usersPropertiesRow}
       sx={{
-        height: "100%",
-        width: "100%",
-        ".MuiDataGrid-row:first-child": {
-          borderTop: "1px solid lightgray",
-        },
-        ".MuiDataGrid-row": {
-          borderBottom: "1px solid lightgray",
-        },
-        // disable cell selection style
-        ".MuiDataGrid-cell:focus": {
-          outline: "none",
-        },
-        // pointer cursor on ALL rows
-        "& .MuiDataGrid-row:hover": {
-          cursor: "pointer",
-        },
+        ...RESOURCE_TABLE_STYLE,
       }}
       getRowId={(row) => row.id}
-      onRowClick={(params) => {
-        router.push({
-          pathname: `/user-properties/${params.id}`,
-        });
-      }}
-      // autoPageSize
+      autoPageSize
       columns={[
         {
           field: "properties",
@@ -198,8 +176,6 @@ export default function UserPropertiesTable() {
         {
           field: "actions",
           headerName: "Action",
-          width: 180,
-          sortable: false,
           // eslint-disable-next-line react/no-unused-prop-types
           renderCell: ({ row }: { row: Row }) => (
             <DeleteDialog
@@ -232,7 +208,29 @@ export default function UserPropertiesTable() {
             />
           ),
         },
-      ].map((c) => ({ ...baseColumn, ...c }))}
+      ].map((c) => ({
+        ...baseColumn,
+        ...c,
+        // eslint-disable-next-line react/no-unused-prop-types
+        renderCell: ({ row }: { row: Row }) => (
+          <Link
+            href={`/user-properties/${row.id}`}
+            passHref
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            style={{
+              color: "black",
+              textDecoration: "none",
+              width: "100%",
+            }}
+          >
+            {c.renderCell === undefined
+              ? String(row[c.field as keyof Row])
+              : c.renderCell({ row })}
+          </Link>
+        ),
+      }))}
       initialState={{
         pagination: {
           paginationModel: {
@@ -242,8 +240,6 @@ export default function UserPropertiesTable() {
       }}
       pageSizeOptions={[1, 5, 10, 25]}
       getRowHeight={() => "auto"}
-      // autoHeight
-      autoPageSize
     />
   );
 }
