@@ -20,6 +20,7 @@ import {
   JourneyResource,
   JourneyStats,
   JourneyStatsResponse,
+  JourneyUiBodyNodeTypeProps,
   JourneyUiDefinitionEdgeProps,
   JourneyUiDraftEdge,
   JourneyUiDraftNode,
@@ -297,7 +298,7 @@ export interface SegmentEditorContents extends SegmentEditorState {
 
 export interface JourneyState {
   journeyName: string;
-  journeyDraggedComponentType: JourneyUiNodeTypeProps["type"] | null;
+  journeyDraggedComponentType: JourneyUiBodyNodeTypeProps["type"] | null;
   journeySelectedNodeId: string | null;
   journeyNodes: Node<JourneyNodeUiProps>[];
   journeyNodesIndex: Record<string, number>;
@@ -315,7 +316,9 @@ export interface AddNodesParams {
 }
 
 export interface JourneyContent extends JourneyState {
-  setDraggedComponentType: (t: JourneyUiNodeTypeProps["type"] | null) => void;
+  setDraggedComponentType: (
+    t: JourneyUiBodyNodeTypeProps["type"] | null,
+  ) => void;
   setSelectedNodeId: (t: string | null) => void;
   addNodes: (params: AddNodesParams) => void;
   setEdges: (changes: EdgeChange[]) => void;

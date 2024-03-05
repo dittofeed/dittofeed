@@ -2,7 +2,11 @@ import "reactflow/dist/style.css";
 
 import { Box } from "@mui/material";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  JourneyNodeType,
+  JourneyUiBodyNodeTypeProps,
+} from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
   Background,
@@ -34,9 +38,13 @@ import { useJourneyStats } from "../../lib/useJourneyStats";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
-import defaultNodeTypeProps from "./nodeTypes/defaultNodeTypeProps";
+import {
+  defaultNodeTypeProps,
+  defaultBodyNodeTypeProps,
+} from "./nodeTypes/defaultNodeTypeProps";
 import Sidebar from "./sidebar";
 import {
+  createConnections,
   dualNodeNonJourneyNodes,
   edgesForJourneyNode,
   WAIT_FOR_SATISFY_LABEL,
@@ -57,7 +65,7 @@ function createNewConnections({
   target,
   addNodes,
 }: {
-  nodeType: JourneyUiNodeTypeProps["type"];
+  nodeType: JourneyUiBodyNodeTypeProps["type"];
   nodes: AppState["journeyNodes"];
   addNodes: AppState["addNodes"];
   source: string;
@@ -66,104 +74,12 @@ function createNewConnections({
   // TODO create an incremental ID based on the number of elements already in the graph
   const newTargetId = uuid();
 
-  const newJourneyNode: Node<JourneyUiNodeDefinitionProps> = {
+  const { newNodes, newEdges } = createConnections({
     id: newTargetId,
-    data: {
-      type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
-      nodeTypeProps: defaultNodeTypeProps(nodeType, nodes),
-    },
-    position: { x: 0, y: 0 }, // no need to pass a position as it is computed by the layout hook
-    type: "journey",
-  };
-  let newNodes: Node<JourneyNodeUiProps>[] = [newJourneyNode];
-  let newEdges: Edge<JourneyUiEdgeData>[];
-
-  const { nodeTypeProps } = newJourneyNode.data;
-  switch (nodeTypeProps.type) {
-    case JourneyNodeType.SegmentSplitNode: {
-      const trueId = nodeTypeProps.trueLabelNodeId;
-      const falseId = nodeTypeProps.falseLabelNodeId;
-      const emptyId = uuid();
-
-      newNodes = newNodes.concat(
-        dualNodeNonJourneyNodes({
-          emptyId,
-          leftId: trueId,
-          rightId: falseId,
-          leftLabel: "true",
-          rightLabel: "false",
-        }),
-      );
-
-      newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        emptyId,
-        leftId: trueId,
-        rightId: falseId,
-        source,
-        target,
-      });
-      break;
-    }
-    case JourneyNodeType.WaitForNode: {
-      const segmentChild = nodeTypeProps.segmentChildren[0];
-      if (!segmentChild) {
-        throw new Error("Malformed journey, WaitForNode has no children.");
-      }
-
-      const segmentChildLabelNodeId = segmentChild.labelNodeId;
-      const { timeoutLabelNodeId } = nodeTypeProps;
-      const emptyId = uuid();
-
-      newNodes = newNodes.concat(
-        dualNodeNonJourneyNodes({
-          emptyId,
-          leftId: segmentChildLabelNodeId,
-          rightId: timeoutLabelNodeId,
-          leftLabel: WAIT_FOR_SATISFY_LABEL,
-          rightLabel: waitForTimeoutLabel(nodeTypeProps.timeoutSeconds),
-        }),
-      );
-
-      newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        emptyId,
-        leftId: segmentChildLabelNodeId,
-        rightId: timeoutLabelNodeId,
-        source,
-        target,
-      });
-      break;
-    }
-    case JourneyNodeType.DelayNode: {
-      newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        source,
-        target,
-      });
-      break;
-    }
-    case JourneyNodeType.MessageNode: {
-      newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        source,
-        target,
-      });
-      break;
-    }
-    case AdditionalJourneyNodeType.EntryUiNode: {
-      throw new Error("Cannot add entry node in the UI implementation error.");
-    }
-    case JourneyNodeType.ExitNode: {
-      throw new Error("Cannot add exit node in the UI implementation error.");
-    }
-    default:
-      assertUnreachable(nodeTypeProps);
-  }
+    source,
+    target,
+    ...defaultBodyNodeTypeProps(nodeType, nodes),
+  });
 
   addNodes({ nodes: newNodes, edges: newEdges, source, target });
 }

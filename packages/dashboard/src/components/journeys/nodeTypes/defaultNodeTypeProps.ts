@@ -2,6 +2,7 @@ import {
   ChannelType,
   DelayVariantType,
   JourneyNodeType,
+  JourneyUiBodyNodeTypeProps,
 } from "isomorphic-lib/src/types";
 import { Node } from "reactflow";
 import { v4 as uuid } from "uuid";
@@ -15,22 +16,11 @@ import {
 
 export const defaultSegmentSplitName = "True / False Branch";
 
-export default function defaultNodeTypeProps(
-  type: JourneyUiNodeTypeProps["type"],
+export function defaultBodyNodeTypeProps(
+  type: JourneyUiBodyNodeTypeProps["type"],
   nodes: Node<JourneyNodeUiProps>[],
-): JourneyUiNodeTypeProps {
+): JourneyUiBodyNodeTypeProps {
   switch (type) {
-    case AdditionalJourneyNodeType.EntryUiNode:
-      return {
-        type,
-        variant: {
-          type: JourneyNodeType.SegmentEntryNode,
-        },
-      };
-    case JourneyNodeType.ExitNode:
-      return {
-        type,
-      };
     case JourneyNodeType.MessageNode: {
       const numMessages =
         nodes.filter(
@@ -70,5 +60,26 @@ export default function defaultNodeTypeProps(
           },
         ],
       };
+  }
+}
+
+export function defaultNodeTypeProps(
+  type: JourneyUiNodeTypeProps["type"],
+  nodes: Node<JourneyNodeUiProps>[],
+): JourneyUiNodeTypeProps {
+  switch (type) {
+    case AdditionalJourneyNodeType.EntryUiNode:
+      return {
+        type,
+        variant: {
+          type: JourneyNodeType.SegmentEntryNode,
+        },
+      };
+    case JourneyNodeType.ExitNode:
+      return {
+        type,
+      };
+    default:
+      return defaultBodyNodeTypeProps(type, nodes);
   }
 }

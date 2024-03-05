@@ -1,5 +1,8 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
-import { JourneyNodeType } from "isomorphic-lib/src/types";
+import {
+  JourneyNodeType,
+  JourneyUiBodyNodeTypeProps,
+} from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
@@ -12,7 +15,7 @@ import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { JourneyNodeIcon, journeyNodeIcon } from "./nodeTypes/journeyNode";
 
-const SIDEBAR_NODE_TYPES: JourneyUiNodeTypeProps["type"][] = [
+const SIDEBAR_NODE_TYPES: JourneyUiBodyNodeTypeProps["type"][] = [
   JourneyNodeType.DelayNode,
   JourneyNodeType.SegmentSplitNode,
   JourneyNodeType.MessageNode,
@@ -43,7 +46,7 @@ function Sidebar() {
   );
 
   const onDragStart =
-    ({ nodeType }: { nodeType: JourneyUiNodeTypeProps["type"] }) =>
+    ({ nodeType }: { nodeType: JourneyUiBodyNodeTypeProps["type"] }) =>
     () => {
       setDraggedComponentType(nodeType);
     };
@@ -52,7 +55,7 @@ function Sidebar() {
     setDraggedComponentType(null);
   };
 
-  const nodeTypes: [JourneyUiNodeTypeProps["type"], JourneyNodeIcon][] =
+  const nodeTypes: [JourneyUiBodyNodeTypeProps["type"], JourneyNodeIcon][] =
     SIDEBAR_NODE_TYPES.map((t) => [t, journeyNodeIcon(t)]);
 
   const nodeTypesEls = nodeTypes.map(([t, Icon]) => {

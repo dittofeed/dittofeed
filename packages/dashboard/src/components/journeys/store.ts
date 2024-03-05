@@ -1613,6 +1613,7 @@ export function createConnections(params: CreateConnectionsParams): {
       });
       break;
     }
+    // FIXME
     case AdditionalJourneyNodeType.EntryUiNode: {
       throw new Error("Cannot add entry node in the UI implementation error.");
     }

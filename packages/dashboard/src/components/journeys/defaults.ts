@@ -7,7 +7,7 @@ import {
   JourneyUiNodeType,
 } from "../../lib/types";
 import { layoutNodes } from "./layoutNodes";
-import defaultNodeTypeProps from "./nodeTypes/defaultNodeTypeProps";
+import { defaultNodeTypeProps } from "./nodeTypes/defaultNodeTypeProps";
 
 export const defaultEdges: Edge[] = [
   {
