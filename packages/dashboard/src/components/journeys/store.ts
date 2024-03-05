@@ -1476,7 +1476,6 @@ export type CreateConnectionsEntryNodeParams = EntryUiNodeProps & {
 
 export type CreateConnectionsExitNodeParams = ExitUiNodeProps & {
   id: string;
-  source: string;
 };
 
 export type CreateConnectionsBodyNodeParams = JourneyUiBodyNodeTypeProps & {
@@ -1512,8 +1511,6 @@ export function createConnections(params: CreateConnectionsParams): {
   newNodes: Node<JourneyNodeUiProps>[];
   newEdges: Edge<JourneyUiEdgeData>[];
 } {
-  // let newNodes: Node<JourneyNodeUiProps>[] = [newJourneyNode];
-  // FIXME
   let newNodes: Node<JourneyNodeUiProps>[] = [];
   let newEdges: Edge<JourneyUiEdgeData>[];
 
@@ -1651,6 +1648,43 @@ export function journeyDraftToState({
     acc.set(edge.source, children);
     return acc;
   }, new Map<string, Set<string>>());
+
+  const nodes: Node<JourneyNodeUiProps>[] = [];
+  const edges: Edge<JourneyUiEdgeData>[] = [];
+
+  for (const node of draft.nodes) {
+    let connections: ReturnType<typeof createConnections>;
+
+    switch (node.data.type) {
+      case AdditionalJourneyNodeType.EntryUiNode: {
+        const target = idxUnsafe(
+          Array.from(getUnsafe(targetsBySource, node.id)),
+          0,
+        );
+        connections = createConnections({
+          ...node.data,
+          target,
+          id: node.id,
+          type: AdditionalJourneyNodeType.EntryUiNode,
+        });
+        break;
+      }
+      case JourneyNodeType.ExitNode: {
+        const source = idxUnsafe(
+          Array.from(getUnsafe(targetsBySource, node.id)),
+          0,
+        );
+        // FIXME not right
+        // connections = createConnections({
+        //   ...node.data,
+        //   source,
+        //   id: node.id,
+        //   type: JourneyNodeType.ExitNode,
+        // });
+        break;
+      }
+    }
+  }
 
   // fixme build index, layout
   throw new Error("Not implemented");

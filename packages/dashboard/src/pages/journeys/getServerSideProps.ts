@@ -83,7 +83,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         type: CompletionStatus.Successful,
         value: [journeyResource],
       };
-      // FIXME
+      // FIXME cleanup
       let stateFromJourney: JourneyStateForResource;
       if (journeyResource.draft) {
         const resource: JourneyResourceWithDraftForState = {

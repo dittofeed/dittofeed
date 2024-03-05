@@ -971,7 +971,12 @@ describe("journeyDefinitionFromState", () => {
 
   describe.only("journeyDraftToState", () => {
     it("returns a journey state", () => {
-      expect(journeyDraftToState(EXAMPLE_JOURNEY_DRAFT)).toEqual({
+      expect(
+        journeyDraftToState({
+          name: `New Journey - ${uuid()}`,
+          draft: EXAMPLE_JOURNEY_DRAFT,
+        }),
+      ).toEqual({
         ...EXAMPLE_JOURNEY_STATE,
         nodes: EXAMPLE_JOURNEY_STATE.journeyNodes.map((node) => ({
           ...node,
