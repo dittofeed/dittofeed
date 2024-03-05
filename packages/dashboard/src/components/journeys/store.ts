@@ -1,5 +1,7 @@
 import { idxUnsafe } from "isomorphic-lib/src/arrays";
+import { v4 as uuid } from "uuid";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
+import { omit } from "remeda/dist/commonjs/omit";
 import {
   buildHeritageMap,
   getNearestFromChildren,
@@ -1465,36 +1467,144 @@ export function journeyStateToDraft(state: JourneyStateForDraft): JourneyDraft {
   };
 }
 
-export interface CreateConnectionsEntryNodeParams {
+export type CreateConnectionsEntryNodeParams = EntryUiNodeProps & {
   id: string;
   target: string;
-  definitionNode: EntryUiNodeProps;
-}
+};
 
-export interface CreateConnectionsExitNodeParams {
+export type CreateConnectionsExitNodeParams = ExitUiNodeProps & {
   id: string;
   source: string;
-  definitionNode: ExitUiNodeProps;
-}
+};
 
-export interface CreateConnectionsBodyNodeParams {
+export type CreateConnectionsBodyNodeParams = JourneyUiBodyNodeTypeProps & {
   id: string;
   source: string;
   target: string;
-  definitionNode: JourneyUiBodyNodeTypeProps;
-}
+};
 
 export type CreateConnectionsParams =
   | CreateConnectionsEntryNodeParams
   | CreateConnectionsExitNodeParams
   | CreateConnectionsBodyNodeParams;
 
+function buildBaseJourneyNode({
+  nodeTypeProps,
+  id,
+}: {
+  id: string;
+  nodeTypeProps: JourneyUiNodeTypeProps;
+}): Node<JourneyUiNodeDefinitionProps> {
+  return {
+    id,
+    data: {
+      type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
+      nodeTypeProps,
+    },
+    position: { x: 0, y: 0 }, // no need to pass a position as it is computed by the layout hook
+    type: "journey",
+  };
+}
+
 export function createConnections(params: CreateConnectionsParams): {
   newNodes: Node<JourneyNodeUiProps>[];
   newEdges: Edge<JourneyUiEdgeData>[];
 } {
-  const newNodes: Node<JourneyNodeUiProps>[] = [];
-  const newEdges: Edge<JourneyUiEdgeData>[] = [];
+  // let newNodes: Node<JourneyNodeUiProps>[] = [newJourneyNode];
+  // FIXME
+  let newNodes: Node<JourneyNodeUiProps>[] = [];
+  let newEdges: Edge<JourneyUiEdgeData>[];
+
+  switch (params.type) {
+    case JourneyNodeType.SegmentSplitNode: {
+      const { trueLabelNodeId, falseLabelNodeId } = params;
+      // this code can't identify that it's part of a body params so target and source aren't guaranteed to exist. why?
+      const { target, source } = params;
+      const emptyId = uuid();
+
+      newNodes = newNodes.concat([
+        buildBaseJourneyNode({
+          id: params.id,
+          nodeTypeProps: omit(params, ["id", "source", "target"]),
+        }),
+        ...dualNodeNonJourneyNodes({
+          emptyId,
+          leftId: trueLabelNodeId,
+          rightId: falseLabelNodeId,
+          leftLabel: "true",
+          rightLabel: "false",
+        }),
+      ]);
+
+      newEdges = edgesForJourneyNode({
+        type: params.type,
+        nodeId: params.id,
+        emptyId,
+        leftId: trueLabelNodeId,
+        rightId: falseLabelNodeId,
+        source,
+        target,
+      });
+      break;
+    }
+    case JourneyNodeType.WaitForNode: {
+      const segmentChild = nodeTypeProps.segmentChildren[0];
+      if (!segmentChild) {
+        throw new Error("Malformed journey, WaitForNode has no children.");
+      }
+
+      const segmentChildLabelNodeId = segmentChild.labelNodeId;
+      const { timeoutLabelNodeId } = nodeTypeProps;
+      const emptyId = uuid();
+
+      newNodes = newNodes.concat(
+        dualNodeNonJourneyNodes({
+          emptyId,
+          leftId: segmentChildLabelNodeId,
+          rightId: timeoutLabelNodeId,
+          leftLabel: WAIT_FOR_SATISFY_LABEL,
+          rightLabel: waitForTimeoutLabel(nodeTypeProps.timeoutSeconds),
+        }),
+      );
+
+      newEdges = edgesForJourneyNode({
+        type: nodeTypeProps.type,
+        nodeId: newTargetId,
+        emptyId,
+        leftId: segmentChildLabelNodeId,
+        rightId: timeoutLabelNodeId,
+        source,
+        target,
+      });
+      break;
+    }
+    case JourneyNodeType.DelayNode: {
+      newEdges = edgesForJourneyNode({
+        type: nodeTypeProps.type,
+        nodeId: newTargetId,
+        source,
+        target,
+      });
+      break;
+    }
+    case JourneyNodeType.MessageNode: {
+      newEdges = edgesForJourneyNode({
+        type: nodeTypeProps.type,
+        nodeId: newTargetId,
+        source,
+        target,
+      });
+      break;
+    }
+    case AdditionalJourneyNodeType.EntryUiNode: {
+      throw new Error("Cannot add entry node in the UI implementation error.");
+    }
+    case JourneyNodeType.ExitNode: {
+      throw new Error("Cannot add exit node in the UI implementation error.");
+    }
+    default:
+      assertUnreachable(nodeTypeProps);
+  }
 
   return {
     newNodes,
