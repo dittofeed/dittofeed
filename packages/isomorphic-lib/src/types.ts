@@ -1253,27 +1253,43 @@ export enum JourneyUiNodeType {
   JourneyUiNodeLabelProps = "JourneyUiNodeLabelProps",
 }
 
-export interface JourneyUiNodeDefinitionProps {
-  type: JourneyUiNodeType.JourneyUiNodeDefinitionProps;
-  nodeTypeProps: JourneyUiNodeTypeProps;
-}
+export const JourneyUiNodeDefinitionProps = Type.Object({
+  type: Type.Literal(JourneyUiNodeType.JourneyUiNodeDefinitionProps),
+  nodeTypeProps: JourneyUiNodeTypeProps,
+});
 
-export interface JourneyUiNodeEmptyProps {
-  type: JourneyUiNodeType.JourneyUiNodeEmptyProps;
-}
+export type JourneyUiNodeDefinitionProps = Static<
+  typeof JourneyUiNodeDefinitionProps
+>;
 
-export interface JourneyUiNodeLabelProps {
-  type: JourneyUiNodeType.JourneyUiNodeLabelProps;
-  title: string;
-}
+export const JourneyUiNodeEmptyProps = Type.Object({
+  type: Type.Literal(JourneyUiNodeType.JourneyUiNodeEmptyProps),
+});
 
-export type JourneyUiNodePresentationalProps =
-  | JourneyUiNodeLabelProps
-  | JourneyUiNodeEmptyProps;
+export type JourneyUiNodeEmptyProps = Static<typeof JourneyUiNodeEmptyProps>;
 
-export type JourneyNodeUiProps =
-  | JourneyUiNodeDefinitionProps
-  | JourneyUiNodePresentationalProps;
+export const JourneyUiNodeLabelProps = Type.Object({
+  type: Type.Literal(JourneyUiNodeType.JourneyUiNodeLabelProps),
+  title: Type.String(),
+});
+
+export type JourneyUiNodeLabelProps = Static<typeof JourneyUiNodeLabelProps>;
+
+export const JourneyUiNodePresentationalProps = Type.Union([
+  JourneyUiNodeLabelProps,
+  JourneyUiNodeEmptyProps,
+]);
+
+export type JourneyUiNodePresentationalProps = Static<
+  typeof JourneyUiNodePresentationalProps
+>;
+
+export const JourneyNodeUiProps = Type.Union([
+  JourneyUiNodeDefinitionProps,
+  JourneyUiNodePresentationalProps,
+]);
+
+export type JourneyNodeUiProps = Static<typeof JourneyNodeUiProps>;
 
 export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
 
@@ -1282,18 +1298,29 @@ export enum JourneyUiEdgeType {
   JourneyUiPlaceholderEdgeProps = "JourneyUiPlaceholderEdgeProps",
 }
 
-export interface JourneyUiDefinitionEdgeProps {
-  type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps;
-  disableMarker?: boolean;
-}
+export const JourneyUiDefinitionEdgeProps = Type.Object({
+  type: Type.Literal(JourneyUiEdgeType.JourneyUiDefinitionEdgeProps),
+  disableMarker: Type.Optional(Type.Boolean()),
+});
 
-export interface JourneyUiPlaceholderEdgeProps {
-  type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps;
-}
+export type JourneyUiDefinitionEdgeProps = Static<
+  typeof JourneyUiDefinitionEdgeProps
+>;
 
-export type JourneyUiEdgeData =
-  | JourneyUiDefinitionEdgeProps
-  | JourneyUiPlaceholderEdgeProps;
+export const JourneyUiPlaceholderEdgeProps = Type.Object({
+  type: Type.Literal(JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps),
+});
+
+export type JourneyUiPlaceholderEdgeProps = Static<
+  typeof JourneyUiPlaceholderEdgeProps
+>;
+
+export const JourneyUiEdgeProps = Type.Union([
+  JourneyUiDefinitionEdgeProps,
+  JourneyUiPlaceholderEdgeProps,
+]);
+
+export type JourneyUiEdgeProps = Static<typeof JourneyUiEdgeProps>;
 
 export const JourneyUiDraftEdge = Type.Object({
   source: Type.String(),
