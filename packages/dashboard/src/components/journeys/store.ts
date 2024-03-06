@@ -1070,6 +1070,7 @@ export function journeyBranchToState(
   initialNodeId: string,
   nodesState: Node<JourneyNodeUiProps>[],
   edgesState: Edge<JourneyUiEdgeData>[],
+  // FIXME maybe i can abstract over this
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap,
   terminateBefore?: string,
@@ -1369,6 +1370,246 @@ export function journeyBranchToState(
   };
 }
 
+// // FIXME
+// function journeyDraftBranchToState(
+//   initialNodeId: string,
+//   nodesState: Node<JourneyNodeUiProps>[],
+//   edgesState: Edge<JourneyUiEdgeData>[],
+//   // FIXME maybe i can abstract over this
+//   nodes: Map<string, JourneyUiNodeTypeProps>,
+//   hm: HeritageMap,
+//   terminateBefore?: string,
+// ): {
+//   terminalNode: string | null;
+// } {
+//   let nId: string = initialNodeId;
+//   let node = getUnsafe(nodes, nId);
+//   let nextNodeId: string | null = null;
+//   let hmEntry = getUnsafe(hm, nId);
+
+//   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+//   while (true) {
+//     switch (node.type) {
+//       case AdditionalJourneyNodeType.EntryUiNode: {
+//         nodesState.push(
+//           buildJourneyNode(AdditionalJourneyNodeType.EntryUiNode, node),
+//         );
+//         const childId = idxUnsafe(Array.from(hmEntry.children), 0);
+//         edgesState.push(
+//           buildWorkflowEdge(AdditionalJourneyNodeType.EntryUiNode, childId),
+//         );
+//         nextNodeId = childId;
+//         break;
+//       }
+//       case JourneyNodeType.ExitNode: {
+//         const exitNode: ExitUiNodeProps = {
+//           type: JourneyNodeType.ExitNode,
+//         };
+//         nodesState.push(buildJourneyNode(nId, exitNode));
+//         nextNodeId = null;
+
+//         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+//         if (nextNodeId === terminateBefore) {
+//           return {
+//             terminalNode: nId,
+//           };
+//         }
+//         break;
+//       }
+//       case JourneyNodeType.DelayNode: {
+//         nodesState.push(buildJourneyNode(nId, node));
+//         const childId = idxUnsafe(Array.from(hmEntry.children), 0);
+//         nextNodeId = childId;
+//         if (nextNodeId === terminateBefore) {
+//           return {
+//             terminalNode: nId,
+//           };
+//         }
+//         edgesState.push(buildWorkflowEdge(nId, childId));
+//         break;
+//       }
+//       case JourneyNodeType.MessageNode: {
+//         nodesState.push(buildJourneyNode(nId, node));
+//         const childId = idxUnsafe(Array.from(hmEntry.children), 0);
+//         nextNodeId = childId;
+
+//         if (nextNodeId === terminateBefore) {
+//           return {
+//             terminalNode: nId,
+//           };
+//         }
+//         edgesState.push(buildWorkflowEdge(nId, childId));
+//         break;
+//       }
+//       case JourneyNodeType.SegmentSplitNode: {
+//         // FIXME is this handled correctly rn in drafts?
+//         const emptyId = `${nId}-empty`;
+
+//         nodesState.push(buildJourneyNode(nId, node));
+//         nodesState.push(buildLabelNode(node.trueLabelNodeId, "true"));
+//         nodesState.push(buildLabelNode(node.falseLabelNodeId, "false"));
+//         nodesState.push(buildEmptyNode(emptyId));
+//         edgesState.push(buildPlaceholderEdge(nId, node.trueLabelNodeId));
+//         edgesState.push(buildPlaceholderEdge(nId, node.falseLabelNodeId));
+
+//         const nfc = getNearestFromChildren(nId, hm);
+//         // const trueChild = idxUnsafe(Array.from(hmEntry.children), 0);
+
+//         if (node.variant.trueChild === nfc || nfc === null) {
+//           edgesState.push(buildWorkflowEdge(node.trueLabelNodeId, emptyId));
+//         } else {
+//           edgesState.push(buildWorkflowEdge(trueId, node.variant.trueChild));
+
+//           const terminalId = journeyBranchToState(
+//             node.variant.trueChild,
+//             nodesState,
+//             edgesState,
+//             nodes,
+//             hm,
+//             nfc,
+//           ).terminalNode;
+//           if (!terminalId) {
+//             throw new Error(
+//               "segment split children terminate which should not be possible",
+//             );
+//           }
+//           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+//         }
+
+//         if (node.variant.falseChild === nfc || nfc === null) {
+//           edgesState.push(buildWorkflowEdge(falseId, emptyId));
+//         } else {
+//           edgesState.push(buildWorkflowEdge(falseId, node.variant.falseChild));
+
+//           const terminalId = journeyBranchToState(
+//             node.variant.falseChild,
+//             nodesState,
+//             edgesState,
+//             nodes,
+//             hm,
+//             nfc,
+//           ).terminalNode;
+//           if (!terminalId) {
+//             throw new Error(
+//               "segment split children terminate which should not be possible",
+//             );
+//           }
+//           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+//         }
+
+//         // default to true child because will be null if both children are equal
+//         nextNodeId = nfc ?? node.variant.trueChild;
+
+//         if (nextNodeId === terminateBefore) {
+//           return {
+//             terminalNode: emptyId,
+//           };
+//         }
+//         edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
+//         break;
+//       }
+//       case JourneyNodeType.WaitForNode: {
+//         const segmentChild = node.segmentChildren[0];
+//         if (!segmentChild) {
+//           throw new Error("Malformed journey, WaitForNode has no children.");
+//         }
+//         const segmentChildLabelId = `${nId}-child-0`;
+//         const timeoutId = `${nId}-child-1`;
+//         const emptyId = `${nId}-empty`;
+//         const waitForNodeProps: WaitForUiNodeProps = {
+//           type: JourneyNodeType.WaitForNode,
+//           timeoutLabelNodeId: timeoutId,
+//           timeoutSeconds: node.timeoutSeconds,
+//           segmentChildren: [
+//             {
+//               segmentId: segmentChild.segmentId,
+//               labelNodeId: segmentChildLabelId,
+//             },
+//           ],
+//         };
+
+//         nodesState.push(buildJourneyNode(nId, waitForNodeProps));
+//         nodesState.push(
+//           buildLabelNode(segmentChildLabelId, WAIT_FOR_SATISFY_LABEL),
+//         );
+//         nodesState.push(
+//           buildLabelNode(timeoutId, waitForTimeoutLabel(node.timeoutSeconds)),
+//         );
+//         nodesState.push(buildEmptyNode(emptyId));
+//         edgesState.push(buildPlaceholderEdge(nId, segmentChildLabelId));
+//         edgesState.push(buildPlaceholderEdge(nId, timeoutId));
+
+//         const nfc = getNearestFromChildren(nId, hm);
+
+//         if (segmentChild.id === nfc || nfc === null) {
+//           edgesState.push(buildWorkflowEdge(segmentChildLabelId, emptyId));
+//         } else {
+//           edgesState.push(
+//             buildWorkflowEdge(segmentChildLabelId, segmentChild.id),
+//           );
+
+//           const terminalId = journeyBranchToState(
+//             segmentChild.id,
+//             nodesState,
+//             edgesState,
+//             nodes,
+//             hm,
+//             nfc,
+//           ).terminalNode;
+//           if (!terminalId) {
+//             throw new Error(
+//               "segment split children terminate which should not be possible",
+//             );
+//           }
+//           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+//         }
+
+//         if (node.timeoutChild === nfc || nfc === null) {
+//           edgesState.push(buildWorkflowEdge(timeoutId, emptyId));
+//         } else {
+//           edgesState.push(buildWorkflowEdge(timeoutId, node.timeoutChild));
+
+//           const terminalId = journeyBranchToState(
+//             node.timeoutChild,
+//             nodesState,
+//             edgesState,
+//             nodes,
+//             hm,
+//             nfc,
+//           ).terminalNode;
+//           if (!terminalId) {
+//             throw new Error("children terminate which should not be possible");
+//           }
+//           edgesState.push(buildWorkflowEdge(terminalId, emptyId));
+//         }
+
+//         // default to true child because will be null if both children are equal
+//         nextNodeId = nfc ?? segmentChild.id;
+
+//         if (nextNodeId === terminateBefore) {
+//           return {
+//             terminalNode: emptyId,
+//           };
+//         }
+//         edgesState.push(buildWorkflowEdge(emptyId, nextNodeId));
+//         break;
+//       }
+//     }
+
+//     if (!nextNodeId) {
+//       break;
+//     }
+//     const nextNode = getUnsafe(nodes, nextNodeId);
+//     node = nextNode;
+//     nId = nextNodeId;
+//     hmEntry = getUnsafe(hm, nId);
+//   }
+
+//   return {
+//     terminalNode: null,
+//   };
+// }
+
 export type JourneyResourceWithDefinitionForState = Overwrite<
   Omit<JourneyResource, "id" | "status" | "workspaceId">,
   { definition: JourneyDefinition }
@@ -1615,21 +1856,8 @@ export function createConnections(params: CreateConnectionsParams): {
       });
       break;
     }
-    // FIXME
     case AdditionalJourneyNodeType.EntryUiNode: {
-      newNodes.push(
-        buildBaseJourneyNode({
-          id: params.id,
-          nodeTypeProps: omit(params, ["id", "target"]),
-        }),
-      );
-      newEdges = edgesForJourneyNode({
-        type: params.type,
-        nodeId: params.id,
-        source: params.source,
-        target: params.target,
-      });
-      break;
+      throw new Error("Cannot add exit node in the UI implementation error.");
     }
     case JourneyNodeType.ExitNode: {
       throw new Error("Cannot add exit node in the UI implementation error.");
@@ -1649,6 +1877,7 @@ export type JourneyResourceWithDraftForState = Overwrite<
   { draft: JourneyDraft }
 >;
 
+// FIXME copy journeyToState
 export function journeyDraftToState({
   draft,
   name,
@@ -1712,10 +1941,9 @@ export function journeyDraftToState({
     }
   }
 
-  // FIXME layout
   return {
     journeyName: name,
-    journeyNodes: nodes,
+    journeyNodes: layoutNodes(nodes, edges),
     journeyEdges: edges,
     journeyNodesIndex: buildNodesIndex(nodes),
   };

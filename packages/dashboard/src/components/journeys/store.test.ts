@@ -280,6 +280,7 @@ const EXAMPLE_JOURNEY_DRAFT: JourneyDraft = {
         type: JourneyNodeType.SegmentSplitNode,
         segmentId: "segment-id-2",
         name: "True / False Branch",
+        // WRONG
         trueLabelNodeId: "true-label-node",
         falseLabelNodeId: "false-label-node",
       },
