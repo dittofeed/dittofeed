@@ -232,6 +232,7 @@ function TemplateListContents() {
           sx={{
             width: "100%",
             bgcolor: "background.paper",
+            padding: 1,
             borderRadius: 1,
             height: "70vh",
           }}
