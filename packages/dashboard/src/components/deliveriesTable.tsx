@@ -514,13 +514,18 @@ export function DeliveriesTable({
               field: "templateId",
               headerName: "Template",
               renderCell: ({ row }: GridRenderCellParams<TableItem>) => {
-                const href =
-                  row.originType === "broadcast"
-                    ? `/broadcasts/template/${row.originId}`
-                    : getTemplatesLink({
-                        channel: row.channel,
-                        id: row.originId,
-                      });
+                let href: string | null = null;
+                if (row.originType === "broadcast") {
+                  href = `/broadcasts/template/${row.originId}`;
+                } else if (row.templateId) {
+                  href = getTemplatesLink({
+                    channel: row.channel,
+                    id: row.templateId,
+                  });
+                }
+                if (!href) {
+                  return null;
+                }
                 let value: string;
                 if (!row.templateName) {
                   if (row.originType !== "broadcast") {
