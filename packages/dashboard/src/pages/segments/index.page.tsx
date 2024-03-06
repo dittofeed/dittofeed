@@ -1,27 +1,26 @@
 import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import { ListItem, ListItemText, Tooltip } from "@mui/material";
+import { Tooltip } from "@mui/material";
+import { Journey } from "@prisma/client";
+import {
+  ComputedPropertyStep,
+  getPeriodsByComputedPropertyId,
+} from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import {
   CompletionStatus,
-  DeleteSegmentRequest,
-  EmptyResponse,
+  JourneyDefinition,
+  JourneyNodeType,
   SegmentResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { pick } from "remeda/dist/commonjs/pick";
 
-import DeleteDialog from "../../components/confirmDeleteDialog";
 import DashboardContent from "../../components/dashboardContent";
-import {
-  ResourceList,
-  ResourceListContainer,
-  ResourceListItemButton,
-} from "../../components/resourceList";
+import { ResourceListContainer } from "../../components/resourceList";
+import SegmentsTable from "../../components/segmentsTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import apiRequestHandlerFactory, {
-  downloadFileFactory,
-} from "../../lib/apiRequestHandlerFactory";
+import { downloadFileFactory } from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
@@ -33,25 +32,85 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const { toSegmentResource } = await import("backend-lib/src/segments");
 
     const workspaceId = dfContext.workspace.id;
-    const segmentResources: SegmentResource[] = (
-      await prisma().segment.findMany({
+    const [segmentsFromDB, journeys] = await Promise.all([
+      prisma().segment.findMany({
         where: {
           workspaceId,
           resourceType: {
             not: "Internal",
           },
         },
-      })
-    ).flatMap((segment) => {
+      }),
+      prisma().journey.findMany({
+        where: {
+          workspaceId,
+          resourceType: "Declarative",
+        },
+      }),
+    ]);
+    const segmentResources: (SegmentResource & {
+      definitionUpdatedAt: number;
+    })[] = segmentsFromDB.flatMap((segment) => {
       const result = toSegmentResource(segment);
       if (result.isErr()) {
         return [];
       }
       return result.value;
     });
+    const computedPropertyPeriods = await getPeriodsByComputedPropertyId({
+      workspaceId,
+      step: ComputedPropertyStep.ProcessAssignments,
+    });
+
+    const csps: Record<string, string> = {};
+    for (const segmentResource of segmentResources) {
+      const computedPropertyPeriod = computedPropertyPeriods.get({
+        computedPropertyId: segmentResource.id,
+        version: segmentResource.updatedAt.toString(),
+      });
+      if (computedPropertyPeriod !== undefined) {
+        csps[segmentResource.id] = computedPropertyPeriod.version;
+      }
+    }
+
+    const usedBy: Record<string, Journey[]> = {};
+    for (const segmentResource of segmentResources) {
+      for (const journey of journeys) {
+        const journeyDefinition = journey.definition as JourneyDefinition;
+        if (
+          journeyDefinition.entryNode.type ===
+            JourneyNodeType.SegmentEntryNode &&
+          journeyDefinition.entryNode.segment === segmentResource.id
+        ) {
+          usedBy[segmentResource.id] = usedBy[segmentResource.id] ?? [];
+          if (!usedBy[segmentResource.id]?.includes(journey))
+            usedBy[segmentResource.id]?.push(journey);
+        } else {
+          for (const node of journeyDefinition.nodes) {
+            if (node.type === JourneyNodeType.WaitForNode) {
+              for (const segmentChild of node.segmentChildren) {
+                if (segmentChild.segmentId === segmentResource.id) {
+                  usedBy[segmentResource.id] = usedBy[segmentResource.id] ?? [];
+                  if (!usedBy[segmentResource.id]?.includes(journey))
+                    usedBy[segmentResource.id]?.push(journey);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     const segments: AppState["segments"] = {
       type: CompletionStatus.Successful,
-      value: segmentResources,
+      value: segmentResources.map((segment) => ({
+        ...segment,
+        lastRecomputed: Number(new Date(Number(csps[segment.id]))),
+        journeys: usedBy[segment.id]?.map((journey) => ({
+          id: journey.id,
+          name: journey.name,
+        })),
+      })),
     };
     return {
       props: addInitialStateToProps({
@@ -64,71 +123,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
   });
 
-function SegmentItem({ segment }: { segment: SegmentResource }) {
-  const {
-    setSegmentDeleteRequest,
-    apiBase,
-    segmentDeleteRequest,
-    deleteSegment,
-  } = useAppStore((store) =>
-    pick(store, [
-      "setSegmentDeleteRequest",
-      "apiBase",
-      "segmentDeleteRequest",
-      "deleteSegment",
-    ]),
-  );
-
-  const setDeleteResponse = (
-    _response: EmptyResponse,
-    deleteRequest?: DeleteSegmentRequest,
-  ) => {
-    if (!deleteRequest) {
-      return;
-    }
-    deleteSegment(deleteRequest.id);
-  };
-
-  const handleDelete = apiRequestHandlerFactory({
-    request: segmentDeleteRequest,
-    setRequest: setSegmentDeleteRequest,
-    responseSchema: EmptyResponse,
-    setResponse: setDeleteResponse,
-    onSuccessNotice: `Deleted segment ${segment.name}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to delete segment ${segment.name}.`,
-    requestConfig: {
-      method: "DELETE",
-      url: `${apiBase}/api/segments`,
-      data: {
-        id: segment.id,
-      },
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-
-  return (
-    <ListItem
-      secondaryAction={
-        <DeleteDialog
-          onConfirm={handleDelete}
-          title="Confirm Deletion"
-          message="Are you sure you want to delete this segment?"
-        />
-      }
-    >
-      <ResourceListItemButton href={`/dashboard/segments/${segment.id}`}>
-        <ListItemText>{segment.name}</ListItemText>
-      </ResourceListItemButton>
-    </ListItem>
-  );
-}
-
 export default function SegmentList() {
   const {
-    segments: segmentsRequest,
     segmentDownloadRequest,
     setSegmentDownloadRequest,
     workspace: workspaceRequest,
@@ -142,10 +138,7 @@ export default function SegmentList() {
       "workspace",
     ]),
   );
-  const segments =
-    segmentsRequest.type === CompletionStatus.Successful
-      ? segmentsRequest.value
-      : [];
+
   const workspace =
     workspaceRequest.type === CompletionStatus.Successful
       ? workspaceRequest.value
@@ -193,13 +186,7 @@ export default function SegmentList() {
             newItemHref={(newItemId) => `/segments/${newItemId}`}
             controls={controls}
           >
-            {segments.length ? (
-              <ResourceList>
-                {segments.map((segment) => (
-                  <SegmentItem key={segment.id} segment={segment} />
-                ))}
-              </ResourceList>
-            ) : null}
+            <SegmentsTable />
           </ResourceListContainer>
         </DashboardContent>
       </main>

@@ -56,6 +56,7 @@ export function enrichMessageTemplate({
   workspaceId,
   definition,
   draft,
+  updatedAt,
 }: MessageTemplate): Result<MessageTemplateResource, Error> {
   const enrichedDefintion = definition
     ? schemaValidateWithErr(definition, MessageTemplateResourceDefinition)
@@ -69,13 +70,13 @@ export function enrichMessageTemplate({
   if (enrichedDraft.isErr()) {
     return err(enrichedDraft.error);
   }
-
   return ok({
     id,
     name,
     workspaceId,
     definition: enrichedDefintion.value,
     draft: enrichedDraft.value,
+    updatedAt: Number(updatedAt),
   });
 }
 
@@ -87,6 +88,7 @@ export function enrichEmailTemplate({
   subject,
   from,
   replyTo,
+  updatedAt,
 }: EmailTemplate): MessageTemplateResource {
   return {
     id,
@@ -99,6 +101,7 @@ export function enrichEmailTemplate({
       body,
       replyTo: replyTo ?? undefined,
     },
+    updatedAt: Number(updatedAt),
   };
 }
 

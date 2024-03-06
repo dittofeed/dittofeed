@@ -1,19 +1,15 @@
-import { AddCircleOutline, Delete } from "@mui/icons-material";
+import { AddCircleOutline } from "@mui/icons-material";
+import { IconButton, Stack, Typography } from "@mui/material";
+import { MessageTemplate } from "@prisma/client";
 import {
-  IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Stack,
-  Typography,
-} from "@mui/material";
+  ComputedPropertyStep,
+  getPeriodsByComputedPropertyId,
+} from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
-import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
+  ChannelType,
   CompletionStatus,
-  DeleteUserPropertyRequest,
-  EmptyResponse,
+  MessageTemplateResourceDefinition,
   UserPropertyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
@@ -22,9 +18,8 @@ import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../components/mainLayout";
+import UserPropertiesTable from "../../components/userPropertiesTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../../lib/appStore";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
@@ -44,9 +39,67 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }
       return result.value;
     });
+
+    const messageTemplates = await prisma().messageTemplate.findMany({
+      where: {
+        workspaceId,
+      },
+    });
+    const computedPropertyPeriods = await getPeriodsByComputedPropertyId({
+      workspaceId,
+      step: ComputedPropertyStep.ProcessAssignments,
+    });
+
+    const csps: Record<string, string> = {};
+    for (const userPropertyResource of userPropertyResources) {
+      const computedPropertyPeriod = computedPropertyPeriods.get({
+        computedPropertyId: userPropertyResource.id,
+        version: userPropertyResource.updatedAt.toString(),
+      });
+      if (computedPropertyPeriod !== undefined) {
+        csps[userPropertyResource.id] = computedPropertyPeriod.version;
+      }
+    }
+
+    const templatesUsedBy: Record<string, MessageTemplate[]> = {};
+
+    for (const userPropertyResource of userPropertyResources) {
+      for (const messageTemplate of messageTemplates) {
+        const messageDefinition =
+          messageTemplate.definition as MessageTemplateResourceDefinition;
+        if (
+          messageDefinition.body?.includes(`user.${userPropertyResource.name}`)
+        ) {
+          templatesUsedBy[userPropertyResource.id] =
+            templatesUsedBy[userPropertyResource.id] ?? [];
+          templatesUsedBy[userPropertyResource.id]?.push(messageTemplate);
+        } else if (
+          messageDefinition.type === ChannelType.Email &&
+          messageDefinition.subject.includes(
+            `user.${userPropertyResource.name}`,
+          )
+        ) {
+          templatesUsedBy[userPropertyResource.id] =
+            templatesUsedBy[userPropertyResource.id] ?? [];
+          templatesUsedBy[userPropertyResource.id]?.push(messageTemplate);
+        }
+      }
+    }
+
     const userProperties: AppState["userProperties"] = {
       type: CompletionStatus.Successful,
-      value: userPropertyResources,
+      value: userPropertyResources.map((userPropertyResource) => ({
+        ...userPropertyResource,
+        lastRecomputed: Number(new Date(Number(csps[userPropertyResource.id]))),
+        templates: templatesUsedBy[userPropertyResource.id]?.map(
+          (template) => ({
+            id: template.id,
+            name: template.name,
+            type: (template.definition as MessageTemplateResourceDefinition)
+              .type,
+          }),
+        ),
+      })),
     };
     return {
       props: addInitialStateToProps({
@@ -59,112 +112,17 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
   });
 
-function UserPropertyItem({
-  userProperty,
-}: {
-  userProperty: UserPropertyResource;
-}) {
-  const path = useRouter();
-  const setUserPropertyDeleteRequest = useAppStore(
-    (store) => store.setUserPropertyDeleteRequest,
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const userPropertyDeleteRequest = useAppStore(
-    (store) => store.userPropertyDeleteRequest,
-  );
-  const deleteUserProperty = useAppStore((store) => store.deleteUserProperty);
-
-  const setDeleteResponse = (
-    _response: EmptyResponse,
-    deleteRequest?: DeleteUserPropertyRequest,
-  ) => {
-    if (!deleteRequest) {
-      return;
-    }
-    deleteUserProperty(deleteRequest.id);
-  };
-
-  const isProtected = protectedUserProperties.has(userProperty.name);
-
-  const handleDelete = apiRequestHandlerFactory({
-    request: userPropertyDeleteRequest,
-    setRequest: setUserPropertyDeleteRequest,
-    responseSchema: EmptyResponse,
-    setResponse: setDeleteResponse,
-    onSuccessNotice: `Deleted user property ${userProperty.name}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to user property ${userProperty.name}.`,
-    requestConfig: {
-      method: "DELETE",
-      url: `${apiBase}/api/user-properties`,
-      data: {
-        workspaceId: userProperty.workspaceId,
-        id: userProperty.id,
-      } satisfies DeleteUserPropertyRequest,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-
-  return (
-    <ListItem
-      secondaryAction={
-        <IconButton edge="end" onClick={handleDelete} disabled={isProtected}>
-          <Delete />
-        </IconButton>
-      }
-    >
-      <ListItemButton
-        sx={{
-          border: 1,
-          borderTopLeftRadius: 1,
-          borderBottomLeftRadius: 1,
-          borderColor: "grey.200",
-        }}
-        onClick={() => {
-          path.push(`/user-properties/${userProperty.id}`);
-        }}
-      >
-        <ListItemText primary={userProperty.name} />
-      </ListItemButton>
-    </ListItem>
-  );
-}
-
 function UserPropertyListContents() {
   const path = useRouter();
-  const userPropertiesResult = useAppStore((store) => store.userProperties);
-  const userProperties =
-    userPropertiesResult.type === CompletionStatus.Successful
-      ? userPropertiesResult.value
-      : [];
-
-  let innerContents;
-  if (userProperties.length) {
-    innerContents = (
-      <List
-        sx={{
-          width: "100%",
-          bgcolor: "background.paper",
-          borderRadius: 1,
-        }}
-      >
-        {userProperties.map((userProperty) => (
-          <UserPropertyItem userProperty={userProperty} key={userProperty.id} />
-        ))}
-      </List>
-    );
-  } else {
-    innerContents = null;
-  }
 
   return (
     <Stack
       sx={{
         padding: 1,
         width: "100%",
-        maxWidth: "40rem",
+        bgcolor: "background.paper",
+        borderRadius: 1,
+        margin: "1rem",
       }}
       spacing={2}
     >
@@ -180,7 +138,7 @@ function UserPropertyListContents() {
           <AddCircleOutline />
         </IconButton>
       </Stack>
-      {innerContents}
+      <UserPropertiesTable />
     </Stack>
   );
 }

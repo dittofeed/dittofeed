@@ -72,7 +72,9 @@ export function ResourceListContainer({
       sx={{
         padding: 1,
         width: "100%",
-        maxWidth: "40rem",
+        margin: "1rem",
+        bgcolor: "background.paper",
+        borderRadius: 1,
       }}
       spacing={2}
     >

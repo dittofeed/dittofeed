@@ -3,9 +3,6 @@ import {
   Box,
   IconButton,
   List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
   Menu,
   MenuItem,
   Stack,
@@ -13,16 +10,16 @@ import {
   Tabs,
   Typography,
 } from "@mui/material";
+import { Journey } from "@prisma/client";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
-  DeleteMessageTemplateRequest,
   EmailTemplateResource,
-  EmptyResponse,
-  MessageTemplateResource,
+  JourneyDefinition,
+  JourneyNodeType,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
@@ -30,17 +27,15 @@ import {
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 import { v4 as uuid } from "uuid";
 
-import DeleteDialog from "../../components/confirmDeleteDialog";
 import MainLayout from "../../components/mainLayout";
+import TemplatesTable from "../../components/templatesTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
+import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
-import { getTemplatesLink } from "../../lib/templatesLink";
 import { AppState, PropsWithInitialState } from "../../lib/types";
 
 interface TabPanelProps {
@@ -73,12 +68,39 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const workspaceId = dfContext.workspace.id;
 
-    const templates = await findMessageTemplates({
-      workspaceId,
-    });
+    const [templates, journeys] = await Promise.all([
+      findMessageTemplates({
+        workspaceId,
+      }),
+      prisma().journey.findMany({
+        where: { workspaceId, resourceType: "Declarative" },
+      }),
+    ]);
+
+    const usedBy: Record<string, Journey[]> = {};
+    for (const template of templates) {
+      for (const journey of journeys) {
+        for (const node of (journey.definition as JourneyDefinition).nodes) {
+          if (
+            node.type === JourneyNodeType.MessageNode &&
+            node.variant.templateId === template.id
+          ) {
+            usedBy[template.id] = usedBy[template.id] ?? [];
+            usedBy[template.id]?.push(journey);
+          }
+        }
+      }
+    }
+
     const messages: AppState["messages"] = {
       type: CompletionStatus.Successful,
-      value: templates,
+      value: templates.map((template) => ({
+        ...template,
+        journeys: usedBy[template.id]?.map((journey) => ({
+          id: journey.id,
+          name: journey.name,
+        })),
+      })),
     };
 
     return {
@@ -92,91 +114,14 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     };
   });
 
-function TemplateListItem({ template }: { template: MessageTemplateResource }) {
-  const path = useRouter();
-
-  const setMessageTemplateDeleteRequest = useAppStore(
-    (store) => store.setMessageTemplateDeleteRequest,
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const messageTemplateDeleteRequest = useAppStore(
-    (store) => store.messageTemplateDeleteRequest,
-  );
-  const deleteMessageTemplate = useAppStore((store) => store.deleteMessage);
-
-  const setDeleteResponse = (
-    _response: EmptyResponse,
-    deleteRequest?: DeleteMessageTemplateRequest,
-  ) => {
-    if (!deleteRequest) {
-      return;
-    }
-    deleteMessageTemplate(deleteRequest.id);
-  };
-
-  const definition = template.draft ?? template.definition;
-  if (!definition) {
-    return null;
-  }
-
-  const deleteData: DeleteMessageTemplateRequest = {
-    id: template.id,
-    type: definition.type,
-  };
-  const handleDelete = apiRequestHandlerFactory({
-    request: messageTemplateDeleteRequest,
-    setRequest: setMessageTemplateDeleteRequest,
-    responseSchema: EmptyResponse,
-    setResponse: setDeleteResponse,
-    onSuccessNotice: `Deleted template ${template.name}.`,
-    onFailureNoticeHandler: () =>
-      `API Error: Failed to delete template ${template.name}.`,
-    requestConfig: {
-      method: "DELETE",
-      url: `${apiBase}/api/content/templates`,
-      data: deleteData,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
-  return (
-    <ListItem
-      secondaryAction={
-        <DeleteDialog
-          onConfirm={handleDelete}
-          title="Confirm Deletion"
-          message="Are you sure you want to delete this template?"
-        />
-      }
-    >
-      <ListItemButton
-        sx={{
-          border: 1,
-          borderRadius: 1,
-          borderColor: "grey.200",
-        }}
-        onClick={() => {
-          path.push(
-            getTemplatesLink({
-              id: template.id,
-              channel: definition.type,
-            }),
-          );
-        }}
-      >
-        <ListItemText primary={template.name} />
-      </ListItemButton>
-    </ListItem>
-  );
-}
-
 function TemplateListContents() {
   const enableMobilePush = useAppStore((store) => store.enableMobilePush);
   const [tab, setTab] = useState<number>(0);
   const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
   const messagesResult = useAppStore((store) => store.messages);
   const [newItemId, setNewItemId] = useState(() => uuid());
+
+  const workspace = useAppStore((state) => state.workspace);
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
@@ -226,12 +171,15 @@ function TemplateListContents() {
     );
   }, [messagesResult]);
 
+  if (workspace.type !== CompletionStatus.Successful) {
+    return null;
+  }
+
   return (
     <Stack
       sx={{
         padding: 1,
         width: "100%",
-        maxWidth: "40rem",
       }}
       spacing={2}
     >
@@ -285,12 +233,10 @@ function TemplateListContents() {
             width: "100%",
             bgcolor: "background.paper",
             borderRadius: 1,
+            height: "70vh",
           }}
         >
-          {emailTemplates.map((template) => (
-            <TemplateListItem template={template} key={template.id} />
-          ))}
-
+          <TemplatesTable label={CHANNEL_NAMES[ChannelType.Email]} />
           {emailTemplates.length === 0 && (
             <Typography
               component="span"
@@ -310,11 +256,10 @@ function TemplateListContents() {
             width: "100%",
             bgcolor: "background.paper",
             borderRadius: 1,
+            height: "70vh",
           }}
         >
-          {smsTemplates.map((template) => (
-            <TemplateListItem template={template} key={template.id} />
-          ))}
+          <TemplatesTable label={CHANNEL_NAMES[ChannelType.Sms]} />
           {smsTemplates.length === 0 && (
             <Typography
               component="span"
@@ -334,11 +279,10 @@ function TemplateListContents() {
             width: "100%",
             bgcolor: "background.paper",
             borderRadius: 1,
+            height: "70vh",
           }}
         >
-          {mobilePushTemplates.map((template) => (
-            <TemplateListItem template={template} key={template.id} />
-          ))}
+          <TemplatesTable label={CHANNEL_NAMES[ChannelType.MobilePush]} />
           {mobilePushTemplates.length === 0 && (
             <Typography
               component="span"

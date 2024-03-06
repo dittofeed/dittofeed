@@ -290,6 +290,7 @@ export async function upsertSegment(
     workspaceId: result.workspaceId,
     name: result.name,
     definition: updatedDefinition,
+    updatedAt: Number(result.updatedAt),
   };
 }
 

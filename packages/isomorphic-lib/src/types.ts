@@ -726,6 +726,16 @@ export const SegmentResource = Type.Object({
   name: Type.String(),
   definition: SegmentDefinition,
   subscriptionGroupId: Type.Optional(Type.String()),
+  updatedAt: Type.Number(),
+  journeys: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+      })
+    )
+  ),
+  lastRecomputed: Type.Optional(Type.Number()),
 });
 
 export type SegmentResource = Static<typeof SegmentResource>;
@@ -763,6 +773,7 @@ export const BroadcastResource = Type.Object({
     Type.Literal("Triggered"),
   ]),
   createdAt: Type.Number(),
+  updatedAt: Type.Number(),
   triggeredAt: Type.Optional(Type.Number()),
 });
 
@@ -904,6 +915,15 @@ const MessageTemplateResourceProperties = {
   name: Type.String(),
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(MessageTemplateResourceDefinition),
+  updatedAt: Type.Number(),
+  journeys: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+      })
+    )
+  ),
 } as const;
 
 export const MessageTemplateResource = Type.Object(
@@ -1139,6 +1159,7 @@ export const JourneyResource = Type.Object({
   status: JourneyResourceStatus,
   definition: JourneyDefinition,
   canRunMultiple: Type.Optional(Type.Boolean()),
+  updatedAt: Type.Number(),
 });
 
 export type JourneyResource = Static<typeof JourneyResource>;
@@ -1178,6 +1199,17 @@ export const UserPropertyResource = Type.Object({
   name: Type.String(),
   definition: UserPropertyDefinition,
   exampleValue: Type.Optional(Type.String()),
+  updatedAt: Type.Number(),
+  templates: Type.Optional(
+    Type.Array(
+      Type.Object({
+        id: Type.String(),
+        name: Type.String(),
+        type: Type.String(),
+      })
+    )
+  ),
+  lastRecomputed: Type.Optional(Type.Number()),
 });
 
 export type UserPropertyResource = Static<typeof UserPropertyResource>;
