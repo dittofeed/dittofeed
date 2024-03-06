@@ -19,12 +19,15 @@ describe("swagger", () => {
       );
       app = await buildApp();
     });
-    it("should should return the same value present in docs", () => {
+    it("the swagger config should match the config present in docs", () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const swagger = omit(JSON.parse(JSON.stringify(app.swagger())), [
         "servers",
       ]);
-      expect(swagger).toEqual(omit(config, ["servers"]));
+      expect(
+        swagger,
+        "To fix this test, update the docs by following these instructions: https://docs.dittofeed.com/contributing/updating-api-docs",
+      ).toEqual(omit(config, ["servers"]));
     });
   });
 });
