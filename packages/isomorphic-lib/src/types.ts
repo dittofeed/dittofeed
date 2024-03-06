@@ -1325,13 +1325,14 @@ export type JourneyUiEdgeProps = Static<typeof JourneyUiEdgeProps>;
 export const JourneyUiDraftEdge = Type.Object({
   source: Type.String(),
   target: Type.String(),
+  data: JourneyUiEdgeProps,
 });
 
 export type JourneyUiDraftEdge = Static<typeof JourneyUiDraftEdge>;
 
 export const JourneyUiDraftNode = Type.Object({
   id: Type.String(),
-  data: JourneyUiNodeTypeProps,
+  data: JourneyNodeUiProps,
 });
 
 export type JourneyUiDraftNode = Static<typeof JourneyUiDraftNode>;

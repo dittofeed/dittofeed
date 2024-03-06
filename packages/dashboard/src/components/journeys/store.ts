@@ -1,7 +1,5 @@
 import { idxUnsafe } from "isomorphic-lib/src/arrays";
-import { v4 as uuid } from "uuid";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
-import { omit } from "remeda/dist/commonjs/omit";
 import {
   buildHeritageMap,
   getNearestFromChildren,
@@ -40,8 +38,10 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
+import { omit } from "remeda/dist/commonjs/omit";
 import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { Overwrite } from "utility-types";
+import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
 
 import {
@@ -1653,63 +1653,16 @@ export type JourneyStateForDraft = Pick<
 >;
 
 export function journeyStateToDraft(state: JourneyStateForDraft): JourneyDraft {
-  const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
-  const journeyNodes = state.journeyNodes.reduce((acc, node) => {
-    if (
-      node.type !== "journey" ||
-      node.data.type !== JourneyUiNodeType.JourneyUiNodeDefinitionProps
-    ) {
-      return acc;
-    }
-    const { nodeTypeProps } = node.data;
-    acc.set(node.id, nodeTypeProps);
-    return acc;
-  }, new Map<string, JourneyUiNodeTypeProps>());
-
-  const nodes: JourneyUiDraftNode[] = [];
-  const edges: JourneyUiDraftEdge[] = [];
-
-  for (const node of state.journeyNodes) {
-    if (
-      node.type !== "journey" ||
-      node.data.type !== JourneyUiNodeType.JourneyUiNodeDefinitionProps
-    ) {
-      continue;
-    }
-    const hmEntry = getUnsafe(hm, node.id);
-    for (const childId of hmEntry.children) {
-      const child = journeyNodes.get(childId);
-      let nextJourneyChildId: string | null = null;
-
-      if (child) {
-        nextJourneyChildId = childId;
-      } else {
-        nextJourneyChildId = findNextJourneyNode(childId, hm, journeyNodes);
-        if (!nextJourneyChildId) {
-          console.log("loc1", {
-            nodeId: node.id,
-            childId,
-            journeyNodes,
-          });
-        }
-      }
-      if (!nextJourneyChildId) {
-        throw new Error("Missing next journey child id");
-      }
-      const edge = {
-        source: node.id,
-        target: nextJourneyChildId,
-      };
-      edges.push(edge);
-    }
-    nodes.push({
-      id: node.id,
-      data: node.data.nodeTypeProps,
-    });
-  }
   return {
-    nodes,
-    edges,
+    nodes: state.journeyNodes.map((n) => ({
+      id: n.id,
+      data: n.data,
+    })),
+    edges: state.journeyEdges.map((e) => ({
+      source: e.source,
+      target: e.target,
+      data: e.data,
+    })),
   };
 }
 
@@ -1882,69 +1835,30 @@ export function journeyDraftToState({
   draft,
   name,
 }: JourneyResourceWithDraftForState): JourneyStateForResource {
-  const nodesById = draft.nodes.reduce((acc, node) => {
-    acc.set(node.id, node.data);
-    return acc;
-  }, new Map<string, JourneyUiNodeTypeProps>());
-
-  const targetsBySource = draft.edges.reduce((acc, edge) => {
-    const children = acc.get(edge.source) ?? new Set<string>();
-    children.add(edge.target);
-    acc.set(edge.source, children);
-    return acc;
-  }, new Map<string, Set<string>>());
-
-  const nodes: Node<JourneyNodeUiProps>[] = [];
-  const edges: Edge<JourneyUiEdgeData>[] = [];
-
-  for (const node of draft.nodes) {
-    let connections: ReturnType<typeof createConnections>;
-
-    switch (node.data.type) {
-      case AdditionalJourneyNodeType.EntryUiNode: {
-        const target = idxUnsafe(
-          Array.from(getUnsafe(targetsBySource, node.id)),
-          0,
-        );
-        connections = createConnections({
-          ...node.data,
-          target,
-          id: node.id,
-          type: AdditionalJourneyNodeType.EntryUiNode,
-        });
+  let journeyNodes: Node<JourneyNodeUiProps>[] = draft.nodes.map((n) => {
+    let node: Node<JourneyNodeUiProps>;
+    switch (n.data.type) {
+      case JourneyUiNodeType.JourneyUiNodeDefinitionProps:
+        node = buildJourneyNode(n.id, n.data.nodeTypeProps);
         break;
-      }
-      case JourneyNodeType.ExitNode: {
-        connections = createConnections({
-          ...node.data,
-          id: node.id,
-          type: JourneyNodeType.ExitNode,
-        });
+      case JourneyUiNodeType.JourneyUiNodeLabelProps:
+        node = buildLabelNode(n.id, n.data.title);
         break;
-      }
-      default: {
-        // FIXME is this right?
-        connections = createConnections({
-          ...node.data,
-          id: node.id,
-          source: node.id,
-          target: idxUnsafe(Array.from(getUnsafe(targetsBySource, node.id)), 0),
-        });
-      }
+      case JourneyUiNodeType.JourneyUiNodeEmptyProps:
+        node = buildEmptyNode(n.id);
+        break;
+      default:
+        assertUnreachable(n.data);
     }
-    const { newNodes, newEdges } = connections;
-    for (const n of newNodes) {
-      nodes.push(n);
-    }
-    for (const e of newEdges) {
-      edges.push(e);
-    }
-  }
+    return node;
+  });
+  const journeyEdges: Edge<JourneyUiEdgeData>[] = [];
 
+  journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   return {
     journeyName: name,
-    journeyNodes: layoutNodes(nodes, edges),
-    journeyEdges: edges,
-    journeyNodesIndex: buildNodesIndex(nodes),
+    journeyNodes,
+    journeyEdges,
+    journeyNodesIndex: buildNodesIndex(journeyNodes),
   };
 }
