@@ -560,12 +560,34 @@
                           ]
                         }
                       ]
+                    },
+                    "updatedAt": {
+                      "type": "number"
+                    },
+                    "journeys": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
                     }
                   },
                   "required": [
                     "workspaceId",
                     "id",
-                    "name"
+                    "name",
+                    "updatedAt"
                   ]
                 }
               }
@@ -1761,6 +1783,9 @@
                   "canRunMultiple": {
                     "type": "boolean"
                   },
+                  "updatedAt": {
+                    "type": "number"
+                  },
                   "id": {
                     "type": "string"
                   }
@@ -2244,6 +2269,9 @@
                     },
                     "canRunMultiple": {
                       "type": "boolean"
+                    },
+                    "updatedAt": {
+                      "type": "number"
                     }
                   },
                   "required": [
@@ -2251,7 +2279,8 @@
                     "workspaceId",
                     "name",
                     "status",
-                    "definition"
+                    "definition",
+                    "updatedAt"
                   ]
                 }
               }
@@ -4486,6 +4515,30 @@
                       },
                       "subscriptionGroupId": {
                         "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "number"
+                      },
+                      "journeys": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ]
+                        }
+                      },
+                      "lastRecomputed": {
+                        "type": "number"
                       }
                     }
                   },
@@ -6244,13 +6297,38 @@
                     },
                     "subscriptionGroupId": {
                       "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "number"
+                    },
+                    "journeys": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    },
+                    "lastRecomputed": {
+                      "type": "number"
                     }
                   },
                   "required": [
                     "id",
                     "workspaceId",
                     "name",
-                    "definition"
+                    "definition",
+                    "updatedAt"
                   ]
                 }
               }
@@ -7376,6 +7454,34 @@
                       },
                       "exampleValue": {
                         "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "number"
+                      },
+                      "templates": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "type"
+                          ]
+                        }
+                      },
+                      "lastRecomputed": {
+                        "type": "number"
                       }
                     }
                   },
@@ -7633,13 +7739,42 @@
                     },
                     "exampleValue": {
                       "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "number"
+                    },
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "type"
+                        ]
+                      }
+                    },
+                    "lastRecomputed": {
+                      "type": "number"
                     }
                   },
                   "required": [
                     "id",
                     "workspaceId",
                     "name",
-                    "definition"
+                    "definition",
+                    "updatedAt"
                   ]
                 }
               }
@@ -7901,13 +8036,42 @@
                           },
                           "exampleValue": {
                             "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "number"
+                          },
+                          "templates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name",
+                                "type"
+                              ]
+                            }
+                          },
+                          "lastRecomputed": {
+                            "type": "number"
                           }
                         },
                         "required": [
                           "id",
                           "workspaceId",
                           "name",
-                          "definition"
+                          "definition",
+                          "updatedAt"
                         ]
                       }
                     }
@@ -8056,6 +8220,9 @@
                     "createdAt": {
                       "type": "number"
                     },
+                    "updatedAt": {
+                      "type": "number"
+                    },
                     "triggeredAt": {
                       "type": "number"
                     }
@@ -8065,7 +8232,8 @@
                     "workspaceId",
                     "name",
                     "status",
-                    "createdAt"
+                    "createdAt",
+                    "updatedAt"
                   ]
                 }
               }
@@ -8153,6 +8321,9 @@
                     "createdAt": {
                       "type": "number"
                     },
+                    "updatedAt": {
+                      "type": "number"
+                    },
                     "triggeredAt": {
                       "type": "number"
                     }
@@ -8162,7 +8333,8 @@
                     "workspaceId",
                     "name",
                     "status",
-                    "createdAt"
+                    "createdAt",
+                    "updatedAt"
                   ]
                 }
               }
@@ -12230,6 +12402,34 @@
                       },
                       "exampleValue": {
                         "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "number"
+                      },
+                      "templates": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "type"
+                          ]
+                        }
+                      },
+                      "lastRecomputed": {
+                        "type": "number"
                       }
                     }
                   },
@@ -12487,13 +12687,42 @@
                     },
                     "exampleValue": {
                       "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "number"
+                    },
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "type"
+                        ]
+                      }
+                    },
+                    "lastRecomputed": {
+                      "type": "number"
                     }
                   },
                   "required": [
                     "id",
                     "workspaceId",
                     "name",
-                    "definition"
+                    "definition",
+                    "updatedAt"
                   ]
                 }
               }
@@ -12755,13 +12984,42 @@
                           },
                           "exampleValue": {
                             "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "number"
+                          },
+                          "templates": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name",
+                                "type"
+                              ]
+                            }
+                          },
+                          "lastRecomputed": {
+                            "type": "number"
                           }
                         },
                         "required": [
                           "id",
                           "workspaceId",
                           "name",
-                          "definition"
+                          "definition",
+                          "updatedAt"
                         ]
                       }
                     }
