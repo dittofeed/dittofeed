@@ -779,8 +779,8 @@ function PostMarkConfig() {
           id: "postmark-section",
           fieldGroups: [
             {
-              id: "postmark-api-key",
-              name: "PostMark API Key",
+              id: "postmark-fields",
+              name: "PostMark",
               fields: [
                 {
                   id: "postmark-api-key",
@@ -797,12 +797,6 @@ function PostMarkConfig() {
                         ?.configValue?.apiKey ?? false,
                   },
                 },
-              ],
-            },
-            {
-              id: "postmark-secret",
-              name: "PostMark Webhook Key",
-              fields: [
                 {
                   id: "postmark-webhook-key",
                   type: "secret",
