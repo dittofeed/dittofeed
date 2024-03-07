@@ -54,23 +54,16 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       step: ComputedPropertyStep.ProcessAssignments,
     });
 
-    // FIXME wrong
-    const csps: Record<string, string> = {};
-
-    for (const segmentResource of segmentResources) {
-      const computedPropertyPeriod = computedPropertyPeriods.get({
-        computedPropertyId: segmentResource.id,
-        version: segmentResource.updatedAt.toString(),
-      });
-      if (computedPropertyPeriod !== undefined) {
-        csps[segmentResource.id] = computedPropertyPeriod.version;
-      }
-    }
     const segments: AppState["segments"] = {
       type: CompletionStatus.Successful,
       value: segmentResources.map((segment) => ({
         ...segment,
-        lastRecomputed: Number(new Date(Number(csps[segment.id]))),
+        lastRecomputed: computedPropertyPeriods
+          .get({
+            computedPropertyId: segment.id,
+            version: segment.definitionUpdatedAt.toString(),
+          })
+          ?.maxTo.getTime(),
       })),
     };
     const journeys: AppState["journeys"] = {
