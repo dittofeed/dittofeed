@@ -1,9 +1,11 @@
 import {
+  Box,
   FormControl,
   InputLabel,
   MenuItem,
   Select,
   Tooltip,
+  useTheme,
 } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
@@ -55,6 +57,7 @@ export interface TemplatesTableProps {
 
 export default function TemplatesTable({ label }: TemplatesTableProps) {
   const messagesResult = useAppStore((store) => store.messages);
+  const theme = useTheme();
 
   const setMessageTemplateDeleteRequest = useAppStore(
     (store) => store.setMessageTemplateDeleteRequest,
@@ -168,62 +171,56 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
         {
           field: "journeys",
           headerName: "Journeys Used By",
-          renderCell: ({ row }: { row: Row }) => {
+          renderCell: ({ row }: { row: Row, value:  }) => {
             const currentRow = row;
             if (currentRow.journeys?.length === 0) {
-              return;
+              return null;
             }
             return (
-              <div
-                style={{
-                  padding: "0.5rem",
+              <FormControl
+                sx={{
+                  width: theme.spacing(20),
+                  height: theme.spacing(5),
                 }}
+                size="small"
               >
-                <FormControl
-                  sx={{
-                    width: 200,
-                    height: 40,
+                <InputLabel>
+                  {currentRow.journeys?.length}{" "}
+                  {currentRow.journeys?.length === 1 ? "Journey" : "Journeys"}
+                </InputLabel>
+                <Select
+                  label="Journeys"
+                  onClick={(e) => {
+                    e.stopPropagation();
                   }}
-                  size="small"
                 >
-                  <InputLabel>
-                    {currentRow.journeys?.length}{" "}
-                    {currentRow.journeys?.length === 1 ? "Journey" : "Journeys"}
-                  </InputLabel>
-                  <Select
-                    label="Journeys"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    {currentRow.journeys?.map((journey) => {
-                      return (
-                        <MenuItem key={journey.id}>
-                          <Tooltip title={journey.name}>
-                            <Link
-                              href={`/journeys/${journey.id}`}
-                              passHref
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                              style={{
-                                color: "black",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                textDecoration: "none",
-                                width: 200,
-                              }}
-                            >
-                              {journey.name}
-                            </Link>
-                          </Tooltip>
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              </div>
+                  {currentRow.journeys?.map((journey) => {
+                    return (
+                      <MenuItem key={journey.id}>
+                        <Tooltip title={journey.name}>
+                          <Link
+                            href={`/journeys/${journey.id}`}
+                            passHref
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            style={{
+                              color: "black",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              textDecoration: "none",
+                              width: 200,
+                            }}
+                          >
+                            {journey.name}
+                          </Link>
+                        </Tooltip>
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
             );
           },
         },
@@ -272,23 +269,29 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
         ...baseColumn,
         ...c,
         // eslint-disable-next-line react/no-unused-prop-types
-        renderCell: ({ row }: { row: Row }) => (
-          <Link
-            href={`/templates/${routeName}/${row.id}`}
-            passHref
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            style={{
-              color: "black",
-              textDecoration: "none",
-              width: "100%",
+        renderCell: ({ row, value }: { row: Row; value: string }) => (
+          <Box
+            sx={{
+              padding: 1,
             }}
           >
-            {c.renderCell === undefined
-              ? String(row[c.field as keyof Row])
-              : c.renderCell({ row })}
-          </Link>
+            <Link
+              href={`/templates/${routeName}/${row.id}`}
+              passHref
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              style={{
+                color: "black",
+                textDecoration: "none",
+                width: "100%",
+              }}
+            >
+              {c.renderCell === undefined
+                ? value
+                : c.renderCell({ row, value })}
+            </Link>
+          </Box>
         ),
       }))}
       initialState={{
