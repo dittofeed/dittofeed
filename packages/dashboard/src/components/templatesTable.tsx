@@ -24,15 +24,8 @@ import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
+import { getJourneysUsedBy, MinimalJourneyMap } from "../lib/journeys";
 import { BaseResourceRow, ResourceTable } from "./resourceTable";
-
-interface MinimalJourney {
-  name: string;
-  id: string;
-}
-
-// Map<templateId, Map<journeyId, journeyName>>
-type JourneyMap = Map<string, Map<string, string>>;
 
 interface Row extends BaseResourceRow {
   journeys: { name: string; id: string }[];
@@ -50,14 +43,6 @@ interface Row extends BaseResourceRow {
 
 export interface TemplatesTableProps {
   label: string;
-}
-
-function getJourneysUsedBy(
-  journeysUsedBy: JourneyMap,
-  templateId: string,
-): MinimalJourney[] {
-  const journeys = Array.from(journeysUsedBy.get(templateId)?.entries() ?? []);
-  return journeys.map(([id, name]) => ({ id, name }));
 }
 
 export default function TemplatesTable({ label }: TemplatesTableProps) {
@@ -78,7 +63,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     "deleteMessage",
   ]);
 
-  const journeysUsedBy: JourneyMap = useMemo(() => {
+  const journeysUsedBy: MinimalJourneyMap = useMemo(() => {
     if (journeysResult.type !== CompletionStatus.Successful) {
       return new Map();
     }

@@ -5,17 +5,19 @@ import {
   Select,
   Tooltip,
 } from "@mui/material";
+import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
   EmptyResponse,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import React from "react";
+import React, { useMemo } from "react";
 import { pick } from "remeda/dist/commonjs/pick";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
+import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { getJourneysUsedBy, MinimalJourneyMap } from "../lib/journeys";
 import { BaseResourceRow, ResourceTable } from "./resourceTable";
 
 interface Row extends BaseResourceRow {
@@ -25,16 +27,12 @@ interface Row extends BaseResourceRow {
 }
 
 export default function SegmentsTable() {
-  const { segments: segmentsRequest, workspace: workspaceRequest } =
-    useAppStore((store) =>
-      pick(store, [
-        "segments",
-        "segmentDownloadRequest",
-        "setSegmentDownloadRequest",
-        "apiBase",
-        "workspace",
-      ]),
-    );
+  const {
+    segments: segmentsRequest,
+    workspace: workspaceRequest,
+    journeys: journeysResult,
+  } = useAppStorePick(["segments", "workspace", "journeys"]);
+
   const segments =
     segmentsRequest.type === CompletionStatus.Successful
       ? segmentsRequest.value
@@ -46,6 +44,23 @@ export default function SegmentsTable() {
 
   const segmentsRow: Row[] = [];
 
+  const journeysUsedBy: MinimalJourneyMap = useMemo(() => {
+    if (journeysResult.type !== CompletionStatus.Successful) {
+      return new Map();
+    }
+
+    return journeysResult.value.reduce((acc, journey) => {
+      const journeyMap = new Map();
+      journeyMap.set(journey.id, journey.name);
+
+      const subscribed = getSubscribedSegments(journey.definition);
+      subscribed.forEach((segmentId) => {
+        acc.set(segmentId, journeyMap);
+      });
+      return acc;
+    }, new Map());
+  }, [journeysResult]);
+
   segments.forEach((segment) => {
     const row: Row = {
       id: segment.id,
@@ -53,7 +68,7 @@ export default function SegmentsTable() {
       updatedAt: segment.updatedAt
         ? new Date(segment.updatedAt).toISOString()
         : "Not Updated",
-      journeys: segment.journeys ?? [],
+      journeys: getJourneysUsedBy(journeysUsedBy, segment.id),
       lastRecomputed: segment.lastRecomputed
         ? new Date(segment.lastRecomputed).toISOString()
         : "Not Re-Computed ",

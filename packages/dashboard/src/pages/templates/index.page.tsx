@@ -73,21 +73,6 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
     ]);
 
-    // const usedBy: Record<string, Journey[]> = {};
-    // for (const template of templates) {
-    //   for (const journey of journeys) {
-    //     for (const node of (journey.definition as JourneyDefinition).nodes) {
-    //       if (
-    //         node.type === JourneyNodeType.MessageNode &&
-    //         node.variant.templateId === template.id
-    //       ) {
-    //         usedBy[template.id] = usedBy[template.id] ?? [];
-    //         usedBy[template.id]?.push(journey);
-    //       }
-    //     }
-    //   }
-    // }
-
     const messages: AppState["messages"] = {
       type: CompletionStatus.Successful,
       value: templates,
