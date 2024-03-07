@@ -1,8 +1,10 @@
 import { Theme } from "@emotion/react";
-import { SxProps } from "@mui/material";
+import { Box, SxProps } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import Link from "next/link";
 import { useMemo } from "react";
+
+import DeleteDialog from "./confirmDeleteDialog";
 
 export const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
   height: "100%",
@@ -39,10 +41,12 @@ export function ResourceTable<R extends BaseRow>({
   rows,
   getHref,
   additionalColumns,
+  onDelete,
 }: {
   rows: R[];
   getHref: (id: string) => string;
   additionalColumns: GridColDef<R>[];
+  onDelete: (id: string) => void;
 }) {
   const columns: GridColDef<R>[] = useMemo(() => {
     const baseColumns: GridColDef<R>[] = [
@@ -54,6 +58,20 @@ export function ResourceTable<R extends BaseRow>({
         field: "updatedAt",
         headerName: "Updated At",
       },
+      {
+        field: "actions",
+        headerName: "Action",
+        width: 180,
+        sortable: false,
+        // eslint-disable-next-line react/no-unused-prop-types
+        renderCell: ({ row }: { row: R }) => (
+          <DeleteDialog
+            onConfirm={() => onDelete(row.id)}
+            title={`Delete "${row.name}"`}
+            message={`Are you sure you want to delete "${row.name}"?`}
+          />
+        ),
+      },
     ];
     return [...baseColumns, ...additionalColumns].map(
       (column): GridColDef<R> => {
@@ -63,22 +81,24 @@ export function ResourceTable<R extends BaseRow>({
           renderCell: (params: GridRenderCellParams<R>) => {
             const { row, value } = params;
             return (
-              <Link
-                href={getHref(row.id)}
-                passHref
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                style={{
-                  color: "black",
-                  textDecoration: "none",
-                  width: "100%",
-                }}
-              >
-                {column.renderCell === undefined
-                  ? String(value)
-                  : column.renderCell(params)}
-              </Link>
+              <Box sx={{ padding: 1 }}>
+                <Link
+                  href={getHref(row.id)}
+                  passHref
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  style={{
+                    color: "black",
+                    textDecoration: "none",
+                    width: "100%",
+                  }}
+                >
+                  {column.renderCell === undefined
+                    ? String(value)
+                    : column.renderCell(params)}
+                </Link>
+              </Box>
             );
           },
         };
@@ -90,6 +110,7 @@ export function ResourceTable<R extends BaseRow>({
   return (
     <DataGrid<R>
       rows={rows}
+      sx={RESOURCE_TABLE_STYLE}
       columns={columns}
       getRowId={(row) => row.id}
       autoPageSize
