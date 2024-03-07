@@ -5,6 +5,7 @@ import {
   Select,
   Tooltip,
 } from "@mui/material";
+import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
   CompletionStatus,
   DeleteUserPropertyRequest,
@@ -16,7 +17,6 @@ import React from "react";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
 import { BaseResourceRow, ResourceTable } from "./resourceTable";
-import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 
 interface Row extends BaseResourceRow {
   updatedAt: string;

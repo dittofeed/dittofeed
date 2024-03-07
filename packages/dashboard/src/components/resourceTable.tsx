@@ -73,14 +73,15 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
         width: 180,
         sortable: false,
         // eslint-disable-next-line react/no-unused-prop-types
-        renderCell: ({ row }: { row: R }) => (
-          <DeleteDialog
-            disabled={row.disableDelete}
-            onConfirm={() => onDelete && onDelete({ row })}
-            title={`Delete ${row.name}`}
-            message={`Are you sure you want to delete ${row.name}?`}
-          />
-        ),
+        renderCell: ({ row }: { row: R }) =>
+          onDelete === undefined ? null : (
+            <DeleteDialog
+              disabled={row.disableDelete}
+              onConfirm={() => onDelete?.({ row })}
+              title={`Delete ${row.name}`}
+              message={`Are you sure you want to delete ${row.name}?`}
+            />
+          ),
       },
     ].map((column): GridColDef<R> => {
       return {
