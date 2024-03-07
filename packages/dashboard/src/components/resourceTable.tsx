@@ -1,5 +1,5 @@
 import { Theme } from "@emotion/react";
-import { Box, SxProps, Tooltip, useTheme } from "@mui/material";
+import { Box, SxProps, Tooltip } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -53,7 +53,6 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
   additionalColumns?: GridColDef<R>[];
   onDelete?: ({ row }: { row: R }) => void;
 }) {
-  const theme = useTheme();
   const columns: GridColDef<R>[] = useMemo(() => {
     return [
       {
@@ -65,22 +64,25 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
         field: "updatedAt",
         headerName: "Updated At",
       },
-      {
-        field: "actions",
-        headerName: "Action",
-        width: 180,
-        sortable: false,
-        // eslint-disable-next-line react/no-unused-prop-types
-        renderCell: ({ row }: { row: R }) =>
-          onDelete === undefined ? null : (
-            <DeleteDialog
-              disabled={row.disableDelete}
-              onConfirm={() => onDelete({ row })}
-              title={`Delete ${row.name}`}
-              message={`Are you sure you want to delete ${row.name}?`}
-            />
-          ),
-      },
+      ...(onDelete === undefined
+        ? []
+        : [
+            {
+              field: "actions",
+              headerName: "Action",
+              width: 180,
+              sortable: false,
+              // eslint-disable-next-line react/no-unused-prop-types
+              renderCell: ({ row }: { row: R }) => (
+                <DeleteDialog
+                  disabled={row.disableDelete}
+                  onConfirm={() => onDelete({ row })}
+                  title={`Delete ${row.name}`}
+                  message={`Are you sure you want to delete ${row.name}?`}
+                />
+              ),
+            },
+          ]),
     ].map((column): GridColDef<R> => {
       return {
         ...BASE_COLUMN,
@@ -101,20 +103,14 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
                 <Tooltip title={String(value)}>
                   <Box
                     sx={{
-                      height: theme.spacing(5),
-                      display: "flex",
-                      alignItems: "center",
+                      pt: 1,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      pb: 1,
                     }}
                   >
-                    <Box
-                      sx={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {String(value)}
-                    </Box>
+                    {String(value)}
                   </Box>
                 </Tooltip>
               ) : (
