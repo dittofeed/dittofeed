@@ -1,5 +1,5 @@
 import { Theme } from "@emotion/react";
-import { Box, SxProps, Tooltip, useTheme } from "@mui/material";
+import { Box, SxProps, Tooltip } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -9,16 +9,17 @@ import DeleteDialog from "./confirmDeleteDialog";
 export const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
   height: "100%",
   width: "100%",
-  ".MuiDataGrid-row:first-child": {
+  ".MuiDataGrid-row:first-of-type": {
     borderTop: "1px solid lightgray",
   },
   "& .MuiDataGrid-row": {
     borderBottom: "1px solid lightgray",
   },
-  // disable cell selection style
-  "& .MuiDataGrid-cell:focus": {
+  "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within": {
     outline: "none",
   },
+
+  // disable cell selection style
   "& .MuiDataGrid-cell": {
     p: 1,
   },
@@ -86,9 +87,6 @@ export function ResourceTable<R extends BaseRow>({
             <Link
               href={getHref(row.id)}
               passHref
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
               style={{
                 color: "black",
                 textDecoration: "none",

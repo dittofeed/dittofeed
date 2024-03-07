@@ -29,6 +29,7 @@ interface Row {
   id: string;
   name: string;
   updatedAt: string;
+  // FIXME make empty row non optional
   journeys?: { name: string; id: string }[];
   // FIXME simplify this type
   definition?:

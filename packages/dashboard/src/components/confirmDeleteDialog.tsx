@@ -20,7 +20,7 @@ function DeleteDialog({ onConfirm, title, message }: DeleteDialogProps) {
   const [open, setOpen] = useState(false);
 
   const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
+    event.preventDefault();
     setOpen(true);
   };
 
