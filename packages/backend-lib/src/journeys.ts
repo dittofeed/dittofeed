@@ -111,6 +111,14 @@ export async function findManyJourneyResourcesSafe(
   return results;
 }
 
+export async function findManyJourneyResourcesUnsafe(
+  params: FindManyParams,
+): Promise<SavedJourneyResource[]> {
+  const journeys = await prisma().journey.findMany(params);
+  const results = journeys.map((journey) => unwrap(toJourneyResource(journey)));
+  return results;
+}
+
 // TODO don't use this method for activities. Don't want to retry failures typically.
 export async function findManyJourneysUnsafe(
   params: FindManyParams,

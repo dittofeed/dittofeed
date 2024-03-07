@@ -14,6 +14,7 @@ import {
   DeleteMessageTemplateRequest,
   EmailTemplateResource,
   EmptyResponse,
+  JourneyNodeType,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
@@ -22,12 +23,19 @@ import Link from "next/link";
 import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
+import { useAppStorePick } from "../lib/appStore";
 import { BaseResourceRow, ResourceTable } from "./resourceTable";
 
+interface MinimalJourney {
+  name: string;
+  id: string;
+}
+
+// Map<templateId, Map<journeyId, journeyName>>
+type JourneyMap = Map<string, Map<string, string>>;
+
 interface Row extends BaseResourceRow {
-  // TODO DF-415: correct loading
-  journeys?: { name: string; id: string }[];
+  journeys: { name: string; id: string }[];
   // TODO DF-415: simplify types
   definition?:
     | EmailTemplateResource
@@ -44,18 +52,49 @@ export interface TemplatesTableProps {
   label: string;
 }
 
-export default function TemplatesTable({ label }: TemplatesTableProps) {
-  const messagesResult = useAppStore((store) => store.messages);
-  const theme = useTheme();
+function getJourneysUsedBy(
+  journeysUsedBy: JourneyMap,
+  templateId: string,
+): MinimalJourney[] {
+  const journeys = Array.from(journeysUsedBy.get(templateId)?.entries() ?? []);
+  return journeys.map(([id, name]) => ({ id, name }));
+}
 
-  const setMessageTemplateDeleteRequest = useAppStore(
-    (store) => store.setMessageTemplateDeleteRequest,
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const messageTemplateDeleteRequest = useAppStore(
-    (store) => store.messageTemplateDeleteRequest,
-  );
-  const deleteMessageTemplate = useAppStore((store) => store.deleteMessage);
+export default function TemplatesTable({ label }: TemplatesTableProps) {
+  const theme = useTheme();
+  const {
+    apiBase,
+    messages: messagesResult,
+    journeys: journeysResult,
+    setMessageTemplateDeleteRequest,
+    messageTemplateDeleteRequest,
+    deleteMessage: deleteMessageTemplate,
+  } = useAppStorePick([
+    "apiBase",
+    "messages",
+    "journeys",
+    "setMessageTemplateDeleteRequest",
+    "messageTemplateDeleteRequest",
+    "deleteMessage",
+  ]);
+
+  const journeysUsedBy: JourneyMap = useMemo(() => {
+    if (journeysResult.type !== CompletionStatus.Successful) {
+      return new Map();
+    }
+    return journeysResult.value.reduce((acc, journey) => {
+      const journeyMap = new Map();
+      journeyMap.set(journey.id, journey.name);
+
+      journey.definition.nodes.forEach((node) => {
+        if (node.type === JourneyNodeType.MessageNode) {
+          const { templateId } = node.variant;
+          acc.set(templateId, journeyMap);
+        }
+      });
+      return acc;
+    }, new Map());
+  }, [journeysResult]);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
@@ -82,12 +121,12 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
         if (!definition) {
           return acc;
         }
+
         switch (definition.type) {
           case ChannelType.Email:
             acc.emailTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              journeys: template.journeys ?? [],
               definition,
             });
             break;
@@ -95,7 +134,6 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
             acc.mobilePushTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              journeys: template.journeys ?? [],
               definition,
             });
             break;
@@ -103,7 +141,6 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
             acc.smsTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              journeys: template.journeys ?? [],
               definition,
             });
             break;
@@ -123,18 +160,21 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
   if (label === CHANNEL_NAMES[ChannelType.Email]) {
     rows = emailTemplates.map((template) => ({
       ...template,
+      journeys: getJourneysUsedBy(journeysUsedBy, template.id),
       updatedAt: new Date(template.updatedAt).toISOString(),
     }));
     routeName = "email";
   } else if (label === CHANNEL_NAMES[ChannelType.MobilePush]) {
     rows = mobilePushTemplates.map((template) => ({
       ...template,
+      journeys: getJourneysUsedBy(journeysUsedBy, template.id),
       updatedAt: new Date(template.updatedAt).toISOString(),
     }));
     routeName = "mobile-push";
   } else {
     rows = smsTemplates.map((template) => ({
       ...template,
+      journeys: getJourneysUsedBy(journeysUsedBy, template.id),
       updatedAt: new Date(template.updatedAt).toISOString(),
     }));
     routeName = "sms";
