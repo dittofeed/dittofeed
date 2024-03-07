@@ -21,6 +21,9 @@ const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
 
   // disable cell selection style
   "& .MuiDataGrid-cell": {
+    // overflow: "hidden",
+    // textOverflow: "ellipsis",
+    // whiteSpace: "nowrap",
     p: 1,
   },
   // pointer cursor on ALL rows
@@ -102,8 +105,6 @@ export function ResourceTable<R extends BaseResourceRow>({
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
-                      display: "flex",
-                      alignItems: "center",
                     }}
                   >
                     {String(value)}
