@@ -64,7 +64,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       })),
     };
 
-    const userPropertyTemplates: UserPropertyMessages = {};
+    const userPropertyMessages: UserPropertyMessages = {};
 
     for (const userPropertyResource of userPropertyResources) {
       for (const messageTemplate of templateResources) {
@@ -80,22 +80,23 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           ) {
             continue;
           }
-          const templates =
-            userPropertyTemplates[userPropertyResource.id] ?? {};
+          const templates = userPropertyMessages[userPropertyResource.id] ?? {};
           templates[userPropertyResource.id] = templates[
             userPropertyResource.id
           ] ?? {
             name: userPropertyResource.name,
             type: definition.type,
           };
+          userPropertyMessages[userPropertyResource.id] = templates;
         }
       }
     }
+
     return {
       props: addInitialStateToProps({
         serverInitialState: {
           userProperties,
-          userPropertyMessages: userPropertyTemplates,
+          userPropertyMessages,
         },
         dfContext,
         props: {},
