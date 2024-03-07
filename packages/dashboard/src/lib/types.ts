@@ -68,6 +68,17 @@ export type GetDFServerSideProps<
   dfContext: DFRequestContext,
 ) => Promise<GetServerSidePropsResult<P>>;
 
+export type UserPropertyMessages = Record<
+  string,
+  Record<
+    string,
+    {
+      name: string;
+      type: ChannelType;
+    }
+  >
+>;
+
 // README: properties get shallowly overridden when merging serverside state
 // into the default client state, see lib/appStore.ts initializeStore. For that
 // reason properties should not be nested in AppState.
@@ -84,6 +95,7 @@ export type AppState = {
   subscriptionGroups: SubscriptionGroupResource[];
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
+  userPropertyMessages: UserPropertyMessages;
   journeys: RequestStatus<JourneyResource[], Error>;
   traits: string[];
   getTraitsRequest: EphemeralRequestStatus<Error>;

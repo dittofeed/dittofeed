@@ -25,10 +25,10 @@ export function getNodeId(node: JourneyNode): string {
 }
 
 export function getJourneyConstraintViolations(
-  definition: JourneyDefinition
+  definition: JourneyDefinition,
 ): JourneyConstraintViolation[] {
   const hasWaitForNode = definition.nodes.some(
-    (n) => n.type === JourneyNodeType.WaitForNode
+    (n) => n.type === JourneyNodeType.WaitForNode,
   );
   const hasEventEntry =
     definition.entryNode.type === JourneyNodeType.EventEntryNode;
@@ -78,7 +78,7 @@ export function isMultiChildNode(type: JourneyNodeType): boolean {
  * @returns
  */
 export function getSubscribedSegments(
-  definition: JourneyDefinition
+  definition: JourneyDefinition,
 ): Set<string> {
   const subscribedSegments = new Set<string>();
   if (definition.entryNode.type === JourneyNodeType.SegmentEntryNode) {
@@ -100,7 +100,7 @@ const ENTRY_NODE_TYPES = new Set<string>([
 
 export function getJourneyNode(
   definition: JourneyDefinition,
-  nodeId: string
+  nodeId: string,
 ): JourneyNode | null {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   if (ENTRY_NODE_TYPES.has(nodeId)) {
@@ -116,7 +116,7 @@ export function getJourneyNode(
 
 export function findDirectChildren(
   nodeId: string,
-  definition: JourneyDefinition
+  definition: JourneyDefinition,
 ): Set<string> {
   const node = getJourneyNode(definition, nodeId);
   if (!node) {
@@ -164,7 +164,7 @@ export function findDirectChildren(
 
 export function findDirectParents(
   nodeId: string,
-  definition: JourneyDefinition
+  definition: JourneyDefinition,
 ): Set<string> {
   const parents = new Set<string>();
 
@@ -225,7 +225,7 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
     const id = getNodeId(node);
 
     const queue = Array.from(
-      findDirectChildren(id, definition).values()
+      findDirectChildren(id, definition).values(),
     ).flatMap((childId) => nodes.find((n) => getNodeId(n) === childId) ?? []);
 
     queue.forEach((childNode) => {
@@ -258,9 +258,10 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
 
       // add children of current child to queue
       const grandchildren = Array.from(
-        map.get(childId)?.children.values() ?? []
+        map.get(childId)?.children.values() ?? [],
       ).flatMap(
-        (grandChildId) => nodes.find((n) => getNodeId(n) === grandChildId) ?? []
+        (grandChildId) =>
+          nodes.find((n) => getNodeId(n) === grandChildId) ?? [],
       );
 
       queue.push(...grandchildren);
@@ -278,7 +279,7 @@ export function buildHeritageMap(definition: JourneyDefinition): HeritageMap {
  */
 export function getNearestFromChildren(
   nId: string,
-  hm: HeritageMap
+  hm: HeritageMap,
 ): string | null {
   const hmEntry = getUnsafe(hm, nId);
 
@@ -299,7 +300,7 @@ export function getNearestFromChildren(
       const val: [string, number] = [d, descendantHmEntry.ancestors.size];
       return [val];
     }),
-    (val) => val[1]
+    (val) => val[1],
   );
   const nearestDescendant = nearestDescendants[0];
   if (!nearestDescendant) {

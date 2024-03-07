@@ -1,17 +1,12 @@
 import { DownloadForOffline } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import { Tooltip } from "@mui/material";
-import { Journey } from "@prisma/client";
 import {
   ComputedPropertyStep,
   getPeriodsByComputedPropertyId,
 } from "backend-lib/src/computedProperties/computePropertiesIncremental";
-import {
-  CompletionStatus,
-  JourneyDefinition,
-  JourneyNodeType,
-  SegmentResource,
-} from "isomorphic-lib/src/types";
+import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
+import { CompletionStatus, SegmentResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { pick } from "remeda/dist/commonjs/pick";
@@ -32,7 +27,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     const { toSegmentResource } = await import("backend-lib/src/segments");
 
     const workspaceId = dfContext.workspace.id;
-    const [segmentsFromDB, journeys] = await Promise.all([
+    const [segmentsFromDB, journeyResources] = await Promise.all([
       prisma().segment.findMany({
         where: {
           workspaceId,
@@ -41,11 +36,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           },
         },
       }),
-      prisma().journey.findMany({
-        where: {
-          workspaceId,
-          resourceType: "Declarative",
-        },
+      findManyJourneyResourcesUnsafe({
+        where: { workspaceId, resourceType: "Declarative" },
       }),
     ]);
     const segmentResources: (SegmentResource & {
@@ -62,55 +54,21 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       step: ComputedPropertyStep.ProcessAssignments,
     });
 
-    const csps: Record<string, string> = {};
-    for (const segmentResource of segmentResources) {
-      const computedPropertyPeriod = computedPropertyPeriods.get({
-        computedPropertyId: segmentResource.id,
-        version: segmentResource.updatedAt.toString(),
-      });
-      if (computedPropertyPeriod !== undefined) {
-        csps[segmentResource.id] = computedPropertyPeriod.version;
-      }
-    }
-
-    const usedBy: Record<string, Journey[]> = {};
-    for (const segmentResource of segmentResources) {
-      for (const journey of journeys) {
-        const journeyDefinition = journey.definition as JourneyDefinition;
-        if (
-          journeyDefinition.entryNode.type ===
-            JourneyNodeType.SegmentEntryNode &&
-          journeyDefinition.entryNode.segment === segmentResource.id
-        ) {
-          usedBy[segmentResource.id] = usedBy[segmentResource.id] ?? [];
-          if (!usedBy[segmentResource.id]?.includes(journey))
-            usedBy[segmentResource.id]?.push(journey);
-        } else {
-          for (const node of journeyDefinition.nodes) {
-            if (node.type === JourneyNodeType.WaitForNode) {
-              for (const segmentChild of node.segmentChildren) {
-                if (segmentChild.segmentId === segmentResource.id) {
-                  usedBy[segmentResource.id] = usedBy[segmentResource.id] ?? [];
-                  if (!usedBy[segmentResource.id]?.includes(journey))
-                    usedBy[segmentResource.id]?.push(journey);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
     const segments: AppState["segments"] = {
       type: CompletionStatus.Successful,
       value: segmentResources.map((segment) => ({
         ...segment,
-        lastRecomputed: Number(new Date(Number(csps[segment.id]))),
-        journeys: usedBy[segment.id]?.map((journey) => ({
-          id: journey.id,
-          name: journey.name,
-        })),
+        lastRecomputed: computedPropertyPeriods
+          .get({
+            computedPropertyId: segment.id,
+            version: segment.definitionUpdatedAt.toString(),
+          })
+          ?.maxTo.getTime(),
       })),
+    };
+    const journeys: AppState["journeys"] = {
+      type: CompletionStatus.Successful,
+      value: journeyResources,
     };
     return {
       props: addInitialStateToProps({
@@ -118,6 +76,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         dfContext,
         serverInitialState: {
           segments,
+          journeys,
         },
       }),
     };

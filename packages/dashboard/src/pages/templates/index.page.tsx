@@ -10,15 +10,10 @@ import {
   Tabs,
   Typography,
 } from "@mui/material";
-import { Journey } from "@prisma/client";
+import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
-import {
-  ChannelType,
-  CompletionStatus,
-  JourneyDefinition,
-  JourneyNodeType,
-} from "isomorphic-lib/src/types";
+import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
@@ -29,7 +24,6 @@ import MainLayout from "../../components/mainLayout";
 import TemplatesTable from "../../components/templatesTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { useAppStore } from "../../lib/appStore";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
 
@@ -63,39 +57,23 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const workspaceId = dfContext.workspace.id;
 
-    const [templates, journeys] = await Promise.all([
+    const [templates, journeyResources] = await Promise.all([
       findMessageTemplates({
         workspaceId,
       }),
-      prisma().journey.findMany({
+      findManyJourneyResourcesUnsafe({
         where: { workspaceId, resourceType: "Declarative" },
       }),
     ]);
 
-    const usedBy: Record<string, Journey[]> = {};
-    for (const template of templates) {
-      for (const journey of journeys) {
-        for (const node of (journey.definition as JourneyDefinition).nodes) {
-          if (
-            node.type === JourneyNodeType.MessageNode &&
-            node.variant.templateId === template.id
-          ) {
-            usedBy[template.id] = usedBy[template.id] ?? [];
-            usedBy[template.id]?.push(journey);
-          }
-        }
-      }
-    }
-
     const messages: AppState["messages"] = {
       type: CompletionStatus.Successful,
-      value: templates.map((template) => ({
-        ...template,
-        journeys: usedBy[template.id]?.map((journey) => ({
-          id: journey.id,
-          name: journey.name,
-        })),
-      })),
+      value: templates,
+    };
+
+    const journeys: AppState["journeys"] = {
+      type: CompletionStatus.Successful,
+      value: journeyResources,
     };
 
     return {
@@ -104,6 +82,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
         props: {},
         serverInitialState: {
           messages,
+          journeys,
         },
       }),
     };

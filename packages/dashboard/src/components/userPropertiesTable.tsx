@@ -5,67 +5,85 @@ import {
   Select,
   Tooltip,
 } from "@mui/material";
+import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
+  ChannelType,
   CompletionStatus,
   DeleteUserPropertyRequest,
   EmptyResponse,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import React from "react";
+import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
+import { useAppStorePick } from "../lib/appStore";
 import { BaseResourceRow, ResourceTable } from "./resourceTable";
 
 interface Row extends BaseResourceRow {
   updatedAt: string;
-  // TODO DF-415: simplify types
   templates: {
     id: string;
     name: string;
-    type: string;
+    type: ChannelType;
   }[];
   lastRecomputed: string;
 }
 
 export default function UserPropertiesTable() {
-  const workspace = useAppStore((store) => store.workspace);
+  const {
+    workspace: workspaceResult,
+    userProperties: userPropertiesResult,
+    userPropertyMessages,
+    setUserPropertyDeleteRequest,
+    apiBase,
+    userPropertyDeleteRequest,
+    deleteUserProperty,
+  } = useAppStorePick([
+    "userProperties",
+    "workspace",
+    "userPropertyMessages",
+    "setUserPropertyDeleteRequest",
+    "apiBase",
+    "userPropertyDeleteRequest",
+    "deleteUserProperty",
+  ]);
+
   const workspaceId =
-    workspace.type === CompletionStatus.Successful ? workspace.value.id : "";
-  const userPropertiesResult = useAppStore((store) => store.userProperties);
-  const userProperties =
-    userPropertiesResult.type === CompletionStatus.Successful
-      ? userPropertiesResult.value
-      : [];
+    workspaceResult.type === CompletionStatus.Successful
+      ? workspaceResult.value.id
+      : null;
 
-  const usersPropertiesRow: Row[] = [];
+  const usersPropertiesRow: Row[] = useMemo(() => {
+    const userProperties =
+      userPropertiesResult.type === CompletionStatus.Successful
+        ? userPropertiesResult.value
+        : [];
 
-  userProperties.forEach((userProperty) => {
-    const isProtected = protectedUserProperties.has(userProperty.name);
-    const row: Row = {
-      id: userProperty.id,
-      name: userProperty.name,
-      disableDelete: isProtected,
-      updatedAt: userProperty.updatedAt
-        ? new Date(userProperty.updatedAt).toISOString()
-        : "Not Updated",
-      templates: userProperty.templates ?? [],
-      lastRecomputed: userProperty.lastRecomputed
-        ? new Date(userProperty.lastRecomputed).toISOString()
-        : "Not Re-Computed",
-    };
-    usersPropertiesRow.push(row);
-  });
+    return userProperties.map((userProperty) => {
+      const isProtected = protectedUserProperties.has(userProperty.name);
+      const templates = Object.entries(
+        userPropertyMessages[userProperty.id] ?? {},
+      ).map(([id, template]) => ({
+        ...template,
+        id,
+      }));
 
-  const setUserPropertyDeleteRequest = useAppStore(
-    (store) => store.setUserPropertyDeleteRequest,
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const userPropertyDeleteRequest = useAppStore(
-    (store) => store.userPropertyDeleteRequest,
-  );
-  const deleteUserProperty = useAppStore((store) => store.deleteUserProperty);
+      const row: Row = {
+        id: userProperty.id,
+        name: userProperty.name,
+        disableDelete: isProtected,
+        updatedAt: userProperty.updatedAt
+          ? new Date(userProperty.updatedAt).toISOString()
+          : "Not Updated",
+        templates,
+        lastRecomputed: userProperty.lastRecomputed
+          ? new Date(userProperty.lastRecomputed).toISOString()
+          : "Not Re-Computed",
+      };
+      return row;
+    });
+  }, [userPropertiesResult, userPropertyMessages]);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
@@ -76,6 +94,10 @@ export default function UserPropertiesTable() {
     }
     deleteUserProperty(deleteRequest.id);
   };
+
+  if (!workspaceId) {
+    return null;
+  }
 
   return (
     <ResourceTable<Row>
@@ -134,19 +156,14 @@ export default function UserPropertiesTable() {
                 </InputLabel>
                 <Select label="Templates">
                   {currentRow.templates.map((template) => {
-                    let type = "email";
-                    if (template.type === "Email") {
-                      type = "email";
-                    } else if (template.type === "Sms") {
-                      type = "sms";
-                    } else if (template.type === "MobilePush") {
-                      type = "mobile-push";
-                    }
                     return (
                       <MenuItem key={template.id}>
                         <Tooltip title={template.name}>
                           <Link
-                            href={`/templates/${type}/${template.id}`}
+                            href={messageTemplatePath({
+                              id: template.id,
+                              channel: template.type,
+                            })}
                             passHref
                             onClick={(e) => {
                               e.stopPropagation();

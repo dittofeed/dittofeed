@@ -1,11 +1,7 @@
 import { AddCircleOutline } from "@mui/icons-material";
 import { IconButton, Stack, Typography } from "@mui/material";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import {
-  CompletionStatus,
-  JourneyDefinition,
-  JourneyResource,
-} from "isomorphic-lib/src/types";
+import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
@@ -13,31 +9,14 @@ import { v4 as uuid } from "uuid";
 import JourneysTable from "../../components/journeysTable";
 import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
     const workspaceId = dfContext.workspace.id;
-    const journeys = (
-      await prisma().journey.findMany({
-        where: { workspaceId, resourceType: "Declarative" },
-      })
-    ).flatMap(({ id, definition, name, status, updatedAt }) => {
-      const validatedDefinition = schemaValidate(definition, JourneyDefinition);
-      if (validatedDefinition.isErr()) {
-        return [];
-      }
-      const resource: JourneyResource = {
-        definition: validatedDefinition.value,
-        id,
-        workspaceId,
-        name,
-        status,
-        updatedAt: Number(updatedAt),
-      };
-      return resource;
+    const journeys = await findManyJourneyResourcesUnsafe({
+      where: { workspaceId, resourceType: "Declarative" },
     });
 
     const serverInitialState: PreloadedState = {
