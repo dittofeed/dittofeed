@@ -1,5 +1,4 @@
 import {
-  Box,
   FormControl,
   InputLabel,
   MenuItem,
@@ -7,7 +6,6 @@ import {
   Tooltip,
   useTheme,
 } from "@mui/material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -25,15 +23,14 @@ import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
-import { monospaceCell } from "../lib/datagridCells";
-import DeleteDialog from "./confirmDeleteDialog";
-import { RESOURCE_TABLE_STYLE } from "./resourceTable";
+import { ResourceTable } from "./resourceTable";
 
 interface Row {
   id: string;
   name: string;
   updatedAt: string;
   journeys?: { name: string; id: string }[];
+  // FIXME simplify this type
   definition?:
     | EmailTemplateResource
     | MobilePushTemplateResource
@@ -43,13 +40,6 @@ interface Row {
     | MobilePushTemplateResource
     | SmsTemplateResource;
 }
-
-const baseColumn: Partial<GridColDef<Row>> = {
-  flex: 1,
-  sortable: false,
-  filterable: false,
-  renderCell: monospaceCell,
-};
 
 export interface TemplatesTableProps {
   label: string;
@@ -152,26 +142,43 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
   }
 
   return (
-    <DataGrid
+    <ResourceTable<Row>
+      getHref={(id) => `/templates/${routeName}/${id}`}
       rows={rows}
-      sx={{
-        ...RESOURCE_TABLE_STYLE,
+      onDelete={({ row: currentRow }) => {
+        const definition = currentRow.draft ?? currentRow.definition;
+        if (!definition) {
+          return;
+        }
+        const deleteData: DeleteMessageTemplateRequest = {
+          id: currentRow.id,
+          type: definition.type,
+        };
+        const handleDelete = apiRequestHandlerFactory({
+          request: messageTemplateDeleteRequest,
+          setRequest: setMessageTemplateDeleteRequest,
+          responseSchema: EmptyResponse,
+          setResponse: setDeleteResponse,
+          onSuccessNotice: `Deleted template ${currentRow.name}.`,
+          onFailureNoticeHandler: () =>
+            `API Error: Failed to delete template ${currentRow.name}.`,
+          requestConfig: {
+            method: "DELETE",
+            url: `${apiBase}/api/content/templates`,
+            data: deleteData,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        });
+        handleDelete();
       }}
-      getRowId={(row) => row.id}
-      autoPageSize
-      columns={[
-        {
-          field: "name",
-          headerName: "Name",
-        },
-        {
-          field: "updatedAt",
-          headerName: "Last Updated",
-        },
+      additionalColumns={[
         {
           field: "journeys",
           headerName: "Journeys Used By",
-          renderCell: ({ row }: { row: Row, value:  }) => {
+          // eslint-disable-next-line react/no-unused-prop-types
+          renderCell: ({ row }: { row: Row }) => {
             const currentRow = row;
             if (currentRow.journeys?.length === 0) {
               return null;
@@ -224,85 +231,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
             );
           },
         },
-        {
-          field: "actions",
-          headerName: "Action",
-          // eslint-disable-next-line react/no-unused-prop-types
-          renderCell: ({ row }: { row: Row }) => (
-            <DeleteDialog
-              onConfirm={() => {
-                const currentRow = row;
-                const definition = currentRow.draft ?? currentRow.definition;
-                if (!definition) {
-                  return;
-                }
-
-                const deleteData: DeleteMessageTemplateRequest = {
-                  id: currentRow.id,
-                  type: definition.type,
-                };
-                const handleDelete = apiRequestHandlerFactory({
-                  request: messageTemplateDeleteRequest,
-                  setRequest: setMessageTemplateDeleteRequest,
-                  responseSchema: EmptyResponse,
-                  setResponse: setDeleteResponse,
-                  onSuccessNotice: `Deleted template ${currentRow.name}.`,
-                  onFailureNoticeHandler: () =>
-                    `API Error: Failed to delete template ${currentRow.name}.`,
-                  requestConfig: {
-                    method: "DELETE",
-                    url: `${apiBase}/api/content/templates`,
-                    data: deleteData,
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                  },
-                });
-                handleDelete();
-              }}
-              title="Delete Template"
-              message="Are you sure you want to delete this template?"
-            />
-          ),
-        },
-      ].map((c) => ({
-        ...baseColumn,
-        ...c,
-        // eslint-disable-next-line react/no-unused-prop-types
-        renderCell: ({ row, value }: { row: Row; value: string }) => (
-          <Box
-            sx={{
-              padding: 1,
-            }}
-          >
-            <Link
-              href={`/templates/${routeName}/${row.id}`}
-              passHref
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-              style={{
-                color: "black",
-                textDecoration: "none",
-                width: "100%",
-              }}
-            >
-              {c.renderCell === undefined
-                ? value
-                : c.renderCell({ row, value })}
-            </Link>
-          </Box>
-        ),
-      }))}
-      initialState={{
-        pagination: {
-          paginationModel: {
-            pageSize: 5,
-          },
-        },
-      }}
-      pageSizeOptions={[1, 5, 10, 25]}
-      getRowHeight={() => "auto"}
+      ]}
     />
   );
 }
