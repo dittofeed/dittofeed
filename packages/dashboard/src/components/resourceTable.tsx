@@ -51,13 +51,13 @@ export function ResourceTable<R extends BaseRow>({
   additionalColumns: GridColDef<R>[];
   onDelete: ({ row }: { row: R }) => void;
 }) {
-  const theme = useTheme();
   const columns: GridColDef<R>[] = useMemo(() => {
-    const baseColumns: GridColDef<R>[] = [
+    return [
       {
         field: "name",
         headerName: "Name",
       },
+      ...additionalColumns,
       {
         field: "updatedAt",
         headerName: "Updated At",
@@ -76,49 +76,45 @@ export function ResourceTable<R extends BaseRow>({
           />
         ),
       },
-    ];
-    // FIXME  order
-    return [...baseColumns, ...additionalColumns].map(
-      (column): GridColDef<R> => {
-        return {
-          ...BASE_COLUMN,
-          ...column,
-          renderCell: (params: GridRenderCellParams<R>) => {
-            const { row, value } = params;
-            return (
-              <Link
-                href={getHref(row.id)}
-                passHref
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                style={{
-                  color: "black",
-                  textDecoration: "none",
-                  width: "100%",
-                }}
-              >
-                {column.renderCell === undefined ? (
-                  <Tooltip title={String(value)}>
-                    <Box
-                      sx={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {String(value)}
-                    </Box>
-                  </Tooltip>
-                ) : (
-                  column.renderCell(params)
-                )}
-              </Link>
-            );
-          },
-        };
-      },
-    );
+    ].map((column): GridColDef<R> => {
+      return {
+        ...BASE_COLUMN,
+        ...column,
+        renderCell: (params: GridRenderCellParams<R>) => {
+          const { row, value } = params;
+          return (
+            <Link
+              href={getHref(row.id)}
+              passHref
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              style={{
+                color: "black",
+                textDecoration: "none",
+                width: "100%",
+              }}
+            >
+              {column.renderCell === undefined ? (
+                <Tooltip title={String(value)}>
+                  <Box
+                    sx={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {String(value)}
+                  </Box>
+                </Tooltip>
+              ) : (
+                column.renderCell(params)
+              )}
+            </Link>
+          );
+        },
+      };
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
