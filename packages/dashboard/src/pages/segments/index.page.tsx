@@ -54,7 +54,9 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       step: ComputedPropertyStep.ProcessAssignments,
     });
 
+    // FIXME wrong
     const csps: Record<string, string> = {};
+
     for (const segmentResource of segmentResources) {
       const computedPropertyPeriod = computedPropertyPeriods.get({
         computedPropertyId: segmentResource.id,

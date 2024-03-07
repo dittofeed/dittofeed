@@ -53,15 +53,18 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
 
     const userProperties: AppState["userProperties"] = {
       type: CompletionStatus.Successful,
-      value: userPropertyResources.map((userPropertyResource) => ({
-        ...userPropertyResource,
-        lastRecomputed: computedPropertyPeriods
+      value: userPropertyResources.map((userPropertyResource) => {
+        const lastRecomputed = computedPropertyPeriods
           .get({
             computedPropertyId: userPropertyResource.id,
-            version: userPropertyResource.updatedAt.toString(),
+            version: userPropertyResource.definitionUpdatedAt.toString(),
           })
-          ?.maxTo.getTime(),
-      })),
+          ?.maxTo.getTime();
+        return {
+          ...userPropertyResource,
+          lastRecomputed,
+        };
+      }),
     };
 
     const userPropertyMessages: UserPropertyMessages = {};
