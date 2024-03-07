@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
+  ChannelType,
   CompletionStatus,
   DeleteUserPropertyRequest,
   EmptyResponse,
@@ -15,33 +16,54 @@ import Link from "next/link";
 import React from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../lib/appStore";
+import { useAppStorePick } from "../lib/appStore";
 import { BaseResourceRow, ResourceTable } from "./resourceTable";
 
 interface Row extends BaseResourceRow {
   updatedAt: string;
-  // TODO DF-415: simplify types
   templates: {
     id: string;
     name: string;
-    type: string;
+    type: ChannelType;
   }[];
   lastRecomputed: string;
 }
 
 export default function UserPropertiesTable() {
-  const workspace = useAppStore((store) => store.workspace);
+  const {
+    workspace: workspaceResult,
+    userProperties: userPropertiesResult,
+    messages: messagesResult,
+    setUserPropertyDeleteRequest,
+    apiBase,
+    userPropertyDeleteRequest,
+    deleteUserProperty,
+  } = useAppStorePick([
+    "userProperties",
+    "workspace",
+    "messages",
+    "setUserPropertyDeleteRequest",
+    "apiBase",
+    "userPropertyDeleteRequest",
+    "deleteUserProperty",
+  ]);
+
   const workspaceId =
-    workspace.type === CompletionStatus.Successful ? workspace.value.id : "";
-  const userPropertiesResult = useAppStore((store) => store.userProperties);
+    workspaceResult.type === CompletionStatus.Successful
+      ? workspaceResult.value.id
+      : null;
+
+  if (!workspaceId) {
+    return null;
+  }
+
   const userProperties =
     userPropertiesResult.type === CompletionStatus.Successful
       ? userPropertiesResult.value
       : [];
 
   const usersPropertiesRow: Row[] = [];
-
-  userProperties.forEach((userProperty) => {
+  const templateMap = userProperties.forEach((userProperty) => {
     const isProtected = protectedUserProperties.has(userProperty.name);
     const row: Row = {
       id: userProperty.id,
@@ -57,15 +79,6 @@ export default function UserPropertiesTable() {
     };
     usersPropertiesRow.push(row);
   });
-
-  const setUserPropertyDeleteRequest = useAppStore(
-    (store) => store.setUserPropertyDeleteRequest,
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const userPropertyDeleteRequest = useAppStore(
-    (store) => store.userPropertyDeleteRequest,
-  );
-  const deleteUserProperty = useAppStore((store) => store.deleteUserProperty);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
