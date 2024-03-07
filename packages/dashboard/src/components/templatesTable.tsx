@@ -4,8 +4,8 @@ import {
   MenuItem,
   Select,
   Tooltip,
+  useTheme,
 } from "@mui/material";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -23,31 +23,22 @@ import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
-import { monospaceCell } from "../lib/datagridCells";
-import DeleteDialog from "./confirmDeleteDialog";
-import { RESOURCE_TABLE_STYLE } from "./resourceTable";
+import { BaseResourceRow, ResourceTable } from "./resourceTable";
 
-interface Row {
-  id: string;
-  name: string;
-  updatedAt: string;
+interface Row extends BaseResourceRow {
+  // TODO DF-415: correct loading
   journeys?: { name: string; id: string }[];
+  // TODO DF-415: simplify types
   definition?:
     | EmailTemplateResource
     | MobilePushTemplateResource
     | SmsTemplateResource;
+  // TODO DF-415: simplify types
   draft?:
     | EmailTemplateResource
     | MobilePushTemplateResource
     | SmsTemplateResource;
 }
-
-const baseColumn: Partial<GridColDef<Row>> = {
-  flex: 1,
-  sortable: false,
-  filterable: false,
-  renderCell: monospaceCell,
-};
 
 export interface TemplatesTableProps {
   label: string;
@@ -55,6 +46,7 @@ export interface TemplatesTableProps {
 
 export default function TemplatesTable({ label }: TemplatesTableProps) {
   const messagesResult = useAppStore((store) => store.messages);
+  const theme = useTheme();
 
   const setMessageTemplateDeleteRequest = useAppStore(
     (store) => store.setMessageTemplateDeleteRequest,
@@ -149,157 +141,96 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
   }
 
   return (
-    <DataGrid
+    <ResourceTable<Row>
+      getHref={(id) => `/templates/${routeName}/${id}`}
       rows={rows}
-      sx={{
-        ...RESOURCE_TABLE_STYLE,
+      onDelete={({ row: currentRow }) => {
+        const definition = currentRow.draft ?? currentRow.definition;
+        if (!definition) {
+          return;
+        }
+        const deleteData: DeleteMessageTemplateRequest = {
+          id: currentRow.id,
+          type: definition.type,
+        };
+        const handleDelete = apiRequestHandlerFactory({
+          request: messageTemplateDeleteRequest,
+          setRequest: setMessageTemplateDeleteRequest,
+          responseSchema: EmptyResponse,
+          setResponse: setDeleteResponse,
+          onSuccessNotice: `Deleted template ${currentRow.name}.`,
+          onFailureNoticeHandler: () =>
+            `API Error: Failed to delete template ${currentRow.name}.`,
+          requestConfig: {
+            method: "DELETE",
+            url: `${apiBase}/api/content/templates`,
+            data: deleteData,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        });
+        handleDelete();
       }}
-      getRowId={(row) => row.id}
-      autoPageSize
-      columns={[
-        {
-          field: "name",
-          headerName: "Name",
-        },
-        {
-          field: "updatedAt",
-          headerName: "Last Updated",
-        },
+      additionalColumns={[
         {
           field: "journeys",
           headerName: "Journeys Used By",
+          // eslint-disable-next-line react/no-unused-prop-types
           renderCell: ({ row }: { row: Row }) => {
             const currentRow = row;
             if (currentRow.journeys?.length === 0) {
-              return;
+              return null;
             }
             return (
-              <div
-                style={{
-                  padding: "0.5rem",
+              <FormControl
+                sx={{
+                  width: theme.spacing(20),
+                  height: theme.spacing(5),
                 }}
+                size="small"
               >
-                <FormControl
-                  sx={{
-                    width: 200,
-                    height: 40,
+                <InputLabel>
+                  {currentRow.journeys?.length}{" "}
+                  {currentRow.journeys?.length === 1 ? "Journey" : "Journeys"}
+                </InputLabel>
+                <Select
+                  label="Journeys"
+                  onClick={(e) => {
+                    e.stopPropagation();
                   }}
-                  size="small"
                 >
-                  <InputLabel>
-                    {currentRow.journeys?.length}{" "}
-                    {currentRow.journeys?.length === 1 ? "Journey" : "Journeys"}
-                  </InputLabel>
-                  <Select
-                    label="Journeys"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    {currentRow.journeys?.map((journey) => {
-                      return (
-                        <MenuItem key={journey.id}>
-                          <Tooltip title={journey.name}>
-                            <Link
-                              href={`/journeys/${journey.id}`}
-                              passHref
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                              style={{
-                                color: "black",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                textDecoration: "none",
-                                width: 200,
-                              }}
-                            >
-                              {journey.name}
-                            </Link>
-                          </Tooltip>
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              </div>
+                  {currentRow.journeys?.map((journey) => {
+                    return (
+                      <MenuItem key={journey.id}>
+                        <Tooltip title={journey.name}>
+                          <Link
+                            href={`/journeys/${journey.id}`}
+                            passHref
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            style={{
+                              color: "black",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              textDecoration: "none",
+                              width: 200,
+                            }}
+                          >
+                            {journey.name}
+                          </Link>
+                        </Tooltip>
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
             );
           },
         },
-        {
-          field: "actions",
-          headerName: "Action",
-          // eslint-disable-next-line react/no-unused-prop-types
-          renderCell: ({ row }: { row: Row }) => (
-            <DeleteDialog
-              onConfirm={() => {
-                const currentRow = row;
-                const definition = currentRow.draft ?? currentRow.definition;
-                if (!definition) {
-                  return;
-                }
-
-                const deleteData: DeleteMessageTemplateRequest = {
-                  id: currentRow.id,
-                  type: definition.type,
-                };
-                const handleDelete = apiRequestHandlerFactory({
-                  request: messageTemplateDeleteRequest,
-                  setRequest: setMessageTemplateDeleteRequest,
-                  responseSchema: EmptyResponse,
-                  setResponse: setDeleteResponse,
-                  onSuccessNotice: `Deleted template ${currentRow.name}.`,
-                  onFailureNoticeHandler: () =>
-                    `API Error: Failed to delete template ${currentRow.name}.`,
-                  requestConfig: {
-                    method: "DELETE",
-                    url: `${apiBase}/api/content/templates`,
-                    data: deleteData,
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                  },
-                });
-                handleDelete();
-              }}
-              title="Delete Template"
-              message="Are you sure you want to delete this template?"
-            />
-          ),
-        },
-      ].map((c) => ({
-        ...baseColumn,
-        ...c,
-        // eslint-disable-next-line react/no-unused-prop-types
-        renderCell: ({ row }: { row: Row }) => (
-          <Link
-            href={`/templates/${routeName}/${row.id}`}
-            passHref
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            style={{
-              color: "black",
-              textDecoration: "none",
-              width: "100%",
-            }}
-          >
-            {c.renderCell === undefined
-              ? String(row[c.field as keyof Row])
-              : c.renderCell({ row })}
-          </Link>
-        ),
-      }))}
-      initialState={{
-        pagination: {
-          paginationModel: {
-            pageSize: 5,
-          },
-        },
-      }}
-      pageSizeOptions={[1, 5, 10, 25]}
-      getRowHeight={() => "auto"}
+      ]}
     />
   );
 }

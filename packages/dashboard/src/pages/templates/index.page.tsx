@@ -13,21 +13,16 @@ import {
 import { Journey } from "@prisma/client";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   ChannelType,
   CompletionStatus,
-  EmailTemplateResource,
   JourneyDefinition,
   JourneyNodeType,
-  MobilePushTemplateResource,
-  NarrowedMessageTemplateResource,
-  SmsTemplateResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import MainLayout from "../../components/mainLayout";
@@ -118,62 +113,11 @@ function TemplateListContents() {
   const enableMobilePush = useAppStore((store) => store.enableMobilePush);
   const [tab, setTab] = useState<number>(0);
   const [newAnchorEl, setNewAnchorEl] = useState<null | HTMLElement>(null);
-  const messagesResult = useAppStore((store) => store.messages);
   const [newItemId, setNewItemId] = useState(() => uuid());
-
-  const workspace = useAppStore((state) => state.workspace);
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
   };
-  const { emailTemplates, mobilePushTemplates, smsTemplates } = useMemo(() => {
-    const messages =
-      messagesResult.type === CompletionStatus.Successful
-        ? messagesResult.value
-        : [];
-    return messages.reduce<{
-      emailTemplates: NarrowedMessageTemplateResource<EmailTemplateResource>[];
-      mobilePushTemplates: NarrowedMessageTemplateResource<MobilePushTemplateResource>[];
-      smsTemplates: NarrowedMessageTemplateResource<SmsTemplateResource>[];
-    }>(
-      (acc, template) => {
-        const definition = template.draft ?? template.definition;
-        if (!definition) {
-          return acc;
-        }
-        switch (definition.type) {
-          case ChannelType.Email:
-            acc.emailTemplates.push({
-              ...template,
-              definition,
-            });
-            break;
-          case ChannelType.MobilePush:
-            acc.mobilePushTemplates.push({
-              ...template,
-              definition,
-            });
-            break;
-          case ChannelType.Sms:
-            acc.smsTemplates.push({
-              ...template,
-              definition,
-            });
-            break;
-          default: {
-            const { type } = definition;
-            assertUnreachable(type);
-          }
-        }
-        return acc;
-      },
-      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] },
-    );
-  }, [messagesResult]);
-
-  if (workspace.type !== CompletionStatus.Successful) {
-    return null;
-  }
 
   return (
     <Stack
@@ -232,22 +176,12 @@ function TemplateListContents() {
           sx={{
             width: "100%",
             bgcolor: "background.paper",
+            padding: 1,
             borderRadius: 1,
             height: "70vh",
           }}
         >
           <TemplatesTable label={CHANNEL_NAMES[ChannelType.Email]} />
-          {emailTemplates.length === 0 && (
-            <Typography
-              component="span"
-              textAlign="center"
-              sx={{
-                padding: "20px 16px",
-              }}
-            >
-              You haven&apos;t created any email templates.
-            </Typography>
-          )}
         </List>
       </TabPanel>
       <TabPanel value={tab} index={1}>
@@ -260,17 +194,6 @@ function TemplateListContents() {
           }}
         >
           <TemplatesTable label={CHANNEL_NAMES[ChannelType.Sms]} />
-          {smsTemplates.length === 0 && (
-            <Typography
-              component="span"
-              textAlign="center"
-              sx={{
-                padding: "20px 16px",
-              }}
-            >
-              You haven&apos;t created any SMS templates.
-            </Typography>
-          )}
         </List>
       </TabPanel>
       <TabPanel value={tab} index={2}>
@@ -283,17 +206,6 @@ function TemplateListContents() {
           }}
         >
           <TemplatesTable label={CHANNEL_NAMES[ChannelType.MobilePush]} />
-          {mobilePushTemplates.length === 0 && (
-            <Typography
-              component="span"
-              textAlign="center"
-              sx={{
-                padding: "20px 16px",
-              }}
-            >
-              You haven&apos;t created any mobile push templates.
-            </Typography>
-          )}
         </List>
       </TabPanel>
     </Stack>

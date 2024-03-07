@@ -14,13 +14,19 @@ interface DeleteDialogProps {
   onConfirm: () => void;
   title: string;
   message: string;
+  disabled?: boolean;
 }
 
-function DeleteDialog({ onConfirm, title, message }: DeleteDialogProps) {
+function DeleteDialog({
+  onConfirm,
+  title,
+  message,
+  disabled,
+}: DeleteDialogProps) {
   const [open, setOpen] = useState(false);
 
   const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
+    event.preventDefault();
     setOpen(true);
   };
 
@@ -35,7 +41,11 @@ function DeleteDialog({ onConfirm, title, message }: DeleteDialogProps) {
 
   return (
     <>
-      <IconButton edge="end" onClick={(event) => handleOpen(event)}>
+      <IconButton
+        edge="end"
+        onClick={(event) => handleOpen(event)}
+        disabled={disabled}
+      >
         <DeleteIcon />
       </IconButton>
       <Dialog open={open} onClose={handleClose}>
