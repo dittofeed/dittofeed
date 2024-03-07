@@ -15,21 +15,20 @@ import { SelectInputProps } from "@mui/material/Select/SelectInput";
 import {
   ChannelType,
   CompletionStatus,
-  SubscriptionGroupResource,
+  SavedSubscriptionGroupResource,
   SubscriptionGroupType,
   UpsertSubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import React, { useMemo } from "react";
-import { shallow } from "zustand/shallow";
 
 import { BulletList, BulletListItem } from "../../components/bulletList";
 import EditableName from "../../components/editableName";
 import InfoBox from "../../components/infoBox";
 import InfoTooltip from "../../components/infoTooltip";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../../lib/appStore";
+import { useAppStore, useAppStorePick } from "../../lib/appStore";
 import { PropsWithInitialState } from "../../lib/types";
 import getSubscriptionGroupsSSP from "./getSubscriptionGroupsSSP";
 import SubscriptionGroupLayout, {
@@ -50,19 +49,17 @@ export default function SubscriptionGroupConfig() {
     apiBase,
     upsertSubscriptionGroup,
     enableMobilePush,
-  } = useAppStore(
-    (store) => ({
-      enableMobilePush: store.enableMobilePush,
-      upsertSubscriptionGroup: store.upsertSubscriptionGroup,
-      apiBase: store.apiBase,
-      subscriptionGroupUpdateRequest: store.subscriptionGroupUpdateRequest,
-      updateEditedSubscriptionGroup: store.updateEditedSubscriptionGroup,
-      editedSubscriptionGroup: store.editedSubscriptionGroup,
-      setSubscriptionGroupUpdateRequest:
-        store.setSubscriptionGroupUpdateRequest,
-    }),
-    shallow,
-  );
+    subscriptionGroups,
+  } = useAppStorePick([
+    "subscriptionGroups",
+    "subscriptionGroupUpdateRequest",
+    "updateEditedSubscriptionGroup",
+    "editedSubscriptionGroup",
+    "setSubscriptionGroupUpdateRequest",
+    "apiBase",
+    "enableMobilePush",
+    "upsertSubscriptionGroup",
+  ]);
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
 
   const workspace = useAppStore((store) => store.workspace);
@@ -99,7 +96,7 @@ export default function SubscriptionGroupConfig() {
     return apiRequestHandlerFactory({
       request: subscriptionGroupUpdateRequest,
       setRequest: setSubscriptionGroupUpdateRequest,
-      responseSchema: SubscriptionGroupResource,
+      responseSchema: SavedSubscriptionGroupResource,
       setResponse: (sg) => {
         upsertSubscriptionGroup(sg);
         updateEditedSubscriptionGroup(sg);
@@ -139,7 +136,7 @@ export default function SubscriptionGroupConfig() {
   }
 
   const optIn = editedSubscriptionGroup.type === SubscriptionGroupType.OptIn;
-  const hasBeenCreated = editedSubscriptionGroup.createdAt !== undefined;
+  const hasBeenCreated = subscriptionGroups.some((sg) => sg.id === id);
   return (
     <SubscriptionGroupLayout tab={SubscriptionGroupTabLabel.Configure} id={id}>
       <Stack

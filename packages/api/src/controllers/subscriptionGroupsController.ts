@@ -12,8 +12,8 @@ import {
   CsvUploadValidationError,
   DeleteSubscriptionGroupRequest,
   EmptyResponse,
+  SavedSubscriptionGroupResource,
   SubscriptionChange,
-  SubscriptionGroupResource,
   UpsertSubscriptionGroupResource,
   UserUploadRow,
   UserUploadRowErrors,
@@ -53,7 +53,7 @@ export default async function subscriptionGroupsController(
         tags: ["Subscription Groups"],
         body: UpsertSubscriptionGroupResource,
         response: {
-          200: SubscriptionGroupResource,
+          200: SavedSubscriptionGroupResource,
           400: CsvUploadValidationError,
         },
       },

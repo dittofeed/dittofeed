@@ -24,6 +24,7 @@ import {
   PersistedEmailProvider,
   PersistedSmsProvider,
   RequestStatus,
+  SavedSubscriptionGroupResource,
   SecondsDelayVariant,
   SecretAvailabilityResource,
   SecretResource,
@@ -92,7 +93,7 @@ export type AppState = {
   drawerOpen: boolean;
   segments: RequestStatus<SegmentResource[], Error>;
   broadcasts: BroadcastResource[];
-  subscriptionGroups: SubscriptionGroupResource[];
+  subscriptionGroups: SavedSubscriptionGroupResource[];
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   userPropertyMessages: UserPropertyMessages;
@@ -140,7 +141,7 @@ export interface AppActions {
   upsertSecrets: (secrets: SecretResource[]) => void;
   deleteSecret: (secretName: string) => void;
   upsertSubscriptionGroup: (
-    subscriptionGroup: SubscriptionGroupResource,
+    subscriptionGroup: SavedSubscriptionGroupResource,
   ) => void;
   deleteSubscriptionGroup: (id: string) => void;
   upsertUserProperty: (userProperty: UserPropertyResource) => void;
