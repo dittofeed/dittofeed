@@ -77,7 +77,7 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
           onDelete === undefined ? null : (
             <DeleteDialog
               disabled={row.disableDelete}
-              onConfirm={() => onDelete?.({ row })}
+              onConfirm={() => onDelete({ row })}
               title={`Delete ${row.name}`}
               message={`Are you sure you want to delete ${row.name}?`}
             />
