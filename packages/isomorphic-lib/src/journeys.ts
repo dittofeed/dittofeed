@@ -93,16 +93,6 @@ export function getSubscribedSegments(
   return subscribedSegments;
 }
 
-export function getUsedTemplates(definition: JourneyDefinition): Set<string> {
-  const usedTemplates = new Set<string>();
-  for (const node of definition.nodes) {
-    if (node.type === JourneyNodeType.MessageNode) {
-      usedTemplates.add(node.variant.templateId);
-    }
-  }
-  return usedTemplates;
-}
-
 const ENTRY_NODE_TYPES = new Set<string>([
   JourneyNodeType.EventEntryNode,
   JourneyNodeType.SegmentEntryNode,

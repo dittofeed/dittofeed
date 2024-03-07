@@ -13,7 +13,7 @@ import {
   EmptyResponse,
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
-import React from "react";
+import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
@@ -28,6 +28,17 @@ interface Row extends BaseResourceRow {
   }[];
   lastRecomputed: string;
 }
+
+type UserPropertiesTemplates = Map<
+  string,
+  Map<
+    string,
+    {
+      name: string;
+      type: ChannelType;
+    }
+  >
+>;
 
 export default function UserPropertiesTable() {
   const {
@@ -47,6 +58,15 @@ export default function UserPropertiesTable() {
     "userPropertyDeleteRequest",
     "deleteUserProperty",
   ]);
+
+  const userPropertiesTemplates: UserPropertiesTemplates = useMemo(() => {
+    if (messagesResult.type !== CompletionStatus.Successful) {
+      return new Map();
+    }
+    return messagesResult.value.reduce((acc, message) => {
+      return acc;
+    }, new Map());
+  }, [messagesResult]);
 
   const workspaceId =
     workspaceResult.type === CompletionStatus.Successful

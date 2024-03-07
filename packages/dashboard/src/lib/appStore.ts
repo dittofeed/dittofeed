@@ -247,6 +247,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         messageTemplateDeleteRequest: {
           type: CompletionStatus.NotStarted,
         },
+        userPropertyTemplates: {},
 
         // settings page
         upsertIntegration: (integration) =>
