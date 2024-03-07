@@ -1,5 +1,5 @@
 import { Theme } from "@emotion/react";
-import { Box, SxProps, Tooltip } from "@mui/material";
+import { Box, SxProps, Tooltip, useTheme } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -21,9 +21,6 @@ const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
 
   // disable cell selection style
   "& .MuiDataGrid-cell": {
-    // overflow: "hidden",
-    // textOverflow: "ellipsis",
-    // whiteSpace: "nowrap",
     p: 1,
   },
   // pointer cursor on ALL rows
@@ -56,6 +53,7 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
   additionalColumns?: GridColDef<R>[];
   onDelete?: ({ row }: { row: R }) => void;
 }) {
+  const theme = useTheme();
   const columns: GridColDef<R>[] = useMemo(() => {
     return [
       {
@@ -103,6 +101,9 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
                 <Tooltip title={String(value)}>
                   <Box
                     sx={{
+                      height: theme.spacing(5),
+                      display: "flex",
+                      alignItems: "center",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
