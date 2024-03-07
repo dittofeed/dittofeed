@@ -6,7 +6,7 @@ import { useMemo } from "react";
 
 import DeleteDialog from "./confirmDeleteDialog";
 
-export const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
+const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
   height: "100%",
   width: "100%",
   ".MuiDataGrid-row:first-of-type": {
@@ -29,10 +29,11 @@ export const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
   },
 };
 
-interface BaseRow {
+export interface BaseResourceRow {
   id: string;
   name: string;
   updatedAt: string;
+  disableDelete?: boolean;
 }
 
 const BASE_COLUMN = {
@@ -41,7 +42,7 @@ const BASE_COLUMN = {
   filterable: false,
 } as const;
 
-export function ResourceTable<R extends BaseRow>({
+export function ResourceTable<R extends BaseResourceRow>({
   rows,
   getHref,
   additionalColumns,
@@ -71,6 +72,7 @@ export function ResourceTable<R extends BaseRow>({
         // eslint-disable-next-line react/no-unused-prop-types
         renderCell: ({ row }: { row: R }) => (
           <DeleteDialog
+            disabled={row.disableDelete}
             onConfirm={() => onDelete({ row })}
             title={`Delete ${row.name}`}
             message={`Are you sure you want to delete ${row.name}?`}
@@ -100,6 +102,8 @@ export function ResourceTable<R extends BaseRow>({
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
+                      display: "flex",
+                      alignItems: "center",
                     }}
                   >
                     {String(value)}

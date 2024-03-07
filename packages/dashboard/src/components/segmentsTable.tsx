@@ -107,56 +107,50 @@ export default function SegmentsTable() {
               return;
             }
             return (
-              <div
-                style={{
-                  padding: "0.5rem",
+              <FormControl
+                sx={{
+                  width: 200,
+                  height: 40,
                 }}
+                size="small"
               >
-                <FormControl
-                  sx={{
-                    width: 200,
-                    height: 40,
+                <InputLabel>
+                  {currentRow.journeys.length}{" "}
+                  {currentRow.journeys.length === 1 ? "Journey" : "Journeys"}
+                </InputLabel>
+                <Select
+                  label="Journeys"
+                  onClick={(e) => {
+                    e.stopPropagation();
                   }}
-                  size="small"
                 >
-                  <InputLabel>
-                    {currentRow.journeys.length}{" "}
-                    {currentRow.journeys.length === 1 ? "Journey" : "Journeys"}
-                  </InputLabel>
-                  <Select
-                    label="Journeys"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    {currentRow.journeys.map((journey) => {
-                      return (
-                        <MenuItem key={journey.id}>
-                          <Tooltip title={journey.name}>
-                            <Link
-                              href={`/journeys/${journey.id}`}
-                              passHref
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                              style={{
-                                color: "black",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                textDecoration: "none",
-                                width: 200,
-                              }}
-                            >
-                              {journey.name}
-                            </Link>
-                          </Tooltip>
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              </div>
+                  {currentRow.journeys.map((journey) => {
+                    return (
+                      <MenuItem key={journey.id}>
+                        <Tooltip title={journey.name}>
+                          <Link
+                            href={`/journeys/${journey.id}`}
+                            passHref
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            style={{
+                              color: "black",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              textDecoration: "none",
+                              width: 200,
+                            }}
+                          >
+                            {journey.name}
+                          </Link>
+                        </Tooltip>
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
             );
           },
         },
