@@ -68,7 +68,7 @@ export type GetDFServerSideProps<
   dfContext: DFRequestContext,
 ) => Promise<GetServerSidePropsResult<P>>;
 
-export type UserPropertyTemplates = Record<
+export type UserPropertyMessages = Record<
   string,
   Record<
     string,
@@ -95,7 +95,7 @@ export type AppState = {
   subscriptionGroups: SubscriptionGroupResource[];
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
-  userPropertyTemplates: UserPropertyTemplates;
+  userPropertyMessages: UserPropertyMessages;
   journeys: RequestStatus<JourneyResource[], Error>;
   traits: string[];
   getTraitsRequest: EphemeralRequestStatus<Error>;

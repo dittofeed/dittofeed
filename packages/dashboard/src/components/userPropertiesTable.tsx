@@ -5,6 +5,7 @@ import {
   Select,
   Tooltip,
 } from "@mui/material";
+import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
   ChannelType,
@@ -29,22 +30,11 @@ interface Row extends BaseResourceRow {
   lastRecomputed: string;
 }
 
-type UserPropertiesTemplates = Map<
-  string,
-  Map<
-    string,
-    {
-      name: string;
-      type: ChannelType;
-    }
-  >
->;
-
 export default function UserPropertiesTable() {
   const {
     workspace: workspaceResult,
     userProperties: userPropertiesResult,
-    messages: messagesResult,
+    userPropertyMessages,
     setUserPropertyDeleteRequest,
     apiBase,
     userPropertyDeleteRequest,
@@ -52,53 +42,48 @@ export default function UserPropertiesTable() {
   } = useAppStorePick([
     "userProperties",
     "workspace",
-    "messages",
+    "userPropertyMessages",
     "setUserPropertyDeleteRequest",
     "apiBase",
     "userPropertyDeleteRequest",
     "deleteUserProperty",
   ]);
 
-  const userPropertiesTemplates: UserPropertiesTemplates = useMemo(() => {
-    if (messagesResult.type !== CompletionStatus.Successful) {
-      return new Map();
-    }
-    return messagesResult.value.reduce((acc, message) => {
-      return acc;
-    }, new Map());
-  }, [messagesResult]);
-
   const workspaceId =
     workspaceResult.type === CompletionStatus.Successful
       ? workspaceResult.value.id
       : null;
 
-  if (!workspaceId) {
-    return null;
-  }
+  const usersPropertiesRow: Row[] = useMemo(() => {
+    const userProperties =
+      userPropertiesResult.type === CompletionStatus.Successful
+        ? userPropertiesResult.value
+        : [];
 
-  const userProperties =
-    userPropertiesResult.type === CompletionStatus.Successful
-      ? userPropertiesResult.value
-      : [];
+    return userProperties.map((userProperty) => {
+      const isProtected = protectedUserProperties.has(userProperty.name);
+      const templates = Object.entries(
+        userPropertyMessages[userProperty.id] ?? {},
+      ).map(([id, template]) => ({
+        ...template,
+        id,
+      }));
 
-  const usersPropertiesRow: Row[] = [];
-  const templateMap = userProperties.forEach((userProperty) => {
-    const isProtected = protectedUserProperties.has(userProperty.name);
-    const row: Row = {
-      id: userProperty.id,
-      name: userProperty.name,
-      disableDelete: isProtected,
-      updatedAt: userProperty.updatedAt
-        ? new Date(userProperty.updatedAt).toISOString()
-        : "Not Updated",
-      templates: userProperty.templates ?? [],
-      lastRecomputed: userProperty.lastRecomputed
-        ? new Date(userProperty.lastRecomputed).toISOString()
-        : "Not Re-Computed",
-    };
-    usersPropertiesRow.push(row);
-  });
+      const row: Row = {
+        id: userProperty.id,
+        name: userProperty.name,
+        disableDelete: isProtected,
+        updatedAt: userProperty.updatedAt
+          ? new Date(userProperty.updatedAt).toISOString()
+          : "Not Updated",
+        templates,
+        lastRecomputed: userProperty.lastRecomputed
+          ? new Date(userProperty.lastRecomputed).toISOString()
+          : "Not Re-Computed",
+      };
+      return row;
+    });
+  }, [userPropertiesResult, userPropertyMessages]);
 
   const setDeleteResponse = (
     _response: EmptyResponse,
@@ -109,6 +94,10 @@ export default function UserPropertiesTable() {
     }
     deleteUserProperty(deleteRequest.id);
   };
+
+  if (!workspaceId) {
+    return null;
+  }
 
   return (
     <ResourceTable<Row>
@@ -167,19 +156,14 @@ export default function UserPropertiesTable() {
                 </InputLabel>
                 <Select label="Templates">
                   {currentRow.templates.map((template) => {
-                    let type = "email";
-                    if (template.type === "Email") {
-                      type = "email";
-                    } else if (template.type === "Sms") {
-                      type = "sms";
-                    } else if (template.type === "MobilePush") {
-                      type = "mobile-push";
-                    }
                     return (
                       <MenuItem key={template.id}>
                         <Tooltip title={template.name}>
                           <Link
-                            href={`/templates/${type}/${template.id}`}
+                            href={messageTemplatePath({
+                              id: template.id,
+                              channel: template.type,
+                            })}
                             passHref
                             onClick={(e) => {
                               e.stopPropagation();

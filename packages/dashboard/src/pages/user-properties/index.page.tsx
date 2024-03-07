@@ -6,8 +6,8 @@ import {
 } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
-import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
-import { GetServerSideProps, NextPage } from "next";
+import { CompletionStatus } from "isomorphic-lib/src/types";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { v4 as uuid } from "uuid";
@@ -20,88 +20,88 @@ import { requestContext } from "../../lib/requestContext";
 import {
   AppState,
   PropsWithInitialState,
-  UserPropertyTemplates,
+  UserPropertyMessages,
 } from "../../lib/types";
 
-export const getServerSideProps: GetServerSideProps<
-  PropsWithInitialState<UserPropertyListProps>
-> = requestContext(async (_ctx, dfContext) => {
-  const workspaceId = dfContext.workspace.id;
+export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
+  requestContext(async (_ctx, dfContext) => {
+    const workspaceId = dfContext.workspace.id;
 
-  const [userPropertyResources, templateResources, computedPropertyPeriods] =
-    await Promise.all([
-      prisma()
-        .userProperty.findMany({
-          where: { workspaceId, resourceType: "Declarative" },
-        })
-        .then((userProperties) => {
-          return userProperties.flatMap((up) => {
-            const result = toSavedUserPropertyResource(up);
-            if (result.isErr()) {
-              return [];
-            }
-            return result.value;
-          });
+    const [userPropertyResources, templateResources, computedPropertyPeriods] =
+      await Promise.all([
+        prisma()
+          .userProperty.findMany({
+            where: { workspaceId, resourceType: "Declarative" },
+          })
+          .then((userProperties) => {
+            return userProperties.flatMap((up) => {
+              const result = toSavedUserPropertyResource(up);
+              if (result.isErr()) {
+                return [];
+              }
+              return result.value;
+            });
+          }),
+        findMessageTemplates({
+          workspaceId,
         }),
-      findMessageTemplates({
-        workspaceId,
-      }),
-      getPeriodsByComputedPropertyId({
-        workspaceId,
-        step: ComputedPropertyStep.ProcessAssignments,
-      }),
-    ]);
+        getPeriodsByComputedPropertyId({
+          workspaceId,
+          step: ComputedPropertyStep.ProcessAssignments,
+        }),
+      ]);
 
-  const userProperties: AppState["userProperties"] = {
-    type: CompletionStatus.Successful,
-    value: userPropertyResources.map((userPropertyResource) => ({
-      ...userPropertyResource,
-      lastRecomputed: computedPropertyPeriods
-        .get({
-          computedPropertyId: userPropertyResource.id,
-          version: userPropertyResource.updatedAt.toString(),
-        })
-        ?.maxTo.getTime(),
-    })),
-  };
+    const userProperties: AppState["userProperties"] = {
+      type: CompletionStatus.Successful,
+      value: userPropertyResources.map((userPropertyResource) => ({
+        ...userPropertyResource,
+        lastRecomputed: computedPropertyPeriods
+          .get({
+            computedPropertyId: userPropertyResource.id,
+            version: userPropertyResource.updatedAt.toString(),
+          })
+          ?.maxTo.getTime(),
+      })),
+    };
 
-  const userPropertyTemplates: UserPropertyTemplates = {};
+    const userPropertyTemplates: UserPropertyMessages = {};
 
-  for (const userPropertyResource of userPropertyResources) {
-    for (const messageTemplate of templateResources) {
-      const definition = messageTemplate.draft ?? messageTemplate.definition;
-      if (!definition) {
-        continue;
-      }
-      for (const [key, value] of Object.entries(definition)) {
-        if (
-          key === "type" ||
-          typeof value !== "string" ||
-          !value.includes(`user.${userPropertyResource.name}`)
-        ) {
+    for (const userPropertyResource of userPropertyResources) {
+      for (const messageTemplate of templateResources) {
+        const definition = messageTemplate.draft ?? messageTemplate.definition;
+        if (!definition) {
           continue;
         }
-        const templates = userPropertyTemplates[userPropertyResource.id] ?? {};
-        templates[userPropertyResource.id] = templates[
-          userPropertyResource.id
-        ] ?? {
-          name: userPropertyResource.name,
-          type: definition.type,
-        };
+        for (const [key, value] of Object.entries(definition)) {
+          if (
+            key === "type" ||
+            typeof value !== "string" ||
+            !value.includes(`user.${userPropertyResource.name}`)
+          ) {
+            continue;
+          }
+          const templates =
+            userPropertyTemplates[userPropertyResource.id] ?? {};
+          templates[userPropertyResource.id] = templates[
+            userPropertyResource.id
+          ] ?? {
+            name: userPropertyResource.name,
+            type: definition.type,
+          };
+        }
       }
     }
-  }
-  return {
-    props: addInitialStateToProps({
-      serverInitialState: {
-        userProperties,
-        userPropertyTemplates,
-      },
-      dfContext,
-      props: {},
-    }),
-  };
-});
+    return {
+      props: addInitialStateToProps({
+        serverInitialState: {
+          userProperties,
+          userPropertyMessages: userPropertyTemplates,
+        },
+        dfContext,
+        props: {},
+      }),
+    };
+  });
 
 function UserPropertyListContents() {
   const path = useRouter();
@@ -134,22 +134,18 @@ function UserPropertyListContents() {
   );
 }
 
-// packages/dashboard/src/pages/broadcasts/template/[id].page.tsx
-const UserPropertyList: NextPage<UserPropertyListProps> =
-  function UserPropertyList() {
-    return (
-      <>
-        <Head>
-          <title>Dittofeed</title>
-          <meta name="description" content="Open Source Customer Engagement" />
-        </Head>
-        <main>
-          <MainLayout>
-            <UserPropertyListContents />
-          </MainLayout>
-        </main>
-      </>
-    );
-  };
-
-export default UserPropertyList;
+export default function UserPropertyList() {
+  return (
+    <>
+      <Head>
+        <title>Dittofeed</title>
+        <meta name="description" content="Open Source Customer Engagement" />
+      </Head>
+      <main>
+        <MainLayout>
+          <UserPropertyListContents />
+        </MainLayout>
+      </main>
+    </>
+  );
+}
