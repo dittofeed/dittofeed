@@ -4,9 +4,9 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import {
   CompletionStatus,
   MessageTemplateResource,
+  SavedSubscriptionGroupResource,
   SegmentDefinition,
   SegmentResource,
-  SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 
 import { AppState } from "./types";
@@ -21,7 +21,7 @@ export function getSegmentConfigState({
   workspaceId: string;
   segmentId: string;
   messageTemplates: MessageTemplateResource[];
-  subscriptionGroups: SubscriptionGroupResource[];
+  subscriptionGroups: SavedSubscriptionGroupResource[];
   segment: SegmentResource | null;
 }): Partial<AppState> {
   const serverInitialState: Partial<AppState> = {};

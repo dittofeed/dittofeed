@@ -77,11 +77,22 @@ export const SubscriptionGroupResource = Type.Object({
   name: Type.String(),
   channel: Type.Enum(ChannelType),
   type: Type.Enum(SubscriptionGroupType),
-  createdAt: Type.Optional(Type.Number()),
 });
 
 export type SubscriptionGroupResource = Static<
   typeof SubscriptionGroupResource
+>;
+
+export const SavedSubscriptionGroupResource = Type.Composite([
+  SubscriptionGroupResource,
+  Type.Object({
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+  }),
+]);
+
+export type SavedSubscriptionGroupResource = Static<
+  typeof SavedSubscriptionGroupResource
 >;
 
 export interface SegmentUpdate {

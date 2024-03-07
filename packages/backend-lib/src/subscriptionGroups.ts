@@ -17,6 +17,7 @@ import prisma from "./prisma";
 import {
   EventType,
   InternalEventType,
+  SavedSubscriptionGroupResource,
   SegmentDefinition,
   SegmentNodeType,
   SubscriptionChange,
@@ -166,7 +167,7 @@ export async function upsertSubscriptionGroup({
 
 export function subscriptionGroupToResource(
   subscriptionGroup: SubscriptionGroup,
-): SubscriptionGroupResource {
+): SavedSubscriptionGroupResource {
   const type: SubscriptionGroupType =
     subscriptionGroup.type === "OptIn"
       ? SubscriptionGroupType.OptIn
@@ -179,6 +180,7 @@ export function subscriptionGroupToResource(
     channel: DB_TO_CHANNEL[subscriptionGroup.channel],
     type,
     createdAt: subscriptionGroup.createdAt.getTime(),
+    updatedAt: subscriptionGroup.updatedAt.getTime(),
   };
 }
 
