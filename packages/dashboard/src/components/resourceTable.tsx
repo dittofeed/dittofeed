@@ -54,7 +54,7 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
   rows: R[];
   getHref: (id: string) => string;
   additionalColumns?: GridColDef<R>[];
-  onDelete: ({ row }: { row: R }) => void;
+  onDelete?: ({ row }: { row: R }) => void;
 }) {
   const columns: GridColDef<R>[] = useMemo(() => {
     return [
@@ -76,7 +76,7 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
         renderCell: ({ row }: { row: R }) => (
           <DeleteDialog
             disabled={row.disableDelete}
-            onConfirm={() => onDelete({ row })}
+            onConfirm={() => onDelete && onDelete({ row })}
             title={`Delete ${row.name}`}
             message={`Are you sure you want to delete ${row.name}?`}
           />
