@@ -563,24 +563,6 @@
                     },
                     "updatedAt": {
                       "type": "number"
-                    },
-                    "journeys": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ]
-                      }
                     }
                   },
                   "required": [
@@ -2311,13 +2293,9 @@
                             "type": "object",
                             "properties": {
                               "type": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "WaitForNodeAndEventEntryNode"
-                                    ]
-                                  }
+                                "type": "string",
+                                "enum": [
+                                  "WaitForNodeAndEventEntryNode"
                                 ]
                               },
                               "message": {
@@ -4519,24 +4497,6 @@
                       "updatedAt": {
                         "type": "number"
                       },
-                      "journeys": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "name"
-                          ]
-                        }
-                      },
                       "lastRecomputed": {
                         "type": "number"
                       }
@@ -6301,24 +6261,6 @@
                     "updatedAt": {
                       "type": "number"
                     },
-                    "journeys": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ]
-                      }
-                    },
                     "lastRecomputed": {
                       "type": "number"
                     }
@@ -6824,6 +6766,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
                   "definition": {
                     "type": "object",
                     "properties": {
@@ -6851,9 +6796,6 @@
                       "subscribedSegments",
                       "subscribedUserProperties"
                     ]
-                  },
-                  "enabled": {
-                    "type": "boolean"
                   },
                   "workspaceId": {
                     "type": "string"
@@ -7458,28 +7400,6 @@
                       "updatedAt": {
                         "type": "number"
                       },
-                      "templates": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "type": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "name",
-                            "type"
-                          ]
-                        }
-                      },
                       "lastRecomputed": {
                         "type": "number"
                       }
@@ -7742,28 +7662,6 @@
                     },
                     "updatedAt": {
                       "type": "number"
-                    },
-                    "templates": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "type"
-                        ]
-                      }
                     },
                     "lastRecomputed": {
                       "type": "number"
@@ -8039,28 +7937,6 @@
                           },
                           "updatedAt": {
                             "type": "number"
-                          },
-                          "templates": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "string"
-                                },
-                                "name": {
-                                  "type": "string"
-                                },
-                                "type": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "id",
-                                "name",
-                                "type"
-                              ]
-                            }
                           },
                           "lastRecomputed": {
                             "type": "number"
@@ -12406,28 +12282,6 @@
                       "updatedAt": {
                         "type": "number"
                       },
-                      "templates": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "type": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "name",
-                            "type"
-                          ]
-                        }
-                      },
                       "lastRecomputed": {
                         "type": "number"
                       }
@@ -12690,28 +12544,6 @@
                     },
                     "updatedAt": {
                       "type": "number"
-                    },
-                    "templates": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "type"
-                        ]
-                      }
                     },
                     "lastRecomputed": {
                       "type": "number"
@@ -12987,28 +12819,6 @@
                           },
                           "updatedAt": {
                             "type": "number"
-                          },
-                          "templates": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "string"
-                                },
-                                "name": {
-                                  "type": "string"
-                                },
-                                "type": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "id",
-                                "name",
-                                "type"
-                              ]
-                            }
                           },
                           "lastRecomputed": {
                             "type": "number"
