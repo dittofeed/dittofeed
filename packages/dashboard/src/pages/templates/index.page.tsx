@@ -37,19 +37,21 @@ function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
 
   return (
-    <div
+    <Box
       role="tabpanel"
       hidden={value !== index}
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
+      sx={{
+        p: 1,
+        flex: 1,
+        borderRadius: 1,
+        bgcolor: "background.paper",
+      }}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          <Typography component="span">{children}</Typography>
-        </Box>
-      )}
-    </div>
+      {children}
+    </Box>
   );
 }
 
@@ -151,41 +153,13 @@ function TemplateListContents() {
         </Tabs>
       </Box>
       <TabPanel value={tab} index={0}>
-        <List
-          sx={{
-            width: "100%",
-            bgcolor: "background.paper",
-            padding: 1,
-            borderRadius: 1,
-            height: "70vh",
-          }}
-        >
-          <TemplatesTable label={CHANNEL_NAMES[ChannelType.Email]} />
-        </List>
+        <TemplatesTable label={CHANNEL_NAMES[ChannelType.Email]} />
       </TabPanel>
       <TabPanel value={tab} index={1}>
-        <List
-          sx={{
-            width: "100%",
-            bgcolor: "background.paper",
-            borderRadius: 1,
-            height: "70vh",
-          }}
-        >
-          <TemplatesTable label={CHANNEL_NAMES[ChannelType.Sms]} />
-        </List>
+        <TemplatesTable label={CHANNEL_NAMES[ChannelType.Sms]} />
       </TabPanel>
       <TabPanel value={tab} index={2}>
-        <List
-          sx={{
-            width: "100%",
-            bgcolor: "background.paper",
-            borderRadius: 1,
-            height: "70vh",
-          }}
-        >
-          <TemplatesTable label={CHANNEL_NAMES[ChannelType.MobilePush]} />
-        </List>
+        <TemplatesTable label={CHANNEL_NAMES[ChannelType.MobilePush]} />
       </TabPanel>
     </Stack>
   );

@@ -21,9 +21,6 @@ const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
 
   // disable cell selection style
   "& .MuiDataGrid-cell": {
-    // overflow: "hidden",
-    // textOverflow: "ellipsis",
-    // whiteSpace: "nowrap",
     p: 1,
   },
   // pointer cursor on ALL rows
@@ -67,22 +64,25 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
         field: "updatedAt",
         headerName: "Updated At",
       },
-      {
-        field: "actions",
-        headerName: "Action",
-        width: 180,
-        sortable: false,
-        // eslint-disable-next-line react/no-unused-prop-types
-        renderCell: ({ row }: { row: R }) =>
-          onDelete === undefined ? null : (
-            <DeleteDialog
-              disabled={row.disableDelete}
-              onConfirm={() => onDelete({ row })}
-              title={`Delete ${row.name}`}
-              message={`Are you sure you want to delete ${row.name}?`}
-            />
-          ),
-      },
+      ...(onDelete === undefined
+        ? []
+        : [
+            {
+              field: "actions",
+              headerName: "Action",
+              width: 180,
+              sortable: false,
+              // eslint-disable-next-line react/no-unused-prop-types
+              renderCell: ({ row }: { row: R }) => (
+                <DeleteDialog
+                  disabled={row.disableDelete}
+                  onConfirm={() => onDelete({ row })}
+                  title={`Delete ${row.name}`}
+                  message={`Are you sure you want to delete ${row.name}?`}
+                />
+              ),
+            },
+          ]),
     ].map((column): GridColDef<R> => {
       return {
         ...BASE_COLUMN,
@@ -103,9 +103,11 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
                 <Tooltip title={String(value)}>
                   <Box
                     sx={{
+                      pt: 1,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
+                      pb: 1,
                     }}
                   >
                     {String(value)}
