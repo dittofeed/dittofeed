@@ -104,12 +104,17 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
                       height: theme.spacing(5),
                       display: "flex",
                       alignItems: "center",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
                     }}
                   >
-                    {String(value)}
+                    <Box
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {String(value)}
+                    </Box>
                   </Box>
                 </Tooltip>
               ) : (
