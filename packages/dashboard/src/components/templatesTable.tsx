@@ -204,7 +204,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
           // eslint-disable-next-line react/no-unused-prop-types
           renderCell: ({ row }: { row: Row }) => {
             const currentRow = row;
-            if (currentRow.journeys?.length === 0) {
+            if (currentRow.journeys.length === 0) {
               return null;
             }
             return (
@@ -216,8 +216,8 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
                 size="small"
               >
                 <InputLabel>
-                  {currentRow.journeys?.length}{" "}
-                  {currentRow.journeys?.length === 1 ? "Journey" : "Journeys"}
+                  {currentRow.journeys.length}{" "}
+                  {currentRow.journeys.length === 1 ? "Journey" : "Journeys"}
                 </InputLabel>
                 <Select
                   label="Journeys"
@@ -225,7 +225,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
                     e.stopPropagation();
                   }}
                 >
-                  {currentRow.journeys?.map((journey) => {
+                  {currentRow.journeys.map((journey) => {
                     return (
                       <MenuItem key={journey.id}>
                         <Tooltip title={journey.name}>
