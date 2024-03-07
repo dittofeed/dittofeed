@@ -4,7 +4,6 @@ import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
 
