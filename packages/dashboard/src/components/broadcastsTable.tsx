@@ -1,12 +1,9 @@
 import React from "react";
 
 import { useAppStore } from "../lib/appStore";
-import { ResourceTable } from "./resourceTable";
+import { BaseResourceRow, ResourceTable } from "./resourceTable";
 
-interface Row {
-  id: string;
-  name: string;
-  updatedAt: string;
+interface Row extends BaseResourceRow {
   triggeredAt: string;
 }
 

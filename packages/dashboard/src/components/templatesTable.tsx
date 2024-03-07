@@ -23,19 +23,17 @@ import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../lib/appStore";
-import { ResourceTable } from "./resourceTable";
+import { BaseResourceRow, ResourceTable } from "./resourceTable";
 
-interface Row {
-  id: string;
-  name: string;
-  updatedAt: string;
-  // FIXME make empty row non optional
+interface Row extends BaseResourceRow {
+  // TODO DF-415: correct loading
   journeys?: { name: string; id: string }[];
-  // FIXME simplify this type
+  // TODO DF-415: simplify types
   definition?:
     | EmailTemplateResource
     | MobilePushTemplateResource
     | SmsTemplateResource;
+  // TODO DF-415: simplify types
   draft?:
     | EmailTemplateResource
     | MobilePushTemplateResource

@@ -20,6 +20,7 @@ import { BaseResourceRow, ResourceTable } from "./resourceTable";
 
 interface Row extends BaseResourceRow {
   updatedAt: string;
+  // TODO DF-415: simplify types
   templates: {
     id: string;
     name: string;
