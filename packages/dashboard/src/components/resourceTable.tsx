@@ -45,15 +45,15 @@ const BASE_COLUMN = {
   filterable: false,
 } as const;
 
-export function ResourceTable<R extends BaseResourceRow>({
+export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
   rows,
   getHref,
-  additionalColumns,
+  additionalColumns = [],
   onDelete,
 }: {
   rows: R[];
   getHref: (id: string) => string;
-  additionalColumns: GridColDef<R>[];
+  additionalColumns?: GridColDef<R>[];
   onDelete: ({ row }: { row: R }) => void;
 }) {
   const columns: GridColDef<R>[] = useMemo(() => {
