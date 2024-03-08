@@ -364,6 +364,9 @@ group by event, node_id;`;
       nodeStats: {},
     };
     journeysStats.push(stats);
+    if (!definition) {
+      continue;
+    }
     const heritageMap = buildHeritageMap(definition);
 
     for (const node of definition.nodes) {

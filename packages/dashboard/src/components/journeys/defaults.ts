@@ -1,4 +1,7 @@
-import { JourneyNodeType } from "isomorphic-lib/src/types";
+import {
+  JourneyNodeType,
+  JourneyUiNodeDefinitionProps,
+} from "isomorphic-lib/src/types";
 import { Edge, Node, XYPosition } from "reactflow";
 
 import {
@@ -9,7 +12,7 @@ import {
 import { layoutNodes } from "./layoutNodes";
 import { defaultNodeTypeProps } from "./nodeTypes/defaultNodeTypeProps";
 
-export const defaultEdges: Edge[] = [
+export const DEFAULT_EDGES: Edge[] = [
   {
     id: `${AdditionalJourneyNodeType.EntryUiNode}=>${JourneyNodeType.ExitNode}`,
     source: AdditionalJourneyNodeType.EntryUiNode,
@@ -20,7 +23,7 @@ export const defaultEdges: Edge[] = [
 
 export const placeholderNodePosition: XYPosition = { x: 0, y: 0 };
 
-export const defaultNodes = layoutNodes(
+export const DEFAULT_JOURNEY_NODES: Node<JourneyNodeUiProps>[] = layoutNodes(
   [
     {
       id: AdditionalJourneyNodeType.EntryUiNode,
@@ -44,7 +47,7 @@ export const defaultNodes = layoutNodes(
       type: "journey",
     },
   ],
-  defaultEdges,
+  DEFAULT_EDGES,
 );
 
 export function buildNodesIndex(

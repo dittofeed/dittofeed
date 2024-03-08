@@ -10,8 +10,8 @@ import { validate } from "uuid";
 
 import {
   buildNodesIndex,
-  defaultEdges,
-  defaultNodes,
+  DEFAULT_EDGES,
+  DEFAULT_JOURNEY_NODES,
 } from "../../components/journeys/defaults";
 import {
   JourneyResourceWithDefinitionForState,
@@ -109,18 +109,20 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         // FIXME cleanup dedup
         stateFromJourney = {
           journeyName: `New Journey - ${id}`,
-          journeyNodes: defaultNodes,
-          journeyEdges: defaultEdges,
-          journeyNodesIndex: buildNodesIndex(defaultNodes),
+          journeyNodes: DEFAULT_JOURNEY_NODES,
+          journeyEdges: DEFAULT_EDGES,
+          journeyNodesIndex: buildNodesIndex(DEFAULT_JOURNEY_NODES),
         };
       }
 
       Object.assign(serverInitialState, stateFromJourney);
     } else {
       serverInitialState.journeyName = `New Journey - ${id}`;
-      serverInitialState.journeyNodes = defaultNodes;
-      serverInitialState.journeyEdges = defaultEdges;
-      serverInitialState.journeyNodesIndex = buildNodesIndex(defaultNodes);
+      serverInitialState.journeyNodes = DEFAULT_JOURNEY_NODES;
+      serverInitialState.journeyEdges = DEFAULT_EDGES;
+      serverInitialState.journeyNodesIndex = buildNodesIndex(
+        DEFAULT_JOURNEY_NODES,
+      );
     }
 
     const segmentResourceResult = Result.combine(

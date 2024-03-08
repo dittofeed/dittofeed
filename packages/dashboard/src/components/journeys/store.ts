@@ -67,8 +67,8 @@ import {
 import { durationDescription } from "../durationDescription";
 import {
   buildNodesIndex,
-  defaultEdges,
-  defaultNodes,
+  DEFAULT_EDGES,
+  DEFAULT_JOURNEY_NODES,
   placeholderNodePosition,
 } from "./defaults";
 import findJourneyNode from "./findJourneyNode";
@@ -942,9 +942,9 @@ function buildJourneyNode(
 
 export const createJourneySlice: CreateJourneySlice = (set) => ({
   journeySelectedNodeId: null,
-  journeyNodes: defaultNodes,
-  journeyEdges: defaultEdges,
-  journeyNodesIndex: buildNodesIndex(defaultNodes),
+  journeyNodes: DEFAULT_JOURNEY_NODES,
+  journeyEdges: DEFAULT_EDGES,
+  journeyNodesIndex: buildNodesIndex(DEFAULT_JOURNEY_NODES),
   journeyDraggedComponentType: null,
   journeyName: "",
   journeyUpdateRequest: {

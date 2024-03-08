@@ -12,7 +12,7 @@ export const nodeHeight = 200;
 export function layoutNodes(
   nodes: Node<JourneyNodeUiProps>[],
   edges: Edge[],
-): Node[] {
+): Node<JourneyNodeUiProps>[] {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
