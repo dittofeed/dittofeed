@@ -1,27 +1,22 @@
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Tooltip,
-} from "@mui/material";
 import { getSubscribedSegments } from "isomorphic-lib/src/journeys";
 import {
   CompletionStatus,
   DeleteSegmentRequest,
   EmptyResponse,
 } from "isomorphic-lib/src/types";
-import Link from "next/link";
 import React, { useMemo } from "react";
 import { pick } from "remeda/dist/commonjs/pick";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
 import { getJourneysUsedBy, MinimalJourneyMap } from "../lib/journeys";
-import { BaseResourceRow, ResourceTable } from "./resourceTable";
+import {
+  BaseResourceRow,
+  RelatedResourceSelect,
+  ResourceTable,
+} from "./resourceTable";
 
 interface Row extends BaseResourceRow {
-  // TODO DF-415: correct loading
   journeys: { name: string; id: string }[];
   lastRecomputed: string;
 }
@@ -116,53 +111,18 @@ export default function SegmentsTable() {
           renderCell: ({ row }: { row: Row }) => {
             const currentRow = row;
             if (currentRow.journeys.length === 0) {
-              return;
+              return null;
             }
+            const relatedLabel = `${currentRow.journeys.length} ${currentRow.journeys.length === 1 ? "Journey" : "Journeys"}`;
+            const relatedResources = currentRow.journeys.map((journey) => ({
+              href: `/journeys/${journey.id}`,
+              name: journey.name,
+            }));
             return (
-              <FormControl
-                sx={{
-                  width: 200,
-                  height: 40,
-                }}
-                size="small"
-              >
-                <InputLabel>
-                  {currentRow.journeys.length}{" "}
-                  {currentRow.journeys.length === 1 ? "Journey" : "Journeys"}
-                </InputLabel>
-                <Select
-                  label="Journeys"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                >
-                  {currentRow.journeys.map((journey) => {
-                    return (
-                      <MenuItem key={journey.id}>
-                        <Tooltip title={journey.name}>
-                          <Link
-                            href={`/journeys/${journey.id}`}
-                            passHref
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                            style={{
-                              color: "black",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              textDecoration: "none",
-                              width: 200,
-                            }}
-                          >
-                            {journey.name}
-                          </Link>
-                        </Tooltip>
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
+              <RelatedResourceSelect
+                label={relatedLabel}
+                relatedResources={relatedResources}
+              />
             );
           },
         },

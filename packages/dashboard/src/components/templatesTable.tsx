@@ -1,11 +1,3 @@
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Tooltip,
-  useTheme,
-} from "@mui/material";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
@@ -19,7 +11,6 @@ import {
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
 } from "isomorphic-lib/src/types";
-import Link from "next/link";
 import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
@@ -50,7 +41,6 @@ export interface TemplatesTableProps {
 }
 
 export default function TemplatesTable({ label }: TemplatesTableProps) {
-  const theme = useTheme();
   const {
     apiBase,
     messages: messagesResult,

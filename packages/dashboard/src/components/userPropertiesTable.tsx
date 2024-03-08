@@ -1,10 +1,3 @@
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Tooltip,
-} from "@mui/material";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import protectedUserProperties from "isomorphic-lib/src/protectedUserProperties";
 import {
@@ -13,12 +6,15 @@ import {
   DeleteUserPropertyRequest,
   EmptyResponse,
 } from "isomorphic-lib/src/types";
-import Link from "next/link";
 import React, { useMemo } from "react";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
-import { BaseResourceRow, ResourceTable } from "./resourceTable";
+import {
+  BaseResourceRow,
+  RelatedResourceSelect,
+  ResourceTable,
+} from "./resourceTable";
 
 interface Row extends BaseResourceRow {
   updatedAt: string;
@@ -142,49 +138,21 @@ export default function UserPropertiesTable() {
             if (currentRow.templates.length === 0) {
               return;
             }
+
+            const relatedLabel = `${currentRow.templates.length} ${currentRow.templates.length === 1 ? "Template" : "Templates"}`;
+            const relatedResources = currentRow.templates.map((template) => ({
+              href: messageTemplatePath({
+                id: template.id,
+                channel: template.type,
+              }),
+              name: template.name,
+            }));
+
             return (
-              <FormControl
-                sx={{
-                  width: 200,
-                  height: 40,
-                }}
-                size="small"
-              >
-                <InputLabel>
-                  {currentRow.templates.length}{" "}
-                  {currentRow.templates.length === 1 ? "Template" : "Templates"}
-                </InputLabel>
-                <Select label="Templates">
-                  {currentRow.templates.map((template) => {
-                    return (
-                      <MenuItem key={template.id}>
-                        <Tooltip title={template.name}>
-                          <Link
-                            href={messageTemplatePath({
-                              id: template.id,
-                              channel: template.type,
-                            })}
-                            passHref
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                            style={{
-                              color: "black",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              textDecoration: "none",
-                              width: 200,
-                            }}
-                          >
-                            {template.name}
-                          </Link>
-                        </Tooltip>
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
+              <RelatedResourceSelect
+                label={relatedLabel}
+                relatedResources={relatedResources}
+              />
             );
           },
         },
