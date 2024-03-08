@@ -25,7 +25,11 @@ import React, { useMemo } from "react";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
 import { getJourneysUsedBy, MinimalJourneyMap } from "../lib/journeys";
-import { BaseResourceRow, ResourceTable } from "./resourceTable";
+import {
+  BaseResourceRow,
+  RelatedResourceSelect,
+  ResourceTable,
+} from "./resourceTable";
 
 interface Row extends BaseResourceRow {
   journeys: { name: string; id: string }[];
@@ -207,51 +211,16 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
             if (currentRow.journeys.length === 0) {
               return null;
             }
+            const relatedLabel = `${currentRow.journeys.length} ${currentRow.journeys.length === 1 ? "Journey" : "Journeys"}`;
+            const relatedResources = currentRow.journeys.map((journey) => ({
+              href: `/journeys/${journey.id}`,
+              name: journey.name,
+            }));
             return (
-              <FormControl
-                sx={{
-                  width: theme.spacing(20),
-                  height: theme.spacing(5),
-                }}
-                size="small"
-              >
-                <InputLabel>
-                  {currentRow.journeys.length}{" "}
-                  {currentRow.journeys.length === 1 ? "Journey" : "Journeys"}
-                </InputLabel>
-                <Select
-                  label="Journeys"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                >
-                  {currentRow.journeys.map((journey) => {
-                    return (
-                      <MenuItem key={journey.id}>
-                        <Tooltip title={journey.name}>
-                          <Link
-                            href={`/journeys/${journey.id}`}
-                            passHref
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                            style={{
-                              color: "black",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              textDecoration: "none",
-                              width: 200,
-                            }}
-                          >
-                            {journey.name}
-                          </Link>
-                        </Tooltip>
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
+              <RelatedResourceSelect
+                label={relatedLabel}
+                relatedResources={relatedResources}
+              />
             );
           },
         },

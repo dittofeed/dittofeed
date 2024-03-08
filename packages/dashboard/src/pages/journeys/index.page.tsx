@@ -11,6 +11,8 @@ import MainLayout from "../../components/mainLayout";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
+import Link from "next/link";
+import { useState } from "react";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
@@ -37,7 +39,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 function JourneyListContents() {
-  const path = useRouter();
+  const [newId, setNewId] = useState(uuid());
 
   return (
     <Stack
@@ -55,8 +57,10 @@ function JourneyListContents() {
           Journeys
         </Typography>
         <IconButton
+          LinkComponent={Link}
+          href={`/journeys/${newId}`}
           onClick={() => {
-            path.push(`/journeys/${uuid()}`);
+            setNewId(uuid());
           }}
         >
           <AddCircleOutline />
