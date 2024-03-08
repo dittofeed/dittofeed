@@ -10,6 +10,7 @@ import {
   EventType,
   IntegrationDefinition,
   JourneyDefinition,
+  JourneyDraft,
   Nullable,
   SegmentDefinition,
   UserPropertyDefinition,
@@ -34,8 +35,9 @@ export interface EnrichedSegment extends Omit<Segment, "definition"> {
   definition: SegmentDefinition;
 }
 
-export interface EnrichedJourney extends Omit<Journey, "definition"> {
-  definition: JourneyDefinition;
+export interface EnrichedJourney extends Omit<Journey, "definition" | "draft"> {
+  definition?: JourneyDefinition;
+  draft?: JourneyDraft;
 }
 
 export interface EnrichedUserProperty extends Omit<UserProperty, "definition"> {

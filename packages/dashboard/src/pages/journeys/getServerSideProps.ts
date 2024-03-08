@@ -63,7 +63,6 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         }),
       ]);
 
-    console.log("journey loc1", journey);
     const serverInitialState: PreloadedState = {
       messages: {
         type: CompletionStatus.Successful,
@@ -76,8 +75,17 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     const journeyResourceResult =
       journey?.workspaceId === workspaceId ? toJourneyResource(journey) : null;
 
-    logger().debug(journeyResourceResult, "journey loc2");
-    if (journeyResourceResult?.isOk()) {
+    if (journeyResourceResult) {
+      if (!journeyResourceResult.isOk()) {
+        const err = new Error("failed to parse journey resource");
+
+        logger().error({
+          journey,
+          err,
+        });
+        throw err;
+      }
+
       const journeyResource = journeyResourceResult.value;
       serverInitialState.journeys = {
         type: CompletionStatus.Successful,
