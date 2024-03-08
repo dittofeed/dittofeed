@@ -45,6 +45,9 @@ export default function SegmentsTable() {
     }
 
     return journeysResult.value.reduce((acc, journey) => {
+      if (!journey.definition) {
+        return acc;
+      }
       const journeyMap = new Map();
       journeyMap.set(journey.id, journey.name);
 

@@ -57,6 +57,9 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     return journeysResult.value.reduce((acc, journey) => {
       const journeyMap = new Map();
       journeyMap.set(journey.id, journey.name);
+      if (!journey.definition) {
+        return acc;
+      }
 
       journey.definition.nodes.forEach((node) => {
         if (node.type === JourneyNodeType.MessageNode) {
