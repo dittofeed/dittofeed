@@ -1833,7 +1833,6 @@ export type JourneyResourceWithDraftForState = Overwrite<
   { draft: JourneyDraft }
 >;
 
-// FIXME copy journeyToState
 export function journeyDraftToState({
   draft,
   name,

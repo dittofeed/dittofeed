@@ -16,8 +16,10 @@ import {
 import {
   JourneyResourceWithDefinitionForState,
   JourneyResourceWithDraftForState,
+  JourneyStateForDraft,
   JourneyStateForResource,
   journeyDraftToState,
+  journeyStateToDraft,
   journeyToState,
 } from "../../components/journeys/store";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
@@ -91,6 +93,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         type: CompletionStatus.Successful,
         value: [journeyResource],
       };
+
       // FIXME cleanup
       let stateFromJourney: JourneyStateForResource;
       if (journeyResource.draft) {
@@ -117,9 +120,26 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
 
       Object.assign(serverInitialState, stateFromJourney);
     } else {
-      serverInitialState.journeyName = `New Journey - ${id}`;
-      serverInitialState.journeyNodes = DEFAULT_JOURNEY_NODES;
+      const stateForDraft: JourneyStateForDraft = {
+        journeyNodes: DEFAULT_JOURNEY_NODES,
+        journeyEdges: DEFAULT_EDGES,
+      };
+
+      const name = `New Journey - ${id}`;
+
+      await prisma().journey.upsert({
+        where: { id },
+        create: {
+          id,
+          workspaceId,
+          draft: journeyStateToDraft(stateForDraft),
+          name,
+        },
+        update: {},
+      });
+      serverInitialState.journeyName = name;
       serverInitialState.journeyEdges = DEFAULT_EDGES;
+      serverInitialState.journeyNodes = DEFAULT_JOURNEY_NODES;
       serverInitialState.journeyNodesIndex = buildNodesIndex(
         DEFAULT_JOURNEY_NODES,
       );
