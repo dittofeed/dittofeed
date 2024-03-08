@@ -24,7 +24,7 @@ import {
   JourneyUiDefinitionEdgeProps,
   JourneyUiDraftEdge,
   JourneyUiDraftNode,
-  JourneyUiEdgeData,
+  JourneyUiEdgeProps,
   JourneyUiEdgeType,
   JourneyUiNodeDefinitionProps,
   JourneyUiNodeEmptyProps,
@@ -78,7 +78,7 @@ export {
   type JourneyUiDefinitionEdgeProps,
   type JourneyUiDraftEdge,
   type JourneyUiDraftNode,
-  type JourneyUiEdgeData,
+  type JourneyUiEdgeProps,
   JourneyUiEdgeType,
   type JourneyUiNodeDefinitionProps,
   type JourneyUiNodeEmptyProps,
@@ -302,7 +302,7 @@ export interface JourneyState {
   journeySelectedNodeId: string | null;
   journeyNodes: Node<JourneyNodeUiProps>[];
   journeyNodesIndex: Record<string, number>;
-  journeyEdges: Edge<JourneyUiEdgeData>[];
+  journeyEdges: Edge<JourneyUiEdgeProps>[];
   journeyUpdateRequest: EphemeralRequestStatus<Error>;
   journeyStats: Record<string, JourneyStats>;
   journeyStatsRequest: EphemeralRequestStatus<Error>;

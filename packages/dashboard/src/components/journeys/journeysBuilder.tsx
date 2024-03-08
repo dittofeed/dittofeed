@@ -1,20 +1,16 @@
 import "reactflow/dist/style.css";
 
 import { Box } from "@mui/material";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   CompletionStatus,
-  JourneyNodeType,
   JourneyUiBodyNodeTypeProps,
 } from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  Edge,
   EdgeChange,
   MarkerType,
-  Node,
   NodeChange,
   OnEdgesChange,
   OnNodesChange,
@@ -25,31 +21,14 @@ import ReactFlow, {
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
-import {
-  AdditionalJourneyNodeType,
-  AppState,
-  JourneyNodeUiProps,
-  JourneyUiEdgeData,
-  JourneyUiNodeDefinitionProps,
-  JourneyUiNodeType,
-  JourneyUiNodeTypeProps,
-} from "../../lib/types";
+import { AppState } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
-import {
-  defaultNodeTypeProps,
-  defaultBodyNodeTypeProps,
-} from "./nodeTypes/defaultNodeTypeProps";
+import { defaultBodyNodeTypeProps } from "./nodeTypes/defaultNodeTypeProps";
 import Sidebar from "./sidebar";
-import {
-  createConnections,
-  dualNodeNonJourneyNodes,
-  edgesForJourneyNode,
-  WAIT_FOR_SATISFY_LABEL,
-  waitForTimeoutLabel,
-} from "./store";
+import { createConnections } from "./store";
 
 const proOptions: ProOptions = { account: "paid-pro", hideAttribution: true };
 
@@ -108,7 +87,6 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "setJourneyStatsRequest",
     "upsertJourneyStats",
   ]);
-  console.log("journeyNodes", nodes);
 
   useJourneyStats({
     journeyIds: [journeyId],

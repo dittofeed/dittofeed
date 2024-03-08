@@ -1355,11 +1355,8 @@ const baseJourneyResource = {
   workspaceId: Type.String(),
   name: Type.String(),
   canRunMultiple: Type.Optional(Type.Boolean()),
-<<<<<<< HEAD
   updatedAt: Type.Number(),
-=======
   draft: Type.Optional(JourneyDraft),
->>>>>>> 403fcd86 (wip)
 } as const;
 
 export const NotStartedJourneyResource = Type.Object({

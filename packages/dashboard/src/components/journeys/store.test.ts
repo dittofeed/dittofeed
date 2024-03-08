@@ -5,7 +5,6 @@ import {
   CompletionStatus,
   DelayVariantType,
   JourneyDefinition,
-  JourneyDraft,
   JourneyNodeType,
   JourneyResource,
   SegmentSplitVariantType,
@@ -23,10 +22,7 @@ import {
   findDirectUiChildren,
   findDirectUiParents,
   journeyDefinitionFromState,
-  journeyDraftToState,
-  JourneyStateForDraft,
   JourneyStateForResource,
-  journeyStateToDraft,
   journeyToState,
 } from "./store";
 
@@ -866,43 +862,5 @@ describe("journeyDefinitionFromState", () => {
     ];
     expect(nodes).toEqual(expect.arrayContaining(expectedNodes));
     expect(nodes).toHaveLength(expectedNodes.length);
-  });
-
-  describe("journeyStateToDraft", () => {
-    let stateForDraft: JourneyStateForDraft;
-
-    beforeEach(() => {
-      const { journeyNodes, journeyEdges } = EXAMPLE_JOURNEY_STATE;
-
-      stateForDraft = {
-        journeyEdges,
-        journeyNodes,
-      };
-    });
-    it("returns a journey draft", () => {
-      expect(journeyStateToDraft(stateForDraft)).toEqual(EXAMPLE_JOURNEY_DRAFT);
-    });
-  });
-
-  describe.only("journeyDraftToState", () => {
-    it("returns a journey state", () => {
-      expect(
-        journeyDraftToState({
-          name: `New Journey - ${uuid()}`,
-          draft: EXAMPLE_JOURNEY_DRAFT,
-        }),
-      ).toEqual({
-        ...EXAMPLE_JOURNEY_STATE,
-        nodes: EXAMPLE_JOURNEY_STATE.journeyNodes.map((node) => ({
-          ...node,
-          position: {
-            x: expect.any(Number),
-            y: expect.any(Number),
-          },
-          height: expect.any(Number),
-          width: expect.any(Number),
-        })),
-      });
-    });
   });
 });

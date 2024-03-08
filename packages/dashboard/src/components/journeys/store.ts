@@ -22,6 +22,7 @@ import {
   JourneyNodeType,
   JourneyResource,
   JourneyUiBodyNodeTypeProps,
+  JourneyUiEdgeProps,
   MessageNode,
   SegmentEntryNode,
   SegmentSplitNode,
@@ -54,9 +55,6 @@ import {
   JourneyContent,
   JourneyNodeUiProps,
   JourneyState,
-  JourneyUiDraftEdge,
-  JourneyUiDraftNode,
-  JourneyUiEdgeData,
   JourneyUiEdgeType,
   JourneyUiNodeDefinitionProps,
   JourneyUiNodePresentationalProps,
@@ -125,7 +123,7 @@ function buildJourneyNodeMap(
 
 function buildUiHeritageMap(
   nodes: Node<JourneyNodeUiProps>[],
-  edges: Edge<JourneyUiEdgeData>[],
+  edges: Edge<JourneyUiEdgeProps>[],
 ): HeritageMap {
   const map: HeritageMap = new Map();
 
@@ -284,7 +282,7 @@ function journeyDefinitionFromStateBranch(
   hm: HeritageMap,
   nodes: JourneyNode[],
   uiJourneyNodes: JourneyNodeMap,
-  edges: Edge<JourneyUiEdgeData>[],
+  edges: Edge<JourneyUiEdgeProps>[],
   terminateBefore?: string,
 ): Result<null, { message: string; nodeId: string }> {
   let nId = initialNodeId;
@@ -677,8 +675,8 @@ export function dualNodeEdges({
   source: string;
   target: string;
   nodeId: string;
-}): Edge<JourneyUiEdgeData>[] {
-  const edges: Edge<JourneyUiEdgeData>[] = [
+}): Edge<JourneyUiEdgeProps>[] {
+  const edges: Edge<JourneyUiEdgeProps>[] = [
     {
       id: `${source}=>${nodeId}`,
       source,
@@ -759,7 +757,7 @@ export function edgesForJourneyNode({
   leftId?: string;
   rightId?: string;
   emptyId?: string;
-}): Edge<JourneyUiEdgeData>[] {
+}): Edge<JourneyUiEdgeProps>[] {
   if (
     type === JourneyNodeType.SegmentSplitNode ||
     type === JourneyNodeType.WaitForNode
@@ -787,7 +785,7 @@ export function edgesForJourneyNode({
     throw new Error(`Unimplemented node type ${type}`);
   }
 
-  const edges: Edge<JourneyUiEdgeData>[] = [];
+  const edges: Edge<JourneyUiEdgeProps>[] = [];
   if (source) {
     edges.push({
       id: `${source}=>${nodeId}`,
@@ -824,9 +822,9 @@ export function newStateFromNodes({
   existingEdges,
 }: AddNodesParams & {
   existingNodes: Node<JourneyNodeUiProps>[];
-  existingEdges: Edge<JourneyUiEdgeData>[];
+  existingEdges: Edge<JourneyUiEdgeProps>[];
 }): {
-  edges: Edge<JourneyUiEdgeData>[];
+  edges: Edge<JourneyUiEdgeProps>[];
   nodes: Node<JourneyNodeUiProps>[];
 } {
   const newEdges = existingEdges
@@ -900,7 +898,7 @@ function buildEmptyNode(id: string): Node<JourneyNodeUiProps> {
 function buildWorkflowEdge(
   source: string,
   target: string,
-): Edge<JourneyUiEdgeData> {
+): Edge<JourneyUiEdgeProps> {
   return {
     id: `${source}=>${target}`,
     source,
@@ -917,7 +915,7 @@ function buildWorkflowEdge(
 function buildPlaceholderEdge(
   source: string,
   target: string,
-): Edge<JourneyUiEdgeData> {
+): Edge<JourneyUiEdgeProps> {
   return {
     id: `${source}=>${target}`,
     source,
@@ -1069,7 +1067,7 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
 export function journeyBranchToState(
   initialNodeId: string,
   nodesState: Node<JourneyNodeUiProps>[],
-  edgesState: Edge<JourneyUiEdgeData>[],
+  edgesState: Edge<JourneyUiEdgeProps>[],
   // FIXME maybe i can abstract over this
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap,
@@ -1374,7 +1372,7 @@ export function journeyBranchToState(
 // function journeyDraftBranchToState(
 //   initialNodeId: string,
 //   nodesState: Node<JourneyNodeUiProps>[],
-//   edgesState: Edge<JourneyUiEdgeData>[],
+//   edgesState: Edge<JourneyUiEdgeProps>[],
 //   // FIXME maybe i can abstract over this
 //   nodes: Map<string, JourneyUiNodeTypeProps>,
 //   hm: HeritageMap,
@@ -1618,7 +1616,7 @@ export type JourneyResourceWithDefinitionForState = Overwrite<
 export function journeyToState(
   journey: JourneyResourceWithDefinitionForState,
 ): JourneyStateForResource {
-  const journeyEdges: Edge<JourneyUiEdgeData>[] = [];
+  const journeyEdges: Edge<JourneyUiEdgeProps>[] = [];
   let journeyNodes: Node<JourneyNodeUiProps>[] = [];
   const nodes = [
     journey.definition.entryNode,
@@ -1658,11 +1656,16 @@ export function journeyStateToDraft(state: JourneyStateForDraft): JourneyDraft {
       id: n.id,
       data: n.data,
     })),
-    edges: state.journeyEdges.map((e) => ({
-      source: e.source,
-      target: e.target,
-      data: e.data,
-    })),
+    edges: state.journeyEdges.map((e) => {
+      if (!e.data) {
+        throw new Error("edge data should exist");
+      }
+      return {
+        source: e.source,
+        target: e.target,
+        data: e.data,
+      };
+    }),
   };
 }
 
@@ -1706,10 +1709,10 @@ function buildBaseJourneyNode({
 
 export function createConnections(params: CreateConnectionsParams): {
   newNodes: Node<JourneyNodeUiProps>[];
-  newEdges: Edge<JourneyUiEdgeData>[];
+  newEdges: Edge<JourneyUiEdgeProps>[];
 } {
   let newNodes: Node<JourneyNodeUiProps>[] = [];
-  let newEdges: Edge<JourneyUiEdgeData>[];
+  let newEdges: Edge<JourneyUiEdgeProps>[];
 
   switch (params.type) {
     case JourneyNodeType.SegmentSplitNode: {
@@ -1852,7 +1855,7 @@ export function journeyDraftToState({
     }
     return node;
   });
-  const journeyEdges: Edge<JourneyUiEdgeData>[] = [];
+  const journeyEdges: Edge<JourneyUiEdgeProps>[] = [];
 
   journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   return {
