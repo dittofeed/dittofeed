@@ -1,9 +1,10 @@
 import { getFeatures } from "backend-lib/src/features";
 import { toJourneyResource } from "backend-lib/src/journeys";
+import logger from "backend-lib/src/logger";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { CompletionStatus, FeatureNamesEnum } from "isomorphic-lib/src/types";
 import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
@@ -15,11 +16,11 @@ import {
   DEFAULT_JOURNEY_NODES,
 } from "../../components/journeys/defaults";
 import {
+  journeyDraftToState,
   JourneyResourceWithDefinitionForState,
   JourneyResourceWithDraftForState,
   JourneyStateForDraft,
   JourneyStateForResource,
-  journeyDraftToState,
   journeyStateToDraft,
   journeyToState,
 } from "../../components/journeys/store";
@@ -27,7 +28,6 @@ import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { PreloadedState, PropsWithInitialState } from "../../lib/types";
-import logger from "backend-lib/src/logger";
 
 export type JourneyGetServerSideProps =
   GetServerSideProps<PropsWithInitialState>;
@@ -95,8 +95,6 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         value: [journeyResource],
       };
 
-
-      // FIXME cleanup
       let stateFromJourney: JourneyStateForResource;
       if (journeyResource.draft) {
         const resource: JourneyResourceWithDraftForState = {
@@ -104,23 +102,25 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
           draft: journeyResource.draft,
         };
         stateFromJourney = journeyDraftToState(resource);
-      } else if (journeyResource.definition !== undefined) {
+      } else if (journeyResource.definition) {
         const resource: JourneyResourceWithDefinitionForState = {
           ...journeyResource,
           definition: journeyResource.definition,
         };
         stateFromJourney = journeyToState(resource);
       } else {
-        // FIXME cleanup dedup
-        stateFromJourney = {
-          journeyName: `New Journey - ${id}`,
-          journeyNodes: DEFAULT_JOURNEY_NODES,
-          journeyEdges: DEFAULT_EDGES,
-          journeyNodesIndex: buildNodesIndex(DEFAULT_JOURNEY_NODES),
-        };
+        const err = new Error("journey resource has no definition or draft");
+        logger().error({
+          journeyResource,
+          err,
+        });
+        throw err;
       }
 
-      Object.assign(serverInitialState, stateFromJourney);
+      serverInitialState.journeyName = stateFromJourney.journeyName;
+      serverInitialState.journeyEdges = stateFromJourney.journeyEdges;
+      serverInitialState.journeyNodes = stateFromJourney.journeyNodes;
+      serverInitialState.journeyNodesIndex = stateFromJourney.journeyNodesIndex;
     } else {
       const stateForDraft: JourneyStateForDraft = {
         journeyNodes: DEFAULT_JOURNEY_NODES,
@@ -129,7 +129,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
 
       const name = `New Journey - ${id}`;
 
-      const journey = await prisma().journey.upsert({
+      const newJourney = await prisma().journey.upsert({
         where: { id },
         create: {
           id,
@@ -147,12 +147,8 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
       );
       serverInitialState.journeys = {
         type: CompletionStatus.Successful,
-        value: [
-          unwrap(toJourneyResource(journey))
-        ],
+        value: [unwrap(toJourneyResource(newJourney))],
       };
-      }
-
     }
 
     const segmentResourceResult = Result.combine(
