@@ -7,6 +7,7 @@ import {
   EmailTemplateResource,
   EmptyResponse,
   JourneyNodeType,
+  MessageTemplateResourceDefinition,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
@@ -24,16 +25,8 @@ import {
 
 interface Row extends BaseResourceRow {
   journeys: { name: string; id: string }[];
-  // TODO DF-415: simplify types
-  definition?:
-    | EmailTemplateResource
-    | MobilePushTemplateResource
-    | SmsTemplateResource;
-  // TODO DF-415: simplify types
-  draft?:
-    | EmailTemplateResource
-    | MobilePushTemplateResource
-    | SmsTemplateResource;
+  definition?: MessageTemplateResourceDefinition;
+  draft?: MessageTemplateResourceDefinition;
 }
 
 export interface TemplatesTableProps {
