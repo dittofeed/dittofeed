@@ -125,11 +125,6 @@ export default function UserPropertiesTable() {
       }}
       additionalColumns={[
         {
-          field: "lastRecomputed",
-          headerName: "Last Re-Computed",
-        },
-
-        {
           field: "templates",
           headerName: "Templates Used By",
           // eslint-disable-next-line react/no-unused-prop-types
@@ -155,6 +150,10 @@ export default function UserPropertiesTable() {
               />
             );
           },
+        },
+        {
+          field: "lastRecomputed",
+          headerName: "Last Re-Computed",
         },
       ]}
     />
