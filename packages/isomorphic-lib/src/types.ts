@@ -754,10 +754,7 @@ export const SavedSegmentResource = Type.Composite([
 
 export type SavedSegmentResource = Static<typeof SavedSegmentResource>;
 
-export const UpsertSubscriptionGroupResource = Type.Omit(
-  SubscriptionGroupResource,
-  ["createdAt"],
-);
+export const UpsertSubscriptionGroupResource = SubscriptionGroupResource;
 
 export type UpsertSubscriptionGroupResource = Static<
   typeof UpsertSubscriptionGroupResource

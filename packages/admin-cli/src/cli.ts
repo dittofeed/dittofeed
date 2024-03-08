@@ -36,7 +36,7 @@ export async function cli() {
       "bootstrap",
       "Initialize the dittofeed application and creates a workspace.",
       boostrapOptions,
-      bootstrapHandler
+      bootstrapHandler,
     )
     .command(
       "bootstrap-worker",
@@ -50,13 +50,13 @@ export async function cli() {
             describe: "The workspace id to bootstrap.",
           },
         }),
-      ({ workspaceId }) => bootstrapWorker({ workspaceId })
+      ({ workspaceId }) => bootstrapWorker({ workspaceId }),
     )
     .command(
       "spawn",
       "Spawns a shell command, with dittofeed's config exported as environment variables.",
       () => {},
-      () => spawnWithEnv(process.argv.slice(3))
+      () => spawnWithEnv(process.argv.slice(3)),
     )
     .command(
       "prisma",
@@ -65,15 +65,15 @@ export async function cli() {
       () =>
         spawnWithEnv(
           ["yarn", "workspace", "backend-lib", "prisma"].concat(
-            process.argv.slice(3)
-          )
-        )
+            process.argv.slice(3),
+          ),
+        ),
     )
     .command(
       "psql",
       "Spawns psql with dittofeed's config used to authenticate.",
       () => {},
-      () => spawnWithEnv(["psql", backendConfig().databaseUrl])
+      () => spawnWithEnv(["psql", backendConfig().databaseUrl]),
     )
     .command(
       "clickhouse-client",
@@ -82,7 +82,7 @@ export async function cli() {
       async () => {
         const host = new URL(backendConfig().clickhouseHost).hostname;
         spawnWithEnv(["clickhouse-client", `--host=${host}`]);
-      }
+      },
     )
     .command(
       "clickhouse client",
@@ -91,7 +91,7 @@ export async function cli() {
       async () => {
         const host = new URL(backendConfig().clickhouseHost).hostname;
         spawnWithEnv(["clickhouse", "client", `--host=${host}`]);
-      }
+      },
     )
     .command(
       "onboard-user",
@@ -111,7 +111,7 @@ export async function cli() {
       }) {
         const onboardUserResult = await onboardUser({ workspaceName, email });
         unwrap(onboardUserResult);
-      }
+      },
     )
     .command(
       "hubspot-sync",
@@ -143,7 +143,7 @@ export async function cli() {
           },
         }),
       ({ workspaceId, email, from, updateEmail }) =>
-        hubspotSync({ workspaceId, email, from, updateEmail })
+        hubspotSync({ workspaceId, email, from, updateEmail }),
     )
     .command(
       "reset-compute-properties",
@@ -172,12 +172,12 @@ export async function cli() {
               workspaceId: workspace.id,
             });
             logger().info(
-              `Reset compute properties workflow for workspace ${workspace.name} ${workspace.id}.`
+              `Reset compute properties workflow for workspace ${workspace.name} ${workspace.id}.`,
             );
-          })
+          }),
         );
         logger().info("Done.");
-      }
+      },
     )
     .command(
       "reset-global-cron",
@@ -186,7 +186,7 @@ export async function cli() {
       async () => {
         await resetGlobalCron();
         logger().info("Done.");
-      }
+      },
     )
     .command(
       "config-print",
@@ -194,7 +194,7 @@ export async function cli() {
       () => {},
       () => {
         logger().info(backendConfig(), "Backend Config");
-      }
+      },
     )
     .command(
       "migrations email-provider-secret",
@@ -233,10 +233,10 @@ export async function cli() {
                   secretId: secret.id,
                 },
               });
-            })
+            }),
           );
         });
-      }
+      },
     )
     .command(
       "admin-api-key create",
@@ -261,7 +261,7 @@ export async function cli() {
           return;
         }
         logger().info(result.value, "Created admin API Key");
-      }
+      },
     )
     .command(
       "compute-state",
@@ -304,7 +304,7 @@ export async function cli() {
           now: endDate,
         });
         logger().info("Done.");
-      }
+      },
     )
     .command(
       "upgrade-0-10-0-pre",
@@ -312,7 +312,7 @@ export async function cli() {
       () => {},
       async () => {
         await upgradeV010Pre();
-      }
+      },
     )
     .command(
       "upgrade-0-10-0-post",
@@ -320,10 +320,9 @@ export async function cli() {
       () => {},
       async () => {
         await upgradeV010Post();
-      }
+      },
     )
     .demandCommand(1, "# Please provide a valid command")
-    .strictCommands()
     .recommendCommands()
     .help()
     .parse();
