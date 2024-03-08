@@ -41,6 +41,12 @@ export default async function journeysController(fastify: FastifyInstance) {
       const { id, name, definition, workspaceId, status, canRunMultiple } =
         request.body;
 
+      /*
+      TODO validate that status transitions satisfy:
+        NotStarted -> Running OR Running -> Paused
+      But not:
+        NotStarted -> Paused OR * -> NotStarted
+      */
       if (definition) {
         const constraintViolations = getJourneyConstraintViolations(definition);
         if (constraintViolations.length > 0) {
@@ -54,14 +60,7 @@ export default async function journeysController(fastify: FastifyInstance) {
         }
       }
 
-      const canCreate = workspaceId && name && definition;
-
-      /*
-      TODO validate that status transitions satisfy:
-        NotStarted -> Running OR Running -> Paused
-      But not:
-        NotStarted -> Paused OR * -> NotStarted
-      */
+      const canCreate = workspaceId && name;
       if (canCreate) {
         journey = await prisma().journey.upsert({
           where: {
