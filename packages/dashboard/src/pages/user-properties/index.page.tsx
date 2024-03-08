@@ -87,7 +87,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           templates[userPropertyResource.id] = templates[
             userPropertyResource.id
           ] ?? {
-            name: userPropertyResource.name,
+            name: messageTemplate.name,
             type: definition.type,
           };
           userPropertyMessages[userPropertyResource.id] = templates;

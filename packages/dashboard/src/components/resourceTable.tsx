@@ -1,10 +1,74 @@
-import { Theme } from "@emotion/react";
-import { Box, SxProps, Tooltip } from "@mui/material";
+import {
+  Box,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  SxProps,
+  Theme,
+  Tooltip,
+  useTheme,
+} from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import Link from "next/link";
 import { useMemo } from "react";
 
 import DeleteDialog from "./confirmDeleteDialog";
+
+export function RelatedResourceSelect({
+  label,
+  relatedResources,
+}: {
+  label: string;
+  relatedResources: {
+    name: string;
+    href: string;
+  }[];
+}) {
+  const theme = useTheme();
+  return (
+    <FormControl
+      sx={{
+        width: theme.spacing(20),
+      }}
+      size="small"
+    >
+      <InputLabel>{label}</InputLabel>
+      <Select
+        label={label}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+      >
+        {relatedResources.map(({ href, name }) => {
+          return (
+            <MenuItem key={href}>
+              <Tooltip title={name}>
+                <Link
+                  href={href}
+                  passHref
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  style={{
+                    color: "black",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    textDecoration: "none",
+                    width: 200,
+                  }}
+                >
+                  {name}
+                </Link>
+              </Tooltip>
+            </MenuItem>
+          );
+        })}
+      </Select>
+    </FormControl>
+  );
+}
 
 const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
   height: "100%",
@@ -14,6 +78,8 @@ const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
   },
   "& .MuiDataGrid-row": {
     borderBottom: "1px solid lightgray",
+    pt: 1,
+    pb: 1,
   },
   "& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within": {
     outline: "none",
@@ -21,7 +87,8 @@ const RESOURCE_TABLE_STYLE: SxProps<Theme> = {
 
   // disable cell selection style
   "& .MuiDataGrid-cell": {
-    p: 1,
+    pl: 1,
+    pr: 1,
   },
   // pointer cursor on ALL rows
   "& .MuiDataGrid-row:hover": {
@@ -103,11 +170,9 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
                 <Tooltip title={String(value)}>
                   <Box
                     sx={{
-                      pt: 1,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
-                      pb: 1,
                     }}
                   >
                     {String(value)}

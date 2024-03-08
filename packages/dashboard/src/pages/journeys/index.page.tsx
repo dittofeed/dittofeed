@@ -3,7 +3,8 @@ import { IconButton, Stack, Typography } from "@mui/material";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
-import { useRouter } from "next/router";
+import Link from "next/link";
+import { useState } from "react";
 import { v4 as uuid } from "uuid";
 
 import JourneysTable from "../../components/journeysTable";
@@ -37,7 +38,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   });
 
 function JourneyListContents() {
-  const path = useRouter();
+  const [newId, setNewId] = useState(uuid());
 
   return (
     <Stack
@@ -55,8 +56,10 @@ function JourneyListContents() {
           Journeys
         </Typography>
         <IconButton
+          LinkComponent={Link}
+          href={`/journeys/${newId}`}
           onClick={() => {
-            path.push(`/journeys/${uuid()}`);
+            setNewId(uuid());
           }}
         >
           <AddCircleOutline />
