@@ -1,6 +1,7 @@
 import { getFeatures } from "backend-lib/src/features";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { CompletionStatus, FeatureNamesEnum } from "isomorphic-lib/src/types";
@@ -94,6 +95,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         value: [journeyResource],
       };
 
+
       // FIXME cleanup
       let stateFromJourney: JourneyStateForResource;
       if (journeyResource.draft) {
@@ -127,7 +129,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
 
       const name = `New Journey - ${id}`;
 
-      await prisma().journey.upsert({
+      const journey = await prisma().journey.upsert({
         where: { id },
         create: {
           id,
@@ -143,6 +145,14 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
       serverInitialState.journeyNodesIndex = buildNodesIndex(
         DEFAULT_JOURNEY_NODES,
       );
+      serverInitialState.journeys = {
+        type: CompletionStatus.Successful,
+        value: [
+          unwrap(toJourneyResource(journey))
+        ],
+      };
+      }
+
     }
 
     const segmentResourceResult = Result.combine(
