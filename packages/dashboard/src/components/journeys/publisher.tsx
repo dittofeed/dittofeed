@@ -10,6 +10,8 @@ export interface PublisherUnpublishedStatus {
 
 export interface PublisherOutOfDateStatus {
   type: PublisherStatusType.OutOfDate;
+  onPublish: () => void;
+  onRevert: () => void;
 }
 
 export interface PublisherUpToDateStatus {
@@ -23,15 +25,21 @@ export type PublisherStatus =
 
 export interface PublisherProps {
   status: PublisherStatus;
-  onPublish: () => void;
-  onRevert: () => void;
 }
 
-export function Publisher(props: PublisherProps) {
+export function Publisher({ status }: PublisherProps) {
+  if (status.type === PublisherStatusType.Unpublished) {
+    return <>Unpublished</>;
+  }
+  if (status.type === PublisherStatusType.UpToDate) {
+    return <>UpToDate</>;
+  }
   return (
-    <div>
-      <h1>Publisher</h1>
-    </div>
+    <>
+      <p>OutOfDate</p>
+      <button onClick={status.onPublish}>publish</button>
+      <button onClick={status.onRevert}>revert</button>
+    </>
   );
 }
 

@@ -39,6 +39,7 @@ import {
   PersistedEmailProvider,
   PersistedSmsProvider,
   RequestStatus,
+  SavedJourneyResource,
   SavedSubscriptionGroupResource,
   SecretAvailabilityResource,
   SecretResource,
@@ -140,7 +141,7 @@ export type AppState = {
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   userPropertyMessages: UserPropertyMessages;
-  journeys: RequestStatus<JourneyResource[], Error>;
+  journeys: RequestStatus<SavedJourneyResource[], Error>;
   traits: string[];
   getTraitsRequest: EphemeralRequestStatus<Error>;
   writeKeys: WriteKeyResource[];

@@ -11,7 +11,6 @@ import {
   Journey,
   JourneyDefinition,
   JourneyDraft,
-  JourneyResource,
   JourneyStatsRequest,
   JourneyStatsResponse,
   JourneyUpsertValidationError,
