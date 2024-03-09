@@ -23,6 +23,8 @@ export function getChCompatibleUuid() {
 export class ClickHouseQueryBuilder {
   private queries: Map<string, unknown>;
 
+  private variableCount: number;
+
   private debug: boolean;
 
   /**
@@ -35,6 +37,7 @@ export class ClickHouseQueryBuilder {
    */
   constructor({ debug }: { debug?: boolean } = { debug: false }) {
     this.debug = debug ?? false;
+    this.variableCount = 0;
     this.queries = new Map();
   }
 
@@ -82,6 +85,16 @@ export class ClickHouseQueryBuilder {
     const id = `v${this.queries.size}`;
     this.queries.set(id, value);
     return `{${id}:${dataType}}`;
+  }
+
+  /**
+   *
+   * @returns {string} A clickhouse safe variable name.
+   */
+  getVariableName(): string {
+    const variable = `v${this.variableCount}`;
+    this.variableCount += 1;
+    return variable;
   }
 }
 
