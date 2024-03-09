@@ -961,7 +961,7 @@ function segmentToResolvedState({
       });
     }
     case SegmentNodeType.LastPerformed: {
-      const varName = getChCompatibleUuid();
+      const varName = qb.getVariableName();
       const hasPropertyConditions = node.hasProperties.map((property, i) => {
         const operatorType = property.operator.type;
         const reference =
@@ -1854,7 +1854,7 @@ function groupedUserPropertyToAssignment({
       }
       const query = `coalesce(${childNodes
         .map((c) => {
-          const varName = getChCompatibleUuid();
+          const varName = qb.getVariableName();
           return `if((${c.query} as ${varName}) == '', Null, ${varName})`;
         })
         .join(", ")})`;
