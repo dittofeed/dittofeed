@@ -1,7 +1,7 @@
 import { Button } from "@mui/material";
 import {
   CompletionStatus,
-  JourneyResource,
+  SavedJourneyResource,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
 import React from "react";
@@ -63,7 +63,7 @@ export default function SaveButton({
     apiRequestHandlerFactory({
       request: journeyUpdateRequest,
       setRequest: setJourneyUpdateRequest,
-      responseSchema: JourneyResource,
+      responseSchema: SavedJourneyResource,
       setResponse: upsertJourney,
       onSuccessNotice: `Saved journey ${journeyName}.`,
       onFailureNoticeHandler: () =>

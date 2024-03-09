@@ -37,21 +37,29 @@ const isValueInEnum = <T extends Record<string, string>>(
 export function enrichJourney(
   journey: Journey,
 ): Result<EnrichedJourney, Error> {
-  const definitionResult = schemaValidateWithErr(
-    journey.definition,
-    JourneyDefinition,
-  );
-  if (definitionResult.isErr()) {
-    return err(definitionResult.error);
+  let definition: JourneyDefinition | undefined;
+  if (journey.definition) {
+    const definitionResult = schemaValidateWithErr(
+      journey.definition,
+      JourneyDefinition,
+    );
+    if (definitionResult.isErr()) {
+      return err(definitionResult.error);
+    }
+    definition = definitionResult.value;
   }
-  const draftResult = schemaValidateWithErr(journey.draft, JourneyDraft);
-  if (draftResult.isErr()) {
-    return err(draftResult.error);
+  let draft: JourneyDraft | undefined;
+  if (journey.draft) {
+    const draftResult = schemaValidateWithErr(journey.draft, JourneyDraft);
+    if (draftResult.isErr()) {
+      return err(draftResult.error);
+    }
+    draft = draftResult.value;
   }
   return ok({
     ...journey,
-    draft: draftResult.value,
-    definition: definitionResult.value,
+    draft,
+    definition,
   });
 }
 

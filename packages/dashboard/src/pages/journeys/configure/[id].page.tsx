@@ -9,8 +9,8 @@ import {
 } from "@mui/material";
 import {
   CompletionStatus,
-  JourneyResource,
   JourneyResourceStatus,
+  SavedJourneyResource,
   UpsertJourneyResource,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
@@ -143,7 +143,7 @@ function JourneyConfigure() {
     apiRequestHandlerFactory({
       request: journeyUpdateRequest,
       setRequest: setJourneyUpdateRequest,
-      responseSchema: JourneyResource,
+      responseSchema: SavedJourneyResource,
       setResponse: (response) => {
         upsertJourney(response);
         if (member) {
@@ -179,7 +179,7 @@ function JourneyConfigure() {
     apiRequestHandlerFactory({
       request: journeyUpdateRequest,
       setRequest: setJourneyUpdateRequest,
-      responseSchema: JourneyResource,
+      responseSchema: SavedJourneyResource,
       setResponse: upsertJourney,
       onFailure: () => {
         setCanRunMultiple(previousValue);

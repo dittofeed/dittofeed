@@ -17,7 +17,6 @@ import {
   FeatureMap,
   IntegrationResource,
   JourneyNodeUiProps,
-  JourneyResource,
   JourneyStats,
   JourneyStatsResponse,
   JourneyUiBodyNodeTypeProps,
@@ -180,7 +179,7 @@ export interface AppActions {
   deleteMessage: (id: string) => void;
   upsertSegment: (segment: SegmentResource) => void;
   deleteSegment: (segmentId: string) => void;
-  upsertJourney: (journey: JourneyResource) => void;
+  upsertJourney: (journey: SavedJourneyResource) => void;
   deleteJourney: (segmentId: string) => void;
   upsertSecrets: (secrets: SecretResource[]) => void;
   deleteSecret: (secretName: string) => void;

@@ -21,9 +21,9 @@ import {
   CompletionStatus,
   JourneyBodyNode,
   JourneyNodeType,
-  JourneyResource,
   MessageNode,
   MessageTemplateResource,
+  SavedJourneyResource,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
@@ -222,7 +222,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         request: journeyUpdateRequest,
         setRequest: setJourneyUpdateRequest,
         setResponse: upsertJourney,
-        responseSchema: JourneyResource,
+        responseSchema: SavedJourneyResource,
         onSuccessNotice: `Updated subscription group.`,
         onFailureNoticeHandler: () =>
           `API Error: Failed to update subscription group.`,

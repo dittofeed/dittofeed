@@ -13,6 +13,7 @@ import {
   JourneyNodeType,
   JourneyResource,
   NodeStatsType,
+  SavedJourneyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -84,12 +85,12 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       }),
       findMessageTemplates({ workspaceId, includeInternal: true }),
     ]);
-    const journeyResources: JourneyResource[] = [];
+    const journeyResources: SavedJourneyResource[] = [];
     const broadcastResources: BroadcastResource[] = [];
 
     for (const journey of journeys) {
       journeyResources.push(unwrap(toJourneyResource(journey)));
-      for (const broadcast of journey.Broadcast ?? []) {
+      for (const broadcast of journey.Broadcast) {
         broadcastResources.push(toBroadcastResource(broadcast));
       }
     }
