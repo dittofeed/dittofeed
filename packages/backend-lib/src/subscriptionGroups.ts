@@ -22,7 +22,6 @@ import {
   SegmentNodeType,
   SubscriptionChange,
   SubscriptionChangeEvent,
-  SubscriptionGroupResource,
   SubscriptionGroupType,
   SubscriptionParams,
   UpsertSubscriptionGroupResource,

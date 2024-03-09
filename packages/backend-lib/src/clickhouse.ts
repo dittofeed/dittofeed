@@ -22,7 +22,9 @@ export function getChCompatibleUuid() {
  */
 export class ClickHouseQueryBuilder {
   private queries: Map<string, unknown>;
+
   private variableCount: number;
+
   private debug: boolean;
 
   /**
