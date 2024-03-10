@@ -16,6 +16,7 @@ import {
 } from "./publisher";
 import SaveButton from "./saveButton";
 import JourneyStepper from "./stepper";
+import { shouldDraftBeUpdated } from "./store";
 
 export default function JourneyLayout({
   journeyId,
@@ -24,8 +25,16 @@ export default function JourneyLayout({
   children: React.ReactNode;
   journeyId?: string;
 }) {
-  const { journeyNodes, journeys, journeyUpdateRequest } = useAppStorePick([
+  const {
+    journeyNodes,
+    journeys,
+    journeyUpdateRequest,
+    journeyEdges,
+    journeyNodesIndex,
+  } = useAppStorePick([
     "journeyNodes",
+    "journeyEdges",
+    "journeyNodesIndex",
     "journeys",
     "journeyUpdateRequest",
   ]);
@@ -37,13 +46,17 @@ export default function JourneyLayout({
   }, [journeyId, journeys]);
 
   useEffect(() => {
-    /* 
-      update journey draft if one of the following
-
-      1. journey state does equal draft
-      2. journey draft is undefined current state does not equal definition 
-    */
-  }, [journey]);
+    if (
+      shouldDraftBeUpdated({
+        definition: journey?.definition,
+        draft: journey?.draft,
+        journeyEdges,
+        journeyNodes,
+        journeyNodesIndex,
+      })
+    ) {
+    }
+  }, [journey, journeyEdges, journeyNodes, journeyNodesIndex]);
 
   const publisherStatus: PublisherStatus = useMemo(() => {
     if (!journey?.definition) {
