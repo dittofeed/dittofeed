@@ -36,7 +36,7 @@ export interface PublisherProps {
   status: PublisherStatus;
 }
 
-export function Publisher({ status, updateRequest }: PublisherProps) {
+export function Publisher({ status }: PublisherProps) {
   if (status.type === PublisherStatusType.Unpublished) {
     return <>Unpublished</>;
   }
@@ -44,7 +44,7 @@ export function Publisher({ status, updateRequest }: PublisherProps) {
     return <>UpToDate</>;
   }
   const operationInProgress =
-    updateRequest.status === CompletionStatus.InProgress;
+    status.updateRequest.type === CompletionStatus.InProgress;
   return (
     <>
       <p>OutOfDate</p>

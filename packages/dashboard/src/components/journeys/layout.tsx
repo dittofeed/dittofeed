@@ -8,7 +8,12 @@ import React, { useMemo } from "react";
 import { useAppStorePick } from "../../lib/appStore";
 import MainLayout from "../mainLayout";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
-import { Publisher, PublisherStatus, PublisherStatusType } from "./publisher";
+import {
+  Publisher,
+  PublisherOutOfDateStatus,
+  PublisherStatus,
+  PublisherStatusType,
+} from "./publisher";
 import SaveButton from "./saveButton";
 import JourneyStepper from "./stepper";
 
@@ -19,9 +24,10 @@ export default function JourneyLayout({
   children: React.ReactNode;
   journeyId?: string;
 }) {
-  const { journeyNodes, journeys } = useAppStorePick([
+  const { journeyNodes, journeys, journeyUpdateRequest } = useAppStorePick([
     "journeyNodes",
     "journeys",
+    "journeyUpdateRequest",
   ]);
   const journey: SavedJourneyResource | null = useMemo(() => {
     if (journeys.type !== CompletionStatus.Successful) {
@@ -39,13 +45,14 @@ export default function JourneyLayout({
     }
     return {
       type: PublisherStatusType.OutOfDate,
+      updateRequest: journeyUpdateRequest,
       onPublish: () => {
         console.log("publish");
       },
       onRevert: () => {
         console.log("revert");
       },
-    };
+    } satisfies PublisherOutOfDateStatus;
   }, [journey]);
 
   const globalJourneyErrors = useMemo(
