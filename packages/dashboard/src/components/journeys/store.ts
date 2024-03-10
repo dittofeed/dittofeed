@@ -39,6 +39,7 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
+import { equals as deepEquals } from "remeda/dist/commonjs/equals";
 import { omit } from "remeda/dist/commonjs/omit";
 import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { Overwrite } from "utility-types";
@@ -1623,4 +1624,51 @@ export function journeyDraftToState({
     journeyEdges,
     journeyNodesIndex: buildNodesIndex(journeyNodes),
   };
+}
+
+/**
+ * update journey draft if one of the following
+ * 1. journey state does equal draft
+ * 2. journey draft is undefined, current state does not equal the definition
+ *
+ * @param param0
+ * @returns
+ */
+export function shouldDraftBeUpdated({
+  draft,
+  definition,
+  journeyNodes,
+  journeyEdges,
+  journeyNodesIndex,
+}: {
+  draft?: JourneyDraft;
+  definition?: JourneyDefinition;
+  journeyNodes: Node<JourneyNodeUiProps>[];
+  journeyEdges: Edge<JourneyUiEdgeProps>[];
+  journeyNodesIndex: JourneyState["journeyNodesIndex"];
+}): boolean {
+  if (draft) {
+    return !deepEquals(
+      journeyStateToDraft({
+        journeyNodes,
+        journeyEdges,
+      }),
+      draft,
+    );
+  }
+  if (!definition) {
+    throw new Error("definition should exist if draft is undefined");
+  }
+  const draftFromStateResult = journeyDefinitionFromState({
+    state: {
+      journeyNodes,
+      journeyEdges,
+      journeyNodesIndex,
+    },
+  });
+  if (draftFromStateResult.isErr()) {
+    return true;
+  }
+
+  return !deepEquals(draftFromStateResult.value, definition);
 }
