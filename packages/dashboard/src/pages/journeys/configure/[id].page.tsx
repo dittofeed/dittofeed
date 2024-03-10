@@ -15,7 +15,7 @@ import {
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { DeliveriesTable } from "../../../components/deliveriesTable";
 import EditableName from "../../../components/editableName";
@@ -117,9 +117,24 @@ function JourneyConfigure() {
     !!journey?.canRunMultiple,
   );
 
-  if (journey?.status === "Broadcast") {
-    throw new Error("Broadcast journeys cannot be configured.");
+  if (!journey) {
+    throw new Error("Journey not found.");
   }
+
+  // with new flow not started journeys will never have a defined definition
+  // however need backwards compatible
+  const statusValue2: StatusCopy = useMemo(() => {
+    if (journey.status === "Broadcast") {
+      throw new Error("Broadcast journeys cannot be configured.");
+    }
+
+    // definition will only be defined with the NotStarted status in the legacy
+    // flow. moving forward, we'll only save the definition when we start the journey
+    if (journey.status !== "NotStarted" || journey.definition) {
+      return statusValues[journey.status];
+    }
+  }, []);
+
   const statusValue: StatusCopy = !journey
     ? {
         label: "Unsaved",

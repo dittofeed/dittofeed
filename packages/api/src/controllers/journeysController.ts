@@ -56,7 +56,10 @@ export default async function journeysController(fastify: FastifyInstance) {
         NotStarted -> Paused OR * -> NotStarted
       */
       if (definition) {
-        const constraintViolations = getJourneyConstraintViolations(definition);
+        const constraintViolations = getJourneyConstraintViolations({
+          definition,
+          newStatus: status,
+        });
         if (constraintViolations.length > 0) {
           return reply.status(400).send({
             message: "Journey definition violates constraints",

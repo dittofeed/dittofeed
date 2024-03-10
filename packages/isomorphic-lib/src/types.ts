@@ -2938,6 +2938,7 @@ export type DeleteAdminApiKeyRequest = Static<typeof DeleteAdminApiKeyRequest>;
 
 export enum JourneyConstraintViolationType {
   WaitForNodeAndEventEntryNode = "WaitForNodeAndEventEntryNode",
+  CantStart = "CantStart",
 }
 
 export const JourneyConstraintViolation = Type.Object({

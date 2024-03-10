@@ -58,7 +58,6 @@ export default function JourneyLayout({
       return;
     }
     if (
-      // FIXME pull out into ismemo
       !shouldDraftBeUpdated({
         definition: journey.definition,
         draft: journey.draft,
