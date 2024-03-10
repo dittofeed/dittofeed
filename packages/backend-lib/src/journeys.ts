@@ -92,29 +92,25 @@ export function toJourneyResource(
   if (result.isErr()) {
     return err(result.error);
   }
-  const {
-    id,
-    name,
-    workspaceId,
-    definition,
-    status,
-    createdAt,
-    updatedAt,
-    canRunMultiple,
-    draft,
-  } = result.value;
+  const { definition, status, createdAt, updatedAt } = result.value;
+  const baseResource = {
+    ...result.value,
+    createdAt: createdAt.getTime(),
+    updatedAt: updatedAt.getTime(),
+  };
+  if (status === JourneyStatus.NotStarted) {
+    return ok({
+      ...baseResource,
+      status,
+    });
+  }
   if (!definition) {
     return err(new Error("journey definition is missing"));
   }
 
   return ok({
-    id,
-    name,
-    workspaceId,
-    status,
+    ...baseResource,
     definition,
-    draft,
-    canRunMultiple,
     createdAt: createdAt.getTime(),
     updatedAt: updatedAt.getTime(),
   });

@@ -1418,7 +1418,16 @@ export function journeyStateToDraft(state: JourneyStateForDraft): JourneyDraft {
       data: n.data,
     })),
     edges: state.journeyEdges.map((e) => {
+      // FIXME
+      console.log("loc1", e);
       if (!e.data) {
+        debugger;
+        // loc1 {
+        //   id: 'EntryUiNode=>ExitNode',
+        //   source: 'EntryUiNode',
+        //   target: 'ExitNode',
+        //   type: 'workflow'
+        // }
         throw new Error("edge data should exist");
       }
       return {

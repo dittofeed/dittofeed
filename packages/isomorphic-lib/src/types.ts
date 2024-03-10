@@ -1325,6 +1325,7 @@ export type JourneyUiEdgeProps = Static<typeof JourneyUiEdgeProps>;
 export const JourneyUiDraftEdge = Type.Object({
   source: Type.String(),
   target: Type.String(),
+  // FIXME
   data: JourneyUiEdgeProps,
 });
 
