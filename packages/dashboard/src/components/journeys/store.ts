@@ -1427,17 +1427,8 @@ export function journeyStateToDraft(state: JourneyStateForDraft): JourneyDraft {
       data: n.data,
     })),
     edges: state.journeyEdges.map((e) => {
-      // FIXME
-      console.log("loc1", e);
       if (!e.data) {
-        debugger;
-        // loc1 {
-        //   id: 'EntryUiNode=>ExitNode',
-        //   source: 'EntryUiNode',
-        //   target: 'ExitNode',
-        //   type: 'workflow'
-        // }
-        throw new Error("edge data should exist");
+        throw new Error(`edge data should exist for edge ${e.id}`);
       }
       return {
         source: e.source,
@@ -1633,8 +1624,35 @@ export function journeyDraftToState({
     }
     return node;
   });
-  // const journeyEdges: Edge<JourneyUiEdgeProps>[] = draft.edges.map((e) => {
-  // });
+  const journeyEdges: Edge<JourneyUiEdgeProps>[] = draft.edges.map((e) => {
+    const { source, target, data } = e;
+    const baseEdge = {
+      id: `${source}=>${target}`,
+      source,
+      target,
+      sourceHandle: "bottom",
+    };
+    let edge: Edge<JourneyUiEdgeProps>;
+    switch (data.type) {
+      case JourneyUiEdgeType.JourneyUiDefinitionEdgeProps: {
+        edge = {
+          ...baseEdge,
+          type: "workflow",
+          data,
+        };
+        break;
+      }
+      case JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps: {
+        edge = {
+          ...baseEdge,
+          type: "placeholder",
+          data,
+        };
+        break;
+      }
+    }
+    return edge;
+  });
 
   journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   return {
