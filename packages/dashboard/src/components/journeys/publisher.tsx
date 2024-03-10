@@ -1,3 +1,9 @@
+import { Button } from "@mui/material";
+import {
+  CompletionStatus,
+  EphemeralRequestStatus,
+} from "isomorphic-lib/src/types";
+
 export enum PublisherStatusType {
   Unpublished = "Unpublished",
   OutOfDate = "OutOfDate",
@@ -10,8 +16,11 @@ export interface PublisherUnpublishedStatus {
 
 export interface PublisherOutOfDateStatus {
   type: PublisherStatusType.OutOfDate;
+  // TODO add confirmation
   onPublish: () => void;
+  // TODO add confirmation
   onRevert: () => void;
+  updateRequest: EphemeralRequestStatus<Error>;
 }
 
 export interface PublisherUpToDateStatus {
@@ -27,18 +36,24 @@ export interface PublisherProps {
   status: PublisherStatus;
 }
 
-export function Publisher({ status }: PublisherProps) {
+export function Publisher({ status, updateRequest }: PublisherProps) {
   if (status.type === PublisherStatusType.Unpublished) {
     return <>Unpublished</>;
   }
   if (status.type === PublisherStatusType.UpToDate) {
     return <>UpToDate</>;
   }
+  const operationInProgress =
+    updateRequest.status === CompletionStatus.InProgress;
   return (
     <>
       <p>OutOfDate</p>
-      <button onClick={status.onPublish}>publish</button>
-      <button onClick={status.onRevert}>revert</button>
+      <Button onClick={status.onPublish} disabled={operationInProgress}>
+        publish
+      </Button>
+      <Button onClick={status.onRevert} disabled={operationInProgress}>
+        revert
+      </Button>
     </>
   );
 }
