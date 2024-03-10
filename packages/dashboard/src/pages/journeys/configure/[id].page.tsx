@@ -24,7 +24,7 @@ import InfoBox from "../../../components/infoBox";
 import InfoTooltip from "../../../components/infoTooltip";
 import JourneyLayout from "../../../components/journeys/layout";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../../../lib/appStore";
+import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
 import {
   JourneyGetServerSideProps,
@@ -94,19 +94,27 @@ function JourneyConfigure() {
   const path = useRouter();
 
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
-  const journeyUpdateRequest = useAppStore(
-    (store) => store.journeyUpdateRequest,
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const setJourneyUpdateRequest = useAppStore(
-    (store) => store.setJourneyUpdateRequest,
-  );
-  const upsertJourney = useAppStore((store) => store.upsertJourney);
-  const journeyName = useAppStore((store) => store.journeyName);
-  const setJourneyName = useAppStore((store) => store.setJourneyName);
-  const journeys = useAppStore((store) => store.journeys);
-  const workspace = useAppStore((store) => store.workspace);
-  const member = useAppStore((store) => store.member);
+  const {
+    journeyUpdateRequest,
+    apiBase,
+    setJourneyUpdateRequest,
+    upsertJourney,
+    journeyName,
+    setJourneyName,
+    journeys,
+    workspace,
+    member,
+  } = useAppStorePick([
+    "journeyUpdateRequest",
+    "apiBase",
+    "setJourneyUpdateRequest",
+    "upsertJourney",
+    "journeyName",
+    "setJourneyName",
+    "journeys",
+    "workspace",
+    "member",
+  ]);
 
   const journey =
     journeys.type === CompletionStatus.Successful
