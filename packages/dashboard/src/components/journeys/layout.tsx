@@ -3,7 +3,7 @@ import {
   CompletionStatus,
   SavedJourneyResource,
 } from "isomorphic-lib/src/types";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
 import MainLayout from "../mainLayout";
@@ -36,6 +36,15 @@ export default function JourneyLayout({
     return journeys.value.find((j) => j.id === journeyId) ?? null;
   }, [journeyId, journeys]);
 
+  useEffect(() => {
+    /* 
+      update journey draft if one of the following
+
+      1. journey state does equal draft
+      2. journey draft is undefined current state does not equal definition 
+    */
+  }, [journey]);
+
   const publisherStatus: PublisherStatus = useMemo(() => {
     if (!journey?.definition) {
       return { type: PublisherStatusType.Unpublished };
@@ -53,7 +62,7 @@ export default function JourneyLayout({
         console.log("revert");
       },
     } satisfies PublisherOutOfDateStatus;
-  }, [journey]);
+  }, [journey, journeyUpdateRequest]);
 
   const globalJourneyErrors = useMemo(
     () => getGlobalJourneyErrors({ nodes: journeyNodes }),
