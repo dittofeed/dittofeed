@@ -105,7 +105,11 @@ export function toJourneyResource(
     });
   }
   if (!definition) {
-    return err(new Error("journey definition is missing"));
+    return err(
+      new Error(
+        `journey definition is missing for journey with status ${status}`,
+      ),
+    );
   }
 
   return ok({

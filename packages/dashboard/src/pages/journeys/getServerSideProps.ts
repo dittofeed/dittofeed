@@ -80,13 +80,14 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
 
     if (journeyResourceResult) {
       if (!journeyResourceResult.isOk()) {
-        const err = new Error("failed to parse journey resource");
-
-        logger().error({
-          journey,
-          err,
-        });
-        throw err;
+        logger().error(
+          {
+            journey,
+            err: journeyResourceResult.error,
+          },
+          "failed to parse journey resource",
+        );
+        throw journeyResourceResult.error;
       }
 
       const journeyResource = journeyResourceResult.value;

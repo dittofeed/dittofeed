@@ -19,7 +19,6 @@ export const DEFAULT_EDGES: Edge<JourneyUiEdgeProps>[] = [
     source: AdditionalJourneyNodeType.EntryUiNode,
     target: JourneyNodeType.ExitNode,
     type: "workflow",
-    sourceHandle: "bottom",
     data: {
       type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
     },
