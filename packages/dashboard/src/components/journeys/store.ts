@@ -695,6 +695,9 @@ export function dualNodeEdges({
       target: leftId,
       type: "placeholder",
       sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
+      },
     },
     {
       id: `${nodeId}=>${rightId}`,
@@ -702,6 +705,9 @@ export function dualNodeEdges({
       target: rightId,
       type: "placeholder",
       sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
+      },
     },
     {
       id: `${leftId}=>${emptyId}`,
@@ -923,6 +929,9 @@ function buildPlaceholderEdge(
     target,
     type: "placeholder",
     sourceHandle: "bottom",
+    data: {
+      type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
+    },
   };
 }
 
@@ -1624,7 +1633,8 @@ export function journeyDraftToState({
     }
     return node;
   });
-  const journeyEdges: Edge<JourneyUiEdgeProps>[] = [];
+  // const journeyEdges: Edge<JourneyUiEdgeProps>[] = draft.edges.map((e) => {
+  // });
 
   journeyNodes = layoutNodes(journeyNodes, journeyEdges);
   return {
