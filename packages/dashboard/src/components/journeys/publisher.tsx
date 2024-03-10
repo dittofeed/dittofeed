@@ -1,4 +1,4 @@
-import { Button } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import {
   CompletionStatus,
   EphemeralRequestStatus,
@@ -38,10 +38,10 @@ export interface PublisherProps {
 
 export function Publisher({ status }: PublisherProps) {
   if (status.type === PublisherStatusType.Unpublished) {
-    return <>Unpublished</>;
+    return <Box>Unpublished</Box>;
   }
   if (status.type === PublisherStatusType.UpToDate) {
-    return <>UpToDate</>;
+    return <Box>UpToDate</Box>;
   }
   const operationInProgress =
     status.updateRequest.type === CompletionStatus.InProgress;

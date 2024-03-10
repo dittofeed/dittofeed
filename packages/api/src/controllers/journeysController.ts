@@ -69,6 +69,7 @@ export default async function journeysController(fastify: FastifyInstance) {
       }
 
       const canCreate = workspaceId && name;
+      const nullableDraft = definition ? Prisma.DbNull : draft;
       if (canCreate) {
         journey = await prisma().journey.upsert({
           where: {
@@ -79,7 +80,7 @@ export default async function journeysController(fastify: FastifyInstance) {
             workspaceId,
             name,
             definition,
-            draft: definition ? Prisma.DbNull : draft,
+            draft: nullableDraft,
             status,
             canRunMultiple,
           },
@@ -87,7 +88,7 @@ export default async function journeysController(fastify: FastifyInstance) {
             workspaceId,
             name,
             definition,
-            draft: definition ? Prisma.DbNull : draft,
+            draft: nullableDraft,
             status,
             canRunMultiple,
           },
@@ -101,7 +102,7 @@ export default async function journeysController(fastify: FastifyInstance) {
             workspaceId,
             name,
             definition,
-            draft: definition ? Prisma.DbNull : draft,
+            draft: nullableDraft,
             status,
             canRunMultiple,
           },

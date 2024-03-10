@@ -58,6 +58,7 @@ export default function JourneyLayout({
       return;
     }
     if (
+      // FIXME pull out into ismemo
       !shouldDraftBeUpdated({
         definition: journey.definition,
         draft: journey.draft,
@@ -122,9 +123,13 @@ export default function JourneyLayout({
       sx={{ width: "100%", height: "100%" }}
       spacing={1}
     >
-      <Publisher status={publisherStatus} />
-      <Stack direction="row" spacing={1} sx={{ padding: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ padding: 1, alignItems: "center" }}
+      >
         <JourneyStepper journeyId={journeyId} />
+        <Publisher status={publisherStatus} />
         <SaveButton
           journeyId={journeyId}
           disabled={globalJourneyErrors.size > 0}
