@@ -1,5 +1,5 @@
 import { Row } from "@clickhouse/client";
-import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
+import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
 import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
@@ -166,8 +166,11 @@ function getEdgePercentRaw({
   targetId,
   heritageMap,
   nodeProcessedMap,
-}: GetEdgePercentParams): number {
-  const originMapEntry = getUnsafe(heritageMap, originId);
+}: GetEdgePercentParams): number | null {
+  const originMapEntry = heritageMap.get(originId);
+  if (!originMapEntry) {
+    return null;
+  }
   if (!originMapEntry.children.has(targetId)) {
     logger().debug(
       {
@@ -177,12 +180,17 @@ function getEdgePercentRaw({
       },
       "targetId not in originId children",
     );
-    return 0;
+    return null;
   }
 
-  const originCount = getUnsafe(nodeProcessedMap, originId);
-  const targetCount = getUnsafe(nodeProcessedMap, targetId);
-  if (originCount === 0 || targetCount === 0) {
+  const originCount = nodeProcessedMap.get(originId);
+  const targetCount = nodeProcessedMap.get(targetId);
+  if (
+    originCount === undefined ||
+    originCount === 0 ||
+    targetCount === undefined ||
+    targetCount === 0
+  ) {
     logger().debug(
       {
         originCount,
@@ -192,14 +200,17 @@ function getEdgePercentRaw({
       },
       "either the origin or target have no processed nodes, returning 0 edge percent",
     );
-    return 0;
+    return null;
   }
 
   if (originMapEntry.children.size === 1) {
     return 1;
   }
 
-  const targetMapEntry = getUnsafe(heritageMap, targetId);
+  const targetMapEntry = heritageMap.get(targetId);
+  if (!targetMapEntry) {
+    return null;
+  }
   if (targetMapEntry.parents.size === 1) {
     return targetCount / originCount;
   }
@@ -218,19 +229,46 @@ function getEdgePercentRaw({
   return (originCount - siblingsCount) / originCount;
 }
 
-function getEdgePercent(params: GetEdgePercentParams): number {
+function getEdgePercent(params: GetEdgePercentParams): number | null {
   const raw = getEdgePercentRaw(params);
+  if (raw === null) {
+    return null;
+  }
   return round(raw * 100, 1);
 }
 
 export async function getJourneysStats({
   workspaceId,
-  journeyIds,
+  journeyIds: allJourneyIds,
 }: {
   workspaceId: string;
   journeyIds: string[];
 }): Promise<JourneyStats[]> {
   const qb = new ClickHouseQueryBuilder();
+  const journeyIds = (
+    await prisma().journey.findMany({
+      where: {
+        AND: {
+          id: {
+            in: allJourneyIds,
+          },
+          status: {
+            not: JourneyStatus.NotStarted,
+          },
+          definition: {
+            not: Prisma.AnyNull,
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    })
+  ).map((j) => j.id);
+  if (!journeyIds.length) {
+    return [];
+  }
+  console.log("journeyIds", journeyIds, allJourneyIds);
   const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
@@ -388,29 +426,37 @@ group by event, node_id;`;
       const nodeStats = statsMap.get(node.id);
 
       if (node.type === JourneyNodeType.SegmentSplitNode) {
+        const percent = getEdgePercent({
+          originId: node.id,
+          targetId: node.variant.falseChild,
+          heritageMap,
+          nodeProcessedMap,
+        });
+        if (percent === null) {
+          continue;
+        }
         stats.nodeStats[node.id] = {
           type: NodeStatsType.SegmentSplitNodeStats,
           proportions: {
-            falseChildEdge: getEdgePercent({
-              originId: node.id,
-              targetId: node.variant.falseChild,
-              heritageMap,
-              nodeProcessedMap,
-            }),
+            falseChildEdge: percent,
           },
         };
       } else if (node.type === JourneyNodeType.WaitForNode) {
         const segmentChild = node.segmentChildren[0];
         if (segmentChild) {
+          const percent = getEdgePercent({
+            originId: node.id,
+            targetId: segmentChild.id,
+            heritageMap,
+            nodeProcessedMap,
+          });
+          if (percent === null) {
+            continue;
+          }
           stats.nodeStats[node.id] = {
             type: NodeStatsType.WaitForNodeStats,
             proportions: {
-              segmentChildEdge: getEdgePercent({
-                originId: node.id,
-                targetId: segmentChild.id,
-                heritageMap,
-                nodeProcessedMap,
-              }),
+              segmentChildEdge: percent,
             },
           };
         }

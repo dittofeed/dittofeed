@@ -16,11 +16,10 @@ export interface PublisherUnpublishedStatus {
 
 export interface PublisherOutOfDateStatus {
   type: PublisherStatusType.OutOfDate;
-  // TODO add confirmation
   onPublish: () => void;
-  // TODO add confirmation
   onRevert: () => void;
   updateRequest: EphemeralRequestStatus<Error>;
+  disabled?: boolean;
 }
 
 export interface PublisherUpToDateStatus {
@@ -48,7 +47,10 @@ export function Publisher({ status }: PublisherProps) {
   return (
     <>
       <p>OutOfDate</p>
-      <Button onClick={status.onPublish} disabled={operationInProgress}>
+      <Button
+        onClick={status.onPublish}
+        disabled={operationInProgress || status.disabled}
+      >
         publish
       </Button>
       <Button onClick={status.onRevert} disabled={operationInProgress}>

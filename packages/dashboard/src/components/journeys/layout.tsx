@@ -92,16 +92,21 @@ export default function JourneyLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journey, journeyEdges, journeyNodes, journeyNodesIndex, apiBase]);
 
-  const publisherStatus: PublisherStatus = useMemo(() => {
-    if (!journey?.definition) {
+  const publisherStatus: PublisherStatus | null = useMemo(() => {
+    if (!journey) {
+      return null;
+    }
+    if (journey.status === "NotStarted") {
       return { type: PublisherStatusType.Unpublished };
     }
     if (!journey.draft) {
       return { type: PublisherStatusType.UpToDate };
     }
+    const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
     return {
       type: PublisherStatusType.OutOfDate,
       updateRequest: journeyUpdateRequest,
+      disabled: globalJourneyErrors.size > 0,
       onPublish: () => {
         console.log("publish");
       },
@@ -109,12 +114,11 @@ export default function JourneyLayout({
         console.log("revert");
       },
     } satisfies PublisherOutOfDateStatus;
-  }, [journey, journeyUpdateRequest]);
+  }, [journey, journeyUpdateRequest, journeyNodes]);
 
-  const globalJourneyErrors = useMemo(
-    () => getGlobalJourneyErrors({ nodes: journeyNodes }),
-    [journeyNodes],
-  );
+  if (!journey || !publisherStatus) {
+    return null;
+  }
 
   const body = journeyId ? (
     <Stack
@@ -129,10 +133,6 @@ export default function JourneyLayout({
       >
         <JourneyStepper journeyId={journeyId} />
         <Publisher status={publisherStatus} />
-        <SaveButton
-          journeyId={journeyId}
-          disabled={globalJourneyErrors.size > 0}
-        />
       </Stack>
       <Stack direction="column" sx={{ flex: 1 }}>
         {children}

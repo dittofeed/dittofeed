@@ -23,6 +23,7 @@ import EditableName from "../../../components/editableName";
 import { SubtleHeader } from "../../../components/headers";
 import InfoBox from "../../../components/infoBox";
 import InfoTooltip from "../../../components/infoTooltip";
+import { getGlobalJourneyErrors } from "../../../components/journeys/globalJourneyErrors";
 import JourneyLayout from "../../../components/journeys/layout";
 import { journeyDefinitionFromState } from "../../../components/journeys/store";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
@@ -138,6 +139,10 @@ function JourneyConfigure() {
   }
 
   const definitionFromState: JourneyDefinition | null = useMemo(() => {
+    const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
+    if (globalJourneyErrors.size > 0) {
+      return null;
+    }
     return journeyDefinitionFromState({
       state: {
         journeyNodes,
