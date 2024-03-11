@@ -14,7 +14,6 @@ import {
   Publisher,
   PublisherDraftToggle,
   PublisherDraftToggleStatus,
-  PublisherOutOfDateBaseStatus,
   PublisherOutOfDateStatus,
   PublisherOutOfDateToggleStatus,
   PublisherStatus,
@@ -24,7 +23,6 @@ import {
 } from "./publisher";
 import JourneyStepper from "./stepper";
 import {
-  JourneyResourceWithDefinitionForState,
   journeyDefinitionFromState,
   journeyStateToDraft,
   journeyToState,
@@ -221,12 +219,15 @@ export default function JourneyLayout({
     return { publisher, draftToggle };
   }, [
     journey,
-    journeyUpdateRequest,
+    workspace,
     journeyNodes,
-    isDraft,
-    setIsDraft,
-    journeyNodesIndex,
     journeyEdges,
+    journeyNodesIndex,
+    journeyUpdateRequest,
+    isDraft,
+    setJourneyUpdateRequest,
+    apiBase,
+    upsertJourney,
     resetJourneyState,
   ]);
 
