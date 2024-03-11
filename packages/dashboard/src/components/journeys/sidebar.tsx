@@ -6,11 +6,8 @@ import {
 import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import {
-  AdditionalJourneyNodeType,
-  JourneyUiNodeType,
-  JourneyUiNodeTypeProps,
-} from "../../lib/types";
+import { AdditionalJourneyNodeType, JourneyUiNodeType } from "../../lib/types";
+import { getWarningStyles } from "../../lib/warningTheme";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { JourneyNodeIcon, journeyNodeIcon } from "./nodeTypes/journeyNode";
@@ -117,13 +114,8 @@ function Sidebar() {
       {globalErrors.length > 0 && (
         <Typography
           sx={{
+            ...getWarningStyles(theme),
             p: 1,
-            borderColor: theme.palette.warning.light,
-            backgroundColor: theme.palette.warning.postIt,
-            color: theme.palette.warning.postItContrastText,
-            borderWidth: 2,
-            borderStyle: "solid",
-            borderRadius: 1,
           }}
         >
           There is an issue with is the journey. Please fix it before

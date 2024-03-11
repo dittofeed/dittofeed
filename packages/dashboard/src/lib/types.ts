@@ -156,6 +156,7 @@ export type AppState = {
   >;
   integrations: IntegrationResource[];
   sourceControlProvider?: SourceControlProviderEnum;
+  viewDraft: boolean;
 } & PageStoreContents &
   Pick<
     Config,
@@ -198,6 +199,7 @@ export interface AppActions {
   setDefaultSmsProvider: (
     defaultSmsProvider: DefaultSmsProviderResource,
   ) => void;
+  setViewDraft: (viewDraft: boolean) => void;
 }
 
 export interface SegmentIndexContent {

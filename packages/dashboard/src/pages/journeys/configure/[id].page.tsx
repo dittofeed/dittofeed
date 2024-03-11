@@ -258,19 +258,21 @@ function JourneyConfigure() {
           onChange={(e) => setJourneyName(e.target.value)}
         />
         <SubtleHeader>Can Be Run Multiple Times</SubtleHeader>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={canRunMultiple}
-              onChange={(e) => handleChangeRunMultiple(e.target.checked)}
-            />
-          }
-          label={
-            canRunMultiple
-              ? "Journey can run multiple times per user."
-              : "Journey can only run once per user."
-          }
-        />
+        <Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={canRunMultiple}
+                onChange={(e) => handleChangeRunMultiple(e.target.checked)}
+              />
+            }
+            label={
+              canRunMultiple
+                ? "Journey can run multiple times per user."
+                : "Journey can only run once per user."
+            }
+          />
+        </Box>
         <SubtleHeader>Journey Status</SubtleHeader>
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography variant="h5">{statusValue.label}</Typography>

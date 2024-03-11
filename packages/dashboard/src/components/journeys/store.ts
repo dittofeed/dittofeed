@@ -1603,10 +1603,9 @@ export function createConnections(params: CreateConnectionsParams): {
   };
 }
 
-export type JourneyResourceWithDraftForState = Overwrite<
-  Omit<JourneyResource, "id" | "status" | "workspaceId">,
-  { draft: JourneyDraft }
->;
+export type JourneyResourceWithDraftForState = Pick<JourneyResource, "name"> & {
+  draft: JourneyDraft;
+};
 
 export function journeyDraftToState({
   draft,

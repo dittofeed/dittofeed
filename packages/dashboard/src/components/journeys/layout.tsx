@@ -1,4 +1,4 @@
-import { Stack } from "@mui/material";
+import { Stack, useTheme } from "@mui/material";
 import {
   CompletionStatus,
   SavedJourneyResource,
@@ -24,6 +24,7 @@ import {
 import JourneyStepper from "./stepper";
 import {
   journeyDefinitionFromState,
+  journeyDraftToState,
   journeyStateToDraft,
   journeyToState,
   shouldDraftBeUpdated,
@@ -36,7 +37,7 @@ export default function JourneyLayout({
   children: React.ReactNode;
   journeyId?: string;
 }) {
-  const [isDraft, setIsDraft] = React.useState(true);
+  const theme = useTheme();
   const {
     apiBase,
     journeyNodes,
@@ -48,6 +49,8 @@ export default function JourneyLayout({
     setJourneyUpdateRequest,
     workspace,
     resetJourneyState,
+    viewDraft,
+    setViewDraft,
   } = useAppStorePick([
     "apiBase",
     "workspace",
@@ -59,6 +62,8 @@ export default function JourneyLayout({
     "setJourneyUpdateRequest",
     "upsertJourney",
     "resetJourneyState",
+    "viewDraft",
+    "setViewDraft",
   ]);
   const journey: SavedJourneyResource | null = useMemo(() => {
     if (journeys.type !== CompletionStatus.Successful) {
@@ -68,7 +73,11 @@ export default function JourneyLayout({
   }, [journeyId, journeys]);
 
   useEffect(() => {
-    if (!journey || workspace.type !== CompletionStatus.Successful) {
+    if (
+      !journey ||
+      workspace.type !== CompletionStatus.Successful ||
+      !viewDraft
+    ) {
       return;
     }
     if (
@@ -104,7 +113,14 @@ export default function JourneyLayout({
       },
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journey, journeyEdges, journeyNodes, journeyNodesIndex, apiBase]);
+  }, [
+    journey,
+    journeyEdges,
+    journeyNodes,
+    journeyNodesIndex,
+    apiBase,
+    viewDraft,
+  ]);
 
   const publisherStatuses: {
     publisher: PublisherStatus;
@@ -136,7 +152,10 @@ export default function JourneyLayout({
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       updateRequest: journeyUpdateRequest,
-      disabled: globalJourneyErrors.size > 0 || definitionFromState.isErr(),
+      disabled:
+        globalJourneyErrors.size > 0 ||
+        definitionFromState.isErr() ||
+        !viewDraft,
       onPublish: () => {
         if (definitionFromState.isErr()) {
           return;
@@ -210,10 +229,34 @@ export default function JourneyLayout({
     const draftToggle: PublisherOutOfDateToggleStatus = {
       type: PublisherStatusType.OutOfDate,
       updateRequest: journeyUpdateRequest,
-      isDraft,
+      isDraft: viewDraft,
       onToggle: ({ isDraft: newIsDraft }) => {
-        // FIXME
-        setIsDraft(newIsDraft);
+        setViewDraft(newIsDraft);
+        if (newIsDraft && journey.draft) {
+          const newState = journeyDraftToState({
+            name: journey.name,
+            draft: journey.draft,
+          });
+          resetJourneyState({
+            edges: newState.journeyEdges,
+            index: newState.journeyNodesIndex,
+            nodes: newState.journeyNodes,
+          });
+        } else {
+          const {
+            journeyEdges: edges,
+            journeyNodes: nodes,
+            journeyNodesIndex: index,
+          } = journeyToState({
+            definition: journey.definition,
+            name: journey.name,
+          });
+          resetJourneyState({
+            edges,
+            nodes,
+            index,
+          });
+        }
       },
     };
     return { publisher, draftToggle };
@@ -224,11 +267,12 @@ export default function JourneyLayout({
     journeyEdges,
     journeyNodesIndex,
     journeyUpdateRequest,
-    isDraft,
+    viewDraft,
     setJourneyUpdateRequest,
     apiBase,
     upsertJourney,
     resetJourneyState,
+    setViewDraft,
   ]);
 
   if (!journey || !publisherStatuses) {
@@ -236,19 +280,28 @@ export default function JourneyLayout({
   }
 
   const body = journeyId ? (
-    <Stack
-      direction="column"
-      sx={{ width: "100%", height: "100%" }}
-      spacing={1}
-    >
+    <Stack direction="column" sx={{ width: "100%", height: "100%" }}>
       <Stack
         direction="row"
         spacing={1}
-        sx={{ padding: 1, alignItems: "center" }}
+        sx={{
+          padding: 1,
+          alignItems: "center",
+          borderBottom: `2px solid ${theme.palette.grey[200]}`,
+        }}
       >
         <JourneyStepper journeyId={journeyId} />
+        <Stack
+          direction="row"
+          sx={{
+            width: theme.spacing(22),
+            alignItems: "center",
+            justifyContent: "flex-start",
+          }}
+        >
+          <PublisherDraftToggle status={publisherStatuses.draftToggle} />
+        </Stack>
         <Publisher status={publisherStatuses.publisher} />
-        <PublisherDraftToggle status={publisherStatuses.draftToggle} />
       </Stack>
       <Stack direction="column" sx={{ flex: 1 }}>
         {children}

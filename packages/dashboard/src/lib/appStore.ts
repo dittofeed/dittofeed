@@ -218,6 +218,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
         features: {},
+        viewDraft: true,
         upsertTraits: (traits) =>
           set((state) => {
             state.traits = Array.from(new Set(traits.concat(state.traits)));
@@ -797,6 +798,10 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setDefaultSmsProvider: (smsProvider) =>
           set((state) => {
             state.defaultSmsProvider = smsProvider;
+          }),
+        setViewDraft: (viewDraft) =>
+          set((state) => {
+            state.viewDraft = viewDraft;
           }),
         ...createJourneySlice(set, ...remaining),
         ...preloadedState,

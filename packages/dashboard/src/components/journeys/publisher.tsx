@@ -1,8 +1,9 @@
-import { Box, Button, FormControlLabel, Switch } from "@mui/material";
+import { Box, Button, FormControlLabel, Switch, useTheme } from "@mui/material";
 import {
   CompletionStatus,
   EphemeralRequestStatus,
 } from "isomorphic-lib/src/types";
+import { getWarningStyles } from "../../lib/warningTheme";
 
 export enum PublisherStatusType {
   Unpublished = "Unpublished",
@@ -39,17 +40,25 @@ export interface PublisherProps {
 }
 
 export function Publisher({ status }: PublisherProps) {
+  const theme = useTheme();
   if (status.type === PublisherStatusType.Unpublished) {
-    return <Box>Unpublished</Box>;
+    return null;
   }
   if (status.type === PublisherStatusType.UpToDate) {
-    return <Box>UpToDate</Box>;
+    return null;
   }
   const operationInProgress =
     status.updateRequest.type === CompletionStatus.InProgress;
   return (
     <>
-      <p>OutOfDate</p>
+      <Box
+        sx={{
+          ...getWarningStyles(theme),
+          p: 1,
+        }}
+      >
+        Unpublished Changes.
+      </Box>
       <Button
         onClick={status.onPublish}
         disabled={operationInProgress || status.disabled}
@@ -95,7 +104,7 @@ export function PublisherDraftToggle({ status }: PublisherDraftToggleProps) {
           name="draft"
         />
       }
-      label="Draft View"
+      label={status.isDraft ? "Draft View" : "Published View"}
     />
   );
 }
