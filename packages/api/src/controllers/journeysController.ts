@@ -72,7 +72,11 @@ export default async function journeysController(fastify: FastifyInstance) {
       }
 
       const canCreate = workspaceId && name;
-      const nullableDraft = definition ? Prisma.DbNull : draft;
+      // null out the draft when the definition is updated or when the draft is
+      // explicitly set to null
+      const nullableDraft =
+        definition || draft === null ? Prisma.DbNull : draft;
+
       if (canCreate) {
         journey = await prisma().journey.upsert({
           where: {

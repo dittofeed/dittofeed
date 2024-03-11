@@ -12,15 +12,22 @@ import MainLayout from "../mainLayout";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import {
   Publisher,
+  PublisherDraftToggle,
+  PublisherDraftToggleStatus,
+  PublisherOutOfDateBaseStatus,
   PublisherOutOfDateStatus,
+  PublisherOutOfDateToggleStatus,
   PublisherStatus,
   PublisherStatusType,
+  PublisherUnpublishedStatus,
+  PublisherUpToDateStatus,
 } from "./publisher";
-import SaveButton from "./saveButton";
 import JourneyStepper from "./stepper";
 import {
+  JourneyResourceWithDefinitionForState,
   journeyDefinitionFromState,
   journeyStateToDraft,
+  journeyToState,
   shouldDraftBeUpdated,
 } from "./store";
 
@@ -31,6 +38,7 @@ export default function JourneyLayout({
   children: React.ReactNode;
   journeyId?: string;
 }) {
+  const [isDraft, setIsDraft] = React.useState(true);
   const {
     apiBase,
     journeyNodes,
@@ -40,8 +48,11 @@ export default function JourneyLayout({
     journeyNodesIndex,
     upsertJourney,
     setJourneyUpdateRequest,
+    workspace,
+    resetJourneyState,
   } = useAppStorePick([
     "apiBase",
+    "workspace",
     "journeyNodes",
     "journeyEdges",
     "journeyNodesIndex",
@@ -49,6 +60,7 @@ export default function JourneyLayout({
     "journeyUpdateRequest",
     "setJourneyUpdateRequest",
     "upsertJourney",
+    "resetJourneyState",
   ]);
   const journey: SavedJourneyResource | null = useMemo(() => {
     if (journeys.type !== CompletionStatus.Successful) {
@@ -58,7 +70,7 @@ export default function JourneyLayout({
   }, [journeyId, journeys]);
 
   useEffect(() => {
-    if (!journey) {
+    if (!journey || workspace.type !== CompletionStatus.Successful) {
       return;
     }
     if (
@@ -96,15 +108,24 @@ export default function JourneyLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journey, journeyEdges, journeyNodes, journeyNodesIndex, apiBase]);
 
-  const publisherStatus: PublisherStatus | null = useMemo(() => {
-    if (!journey) {
+  const publisherStatuses: {
+    publisher: PublisherStatus;
+    draftToggle: PublisherDraftToggleStatus;
+  } | null = useMemo(() => {
+    if (!journey || workspace.type !== CompletionStatus.Successful) {
       return null;
     }
     if (journey.status === "NotStarted") {
-      return { type: PublisherStatusType.Unpublished };
+      const publisher: PublisherUnpublishedStatus = {
+        type: PublisherStatusType.Unpublished,
+      };
+      return { publisher, draftToggle: publisher };
     }
     if (!journey.draft) {
-      return { type: PublisherStatusType.UpToDate };
+      const publisher: PublisherUpToDateStatus = {
+        type: PublisherStatusType.UpToDate,
+      };
+      return { publisher, draftToggle: publisher };
     }
     const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
     const definitionFromState = journeyDefinitionFromState({
@@ -114,20 +135,102 @@ export default function JourneyLayout({
         journeyNodesIndex,
       },
     });
-    return {
+    const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       updateRequest: journeyUpdateRequest,
       disabled: globalJourneyErrors.size > 0 || definitionFromState.isErr(),
       onPublish: () => {
-        console.log("publish");
+        if (definitionFromState.isErr()) {
+          return;
+        }
+
+        const journeyUpdate: UpsertJourneyResource = {
+          id: journey.id,
+          workspaceId: workspace.value.id,
+          definition: definitionFromState.value,
+        };
+
+        apiRequestHandlerFactory({
+          request: journeyUpdateRequest,
+          setRequest: setJourneyUpdateRequest,
+          responseSchema: SavedJourneyResource,
+          setResponse: (response) => {
+            upsertJourney(response);
+          },
+          requestConfig: {
+            method: "PUT",
+            url: `${apiBase}/api/journeys`,
+            data: journeyUpdate,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        })();
       },
       onRevert: () => {
-        console.log("revert");
-      },
-    } satisfies PublisherOutOfDateStatus;
-  }, [journey, journeyUpdateRequest, journeyNodes]);
+        const journeyUpdate: UpsertJourneyResource = {
+          id: journey.id,
+          workspaceId: workspace.value.id,
+          draft: null,
+        };
 
-  if (!journey || !publisherStatus) {
+        apiRequestHandlerFactory({
+          request: journeyUpdateRequest,
+          setRequest: setJourneyUpdateRequest,
+          responseSchema: SavedJourneyResource,
+          setResponse: (response) => {
+            upsertJourney(response);
+            const { definition, name } = response;
+
+            if (definition) {
+              const {
+                journeyEdges: edges,
+                journeyNodes: nodes,
+                journeyNodesIndex: index,
+              } = journeyToState({
+                definition,
+                name,
+              });
+              resetJourneyState({
+                edges,
+                nodes,
+                index,
+              });
+            }
+          },
+          requestConfig: {
+            method: "PUT",
+            url: `${apiBase}/api/journeys`,
+            data: journeyUpdate,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        })();
+      },
+    };
+    const draftToggle: PublisherOutOfDateToggleStatus = {
+      type: PublisherStatusType.OutOfDate,
+      updateRequest: journeyUpdateRequest,
+      isDraft,
+      onToggle: ({ isDraft: newIsDraft }) => {
+        // FIXME
+        setIsDraft(newIsDraft);
+      },
+    };
+    return { publisher, draftToggle };
+  }, [
+    journey,
+    journeyUpdateRequest,
+    journeyNodes,
+    isDraft,
+    setIsDraft,
+    journeyNodesIndex,
+    journeyEdges,
+    resetJourneyState,
+  ]);
+
+  if (!journey || !publisherStatuses) {
     return null;
   }
 
@@ -143,7 +246,8 @@ export default function JourneyLayout({
         sx={{ padding: 1, alignItems: "center" }}
       >
         <JourneyStepper journeyId={journeyId} />
-        <Publisher status={publisherStatus} />
+        <Publisher status={publisherStatuses.publisher} />
+        <PublisherDraftToggle status={publisherStatuses.draftToggle} />
       </Stack>
       <Stack direction="column" sx={{ flex: 1 }}>
         {children}

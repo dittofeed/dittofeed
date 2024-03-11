@@ -1,4 +1,4 @@
-import { Box, Button } from "@mui/material";
+import { Box, Button, FormControlLabel, Switch } from "@mui/material";
 import {
   CompletionStatus,
   EphemeralRequestStatus,
@@ -14,17 +14,20 @@ export interface PublisherUnpublishedStatus {
   type: PublisherStatusType.Unpublished;
 }
 
-export interface PublisherOutOfDateStatus {
+export interface PublisherOutOfDateBaseStatus {
   type: PublisherStatusType.OutOfDate;
-  onPublish: () => void;
-  onRevert: () => void;
   updateRequest: EphemeralRequestStatus<Error>;
-  disabled?: boolean;
 }
 
 export interface PublisherUpToDateStatus {
   type: PublisherStatusType.UpToDate;
 }
+
+export type PublisherOutOfDateStatus = PublisherOutOfDateBaseStatus & {
+  onPublish: () => void;
+  onRevert: () => void;
+  disabled?: boolean;
+};
 
 export type PublisherStatus =
   | PublisherUnpublishedStatus
@@ -60,19 +63,39 @@ export function Publisher({ status }: PublisherProps) {
   );
 }
 
+export type PublisherOutOfDateToggleStatus = PublisherOutOfDateBaseStatus & {
+  isDraft: boolean;
+  onToggle: ({ isDraft }: { isDraft: boolean }) => void;
+};
+
 export type PublisherDraftToggleStatus =
   | PublisherUnpublishedStatus
-  | (PublisherOutOfDateStatus & { isDraft: boolean; onToggle: () => void })
+  | PublisherOutOfDateToggleStatus
   | PublisherUpToDateStatus;
 
 export interface PublisherDraftToggleProps {
   status: PublisherDraftToggleStatus;
 }
 
-export function PublisherDraftToggle(props: PublisherDraftToggleProps) {
+export function PublisherDraftToggle({ status }: PublisherDraftToggleProps) {
+  if (status.type === PublisherStatusType.Unpublished) {
+    return null;
+  }
+  if (status.type === PublisherStatusType.UpToDate) {
+    return null;
+  }
   return (
-    <div>
-      <h1>PublisherDraftToggle</h1>
-    </div>
+    <FormControlLabel
+      control={
+        <Switch
+          checked={status.isDraft}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            status.onToggle({ isDraft: event.target.checked });
+          }}
+          name="draft"
+        />
+      }
+      label="Draft View"
+    />
   );
 }

@@ -1072,13 +1072,18 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         node.data.title = title;
       }
     }),
+  resetJourneyState: ({ nodes, edges, index }) =>
+    set((state) => {
+      state.journeyNodes = nodes;
+      state.journeyEdges = edges;
+      state.journeyNodesIndex = index;
+    }),
 });
 
 export function journeyBranchToState(
   initialNodeId: string,
   nodesState: Node<JourneyNodeUiProps>[],
   edgesState: Edge<JourneyUiEdgeProps>[],
-  // FIXME maybe i can abstract over this
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap,
   terminateBefore?: string,
@@ -1378,10 +1383,10 @@ export function journeyBranchToState(
   };
 }
 
-export type JourneyResourceWithDefinitionForState = Overwrite<
-  Omit<JourneyResource, "id" | "status" | "workspaceId">,
-  { definition: JourneyDefinition }
->;
+export type JourneyResourceWithDefinitionForState = Pick<
+  JourneyResource,
+  "name"
+> & { definition: JourneyDefinition };
 
 export function journeyToState(
   journey: JourneyResourceWithDefinitionForState,

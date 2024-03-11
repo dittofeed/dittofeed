@@ -296,23 +296,28 @@ export interface SegmentEditorContents extends SegmentEditorState {
   setSegmentUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
+export type JourneyNodesIndex = Record<string, number>;
+
 export interface JourneyState {
   journeyName: string;
   journeyDraggedComponentType: JourneyUiBodyNodeTypeProps["type"] | null;
   journeySelectedNodeId: string | null;
   journeyNodes: Node<JourneyNodeUiProps>[];
-  journeyNodesIndex: Record<string, number>;
+  journeyNodesIndex: JourneyNodesIndex;
   journeyEdges: Edge<JourneyUiEdgeProps>[];
   journeyUpdateRequest: EphemeralRequestStatus<Error>;
   journeyStats: Record<string, JourneyStats>;
   journeyStatsRequest: EphemeralRequestStatus<Error>;
 }
 
+export type JourneyUiNode = Node<JourneyNodeUiProps>;
+export type JourneyUiEdge = Edge<JourneyUiEdgeProps>;
+
 export interface AddNodesParams {
   source: string;
   target: string;
-  nodes: Node<JourneyNodeUiProps>[];
-  edges: Edge[];
+  nodes: JourneyUiNode[];
+  edges: JourneyUiEdge[];
 }
 
 export interface JourneyContent extends JourneyState {
@@ -333,6 +338,11 @@ export interface JourneyContent extends JourneyState {
   updateLabelNode: (nodeId: string, title: string) => void;
   setJourneyStatsRequest: (request: EphemeralRequestStatus<Error>) => void;
   upsertJourneyStats: (stats: JourneyStatsResponse) => void;
+  resetJourneyState: (state: {
+    edges: JourneyUiEdge[];
+    nodes: JourneyUiNode[];
+    index: JourneyNodesIndex;
+  }) => void;
 }
 
 export type PageStoreContents = SegmentEditorContents &

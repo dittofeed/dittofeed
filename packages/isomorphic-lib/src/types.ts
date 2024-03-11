@@ -1421,17 +1421,21 @@ export const SavedJourneyResource = Type.Union([
 export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
 
 export const UpsertJourneyResource = Type.Composite([
+  Type.Partial(
+    Type.Omit(
+      Type.Object({
+        ...baseJourneyResource,
+        definition: JourneyDefinition,
+        status: Type.Enum(JourneyResourceStatusEnum),
+      }),
+      ["draft"],
+    ),
+  ),
   Type.Object({
     id: Type.String(),
     workspaceId: Type.String(),
+    draft: Type.Optional(Nullable(JourneyDraft)),
   }),
-  Type.Partial(
-    Type.Object({
-      ...baseJourneyResource,
-      definition: JourneyDefinition,
-      status: Type.Enum(JourneyResourceStatusEnum),
-    }),
-  ),
 ]);
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
