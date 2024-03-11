@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import {
   CompletionStatus,
+  JourneyDefinition,
   JourneyResourceStatus,
   SavedJourneyResource,
   UpsertJourneyResource,
@@ -23,8 +24,9 @@ import { SubtleHeader } from "../../../components/headers";
 import InfoBox from "../../../components/infoBox";
 import InfoTooltip from "../../../components/infoTooltip";
 import JourneyLayout from "../../../components/journeys/layout";
+import { journeyDefinitionFromState } from "../../../components/journeys/store";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
-import { useAppStore, useAppStorePick } from "../../../lib/appStore";
+import { useAppStorePick } from "../../../lib/appStore";
 import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
 import {
   JourneyGetServerSideProps,
@@ -104,6 +106,9 @@ function JourneyConfigure() {
     journeys,
     workspace,
     member,
+    journeyNodes,
+    journeyEdges,
+    journeyNodesIndex,
   } = useAppStorePick([
     "journeyUpdateRequest",
     "apiBase",
@@ -114,6 +119,9 @@ function JourneyConfigure() {
     "journeys",
     "workspace",
     "member",
+    "journeyNodes",
+    "journeyEdges",
+    "journeyNodesIndex",
   ]);
 
   const journey =
@@ -129,38 +137,47 @@ function JourneyConfigure() {
     throw new Error("Journey not found.");
   }
 
-  // with new flow not started journeys will never have a defined definition
-  // however need backwards compatible
-  const statusValue2: StatusCopy = useMemo(() => {
+  const definitionFromState: JourneyDefinition | null = useMemo(() => {
+    return journeyDefinitionFromState({
+      state: {
+        journeyNodes,
+        journeyEdges,
+        journeyNodesIndex,
+      },
+    }).unwrapOr(null);
+  }, [journeyNodes, journeyEdges, journeyNodesIndex]);
+
+  const statusValue: StatusCopy = useMemo(() => {
+    if (journey.status === "NotStarted" && !definitionFromState) {
+      return {
+        label: "Unfinished",
+        disabled: true,
+        currentDescription:
+          "This journey has not been finished and can't be started.",
+        nextStatusLabel: "Disabled",
+        nextDescription: "Finish configuring this journey to progress",
+      };
+    }
     if (journey.status === "Broadcast") {
       throw new Error("Broadcast journeys cannot be configured.");
     }
-
-    // definition will only be defined with the NotStarted status in the legacy
-    // flow. moving forward, we'll only save the definition when we start the journey
-    if (journey.status !== "NotStarted" || journey.definition) {
-      return statusValues[journey.status];
-    }
-  }, []);
-
-  const statusValue: StatusCopy = !journey
-    ? {
-        label: "Unsaved",
-        disabled: true,
-        currentDescription: "This journey is both unsaved, and not started.",
-        nextStatusLabel: "Disabled",
-        nextDescription: "Save this journey in order to progress.",
-      }
-    : statusValues[journey.status];
+    return statusValues[journey.status];
+  }, [journey, definitionFromState]);
 
   if (!id || workspace.type !== CompletionStatus.Successful) {
     return null;
   }
 
   const handleChangeStatus = () => {
+    const definition =
+      definitionFromState && statusValue.nextStatus === "Running"
+        ? definitionFromState
+        : undefined;
+
     const journeyUpdate: UpsertJourneyResource = {
       id,
       workspaceId: workspace.value.id,
+      definition,
       status: statusValue.nextStatus,
     };
     apiRequestHandlerFactory({
