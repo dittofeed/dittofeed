@@ -18,7 +18,11 @@ import {
 } from "./publisher";
 import SaveButton from "./saveButton";
 import JourneyStepper from "./stepper";
-import { journeyStateToDraft, shouldDraftBeUpdated } from "./store";
+import {
+  journeyDefinitionFromState,
+  journeyStateToDraft,
+  shouldDraftBeUpdated,
+} from "./store";
 
 export default function JourneyLayout({
   journeyId,
@@ -103,10 +107,17 @@ export default function JourneyLayout({
       return { type: PublisherStatusType.UpToDate };
     }
     const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
+    const definitionFromState = journeyDefinitionFromState({
+      state: {
+        journeyNodes,
+        journeyEdges,
+        journeyNodesIndex,
+      },
+    });
     return {
       type: PublisherStatusType.OutOfDate,
       updateRequest: journeyUpdateRequest,
-      disabled: globalJourneyErrors.size > 0,
+      disabled: globalJourneyErrors.size > 0 || definitionFromState.isErr(),
       onPublish: () => {
         console.log("publish");
       },
