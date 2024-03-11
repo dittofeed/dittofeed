@@ -1,4 +1,11 @@
-import { Box, Button, FormControlLabel, Switch, useTheme } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  FormControlLabel,
+  Switch,
+  useTheme,
+} from "@mui/material";
 import {
   CompletionStatus,
   EphemeralRequestStatus,
@@ -63,11 +70,14 @@ export function Publisher({ status }: PublisherProps) {
         onClick={status.onPublish}
         disabled={operationInProgress || status.disabled}
       >
-        publish
+        Publish
       </Button>
       <Button onClick={status.onRevert} disabled={operationInProgress}>
-        revert
+        Revert
       </Button>
+      {status.updateRequest.type === CompletionStatus.InProgress && (
+        <CircularProgress size="1rem" />
+      )}
     </>
   );
 }
