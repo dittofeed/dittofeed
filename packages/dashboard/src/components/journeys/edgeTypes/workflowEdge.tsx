@@ -1,5 +1,6 @@
+import { Box, useTheme } from "@mui/material";
 import { round } from "isomorphic-lib/src/numbers";
-import { FeatureNamesEnum, NodeStatsType } from "isomorphic-lib/src/types";
+import { NodeStatsType } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "reactflow";
@@ -22,14 +23,13 @@ export default function WorkflowEdge({
   style,
   markerEnd,
 }: EdgeProps<JourneyUiEdgeProps>) {
+  const theme = useTheme();
   const path = useRouter();
 
-  const { journeyStats, journeyDraggedComponentType, features } =
-    useAppStorePick([
-      "journeyStats",
-      "journeyDraggedComponentType",
-      "features",
-    ]);
+  const { journeyStats, journeyDraggedComponentType } = useAppStorePick([
+    "journeyStats",
+    "journeyDraggedComponentType",
+  ]);
 
   const isDragging = !!journeyDraggedComponentType;
   const [isDropzoneActive, setDropzoneActive] = useState<boolean>(false);
@@ -159,19 +159,29 @@ export default function WorkflowEdge({
       </g>
       {getLabelText().length > 0 && (
         <EdgeLabelRenderer>
-          <div
-            style={{
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              transform: `translate(${edgeCenterX - 30}px,${edgeCenterY - 30}px)`,
               position: "absolute",
-              transform: `translate(-50%, -50%) translate(${edgeCenterX}px,${edgeCenterY - 40}px)`,
-              fontSize: 12,
-              fontWeight: 700,
-              padding: "8px",
-              backgroundColor: "#f0f0f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-            className="nodrag nopan"
+            className="nodrag nopan journey-percent"
           >
-            {`${getLabelText()} %`}
-          </div>
+            <Box
+              sx={{
+                fontWeight: 700,
+                fontSize: 12,
+                padding: 1,
+                backgroundColor: "#f0f0f0",
+              }}
+            >
+              {`${getLabelText()} %`}
+            </Box>
+          </Box>
         </EdgeLabelRenderer>
       )}
     </>

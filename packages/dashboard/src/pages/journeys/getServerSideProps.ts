@@ -1,11 +1,10 @@
-import { getFeatures } from "backend-lib/src/features";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { CompletionStatus, FeatureNamesEnum } from "isomorphic-lib/src/types";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
