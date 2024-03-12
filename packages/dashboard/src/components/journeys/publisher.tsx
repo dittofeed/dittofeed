@@ -3,6 +3,7 @@ import {
   Button,
   CircularProgress,
   FormControlLabel,
+  Stack,
   Switch,
   useTheme,
 } from "@mui/material";
@@ -11,6 +12,7 @@ import {
   EphemeralRequestStatus,
 } from "isomorphic-lib/src/types";
 import { getWarningStyles } from "../../lib/warningTheme";
+import { useEffect, useState } from "react";
 
 export enum PublisherStatusType {
   Unpublished = "Unpublished",
@@ -46,18 +48,33 @@ export interface PublisherProps {
   status: PublisherStatus;
 }
 
-export function Publisher({ status }: PublisherProps) {
+function PublisherInner({
+  showProgress,
+  onPublish,
+  onRevert,
+  disablePublish,
+  disableRevert,
+  invisible,
+}: {
+  invisible?: boolean;
+  onPublish: () => void;
+  onRevert: () => void;
+  showProgress: boolean;
+  disableRevert: boolean;
+  disablePublish: boolean;
+}) {
   const theme = useTheme();
-  if (status.type === PublisherStatusType.Unpublished) {
-    return null;
-  }
-  if (status.type === PublisherStatusType.UpToDate) {
-    return null;
-  }
-  const operationInProgress =
-    status.updateRequest.type === CompletionStatus.InProgress;
   return (
-    <>
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={1}
+      sx={{
+        transition: "visibility 0.4s, opacity 0.4s linear",
+        visibility: invisible ? "hidden" : undefined,
+        opacity: invisible ? 0 : undefined,
+      }}
+    >
       <Box
         sx={{
           ...getWarningStyles(theme),
@@ -66,19 +83,72 @@ export function Publisher({ status }: PublisherProps) {
       >
         Unpublished Changes.
       </Box>
-      <Button
-        onClick={status.onPublish}
-        disabled={operationInProgress || status.disabled}
-      >
+      <Button onClick={onPublish} disabled={disablePublish}>
         Publish
       </Button>
-      <Button onClick={status.onRevert} disabled={operationInProgress}>
+      <Button onClick={onRevert} disabled={disableRevert}>
         Revert
       </Button>
-      {status.updateRequest.type === CompletionStatus.InProgress && (
-        <CircularProgress size="1rem" />
-      )}
-    </>
+      {showProgress && <CircularProgress size="1rem" />}
+    </Stack>
+  );
+}
+
+export function Publisher({ status }: PublisherProps) {
+  const [showProgress, setShowProgress] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    if (
+      status.type === PublisherStatusType.OutOfDate &&
+      status.updateRequest.type === CompletionStatus.InProgress
+    ) {
+      setShowProgress(true);
+    } else {
+      timeoutId = setTimeout(() => setShowProgress(false), 500);
+    }
+    return () => clearTimeout(timeoutId); // Cleanup timeout
+  }, [status]);
+
+  if (showProgress) {
+    return (
+      <PublisherInner
+        showProgress={showProgress}
+        onPublish={() => {}}
+        onRevert={() => {}}
+        disablePublish
+        disableRevert
+      />
+    );
+  }
+
+  if (
+    status.type === PublisherStatusType.Unpublished ||
+    status.type === PublisherStatusType.UpToDate
+  ) {
+    return (
+      <PublisherInner
+        showProgress={showProgress}
+        onPublish={() => {}}
+        onRevert={() => {}}
+        invisible
+        disablePublish
+        disableRevert
+      />
+    );
+  }
+
+  const operationInProgress =
+    status.updateRequest.type === CompletionStatus.InProgress;
+
+  return (
+    <PublisherInner
+      showProgress={showProgress}
+      onPublish={status.onPublish}
+      onRevert={status.onRevert}
+      disablePublish={operationInProgress || Boolean(status.disabled)}
+      disableRevert={operationInProgress}
+    />
   );
 }
 

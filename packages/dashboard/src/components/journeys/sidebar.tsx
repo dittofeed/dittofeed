@@ -21,9 +21,10 @@ const SIDEBAR_NODE_TYPES: JourneyUiBodyNodeTypeProps["type"][] = [
 
 function Sidebar() {
   const theme = useTheme();
-  const { setDraggedComponentType, journeyNodes } = useAppStorePick([
+  const { setDraggedComponentType, journeyNodes, viewDraft } = useAppStorePick([
     "setDraggedComponentType",
     "journeyNodes",
+    "viewDraft",
   ]);
 
   const isEventEntry = useMemo(
@@ -56,7 +57,8 @@ function Sidebar() {
     SIDEBAR_NODE_TYPES.map((t) => [t, journeyNodeIcon(t)]);
 
   const nodeTypesEls = nodeTypes.map(([t, Icon]) => {
-    const isDisabled = isEventEntry && t === JourneyNodeType.WaitForNode;
+    const isDisabled =
+      !viewDraft || (isEventEntry && t === JourneyNodeType.WaitForNode);
 
     return (
       <Stack

@@ -111,6 +111,7 @@ export default function apiRequestHandlerFactory<D, S extends TSchema>({
       type: CompletionStatus.InProgress,
     });
     let response: AxiosResponse;
+
     try {
       response = await axios(requestConfig);
     } catch (e) {

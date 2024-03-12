@@ -171,6 +171,7 @@ export default function JourneyLayout({
           request: journeyUpdateRequest,
           setRequest: setJourneyUpdateRequest,
           responseSchema: SavedJourneyResource,
+          onSuccessNotice: "Published new Journey version.",
           setResponse: (response) => {
             upsertJourney(response);
           },
@@ -195,6 +196,7 @@ export default function JourneyLayout({
           request: journeyUpdateRequest,
           setRequest: setJourneyUpdateRequest,
           responseSchema: SavedJourneyResource,
+          onSuccessNotice: "Reverted Journey to published version.",
           setResponse: (response) => {
             upsertJourney(response);
             const { definition, name } = response;
@@ -287,6 +289,7 @@ export default function JourneyLayout({
         sx={{
           padding: 1,
           alignItems: "center",
+          height: theme.spacing(8),
           borderBottom: `2px solid ${theme.palette.grey[200]}`,
         }}
       >
