@@ -2,6 +2,11 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControlLabel,
   Stack,
   Switch,
@@ -46,6 +51,7 @@ export type PublisherStatus =
 
 export interface PublisherProps {
   status: PublisherStatus;
+  title: string;
 }
 
 function PublisherInner({
@@ -55,6 +61,7 @@ function PublisherInner({
   disablePublish,
   disableRevert,
   invisible,
+  title,
 }: {
   invisible?: boolean;
   onPublish: () => void;
@@ -62,7 +69,9 @@ function PublisherInner({
   showProgress: boolean;
   disableRevert: boolean;
   disablePublish: boolean;
+  title: string;
 }) {
+  const [publishConfirmationOpen, setPublishConfirmationOpen] = useState(false);
   const theme = useTheme();
   return (
     <Stack
@@ -83,13 +92,44 @@ function PublisherInner({
       >
         Unpublished Changes.
       </Box>
-      <Button onClick={onPublish} disabled={disablePublish}>
+      <Button
+        onClick={() => {
+          setPublishConfirmationOpen(true);
+        }}
+        disabled={disablePublish}
+      >
         Publish
       </Button>
       <Button onClick={onRevert} disabled={disableRevert}>
         Revert
       </Button>
       {showProgress && <CircularProgress size="1rem" />}
+      <Dialog
+        open={publishConfirmationOpen}
+        onClose={() => setPublishConfirmationOpen(false)}
+      >
+        <DialogTitle>Publish {title}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to publish {title}?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPublishConfirmationOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              onPublish();
+              setPublishConfirmationOpen(false);
+            }}
+            color="primary"
+            autoFocus
+          >
+            Confirm Publish
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }
@@ -101,14 +141,17 @@ export function Publisher({ status }: PublisherProps) {
     let timeoutId: ReturnType<typeof setTimeout>;
     if (
       status.type === PublisherStatusType.OutOfDate &&
-      status.updateRequest.type === CompletionStatus.InProgress
+      status.updateRequest.type === CompletionStatus.InProgress &&
+      !showProgress
     ) {
       setShowProgress(true);
-    } else {
-      timeoutId = setTimeout(() => setShowProgress(false), 500);
+    } else if (showProgress) {
+      timeoutId = setTimeout(() => {
+        setShowProgress(false);
+      }, 500);
     }
     return () => clearTimeout(timeoutId); // Cleanup timeout
-  }, [status]);
+  }, [status, showProgress]);
 
   if (showProgress) {
     return (

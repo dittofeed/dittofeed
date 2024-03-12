@@ -500,6 +500,7 @@ function DelayNodeFields({
     <>
       <Select
         value={nodeProps.variant.type}
+        disabled={disabled}
         onChange={(e) => {
           updateJourneyNodeData(nodeId, (node) => {
             const props = node.data.nodeTypeProps;

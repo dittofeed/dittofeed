@@ -376,7 +376,13 @@ export function JourneyNode({
     config.body
   );
 
-  const stats = isSelected && journeyStats[journeyId]?.nodeStats[id];
+  const stats = journeyStats[journeyId]?.nodeStats[id];
+  const channelStats =
+    isSelected &&
+    stats?.type === NodeStatsType.MessageNodeStats &&
+    stats.channelStats
+      ? { ...stats.channelStats, sendRate: stats.sendRate }
+      : null;
 
   const contents = (
     <Stack
@@ -438,7 +444,7 @@ export function JourneyNode({
         alignItems="center"
         justifyContent="space-between"
         sx={{
-          padding: stats ? 1 : 0,
+          padding: channelStats ? 1 : 0,
           backgroundColor: "white",
           borderStyle: "solid",
           width: JOURNEY_NODE_WIDTH,
@@ -446,43 +452,38 @@ export function JourneyNode({
           borderBottomRightRadius: 8,
           borderColor,
           borderWidth: "0 2px 2px 2px",
-          opacity: stats ? 1 : 0,
-          visibility: stats ? "visible" : "hidden",
+          opacity: channelStats ? 1 : 0,
+          visibility: channelStats ? "visible" : "hidden",
           transition:
             "height .2s ease, padding-top .2s ease, padding-bottom .2s ease, opacity .2s ease",
-          height: stats ? undefined : 0,
+          height: channelStats ? undefined : 0,
         }}
       >
-        {stats &&
-        stats.type === NodeStatsType.MessageNodeStats &&
-        stats.channelStats ? (
+        {channelStats ? (
           <>
-            <StatCategory label="Sent" rate={stats.sendRate} />
-            <StatCategory
-              label="Delivered"
-              rate={stats.channelStats.deliveryRate}
-            />
+            <StatCategory label="Sent" rate={channelStats.sendRate} />
+            <StatCategory label="Delivered" rate={channelStats.deliveryRate} />
             <StatCategory
               label="Opened"
               rate={
-                stats.channelStats.type === ChannelType.Email
-                  ? stats.channelStats.openRate
+                channelStats.type === ChannelType.Email
+                  ? channelStats.openRate
                   : "N/A"
               }
             />
             <StatCategory
               label="Clicked"
               rate={
-                stats.channelStats.type === ChannelType.Email
-                  ? stats.channelStats.clickRate
+                channelStats.type === ChannelType.Email
+                  ? channelStats.clickRate
                   : "N/A"
               }
             />
             <StatCategory
               label="Spam"
               rate={
-                stats.channelStats.type === ChannelType.Email
-                  ? stats.channelStats.spamRate
+                channelStats.type === ChannelType.Email
+                  ? channelStats.spamRate
                   : "N/A"
               }
             />

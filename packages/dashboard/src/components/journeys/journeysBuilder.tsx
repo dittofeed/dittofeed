@@ -75,6 +75,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     workspace,
     upsertJourneyStats,
     setJourneyStatsRequest,
+    viewDraft,
   } = useAppStorePick([
     "apiBase",
     "setNodes",
@@ -86,6 +87,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "workspace",
     "setJourneyStatsRequest",
     "upsertJourneyStats",
+    "viewDraft",
   ]);
 
   useJourneyStats({
@@ -166,7 +168,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
         nodesConnectable={false}
         zoomOnDoubleClick={false}
       >
-        <NodeEditor />
+        <NodeEditor disabled={!viewDraft} />
         <Panel position="top-left">
           <Sidebar />
         </Panel>
