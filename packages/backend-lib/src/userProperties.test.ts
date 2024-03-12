@@ -158,37 +158,35 @@ describe("findAllUserPropertyAssignments", () => {
     });
   });
 
-  describe.only("when a user property value is a large number expressed as a string", () => {
-    describe("when the value is a string representation of a number", () => {
-      it("foo", async () => {
-        // Create a user property
-        const up = await prisma().userProperty.create({
-          data: {
-            workspaceId: workspace.id,
-            name: "largeNumberProp",
-            definition: {
-              type: UserPropertyDefinitionType.Trait,
-              path: "largeNumber",
-            } satisfies UserPropertyDefinition,
-          },
-        });
-
-        const assignments: UserPropertyBulkUpsertItem[] = [
-          {
-            workspaceId: workspace.id,
-            userId: "userId",
-            userPropertyId: up.id,
-            value: "45600136110322479816267",
-          },
-        ];
-
-        await upsertBulkUserPropertyAssignments({ data: assignments });
-        const actualAssignments = await findAllUserPropertyAssignments({
-          userId: "userId",
+  describe("when a user property value is a large number expressed as a string", () => {
+    it("it is parsed as a string ", async () => {
+      // Create a user property
+      const up = await prisma().userProperty.create({
+        data: {
           workspaceId: workspace.id,
-        });
-        expect(actualAssignments).toEqual({});
+          name: "largeNumberProp",
+          definition: {
+            type: UserPropertyDefinitionType.Trait,
+            path: "largeNumber",
+          } satisfies UserPropertyDefinition,
+        },
       });
+
+      const assignments: UserPropertyBulkUpsertItem[] = [
+        {
+          workspaceId: workspace.id,
+          userId: "userId",
+          userPropertyId: up.id,
+          value: "99999999999999999999999",
+        },
+      ];
+
+      await upsertBulkUserPropertyAssignments({ data: assignments });
+      const actualAssignments = await findAllUserPropertyAssignments({
+        userId: "userId",
+        workspaceId: workspace.id,
+      });
+      expect(typeof actualAssignments.largeNumberProp).toBe("string");
     });
   });
 });
