@@ -70,7 +70,6 @@ export default function JourneyLayout({
     if (journeys.type !== CompletionStatus.Successful) {
       return null;
     }
-    console.log("loc3", journeys);
     return journeys.value.find((j) => j.id === journeyId) ?? null;
   }, [journeyId, journeys]);
 

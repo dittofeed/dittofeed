@@ -1,4 +1,6 @@
-import { FeatureNamesEnum, NodeStatsType } from "isomorphic-lib/src/types";
+import { Box } from "@mui/material";
+import { round } from "isomorphic-lib/src/numbers";
+import { NodeStatsType } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "reactflow";
@@ -23,16 +25,12 @@ export default function WorkflowEdge({
 }: EdgeProps<JourneyUiEdgeProps>) {
   const path = useRouter();
 
-  const { journeyStats, journeyDraggedComponentType, features } =
-    useAppStorePick([
-      "journeyStats",
-      "journeyDraggedComponentType",
-      "features",
-    ]);
+  const { journeyStats, journeyDraggedComponentType } = useAppStorePick([
+    "journeyStats",
+    "journeyDraggedComponentType",
+  ]);
 
   const isDragging = !!journeyDraggedComponentType;
-  const isDisplayJourneyPercentagesEnabled =
-    !!features[FeatureNamesEnum.DisplayJourneyPercentages];
   const [isDropzoneActive, setDropzoneActive] = useState<boolean>(false);
 
   const onDrop = () => {
@@ -81,7 +79,7 @@ export default function WorkflowEdge({
   const getLabelText = (): string => {
     if (stats?.type === NodeStatsType.SegmentSplitNodeStats) {
       if (id.includes("child-0")) {
-        return (100 - stats.proportions.falseChildEdge).toString();
+        return round(100 - stats.proportions.falseChildEdge, 1).toString();
       }
       if (id.includes("child-1")) {
         return stats.proportions.falseChildEdge.toString();
@@ -93,7 +91,7 @@ export default function WorkflowEdge({
         return stats.proportions.segmentChildEdge.toString();
       }
       if (id.includes("child-1")) {
-        return (100 - stats.proportions.segmentChildEdge).toString();
+        return round(100 - stats.proportions.segmentChildEdge, 1).toString();
       }
     }
 
@@ -158,21 +156,31 @@ export default function WorkflowEdge({
           +
         </text>
       </g>
-      {isDisplayJourneyPercentagesEnabled && getLabelText().length > 0 && (
+      {getLabelText().length > 0 && (
         <EdgeLabelRenderer>
-          <div
-            style={{
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              transform: `translate(${edgeCenterX - 30}px,${edgeCenterY - 30}px)`,
               position: "absolute",
-              transform: `translate(-50%, -50%) translate(${edgeCenterX}px,${edgeCenterY - 40}px)`,
-              fontSize: 12,
-              fontWeight: 700,
-              padding: "8px",
-              backgroundColor: "#f0f0f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-            className="nodrag nopan"
+            className="nodrag nopan journey-percent"
           >
-            {`${getLabelText()} %`}
-          </div>
+            <Box
+              sx={{
+                fontWeight: 700,
+                fontSize: 12,
+                padding: 1,
+                backgroundColor: "#f0f0f0",
+              }}
+            >
+              {`${getLabelText()} %`}
+            </Box>
+          </Box>
         </EdgeLabelRenderer>
       )}
     </>
