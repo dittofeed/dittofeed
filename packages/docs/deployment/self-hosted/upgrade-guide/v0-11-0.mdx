@@ -62,7 +62,7 @@ docker compose --profile admin-cli -f docker-compose.lite.yaml up admin-cli -d
 
 ## Step 3: Run the Migrations 
 
-Finally, run the migrations:
+Run the migrations before deploying the new version of Dittofeed:
 
 ```bash
 ./scripts/admin-lite.sh prisma migrate deploy
