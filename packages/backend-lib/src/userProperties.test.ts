@@ -1,7 +1,11 @@
 import { randomUUID } from "crypto";
 
 import prisma from "./prisma";
-import { UserPropertyDefinition, UserPropertyDefinitionType } from "./types";
+import {
+  UserPropertyDefinition,
+  UserPropertyDefinitionType,
+  Workspace,
+} from "./types";
 import {
   findAllUserPropertyAssignments,
   upsertBulkUserPropertyAssignments,
@@ -9,14 +13,17 @@ import {
 } from "./userProperties";
 
 describe("findAllUserPropertyAssignments", () => {
+  let workspace: Workspace;
+  beforeEach(async () => {
+    workspace = await prisma().workspace.create({
+      data: {
+        name: `test-${randomUUID()}`,
+      },
+    });
+  });
+
   describe("when passing context with a Performed user property", () => {
     it("should return the user property assignment and override existing values", async () => {
-      const workspace = await prisma().workspace.create({
-        data: {
-          name: `test-${randomUUID()}`,
-        },
-      });
-
       const upId1 = randomUUID();
       const upId2 = randomUUID();
 
@@ -84,12 +91,6 @@ describe("findAllUserPropertyAssignments", () => {
 
   describe("when passing context with a Group user property", () => {
     it("should return the user property assignment and respect the precedence of earlier group by operations", async () => {
-      const workspace = await prisma().workspace.create({
-        data: {
-          name: `test-${randomUUID()}`,
-        },
-      });
-
       const upId1 = randomUUID();
 
       // Create a user property
@@ -153,6 +154,40 @@ describe("findAllUserPropertyAssignments", () => {
 
       expect(actualAssignments2).toEqual({
         [`test-${upId1}`]: 2,
+      });
+    });
+  });
+
+  describe.only("when a user property value is a large number expressed as a string", () => {
+    describe("when the value is a string representation of a number", () => {
+      it("foo", async () => {
+        // Create a user property
+        const up = await prisma().userProperty.create({
+          data: {
+            workspaceId: workspace.id,
+            name: "largeNumberProp",
+            definition: {
+              type: UserPropertyDefinitionType.Trait,
+              path: "largeNumber",
+            } satisfies UserPropertyDefinition,
+          },
+        });
+
+        const assignments: UserPropertyBulkUpsertItem[] = [
+          {
+            workspaceId: workspace.id,
+            userId: "userId",
+            userPropertyId: up.id,
+            value: "45600136110322479816267",
+          },
+        ];
+
+        await upsertBulkUserPropertyAssignments({ data: assignments });
+        const actualAssignments = await findAllUserPropertyAssignments({
+          userId: "userId",
+          workspaceId: workspace.id,
+        });
+        expect(actualAssignments).toEqual({});
       });
     });
   });
