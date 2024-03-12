@@ -1,10 +1,10 @@
 import { Stack, useTheme } from "@mui/material";
+import { deepEquals } from "isomorphic-lib/src/equality";
 import {
   CompletionStatus,
   SavedJourneyResource,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
-import { deepEquals } from "isomorphic-lib/src/equality";
 import React, { useEffect, useMemo } from "react";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -147,7 +147,8 @@ export default function JourneyLayout({
     });
     if (
       !journey.draft ||
-      (definitionFromState.isOk() &&
+      (viewDraft &&
+        definitionFromState.isOk() &&
         deepEquals(definitionFromState.value, journey.definition))
     ) {
       const publisher: PublisherUpToDateStatus = {
