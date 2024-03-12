@@ -163,7 +163,6 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         value: segmentResource,
       };
     }
-    logger().debug(serverInitialState, "journey loc3");
 
     const props = addInitialStateToProps({
       serverInitialState,
