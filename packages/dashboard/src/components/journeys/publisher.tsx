@@ -134,7 +134,7 @@ function PublisherInner({
   );
 }
 
-export function Publisher({ status }: PublisherProps) {
+export function Publisher({ status, title }: PublisherProps) {
   const [showProgress, setShowProgress] = useState(false);
 
   useEffect(() => {
@@ -159,6 +159,7 @@ export function Publisher({ status }: PublisherProps) {
         showProgress={showProgress}
         onPublish={() => {}}
         onRevert={() => {}}
+        title={title}
         disablePublish
         disableRevert
       />
@@ -171,6 +172,7 @@ export function Publisher({ status }: PublisherProps) {
   ) {
     return (
       <PublisherInner
+        title={title}
         showProgress={showProgress}
         onPublish={() => {}}
         onRevert={() => {}}
@@ -186,6 +188,7 @@ export function Publisher({ status }: PublisherProps) {
 
   return (
     <PublisherInner
+      title={title}
       showProgress={showProgress}
       onPublish={status.onPublish}
       onRevert={status.onRevert}

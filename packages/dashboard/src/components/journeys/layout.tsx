@@ -304,7 +304,7 @@ export default function JourneyLayout({
         >
           <PublisherDraftToggle status={publisherStatuses.draftToggle} />
         </Stack>
-        <Publisher status={publisherStatuses.publisher} />
+        <Publisher status={publisherStatuses.publisher} title={journey.name} />
       </Stack>
       <Stack direction="column" sx={{ flex: 1 }}>
         {children}
