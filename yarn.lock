@@ -6203,6 +6203,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/json-bigint@npm:^1.0.4":
+  version: 1.0.4
+  resolution: "@types/json-bigint@npm:1.0.4"
+  checksum: 7aee137b3796121cec755247ea56577611c8e5df89224c567fa71999764d01e12199c4089c6be8a9e4e6a6a8f5c6f309eee2965cc3dd8d576f4c4ba432566041
+  languageName: node
+  linkType: hard
+
 "@types/json-schema@npm:*, @types/json-schema@npm:^7.0.8, @types/json-schema@npm:^7.0.9":
   version: 7.0.11
   resolution: "@types/json-schema@npm:7.0.11"
@@ -12260,6 +12267,7 @@ __metadata:
   dependencies:
     "@sinclair/typebox": ^0.32.14
     "@types/jest": ^29.2.6
+    "@types/json-bigint": ^1.0.4
     "@types/json-stable-stringify": ^1.0.36
     "@typescript-eslint/eslint-plugin": ^5.60.0
     "@typescript-eslint/parser": ^5.60.0
@@ -12275,6 +12283,7 @@ __metadata:
     eslint-plugin-simple-import-sort: ^10.0.0
     jest: ^29.4.0
     jest-expect-message: ^1.1.3
+    json-bigint: ^1.0.0
     json-stable-stringify: ^1.1.1
     neverthrow: ^6.0.0
     prettier: 3.2.5
