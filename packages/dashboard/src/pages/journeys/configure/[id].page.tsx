@@ -9,22 +9,25 @@ import {
 } from "@mui/material";
 import {
   CompletionStatus,
-  JourneyResource,
+  JourneyDefinition,
   JourneyResourceStatus,
+  SavedJourneyResource,
   UpsertJourneyResource,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { DeliveriesTable } from "../../../components/deliveriesTable";
 import EditableName from "../../../components/editableName";
 import { SubtleHeader } from "../../../components/headers";
 import InfoBox from "../../../components/infoBox";
 import InfoTooltip from "../../../components/infoTooltip";
+import { getGlobalJourneyErrors } from "../../../components/journeys/globalJourneyErrors";
 import JourneyLayout from "../../../components/journeys/layout";
+import { journeyDefinitionFromState } from "../../../components/journeys/store";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
-import { useAppStore } from "../../../lib/appStore";
+import { useAppStorePick } from "../../../lib/appStore";
 import { JOURNEY_STATUS_CHANGE_EVENT } from "../../../lib/constants";
 import {
   JourneyGetServerSideProps,
@@ -94,19 +97,33 @@ function JourneyConfigure() {
   const path = useRouter();
 
   const id = typeof path.query.id === "string" ? path.query.id : undefined;
-  const journeyUpdateRequest = useAppStore(
-    (store) => store.journeyUpdateRequest,
-  );
-  const apiBase = useAppStore((store) => store.apiBase);
-  const setJourneyUpdateRequest = useAppStore(
-    (store) => store.setJourneyUpdateRequest,
-  );
-  const upsertJourney = useAppStore((store) => store.upsertJourney);
-  const journeyName = useAppStore((store) => store.journeyName);
-  const setJourneyName = useAppStore((store) => store.setJourneyName);
-  const journeys = useAppStore((store) => store.journeys);
-  const workspace = useAppStore((store) => store.workspace);
-  const member = useAppStore((store) => store.member);
+  const {
+    journeyUpdateRequest,
+    apiBase,
+    setJourneyUpdateRequest,
+    upsertJourney,
+    journeyName,
+    setJourneyName,
+    journeys,
+    workspace,
+    member,
+    journeyNodes,
+    journeyEdges,
+    journeyNodesIndex,
+  } = useAppStorePick([
+    "journeyUpdateRequest",
+    "apiBase",
+    "setJourneyUpdateRequest",
+    "upsertJourney",
+    "journeyName",
+    "setJourneyName",
+    "journeys",
+    "workspace",
+    "member",
+    "journeyNodes",
+    "journeyEdges",
+    "journeyNodesIndex",
+  ]);
 
   const journey =
     journeys.type === CompletionStatus.Successful
@@ -117,33 +134,61 @@ function JourneyConfigure() {
     !!journey?.canRunMultiple,
   );
 
-  if (journey?.status === "Broadcast") {
-    throw new Error("Broadcast journeys cannot be configured.");
+  if (!journey) {
+    throw new Error("Journey not found.");
   }
-  const statusValue: StatusCopy = !journey
-    ? {
-        label: "Unsaved",
+
+  const definitionFromState: JourneyDefinition | null = useMemo(() => {
+    const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
+    if (globalJourneyErrors.size > 0) {
+      return null;
+    }
+    return journeyDefinitionFromState({
+      state: {
+        journeyNodes,
+        journeyEdges,
+        journeyNodesIndex,
+      },
+    }).unwrapOr(null);
+  }, [journeyNodes, journeyEdges, journeyNodesIndex]);
+
+  const statusValue: StatusCopy = useMemo(() => {
+    if (journey.status === "NotStarted" && !definitionFromState) {
+      return {
+        label: "Unfinished",
         disabled: true,
-        currentDescription: "This journey is both unsaved, and not started.",
+        currentDescription:
+          "This journey has not been finished and can't be started.",
         nextStatusLabel: "Disabled",
-        nextDescription: "Save this journey in order to progress.",
-      }
-    : statusValues[journey.status];
+        nextDescription: "Finish configuring this journey to progress",
+      };
+    }
+    if (journey.status === "Broadcast") {
+      throw new Error("Broadcast journeys cannot be configured.");
+    }
+    return statusValues[journey.status];
+  }, [journey, definitionFromState]);
 
   if (!id || workspace.type !== CompletionStatus.Successful) {
     return null;
   }
 
   const handleChangeStatus = () => {
+    const definition =
+      definitionFromState && statusValue.nextStatus === "Running"
+        ? definitionFromState
+        : undefined;
+
     const journeyUpdate: UpsertJourneyResource = {
       id,
       workspaceId: workspace.value.id,
+      definition,
       status: statusValue.nextStatus,
     };
     apiRequestHandlerFactory({
       request: journeyUpdateRequest,
       setRequest: setJourneyUpdateRequest,
-      responseSchema: JourneyResource,
+      responseSchema: SavedJourneyResource,
       setResponse: (response) => {
         upsertJourney(response);
         if (member) {
@@ -179,7 +224,7 @@ function JourneyConfigure() {
     apiRequestHandlerFactory({
       request: journeyUpdateRequest,
       setRequest: setJourneyUpdateRequest,
-      responseSchema: JourneyResource,
+      responseSchema: SavedJourneyResource,
       setResponse: upsertJourney,
       onFailure: () => {
         setCanRunMultiple(previousValue);
@@ -213,19 +258,21 @@ function JourneyConfigure() {
           onChange={(e) => setJourneyName(e.target.value)}
         />
         <SubtleHeader>Can Be Run Multiple Times</SubtleHeader>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={canRunMultiple}
-              onChange={(e) => handleChangeRunMultiple(e.target.checked)}
-            />
-          }
-          label={
-            canRunMultiple
-              ? "Journey can run multiple times per user."
-              : "Journey can only run once per user."
-          }
-        />
+        <Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={canRunMultiple}
+                onChange={(e) => handleChangeRunMultiple(e.target.checked)}
+              />
+            }
+            label={
+              canRunMultiple
+                ? "Journey can run multiple times per user."
+                : "Journey can only run once per user."
+            }
+          />
+        </Box>
         <SubtleHeader>Journey Status</SubtleHeader>
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography variant="h5">{statusValue.label}</Typography>
@@ -242,7 +289,7 @@ function JourneyConfigure() {
         <Box sx={{ width: "fit-content" }}>
           <InfoBox>{statusValue.currentDescription}</InfoBox>
         </Box>
-        {journey?.status !== "NotStarted" && (
+        {journey.status !== "NotStarted" && (
           <Stack sx={{ flex: 1, width: "100%" }} spacing={1}>
             <SubtleHeader>Deliveries</SubtleHeader>
             <DeliveriesTable journeyId={id} />

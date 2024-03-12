@@ -1,10 +1,10 @@
 import { Box, useTheme } from "@mui/material";
 import { Handle, NodeProps, Position } from "reactflow";
 
-import { LabelNodeProps } from "../../../lib/types";
+import { JourneyUiNodeLabelProps } from "../../../lib/types";
 import styles from "./nodeTypes.module.css";
 
-function LabelNode({ data }: NodeProps<LabelNodeProps>) {
+function LabelNode({ data }: NodeProps<JourneyUiNodeLabelProps>) {
   const theme = useTheme();
   return (
     <>

@@ -37,15 +37,15 @@ import {
   EmailSegmentNode,
   GroupChildrenUserPropertyDefinitions,
   GroupUserPropertyDefinition,
+  HasStartedJourneyResource,
   InternalEventType,
-  JourneyResource,
   LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
   NodeEnvEnum,
   PerformedSegmentNode,
   RelationalOperators,
+  SavedHasStartedJourneyResource,
   SavedIntegrationResource,
-  SavedJourneyResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
   SegmentNode,
@@ -166,7 +166,7 @@ async function signalJourney({
   segmentId: string;
   workspaceId: string;
   segmentAssignment: ComputedAssignment;
-  journey: JourneyResource;
+  journey: HasStartedJourneyResource;
 }) {
   const segmentUpdate: SegmentUpdate = {
     segmentId,
@@ -180,12 +180,15 @@ async function signalJourney({
   }
 
   const { workflowClient } = getContext();
+  const { id: journeyId, definition } = journey;
+
   const workflowId = getUserJourneyWorkflowId({
-    journeyId: journey.id,
+    journeyId,
     userId: segmentAssignment.user_id,
   });
 
   const userId = segmentAssignment.user_id;
+
   await workflowClient.signalWithStart<
     typeof userJourneyWorkflow,
     [SegmentUpdate]
@@ -194,8 +197,8 @@ async function signalJourney({
     workflowId,
     args: [
       {
-        journeyId: journey.id,
-        definition: journey.definition,
+        journeyId,
+        definition,
         workspaceId,
         userId,
       },
@@ -1970,7 +1973,7 @@ function userPropertyToAssignment({
 
 export interface ComputePropertiesArgs {
   integrations: SavedIntegrationResource[];
-  journeys: SavedJourneyResource[];
+  journeys: SavedHasStartedJourneyResource[];
   // timestamp in ms
   now: number;
   segments: SavedSegmentResource[];
@@ -2422,7 +2425,7 @@ async function processRows({
 }: {
   rows: unknown[];
   workspaceId: string;
-  subscribedJourneys: JourneyResource[];
+  subscribedJourneys: HasStartedJourneyResource[];
 }): Promise<boolean> {
   logger().debug(
     {

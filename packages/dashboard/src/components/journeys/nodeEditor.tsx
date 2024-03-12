@@ -36,12 +36,12 @@ import { shallow } from "zustand/shallow";
 import { useAppStore } from "../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
-  DelayNodeProps,
-  EntryNodeProps,
-  JourneyNodeProps,
-  MessageNodeProps,
-  SegmentSplitNodeProps,
-  WaitForNodeProps,
+  DelayUiNodeProps,
+  EntryUiNodeProps,
+  JourneyUiNodeDefinitionProps,
+  MessageUiNodeProps,
+  SegmentSplitUiNodeProps,
+  WaitForUiNodeProps,
 } from "../../lib/types";
 import DurationSelect from "../durationSelect";
 import { SubtleHeader } from "../headers";
@@ -60,9 +60,11 @@ function getSegmentLabel(tr: SegmentResource) {
 function SegmentSplitNodeFields({
   nodeId,
   nodeProps,
+  disabled,
 }: {
   nodeId: string;
-  nodeProps: SegmentSplitNodeProps;
+  nodeProps: SegmentSplitUiNodeProps;
+  disabled?: boolean;
 }) {
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData,
@@ -95,6 +97,7 @@ function SegmentSplitNodeFields({
       options={segments.value}
       getOptionLabel={getSegmentLabel}
       onChange={onSegmentChangeHandler}
+      disabled={disabled}
       renderInput={(params) => (
         <TextField {...params} label="segment" variant="outlined" />
       )}
@@ -105,9 +108,11 @@ function SegmentSplitNodeFields({
 function EntryNodeFields({
   nodeId,
   nodeProps,
+  disabled,
 }: {
   nodeId: string;
-  nodeProps: EntryNodeProps;
+  nodeProps: EntryUiNodeProps;
+  disabled?: boolean;
 }) {
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData,
@@ -125,7 +130,7 @@ function EntryNodeFields({
         updateJourneyNodeData(nodeId, (node) => {
           const props = node.data.nodeTypeProps;
           if (
-            props.type === AdditionalJourneyNodeType.UiEntryNode &&
+            props.type === AdditionalJourneyNodeType.EntryUiNode &&
             props.variant.type === JourneyNodeType.SegmentEntryNode
           ) {
             props.variant.segment = segment?.id;
@@ -146,6 +151,7 @@ function EntryNodeFields({
           options={segments.value}
           getOptionLabel={getSegmentLabel}
           onChange={onSegmentChangeHandler}
+          disabled={disabled}
           renderInput={(params) => (
             <TextField {...params} label="segment" variant="outlined" />
           )}
@@ -157,13 +163,14 @@ function EntryNodeFields({
       variant = (
         <TextField
           value={nodeVariant.event ?? ""}
+          disabled={disabled}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const newEventName = e.target.value;
 
             updateJourneyNodeData(nodeId, (node) => {
               const props = node.data.nodeTypeProps;
               if (
-                props.type === AdditionalJourneyNodeType.UiEntryNode &&
+                props.type === AdditionalJourneyNodeType.EntryUiNode &&
                 props.variant.type === JourneyNodeType.EventEntryNode
               ) {
                 props.variant.event = newEventName;
@@ -182,10 +189,11 @@ function EntryNodeFields({
     <>
       <Select
         value={nodeProps.variant.type}
+        disabled={disabled}
         onChange={(e) => {
           updateJourneyNodeData(nodeId, (node) => {
             const props = node.data.nodeTypeProps;
-            if (props.type !== AdditionalJourneyNodeType.UiEntryNode) {
+            if (props.type !== AdditionalJourneyNodeType.EntryUiNode) {
               return;
             }
             const type = e.target.value as EntryNode["type"];
@@ -228,9 +236,11 @@ function getTemplateLabel(tr: MessageTemplateResource) {
 function MessageNodeFields({
   nodeId,
   nodeProps,
+  disabled,
 }: {
   nodeId: string;
-  nodeProps: MessageNodeProps;
+  nodeProps: MessageUiNodeProps;
+  disabled?: boolean;
 }) {
   const { enableMobilePush, updateJourneyNodeData, messages } = useAppStore(
     (store) => ({
@@ -289,6 +299,7 @@ function MessageNodeFields({
         label="name"
         value={nodeProps.name}
         onChange={onNameChangeHandler}
+        disabled={disabled}
       />
       <FormControl>
         <InputLabel id="message-channel-select-label">
@@ -299,6 +310,7 @@ function MessageNodeFields({
           label="Message Channel"
           onChange={onChannelChangeHandler}
           value={nodeProps.channel}
+          disabled={disabled}
         >
           <MenuItem value={ChannelType.Email}>Email</MenuItem>
           <MenuItem value={ChannelType.Sms}>SMS</MenuItem>
@@ -310,6 +322,7 @@ function MessageNodeFields({
       <Autocomplete
         value={template}
         options={templates}
+        disabled={disabled}
         getOptionLabel={getTemplateLabel}
         onChange={onTemplateChangeHandler}
         renderInput={(params) => (
@@ -319,6 +332,7 @@ function MessageNodeFields({
       <SubscriptionGroupAutocomplete
         subscriptionGroupId={nodeProps.subscriptionGroupId}
         channel={nodeProps.channel}
+        disabled={disabled}
         handler={(subscriptionGroup) => {
           updateJourneyNodeData(nodeId, (node) => {
             const props = node.data.nodeTypeProps;
@@ -366,9 +380,11 @@ const DAYS: { letter: string; day: string }[] = [
 function DelayNodeFields({
   nodeId,
   nodeProps,
+  disabled,
 }: {
   nodeId: string;
-  nodeProps: DelayNodeProps;
+  nodeProps: DelayUiNodeProps;
+  disabled?: boolean;
 }) {
   const updateJourneyNodeData = useAppStore(
     (state) => state.updateJourneyNodeData,
@@ -393,6 +409,7 @@ function DelayNodeFields({
           onChange={handleDurationChange}
           description="Will wait"
           inputLabel="Duration"
+          disabled={disabled}
         />
       );
       break;
@@ -483,6 +500,7 @@ function DelayNodeFields({
     <>
       <Select
         value={nodeProps.variant.type}
+        disabled={disabled}
         onChange={(e) => {
           updateJourneyNodeData(nodeId, (node) => {
             const props = node.data.nodeTypeProps;
@@ -523,9 +541,11 @@ function DelayNodeFields({
 function WaitForNodeFields({
   nodeId,
   nodeProps,
+  disabled,
 }: {
   nodeId: string;
-  nodeProps: WaitForNodeProps;
+  nodeProps: WaitForUiNodeProps;
+  disabled?: boolean;
 }) {
   const { updateJourneyNodeData, segments, updateLabelNode } = useAppStore(
     (store) => ({
@@ -581,12 +601,14 @@ function WaitForNodeFields({
         renderInput={(params) => (
           <TextField {...params} label="segment" variant="outlined" />
         )}
+        disabled={disabled}
       />
       <DurationSelect
         inputLabel="Timeout"
         description="Will timeout after"
         value={nodeProps.timeoutSeconds}
         onChange={handleDurationChange}
+        disabled={disabled}
       />
     </>
   );
@@ -651,26 +673,44 @@ function NodeLayout({
   );
 }
 
-function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
+function NodeFields({
+  node,
+  disabled,
+}: {
+  node: Node<JourneyUiNodeDefinitionProps>;
+  disabled?: boolean;
+}) {
   const nodeProps = node.data.nodeTypeProps;
 
   switch (nodeProps.type) {
-    case AdditionalJourneyNodeType.UiEntryNode:
+    case AdditionalJourneyNodeType.EntryUiNode:
       return (
         <NodeLayout nodeId={node.id}>
-          <EntryNodeFields nodeId={node.id} nodeProps={nodeProps} />
+          <EntryNodeFields
+            nodeId={node.id}
+            nodeProps={nodeProps}
+            disabled={disabled}
+          />
         </NodeLayout>
       );
     case JourneyNodeType.SegmentSplitNode:
       return (
         <NodeLayout deleteButton nodeId={node.id}>
-          <SegmentSplitNodeFields nodeId={node.id} nodeProps={nodeProps} />
+          <SegmentSplitNodeFields
+            nodeId={node.id}
+            nodeProps={nodeProps}
+            disabled={disabled}
+          />
         </NodeLayout>
       );
     case JourneyNodeType.MessageNode: {
       return (
         <NodeLayout deleteButton nodeId={node.id}>
-          <MessageNodeFields nodeId={node.id} nodeProps={nodeProps} />
+          <MessageNodeFields
+            nodeId={node.id}
+            nodeProps={nodeProps}
+            disabled={disabled}
+          />
         </NodeLayout>
       );
     }
@@ -679,19 +719,33 @@ function NodeFields({ node }: { node: Node<JourneyNodeProps> }) {
     case JourneyNodeType.DelayNode:
       return (
         <NodeLayout deleteButton nodeId={node.id}>
-          <DelayNodeFields nodeId={node.id} nodeProps={nodeProps} />
+          <DelayNodeFields
+            nodeId={node.id}
+            nodeProps={nodeProps}
+            disabled={disabled}
+          />
         </NodeLayout>
       );
     case JourneyNodeType.WaitForNode:
       return (
         <NodeLayout deleteButton nodeId={node.id}>
-          <WaitForNodeFields nodeId={node.id} nodeProps={nodeProps} />
+          <WaitForNodeFields
+            nodeId={node.id}
+            nodeProps={nodeProps}
+            disabled={disabled}
+          />
         </NodeLayout>
       );
   }
 }
 
-function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
+function NodeEditorContents({
+  node,
+  disabled,
+}: {
+  disabled?: boolean;
+  node: Node<JourneyUiNodeDefinitionProps>;
+}) {
   const setSelectedNodeId = useAppStore((state) => state.setSelectedNodeId);
   const closeNodeEditor = () => {
     setSelectedNodeId(null);
@@ -717,14 +771,14 @@ function NodeEditorContents({ node }: { node: Node<JourneyNodeProps> }) {
           <CloseOutlined />
         </IconButton>
       </Stack>
-      <NodeFields node={node} />
+      <NodeFields node={node} disabled={disabled} />
     </Stack>
   );
 }
 
 export const journeyNodeEditorId = "journey-node-editor";
 
-export default function NodeEditor() {
+export default function NodeEditor({ disabled }: { disabled?: boolean }) {
   const theme = useTheme();
   const selectedNodeId = useAppStore((state) => state.journeySelectedNodeId);
   const nodes = useAppStore((state) => state.journeyNodes);
@@ -756,7 +810,11 @@ export default function NodeEditor() {
         backgroundColor: "white",
       }}
     >
-      <>{selectedNode ? <NodeEditorContents node={selectedNode} /> : null}</>
+      <>
+        {selectedNode ? (
+          <NodeEditorContents node={selectedNode} disabled={disabled} />
+        ) : null}
+      </>
     </Box>
   );
 }

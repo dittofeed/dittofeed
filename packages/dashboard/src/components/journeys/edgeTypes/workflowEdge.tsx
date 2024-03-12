@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "reactflow";
 
 import { useAppStore, useAppStorePick } from "../../../lib/appStore";
-import { EdgeData } from "../../../lib/types";
+import { JourneyUiEdgeProps } from "../../../lib/types";
 import findNode from "../findNode";
 import styles from "./edgeTypes.module.css";
 
@@ -20,7 +20,7 @@ export default function WorkflowEdge({
   targetPosition,
   style,
   markerEnd,
-}: EdgeProps<EdgeData>) {
+}: EdgeProps<JourneyUiEdgeProps>) {
   const path = useRouter();
 
   const { journeyStats, journeyDraggedComponentType, features } =

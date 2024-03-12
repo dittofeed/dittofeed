@@ -1,9 +1,16 @@
 import { Node } from "reactflow";
 
-import { LabelNodeProps, NodeData } from "../../lib/types";
+import {
+  JourneyNodeUiProps,
+  JourneyUiNodeLabelProps,
+  JourneyUiNodeType,
+} from "../../lib/types";
 
 export function isLabelNode(
-  node: Node<NodeData>,
-): node is Node<LabelNodeProps> {
-  return node.type === "label" && node.data.type === "LabelNode";
+  node: Node<JourneyNodeUiProps>,
+): node is Node<JourneyUiNodeLabelProps> {
+  return (
+    node.type === "label" &&
+    node.data.type === JourneyUiNodeType.JourneyUiNodeLabelProps
+  );
 }

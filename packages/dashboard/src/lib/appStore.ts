@@ -218,6 +218,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           type: CompletionStatus.NotStarted,
         },
         features: {},
+        viewDraft: true,
         upsertTraits: (traits) =>
           set((state) => {
             state.traits = Array.from(new Set(traits.concat(state.traits)));
@@ -634,17 +635,26 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             if (journeys.type !== CompletionStatus.Successful) {
               journeys = {
                 type: CompletionStatus.Successful,
-                value: [],
+                value: [journey],
               };
               state.journeys = journeys;
             }
-            for (const existing of journeys.value) {
+            let updated = false;
+            for (let i = 0; i < journeys.value.length; i++) {
+              const existing = journeys.value[i];
+              if (!existing) {
+                throw new Error("journey is undefined");
+              }
               if (journey.id === existing.id) {
-                Object.assign(existing, journey);
-                return state;
+                journeys.value[i] = journey;
+                updated = true;
+                break;
               }
             }
-            journeys.value.push(journey);
+            if (!updated) {
+              journeys.value.push(journey);
+            }
+
             return state;
           }),
         addEditableSegmentChild: (parentId) =>
@@ -788,6 +798,10 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         setDefaultSmsProvider: (smsProvider) =>
           set((state) => {
             state.defaultSmsProvider = smsProvider;
+          }),
+        setViewDraft: (viewDraft) =>
+          set((state) => {
+            state.viewDraft = viewDraft;
           }),
         ...createJourneySlice(set, ...remaining),
         ...preloadedState,

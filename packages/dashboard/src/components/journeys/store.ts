@@ -1,5 +1,6 @@
 import { idxUnsafe } from "isomorphic-lib/src/arrays";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
+import { deepEquals } from "isomorphic-lib/src/equality";
 import {
   buildHeritageMap,
   getNearestFromChildren,
@@ -17,9 +18,12 @@ import {
   ExitNode,
   JourneyBodyNode,
   JourneyDefinition,
+  JourneyDraft,
   JourneyNode,
   JourneyNodeType,
   JourneyResource,
+  JourneyUiBodyNodeTypeProps,
+  JourneyUiEdgeProps,
   MessageNode,
   SegmentEntryNode,
   SegmentSplitNode,
@@ -36,32 +40,35 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
+import { omit } from "remeda/dist/commonjs/omit";
 import { sortBy } from "remeda/dist/commonjs/sortBy";
+import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
 
 import {
   AdditionalJourneyNodeType,
   AddNodesParams,
-  DelayNodeProps,
-  EdgeData,
-  EntryNodeProps,
-  ExitNodeProps,
+  DelayUiNodeProps,
+  DelayUiNodeVariant,
+  EntryUiNodeProps,
+  ExitUiNodeProps,
   JourneyContent,
-  JourneyNodeProps,
+  JourneyNodeUiProps,
   JourneyState,
-  MessageNodeProps,
-  NodeData,
-  NodeTypeProps,
-  NonJourneyNodeData,
-  SegmentSplitNodeProps,
-  UiDelayVariant,
-  WaitForNodeProps,
+  JourneyUiEdgeType,
+  JourneyUiNodeDefinitionProps,
+  JourneyUiNodePresentationalProps,
+  JourneyUiNodeType,
+  JourneyUiNodeTypeProps,
+  MessageUiNodeProps,
+  SegmentSplitUiNodeProps,
+  WaitForUiNodeProps,
 } from "../../lib/types";
 import { durationDescription } from "../durationDescription";
 import {
   buildNodesIndex,
-  defaultEdges,
-  defaultNodes,
+  DEFAULT_EDGES,
+  DEFAULT_JOURNEY_NODES,
   placeholderNodePosition,
 } from "./defaults";
 import findJourneyNode from "./findJourneyNode";
@@ -90,7 +97,7 @@ export function findDirectUiChildren(
   edges: JourneyContent["journeyEdges"],
 ): string[] {
   const isEntry = ENTRY_TYPES.has(parentId);
-  const idToMatch = isEntry ? AdditionalJourneyNodeType.UiEntryNode : parentId;
+  const idToMatch = isEntry ? AdditionalJourneyNodeType.EntryUiNode : parentId;
   return edges.flatMap((e) => (e.source === idToMatch ? e.target : []));
 }
 
@@ -100,11 +107,13 @@ export function waitForTimeoutLabel(timeoutSeconds?: number): string {
   return `Timed out after ${durationDescription(timeoutSeconds)}`;
 }
 
-type JourneyNodeMap = Map<string, NodeTypeProps>;
+type JourneyNodeMap = Map<string, JourneyUiNodeTypeProps>;
 
-function buildJourneyNodeMap(journeyNodes: Node<NodeData>[]): JourneyNodeMap {
+function buildJourneyNodeMap(
+  journeyNodes: Node<JourneyNodeUiProps>[],
+): JourneyNodeMap {
   const jn: JourneyNodeMap = journeyNodes.reduce((acc, node) => {
-    if (node.data.type === "JourneyNode") {
+    if (node.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps) {
       acc.set(node.id, node.data.nodeTypeProps);
     }
     return acc;
@@ -113,8 +122,8 @@ function buildJourneyNodeMap(journeyNodes: Node<NodeData>[]): JourneyNodeMap {
 }
 
 function buildUiHeritageMap(
-  nodes: Node<NodeData>[],
-  edges: Edge<EdgeData>[],
+  nodes: Node<JourneyNodeUiProps>[],
+  edges: Edge<JourneyUiEdgeProps>[],
 ): HeritageMap {
   const map: HeritageMap = new Map();
 
@@ -249,7 +258,7 @@ export function getNearestJourneyFromChildren(
 function findNextJourneyNode(
   nodeId: string,
   hm: HeritageMap,
-  uiJourneyNodes: Map<string, NodeTypeProps>,
+  uiJourneyNodes: Map<string, JourneyUiNodeTypeProps>,
 ): string {
   let hmEntry = getUnsafe(hm, nodeId);
   let child: string | null = null;
@@ -273,7 +282,7 @@ function journeyDefinitionFromStateBranch(
   hm: HeritageMap,
   nodes: JourneyNode[],
   uiJourneyNodes: JourneyNodeMap,
-  edges: Edge<EdgeData>[],
+  edges: Edge<JourneyUiEdgeProps>[],
   terminateBefore?: string,
 ): Result<null, { message: string; nodeId: string }> {
   let nId = initialNodeId;
@@ -283,7 +292,7 @@ function journeyDefinitionFromStateBranch(
     const uiNode = getUnsafe(uiJourneyNodes, nId);
 
     switch (uiNode.type) {
-      case AdditionalJourneyNodeType.UiEntryNode: {
+      case AdditionalJourneyNodeType.EntryUiNode: {
         const child = findNextJourneyNode(nId, hm, uiJourneyNodes);
 
         switch (uiNode.variant.type) {
@@ -567,7 +576,7 @@ export function journeyDefinitionFromState({
   const hm = buildUiHeritageMap(state.journeyNodes, state.journeyEdges);
 
   const result = journeyDefinitionFromStateBranch(
-    AdditionalJourneyNodeType.UiEntryNode,
+    AdditionalJourneyNodeType.EntryUiNode,
     hm,
     nodes,
     journeyNodes,
@@ -624,14 +633,14 @@ export function dualNodeNonJourneyNodes({
 }: DualNodeParams & {
   leftLabel: string;
   rightLabel: string;
-}): Node<NonJourneyNodeData>[] {
+}): Node<JourneyUiNodePresentationalProps>[] {
   return [
     {
       id: leftId,
       position: placeholderNodePosition,
       type: "label",
       data: {
-        type: "LabelNode",
+        type: JourneyUiNodeType.JourneyUiNodeLabelProps,
         title: leftLabel,
       },
     },
@@ -640,7 +649,7 @@ export function dualNodeNonJourneyNodes({
       position: placeholderNodePosition,
       type: "label",
       data: {
-        type: "LabelNode",
+        type: JourneyUiNodeType.JourneyUiNodeLabelProps,
         title: rightLabel,
       },
     },
@@ -649,7 +658,7 @@ export function dualNodeNonJourneyNodes({
       position: placeholderNodePosition,
       type: "empty",
       data: {
-        type: "EmptyNode",
+        type: JourneyUiNodeType.JourneyUiNodeEmptyProps,
       },
     },
   ];
@@ -666,8 +675,8 @@ export function dualNodeEdges({
   source: string;
   target: string;
   nodeId: string;
-}): Edge<EdgeData>[] {
-  const edges: Edge<EdgeData>[] = [
+}): Edge<JourneyUiEdgeProps>[] {
+  const edges: Edge<JourneyUiEdgeProps>[] = [
     {
       id: `${source}=>${nodeId}`,
       source,
@@ -675,7 +684,7 @@ export function dualNodeEdges({
       type: "workflow",
       sourceHandle: "bottom",
       data: {
-        type: "WorkflowEdge",
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
         disableMarker: true,
       },
     },
@@ -685,6 +694,9 @@ export function dualNodeEdges({
       target: leftId,
       type: "placeholder",
       sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
+      },
     },
     {
       id: `${nodeId}=>${rightId}`,
@@ -692,6 +704,9 @@ export function dualNodeEdges({
       target: rightId,
       type: "placeholder",
       sourceHandle: "bottom",
+      data: {
+        type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
+      },
     },
     {
       id: `${leftId}=>${emptyId}`,
@@ -700,7 +715,7 @@ export function dualNodeEdges({
       type: "workflow",
       sourceHandle: "bottom",
       data: {
-        type: "WorkflowEdge",
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
         disableMarker: true,
       },
     },
@@ -711,7 +726,7 @@ export function dualNodeEdges({
       type: "workflow",
       sourceHandle: "bottom",
       data: {
-        type: "WorkflowEdge",
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
         disableMarker: true,
       },
     },
@@ -724,7 +739,7 @@ export function dualNodeEdges({
       type: "workflow",
       sourceHandle: "bottom",
       data: {
-        type: "WorkflowEdge",
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
         disableMarker: true,
       },
     });
@@ -743,18 +758,21 @@ export function edgesForJourneyNode({
 }: {
   type: JourneyNodeType;
   nodeId: string;
-  source: string;
+  source?: string;
   target: string;
   leftId?: string;
   rightId?: string;
   emptyId?: string;
-}): Edge<EdgeData>[] {
+}): Edge<JourneyUiEdgeProps>[] {
   if (
     type === JourneyNodeType.SegmentSplitNode ||
     type === JourneyNodeType.WaitForNode
   ) {
     if (!leftId || !rightId || !emptyId) {
       throw new Error("Missing dual node ids");
+    }
+    if (!source) {
+      throw new Error("Missing source");
     }
     return dualNodeEdges({
       source,
@@ -768,24 +786,24 @@ export function edgesForJourneyNode({
   if (
     type === JourneyNodeType.RateLimitNode ||
     type === JourneyNodeType.ExperimentSplitNode ||
-    type === JourneyNodeType.SegmentEntryNode ||
     type === JourneyNodeType.ExitNode
   ) {
     throw new Error(`Unimplemented node type ${type}`);
   }
 
-  const edges: Edge<EdgeData>[] = [
-    {
+  const edges: Edge<JourneyUiEdgeProps>[] = [];
+  if (source) {
+    edges.push({
       id: `${source}=>${nodeId}`,
       source,
       target: nodeId,
       type: "workflow",
       sourceHandle: "bottom",
       data: {
-        type: "WorkflowEdge",
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
       },
-    },
-  ];
+    });
+  }
   if (target) {
     edges.push({
       id: `${nodeId}=>${target}`,
@@ -794,7 +812,7 @@ export function edgesForJourneyNode({
       type: "workflow",
       sourceHandle: "bottom",
       data: {
-        type: "WorkflowEdge",
+        type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
       },
     });
   }
@@ -809,11 +827,11 @@ export function newStateFromNodes({
   edges,
   existingEdges,
 }: AddNodesParams & {
-  existingNodes: Node<NodeData>[];
-  existingEdges: Edge<EdgeData>[];
+  existingNodes: Node<JourneyNodeUiProps>[];
+  existingEdges: Edge<JourneyUiEdgeProps>[];
 }): {
-  edges: Edge<EdgeData>[];
-  nodes: Node<NodeData>[];
+  edges: Edge<JourneyUiEdgeProps>[];
+  nodes: Node<JourneyNodeUiProps>[];
 } {
   const newEdges = existingEdges
     .filter((e) => !(e.source === source && e.target === target))
@@ -860,30 +878,33 @@ export function findAllDescendants(
 
 type CreateJourneySlice = Parameters<typeof immer<JourneyContent>>[0];
 
-function buildLabelNode(id: string, title: string): Node<NodeData> {
+function buildLabelNode(id: string, title: string): Node<JourneyNodeUiProps> {
   return {
     id,
     position: placeholderNodePosition,
     type: "label",
     data: {
-      type: "LabelNode",
+      type: JourneyUiNodeType.JourneyUiNodeLabelProps,
       title,
     },
   };
 }
 
-function buildEmptyNode(id: string): Node<NodeData> {
+function buildEmptyNode(id: string): Node<JourneyNodeUiProps> {
   return {
     id,
     position: placeholderNodePosition,
     type: "empty",
     data: {
-      type: "EmptyNode",
+      type: JourneyUiNodeType.JourneyUiNodeEmptyProps,
     },
   };
 }
 
-function buildWorkflowEdge(source: string, target: string): Edge<EdgeData> {
+function buildWorkflowEdge(
+  source: string,
+  target: string,
+): Edge<JourneyUiEdgeProps> {
   return {
     id: `${source}=>${target}`,
     source,
@@ -891,32 +912,38 @@ function buildWorkflowEdge(source: string, target: string): Edge<EdgeData> {
     type: "workflow",
     sourceHandle: "bottom",
     data: {
-      type: "WorkflowEdge",
+      type: JourneyUiEdgeType.JourneyUiDefinitionEdgeProps,
       disableMarker: true,
     },
   };
 }
 
-function buildPlaceholderEdge(source: string, target: string): Edge<EdgeData> {
+function buildPlaceholderEdge(
+  source: string,
+  target: string,
+): Edge<JourneyUiEdgeProps> {
   return {
     id: `${source}=>${target}`,
     source,
     target,
     type: "placeholder",
     sourceHandle: "bottom",
+    data: {
+      type: JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps,
+    },
   };
 }
 
 function buildJourneyNode(
   id: string,
-  nodeTypeProps: NodeTypeProps,
-): Node<JourneyNodeProps> {
+  nodeTypeProps: JourneyUiNodeTypeProps,
+): Node<JourneyUiNodeDefinitionProps> {
   return {
     id,
     position: placeholderNodePosition,
     type: "journey",
     data: {
-      type: "JourneyNode",
+      type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
       nodeTypeProps,
     },
   };
@@ -924,9 +951,9 @@ function buildJourneyNode(
 
 export const createJourneySlice: CreateJourneySlice = (set) => ({
   journeySelectedNodeId: null,
-  journeyNodes: defaultNodes,
-  journeyEdges: defaultEdges,
-  journeyNodesIndex: buildNodesIndex(defaultNodes),
+  journeyNodes: DEFAULT_JOURNEY_NODES,
+  journeyEdges: DEFAULT_EDGES,
+  journeyNodesIndex: buildNodesIndex(DEFAULT_JOURNEY_NODES),
   journeyDraggedComponentType: null,
   journeyName: "",
   journeyUpdateRequest: {
@@ -1044,12 +1071,18 @@ export const createJourneySlice: CreateJourneySlice = (set) => ({
         node.data.title = title;
       }
     }),
+  resetJourneyState: ({ nodes, edges, index }) =>
+    set((state) => {
+      state.journeyNodes = nodes;
+      state.journeyEdges = edges;
+      state.journeyNodesIndex = index;
+    }),
 });
 
 export function journeyBranchToState(
   initialNodeId: string,
-  nodesState: Node<NodeData>[],
-  edgesState: Edge<EdgeData>[],
+  nodesState: Node<JourneyNodeUiProps>[],
+  edgesState: Edge<JourneyUiEdgeProps>[],
   nodes: Map<string, JourneyNode>,
   hm: HeritageMap,
   terminateBefore?: string,
@@ -1064,41 +1097,41 @@ export function journeyBranchToState(
   while (true) {
     switch (node.type) {
       case JourneyNodeType.SegmentEntryNode: {
-        const entryNode: EntryNodeProps = {
-          type: AdditionalJourneyNodeType.UiEntryNode,
+        const entryNode: EntryUiNodeProps = {
+          type: AdditionalJourneyNodeType.EntryUiNode,
           variant: {
             type: JourneyNodeType.SegmentEntryNode,
             segment: node.segment,
           },
         };
         nodesState.push(
-          buildJourneyNode(AdditionalJourneyNodeType.UiEntryNode, entryNode),
+          buildJourneyNode(AdditionalJourneyNodeType.EntryUiNode, entryNode),
         );
         edgesState.push(
-          buildWorkflowEdge(AdditionalJourneyNodeType.UiEntryNode, node.child),
+          buildWorkflowEdge(AdditionalJourneyNodeType.EntryUiNode, node.child),
         );
         nextNodeId = node.child;
         break;
       }
       case JourneyNodeType.EventEntryNode: {
-        const entryNode: EntryNodeProps = {
-          type: AdditionalJourneyNodeType.UiEntryNode,
+        const entryNode: EntryUiNodeProps = {
+          type: AdditionalJourneyNodeType.EntryUiNode,
           variant: {
             type: JourneyNodeType.EventEntryNode,
             event: node.event,
           },
         };
         nodesState.push(
-          buildJourneyNode(AdditionalJourneyNodeType.UiEntryNode, entryNode),
+          buildJourneyNode(AdditionalJourneyNodeType.EntryUiNode, entryNode),
         );
         edgesState.push(
-          buildWorkflowEdge(AdditionalJourneyNodeType.UiEntryNode, node.child),
+          buildWorkflowEdge(AdditionalJourneyNodeType.EntryUiNode, node.child),
         );
         nextNodeId = node.child;
         break;
       }
       case JourneyNodeType.ExitNode: {
-        const exitNode: ExitNodeProps = {
+        const exitNode: ExitUiNodeProps = {
           type: JourneyNodeType.ExitNode,
         };
         nodesState.push(buildJourneyNode(nId, exitNode));
@@ -1113,7 +1146,7 @@ export function journeyBranchToState(
         break;
       }
       case JourneyNodeType.DelayNode: {
-        let variant: UiDelayVariant;
+        let variant: DelayUiNodeVariant;
         switch (node.variant.type) {
           case DelayVariantType.Second: {
             variant = {
@@ -1135,7 +1168,7 @@ export function journeyBranchToState(
             assertUnreachable(node.variant);
         }
 
-        const delayNode: DelayNodeProps = {
+        const delayNode: DelayUiNodeProps = {
           type: JourneyNodeType.DelayNode,
           variant,
         };
@@ -1152,7 +1185,7 @@ export function journeyBranchToState(
         break;
       }
       case JourneyNodeType.MessageNode: {
-        const messageNode: MessageNodeProps = {
+        const messageNode: MessageUiNodeProps = {
           type: JourneyNodeType.MessageNode,
           templateId: node.variant.templateId,
           channel: node.variant.type,
@@ -1179,7 +1212,7 @@ export function journeyBranchToState(
         const falseId = `${nId}-child-1`;
         const emptyId = `${nId}-empty`;
 
-        const segmentSplitNode: SegmentSplitNodeProps = {
+        const segmentSplitNode: SegmentSplitUiNodeProps = {
           type: JourneyNodeType.SegmentSplitNode,
           segmentId: node.variant.segment,
           name: node.name ?? "",
@@ -1256,7 +1289,7 @@ export function journeyBranchToState(
         const segmentChildLabelId = `${nId}-child-0`;
         const timeoutId = `${nId}-child-1`;
         const emptyId = `${nId}-empty`;
-        const waitForNodeProps: WaitForNodeProps = {
+        const waitForNodeProps: WaitForUiNodeProps = {
           type: JourneyNodeType.WaitForNode,
           timeoutLabelNodeId: timeoutId,
           timeoutSeconds: node.timeoutSeconds,
@@ -1349,11 +1382,16 @@ export function journeyBranchToState(
   };
 }
 
+export type JourneyResourceWithDefinitionForState = Pick<
+  JourneyResource,
+  "name"
+> & { definition: JourneyDefinition };
+
 export function journeyToState(
-  journey: Omit<JourneyResource, "id" | "status" | "workspaceId">,
+  journey: JourneyResourceWithDefinitionForState,
 ): JourneyStateForResource {
-  const journeyEdges: Edge<EdgeData>[] = [];
-  let journeyNodes: Node<NodeData>[] = [];
+  const journeyEdges: Edge<JourneyUiEdgeProps>[] = [];
+  let journeyNodes: Node<JourneyNodeUiProps>[] = [];
   const nodes = [
     journey.definition.entryNode,
     ...journey.definition.nodes,
@@ -1379,4 +1417,298 @@ export function journeyToState(
     journeyNodesIndex,
     journeyEdges,
   };
+}
+
+export type JourneyStateForDraft = Pick<
+  JourneyState,
+  "journeyNodes" | "journeyEdges"
+>;
+
+export function journeyStateToDraft(state: JourneyStateForDraft): JourneyDraft {
+  return {
+    nodes: state.journeyNodes.map((n) => ({
+      id: n.id,
+      data: n.data,
+    })),
+    edges: state.journeyEdges.map((e) => {
+      if (!e.data) {
+        throw new Error(`edge data should exist for edge ${e.id}`);
+      }
+      return {
+        source: e.source,
+        target: e.target,
+        data: e.data,
+      };
+    }),
+  };
+}
+
+export type CreateConnectionsEntryNodeParams = EntryUiNodeProps & {
+  id: string;
+  target: string;
+};
+
+export type CreateConnectionsExitNodeParams = ExitUiNodeProps & {
+  id: string;
+};
+
+export type CreateConnectionsBodyNodeParams = JourneyUiBodyNodeTypeProps & {
+  id: string;
+  source: string;
+  target: string;
+};
+
+export type CreateConnectionsParams =
+  | CreateConnectionsEntryNodeParams
+  | CreateConnectionsExitNodeParams
+  | CreateConnectionsBodyNodeParams;
+
+function buildBaseJourneyNode({
+  nodeTypeProps,
+  id,
+}: {
+  id: string;
+  nodeTypeProps: JourneyUiNodeTypeProps;
+}): Node<JourneyUiNodeDefinitionProps> {
+  return {
+    id,
+    data: {
+      type: JourneyUiNodeType.JourneyUiNodeDefinitionProps,
+      nodeTypeProps,
+    },
+    position: { x: 0, y: 0 }, // no need to pass a position as it is computed by the layout hook
+    type: "journey",
+  };
+}
+
+export function createConnections(params: CreateConnectionsParams): {
+  newNodes: Node<JourneyNodeUiProps>[];
+  newEdges: Edge<JourneyUiEdgeProps>[];
+} {
+  let newNodes: Node<JourneyNodeUiProps>[] = [];
+  let newEdges: Edge<JourneyUiEdgeProps>[];
+
+  switch (params.type) {
+    case JourneyNodeType.SegmentSplitNode: {
+      const { trueLabelNodeId, falseLabelNodeId } = params;
+      const { target, source } = params;
+      const emptyId = uuid();
+
+      newNodes = newNodes.concat([
+        buildBaseJourneyNode({
+          id: params.id,
+          nodeTypeProps: omit(params, ["id", "source", "target"]),
+        }),
+        ...dualNodeNonJourneyNodes({
+          emptyId,
+          leftId: trueLabelNodeId,
+          rightId: falseLabelNodeId,
+          leftLabel: "true",
+          rightLabel: "false",
+        }),
+      ]);
+
+      newEdges = edgesForJourneyNode({
+        type: params.type,
+        nodeId: params.id,
+        emptyId,
+        leftId: trueLabelNodeId,
+        rightId: falseLabelNodeId,
+        source,
+        target,
+      });
+      break;
+    }
+    case JourneyNodeType.WaitForNode: {
+      const segmentChild = params.segmentChildren[0];
+      if (!segmentChild) {
+        throw new Error("Malformed journey, WaitForNode has no children.");
+      }
+
+      const segmentChildLabelNodeId = segmentChild.labelNodeId;
+      const { timeoutLabelNodeId } = params;
+      const emptyId = uuid();
+
+      newNodes = [
+        ...newNodes.concat(
+          buildBaseJourneyNode({
+            id: params.id,
+            nodeTypeProps: omit(params, ["id", "source", "target"]),
+          }),
+          dualNodeNonJourneyNodes({
+            emptyId,
+            leftId: segmentChildLabelNodeId,
+            rightId: timeoutLabelNodeId,
+            leftLabel: WAIT_FOR_SATISFY_LABEL,
+            rightLabel: waitForTimeoutLabel(params.timeoutSeconds),
+          }),
+        ),
+      ];
+
+      newEdges = edgesForJourneyNode({
+        type: params.type,
+        nodeId: params.id,
+        emptyId,
+        leftId: segmentChildLabelNodeId,
+        rightId: timeoutLabelNodeId,
+        source: params.source,
+        target: params.target,
+      });
+      break;
+    }
+    case JourneyNodeType.DelayNode: {
+      newNodes.push(
+        buildBaseJourneyNode({
+          id: params.id,
+          nodeTypeProps: omit(params, ["id", "source", "target"]),
+        }),
+      );
+      newEdges = edgesForJourneyNode({
+        type: params.type,
+        nodeId: params.id,
+        source: params.source,
+        target: params.target,
+      });
+      break;
+    }
+    case JourneyNodeType.MessageNode: {
+      newNodes.push(
+        buildBaseJourneyNode({
+          id: params.id,
+          nodeTypeProps: omit(params, ["id", "source", "target"]),
+        }),
+      );
+      newEdges = edgesForJourneyNode({
+        type: params.type,
+        nodeId: params.id,
+        source: params.source,
+        target: params.target,
+      });
+      break;
+    }
+    case AdditionalJourneyNodeType.EntryUiNode: {
+      throw new Error("Cannot add exit node in the UI implementation error.");
+    }
+    case JourneyNodeType.ExitNode: {
+      throw new Error("Cannot add exit node in the UI implementation error.");
+    }
+    default:
+      assertUnreachable(params);
+  }
+
+  return {
+    newNodes,
+    newEdges,
+  };
+}
+
+export type JourneyResourceWithDraftForState = Pick<JourneyResource, "name"> & {
+  draft: JourneyDraft;
+};
+
+export function journeyDraftToState({
+  draft,
+  name,
+}: JourneyResourceWithDraftForState): JourneyStateForResource {
+  let journeyNodes: Node<JourneyNodeUiProps>[] = draft.nodes.map((n) => {
+    let node: Node<JourneyNodeUiProps>;
+    switch (n.data.type) {
+      case JourneyUiNodeType.JourneyUiNodeDefinitionProps:
+        node = buildJourneyNode(n.id, n.data.nodeTypeProps);
+        break;
+      case JourneyUiNodeType.JourneyUiNodeLabelProps:
+        node = buildLabelNode(n.id, n.data.title);
+        break;
+      case JourneyUiNodeType.JourneyUiNodeEmptyProps:
+        node = buildEmptyNode(n.id);
+        break;
+      default:
+        assertUnreachable(n.data);
+    }
+    return node;
+  });
+  const journeyEdges: Edge<JourneyUiEdgeProps>[] = draft.edges.map((e) => {
+    const { source, target, data } = e;
+    const baseEdge = {
+      id: `${source}=>${target}`,
+      source,
+      target,
+      sourceHandle: "bottom",
+    };
+    let edge: Edge<JourneyUiEdgeProps>;
+    switch (data.type) {
+      case JourneyUiEdgeType.JourneyUiDefinitionEdgeProps: {
+        edge = {
+          ...baseEdge,
+          type: "workflow",
+          data,
+        };
+        break;
+      }
+      case JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps: {
+        edge = {
+          ...baseEdge,
+          type: "placeholder",
+          data,
+        };
+        break;
+      }
+    }
+    return edge;
+  });
+
+  journeyNodes = layoutNodes(journeyNodes, journeyEdges);
+  return {
+    journeyName: name,
+    journeyNodes,
+    journeyEdges,
+    journeyNodesIndex: buildNodesIndex(journeyNodes),
+  };
+}
+
+/**
+ * update journey draft if one of the following
+ * 1. journey state does equal draft
+ * 2. journey draft is undefined, current state does not equal the definition
+ *
+ * @param param0
+ * @returns
+ */
+export function shouldDraftBeUpdated({
+  draft,
+  definition,
+  journeyNodes,
+  journeyEdges,
+  journeyNodesIndex,
+}: {
+  draft?: JourneyDraft;
+  definition?: JourneyDefinition;
+  journeyNodes: Node<JourneyNodeUiProps>[];
+  journeyEdges: Edge<JourneyUiEdgeProps>[];
+  journeyNodesIndex: JourneyState["journeyNodesIndex"];
+}): boolean {
+  if (draft) {
+    return !deepEquals(
+      journeyStateToDraft({
+        journeyNodes,
+        journeyEdges,
+      }),
+      draft,
+    );
+  }
+  if (!definition) {
+    throw new Error("definition should exist if draft is undefined");
+  }
+  const draftFromStateResult = journeyDefinitionFromState({
+    state: {
+      journeyNodes,
+      journeyEdges,
+      journeyNodesIndex,
+    },
+  });
+  if (draftFromStateResult.isErr()) {
+    return true;
+  }
+
+  return !deepEquals(draftFromStateResult.value, definition);
 }

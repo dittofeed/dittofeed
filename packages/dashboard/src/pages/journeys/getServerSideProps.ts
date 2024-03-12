@@ -1,8 +1,10 @@
 import { getFeatures } from "backend-lib/src/features";
 import { toJourneyResource } from "backend-lib/src/journeys";
+import logger from "backend-lib/src/logger";
 import { findMessageTemplates } from "backend-lib/src/messageTemplates";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
+import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { CompletionStatus, FeatureNamesEnum } from "isomorphic-lib/src/types";
 import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
@@ -10,10 +12,18 @@ import { validate } from "uuid";
 
 import {
   buildNodesIndex,
-  defaultEdges,
-  defaultNodes,
+  DEFAULT_EDGES,
+  DEFAULT_JOURNEY_NODES,
 } from "../../components/journeys/defaults";
-import { journeyToState } from "../../components/journeys/store";
+import {
+  journeyDraftToState,
+  JourneyResourceWithDefinitionForState,
+  JourneyResourceWithDraftForState,
+  JourneyStateForDraft,
+  JourneyStateForResource,
+  journeyStateToDraft,
+  journeyToState,
+} from "../../components/journeys/store";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
@@ -68,19 +78,78 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
     const journeyResourceResult =
       journey?.workspaceId === workspaceId ? toJourneyResource(journey) : null;
 
-    if (journeyResourceResult?.isOk()) {
+    if (journeyResourceResult) {
+      if (!journeyResourceResult.isOk()) {
+        logger().error(
+          {
+            journey,
+            err: journeyResourceResult.error,
+          },
+          "failed to parse journey resource",
+        );
+        throw journeyResourceResult.error;
+      }
+
       const journeyResource = journeyResourceResult.value;
       serverInitialState.journeys = {
         type: CompletionStatus.Successful,
         value: [journeyResource],
       };
-      const stateFromJourney = journeyToState(journeyResource);
-      Object.assign(serverInitialState, stateFromJourney);
+
+      let stateFromJourney: JourneyStateForResource;
+      if (journeyResource.draft) {
+        const resource: JourneyResourceWithDraftForState = {
+          ...journeyResource,
+          draft: journeyResource.draft,
+        };
+        stateFromJourney = journeyDraftToState(resource);
+      } else if (journeyResource.definition) {
+        const resource: JourneyResourceWithDefinitionForState = {
+          ...journeyResource,
+          definition: journeyResource.definition,
+        };
+        stateFromJourney = journeyToState(resource);
+      } else {
+        const err = new Error("journey resource has no definition or draft");
+        logger().error({
+          journeyResource,
+          err,
+        });
+        throw err;
+      }
+
+      serverInitialState.journeyName = stateFromJourney.journeyName;
+      serverInitialState.journeyEdges = stateFromJourney.journeyEdges;
+      serverInitialState.journeyNodes = stateFromJourney.journeyNodes;
+      serverInitialState.journeyNodesIndex = stateFromJourney.journeyNodesIndex;
     } else {
-      serverInitialState.journeyName = `New Journey - ${id}`;
-      serverInitialState.journeyNodes = defaultNodes;
-      serverInitialState.journeyEdges = defaultEdges;
-      serverInitialState.journeyNodesIndex = buildNodesIndex(defaultNodes);
+      const stateForDraft: JourneyStateForDraft = {
+        journeyNodes: DEFAULT_JOURNEY_NODES,
+        journeyEdges: DEFAULT_EDGES,
+      };
+
+      const name = `New Journey - ${id}`;
+
+      const newJourney = await prisma().journey.upsert({
+        where: { id },
+        create: {
+          id,
+          workspaceId,
+          draft: journeyStateToDraft(stateForDraft),
+          name,
+        },
+        update: {},
+      });
+      serverInitialState.journeyName = name;
+      serverInitialState.journeyEdges = DEFAULT_EDGES;
+      serverInitialState.journeyNodes = DEFAULT_JOURNEY_NODES;
+      serverInitialState.journeyNodesIndex = buildNodesIndex(
+        DEFAULT_JOURNEY_NODES,
+      );
+      serverInitialState.journeys = {
+        type: CompletionStatus.Successful,
+        value: [unwrap(toJourneyResource(newJourney))],
+      };
     }
 
     const segmentResourceResult = Result.combine(
@@ -94,6 +163,7 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         value: segmentResource,
       };
     }
+    logger().debug(serverInitialState, "journey loc3");
 
     const props = addInitialStateToProps({
       serverInitialState,

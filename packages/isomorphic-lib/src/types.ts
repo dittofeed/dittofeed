@@ -1135,40 +1135,307 @@ export type DefaultEmailProviderResource = Static<
   typeof DefaultEmailProviderResource
 >;
 
-export const JourneyResourceStatus = Type.Union([
-  Type.Literal("NotStarted"),
-  Type.Literal("Running"),
-  Type.Literal("Paused"),
-  Type.Literal("Broadcast"),
+export const JourneyResourceStatusEnum = {
+  NotStarted: "NotStarted",
+  Running: "Running",
+  Paused: "Paused",
+  Broadcast: "Broadcast",
+} as const;
+
+export enum AdditionalJourneyNodeType {
+  EntryUiNode = "EntryUiNode",
+}
+
+export const PartialExceptType = <T1 extends TSchema>(schema: T1) =>
+  Type.Composite([
+    Type.Partial(Type.Omit(schema, ["type"])),
+    Type.Pick(schema, ["type"]),
+  ]);
+
+export const EntryUiNodeVariant = Type.Union([
+  PartialExceptType(SegmentEntryNode),
+  PartialExceptType(EventEntryNode),
 ]);
+
+export type EntryUiNodeVariant = Static<typeof EntryUiNodeVariant>;
+
+export const EntryUiNodeProps = Type.Object({
+  type: Type.Literal(AdditionalJourneyNodeType.EntryUiNode),
+  variant: EntryUiNodeVariant,
+});
+
+export type EntryUiNodeProps = Static<typeof EntryUiNodeProps>;
+
+export const ExitUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.ExitNode),
+});
+
+export type ExitUiNodeProps = Static<typeof ExitUiNodeProps>;
+
+export const MessageUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.MessageNode),
+  name: Type.String(),
+  templateId: Type.Optional(Type.String()),
+  channel: Type.Enum(ChannelType),
+  subscriptionGroupId: Type.Optional(Type.String()),
+});
+
+export type MessageUiNodeProps = Static<typeof MessageUiNodeProps>;
+
+export const DelayUiNodeVariant = Type.Union([
+  PartialExceptType(LocalTimeDelayVariant),
+  PartialExceptType(SecondsDelayVariant),
+]);
+
+export type DelayUiNodeVariant = Static<typeof DelayUiNodeVariant>;
+
+export const DelayUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.DelayNode),
+  variant: DelayUiNodeVariant,
+});
+
+export type DelayUiNodeProps = Static<typeof DelayUiNodeProps>;
+
+export const SegmentSplitUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.SegmentSplitNode),
+  name: Type.String(),
+  segmentId: Type.Optional(Type.String()),
+  trueLabelNodeId: Type.String(),
+  falseLabelNodeId: Type.String(),
+});
+
+export type SegmentSplitUiNodeProps = Static<typeof SegmentSplitUiNodeProps>;
+
+export const WaitForUiNodeProps = Type.Object({
+  type: Type.Literal(JourneyNodeType.WaitForNode),
+  timeoutSeconds: Type.Optional(Type.Number()),
+  timeoutLabelNodeId: Type.String(),
+  segmentChildren: Type.Array(
+    Type.Object({
+      labelNodeId: Type.String(),
+      segmentId: Type.Optional(Type.String()),
+    }),
+  ),
+});
+
+export type WaitForUiNodeProps = Static<typeof WaitForUiNodeProps>;
+
+export const JourneyUiBodyNodeTypeProps = Type.Union([
+  MessageUiNodeProps,
+  DelayUiNodeProps,
+  SegmentSplitUiNodeProps,
+  WaitForUiNodeProps,
+]);
+
+export type JourneyUiBodyNodeTypeProps = Static<
+  typeof JourneyUiBodyNodeTypeProps
+>;
+
+export const JourneyUiNodeTypeProps = Type.Union([
+  EntryUiNodeProps,
+  ExitUiNodeProps,
+  JourneyUiBodyNodeTypeProps,
+]);
+
+export type JourneyUiNodeTypeProps = Static<typeof JourneyUiNodeTypeProps>;
+
+export type JourneyUiNodePairing =
+  | [EntryUiNodeProps, EntryNode]
+  | [ExitUiNodeProps, ExitNode]
+  | [MessageUiNodeProps, SegmentNode]
+  | [DelayUiNodeProps, SegmentNode]
+  | [SegmentSplitUiNodeProps, SegmentNode]
+  | [WaitForUiNodeProps, WaitForNode];
+
+export enum JourneyUiNodeType {
+  JourneyUiNodeDefinitionProps = "JourneyUiNodeDefinitionProps",
+  JourneyUiNodeEmptyProps = "JourneyUiNodeEmptyProps",
+  JourneyUiNodeLabelProps = "JourneyUiNodeLabelProps",
+}
+
+export const JourneyUiNodeDefinitionProps = Type.Object({
+  type: Type.Literal(JourneyUiNodeType.JourneyUiNodeDefinitionProps),
+  nodeTypeProps: JourneyUiNodeTypeProps,
+});
+
+export type JourneyUiNodeDefinitionProps = Static<
+  typeof JourneyUiNodeDefinitionProps
+>;
+
+export const JourneyUiNodeEmptyProps = Type.Object({
+  type: Type.Literal(JourneyUiNodeType.JourneyUiNodeEmptyProps),
+});
+
+export type JourneyUiNodeEmptyProps = Static<typeof JourneyUiNodeEmptyProps>;
+
+export const JourneyUiNodeLabelProps = Type.Object({
+  type: Type.Literal(JourneyUiNodeType.JourneyUiNodeLabelProps),
+  title: Type.String(),
+});
+
+export type JourneyUiNodeLabelProps = Static<typeof JourneyUiNodeLabelProps>;
+
+export const JourneyUiNodePresentationalProps = Type.Union([
+  JourneyUiNodeLabelProps,
+  JourneyUiNodeEmptyProps,
+]);
+
+export type JourneyUiNodePresentationalProps = Static<
+  typeof JourneyUiNodePresentationalProps
+>;
+
+export const JourneyNodeUiProps = Type.Union([
+  JourneyUiNodeDefinitionProps,
+  JourneyUiNodePresentationalProps,
+]);
+
+export type JourneyNodeUiProps = Static<typeof JourneyNodeUiProps>;
+
+export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
+
+export enum JourneyUiEdgeType {
+  JourneyUiDefinitionEdgeProps = "JourneyUiDefinitionEdgeProps",
+  JourneyUiPlaceholderEdgeProps = "JourneyUiPlaceholderEdgeProps",
+}
+
+export const JourneyUiDefinitionEdgeProps = Type.Object({
+  type: Type.Literal(JourneyUiEdgeType.JourneyUiDefinitionEdgeProps),
+  disableMarker: Type.Optional(Type.Boolean()),
+});
+
+export type JourneyUiDefinitionEdgeProps = Static<
+  typeof JourneyUiDefinitionEdgeProps
+>;
+
+export const JourneyUiPlaceholderEdgeProps = Type.Object({
+  type: Type.Literal(JourneyUiEdgeType.JourneyUiPlaceholderEdgeProps),
+});
+
+export type JourneyUiPlaceholderEdgeProps = Static<
+  typeof JourneyUiPlaceholderEdgeProps
+>;
+
+export const JourneyUiEdgeProps = Type.Union([
+  JourneyUiDefinitionEdgeProps,
+  JourneyUiPlaceholderEdgeProps,
+]);
+
+export type JourneyUiEdgeProps = Static<typeof JourneyUiEdgeProps>;
+
+export const JourneyUiDraftEdge = Type.Object({
+  source: Type.String(),
+  target: Type.String(),
+  data: JourneyUiEdgeProps,
+});
+
+export type JourneyUiDraftEdge = Static<typeof JourneyUiDraftEdge>;
+
+export const JourneyUiDraftNode = Type.Object({
+  id: Type.String(),
+  data: JourneyNodeUiProps,
+});
+
+export type JourneyUiDraftNode = Static<typeof JourneyUiDraftNode>;
+
+export const JourneyDraft = Type.Object({
+  nodes: Type.Array(JourneyUiDraftNode),
+  edges: Type.Array(JourneyUiDraftEdge),
+});
+
+export type JourneyDraft = Static<typeof JourneyDraft>;
+
+export const JourneyResourceStatus = Type.KeyOf(
+  Type.Const(JourneyResourceStatusEnum),
+);
 
 export type JourneyResourceStatus = Static<typeof JourneyResourceStatus>;
 
-export const JourneyResource = Type.Object({
+const baseJourneyResource = {
   id: Type.String(),
   workspaceId: Type.String(),
   name: Type.String(),
-  status: JourneyResourceStatus,
-  definition: JourneyDefinition,
   canRunMultiple: Type.Optional(Type.Boolean()),
   updatedAt: Type.Number(),
+  draft: Type.Optional(JourneyDraft),
+} as const;
+
+export const NotStartedJourneyResource = Type.Object({
+  ...baseJourneyResource,
+  status: Type.Literal(JourneyResourceStatusEnum.NotStarted),
+  definition: Type.Optional(JourneyDefinition),
 });
+
+export type NotStartedJourneyResource = Static<
+  typeof NotStartedJourneyResource
+>;
+
+export const HasStartedJourneyResource = Type.Object({
+  ...baseJourneyResource,
+  status: Type.Union([
+    Type.Literal(JourneyResourceStatusEnum.Running),
+    Type.Literal(JourneyResourceStatusEnum.Paused),
+    Type.Literal(JourneyResourceStatusEnum.Broadcast),
+  ]),
+  definition: JourneyDefinition,
+});
+
+export type HasStartedJourneyResource = Static<
+  typeof HasStartedJourneyResource
+>;
+
+export const JourneyResource = Type.Union([
+  NotStartedJourneyResource,
+  HasStartedJourneyResource,
+]);
 
 export type JourneyResource = Static<typeof JourneyResource>;
 
-export const SavedJourneyResource = Type.Composite([
-  JourneyResource,
-  Type.Object({
-    createdAt: Type.Number(),
-    updatedAt: Type.Number(),
-  }),
+const Timestamps = Type.Object({
+  createdAt: Type.Number(),
+  updatedAt: Type.Number(),
+});
+
+export const SavedHasStartedJourneyResource = Type.Composite([
+  HasStartedJourneyResource,
+  Timestamps,
+]);
+
+export type SavedHasStartedJourneyResource = Static<
+  typeof SavedHasStartedJourneyResource
+>;
+
+export const SavedNotStartedJourneyResource = Type.Composite([
+  NotStartedJourneyResource,
+  Timestamps,
+]);
+
+export type SavedNotStartedJourneyResource = Static<
+  typeof SavedNotStartedJourneyResource
+>;
+
+export const SavedJourneyResource = Type.Union([
+  SavedNotStartedJourneyResource,
+  SavedHasStartedJourneyResource,
 ]);
 
 export type SavedJourneyResource = Static<typeof SavedJourneyResource>;
 
 export const UpsertJourneyResource = Type.Composite([
-  Type.Omit(Type.Partial(JourneyResource), ["id"]),
-  Type.Pick(JourneyResource, ["id"]),
+  Type.Partial(
+    Type.Omit(
+      Type.Object({
+        ...baseJourneyResource,
+        definition: JourneyDefinition,
+        status: Type.Enum(JourneyResourceStatusEnum),
+      }),
+      ["draft"],
+    ),
+  ),
+  Type.Object({
+    id: Type.String(),
+    workspaceId: Type.String(),
+    draft: Type.Optional(Nullable(JourneyDraft)),
+  }),
 ]);
 
 export type UpsertJourneyResource = Static<typeof UpsertJourneyResource>;
@@ -2059,14 +2326,6 @@ export type DefaultSmsProviderResource = Static<
   typeof DefaultSmsProviderResource
 >;
 
-// Compatible as both a subset of EnrichedJourney and JourneyResource
-export interface CompatibleJourney {
-  workspaceId: string;
-  id: string;
-  name: string;
-  definition: JourneyDefinition;
-}
-
 export const MessageTemplateTestErrorResponse = Type.Object({});
 
 export type MessageTemplateTestResponse = Static<
@@ -2638,10 +2897,6 @@ export interface Resource {
   id: string;
 }
 
-export type PartialExceptType<T, TD> = Partial<Omit<T, "type">> & {
-  type: TD;
-};
-
 export enum AdminApiKeyPermission {
   Admin = "Admin",
 }
@@ -2687,6 +2942,7 @@ export type DeleteAdminApiKeyRequest = Static<typeof DeleteAdminApiKeyRequest>;
 
 export enum JourneyConstraintViolationType {
   WaitForNodeAndEventEntryNode = "WaitForNodeAndEventEntryNode",
+  CantStart = "CantStart",
 }
 
 export const JourneyConstraintViolation = Type.Object({

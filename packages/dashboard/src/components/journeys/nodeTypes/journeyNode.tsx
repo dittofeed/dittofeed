@@ -32,8 +32,8 @@ import { useAppStore, useAppStorePick } from "../../../lib/appStore";
 import {
   AdditionalJourneyNodeType,
   AppState,
-  JourneyNodeProps,
-  NodeTypeProps,
+  JourneyUiNodeDefinitionProps,
+  JourneyUiNodeTypeProps,
 } from "../../../lib/types";
 import DurationDescription from "../../durationDescription";
 import journeyNodeLabel from "../journeyNodeLabel";
@@ -58,11 +58,11 @@ interface JourneyNodeConfig {
  * @returns
  */
 export function isNodeComplete(
-  props: NodeTypeProps,
+  props: JourneyUiNodeTypeProps,
   state: Pick<AppState, "segments" | "messages">,
 ): boolean {
   switch (props.type) {
-    case AdditionalJourneyNodeType.UiEntryNode: {
+    case AdditionalJourneyNodeType.EntryUiNode: {
       const { variant } = props;
 
       switch (variant.type) {
@@ -166,9 +166,11 @@ function EventTriggerDescriptionBody({ event }: { event?: string }) {
   );
 }
 
-export function journeyNodeIcon(type: NodeTypeProps["type"]): JourneyNodeIcon {
+export function journeyNodeIcon(
+  type: JourneyUiNodeTypeProps["type"],
+): JourneyNodeIcon {
   switch (type) {
-    case AdditionalJourneyNodeType.UiEntryNode:
+    case AdditionalJourneyNodeType.EntryUiNode:
       return ThunderboltOutlined;
     case JourneyNodeType.DelayNode:
       return ClockCircleOutlined;
@@ -183,10 +185,12 @@ export function journeyNodeIcon(type: NodeTypeProps["type"]): JourneyNodeIcon {
   }
 }
 
-function journNodeTypeToConfig(props: NodeTypeProps): JourneyNodeConfig {
+function journNodeTypeToConfig(
+  props: JourneyUiNodeTypeProps,
+): JourneyNodeConfig {
   const t = props.type;
   switch (t) {
-    case AdditionalJourneyNodeType.UiEntryNode: {
+    case AdditionalJourneyNodeType.EntryUiNode: {
       const body =
         props.variant.type === JourneyNodeType.SegmentEntryNode ? (
           <SegmentDescriptionBody segmentId={props.variant.segment} />
@@ -297,7 +301,10 @@ function StatCategory({
   );
 }
 
-export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
+export function JourneyNode({
+  id,
+  data,
+}: NodeProps<JourneyUiNodeDefinitionProps>) {
   const path = useRouter();
   const theme = useTheme();
   const {
@@ -369,7 +376,13 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
     config.body
   );
 
-  const stats = isSelected && journeyStats[journeyId]?.nodeStats[id];
+  const stats = journeyStats[journeyId]?.nodeStats[id];
+  const channelStats =
+    isSelected &&
+    stats?.type === NodeStatsType.MessageNodeStats &&
+    stats.channelStats
+      ? { ...stats.channelStats, sendRate: stats.sendRate }
+      : null;
 
   const contents = (
     <Stack
@@ -431,7 +444,7 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
         alignItems="center"
         justifyContent="space-between"
         sx={{
-          padding: stats ? 1 : 0,
+          padding: channelStats ? 1 : 0,
           backgroundColor: "white",
           borderStyle: "solid",
           width: JOURNEY_NODE_WIDTH,
@@ -439,43 +452,38 @@ export function JourneyNode({ id, data }: NodeProps<JourneyNodeProps>) {
           borderBottomRightRadius: 8,
           borderColor,
           borderWidth: "0 2px 2px 2px",
-          opacity: stats ? 1 : 0,
-          visibility: stats ? "visible" : "hidden",
+          opacity: channelStats ? 1 : 0,
+          visibility: channelStats ? "visible" : "hidden",
           transition:
             "height .2s ease, padding-top .2s ease, padding-bottom .2s ease, opacity .2s ease",
-          height: stats ? undefined : 0,
+          height: channelStats ? undefined : 0,
         }}
       >
-        {stats &&
-        stats.type === NodeStatsType.MessageNodeStats &&
-        stats.channelStats ? (
+        {channelStats ? (
           <>
-            <StatCategory label="Sent" rate={stats.sendRate} />
-            <StatCategory
-              label="Delivered"
-              rate={stats.channelStats.deliveryRate}
-            />
+            <StatCategory label="Sent" rate={channelStats.sendRate} />
+            <StatCategory label="Delivered" rate={channelStats.deliveryRate} />
             <StatCategory
               label="Opened"
               rate={
-                stats.channelStats.type === ChannelType.Email
-                  ? stats.channelStats.openRate
+                channelStats.type === ChannelType.Email
+                  ? channelStats.openRate
                   : "N/A"
               }
             />
             <StatCategory
               label="Clicked"
               rate={
-                stats.channelStats.type === ChannelType.Email
-                  ? stats.channelStats.clickRate
+                channelStats.type === ChannelType.Email
+                  ? channelStats.clickRate
                   : "N/A"
               }
             />
             <StatCategory
               label="Spam"
               rate={
-                stats.channelStats.type === ChannelType.Email
-                  ? stats.channelStats.spamRate
+                channelStats.type === ChannelType.Email
+                  ? channelStats.spamRate
                   : "N/A"
               }
             />

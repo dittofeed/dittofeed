@@ -10,12 +10,13 @@ import {
   EmptyResponse,
   Journey,
   JourneyDefinition,
-  JourneyResource,
+  JourneyDraft,
   JourneyStatsRequest,
   JourneyStatsResponse,
   JourneyUpsertValidationError,
   JourneyUpsertValidationErrorType,
   Prisma,
+  SavedJourneyResource,
   UpsertJourneyResource,
 } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
@@ -31,18 +32,34 @@ export default async function journeysController(fastify: FastifyInstance) {
         tags: ["Journeys"],
         body: UpsertJourneyResource,
         response: {
-          200: JourneyResource,
+          200: SavedJourneyResource,
           400: JourneyUpsertValidationError,
         },
       },
     },
     async (request, reply) => {
       let journey: Journey;
-      const { id, name, definition, workspaceId, status, canRunMultiple } =
-        request.body;
+      const {
+        id,
+        name,
+        definition,
+        workspaceId,
+        status,
+        canRunMultiple,
+        draft,
+      } = request.body;
 
+      /*
+      TODO validate that status transitions satisfy:
+        NotStarted -> Running OR Running -> Paused
+      But not:
+        NotStarted -> Paused OR * -> NotStarted
+      */
       if (definition) {
-        const constraintViolations = getJourneyConstraintViolations(definition);
+        const constraintViolations = getJourneyConstraintViolations({
+          definition,
+          newStatus: status,
+        });
         if (constraintViolations.length > 0) {
           return reply.status(400).send({
             message: "Journey definition violates constraints",
@@ -54,14 +71,12 @@ export default async function journeysController(fastify: FastifyInstance) {
         }
       }
 
-      const canCreate = workspaceId && name && definition;
+      const canCreate = workspaceId && name;
+      // null out the draft when the definition is updated or when the draft is
+      // explicitly set to null
+      const nullableDraft =
+        definition || draft === null ? Prisma.DbNull : draft;
 
-      /*
-      TODO validate that status transitions satisfy:
-        NotStarted -> Running OR Running -> Paused
-      But not:
-        NotStarted -> Paused OR * -> NotStarted
-      */
       if (canCreate) {
         journey = await prisma().journey.upsert({
           where: {
@@ -72,6 +87,7 @@ export default async function journeysController(fastify: FastifyInstance) {
             workspaceId,
             name,
             definition,
+            draft: nullableDraft,
             status,
             canRunMultiple,
           },
@@ -79,6 +95,7 @@ export default async function journeysController(fastify: FastifyInstance) {
             workspaceId,
             name,
             definition,
+            draft: nullableDraft,
             status,
             canRunMultiple,
           },
@@ -92,16 +109,19 @@ export default async function journeysController(fastify: FastifyInstance) {
             workspaceId,
             name,
             definition,
+            draft: nullableDraft,
             status,
             canRunMultiple,
           },
         });
       }
-      const journeyDefinitionResult = schemaValidate(
-        journey.definition,
-        JourneyDefinition,
-      );
-      if (journeyDefinitionResult.isErr()) {
+      const journeyDefinitionResult = journey.definition
+        ? schemaValidate(journey.definition, JourneyDefinition)
+        : undefined;
+
+      // type checker seems not to understand with optional chain
+      // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+      if (journeyDefinitionResult && journeyDefinitionResult.isErr()) {
         logger().error(
           {
             errors: journeyDefinitionResult.error,
@@ -110,14 +130,63 @@ export default async function journeysController(fastify: FastifyInstance) {
         );
         return reply.status(500).send();
       }
-      const resource: JourneyResource = {
+
+      const journeyDraftResult = journey.draft
+        ? schemaValidate(journey.draft, JourneyDraft)
+        : undefined;
+
+      // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+      if (journeyDraftResult && journeyDraftResult.isErr()) {
+        logger().error(
+          {
+            errors: journeyDraftResult.error,
+          },
+          "Failed to validate journey draft",
+        );
+        return reply.status(500).send();
+      }
+
+      const journeyStatus = journey.status;
+      const journeyDefinition = journeyDefinitionResult?.value;
+      if (journeyStatus !== "NotStarted" && !journeyDefinition) {
+        throw new Error(
+          "Journey status is not NotStarted but has no definition",
+        );
+      }
+      const baseResource = {
         id: journey.id,
         name: journey.name,
         workspaceId: journey.workspaceId,
-        status: journey.status,
-        definition: journeyDefinitionResult.value,
+        draft: journeyDraftResult?.value,
         updatedAt: Number(journey.updatedAt),
-      };
+        createdAt: Number(journey.createdAt),
+      } as const;
+
+      let resource: SavedJourneyResource;
+      if (journeyStatus === "NotStarted") {
+        resource = {
+          ...baseResource,
+          status: journeyStatus,
+          definition: journeyDefinition,
+        };
+      } else {
+        if (!journeyDefinition) {
+          const err = new Error(
+            "Journey status is not NotStarted but has no definition",
+          );
+          logger().error({
+            journeyId: journey.id,
+            err,
+          });
+          return reply.status(500).send();
+        }
+        resource = {
+          ...baseResource,
+          status: journeyStatus,
+          definition: journeyDefinition,
+        };
+      }
+
       return reply.status(200).send(resource);
     },
   );

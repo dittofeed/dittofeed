@@ -1,16 +1,16 @@
 import "reactflow/dist/style.css";
 
 import { Box } from "@mui/material";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
-import { CompletionStatus, JourneyNodeType } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  JourneyUiBodyNodeTypeProps,
+} from "isomorphic-lib/src/types";
 import React, { DragEvent, DragEventHandler } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  Edge,
   EdgeChange,
   MarkerType,
-  Node,
   NodeChange,
   OnEdgesChange,
   OnNodesChange,
@@ -21,26 +21,14 @@ import ReactFlow, {
 import { v4 as uuid } from "uuid";
 
 import { useAppStorePick } from "../../lib/appStore";
-import {
-  AdditionalJourneyNodeType,
-  AppState,
-  EdgeData,
-  JourneyNodeProps,
-  NodeData,
-  NodeTypeProps,
-} from "../../lib/types";
+import { AppState } from "../../lib/types";
 import { useJourneyStats } from "../../lib/useJourneyStats";
 import edgeTypes from "./edgeTypes";
 import NodeEditor from "./nodeEditor";
 import nodeTypes from "./nodeTypes";
-import defaultNodeTypeProps from "./nodeTypes/defaultNodeTypeProps";
+import { defaultBodyNodeTypeProps } from "./nodeTypes/defaultNodeTypeProps";
 import Sidebar from "./sidebar";
-import {
-  dualNodeNonJourneyNodes,
-  edgesForJourneyNode,
-  WAIT_FOR_SATISFY_LABEL,
-  waitForTimeoutLabel,
-} from "./store";
+import { createConnections } from "./store";
 
 const proOptions: ProOptions = { account: "paid-pro", hideAttribution: true };
 
@@ -49,14 +37,14 @@ const handleDragOver: DragEventHandler<HTMLDivElement> = (e) => {
 };
 
 // this function adds a new node and connects it to the source node
-function createConnections({
+function createNewConnections({
   nodes,
   nodeType,
   source,
   target,
   addNodes,
 }: {
-  nodeType: NodeTypeProps["type"];
+  nodeType: JourneyUiBodyNodeTypeProps["type"];
   nodes: AppState["journeyNodes"];
   addNodes: AppState["addNodes"];
   source: string;
@@ -65,104 +53,12 @@ function createConnections({
   // TODO create an incremental ID based on the number of elements already in the graph
   const newTargetId = uuid();
 
-  const newJourneyNode: Node<JourneyNodeProps> = {
+  const { newNodes, newEdges } = createConnections({
     id: newTargetId,
-    data: {
-      type: "JourneyNode",
-      nodeTypeProps: defaultNodeTypeProps(nodeType, nodes),
-    },
-    position: { x: 0, y: 0 }, // no need to pass a position as it is computed by the layout hook
-    type: "journey",
-  };
-  let newNodes: Node<NodeData>[] = [newJourneyNode];
-  let newEdges: Edge<EdgeData>[];
-
-  const { nodeTypeProps } = newJourneyNode.data;
-  switch (nodeTypeProps.type) {
-    case JourneyNodeType.SegmentSplitNode: {
-      const trueId = nodeTypeProps.trueLabelNodeId;
-      const falseId = nodeTypeProps.falseLabelNodeId;
-      const emptyId = uuid();
-
-      newNodes = newNodes.concat(
-        dualNodeNonJourneyNodes({
-          emptyId,
-          leftId: trueId,
-          rightId: falseId,
-          leftLabel: "true",
-          rightLabel: "false",
-        }),
-      );
-
-      newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        emptyId,
-        leftId: trueId,
-        rightId: falseId,
-        source,
-        target,
-      });
-      break;
-    }
-    case JourneyNodeType.WaitForNode: {
-      const segmentChild = nodeTypeProps.segmentChildren[0];
-      if (!segmentChild) {
-        throw new Error("Malformed journey, WaitForNode has no children.");
-      }
-
-      const segmentChildLabelNodeId = segmentChild.labelNodeId;
-      const { timeoutLabelNodeId } = nodeTypeProps;
-      const emptyId = uuid();
-
-      newNodes = newNodes.concat(
-        dualNodeNonJourneyNodes({
-          emptyId,
-          leftId: segmentChildLabelNodeId,
-          rightId: timeoutLabelNodeId,
-          leftLabel: WAIT_FOR_SATISFY_LABEL,
-          rightLabel: waitForTimeoutLabel(nodeTypeProps.timeoutSeconds),
-        }),
-      );
-
-      newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        emptyId,
-        leftId: segmentChildLabelNodeId,
-        rightId: timeoutLabelNodeId,
-        source,
-        target,
-      });
-      break;
-    }
-    case JourneyNodeType.DelayNode: {
-      newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        source,
-        target,
-      });
-      break;
-    }
-    case JourneyNodeType.MessageNode: {
-      newEdges = edgesForJourneyNode({
-        type: nodeTypeProps.type,
-        nodeId: newTargetId,
-        source,
-        target,
-      });
-      break;
-    }
-    case AdditionalJourneyNodeType.UiEntryNode: {
-      throw new Error("Cannot add entry node in the UI implementation error.");
-    }
-    case JourneyNodeType.ExitNode: {
-      throw new Error("Cannot add exit node in the UI implementation error.");
-    }
-    default:
-      assertUnreachable(nodeTypeProps);
-  }
+    source,
+    target,
+    ...defaultBodyNodeTypeProps(nodeType, nodes),
+  });
 
   addNodes({ nodes: newNodes, edges: newEdges, source, target });
 }
@@ -179,6 +75,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     workspace,
     upsertJourneyStats,
     setJourneyStatsRequest,
+    viewDraft,
   } = useAppStorePick([
     "apiBase",
     "setNodes",
@@ -190,6 +87,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
     "workspace",
     "setJourneyStatsRequest",
     "upsertJourneyStats",
+    "viewDraft",
   ]);
 
   useJourneyStats({
@@ -212,7 +110,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
 
       if (source && target) {
         // now we can create a connection to the drop target node
-        createConnections({
+        createNewConnections({
           nodeType: draggedComponentType,
           source,
           target,
@@ -270,7 +168,7 @@ function JourneysBuilderInner({ journeyId }: { journeyId: string }) {
         nodesConnectable={false}
         zoomOnDoubleClick={false}
       >
-        <NodeEditor />
+        <NodeEditor disabled={!viewDraft} />
         <Panel position="top-left">
           <Sidebar />
         </Panel>

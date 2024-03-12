@@ -21,9 +21,9 @@ import {
   CompletionStatus,
   JourneyBodyNode,
   JourneyNodeType,
-  JourneyResource,
   MessageNode,
   MessageTemplateResource,
+  SavedJourneyResource,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
 import { GetServerSideProps, NextPage } from "next";
@@ -147,7 +147,7 @@ function getBroadcastMessageNode(
     return null;
   }
   const journey = journeys.value.find((j) => j.id === journeyId);
-  if (!journey) {
+  if (!journey || !journey.definition) {
     return null;
   }
   let messageNode: MessageNode | null = null;
@@ -197,7 +197,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         return;
       }
       const journey = journeys.value.find((j) => j.id === journeyId);
-      if (!journey) {
+      if (!journey?.definition) {
         return;
       }
       const nodes: JourneyBodyNode[] = journey.definition.nodes.map((node) => {
@@ -212,6 +212,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       });
       const body: UpsertJourneyResource = {
         id: journeyId,
+        workspaceId: journey.workspaceId,
         definition: {
           ...journey.definition,
           nodes,
@@ -221,7 +222,7 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         request: journeyUpdateRequest,
         setRequest: setJourneyUpdateRequest,
         setResponse: upsertJourney,
-        responseSchema: JourneyResource,
+        responseSchema: SavedJourneyResource,
         onSuccessNotice: `Updated subscription group.`,
         onFailureNoticeHandler: () =>
           `API Error: Failed to update subscription group.`,

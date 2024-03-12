@@ -1,12 +1,12 @@
 import { Node } from "reactflow";
 
-import { NodeData } from "../../lib/types";
+import { JourneyNodeUiProps } from "../../lib/types";
 
 export default function findNode(
   nodeId: string,
-  nodes: Node<NodeData>[],
+  nodes: Node<JourneyNodeUiProps>[],
   nodesIndex: Record<string, number>,
-): Node<NodeData> | null {
+): Node<JourneyNodeUiProps> | null {
   const nodeIndex = nodesIndex[nodeId];
   const node = nodeIndex !== undefined ? nodes[nodeIndex] : null;
   if (node) {

@@ -9,6 +9,8 @@ import {
   JourneyDefinition,
   JourneyNode,
   JourneyNodeType,
+  JourneyResourceStatus,
+  JourneyResourceStatusEnum,
 } from "./types";
 
 export function getNodeId(node: JourneyNode): string {
@@ -24,21 +26,33 @@ export function getNodeId(node: JourneyNode): string {
   return node.id;
 }
 
-export function getJourneyConstraintViolations(
-  definition: JourneyDefinition,
-): JourneyConstraintViolation[] {
-  const hasWaitForNode = definition.nodes.some(
-    (n) => n.type === JourneyNodeType.WaitForNode,
-  );
-  const hasEventEntry =
-    definition.entryNode.type === JourneyNodeType.EventEntryNode;
-
+export function getJourneyConstraintViolations({
+  newStatus,
+  definition,
+}: {
+  newStatus?: JourneyResourceStatus;
+  definition?: JourneyDefinition;
+}): JourneyConstraintViolation[] {
   const constraintViolations: JourneyConstraintViolation[] = [];
-  if (hasEventEntry && hasWaitForNode) {
+
+  if (definition) {
+    const hasWaitForNode = definition.nodes.some(
+      (n) => n.type === JourneyNodeType.WaitForNode,
+    );
+    const hasEventEntry =
+      definition.entryNode.type === JourneyNodeType.EventEntryNode;
+
+    if (hasEventEntry && hasWaitForNode) {
+      constraintViolations.push({
+        type: JourneyConstraintViolationType.WaitForNodeAndEventEntryNode,
+        message:
+          "A journey cannot have both an Event Entry node and a Wait For node",
+      });
+    }
+  } else if (newStatus !== JourneyResourceStatusEnum.NotStarted) {
     constraintViolations.push({
-      type: JourneyConstraintViolationType.WaitForNodeAndEventEntryNode,
-      message:
-        "A journey cannot have both an Event Entry node and a Wait For node",
+      type: JourneyConstraintViolationType.CantStart,
+      message: "Draft journey must have a definition to be started",
     });
   }
   return constraintViolations;

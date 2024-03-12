@@ -1,14 +1,18 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
-import { JourneyNodeType } from "isomorphic-lib/src/types";
+import {
+  JourneyNodeType,
+  JourneyUiBodyNodeTypeProps,
+} from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import { AdditionalJourneyNodeType, NodeTypeProps } from "../../lib/types";
+import { AdditionalJourneyNodeType, JourneyUiNodeType } from "../../lib/types";
+import { getWarningStyles } from "../../lib/warningTheme";
 import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import journeyNodeLabel from "./journeyNodeLabel";
 import { JourneyNodeIcon, journeyNodeIcon } from "./nodeTypes/journeyNode";
 
-const SIDEBAR_NODE_TYPES: NodeTypeProps["type"][] = [
+const SIDEBAR_NODE_TYPES: JourneyUiBodyNodeTypeProps["type"][] = [
   JourneyNodeType.DelayNode,
   JourneyNodeType.SegmentSplitNode,
   JourneyNodeType.MessageNode,
@@ -17,17 +21,18 @@ const SIDEBAR_NODE_TYPES: NodeTypeProps["type"][] = [
 
 function Sidebar() {
   const theme = useTheme();
-  const { setDraggedComponentType, journeyNodes } = useAppStorePick([
+  const { setDraggedComponentType, journeyNodes, viewDraft } = useAppStorePick([
     "setDraggedComponentType",
     "journeyNodes",
+    "viewDraft",
   ]);
 
   const isEventEntry = useMemo(
     () =>
       journeyNodes.find(
         (n) =>
-          n.data.type === "JourneyNode" &&
-          n.data.nodeTypeProps.type === AdditionalJourneyNodeType.UiEntryNode &&
+          n.data.type === JourneyUiNodeType.JourneyUiNodeDefinitionProps &&
+          n.data.nodeTypeProps.type === AdditionalJourneyNodeType.EntryUiNode &&
           n.data.nodeTypeProps.variant.type === JourneyNodeType.EventEntryNode,
       ),
     [journeyNodes],
@@ -39,7 +44,7 @@ function Sidebar() {
   );
 
   const onDragStart =
-    ({ nodeType }: { nodeType: NodeTypeProps["type"] }) =>
+    ({ nodeType }: { nodeType: JourneyUiBodyNodeTypeProps["type"] }) =>
     () => {
       setDraggedComponentType(nodeType);
     };
@@ -48,11 +53,12 @@ function Sidebar() {
     setDraggedComponentType(null);
   };
 
-  const nodeTypes: [NodeTypeProps["type"], JourneyNodeIcon][] =
+  const nodeTypes: [JourneyUiBodyNodeTypeProps["type"], JourneyNodeIcon][] =
     SIDEBAR_NODE_TYPES.map((t) => [t, journeyNodeIcon(t)]);
 
   const nodeTypesEls = nodeTypes.map(([t, Icon]) => {
-    const isDisabled = isEventEntry && t === JourneyNodeType.WaitForNode;
+    const isDisabled =
+      !viewDraft || (isEventEntry && t === JourneyNodeType.WaitForNode);
 
     return (
       <Stack
@@ -110,13 +116,8 @@ function Sidebar() {
       {globalErrors.length > 0 && (
         <Typography
           sx={{
+            ...getWarningStyles(theme),
             p: 1,
-            borderColor: theme.palette.warning.light,
-            backgroundColor: theme.palette.warning.postIt,
-            color: theme.palette.warning.postItContrastText,
-            borderWidth: 2,
-            borderStyle: "solid",
-            borderRadius: 1,
           }}
         >
           There is an issue with is the journey. Please fix it before

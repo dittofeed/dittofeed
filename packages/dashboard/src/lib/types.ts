@@ -1,42 +1,57 @@
 import { Config } from "backend-lib/src/config";
 import { Draft } from "immer";
 import {
+  AdditionalJourneyNodeType,
   BroadcastResource,
   ChannelType,
   DataSourceConfigurationResource,
   DefaultEmailProviderResource,
   DefaultSmsProviderResource,
-  DelayVariantType,
+  DelayUiNodeProps,
+  DelayUiNodeVariant,
   DFRequestContext,
-  EntryNode,
+  EntryUiNodeProps,
+  EntryUiNodeVariant,
   EphemeralRequestStatus,
-  EventEntryNode,
-  ExitNode,
+  ExitUiNodeProps,
   FeatureMap,
   IntegrationResource,
-  JourneyNodeType,
-  JourneyResource,
+  JourneyNodeUiProps,
   JourneyStats,
   JourneyStatsResponse,
-  LocalTimeDelayVariant,
+  JourneyUiBodyNodeTypeProps,
+  JourneyUiDefinitionEdgeProps,
+  JourneyUiDraftEdge,
+  JourneyUiDraftNode,
+  JourneyUiEdgeProps,
+  JourneyUiEdgeType,
+  JourneyUiNodeDefinitionProps,
+  JourneyUiNodeEmptyProps,
+  JourneyUiNodeLabelProps,
+  JourneyUiNodePairing,
+  JourneyUiNodePresentationalProps,
+  JourneyUiNodeType,
+  JourneyUiNodeTypeProps,
+  JourneyUiPlaceholderEdgeProps,
   MessageTemplateResource,
-  PartialExceptType,
+  MessageUiNodeProps,
   PersistedEmailProvider,
   PersistedSmsProvider,
   RequestStatus,
+  SavedJourneyResource,
   SavedSubscriptionGroupResource,
-  SecondsDelayVariant,
   SecretAvailabilityResource,
   SecretResource,
-  SegmentEntryNode,
   SegmentNode,
   SegmentNodeType,
   SegmentResource,
+  SegmentSplitUiNodeProps,
   SourceControlProviderEnum,
   SubscriptionGroupResource,
+  TimeUnit,
   UserPropertyDefinition,
   UserPropertyResource,
-  WaitForNode,
+  WaitForUiNodeProps,
   WorkspaceMemberResource,
   WorkspaceMemberRoleResource,
   WorkspaceResource,
@@ -50,6 +65,34 @@ import {
 import { ParsedUrlQuery } from "querystring";
 import { Edge, EdgeChange, Node, NodeChange } from "reactflow";
 import { Optional } from "utility-types";
+
+// re-exporting for convenience
+export {
+  AdditionalJourneyNodeType,
+  type DelayUiNodeProps,
+  type DelayUiNodeVariant,
+  type EntryUiNodeProps,
+  type EntryUiNodeVariant,
+  type ExitUiNodeProps,
+  type JourneyNodeUiProps,
+  type JourneyUiDefinitionEdgeProps,
+  type JourneyUiDraftEdge,
+  type JourneyUiDraftNode,
+  type JourneyUiEdgeProps,
+  JourneyUiEdgeType,
+  type JourneyUiNodeDefinitionProps,
+  type JourneyUiNodeEmptyProps,
+  type JourneyUiNodeLabelProps,
+  type JourneyUiNodePairing,
+  type JourneyUiNodePresentationalProps,
+  JourneyUiNodeType,
+  type JourneyUiNodeTypeProps,
+  type JourneyUiPlaceholderEdgeProps,
+  type MessageUiNodeProps,
+  type SegmentSplitUiNodeProps,
+  type TimeUnit,
+  type WaitForUiNodeProps,
+};
 
 export type PropsWithInitialState<T = object> = {
   serverInitialState: PreloadedState;
@@ -97,7 +140,7 @@ export type AppState = {
   userProperties: RequestStatus<UserPropertyResource[], Error>;
   messages: RequestStatus<MessageTemplateResource[], Error>;
   userPropertyMessages: UserPropertyMessages;
-  journeys: RequestStatus<JourneyResource[], Error>;
+  journeys: RequestStatus<SavedJourneyResource[], Error>;
   traits: string[];
   getTraitsRequest: EphemeralRequestStatus<Error>;
   writeKeys: WriteKeyResource[];
@@ -113,6 +156,7 @@ export type AppState = {
   >;
   integrations: IntegrationResource[];
   sourceControlProvider?: SourceControlProviderEnum;
+  viewDraft: boolean;
 } & PageStoreContents &
   Pick<
     Config,
@@ -136,7 +180,7 @@ export interface AppActions {
   deleteMessage: (id: string) => void;
   upsertSegment: (segment: SegmentResource) => void;
   deleteSegment: (segmentId: string) => void;
-  upsertJourney: (journey: JourneyResource) => void;
+  upsertJourney: (journey: SavedJourneyResource) => void;
   deleteJourney: (segmentId: string) => void;
   upsertSecrets: (secrets: SecretResource[]) => void;
   deleteSecret: (secretName: string) => void;
@@ -155,6 +199,7 @@ export interface AppActions {
   setDefaultSmsProvider: (
     defaultSmsProvider: DefaultSmsProviderResource,
   ) => void;
+  setViewDraft: (viewDraft: boolean) => void;
 }
 
 export interface SegmentIndexContent {
@@ -253,27 +298,34 @@ export interface SegmentEditorContents extends SegmentEditorState {
   setSegmentUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
 }
 
+export type JourneyNodesIndex = Record<string, number>;
+
 export interface JourneyState {
   journeyName: string;
-  journeyDraggedComponentType: NodeTypeProps["type"] | null;
+  journeyDraggedComponentType: JourneyUiBodyNodeTypeProps["type"] | null;
   journeySelectedNodeId: string | null;
-  journeyNodes: Node<NodeData>[];
-  journeyNodesIndex: Record<string, number>;
-  journeyEdges: Edge<EdgeData>[];
+  journeyNodes: Node<JourneyNodeUiProps>[];
+  journeyNodesIndex: JourneyNodesIndex;
+  journeyEdges: Edge<JourneyUiEdgeProps>[];
   journeyUpdateRequest: EphemeralRequestStatus<Error>;
   journeyStats: Record<string, JourneyStats>;
   journeyStatsRequest: EphemeralRequestStatus<Error>;
 }
 
+export type JourneyUiNode = Node<JourneyNodeUiProps>;
+export type JourneyUiEdge = Edge<JourneyUiEdgeProps>;
+
 export interface AddNodesParams {
   source: string;
   target: string;
-  nodes: Node<NodeData>[];
-  edges: Edge[];
+  nodes: JourneyUiNode[];
+  edges: JourneyUiEdge[];
 }
 
 export interface JourneyContent extends JourneyState {
-  setDraggedComponentType: (t: NodeTypeProps["type"] | null) => void;
+  setDraggedComponentType: (
+    t: JourneyUiBodyNodeTypeProps["type"] | null,
+  ) => void;
   setSelectedNodeId: (t: string | null) => void;
   addNodes: (params: AddNodesParams) => void;
   setEdges: (changes: EdgeChange[]) => void;
@@ -281,13 +333,18 @@ export interface JourneyContent extends JourneyState {
   deleteJourneyNode: (nodeId: string) => void;
   updateJourneyNodeData: (
     nodeId: string,
-    updater: (currentValue: Draft<Node<JourneyNodeProps>>) => void,
+    updater: (currentValue: Draft<Node<JourneyUiNodeDefinitionProps>>) => void,
   ) => void;
   setJourneyUpdateRequest: (request: EphemeralRequestStatus<Error>) => void;
   setJourneyName: (name: string) => void;
   updateLabelNode: (nodeId: string, title: string) => void;
   setJourneyStatsRequest: (request: EphemeralRequestStatus<Error>) => void;
   upsertJourneyStats: (stats: JourneyStatsResponse) => void;
+  resetJourneyState: (state: {
+    edges: JourneyUiEdge[];
+    nodes: JourneyUiNode[];
+    index: JourneyNodesIndex;
+  }) => void;
 }
 
 export type PageStoreContents = SegmentEditorContents &
@@ -300,105 +357,6 @@ export type PageStoreContents = SegmentEditorContents &
   JourneyContent &
   BroadcastEditorContents &
   SubscriptionGroupEditorContents;
-
-export enum AdditionalJourneyNodeType {
-  UiEntryNode = "UiEntryNode",
-}
-
-export type UiEntryNodeVariant =
-  | PartialExceptType<SegmentEntryNode, JourneyNodeType.SegmentEntryNode>
-  | PartialExceptType<EventEntryNode, JourneyNodeType.EventEntryNode>;
-
-export interface EntryNodeProps {
-  type: AdditionalJourneyNodeType.UiEntryNode;
-  variant: UiEntryNodeVariant;
-}
-
-export interface ExitNodeProps {
-  type: JourneyNodeType.ExitNode;
-}
-
-export interface MessageNodeProps {
-  type: JourneyNodeType.MessageNode;
-  name: string;
-  templateId?: string;
-  channel: ChannelType;
-  subscriptionGroupId?: string;
-}
-
-export type UiDelayVariant =
-  | PartialExceptType<LocalTimeDelayVariant, DelayVariantType.LocalTime>
-  | PartialExceptType<SecondsDelayVariant, DelayVariantType.Second>;
-
-export interface DelayNodeProps {
-  type: JourneyNodeType.DelayNode;
-  variant: UiDelayVariant;
-}
-
-export interface SegmentSplitNodeProps {
-  type: JourneyNodeType.SegmentSplitNode;
-  name: string;
-  segmentId?: string;
-  trueLabelNodeId: string;
-  falseLabelNodeId: string;
-}
-
-export interface WaitForNodeProps {
-  type: JourneyNodeType.WaitForNode;
-  timeoutSeconds?: number;
-  timeoutLabelNodeId: string;
-  segmentChildren: {
-    labelNodeId: string;
-    segmentId?: string;
-  }[];
-}
-
-export type NodeTypeProps =
-  | EntryNodeProps
-  | ExitNodeProps
-  | MessageNodeProps
-  | DelayNodeProps
-  | SegmentSplitNodeProps
-  | WaitForNodeProps;
-
-export type JourneyNodePairing =
-  | [EntryNodeProps, EntryNode]
-  | [ExitNodeProps, ExitNode]
-  | [MessageNodeProps, SegmentNode]
-  | [DelayNodeProps, SegmentNode]
-  | [SegmentSplitNodeProps, SegmentNode]
-  | [WaitForNodeProps, WaitForNode];
-
-export interface JourneyNodeProps {
-  type: "JourneyNode";
-  nodeTypeProps: NodeTypeProps;
-}
-
-export interface EmptyNodeProps {
-  type: "EmptyNode";
-}
-
-export interface LabelNodeProps {
-  type: "LabelNode";
-  title: string;
-}
-
-export type TimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks";
-
-export type NonJourneyNodeData = LabelNodeProps | EmptyNodeProps;
-
-export type NodeData = JourneyNodeProps | NonJourneyNodeData;
-
-export interface WorkflowEdgeProps {
-  type: "WorkflowEdge";
-  disableMarker?: boolean;
-}
-
-export interface PlaceholderEdgeProps {
-  type: "PlaceholderEdge";
-}
-
-export type EdgeData = WorkflowEdgeProps | PlaceholderEdgeProps;
 
 export interface GroupedOption<T> {
   id: T;

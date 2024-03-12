@@ -1,5 +1,5 @@
 import { Row } from "@clickhouse/client";
-import { Journey, JourneyStatus, PrismaClient } from "@prisma/client";
+import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
 import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
@@ -18,6 +18,7 @@ import {
   EnrichedJourney,
   InternalEventType,
   JourneyDefinition,
+  JourneyDraft,
   JourneyNodeType,
   JourneyStats,
   NodeStatsType,
@@ -36,16 +37,29 @@ const isValueInEnum = <T extends Record<string, string>>(
 export function enrichJourney(
   journey: Journey,
 ): Result<EnrichedJourney, Error> {
-  const definitionResult = schemaValidateWithErr(
-    journey.definition,
-    JourneyDefinition,
-  );
-  if (definitionResult.isErr()) {
-    return err(definitionResult.error);
+  let definition: JourneyDefinition | undefined;
+  if (journey.definition) {
+    const definitionResult = schemaValidateWithErr(
+      journey.definition,
+      JourneyDefinition,
+    );
+    if (definitionResult.isErr()) {
+      return err(definitionResult.error);
+    }
+    definition = definitionResult.value;
+  }
+  let draft: JourneyDraft | undefined;
+  if (journey.draft) {
+    const draftResult = schemaValidateWithErr(journey.draft, JourneyDraft);
+    if (draftResult.isErr()) {
+      return err(draftResult.error);
+    }
+    draft = draftResult.value;
   }
   return ok({
     ...journey,
-    definition: definitionResult.value,
+    draft,
+    definition,
   });
 }
 
@@ -78,24 +92,29 @@ export function toJourneyResource(
   if (result.isErr()) {
     return err(result.error);
   }
-  const {
-    id,
-    name,
-    workspaceId,
-    definition,
-    status,
-    createdAt,
-    updatedAt,
-    canRunMultiple,
-  } = result.value;
+  const { definition, status, createdAt, updatedAt } = result.value;
+  const baseResource = {
+    ...result.value,
+    createdAt: createdAt.getTime(),
+    updatedAt: updatedAt.getTime(),
+  };
+  if (status === JourneyStatus.NotStarted) {
+    return ok({
+      ...baseResource,
+      status,
+    });
+  }
+  if (!definition) {
+    return err(
+      new Error(
+        `journey definition is missing for journey with status ${status}`,
+      ),
+    );
+  }
 
   return ok({
-    id,
-    name,
-    workspaceId,
-    status,
+    ...baseResource,
     definition,
-    canRunMultiple,
     createdAt: createdAt.getTime(),
     updatedAt: updatedAt.getTime(),
   });
@@ -147,8 +166,11 @@ function getEdgePercentRaw({
   targetId,
   heritageMap,
   nodeProcessedMap,
-}: GetEdgePercentParams): number {
-  const originMapEntry = getUnsafe(heritageMap, originId);
+}: GetEdgePercentParams): number | null {
+  const originMapEntry = heritageMap.get(originId);
+  if (!originMapEntry) {
+    return null;
+  }
   if (!originMapEntry.children.has(targetId)) {
     logger().debug(
       {
@@ -158,12 +180,17 @@ function getEdgePercentRaw({
       },
       "targetId not in originId children",
     );
-    return 0;
+    return null;
   }
 
-  const originCount = getUnsafe(nodeProcessedMap, originId);
-  const targetCount = getUnsafe(nodeProcessedMap, targetId);
-  if (originCount === 0 || targetCount === 0) {
+  const originCount = nodeProcessedMap.get(originId);
+  const targetCount = nodeProcessedMap.get(targetId);
+  if (
+    originCount === undefined ||
+    originCount === 0 ||
+    targetCount === undefined ||
+    targetCount === 0
+  ) {
     logger().debug(
       {
         originCount,
@@ -173,14 +200,17 @@ function getEdgePercentRaw({
       },
       "either the origin or target have no processed nodes, returning 0 edge percent",
     );
-    return 0;
+    return null;
   }
 
   if (originMapEntry.children.size === 1) {
     return 1;
   }
 
-  const targetMapEntry = getUnsafe(heritageMap, targetId);
+  const targetMapEntry = heritageMap.get(targetId);
+  if (!targetMapEntry) {
+    return null;
+  }
   if (targetMapEntry.parents.size === 1) {
     return targetCount / originCount;
   }
@@ -199,19 +229,45 @@ function getEdgePercentRaw({
   return (originCount - siblingsCount) / originCount;
 }
 
-function getEdgePercent(params: GetEdgePercentParams): number {
+function getEdgePercent(params: GetEdgePercentParams): number | null {
   const raw = getEdgePercentRaw(params);
+  if (raw === null) {
+    return null;
+  }
   return round(raw * 100, 1);
 }
 
 export async function getJourneysStats({
   workspaceId,
-  journeyIds,
+  journeyIds: allJourneyIds,
 }: {
   workspaceId: string;
   journeyIds: string[];
 }): Promise<JourneyStats[]> {
   const qb = new ClickHouseQueryBuilder();
+  const journeyIds = (
+    await prisma().journey.findMany({
+      where: {
+        AND: {
+          id: {
+            in: allJourneyIds,
+          },
+          status: {
+            not: JourneyStatus.NotStarted,
+          },
+          definition: {
+            not: Prisma.AnyNull,
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    })
+  ).map((j) => j.id);
+  if (!journeyIds.length) {
+    return [];
+  }
   const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
@@ -353,6 +409,9 @@ group by event, node_id;`;
       nodeStats: {},
     };
     journeysStats.push(stats);
+    if (!definition) {
+      continue;
+    }
     const heritageMap = buildHeritageMap(definition);
 
     for (const node of definition.nodes) {
@@ -366,29 +425,37 @@ group by event, node_id;`;
       const nodeStats = statsMap.get(node.id);
 
       if (node.type === JourneyNodeType.SegmentSplitNode) {
+        const percent = getEdgePercent({
+          originId: node.id,
+          targetId: node.variant.falseChild,
+          heritageMap,
+          nodeProcessedMap,
+        });
+        if (percent === null) {
+          continue;
+        }
         stats.nodeStats[node.id] = {
           type: NodeStatsType.SegmentSplitNodeStats,
           proportions: {
-            falseChildEdge: getEdgePercent({
-              originId: node.id,
-              targetId: node.variant.falseChild,
-              heritageMap,
-              nodeProcessedMap,
-            }),
+            falseChildEdge: percent,
           },
         };
       } else if (node.type === JourneyNodeType.WaitForNode) {
         const segmentChild = node.segmentChildren[0];
         if (segmentChild) {
+          const percent = getEdgePercent({
+            originId: node.id,
+            targetId: segmentChild.id,
+            heritageMap,
+            nodeProcessedMap,
+          });
+          if (percent === null) {
+            continue;
+          }
           stats.nodeStats[node.id] = {
             type: NodeStatsType.WaitForNodeStats,
             proportions: {
-              segmentChildEdge: getEdgePercent({
-                originId: node.id,
-                targetId: segmentChild.id,
-                heritageMap,
-                nodeProcessedMap,
-              }),
+              segmentChildEdge: percent,
             },
           };
         }
@@ -518,11 +585,9 @@ export async function triggerEventEntryJourneys({
       }
       const journey = result.value;
       if (
+        journey.status !== JourneyStatus.Running ||
         journey.definition.entryNode.type !== JourneyNodeType.EventEntryNode
       ) {
-        return [];
-      }
-      if (journey.status !== JourneyStatus.Running) {
         return [];
       }
       return {

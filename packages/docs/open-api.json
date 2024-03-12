@@ -1304,39 +1304,34 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "id": {
+                    "allOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
                   "workspaceId": {
-                    "type": "string"
+                    "allOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
                   },
                   "name": {
                     "type": "string"
                   },
-                  "status": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": [
-                          "NotStarted"
-                        ]
-                      },
-                      {
-                        "type": "string",
-                        "enum": [
-                          "Running"
-                        ]
-                      },
-                      {
-                        "type": "string",
-                        "enum": [
-                          "Paused"
-                        ]
-                      },
-                      {
-                        "type": "string",
-                        "enum": [
-                          "Broadcast"
-                        ]
-                      }
-                    ]
+                  "canRunMultiple": {
+                    "type": "boolean"
+                  },
+                  "updatedAt": {
+                    "type": "number"
                   },
                   "definition": {
                     "type": "object",
@@ -1762,18 +1757,477 @@
                       "nodes"
                     ]
                   },
-                  "canRunMultiple": {
-                    "type": "boolean"
+                  "status": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "NotStarted"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Running"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Paused"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Broadcast"
+                        ]
+                      }
+                    ]
                   },
-                  "updatedAt": {
-                    "type": "number"
-                  },
-                  "id": {
-                    "type": "string"
+                  "draft": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "nodes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "data": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "JourneyUiNodeDefinitionProps"
+                                          ]
+                                        },
+                                        "nodeTypeProps": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "EntryUiNode"
+                                                  ]
+                                                },
+                                                "variant": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "segment": {
+                                                          "type": "string"
+                                                        },
+                                                        "child": {
+                                                          "type": "string"
+                                                        },
+                                                        "type": {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "EntryNode"
+                                                          ]
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "event": {
+                                                          "type": "string"
+                                                        },
+                                                        "child": {
+                                                          "type": "string"
+                                                        },
+                                                        "type": {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "EventEntryNode"
+                                                          ]
+                                                        }
+                                                      },
+                                                      "required": [
+                                                        "type"
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type",
+                                                "variant"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "properties": {
+                                                "type": {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "ExitNode"
+                                                  ]
+                                                }
+                                              },
+                                              "required": [
+                                                "type"
+                                              ]
+                                            },
+                                            {
+                                              "anyOf": [
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "MessageNode"
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    },
+                                                    "templateId": {
+                                                      "type": "string"
+                                                    },
+                                                    "channel": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "Email"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "MobilePush"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "Sms"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    },
+                                                    "subscriptionGroupId": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "name",
+                                                    "channel"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "DelayNode"
+                                                      ]
+                                                    },
+                                                    "variant": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "minute": {
+                                                              "type": "number"
+                                                            },
+                                                            "hour": {
+                                                              "type": "number"
+                                                            },
+                                                            "allowedDaysOfWeek": {
+                                                              "type": "array",
+                                                              "items": {
+                                                                "anyOf": [
+                                                                  {
+                                                                    "const": 0,
+                                                                    "type": "number"
+                                                                  },
+                                                                  {
+                                                                    "type": "number",
+                                                                    "enum": [
+                                                                      1
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "number",
+                                                                    "enum": [
+                                                                      2
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "number",
+                                                                    "enum": [
+                                                                      3
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "number",
+                                                                    "enum": [
+                                                                      4
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "number",
+                                                                    "enum": [
+                                                                      5
+                                                                    ]
+                                                                  },
+                                                                  {
+                                                                    "type": "number",
+                                                                    "enum": [
+                                                                      6
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            },
+                                                            "type": {
+                                                              "type": "string",
+                                                              "enum": [
+                                                                "LocalTime"
+                                                              ]
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "type"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "seconds": {
+                                                              "type": "number"
+                                                            },
+                                                            "type": {
+                                                              "type": "string",
+                                                              "enum": [
+                                                                "Second"
+                                                              ]
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "type"
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "variant"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "SegmentSplitNode"
+                                                      ]
+                                                    },
+                                                    "name": {
+                                                      "type": "string"
+                                                    },
+                                                    "segmentId": {
+                                                      "type": "string"
+                                                    },
+                                                    "trueLabelNodeId": {
+                                                      "type": "string"
+                                                    },
+                                                    "falseLabelNodeId": {
+                                                      "type": "string"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "name",
+                                                    "trueLabelNodeId",
+                                                    "falseLabelNodeId"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": [
+                                                        "WaitForNode"
+                                                      ]
+                                                    },
+                                                    "timeoutSeconds": {
+                                                      "type": "number"
+                                                    },
+                                                    "timeoutLabelNodeId": {
+                                                      "type": "string"
+                                                    },
+                                                    "segmentChildren": {
+                                                      "type": "array",
+                                                      "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "labelNodeId": {
+                                                            "type": "string"
+                                                          },
+                                                          "segmentId": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "labelNodeId"
+                                                        ]
+                                                      }
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "timeoutLabelNodeId",
+                                                    "segmentChildren"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "nodeTypeProps"
+                                      ]
+                                    },
+                                    {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "JourneyUiNodeLabelProps"
+                                              ]
+                                            },
+                                            "title": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "title"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "enum": [
+                                                "JourneyUiNodeEmptyProps"
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "type"
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "data"
+                              ]
+                            }
+                          },
+                          "edges": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "source": {
+                                  "type": "string"
+                                },
+                                "target": {
+                                  "type": "string"
+                                },
+                                "data": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "JourneyUiDefinitionEdgeProps"
+                                          ]
+                                        },
+                                        "disableMarker": {
+                                          "type": "boolean"
+                                        }
+                                      },
+                                      "required": [
+                                        "type"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "JourneyUiPlaceholderEdgeProps"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "type"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "source",
+                                "target",
+                                "data"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "nodes",
+                          "edges"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
-                  "id"
+                  "id",
+                  "workspaceId"
                 ]
               }
             }
@@ -1786,324 +2240,944 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "workspaceId": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "anyOf": [
-                        {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "workspaceId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "canRunMultiple": {
+                          "type": "boolean"
+                        },
+                        "updatedAt": {
+                          "allOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "draft": {
+                          "type": "object",
+                          "properties": {
+                            "nodes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "data": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "JourneyUiNodeDefinitionProps"
+                                            ]
+                                          },
+                                          "nodeTypeProps": {
+                                            "anyOf": [
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "EntryUiNode"
+                                                    ]
+                                                  },
+                                                  "variant": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "segment": {
+                                                            "type": "string"
+                                                          },
+                                                          "child": {
+                                                            "type": "string"
+                                                          },
+                                                          "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "EntryNode"
+                                                            ]
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "type"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "event": {
+                                                            "type": "string"
+                                                          },
+                                                          "child": {
+                                                            "type": "string"
+                                                          },
+                                                          "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "EventEntryNode"
+                                                            ]
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "type"
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                "required": [
+                                                  "type",
+                                                  "variant"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "ExitNode"
+                                                    ]
+                                                  }
+                                                },
+                                                "required": [
+                                                  "type"
+                                                ]
+                                              },
+                                              {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "MessageNode"
+                                                        ]
+                                                      },
+                                                      "name": {
+                                                        "type": "string"
+                                                      },
+                                                      "templateId": {
+                                                        "type": "string"
+                                                      },
+                                                      "channel": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "Email"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "MobilePush"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "Sms"
+                                                            ]
+                                                          }
+                                                        ]
+                                                      },
+                                                      "subscriptionGroupId": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "type",
+                                                      "name",
+                                                      "channel"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "DelayNode"
+                                                        ]
+                                                      },
+                                                      "variant": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "minute": {
+                                                                "type": "number"
+                                                              },
+                                                              "hour": {
+                                                                "type": "number"
+                                                              },
+                                                              "allowedDaysOfWeek": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                  "anyOf": [
+                                                                    {
+                                                                      "const": 0,
+                                                                      "type": "number"
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        1
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        2
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        3
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        4
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        5
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        6
+                                                                      ]
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              },
+                                                              "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "LocalTime"
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "type"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "seconds": {
+                                                                "type": "number"
+                                                              },
+                                                              "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "Second"
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "type"
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "type",
+                                                      "variant"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "SegmentSplitNode"
+                                                        ]
+                                                      },
+                                                      "name": {
+                                                        "type": "string"
+                                                      },
+                                                      "segmentId": {
+                                                        "type": "string"
+                                                      },
+                                                      "trueLabelNodeId": {
+                                                        "type": "string"
+                                                      },
+                                                      "falseLabelNodeId": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "type",
+                                                      "name",
+                                                      "trueLabelNodeId",
+                                                      "falseLabelNodeId"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "WaitForNode"
+                                                        ]
+                                                      },
+                                                      "timeoutSeconds": {
+                                                        "type": "number"
+                                                      },
+                                                      "timeoutLabelNodeId": {
+                                                        "type": "string"
+                                                      },
+                                                      "segmentChildren": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "labelNodeId": {
+                                                              "type": "string"
+                                                            },
+                                                            "segmentId": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "labelNodeId"
+                                                          ]
+                                                        }
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "type",
+                                                      "timeoutLabelNodeId",
+                                                      "segmentChildren"
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "nodeTypeProps"
+                                        ]
+                                      },
+                                      {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "JourneyUiNodeLabelProps"
+                                                ]
+                                              },
+                                              "title": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "title"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "JourneyUiNodeEmptyProps"
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "data"
+                                ]
+                              }
+                            },
+                            "edges": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "source": {
+                                    "type": "string"
+                                  },
+                                  "target": {
+                                    "type": "string"
+                                  },
+                                  "data": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "JourneyUiDefinitionEdgeProps"
+                                            ]
+                                          },
+                                          "disableMarker": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "JourneyUiPlaceholderEdgeProps"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "source",
+                                  "target",
+                                  "data"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "nodes",
+                            "edges"
+                          ]
+                        },
+                        "status": {
                           "type": "string",
                           "enum": [
                             "NotStarted"
                           ]
                         },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Running"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Paused"
-                          ]
-                        },
-                        {
-                          "type": "string",
-                          "enum": [
-                            "Broadcast"
-                          ]
-                        }
-                      ]
-                    },
-                    "definition": {
-                      "type": "object",
-                      "properties": {
-                        "entryNode": {
-                          "anyOf": [
-                            {
-                              "title": "Segment Entry Node",
-                              "description": "The first node in a journey, which limits it to a specific segment.",
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "enum": [
-                                    "EntryNode"
-                                  ]
-                                },
-                                "segment": {
-                                  "type": "string"
-                                },
-                                "child": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "segment",
-                                "child"
-                              ]
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "enum": [
-                                    "EventEntryNode"
-                                  ]
-                                },
-                                "event": {
-                                  "type": "string"
-                                },
-                                "child": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "event",
-                                "child"
-                              ]
-                            }
-                          ]
-                        },
-                        "exitNode": {
-                          "title": "Exit Node",
-                          "description": "Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.",
+                        "definition": {
                           "type": "object",
                           "properties": {
-                            "type": {
-                              "type": "string",
-                              "enum": [
-                                "ExitNode"
+                            "entryNode": {
+                              "anyOf": [
+                                {
+                                  "title": "Segment Entry Node",
+                                  "description": "The first node in a journey, which limits it to a specific segment.",
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "EntryNode"
+                                      ]
+                                    },
+                                    "segment": {
+                                      "type": "string"
+                                    },
+                                    "child": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "segment",
+                                    "child"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "EventEntryNode"
+                                      ]
+                                    },
+                                    "event": {
+                                      "type": "string"
+                                    },
+                                    "child": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "event",
+                                    "child"
+                                  ]
+                                }
                               ]
-                            }
-                          },
-                          "required": [
-                            "type"
-                          ]
-                        },
-                        "nodes": {
-                          "type": "array",
-                          "items": {
-                            "anyOf": [
-                              {
-                                "title": "Delay Node",
-                                "description": "Delays a users progression through the journey for either a set amount of time, or until a specific date time.",
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "DelayNode"
-                                    ]
-                                  },
-                                  "variant": {
-                                    "anyOf": [
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "Second"
-                                            ]
-                                          },
-                                          "seconds": {
-                                            "type": "number"
-                                          }
-                                        },
-                                        "required": [
-                                          "type",
-                                          "seconds"
-                                        ]
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "LocalTime"
-                                            ]
-                                          },
-                                          "minute": {
-                                            "type": "number"
-                                          },
-                                          "hour": {
-                                            "type": "number"
-                                          },
-                                          "allowedDaysOfWeek": {
-                                            "type": "array",
-                                            "items": {
-                                              "anyOf": [
-                                                {
-                                                  "const": 0,
-                                                  "type": "number"
-                                                },
-                                                {
-                                                  "type": "number",
-                                                  "enum": [
-                                                    1
-                                                  ]
-                                                },
-                                                {
-                                                  "type": "number",
-                                                  "enum": [
-                                                    2
-                                                  ]
-                                                },
-                                                {
-                                                  "type": "number",
-                                                  "enum": [
-                                                    3
-                                                  ]
-                                                },
-                                                {
-                                                  "type": "number",
-                                                  "enum": [
-                                                    4
-                                                  ]
-                                                },
-                                                {
-                                                  "type": "number",
-                                                  "enum": [
-                                                    5
-                                                  ]
-                                                },
-                                                {
-                                                  "type": "number",
-                                                  "enum": [
-                                                    6
-                                                  ]
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        },
-                                        "required": [
-                                          "type",
-                                          "hour"
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  "child": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "variant",
-                                  "child"
-                                ]
+                            },
+                            "exitNode": {
+                              "title": "Exit Node",
+                              "description": "Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.",
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "ExitNode"
+                                  ]
+                                }
                               },
-                              {
-                                "title": "Rate Limit Node",
-                                "description": "Used to limit the frequency with which users are contacted by a given Journey.",
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "RateLimitNode"
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type"
-                                ]
-                              },
-                              {
-                                "title": "Segment Split Node",
-                                "description": "Used to split users among audiences, based on the behavior and attributes.",
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "SegmentSplitNode"
-                                    ]
-                                  },
-                                  "variant": {
+                              "required": [
+                                "type"
+                              ]
+                            },
+                            "nodes": {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "title": "Delay Node",
+                                    "description": "Delays a users progression through the journey for either a set amount of time, or until a specific date time.",
                                     "type": "object",
                                     "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
                                       "type": {
                                         "type": "string",
                                         "enum": [
-                                          "Boolean"
+                                          "DelayNode"
                                         ]
                                       },
-                                      "segment": {
-                                        "type": "string"
+                                      "variant": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Second"
+                                                ]
+                                              },
+                                              "seconds": {
+                                                "type": "number"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "seconds"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "LocalTime"
+                                                ]
+                                              },
+                                              "minute": {
+                                                "type": "number"
+                                              },
+                                              "hour": {
+                                                "type": "number"
+                                              },
+                                              "allowedDaysOfWeek": {
+                                                "type": "array",
+                                                "items": {
+                                                  "anyOf": [
+                                                    {
+                                                      "const": 0,
+                                                      "type": "number"
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        1
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        2
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        3
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        4
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        5
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        6
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "hour"
+                                            ]
+                                          }
+                                        ]
                                       },
-                                      "trueChild": {
-                                        "type": "string"
-                                      },
-                                      "falseChild": {
+                                      "child": {
                                         "type": "string"
                                       }
                                     },
                                     "required": [
+                                      "id",
                                       "type",
-                                      "segment",
-                                      "trueChild",
-                                      "falseChild"
+                                      "variant",
+                                      "child"
                                     ]
                                   },
-                                  "name": {
-                                    "type": "string"
+                                  {
+                                    "title": "Rate Limit Node",
+                                    "description": "Used to limit the frequency with which users are contacted by a given Journey.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "RateLimitNode"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Segment Split Node",
+                                    "description": "Used to split users among audiences, based on the behavior and attributes.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "SegmentSplitNode"
+                                        ]
+                                      },
+                                      "variant": {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "Boolean"
+                                            ]
+                                          },
+                                          "segment": {
+                                            "type": "string"
+                                          },
+                                          "trueChild": {
+                                            "type": "string"
+                                          },
+                                          "falseChild": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "segment",
+                                          "trueChild",
+                                          "falseChild"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type",
+                                      "variant"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Message Node",
+                                    "description": "Used to contact a user on a message channel.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "MessageNode"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "subscriptionGroupId": {
+                                        "type": "string"
+                                      },
+                                      "variant": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Email"
+                                                ]
+                                              },
+                                              "templateId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "templateId"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "MobilePush"
+                                                ]
+                                              },
+                                              "templateId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "templateId"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Sms"
+                                                ]
+                                              },
+                                              "templateId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "templateId"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "child": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type",
+                                      "variant",
+                                      "child"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Experiment Split Node",
+                                    "description": "Used to split users among experiment paths, to test their effectiveness.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "ExperimentSplitNode"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Wait For Node",
+                                    "description": "A node which waits for a user to enter a segment before progressing.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "WaitForNode"
+                                        ]
+                                      },
+                                      "timeoutSeconds": {
+                                        "type": "number"
+                                      },
+                                      "timeoutChild": {
+                                        "type": "string"
+                                      },
+                                      "segmentChildren": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "segmentId": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "id",
+                                            "segmentId"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type",
+                                      "timeoutSeconds",
+                                      "timeoutChild",
+                                      "segmentChildren"
+                                    ]
                                   }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "variant"
                                 ]
-                              },
-                              {
-                                "title": "Message Node",
-                                "description": "Used to contact a user on a message channel.",
+                              }
+                            }
+                          },
+                          "required": [
+                            "entryNode",
+                            "exitNode",
+                            "nodes"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "workspaceId",
+                        "name",
+                        "updatedAt",
+                        "status",
+                        "createdAt"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "workspaceId": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "canRunMultiple": {
+                          "type": "boolean"
+                        },
+                        "updatedAt": {
+                          "allOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "draft": {
+                          "type": "object",
+                          "properties": {
+                            "nodes": {
+                              "type": "array",
+                              "items": {
                                 "type": "object",
                                 "properties": {
                                   "id": {
                                     "type": "string"
                                   },
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "MessageNode"
-                                    ]
-                                  },
-                                  "name": {
-                                    "type": "string"
-                                  },
-                                  "subscriptionGroupId": {
-                                    "type": "string"
-                                  },
-                                  "variant": {
+                                  "data": {
                                     "anyOf": [
                                       {
                                         "type": "object",
@@ -2111,158 +3185,879 @@
                                           "type": {
                                             "type": "string",
                                             "enum": [
-                                              "Email"
+                                              "JourneyUiNodeDefinitionProps"
                                             ]
                                           },
-                                          "templateId": {
-                                            "type": "string"
+                                          "nodeTypeProps": {
+                                            "anyOf": [
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "EntryUiNode"
+                                                    ]
+                                                  },
+                                                  "variant": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "segment": {
+                                                            "type": "string"
+                                                          },
+                                                          "child": {
+                                                            "type": "string"
+                                                          },
+                                                          "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "EntryNode"
+                                                            ]
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "type"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "event": {
+                                                            "type": "string"
+                                                          },
+                                                          "child": {
+                                                            "type": "string"
+                                                          },
+                                                          "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "EventEntryNode"
+                                                            ]
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "type"
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                "required": [
+                                                  "type",
+                                                  "variant"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "properties": {
+                                                  "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "ExitNode"
+                                                    ]
+                                                  }
+                                                },
+                                                "required": [
+                                                  "type"
+                                                ]
+                                              },
+                                              {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "MessageNode"
+                                                        ]
+                                                      },
+                                                      "name": {
+                                                        "type": "string"
+                                                      },
+                                                      "templateId": {
+                                                        "type": "string"
+                                                      },
+                                                      "channel": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "Email"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "MobilePush"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "Sms"
+                                                            ]
+                                                          }
+                                                        ]
+                                                      },
+                                                      "subscriptionGroupId": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "type",
+                                                      "name",
+                                                      "channel"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "DelayNode"
+                                                        ]
+                                                      },
+                                                      "variant": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "minute": {
+                                                                "type": "number"
+                                                              },
+                                                              "hour": {
+                                                                "type": "number"
+                                                              },
+                                                              "allowedDaysOfWeek": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                  "anyOf": [
+                                                                    {
+                                                                      "const": 0,
+                                                                      "type": "number"
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        1
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        2
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        3
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        4
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        5
+                                                                      ]
+                                                                    },
+                                                                    {
+                                                                      "type": "number",
+                                                                      "enum": [
+                                                                        6
+                                                                      ]
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              },
+                                                              "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "LocalTime"
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "type"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "seconds": {
+                                                                "type": "number"
+                                                              },
+                                                              "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                  "Second"
+                                                                ]
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "type"
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "type",
+                                                      "variant"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "SegmentSplitNode"
+                                                        ]
+                                                      },
+                                                      "name": {
+                                                        "type": "string"
+                                                      },
+                                                      "segmentId": {
+                                                        "type": "string"
+                                                      },
+                                                      "trueLabelNodeId": {
+                                                        "type": "string"
+                                                      },
+                                                      "falseLabelNodeId": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "type",
+                                                      "name",
+                                                      "trueLabelNodeId",
+                                                      "falseLabelNodeId"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "WaitForNode"
+                                                        ]
+                                                      },
+                                                      "timeoutSeconds": {
+                                                        "type": "number"
+                                                      },
+                                                      "timeoutLabelNodeId": {
+                                                        "type": "string"
+                                                      },
+                                                      "segmentChildren": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "object",
+                                                          "properties": {
+                                                            "labelNodeId": {
+                                                              "type": "string"
+                                                            },
+                                                            "segmentId": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "labelNodeId"
+                                                          ]
+                                                        }
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "type",
+                                                      "timeoutLabelNodeId",
+                                                      "segmentChildren"
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
                                           }
                                         },
                                         "required": [
                                           "type",
-                                          "templateId"
+                                          "nodeTypeProps"
                                         ]
                                       },
                                       {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "MobilePush"
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "JourneyUiNodeLabelProps"
+                                                ]
+                                              },
+                                              "title": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "title"
                                             ]
                                           },
-                                          "templateId": {
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "type",
-                                          "templateId"
-                                        ]
-                                      },
-                                      {
-                                        "type": "object",
-                                        "properties": {
-                                          "type": {
-                                            "type": "string",
-                                            "enum": [
-                                              "Sms"
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "JourneyUiNodeEmptyProps"
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "type"
                                             ]
-                                          },
-                                          "templateId": {
-                                            "type": "string"
                                           }
-                                        },
-                                        "required": [
-                                          "type",
-                                          "templateId"
                                         ]
                                       }
                                     ]
-                                  },
-                                  "child": {
-                                    "type": "string"
                                   }
                                 },
                                 "required": [
                                   "id",
-                                  "type",
-                                  "variant",
-                                  "child"
-                                ]
-                              },
-                              {
-                                "title": "Experiment Split Node",
-                                "description": "Used to split users among experiment paths, to test their effectiveness.",
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "ExperimentSplitNode"
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type"
-                                ]
-                              },
-                              {
-                                "title": "Wait For Node",
-                                "description": "A node which waits for a user to enter a segment before progressing.",
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string"
-                                  },
-                                  "type": {
-                                    "type": "string",
-                                    "enum": [
-                                      "WaitForNode"
-                                    ]
-                                  },
-                                  "timeoutSeconds": {
-                                    "type": "number"
-                                  },
-                                  "timeoutChild": {
-                                    "type": "string"
-                                  },
-                                  "segmentChildren": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "object",
-                                      "properties": {
-                                        "id": {
-                                          "type": "string"
-                                        },
-                                        "segmentId": {
-                                          "type": "string"
-                                        }
-                                      },
-                                      "required": [
-                                        "id",
-                                        "segmentId"
-                                      ]
-                                    }
-                                  }
-                                },
-                                "required": [
-                                  "id",
-                                  "type",
-                                  "timeoutSeconds",
-                                  "timeoutChild",
-                                  "segmentChildren"
+                                  "data"
                                 ]
                               }
-                            ]
-                          }
+                            },
+                            "edges": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "source": {
+                                    "type": "string"
+                                  },
+                                  "target": {
+                                    "type": "string"
+                                  },
+                                  "data": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "JourneyUiDefinitionEdgeProps"
+                                            ]
+                                          },
+                                          "disableMarker": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "JourneyUiPlaceholderEdgeProps"
+                                            ]
+                                          }
+                                        },
+                                        "required": [
+                                          "type"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "source",
+                                  "target",
+                                  "data"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "nodes",
+                            "edges"
+                          ]
+                        },
+                        "status": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "Running"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "Paused"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "Broadcast"
+                              ]
+                            }
+                          ]
+                        },
+                        "definition": {
+                          "type": "object",
+                          "properties": {
+                            "entryNode": {
+                              "anyOf": [
+                                {
+                                  "title": "Segment Entry Node",
+                                  "description": "The first node in a journey, which limits it to a specific segment.",
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "EntryNode"
+                                      ]
+                                    },
+                                    "segment": {
+                                      "type": "string"
+                                    },
+                                    "child": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "segment",
+                                    "child"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "enum": [
+                                        "EventEntryNode"
+                                      ]
+                                    },
+                                    "event": {
+                                      "type": "string"
+                                    },
+                                    "child": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "event",
+                                    "child"
+                                  ]
+                                }
+                              ]
+                            },
+                            "exitNode": {
+                              "title": "Exit Node",
+                              "description": "Defines when a user exits a journey. Allows users to re-enter the journey, under some set of conditions.",
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "ExitNode"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "type"
+                              ]
+                            },
+                            "nodes": {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "title": "Delay Node",
+                                    "description": "Delays a users progression through the journey for either a set amount of time, or until a specific date time.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "DelayNode"
+                                        ]
+                                      },
+                                      "variant": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Second"
+                                                ]
+                                              },
+                                              "seconds": {
+                                                "type": "number"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "seconds"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "LocalTime"
+                                                ]
+                                              },
+                                              "minute": {
+                                                "type": "number"
+                                              },
+                                              "hour": {
+                                                "type": "number"
+                                              },
+                                              "allowedDaysOfWeek": {
+                                                "type": "array",
+                                                "items": {
+                                                  "anyOf": [
+                                                    {
+                                                      "const": 0,
+                                                      "type": "number"
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        1
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        2
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        3
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        4
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        5
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "number",
+                                                      "enum": [
+                                                        6
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "hour"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "child": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type",
+                                      "variant",
+                                      "child"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Rate Limit Node",
+                                    "description": "Used to limit the frequency with which users are contacted by a given Journey.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "RateLimitNode"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Segment Split Node",
+                                    "description": "Used to split users among audiences, based on the behavior and attributes.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "SegmentSplitNode"
+                                        ]
+                                      },
+                                      "variant": {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": [
+                                              "Boolean"
+                                            ]
+                                          },
+                                          "segment": {
+                                            "type": "string"
+                                          },
+                                          "trueChild": {
+                                            "type": "string"
+                                          },
+                                          "falseChild": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "type",
+                                          "segment",
+                                          "trueChild",
+                                          "falseChild"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type",
+                                      "variant"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Message Node",
+                                    "description": "Used to contact a user on a message channel.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "MessageNode"
+                                        ]
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "subscriptionGroupId": {
+                                        "type": "string"
+                                      },
+                                      "variant": {
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Email"
+                                                ]
+                                              },
+                                              "templateId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "templateId"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "MobilePush"
+                                                ]
+                                              },
+                                              "templateId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "templateId"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Sms"
+                                                ]
+                                              },
+                                              "templateId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "templateId"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "child": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type",
+                                      "variant",
+                                      "child"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Experiment Split Node",
+                                    "description": "Used to split users among experiment paths, to test their effectiveness.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "ExperimentSplitNode"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Wait For Node",
+                                    "description": "A node which waits for a user to enter a segment before progressing.",
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "WaitForNode"
+                                        ]
+                                      },
+                                      "timeoutSeconds": {
+                                        "type": "number"
+                                      },
+                                      "timeoutChild": {
+                                        "type": "string"
+                                      },
+                                      "segmentChildren": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "segmentId": {
+                                              "type": "string"
+                                            }
+                                          },
+                                          "required": [
+                                            "id",
+                                            "segmentId"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "type",
+                                      "timeoutSeconds",
+                                      "timeoutChild",
+                                      "segmentChildren"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "entryNode",
+                            "exitNode",
+                            "nodes"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "number"
                         }
                       },
                       "required": [
-                        "entryNode",
-                        "exitNode",
-                        "nodes"
+                        "id",
+                        "workspaceId",
+                        "name",
+                        "updatedAt",
+                        "status",
+                        "definition",
+                        "createdAt"
                       ]
-                    },
-                    "canRunMultiple": {
-                      "type": "boolean"
-                    },
-                    "updatedAt": {
-                      "type": "number"
                     }
-                  },
-                  "required": [
-                    "id",
-                    "workspaceId",
-                    "name",
-                    "status",
-                    "definition",
-                    "updatedAt"
                   ]
                 }
               }
@@ -2293,9 +4088,19 @@
                             "type": "object",
                             "properties": {
                               "type": {
-                                "type": "string",
-                                "enum": [
-                                  "WaitForNodeAndEventEntryNode"
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "WaitForNodeAndEventEntryNode"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "CantStart"
+                                    ]
+                                  }
                                 ]
                               },
                               "message": {
@@ -7005,6 +8810,9 @@
                     },
                     "createdAt": {
                       "type": "number"
+                    },
+                    "updatedAt": {
+                      "type": "number"
                     }
                   },
                   "required": [
@@ -7012,7 +8820,9 @@
                     "workspaceId",
                     "name",
                     "channel",
-                    "type"
+                    "type",
+                    "createdAt",
+                    "updatedAt"
                   ]
                 }
               }
