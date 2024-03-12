@@ -4,6 +4,7 @@ import {
   SavedJourneyResource,
   UpsertJourneyResource,
 } from "isomorphic-lib/src/types";
+import { deepEquals } from "isomorphic-lib/src/equality";
 import React, { useEffect, useMemo } from "react";
 
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
@@ -69,6 +70,7 @@ export default function JourneyLayout({
     if (journeys.type !== CompletionStatus.Successful) {
       return null;
     }
+    console.log("loc3", journeys);
     return journeys.value.find((j) => j.id === journeyId) ?? null;
   }, [journeyId, journeys]);
 
@@ -135,13 +137,7 @@ export default function JourneyLayout({
       };
       return { publisher, draftToggle: publisher };
     }
-    if (!journey.draft) {
-      const publisher: PublisherUpToDateStatus = {
-        type: PublisherStatusType.UpToDate,
-      };
-      return { publisher, draftToggle: publisher };
-    }
-    const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
+
     const definitionFromState = journeyDefinitionFromState({
       state: {
         journeyNodes,
@@ -149,6 +145,17 @@ export default function JourneyLayout({
         journeyNodesIndex,
       },
     });
+    if (
+      !journey.draft ||
+      (definitionFromState.isOk() &&
+        deepEquals(definitionFromState.value, journey.definition))
+    ) {
+      const publisher: PublisherUpToDateStatus = {
+        type: PublisherStatusType.UpToDate,
+      };
+      return { publisher, draftToggle: publisher };
+    }
+    const globalJourneyErrors = getGlobalJourneyErrors({ nodes: journeyNodes });
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       updateRequest: journeyUpdateRequest,
@@ -174,6 +181,7 @@ export default function JourneyLayout({
           onSuccessNotice: "Published new Journey version.",
           setResponse: (response) => {
             upsertJourney(response);
+            console.log("loc1", response);
           },
           requestConfig: {
             method: "PUT",

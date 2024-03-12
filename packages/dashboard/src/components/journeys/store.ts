@@ -1,5 +1,6 @@
 import { idxUnsafe } from "isomorphic-lib/src/arrays";
 import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
+import { deepEquals } from "isomorphic-lib/src/equality";
 import {
   buildHeritageMap,
   getNearestFromChildren,
@@ -39,7 +40,6 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
-import { equals as deepEquals } from "remeda/dist/commonjs/equals";
 import { omit } from "remeda/dist/commonjs/omit";
 import { sortBy } from "remeda/dist/commonjs/sortBy";
 import { v4 as uuid } from "uuid";
