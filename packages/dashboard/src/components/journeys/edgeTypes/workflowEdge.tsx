@@ -1,3 +1,4 @@
+import { round } from "isomorphic-lib/src/numbers";
 import { FeatureNamesEnum, NodeStatsType } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
@@ -31,8 +32,6 @@ export default function WorkflowEdge({
     ]);
 
   const isDragging = !!journeyDraggedComponentType;
-  const isDisplayJourneyPercentagesEnabled =
-    !!features[FeatureNamesEnum.DisplayJourneyPercentages];
   const [isDropzoneActive, setDropzoneActive] = useState<boolean>(false);
 
   const onDrop = () => {
@@ -81,7 +80,7 @@ export default function WorkflowEdge({
   const getLabelText = (): string => {
     if (stats?.type === NodeStatsType.SegmentSplitNodeStats) {
       if (id.includes("child-0")) {
-        return (100 - stats.proportions.falseChildEdge).toString();
+        return round(100 - stats.proportions.falseChildEdge, 1).toString();
       }
       if (id.includes("child-1")) {
         return stats.proportions.falseChildEdge.toString();
@@ -93,7 +92,7 @@ export default function WorkflowEdge({
         return stats.proportions.segmentChildEdge.toString();
       }
       if (id.includes("child-1")) {
-        return (100 - stats.proportions.segmentChildEdge).toString();
+        return round(100 - stats.proportions.segmentChildEdge, 1).toString();
       }
     }
 
@@ -158,7 +157,7 @@ export default function WorkflowEdge({
           +
         </text>
       </g>
-      {isDisplayJourneyPercentagesEnabled && getLabelText().length > 0 && (
+      {getLabelText().length > 0 && (
         <EdgeLabelRenderer>
           <div
             style={{
