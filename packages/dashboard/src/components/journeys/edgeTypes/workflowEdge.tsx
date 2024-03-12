@@ -1,4 +1,4 @@
-import { Box, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { round } from "isomorphic-lib/src/numbers";
 import { NodeStatsType } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
@@ -23,7 +23,6 @@ export default function WorkflowEdge({
   style,
   markerEnd,
 }: EdgeProps<JourneyUiEdgeProps>) {
-  const theme = useTheme();
   const path = useRouter();
 
   const { journeyStats, journeyDraggedComponentType } = useAppStorePick([
