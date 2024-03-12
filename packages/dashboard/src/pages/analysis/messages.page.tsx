@@ -11,7 +11,6 @@ import {
   ChannelType,
   CompletionStatus,
   JourneyNodeType,
-  JourneyResource,
   NodeStatsType,
   SavedJourneyResource,
 } from "isomorphic-lib/src/types";

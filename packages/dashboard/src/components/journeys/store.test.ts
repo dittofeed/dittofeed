@@ -166,7 +166,7 @@ const EXAMPLE_JOURNEY_STATE: JourneyState = {
   journeyEdges: [
     // Edges now use the new human-readable node IDs
     {
-      id: `${AdditionalJourneyNodeType}->message-node-1`,
+      id: `${AdditionalJourneyNodeType.EntryUiNode}->message-node-1`,
       source: AdditionalJourneyNodeType.EntryUiNode,
       target: "message-node-1",
       type: "workflow",

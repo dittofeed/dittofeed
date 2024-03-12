@@ -39,7 +39,6 @@ import {
   GroupUserPropertyDefinition,
   HasStartedJourneyResource,
   InternalEventType,
-  JourneyResource,
   LastPerformedSegmentNode,
   LeafUserPropertyDefinition,
   NodeEnvEnum,

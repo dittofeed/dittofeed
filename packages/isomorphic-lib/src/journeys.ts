@@ -36,7 +36,6 @@ export function getJourneyConstraintViolations({
   const constraintViolations: JourneyConstraintViolation[] = [];
 
   if (definition) {
-    console.log("definition", definition);
     const hasWaitForNode = definition.nodes.some(
       (n) => n.type === JourneyNodeType.WaitForNode,
     );

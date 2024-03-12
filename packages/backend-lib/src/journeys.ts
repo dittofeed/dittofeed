@@ -268,7 +268,6 @@ export async function getJourneysStats({
   if (!journeyIds.length) {
     return [];
   }
-  console.log("journeyIds", journeyIds, allJourneyIds);
   const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 

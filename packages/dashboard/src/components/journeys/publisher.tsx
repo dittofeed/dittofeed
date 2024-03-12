@@ -16,8 +16,9 @@ import {
   CompletionStatus,
   EphemeralRequestStatus,
 } from "isomorphic-lib/src/types";
-import { getWarningStyles } from "../../lib/warningTheme";
 import { useEffect, useState } from "react";
+
+import { getWarningStyles } from "../../lib/warningTheme";
 
 export enum PublisherStatusType {
   Unpublished = "Unpublished",

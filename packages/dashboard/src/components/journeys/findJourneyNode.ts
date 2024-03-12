@@ -1,8 +1,8 @@
 import { Node } from "reactflow";
 
 import {
-  JourneyUiNodeDefinitionProps,
   JourneyNodeUiProps,
+  JourneyUiNodeDefinitionProps,
 } from "../../lib/types";
 import findNode from "./findNode";
 import { isJourneyNode } from "./isJourneyNode";

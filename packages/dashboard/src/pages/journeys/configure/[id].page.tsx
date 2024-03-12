@@ -289,7 +289,7 @@ function JourneyConfigure() {
         <Box sx={{ width: "fit-content" }}>
           <InfoBox>{statusValue.currentDescription}</InfoBox>
         </Box>
-        {journey?.status !== "NotStarted" && (
+        {journey.status !== "NotStarted" && (
           <Stack sx={{ flex: 1, width: "100%" }} spacing={1}>
             <SubtleHeader>Deliveries</SubtleHeader>
             <DeliveriesTable journeyId={id} />

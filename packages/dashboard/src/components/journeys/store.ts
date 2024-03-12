@@ -42,7 +42,6 @@ import {
 import { equals as deepEquals } from "remeda/dist/commonjs/equals";
 import { omit } from "remeda/dist/commonjs/omit";
 import { sortBy } from "remeda/dist/commonjs/sortBy";
-import { Overwrite } from "utility-types";
 import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
 
