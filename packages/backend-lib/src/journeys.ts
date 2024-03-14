@@ -185,6 +185,7 @@ function getEdgePercentRaw({
 
   const originCount = nodeProcessedMap.get(originId);
   const targetCount = nodeProcessedMap.get(targetId);
+  // TODO [DF-467] handle the case of targetId is an exit node
   if (
     originCount === undefined ||
     originCount === 0 ||
@@ -242,32 +243,29 @@ export async function getJourneysStats({
   journeyIds: allJourneyIds,
 }: {
   workspaceId: string;
-  journeyIds: string[];
+  journeyIds?: string[];
 }): Promise<JourneyStats[]> {
   const qb = new ClickHouseQueryBuilder();
-  const journeyIds = (
-    await prisma().journey.findMany({
-      where: {
-        AND: {
-          id: {
-            in: allJourneyIds,
-          },
-          status: {
-            not: JourneyStatus.NotStarted,
-          },
-          definition: {
-            not: Prisma.AnyNull,
-          },
+  const journeys = await prisma().journey.findMany({
+    where: {
+      AND: {
+        ...(allJourneyIds?.length
+          ? {
+              id: {
+                in: allJourneyIds,
+              },
+            }
+          : {}),
+        status: {
+          not: JourneyStatus.NotStarted,
+        },
+        definition: {
+          not: Prisma.AnyNull,
         },
       },
-      select: {
-        id: true,
-      },
-    })
-  ).map((j) => j.id);
-  if (!journeyIds.length) {
-    return [];
-  }
+    },
+  });
+  const journeyIds = journeys.map((j) => j.id);
   const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
@@ -323,20 +321,11 @@ from (
 )
 group by event, node_id;`;
 
-  const [statsResultSet, journeys] = await Promise.all([
-    clickhouseClient().query({
-      query,
-      query_params: qb.getQueries(),
-      format: "JSONEachRow",
-    }),
-    prisma().journey.findMany({
-      where: {
-        id: {
-          in: journeyIds,
-        },
-      },
-    }),
-  ]);
+  const statsResultSet = await clickhouseClient().query({
+    query,
+    query_params: qb.getQueries(),
+    format: "JSONEachRow",
+  });
 
   const stream = statsResultSet.stream();
   // map from node_id to event to count
