@@ -243,24 +243,17 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      let journeyIds: string[];
-      if (request.query.journeyIds) {
-        journeyIds = request.query.journeyIds;
-      } else {
-        journeyIds = (
-          await prisma().journey.findMany({
-            where: {
-              workspaceId: request.query.workspaceId,
-            },
-            select: {
-              id: true,
-            },
-          })
-        ).map((journey) => journey.id);
-      }
+      logger().debug(
+        {
+          query: request.query,
+          journeyIds: request.query.journeyIds,
+        },
+        "loc1",
+      );
+      // https://github.com/fastify/fastify/issues/2841#issuecomment-778240710
       const stats = await getJourneysStats({
         workspaceId: request.query.workspaceId,
-        journeyIds,
+        journeyIds: request.query.journeyIds,
       });
       return reply.status(200).send(stats);
     },

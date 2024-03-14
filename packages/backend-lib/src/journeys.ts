@@ -185,6 +185,7 @@ function getEdgePercentRaw({
 
   const originCount = nodeProcessedMap.get(originId);
   const targetCount = nodeProcessedMap.get(targetId);
+  // FIXME
   if (
     originCount === undefined ||
     originCount === 0 ||
@@ -242,15 +243,19 @@ export async function getJourneysStats({
   journeyIds: allJourneyIds,
 }: {
   workspaceId: string;
-  journeyIds: string[];
+  journeyIds?: string[];
 }): Promise<JourneyStats[]> {
   const qb = new ClickHouseQueryBuilder();
   const journeys = await prisma().journey.findMany({
     where: {
       AND: {
-        id: {
-          in: allJourneyIds,
-        },
+        ...(allJourneyIds?.length
+          ? {
+              id: {
+                in: allJourneyIds,
+              },
+            }
+          : {}),
         status: {
           not: JourneyStatus.NotStarted,
         },
@@ -260,10 +265,14 @@ export async function getJourneysStats({
       },
     },
   });
-  if (!journeys.length) {
-    return [];
-  }
   const journeyIds = journeys.map((j) => j.id);
+  logger().debug(
+    {
+      journeyIds,
+      allJourneyIds,
+    },
+    "journeyIds",
+  );
   const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
@@ -335,6 +344,12 @@ group by event, node_id;`;
   const rowPromises: Promise<unknown>[] = [];
   stream.on("data", (rows: Row[]) => {
     rows.forEach((row: Row) => {
+      logger().debug(
+        {
+          row,
+        },
+        "Got row from clickhouse for journey stats",
+      );
       const promise = (async () => {
         const json = await row.json();
         const validated = schemaValidateWithErr(json, JourneyMessageStatsRow);
@@ -385,6 +400,12 @@ group by event, node_id;`;
   );
 
   const journeysStats: JourneyStats[] = [];
+  logger().debug(
+    {
+      nodeProcessedMap,
+    },
+    "nodeProcessedMap",
+  );
 
   for (const journey of enrichedJourneys) {
     const journeyId = journey.id;

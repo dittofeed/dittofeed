@@ -10,6 +10,7 @@ import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
 import { DFRequestContext } from "isomorphic-lib/src/types";
 import { OpenAPIV3_1 } from "openapi-types";
+import qs from "qs";
 
 import cors from "./buildApp/cors";
 import router from "./buildApp/router";
@@ -23,6 +24,7 @@ declare module "@fastify/request-context" {
 async function buildApp() {
   const fastifyLogger = logger();
   const server = fastify({
+    querystringParser: (str) => qs.parse(str),
     rewriteUrl: (req) => {
       const { apiPrefix } = config();
       if (!req.url) {
