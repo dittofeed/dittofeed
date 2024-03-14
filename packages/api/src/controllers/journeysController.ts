@@ -243,14 +243,6 @@ export default async function journeysController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      logger().debug(
-        {
-          query: request.query,
-          journeyIds: request.query.journeyIds,
-        },
-        "loc1",
-      );
-      // https://github.com/fastify/fastify/issues/2841#issuecomment-778240710
       const stats = await getJourneysStats({
         workspaceId: request.query.workspaceId,
         journeyIds: request.query.journeyIds,

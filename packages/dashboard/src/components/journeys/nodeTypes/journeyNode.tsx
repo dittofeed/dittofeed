@@ -386,6 +386,7 @@ export function JourneyNode({
 
   const contents = (
     <Stack
+      id={`journey-node-${id}`}
       direction="column"
       justifyContent="top"
       sx={{
