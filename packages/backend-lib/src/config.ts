@@ -363,10 +363,10 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     readQueryConcurrency: rawConfig.readQueryConcurrency
       ? parseInt(rawConfig.readQueryConcurrency)
       : 2,
-    // 30 seconds in ms
+    // 2 minutes in ms
     computePropertiesInterval: rawConfig.computePropertiesInterval
       ? parseInt(rawConfig.computePropertiesInterval)
-      : 30 * 1000,
+      : 120 * 1000,
     signoutUrl:
       authMode === "single-tenant"
         ? "/api/public/single-tenant/signout"
