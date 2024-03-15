@@ -255,6 +255,29 @@ function JourneyConfigure() {
       >
         <EditableName
           name={journeyName}
+          onEscape={() => {
+            apiRequestHandlerFactory({
+              request: journeyUpdateRequest,
+              setRequest: setJourneyUpdateRequest,
+              responseSchema: SavedJourneyResource,
+              setResponse: upsertJourney,
+              onSuccessNotice: "Journey name updated.",
+              onFailureNoticeHandler: () =>
+                "API Error: Failed to update journey name",
+              requestConfig: {
+                method: "PUT",
+                url: `${apiBase}/api/journeys`,
+                data: {
+                  id,
+                  workspaceId: workspace.value.id,
+                  name: journeyName,
+                } satisfies UpsertJourneyResource,
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              },
+            })();
+          }}
           onChange={(e) => setJourneyName(e.target.value)}
         />
         <SubtleHeader>Can Be Run Multiple Times</SubtleHeader>
