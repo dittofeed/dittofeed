@@ -210,10 +210,15 @@ export async function upsertBulkUserPropertyAssignments({
   }
 }
 
-function getAssignmentOverride(
-  definition: UserPropertyDefinition,
-  context: Record<string, JSONValue>,
-): JSONValue | null {
+function getAssignmentOverride({
+  userPropertyId,
+  definition,
+  context,
+}: {
+  userPropertyId: string;
+  definition: UserPropertyDefinition;
+  context: Record<string, JSONValue>;
+}): JSONValue | null {
   const nodes: UserPropertyDefinition[] = [definition];
   while (nodes.length) {
     const node = nodes.shift();
@@ -222,8 +227,21 @@ function getAssignmentOverride(
     }
     if (node.type === UserPropertyDefinitionType.Performed) {
       const path = `$.${node.path}`;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const value: JSONValue | null = jp.query(context, path)[0] ?? null;
+      let value: JSONValue | null;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        value = jp.query(context, path)[0] ?? null;
+      } catch (e) {
+        logger().info(
+          {
+            userPropertyId,
+            err: e,
+          },
+          "failed to query context for user property assignment override",
+        );
+        value = null;
+      }
+
       if (value !== null) {
         return value;
       }
@@ -297,7 +315,11 @@ export async function findAllUserPropertyAssignments({
     }
     const definition = definitionResult.value;
     const contextAssignment = context
-      ? getAssignmentOverride(definition, context)
+      ? getAssignmentOverride({
+          definition,
+          context,
+          userPropertyId: userProperty.id,
+        })
       : null;
     if (contextAssignment !== null) {
       combinedAssignments[userProperty.name] = contextAssignment;
