@@ -15,14 +15,21 @@ export default function EditableName({
   disabled = false,
   sx,
   onChange,
+  onEscape,
 }: {
   name: string;
   disabled?: boolean;
   sx?: SxProps<Theme>;
   variant?: React.ComponentProps<typeof Typography>["variant"];
   onChange: React.ComponentProps<typeof TextField>["onChange"];
+  onEscape?: () => void;
 }) {
   const [isNameFocused, setIsNamedFocused] = useState(false);
+
+  function handleEscape() {
+    setIsNamedFocused(false);
+    onEscape?.();
+  }
 
   return isNameFocused ? (
     <TextField
@@ -38,10 +45,10 @@ export default function EditableName({
       disabled={disabled}
       value={name}
       onChange={onChange}
-      onBlur={() => setIsNamedFocused(false)}
+      onBlur={() => handleEscape()}
       onKeyUp={(e) => {
         if (e.key === "Enter" || e.key === "Escape") {
-          setIsNamedFocused(false);
+          handleEscape();
         }
       }}
     />
