@@ -1633,7 +1633,7 @@ function assignUserPropertiesQuery({
   qb: ClickHouseQueryBuilder;
   periodBound?: number;
   userPropertyId: string;
-  config: AssignmentQueryConfig;
+  config: UserPropertyAssignmentConfig;
 }): string | null {
   const nowSeconds = now / 1000;
 
@@ -1774,16 +1774,14 @@ function assignUserPropertiesQuery({
   return query;
 }
 
-interface AssignmentQueryConfig {
+interface UserPropertyAssignmentConfig {
   query: string;
+  overrideDefaultQuery?: boolean;
   // ids of states to aggregate that need to fall within bounded time window
   stateIds: string[];
 }
 
-type OptionalAssignmentQueryConfig = Omit<
-  AssignmentQueryConfig,
-  "version"
-> | null;
+type OptionalUserPropertyAssignmentConfig = UserPropertyAssignmentConfig | null;
 
 function leafUserPropertyToAssignment({
   userProperty,
@@ -1793,7 +1791,7 @@ function leafUserPropertyToAssignment({
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): OptionalAssignmentQueryConfig {
+}): OptionalUserPropertyAssignmentConfig {
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
@@ -1822,7 +1820,7 @@ function groupedUserPropertyToAssignment({
   node: GroupChildrenUserPropertyDefinitions;
   group: GroupUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): OptionalAssignmentQueryConfig {
+}): OptionalUserPropertyAssignmentConfig {
   switch (node.type) {
     case UserPropertyDefinitionType.AnyOf: {
       const childNodes = node.children.flatMap((child) => {
@@ -1889,7 +1887,7 @@ function userPropertyToAssignment({
 }: {
   userProperty: SavedUserPropertyResource;
   qb: ClickHouseQueryBuilder;
-}): OptionalAssignmentQueryConfig {
+}): OptionalUserPropertyAssignmentConfig {
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       return leafUserPropertyToAssignment({
