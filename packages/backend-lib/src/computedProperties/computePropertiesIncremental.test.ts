@@ -26,7 +26,7 @@ import {
   JSONValue,
   ParsedPerformedManyValueItem,
   RelationalOperators,
-  SavedJourneyResource,
+  SavedHasStartedJourneyResource,
   SavedSegmentResource,
   SavedUserPropertyResource,
   SegmentHasBeenOperatorComparator,
@@ -3088,13 +3088,20 @@ describe("computeProperties", () => {
             workspaceId,
             name,
             definition,
+            status: "Running",
           },
           update: {},
         });
       }) ?? [],
     );
-    const journeyResources: SavedJourneyResource[] = journeys.map((j) =>
-      unwrap(toJourneyResource(j)),
+    const journeyResources: SavedHasStartedJourneyResource[] = journeys.map(
+      (j) => {
+        const resource = unwrap(toJourneyResource(j));
+        if (resource.status === "NotStarted") {
+          throw new Error("journey should have been started");
+        }
+        return resource;
+      },
     );
 
     for (const step of test.steps) {
