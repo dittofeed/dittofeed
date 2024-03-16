@@ -37,7 +37,7 @@ services:
       - dittofeed-network-lite
   # useful for upgrading dittofeed
   admin-cli:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.11.1}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.11.2}
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null
