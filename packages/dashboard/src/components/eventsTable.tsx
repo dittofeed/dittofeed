@@ -238,6 +238,7 @@ export function EventsTable({
   const cols: DataGridProps["columns"] = [
     {
       field: "userId",
+      headerName: "User Id",
       renderCell: ({ value }: GridRenderCellParams) => (
         <LinkCell href={`/users/${value}`} title={value}>
           <Box
@@ -251,32 +252,36 @@ export function EventsTable({
       ),
     },
     {
-      field: "anonymousId",
-    },
-    {
       field: "eventType",
+      headerName: "Type",
     },
     {
       field: "event",
+      headerName: "Name",
     },
     {
       field: "traits",
+      headerName: "Properties",
       flex: 2,
     },
     {
       field: "eventTime",
+      headerName: "Event Time",
       flex: 1,
     },
     {
       field: "processingTime",
+      headerName: "Processing Time",
       flex: 1,
     },
     {
       field: "messageId",
+      headerName: "Message Id",
       flex: 1,
     },
     {
       field: "relatedResources",
+      headerName: "Related Resources",
       flex: 2,
       valueGetter: (params: any) => JSON.parse(params.row.traits),
       renderCell: ({ value }: GridRenderCellParams) => {
