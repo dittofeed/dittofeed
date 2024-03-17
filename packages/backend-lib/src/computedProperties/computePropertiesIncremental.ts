@@ -1620,7 +1620,28 @@ function userPropertyToSubQuery({
   }
 }
 
-function assignUserPropertiesQuery({
+enum UserPropertyAssignmentType {
+  Standard = "Standard",
+  PerformedMany = "PerformedMany",
+}
+
+interface StandardUserPropertyAssignmentConfig {
+  type: UserPropertyAssignmentType.Standard;
+  query: string;
+  // ids of states to aggregate that need to fall within bounded time window
+  stateIds: string[];
+}
+
+interface PerformedManyUserPropertyAssignmentConfig {
+  type: UserPropertyAssignmentType.PerformedMany;
+  stateId: string;
+}
+
+type UserPropertyAssignmentConfig =
+  | StandardUserPropertyAssignmentConfig
+  | PerformedManyUserPropertyAssignmentConfig;
+
+function assignStandardUserPropertiesQuery({
   workspaceId,
   config: ac,
   userPropertyId,
@@ -1633,14 +1654,13 @@ function assignUserPropertiesQuery({
   qb: ClickHouseQueryBuilder;
   periodBound?: number;
   userPropertyId: string;
-  config: UserPropertyAssignmentConfig;
+  config: StandardUserPropertyAssignmentConfig;
 }): string | null {
   const nowSeconds = now / 1000;
 
   if (!ac.stateIds.length) {
     return null;
   }
-  // FIXME
   const lowerBoundClause =
     periodBound && periodBound !== 0
       ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
@@ -1717,26 +1737,37 @@ function assignUserPropertiesQuery({
   return query;
 }
 
-enum UserPropertyAssignmentType {
-  Standard = "Standard",
-  PerformedMany = "PerformedMany",
+function assignUserPropertiesQuery({
+  workspaceId,
+  config: ac,
+  userPropertyId,
+  periodBound,
+  qb,
+  now,
+}: {
+  workspaceId: string;
+  now: number;
+  qb: ClickHouseQueryBuilder;
+  periodBound?: number;
+  userPropertyId: string;
+  config: UserPropertyAssignmentConfig;
+}): string | null {
+  switch (ac.type) {
+    case UserPropertyAssignmentType.Standard: {
+      return assignStandardUserPropertiesQuery({
+        workspaceId,
+        config: ac,
+        userPropertyId,
+        periodBound,
+        qb,
+        now,
+      });
+    }
+    case UserPropertyAssignmentType.PerformedMany: {
+      throw new Error("Unimplemented");
+    }
+  }
 }
-
-interface StandardUserPropertyAssignmentConfig {
-  type: UserPropertyAssignmentType.Standard;
-  query: string;
-  // ids of states to aggregate that need to fall within bounded time window
-  stateIds: string[];
-}
-
-interface PerformedManyUserPropertyAssignmentConfig {
-  type: UserPropertyAssignmentType.PerformedMany;
-  stateId: string;
-}
-
-type UserPropertyAssignmentConfig =
-  | StandardUserPropertyAssignmentConfig
-  | PerformedManyUserPropertyAssignmentConfig;
 
 function leafUserPropertyToAssignment({
   userProperty,
