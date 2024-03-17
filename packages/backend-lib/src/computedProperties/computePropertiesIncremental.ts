@@ -1775,7 +1775,7 @@ function assignPerformedManyUserPropertiesQuery({
       and computed_property_id = ${computedPropertyIdParam}
       and state_id = ${stateIdParam}
       and computed_at <= toDateTime64(${nowSeconds}, 3)
-      and ${lowerBoundClause}
+      ${lowerBoundClause}
   `;
   const query = `
     insert into computed_property_assignments_v2
