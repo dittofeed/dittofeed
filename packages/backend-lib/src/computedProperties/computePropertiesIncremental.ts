@@ -1717,14 +1717,26 @@ function assignUserPropertiesQuery({
   return query;
 }
 
-interface UserPropertyAssignmentConfig {
+enum UserPropertyAssignmentType {
+  Standard = "Standard",
+  PerformedMany = "PerformedMany",
+}
+
+interface StandardUserPropertyAssignmentConfig {
+  type: UserPropertyAssignmentType.Standard;
   query: string;
-  overrideDefaultQuery?: boolean;
   // ids of states to aggregate that need to fall within bounded time window
   stateIds: string[];
 }
 
-type OptionalUserPropertyAssignmentConfig = UserPropertyAssignmentConfig | null;
+interface PerformedManyUserPropertyAssignmentConfig {
+  type: UserPropertyAssignmentType.PerformedMany;
+  stateId: string;
+}
+
+type UserPropertyAssignmentConfig =
+  | StandardUserPropertyAssignmentConfig
+  | PerformedManyUserPropertyAssignmentConfig;
 
 function leafUserPropertyToAssignment({
   userProperty,
@@ -1734,12 +1746,13 @@ function leafUserPropertyToAssignment({
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): OptionalUserPropertyAssignmentConfig {
+}): StandardUserPropertyAssignmentConfig {
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
+        type: UserPropertyAssignmentType.Standard,
         stateIds: [stateId],
       };
     }
@@ -1747,6 +1760,7 @@ function leafUserPropertyToAssignment({
       const stateId = userPropertyStateId(userProperty, child.id);
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
+        type: UserPropertyAssignmentType.Standard,
         stateIds: [stateId],
       };
     }
@@ -1763,7 +1777,7 @@ function groupedUserPropertyToAssignment({
   node: GroupChildrenUserPropertyDefinitions;
   group: GroupUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): OptionalUserPropertyAssignmentConfig {
+}): StandardUserPropertyAssignmentConfig | null {
   switch (node.type) {
     case UserPropertyDefinitionType.AnyOf: {
       const childNodes = node.children.flatMap((child) => {
@@ -1804,6 +1818,7 @@ function groupedUserPropertyToAssignment({
         .join(", ")})`;
       return {
         query,
+        type: UserPropertyAssignmentType.Standard,
         stateIds: childNodes.flatMap((c) => c.stateIds),
       };
     }
@@ -1830,7 +1845,7 @@ function userPropertyToAssignment({
 }: {
   userProperty: SavedUserPropertyResource;
   qb: ClickHouseQueryBuilder;
-}): OptionalUserPropertyAssignmentConfig {
+}): UserPropertyAssignmentConfig | null {
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       return leafUserPropertyToAssignment({
@@ -1864,33 +1879,38 @@ function userPropertyToAssignment({
     case UserPropertyDefinitionType.PerformedMany: {
       const stateId = userPropertyStateId(userProperty);
       return {
-        query: `
-          toJSONString(
-            arrayMap(
-              event ->
-                map(
-                  'event',
-                  event.1,
-                  'timestamp',
-                  formatDateTime(
-                    event.2,
-                    '%Y-%m-%dT%H:%i:%S'
-                  ),
-                  'properties',
-                  event.3
-                ),
-              arraySort(
-                e -> -toInt32(e.2),
-                grouped_events[${qb.addQueryValue(stateId, "String")}]
-              )
-            )
-          )`,
-        stateIds: [stateId],
+        type: UserPropertyAssignmentType.PerformedMany,
+        stateId,
+        // FIXME
+        //   query: `
+        //     toJSONString(
+        //       arrayMap(
+        //         event ->
+        //           map(
+        //             'event',
+        //             event.1,
+        //             'timestamp',
+        //             formatDateTime(
+        //               event.2,
+        //               '%Y-%m-%dT%H:%i:%S'
+        //             ),
+        //             'properties',
+        //             event.3
+        //           ),
+        //         arraySort(
+        //           e -> -toInt32(e.2),
+        //           grouped_events[${qb.addQueryValue(stateId, "String")}]
+        //         )
+        //       )
+        //     )`,
+        //   stateIds: [stateId],
+        // };
       };
     }
     case UserPropertyDefinitionType.AnonymousId: {
       const stateId = userPropertyStateId(userProperty);
       return {
+        type: UserPropertyAssignmentType.Standard,
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
       };
@@ -1898,6 +1918,7 @@ function userPropertyToAssignment({
     case UserPropertyDefinitionType.Id: {
       const stateId = userPropertyStateId(userProperty);
       return {
+        type: UserPropertyAssignmentType.Standard,
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
       };
