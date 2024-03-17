@@ -2116,6 +2116,7 @@ export async function computeState({
     }, {});
 
     const nowSeconds = now / 1000;
+    const workspaceIdClause = qb.addQueryValue(workspaceId, "String");
     const queries = Object.values(
       mapValues(subQueriesWithPeriods, async (periodSubQueries, period) => {
         const lowerBoundClause =
@@ -2158,6 +2159,36 @@ export async function computeState({
             )
           `;
         });
+        const priorLastValueClause = joinedPrior.length
+          ? `
+            AND (
+                inner1.workspace_id,
+                inner1.type,
+                inner1.computed_property_id,
+                inner1.state_id,
+                inner1.user_id,
+                inner1.last_value
+            ) NOT IN (
+              SELECT
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id,
+                argMaxMerge(last_value) as last_value
+              FROM computed_property_state_v2
+              WHERE
+                workspace_id = ${workspaceIdClause}
+                AND (${joinedPrior.join(" OR ")})
+              GROUP BY
+                  workspace_id,
+                  type,
+                  computed_property_id,
+                  state_id,
+                  user_id
+            )
+          `
+          : "";
 
         const query = `
           insert into computed_property_state_v2
@@ -2182,9 +2213,7 @@ export async function computeState({
               argMaxState(inner1.last_value, inner1.full_event_time) as last_value,
               uniqState(inner1.unique_count) as unique_count,
               inner1.truncated_event_time as truncated_event_time,
-              groupArrayState(inner1.grouped_message_id) as grouped_message_ids,
-              argMaxMerge(cps.last_value) as existing_last_value,
-              uniqMerge(cps.unique_count) as existing_unique_count
+              groupArrayState(inner1.grouped_message_id) as grouped_message_ids
             from (
               select
                 workspace_id,
@@ -2209,29 +2238,14 @@ export async function computeState({
                 event_time as full_event_time
               from user_events_v2 ue
               where
-                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                workspace_id = ${workspaceIdClause}
                 and processing_time <= toDateTime64(${nowSeconds}, 3)
                 ${lowerBoundClause}
             ) as inner1
-            left join (
-              select
-                workspace_id,
-                type,
-                computed_property_id,
-                state_id,
-                user_id,
-                last_value,
-                unique_count
-              from computed_property_state_v2 as cps_inner
-              where
-                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
-                and (${joinedPrior.length > 0 ? joinedPrior.join(" or ") : "False"})
-            ) as cps on
-              inner1.workspace_id = cps.workspace_id
-              and inner1.type = cps.type
-              and inner1.computed_property_id = cps.computed_property_id
-              and inner1.user_id = cps.user_id
-              and inner1.state_id = cps.state_id
+            where
+              inner1.unique_count != ''
+              OR (inner1.grouped_message_id != '')
+              OR (inner1.last_value != '' ${priorLastValueClause})
             group by
               inner1.workspace_id,
               inner1.type,
@@ -2243,10 +2257,6 @@ export async function computeState({
               inner1.grouped_message_id,
               inner1.truncated_event_time,
               inner1.full_event_time
-            having
-              existing_last_value != inner1.last_value
-              OR inner1.unique_count != ''
-              OR inner1.grouped_message_id != ''
           ) inner2
         `;
 
