@@ -729,7 +729,7 @@ function segmentToResolvedState({
                 )
                 or rss.segment_state_value = True
               )
-           group by 
+           group by
               cpsi.workspace_id,
               cpsi.computed_property_id,
               cpsi.state_id,
@@ -762,7 +762,7 @@ function segmentToResolvedState({
                 cpsi.state_id,
                 cpsi.user_id,
                 (
-                  max(cpsi.indexed_value) <= ${upperBoundParam} 
+                  max(cpsi.indexed_value) <= ${upperBoundParam}
                   and argMax(state.merged_last_value, state.max_event_time) == ${lastValueParam}
                 ) has_been,
                 max(state.max_event_time),
@@ -1778,25 +1778,22 @@ function assignPerformedManyUserPropertiesQuery({
       ${lowerBoundClause}
   `;
   const query = `
-    insert into computed_property_assignments_v2
-    select
+    INSERT INTO computed_property_assignments_v2
+    SELECT
       workspace_id,
-      'user_property' as type,
-      ${computedPropertyIdParam} as computed_property_id,
+      'user_property' AS type,
+      ${computedPropertyIdParam} AS computed_property_id,
       user_id,
-      False as segment_value,
+      False AS segment_value,
       toJSONString(
         arrayMap(
-            event->map(
-                'event',
-                event.1,
-                'timestamp',
-                formatDateTime(event.2, '%Y-%m-%dT%H:%i:%S'),
-                'properties',
-                event.3
+            event -> map(
+                'event', event.1,
+                'timestamp', formatDateTime(event.2, '%Y-%m-%dT%H:%i:%S'),
+                'properties', event.3
             ),
             arraySort(
-                e->(- toInt32(e.2)),
+                e -> (- toInt32(e.2)),
                 groupArray(
                     (
                         ue.event,
@@ -1805,27 +1802,29 @@ function assignPerformedManyUserPropertiesQuery({
                     )
                 )
             )
-          )
+        )
       ) AS user_property_value,
-      max(event_time) as max_event_time,
-      toDateTime64(${nowSeconds}, 3) as assigned_at
-    FROM user_events_v2 AS ue
+      max(event_time) AS max_event_time,
+      toDateTime64(${nowSeconds}, 3) AS assigned_at
+    FROM
+      user_events_v2 AS ue
     WHERE
       workspace_id = ${workspaceIdParam}
       AND message_id IN (
         SELECT
-            arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_ids
-        FROM computed_property_state_v2 AS cps
-        WHERE 
-          (
-              workspace_id,
-              type,
-              computed_property_id,
-              state_id,
-              user_id
-          ) IN (${boundedQuery})
+            arrayJoin(groupArrayMerge(cps.grouped_message_ids)) AS message_ids
+        FROM
+            computed_property_state_v2 AS cps
+        WHERE
+            (
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+            ) IN (${boundedQuery})
       )
-    group by
+    GROUP BY
       workspace_id,
       user_id;
   `;
@@ -2179,7 +2178,7 @@ export async function computeState({
                 subQuery.computedPropertyId,
                 "String",
               )}
-              and state_id = ${qb.addQueryValue(subQuery.stateId, "String")} 
+              and state_id = ${qb.addQueryValue(subQuery.stateId, "String")}
             )
           `;
         });
