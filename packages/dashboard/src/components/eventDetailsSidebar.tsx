@@ -78,8 +78,8 @@ const EventDetailsSidebar: React.FC<EventDetailsSidebarProps> =
 
           {selectedEvent?.traits && (
             <>
-              <InfoTooltip title="Traits">
-                <Typography variant="h5">Traits</Typography>
+              <InfoTooltip title="Properties">
+                <Typography variant="h5">Properties</Typography>
               </InfoTooltip>
               <ReactCodeMirror
                 value={formattedTraits}
