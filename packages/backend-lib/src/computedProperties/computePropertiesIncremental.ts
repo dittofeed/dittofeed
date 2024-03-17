@@ -1775,7 +1775,7 @@ function assignPerformedManyUserPropertiesQuery({
       and computed_property_id = ${computedPropertyIdParam}
       and state_id = ${stateIdParam}
       and computed_at <= toDateTime64(${nowSeconds}, 3)
-      ${lowerBoundClause}
+      and ${lowerBoundClause}
   `;
   const query = `
     insert into computed_property_assignments_v2
@@ -1806,16 +1806,16 @@ function assignPerformedManyUserPropertiesQuery({
                 )
             )
           )
-      ) AS user_property_value
+      ) AS user_property_value,
       max(event_time) as max_event_time,
       toDateTime64(${nowSeconds}, 3) as assigned_at
-    FROM dittofeed.user_events_v2 AS ue
+    FROM user_events_v2 AS ue
     WHERE
       workspace_id = ${workspaceIdParam}
       AND message_id IN (
         SELECT
             arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_ids
-        FROM dittofeed.computed_property_state_v2 AS cps
+        FROM computed_property_state_v2 AS cps
         WHERE 
           (
               workspace_id,
@@ -1859,7 +1859,14 @@ function assignUserPropertiesQuery({
       });
     }
     case UserPropertyAssignmentType.PerformedMany: {
-      throw new Error("Unimplemented");
+      return assignPerformedManyUserPropertiesQuery({
+        workspaceId,
+        config: ac,
+        userPropertyId,
+        periodBound,
+        qb,
+        now,
+      });
     }
   }
 }
