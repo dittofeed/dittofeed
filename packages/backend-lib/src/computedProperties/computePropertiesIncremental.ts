@@ -2013,30 +2013,6 @@ function userPropertyToAssignment({
       return {
         type: UserPropertyAssignmentType.PerformedMany,
         stateId,
-        // FIXME
-        //   query: `
-        //     toJSONString(
-        //       arrayMap(
-        //         event ->
-        //           map(
-        //             'event',
-        //             event.1,
-        //             'timestamp',
-        //             formatDateTime(
-        //               event.2,
-        //               '%Y-%m-%dT%H:%i:%S'
-        //             ),
-        //             'properties',
-        //             event.3
-        //           ),
-        //         arraySort(
-        //           e -> -toInt32(e.2),
-        //           grouped_events[${qb.addQueryValue(stateId, "String")}]
-        //         )
-        //       )
-        //     )`,
-        //   stateIds: [stateId],
-        // };
       };
     }
     case UserPropertyDefinitionType.AnonymousId: {
