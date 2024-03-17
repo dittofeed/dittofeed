@@ -189,7 +189,7 @@ async function readResolvedSegmentStates({
       state_id,
       user_id,
       segment_state_value
-    from resolved_segment_state 
+    from resolved_segment_state
     where workspace_id = ${qb.addQueryValue(workspaceId, "String")}
   `;
   const response = (await (

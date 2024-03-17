@@ -729,7 +729,7 @@ function segmentToResolvedState({
                 )
                 or rss.segment_state_value = True
               )
-           group by 
+           group by
               cpsi.workspace_id,
               cpsi.computed_property_id,
               cpsi.state_id,
@@ -762,7 +762,7 @@ function segmentToResolvedState({
                 cpsi.state_id,
                 cpsi.user_id,
                 (
-                  max(cpsi.indexed_value) <= ${upperBoundParam} 
+                  max(cpsi.indexed_value) <= ${upperBoundParam}
                   and argMax(state.merged_last_value, state.max_event_time) == ${lastValueParam}
                 ) has_been,
                 max(state.max_event_time),
@@ -1620,7 +1620,28 @@ function userPropertyToSubQuery({
   }
 }
 
-function assignUserPropertiesQuery({
+enum UserPropertyAssignmentType {
+  Standard = "Standard",
+  PerformedMany = "PerformedMany",
+}
+
+interface StandardUserPropertyAssignmentConfig {
+  type: UserPropertyAssignmentType.Standard;
+  query: string;
+  // ids of states to aggregate that need to fall within bounded time window
+  stateIds: string[];
+}
+
+interface PerformedManyUserPropertyAssignmentConfig {
+  type: UserPropertyAssignmentType.PerformedMany;
+  stateId: string;
+}
+
+type UserPropertyAssignmentConfig =
+  | StandardUserPropertyAssignmentConfig
+  | PerformedManyUserPropertyAssignmentConfig;
+
+function assignStandardUserPropertiesQuery({
   workspaceId,
   config: ac,
   userPropertyId,
@@ -1633,7 +1654,7 @@ function assignUserPropertiesQuery({
   qb: ClickHouseQueryBuilder;
   periodBound?: number;
   userPropertyId: string;
-  config: AssignmentQueryConfig;
+  config: StandardUserPropertyAssignmentConfig;
 }): string | null {
   const nowSeconds = now / 1000;
 
@@ -1679,111 +1700,175 @@ function assignUserPropertiesQuery({
         user_id,
         CAST((groupArray(state_id), groupArray(last_value)), 'Map(String, String)') as last_value,
         CAST((groupArray(state_id), groupArray(unique_count)), 'Map(String, Int32)') as unique_count,
-        CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time,
-        CAST(
-          (
-            groupArray(state_id),
-            groupArray(events)
-          ),
-          'Map(String, Array(Tuple(String, DateTime64(3), String)))'
-        ) as grouped_events
+        CAST((groupArray(state_id), groupArray(max_event_time)), 'Map(String, DateTime64(3))') as max_event_time
       from (
         select
-          inner2.workspace_id as workspace_id,
-          inner2.type as type,
-          inner2.computed_property_id as computed_property_id,
-          inner2.state_id as state_id,
-          inner2.user_id as user_id,
-          inner2.last_value as last_value,
-          inner2.unique_count as unique_count,
-          inner2.max_event_time as max_event_time,
-          groupArray((inner2.event, inner2.event_time, inner2.properties)) as events
-        from (
-          select
-            inner1.workspace_id as workspace_id,
-            inner1.type as type,
-            inner1.computed_property_id as computed_property_id,
-            inner1.state_id as state_id,
-            inner1.user_id as user_id,
-            inner1.last_value as last_value,
-            inner1.unique_count as unique_count,
-            inner1.max_event_time as max_event_time,
-            ue.event as event,
-            ue.event_time as event_time,
-            ue.properties as properties
-          from user_events_v2 ue
-          right any join (
-            select
-              workspace_id,
-              type,
-              computed_property_id,
-              state_id,
-              user_id,
-              argMaxMerge(last_value) last_value,
-              uniqMerge(unique_count) unique_count,
-              max(event_time) max_event_time,
-              arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_id
-            from computed_property_state_v2 cps
-            where
-              (
-                workspace_id,
-                type,
-                computed_property_id,
-                state_id,
-                user_id
-              ) in (${boundedQuery})
-            group by
-              workspace_id,
-              type,
-              computed_property_id,
-              state_id,
-              user_id
-          ) as inner1 on
-            inner1.message_id != ''
-            and inner1.message_id = ue.message_id
-          group by
-            workspace_id,
-            type,
-            computed_property_id,
-            state_id,
-            user_id,
-            last_value,
-            unique_count,
-            max_event_time,
-            event,
-            event_time,
-            properties
-        ) inner2
-        group by
           workspace_id,
           type,
           computed_property_id,
           state_id,
           user_id,
-          last_value,
-          unique_count,
-          max_event_time
-      ) inner3
+          argMaxMerge(last_value) last_value,
+          uniqMerge(unique_count) unique_count,
+          max(event_time) max_event_time
+        from computed_property_state_v2 cps
+        where
+          (
+            workspace_id,
+            type,
+            computed_property_id,
+            state_id,
+            user_id
+          ) in (${boundedQuery})
+        group by
+          workspace_id,
+          type,
+          computed_property_id,
+          state_id,
+          user_id
+      )
       group by
         workspace_id,
         type,
         computed_property_id,
         user_id
-    ) inner4
+    )
   `;
   return query;
 }
 
-interface AssignmentQueryConfig {
-  query: string;
-  // ids of states to aggregate that need to fall within bounded time window
-  stateIds: string[];
+function assignPerformedManyUserPropertiesQuery({
+  workspaceId,
+  config: ac,
+  userPropertyId,
+  periodBound,
+  qb,
+  now,
+}: {
+  workspaceId: string;
+  now: number;
+  qb: ClickHouseQueryBuilder;
+  periodBound?: number;
+  userPropertyId: string;
+  config: PerformedManyUserPropertyAssignmentConfig;
+}): string {
+  const nowSeconds = now / 1000;
+
+  const lowerBoundClause =
+    periodBound && periodBound !== 0
+      ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
+      : "";
+  const computedPropertyIdParam = qb.addQueryValue(userPropertyId, "String");
+  const stateIdParam = qb.addQueryValue(ac.stateId, "String");
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const boundedQuery = `
+    select
+      workspace_id,
+      type,
+      computed_property_id,
+      state_id,
+      user_id
+    from updated_computed_property_state
+    where
+      workspace_id = ${workspaceIdParam}
+      and type = 'user_property'
+      and computed_property_id = ${computedPropertyIdParam}
+      and state_id = ${stateIdParam}
+      and computed_at <= toDateTime64(${nowSeconds}, 3)
+      ${lowerBoundClause}
+  `;
+  const query = `
+    INSERT INTO computed_property_assignments_v2
+    SELECT
+      workspace_id,
+      'user_property' AS type,
+      ${computedPropertyIdParam} AS computed_property_id,
+      user_id,
+      False AS segment_value,
+      toJSONString(
+        arrayMap(
+            event -> map(
+                'event', event.1,
+                'timestamp', formatDateTime(event.2, '%Y-%m-%dT%H:%i:%S'),
+                'properties', event.3
+            ),
+            arraySort(
+                e -> (- toInt32(e.2)),
+                groupArray(
+                    (
+                        ue.event,
+                        ue.event_time,
+                        ue.properties
+                    )
+                )
+            )
+        )
+      ) AS user_property_value,
+      max(event_time) AS max_event_time,
+      toDateTime64(${nowSeconds}, 3) AS assigned_at
+    FROM
+      user_events_v2 AS ue
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND message_id IN (
+        SELECT
+            arrayJoin(groupArrayMerge(cps.grouped_message_ids)) AS message_ids
+        FROM
+            computed_property_state_v2 AS cps
+        WHERE
+            (
+                workspace_id,
+                type,
+                computed_property_id,
+                state_id,
+                user_id
+            ) IN (${boundedQuery})
+      )
+    GROUP BY
+      workspace_id,
+      user_id;
+  `;
+  return query;
 }
 
-type OptionalAssignmentQueryConfig = Omit<
-  AssignmentQueryConfig,
-  "version"
-> | null;
+function assignUserPropertiesQuery({
+  workspaceId,
+  config: ac,
+  userPropertyId,
+  periodBound,
+  qb,
+  now,
+}: {
+  workspaceId: string;
+  now: number;
+  qb: ClickHouseQueryBuilder;
+  periodBound?: number;
+  userPropertyId: string;
+  config: UserPropertyAssignmentConfig;
+}): string | null {
+  switch (ac.type) {
+    case UserPropertyAssignmentType.Standard: {
+      return assignStandardUserPropertiesQuery({
+        workspaceId,
+        config: ac,
+        userPropertyId,
+        periodBound,
+        qb,
+        now,
+      });
+    }
+    case UserPropertyAssignmentType.PerformedMany: {
+      return assignPerformedManyUserPropertiesQuery({
+        workspaceId,
+        config: ac,
+        userPropertyId,
+        periodBound,
+        qb,
+        now,
+      });
+    }
+  }
+}
 
 function leafUserPropertyToAssignment({
   userProperty,
@@ -1793,12 +1878,13 @@ function leafUserPropertyToAssignment({
   userProperty: SavedUserPropertyResource;
   child: LeafUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): OptionalAssignmentQueryConfig {
+}): StandardUserPropertyAssignmentConfig {
   switch (child.type) {
     case UserPropertyDefinitionType.Trait: {
       const stateId = userPropertyStateId(userProperty, child.id);
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
+        type: UserPropertyAssignmentType.Standard,
         stateIds: [stateId],
       };
     }
@@ -1806,6 +1892,7 @@ function leafUserPropertyToAssignment({
       const stateId = userPropertyStateId(userProperty, child.id);
       return {
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
+        type: UserPropertyAssignmentType.Standard,
         stateIds: [stateId],
       };
     }
@@ -1822,7 +1909,7 @@ function groupedUserPropertyToAssignment({
   node: GroupChildrenUserPropertyDefinitions;
   group: GroupUserPropertyDefinition;
   qb: ClickHouseQueryBuilder;
-}): OptionalAssignmentQueryConfig {
+}): StandardUserPropertyAssignmentConfig | null {
   switch (node.type) {
     case UserPropertyDefinitionType.AnyOf: {
       const childNodes = node.children.flatMap((child) => {
@@ -1863,6 +1950,7 @@ function groupedUserPropertyToAssignment({
         .join(", ")})`;
       return {
         query,
+        type: UserPropertyAssignmentType.Standard,
         stateIds: childNodes.flatMap((c) => c.stateIds),
       };
     }
@@ -1889,7 +1977,7 @@ function userPropertyToAssignment({
 }: {
   userProperty: SavedUserPropertyResource;
   qb: ClickHouseQueryBuilder;
-}): OptionalAssignmentQueryConfig {
+}): UserPropertyAssignmentConfig | null {
   switch (userProperty.definition.type) {
     case UserPropertyDefinitionType.Trait: {
       return leafUserPropertyToAssignment({
@@ -1923,33 +2011,14 @@ function userPropertyToAssignment({
     case UserPropertyDefinitionType.PerformedMany: {
       const stateId = userPropertyStateId(userProperty);
       return {
-        query: `
-          toJSONString(
-            arrayMap(
-              event ->
-                map(
-                  'event',
-                  event.1,
-                  'timestamp',
-                  formatDateTime(
-                    event.2,
-                    '%Y-%m-%dT%H:%i:%S'
-                  ),
-                  'properties',
-                  event.3
-                ),
-              arraySort(
-                e -> -toInt32(e.2),
-                grouped_events[${qb.addQueryValue(stateId, "String")}]
-              )
-            )
-          )`,
-        stateIds: [stateId],
+        type: UserPropertyAssignmentType.PerformedMany,
+        stateId,
       };
     }
     case UserPropertyDefinitionType.AnonymousId: {
       const stateId = userPropertyStateId(userProperty);
       return {
+        type: UserPropertyAssignmentType.Standard,
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
       };
@@ -1957,6 +2026,7 @@ function userPropertyToAssignment({
     case UserPropertyDefinitionType.Id: {
       const stateId = userPropertyStateId(userProperty);
       return {
+        type: UserPropertyAssignmentType.Standard,
         query: `last_value[${qb.addQueryValue(stateId, "String")}]`,
         stateIds: [stateId],
       };
@@ -2084,7 +2154,7 @@ export async function computeState({
                 subQuery.computedPropertyId,
                 "String",
               )}
-              and state_id = ${qb.addQueryValue(subQuery.stateId, "String")} 
+              and state_id = ${qb.addQueryValue(subQuery.stateId, "String")}
             )
           `;
         });
