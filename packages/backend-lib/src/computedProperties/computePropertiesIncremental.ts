@@ -1737,6 +1737,101 @@ function assignStandardUserPropertiesQuery({
   return query;
 }
 
+function assignPerformedManyUserPropertiesQuery({
+  workspaceId,
+  config: ac,
+  userPropertyId,
+  periodBound,
+  qb,
+  now,
+}: {
+  workspaceId: string;
+  now: number;
+  qb: ClickHouseQueryBuilder;
+  periodBound?: number;
+  userPropertyId: string;
+  config: PerformedManyUserPropertyAssignmentConfig;
+}): string {
+  const nowSeconds = now / 1000;
+
+  const lowerBoundClause =
+    periodBound && periodBound !== 0
+      ? `and computed_at >= toDateTime64(${periodBound / 1000}, 3)`
+      : "";
+  const computedPropertyIdParam = qb.addQueryValue(userPropertyId, "String");
+  const stateIdParam = qb.addQueryValue(ac.stateId, "String");
+  const workspaceIdParam = qb.addQueryValue(workspaceId, "String");
+  const boundedQuery = `
+    select
+      workspace_id,
+      type,
+      computed_property_id,
+      state_id,
+      user_id
+    from updated_computed_property_state
+    where
+      workspace_id = ${workspaceIdParam}
+      and type = 'user_property'
+      and computed_property_id = ${computedPropertyIdParam}
+      and state_id = ${stateIdParam}
+      and computed_at <= toDateTime64(${nowSeconds}, 3)
+      ${lowerBoundClause}
+  `;
+  const query = `
+    insert into computed_property_assignments_v2
+    select
+      workspace_id,
+      'user_property' as type,
+      ${computedPropertyIdParam} as computed_property_id,
+      user_id,
+      False as segment_value,
+      toJSONString(
+        arrayMap(
+            event->map(
+                'event',
+                event.1,
+                'timestamp',
+                formatDateTime(event.2, '%Y-%m-%dT%H:%i:%S'),
+                'properties',
+                event.3
+            ),
+            arraySort(
+                e->(- toInt32(e.2)),
+                groupArray(
+                    (
+                        ue.event,
+                        ue.event_time,
+                        ue.properties
+                    )
+                )
+            )
+          )
+      ) AS user_property_value
+      max(event_time) as max_event_time,
+      toDateTime64(${nowSeconds}, 3) as assigned_at
+    FROM dittofeed.user_events_v2 AS ue
+    WHERE
+      workspace_id = ${workspaceIdParam}
+      AND message_id IN (
+        SELECT
+            arrayJoin(groupArrayMerge(cps.grouped_message_ids)) message_ids
+        FROM dittofeed.computed_property_state_v2 AS cps
+        WHERE 
+          (
+              workspace_id,
+              type,
+              computed_property_id,
+              state_id,
+              user_id
+          ) IN (${boundedQuery})
+      )
+    group by
+      workspace_id,
+      user_id;
+  `;
+  return query;
+}
+
 function assignUserPropertiesQuery({
   workspaceId,
   config: ac,
