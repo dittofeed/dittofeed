@@ -195,6 +195,7 @@ export function ResourceTable<R extends BaseResourceRow = BaseResourceRow>({
       sx={RESOURCE_TABLE_STYLE}
       columns={columns}
       getRowId={(row) => row.id}
+      disableRowSelectionOnClick
       autoPageSize
       getRowHeight={() => "auto"}
     />
