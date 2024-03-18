@@ -1,8 +1,11 @@
 ---
-title: "Upgrading from v0.10.0 to v0.11.2"
+title: "Upgrading from v0.11.0 to v0.12.0-alpha.x"
 ---
 
-Upgrading from v0.10.0 to v0.11.2 is fairly straightforward, and only requires runing postgres migrations. This guide will walk you through the process of upgrading your Dittofeed instance.
+<Warning> v0.12.0 is currently in alpha, upgrade at your own risk</Warning>
+
+Upgrading from v0.11.0 to v0.12.0-alpha.x is fairly straightforward, and only requires runing postgres migrations. This guide will walk you through the process of upgrading your Dittofeed instance.
+
 
 ## Step 1: Setting Up Your `docker-compose.lite.yaml` File
 
@@ -16,7 +19,7 @@ Your `docker-compose.lite.yaml` file should look something like this:
 ...
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.10.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.11.0}
     restart: always
     ports:
       - "3000:3000"
@@ -34,7 +37,7 @@ services:
       - dittofeed-network-lite
   # useful for upgrading dittofeed
   admin-cli:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.11.2}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.12.0-alpha.x}
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null
@@ -70,13 +73,13 @@ Run the migrations before deploying the new version of Dittofeed:
 
 ## Step 4: Upgrade Your `docker-compose.lite.yaml` File
 
-Upgrade the version in your docker-compose.lite.yaml file to v0.11.2:
+Upgrade the version in your docker-compose.lite.yaml file to v0.12.0-alpha.x:
 
 ```yaml
 ...
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.11.2}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.12.0-alpha.x}
 ...
 ```
 
