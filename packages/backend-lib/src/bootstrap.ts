@@ -14,7 +14,7 @@ import config from "./config";
 import { generateSecureKey } from "./crypto";
 import { kafkaAdmin } from "./kafka";
 import logger from "./logger";
-import { upsertMessageTemplate } from "./messageTemplates";
+import { upsertMessageTemplate } from "./messaging";
 import prisma from "./prisma";
 import { prismaMigrate } from "./prisma/migrate";
 import { segmentIdentifyEvent } from "./segmentIO";

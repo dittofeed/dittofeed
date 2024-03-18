@@ -15,7 +15,7 @@ import { WELCOME_TEMPLATE } from "./bootstrap/messageTemplates";
 import { DEFAULT_SEGMENT_DEFINITION } from "./constants";
 import { toJourneyResource } from "./journeys";
 import logger from "./logger";
-import { enrichMessageTemplate } from "./messageTemplates";
+import { enrichMessageTemplate } from "./messaging";
 import prisma from "./prisma";
 import { toSegmentResource } from "./segments";
 

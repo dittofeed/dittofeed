@@ -29,7 +29,7 @@ import {
 } from "../../destinations/twilio";
 import { renderLiquid } from "../../liquid";
 import logger from "../../logger";
-import { findMessageTemplate, sendMessage } from "../../messageTemplates";
+import { findMessageTemplate, sendMessage } from "../../messaging";
 import prisma from "../../prisma";
 import {
   getSubscriptionGroupDetails,
