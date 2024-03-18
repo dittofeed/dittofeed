@@ -44,6 +44,6 @@ export function constructUnsubscribeHeaders({
   return ok({
     "List-Unsubscribe-Post": LIST_UNSUBSCRIBE_POST,
     "List-Unsubscribe": `<${url}>`,
-    "List-ID": `${subscriptionGroup.name} <${subscriptionGroup.id}.domain>`,
+    "List-ID": `${subscriptionGroup.name} <${subscriptionGroup.id}.${domain}>`,
   });
 }
