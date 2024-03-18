@@ -93,7 +93,6 @@ model Journey {
   updatedAt        DateTime           @updatedAt
   resourceType     DBResourceType     @default(Declarative)
   canRunMultiple   Boolean            @default(false)
-  UserJourneyEvent UserJourneyEvent[]
   Broadcast        Broadcast[]
 
   @@unique([workspaceId, name])
@@ -270,7 +269,6 @@ model UserJourneyEvent {
   userId           String
   nodeId           String?
   journeyId        String?  @db.Uuid()
-  journey          Journey? @relation(fields: [journeyId], references: [id], onDelete: SetNull)
   type             String
   eventKey         String?
   journeyStartedAt DateTime
