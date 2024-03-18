@@ -266,6 +266,9 @@ export async function getJourneysStats({
     },
   });
   const journeyIds = journeys.map((j) => j.id);
+  if (!journeyIds.length) {
+    return [];
+  }
   const workspaceIdQuery = qb.addQueryValue(workspaceId, "String");
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
