@@ -778,7 +778,10 @@ async function sendMessageInner({
     ]);
 
   const subscriptionGroupDetails = subscriptionGroup
-    ? getSubscriptionGroupDetails(subscriptionGroup)
+    ? {
+        ...getSubscriptionGroupDetails(subscriptionGroup),
+        name: subscriptionGroup.name,
+      }
     : undefined;
 
   if (!journey) {

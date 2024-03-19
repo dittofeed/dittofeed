@@ -299,7 +299,7 @@ export interface SendMessageParametersBase {
   userId: string;
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
-  subscriptionGroupDetails?: SubscriptionGroupDetails;
+  subscriptionGroupDetails?: SubscriptionGroupDetails & { name: string };
   messageTags?: Record<string, string>;
   useDraft: boolean;
 }
@@ -543,6 +543,7 @@ export async function sendEmail({
   }
   const { from, subject, body, replyTo } = renderedValuesResult.value;
   const to = identifier;
+  // const unsubscribeHeaders: UnsubscribeHeaders | null = subsc;
 
   const unvalidatedSecretConfig = emailProvider.secret?.configValue;
 

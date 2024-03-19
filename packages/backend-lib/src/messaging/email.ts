@@ -19,31 +19,35 @@ export function constructUnsubscribeHeaders({
   to,
   from,
   userId,
-  subscriptionGroup,
   subscriptionSecret,
+  subscriptionGroupName,
+  workspaceId,
+  subscriptionGroupId,
 }: {
   to: string;
   from: string;
   userId: string;
   subscriptionSecret: string;
-  subscriptionGroup: SubscriptionGroupResource;
+  subscriptionGroupName: string;
+  workspaceId: string;
+  subscriptionGroupId: string;
 }): Result<UnsubscribeHeaders, Error> {
   const domain = from.split("@")[1];
   if (!domain) {
     return err(new Error(`Invalid from address ${from}`));
   }
   const url = generateSubscriptionChangeUrl({
-    workspaceId: subscriptionGroup.workspaceId,
+    workspaceId,
     identifier: to,
     identifierKey: CHANNEL_IDENTIFIERS.Email,
     subscriptionSecret,
     userId,
-    changedSubscription: subscriptionGroup.id,
+    changedSubscription: subscriptionGroupId,
     subscriptionChange: SubscriptionChange.Unsubscribe,
   });
   return ok({
     "List-Unsubscribe-Post": LIST_UNSUBSCRIBE_POST,
     "List-Unsubscribe": `<${url}>`,
-    "List-ID": `${subscriptionGroup.name} <${subscriptionGroup.id}.${domain}>`,
+    "List-ID": `${subscriptionGroupName} <${subscriptionGroupId}.${domain}>`,
   });
 }
