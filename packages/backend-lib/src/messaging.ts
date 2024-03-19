@@ -18,6 +18,10 @@ import { sendMail as sendMailSmtp } from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
+import {
+  constructUnsubscribeHeaders,
+  UnsubscribeHeaders,
+} from "./messaging/email";
 import prisma from "./prisma";
 import {
   inSubscriptionGroup,
@@ -445,6 +449,7 @@ export async function sendEmail({
   userPropertyAssignments,
   subscriptionGroupDetails,
   messageTags,
+  userId,
   provider,
   useDraft,
 }: Omit<
@@ -543,7 +548,18 @@ export async function sendEmail({
   }
   const { from, subject, body, replyTo } = renderedValuesResult.value;
   const to = identifier;
-  // const unsubscribeHeaders: UnsubscribeHeaders | null = subsc;
+  const unsubscribeHeaders: Result<UnsubscribeHeaders, Error> | null =
+    subscriptionGroupDetails && subscriptionGroupSecret
+      ? constructUnsubscribeHeaders({
+          to,
+          from,
+          userId,
+          subscriptionGroupSecret,
+          subscriptionGroupName: subscriptionGroupDetails.name,
+          workspaceId,
+          subscriptionGroupId: subscriptionGroupDetails.id,
+        })
+      : null;
 
   const unvalidatedSecretConfig = emailProvider.secret?.configValue;
 

@@ -19,7 +19,7 @@ export function constructUnsubscribeHeaders({
   to,
   from,
   userId,
-  subscriptionSecret,
+  subscriptionGroupSecret,
   subscriptionGroupName,
   workspaceId,
   subscriptionGroupId,
@@ -27,7 +27,7 @@ export function constructUnsubscribeHeaders({
   to: string;
   from: string;
   userId: string;
-  subscriptionSecret: string;
+  subscriptionGroupSecret: string;
   subscriptionGroupName: string;
   workspaceId: string;
   subscriptionGroupId: string;
@@ -40,7 +40,7 @@ export function constructUnsubscribeHeaders({
     workspaceId,
     identifier: to,
     identifierKey: CHANNEL_IDENTIFIERS.Email,
-    subscriptionSecret,
+    subscriptionSecret: subscriptionGroupSecret,
     userId,
     changedSubscription: subscriptionGroupId,
     subscriptionChange: SubscriptionChange.Unsubscribe,
