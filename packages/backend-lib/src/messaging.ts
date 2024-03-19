@@ -41,6 +41,7 @@ import {
   MessageSendFailure,
   MessageSkippedType,
   MessageTemplate,
+  MessageTemplateRenderError,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
   MobilePushProviderType,
@@ -548,7 +549,10 @@ export async function sendEmail({
   }
   const { from, subject, body, replyTo } = renderedValuesResult.value;
   const to = identifier;
-  const unsubscribeHeaders: Result<UnsubscribeHeaders, Error> | null =
+  const unsubscribeHeadersResult: Result<
+    UnsubscribeHeaders,
+    MessageTemplateRenderError
+  > | null =
     subscriptionGroupDetails && subscriptionGroupSecret
       ? constructUnsubscribeHeaders({
           to,
@@ -560,6 +564,17 @@ export async function sendEmail({
           subscriptionGroupId: subscriptionGroupDetails.id,
         })
       : null;
+
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  if (unsubscribeHeadersResult && unsubscribeHeadersResult.isErr()) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: unsubscribeHeadersResult.error,
+    });
+  }
+  const unsubscribeHeaders = unsubscribeHeadersResult?.value as
+    | Record<string, string>
+    | undefined;
 
   const unvalidatedSecretConfig = emailProvider.secret?.configValue;
 
@@ -637,6 +652,7 @@ export async function sendEmail({
         body,
         host,
         port: numPort,
+        headers: unsubscribeHeaders,
       });
       if (result.isErr()) {
         return err({

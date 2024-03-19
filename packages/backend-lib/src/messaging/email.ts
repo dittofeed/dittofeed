@@ -1,7 +1,8 @@
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import {
+  BadWorkspaceConfigurationType,
+  MessageTemplateRenderError,
   SubscriptionChange,
-  SubscriptionGroupResource,
 } from "isomorphic-lib/src/types";
 import { err, ok, Result } from "neverthrow";
 
@@ -31,10 +32,14 @@ export function constructUnsubscribeHeaders({
   subscriptionGroupName: string;
   workspaceId: string;
   subscriptionGroupId: string;
-}): Result<UnsubscribeHeaders, Error> {
+}): Result<UnsubscribeHeaders, MessageTemplateRenderError> {
   const domain = from.split("@")[1];
   if (!domain) {
-    return err(new Error(`Invalid from address ${from}`));
+    return err({
+      type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+      field: "from",
+      error: `Invalid from address ${from}`,
+    });
   }
   const url = generateSubscriptionChangeUrl({
     workspaceId,

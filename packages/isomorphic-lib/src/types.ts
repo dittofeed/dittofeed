@@ -863,6 +863,7 @@ export const EmailConfiguration = Type.Composite([
   EmailContents,
   Type.Object({
     to: Type.String(),
+    headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   }),
 ]);
 
@@ -2466,6 +2467,16 @@ export enum BadWorkspaceConfigurationType {
   MessageServiceProviderMisconfigured = "MessageServiceProviderMisconfigured",
 }
 
+export const MessageTemplateRenderError = Type.Object({
+  type: Type.Literal(BadWorkspaceConfigurationType.MessageTemplateRenderError),
+  field: Type.String(),
+  error: Type.String(),
+});
+
+export type MessageTemplateRenderError = Static<
+  typeof MessageTemplateRenderError
+>;
+
 export const BadWorkspaceConfigurationVariant = Type.Union([
   Type.Object({
     type: Type.Literal(BadWorkspaceConfigurationType.MessageTemplateNotFound),
@@ -2476,13 +2487,7 @@ export const BadWorkspaceConfigurationVariant = Type.Union([
     ),
     message: Type.String(),
   }),
-  Type.Object({
-    type: Type.Literal(
-      BadWorkspaceConfigurationType.MessageTemplateRenderError,
-    ),
-    field: Type.String(),
-    error: Type.String(),
-  }),
+  MessageTemplateRenderError,
   Type.Object({
     type: Type.Literal(BadWorkspaceConfigurationType.JourneyNotFound),
   }),
