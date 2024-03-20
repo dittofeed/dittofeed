@@ -397,6 +397,11 @@ async function getJourneyMessageStats({
         default:
           assertUnreachable(node.channel);
       }
+      messageStats.push({
+        journeyId: journey.id,
+        node_id: node.id,
+        stats,
+      });
     }
   }
 
