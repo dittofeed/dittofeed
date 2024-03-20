@@ -82,9 +82,11 @@ export async function insertUserEvents({
         : JSON.stringify(e.messageRaw),
   }));
 
+  console.log("writeMode", writeMode);
   switch (writeMode) {
     // TODO migrate over to new table structure
     case "kafka": {
+      console.log("sending to kafka");
       await (
         await kafkaProducer()
       ).send({
