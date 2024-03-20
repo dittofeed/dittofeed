@@ -671,6 +671,7 @@ export async function sendEmail({
           body,
           to,
           subject,
+          headers: unsubscribeHeaders,
           replyTo,
           provider: {
             type: EmailProviderType.Smtp,
@@ -696,6 +697,7 @@ export async function sendEmail({
         subject,
         html: body,
         replyTo,
+        headers: unsubscribeHeaders,
         customArgs: {
           workspaceId,
           templateId,
@@ -740,6 +742,7 @@ export async function sendEmail({
           body,
           to,
           subject,
+          headers: unsubscribeHeaders,
           replyTo,
           provider: {
             type: EmailProviderType.Sendgrid,
@@ -758,6 +761,10 @@ export async function sendEmail({
           },
         });
       }
+      // TODO [DF-469] add subscription group headers
+      // the SES sdk doesn't support custom headers without wrangling with raw
+      // email. the API added support for this as of 3/8/24 but the sdk hasn't
+      // caught up
       const mailData: AmazonSesMailFields = {
         to,
         from,
@@ -814,6 +821,7 @@ export async function sendEmail({
           body,
           to,
           subject,
+          headers: unsubscribeHeaders,
           replyTo,
           provider: {
             type: EmailProviderType.AmazonSes,
@@ -841,6 +849,7 @@ export async function sendEmail({
         subject,
         html: body,
         reply_to: replyTo,
+        headers: unsubscribeHeaders,
         tags: [
           {
             name: "workspaceId",
@@ -894,6 +903,7 @@ export async function sendEmail({
           from,
           body,
           to,
+          headers: unsubscribeHeaders,
           subject,
           replyTo,
           provider: {
@@ -920,6 +930,12 @@ export async function sendEmail({
         Subject: subject,
         HtmlBody: body,
         ReplyTo: replyTo,
+        Headers: unsubscribeHeaders
+          ? Object.entries(unsubscribeHeaders).map(([name, value]) => ({
+              Name: name,
+              Value: value,
+            }))
+          : undefined,
         Metadata: {
           recipient: to,
           from,
@@ -966,6 +982,7 @@ export async function sendEmail({
           to,
           subject,
           replyTo,
+          headers: unsubscribeHeaders,
           provider: {
             type: EmailProviderType.PostMark,
           },
@@ -982,6 +999,7 @@ export async function sendEmail({
           to,
           subject,
           replyTo,
+          headers: unsubscribeHeaders,
           provider: {
             type: EmailProviderType.Test,
           },

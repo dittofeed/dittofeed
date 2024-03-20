@@ -1,6 +1,5 @@
 import { err, ok, Result } from "neverthrow";
 import { createTransport } from "nodemailer";
-import { Headers } from "nodemailer/lib/mailer";
 import { Overwrite } from "utility-types";
 
 import {

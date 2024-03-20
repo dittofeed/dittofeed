@@ -2422,6 +2422,7 @@ export const MessageEmailSuccess = Type.Composite([
     type: Type.Literal(ChannelType.Email),
     provider: EmailServiceProviderSuccess,
     to: Type.String(),
+    headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   }),
   EmailContents,
 ]);
@@ -2833,6 +2834,7 @@ export const AmazonSesMailFields = Type.Object({
   html: Type.String(),
   replyTo: Type.Optional(Type.String()),
   tags: Type.Optional(Type.Record(Type.String(), Type.String())),
+  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 
 export type AmazonSesMailFields = Static<typeof AmazonSesMailFields>;
