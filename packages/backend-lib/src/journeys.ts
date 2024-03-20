@@ -21,6 +21,7 @@ import {
   JourneyDraft,
   JourneyNodeType,
   JourneyStats,
+  MessageNodeStats,
   NodeStatsType,
   SavedJourneyResource,
   TrackData,
@@ -236,6 +237,23 @@ function getEdgePercent(params: GetEdgePercentParams): number | null {
     return null;
   }
   return round(raw * 100, 1);
+}
+
+interface JourneyMessageStats {
+  journeyId: string;
+  node_id: string;
+  stats: MessageNodeStats;
+}
+
+async function getJourneyMessageStats({
+  workspaceId,
+  journeyIds,
+}: {
+  workspaceId: string;
+  journeyIds?: string[];
+}): Promise<JourneyMessageStats[]> {
+  const messageStats: JourneyMessageStats[] = [];
+  return messageStats;
 }
 
 export async function getJourneysStats({

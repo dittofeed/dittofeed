@@ -2198,41 +2198,49 @@ export const MessageChannelStats = Type.Union([EmailStats, SmsStats]);
 
 export type MessageChannelStats = Static<typeof MessageChannelStats>;
 
-const MessageNodeStats = Type.Object({
-  type: Type.Literal(NodeStatsType.MessageNodeStats),
-  proportions: Type.Object({
-    childEdge: Type.Number(),
-  }),
+export const BaseMessageNodeStats = Type.Object({
   sendRate: Type.Number(),
   channelStats: Type.Optional(MessageChannelStats),
 });
 
-const DelayNodeStats = Type.Object({
+export type BaseMessageNodeStats = Static<typeof BaseMessageNodeStats>;
+
+export const MessageNodeStats = Type.Composite([
+  BaseMessageNodeStats,
+  Type.Object({
+    type: Type.Literal(NodeStatsType.MessageNodeStats),
+    proportions: Type.Object({
+      childEdge: Type.Number(),
+    }),
+  }),
+]);
+
+export type MessageNodeStats = Static<typeof MessageNodeStats>;
+
+export const DelayNodeStats = Type.Object({
   type: Type.Literal(NodeStatsType.DelayNodeStats),
   proportions: Type.Object({
     childEdge: Type.Number(),
   }),
 });
 
-const WaitForNodeStats = Type.Object({
+export type DelayNodeStats = Static<typeof DelayNodeStats>;
+
+export const WaitForNodeStats = Type.Object({
   type: Type.Literal(NodeStatsType.WaitForNodeStats),
   proportions: Type.Object({
     segmentChildEdge: Type.Number(),
   }),
 });
 
-const SegmentSplitNodeStats = Type.Object({
+export type WaitForNodeStats = Static<typeof WaitForNodeStats>;
+
+export const SegmentSplitNodeStats = Type.Object({
   type: Type.Literal(NodeStatsType.SegmentSplitNodeStats),
   proportions: Type.Object({
     falseChildEdge: Type.Number(),
   }),
 });
-
-export type MessageNodeStats = Static<typeof MessageNodeStats>;
-
-export type DelayNodeStats = Static<typeof DelayNodeStats>;
-
-export type WaitForNodeStats = Static<typeof WaitForNodeStats>;
 
 export type SegmentSplitNodeStats = Static<typeof SegmentSplitNodeStats>;
 
