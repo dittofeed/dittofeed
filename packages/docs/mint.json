@@ -80,6 +80,13 @@
                 "deployment/self-hosted/upgrade-guide/v0-11-0",
                 "deployment/self-hosted/upgrade-guide/v0-10-0"
               ]
+            },
+            "deployment/self-hosted/write-modes",
+            {
+              "group": "Write Modes",
+              "pages": [
+                "deployment/self-hosted/write-modes/kafka"
+              ]
             }
           ]
         },

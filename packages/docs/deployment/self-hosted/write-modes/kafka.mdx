@@ -1,0 +1,38 @@
+---
+title: Kafka Write Mode
+description: Buffer data in Kafka before writing to ClickHouse
+---
+
+The `kafka` write mode buffers data in Kafka before writing it to ClickHouse. This mode is useful when you have a high volume of data and want to avoid overwhelming ClickHouse. This mode takes advantage of ClickHouse's [kafka table engine](https://clickhouse.com/docs/en/integrations/kafka/kafka-table-engine).
+
+## Setup
+
+To set up Dittofeed with the `kafka` write mode, you can make use of the following environment variables:
+
+```bash
+# necessary to use the write mode
+WRITE_MODE=kafka
+# the kafka host and portnames to write to
+KAFKA_BROKERS=host1:port1,host2:port2
+# the username and password to use for the kafka connection
+KAFKA_USERNAME=my-kafka-username
+KAFKA_PASSWORD=my-kafka-password
+# whether to use SSL for the kafka connection
+KAFKA_SSL=true
+# the kafka sasl mechanism to use
+# possible values are: plain, scram-sha-256, scram-sha-512
+KAFKA_SASL_MECHANISM=plain
+# the number of partitions to use for the user events topic when bootstrapping
+KAFKA_USER_EVENTS_PARTITIONS=1
+# the replication factor to use for the user events topic when bootstrapping
+KAFKA_USER_EVENTS_REPLICATION_FACTOR=1
+# the name of the user events topic to create when bootstrapping
+USER_EVENTS_TOPIC_NAME=dittofeed-user-events
+```
+
+Finally, you can run the bootstrap script to create the necessary Kafka topic:
+
+```bash
+BOOTSTRAP_KAFKA=true ./admin.sh bootstrap
+```
+

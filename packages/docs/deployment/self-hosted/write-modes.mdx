@@ -1,0 +1,15 @@
+---
+title: Write Modes
+description: How Dittofeed writes data from its API layer to ClickHouse.
+---
+
+Dittofeed has three write modes, configurable with the `WRITE_MODE` environment variable. These modes determine how Dittofeed writes data from its API layer to ClickHouse.
+
+- `ch-async` (default): This mode writes data to ClickHouse directly and asynchronously. Enables the following underlying settings in Dittofeed's ClickHouse client:
+
+    - `async_insert`
+    - `wait_for_async_insert`
+    - `wait_end_of_query`
+
+- `kafka`: This mode buffers data in Kafka before writing it to ClickHouse. This mode is useful when you have a high volume of data and want to avoid overwhelming ClickHouse. For more information, see the [Kafka Write Mode page](/deployment/self-hosted/write-modes/kafka).
+
