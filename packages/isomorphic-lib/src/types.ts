@@ -57,6 +57,8 @@ export enum InternalEventType {
   EmailClicked = "DFEmailClicked",
   EmailBounced = "DFEmailBounced",
   EmailMarkedSpam = "DFEmailMarkedSpam",
+  SmsDelivered = "DFSmsDelivered",
+  SmsFailed = "DFSmsFailed",
   JourneyNodeProcessed = "DFJourneyNodeProcessed",
 }
 
