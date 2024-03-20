@@ -12,7 +12,7 @@ import ReactCodeMirror from "@uiw/react-codemirror";
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
 import { toJourneyResource } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
-import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { findMessageTemplates } from "backend-lib/src/messaging";
 import prisma from "backend-lib/src/prisma";
 import { getUsers } from "backend-lib/src/users";
 import {

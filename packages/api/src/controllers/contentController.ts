@@ -5,7 +5,7 @@ import {
   sendMessage,
   SendMessageParameters,
   upsertMessageTemplate,
-} from "backend-lib/src/messageTemplates";
+} from "backend-lib/src/messaging";
 import prisma from "backend-lib/src/prisma";
 import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";

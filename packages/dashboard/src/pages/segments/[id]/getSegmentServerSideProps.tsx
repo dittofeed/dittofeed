@@ -1,4 +1,4 @@
-import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { findMessageTemplates } from "backend-lib/src/messaging";
 import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";

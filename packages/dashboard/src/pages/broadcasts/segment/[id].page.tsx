@@ -1,6 +1,6 @@
 import { Button, Stack, Typography } from "@mui/material";
 import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
-import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { findMessageTemplates } from "backend-lib/src/messaging";
 import prisma from "backend-lib/src/prisma";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { SegmentResource } from "isomorphic-lib/src/types";

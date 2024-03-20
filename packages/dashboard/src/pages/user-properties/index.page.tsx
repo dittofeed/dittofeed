@@ -4,7 +4,7 @@ import {
   ComputedPropertyStep,
   getPeriodsByComputedPropertyId,
 } from "backend-lib/src/computedProperties/computePropertiesIncremental";
-import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { findMessageTemplates } from "backend-lib/src/messaging";
 import { toSavedUserPropertyResource } from "backend-lib/src/userProperties";
 import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";

@@ -2,7 +2,7 @@ import { Box, Stack, Tabs, Tooltip, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { toBroadcastResource } from "backend-lib/src/broadcasts";
 import { toJourneyResource } from "backend-lib/src/journeys";
-import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { findMessageTemplates } from "backend-lib/src/messaging";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import { round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
