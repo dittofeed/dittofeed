@@ -1,6 +1,7 @@
 import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
+import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
 import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
 import { parseInt, round } from "isomorphic-lib/src/numbers";
@@ -252,14 +253,21 @@ interface JourneyMessageStats {
 
 async function getJourneyMessageStats({
   workspaceId,
-  journeyIds,
+  journeys,
 }: {
   workspaceId: string;
-  journeyIds: string[];
+  journeys: {
+    id: string;
+    nodes: {
+      id: string;
+      channel: ChannelType;
+    }[];
+  }[];
 }): Promise<JourneyMessageStats[]> {
-  if (!journeyIds.length) {
+  if (!journeys.length) {
     return [];
   }
+  const journeyIds = journeys.map((j) => j.id);
   const messageStats: JourneyMessageStats[] = [];
   const qb = new ClickHouseQueryBuilder();
 
@@ -290,18 +298,10 @@ async function getJourneyMessageStats({
                   "Array(String)",
                 )}
                 AND (event_type = 'track')
-                AND (
-                    (event = 'DFInternalMessageSent')
-                    OR (event = 'DFMessageFailure')
-                    OR (event = 'DFMessageSkipped')
-                    OR (event = 'DFEmailDropped')
-                    OR (event = 'DFEmailDelivered')
-                    OR (event = 'DFEmailOpened')
-                    OR (event = 'DFEmailClicked')
-                    OR (event = 'DFEmailBounced')
-                    OR (event = 'DFEmailMarkedSpam')
-                    OR (event = 'DFBadWorkspaceConfiguration')
-                )
+                AND (event in ${qb.addQueryValue(
+                  MESSAGE_EVENTS,
+                  "Array(String)",
+                )})
             GROUP BY
                 journey_id,
                 node_id,
@@ -339,6 +339,19 @@ async function getJourneyMessageStats({
       statsMap.set(item.journey_id, journeyStats);
     }
   });
+
+  for (const journey of journeys) {
+    const journeyStats = statsMap.get(journey.id);
+    if (!journeyStats) {
+      continue;
+    }
+    for (const node of journey.nodes) {
+      const nodeStats = journeyStats.get(node.id);
+      if (!nodeStats) {
+        continue;
+      }
+    }
+  }
 
   return messageStats;
 }
