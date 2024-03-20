@@ -10,7 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
-import { findMessageTemplates } from "backend-lib/src/messageTemplates";
+import { findMessageTemplates } from "backend-lib/src/messaging";
 import { CHANNEL_NAMES } from "isomorphic-lib/src/constants";
 import { ChannelType, CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";

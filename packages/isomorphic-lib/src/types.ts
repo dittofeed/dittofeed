@@ -863,6 +863,7 @@ export const EmailConfiguration = Type.Composite([
   EmailContents,
   Type.Object({
     to: Type.String(),
+    headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   }),
 ]);
 
@@ -2421,6 +2422,7 @@ export const MessageEmailSuccess = Type.Composite([
     type: Type.Literal(ChannelType.Email),
     provider: EmailServiceProviderSuccess,
     to: Type.String(),
+    headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   }),
   EmailContents,
 ]);
@@ -2466,6 +2468,16 @@ export enum BadWorkspaceConfigurationType {
   MessageServiceProviderMisconfigured = "MessageServiceProviderMisconfigured",
 }
 
+export const MessageTemplateRenderError = Type.Object({
+  type: Type.Literal(BadWorkspaceConfigurationType.MessageTemplateRenderError),
+  field: Type.String(),
+  error: Type.String(),
+});
+
+export type MessageTemplateRenderError = Static<
+  typeof MessageTemplateRenderError
+>;
+
 export const BadWorkspaceConfigurationVariant = Type.Union([
   Type.Object({
     type: Type.Literal(BadWorkspaceConfigurationType.MessageTemplateNotFound),
@@ -2476,13 +2488,7 @@ export const BadWorkspaceConfigurationVariant = Type.Union([
     ),
     message: Type.String(),
   }),
-  Type.Object({
-    type: Type.Literal(
-      BadWorkspaceConfigurationType.MessageTemplateRenderError,
-    ),
-    field: Type.String(),
-    error: Type.String(),
-  }),
+  MessageTemplateRenderError,
   Type.Object({
     type: Type.Literal(BadWorkspaceConfigurationType.JourneyNotFound),
   }),
@@ -2828,6 +2834,7 @@ export const AmazonSesMailFields = Type.Object({
   html: Type.String(),
   replyTo: Type.Optional(Type.String()),
   tags: Type.Optional(Type.Record(Type.String(), Type.String())),
+  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 
 export type AmazonSesMailFields = Static<typeof AmazonSesMailFields>;

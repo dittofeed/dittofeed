@@ -18,6 +18,10 @@ import { sendMail as sendMailSmtp } from "./destinations/smtp";
 import { sendSms as sendSmsTwilio } from "./destinations/twilio";
 import { renderLiquid } from "./liquid";
 import logger from "./logger";
+import {
+  constructUnsubscribeHeaders,
+  UnsubscribeHeaders,
+} from "./messaging/email";
 import prisma from "./prisma";
 import {
   inSubscriptionGroup,
@@ -37,6 +41,7 @@ import {
   MessageSendFailure,
   MessageSkippedType,
   MessageTemplate,
+  MessageTemplateRenderError,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
   MobilePushProviderType,
@@ -299,7 +304,7 @@ export interface SendMessageParametersBase {
   userId: string;
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
-  subscriptionGroupDetails?: SubscriptionGroupDetails;
+  subscriptionGroupDetails?: SubscriptionGroupDetails & { name: string };
   messageTags?: Record<string, string>;
   useDraft: boolean;
 }
@@ -445,6 +450,7 @@ export async function sendEmail({
   userPropertyAssignments,
   subscriptionGroupDetails,
   messageTags,
+  userId,
   provider,
   useDraft,
 }: Omit<
@@ -543,6 +549,32 @@ export async function sendEmail({
   }
   const { from, subject, body, replyTo } = renderedValuesResult.value;
   const to = identifier;
+  const unsubscribeHeadersResult: Result<
+    UnsubscribeHeaders,
+    MessageTemplateRenderError
+  > | null =
+    subscriptionGroupDetails && subscriptionGroupSecret
+      ? constructUnsubscribeHeaders({
+          to,
+          from,
+          userId,
+          subscriptionGroupSecret,
+          subscriptionGroupName: subscriptionGroupDetails.name,
+          workspaceId,
+          subscriptionGroupId: subscriptionGroupDetails.id,
+        })
+      : null;
+
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  if (unsubscribeHeadersResult && unsubscribeHeadersResult.isErr()) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: unsubscribeHeadersResult.error,
+    });
+  }
+  const unsubscribeHeaders = unsubscribeHeadersResult?.value as
+    | Record<string, string>
+    | undefined;
 
   const unvalidatedSecretConfig = emailProvider.secret?.configValue;
 
@@ -620,6 +652,7 @@ export async function sendEmail({
         body,
         host,
         port: numPort,
+        headers: unsubscribeHeaders,
       });
       if (result.isErr()) {
         return err({
@@ -638,6 +671,7 @@ export async function sendEmail({
           body,
           to,
           subject,
+          headers: unsubscribeHeaders,
           replyTo,
           provider: {
             type: EmailProviderType.Smtp,
@@ -663,6 +697,7 @@ export async function sendEmail({
         subject,
         html: body,
         replyTo,
+        headers: unsubscribeHeaders,
         customArgs: {
           workspaceId,
           templateId,
@@ -707,6 +742,7 @@ export async function sendEmail({
           body,
           to,
           subject,
+          headers: unsubscribeHeaders,
           replyTo,
           provider: {
             type: EmailProviderType.Sendgrid,
@@ -725,6 +761,10 @@ export async function sendEmail({
           },
         });
       }
+      // TODO [DF-469] add subscription group headers
+      // the SES sdk doesn't support custom headers without wrangling with raw
+      // email. the API added support for this as of 3/8/24 but the sdk hasn't
+      // caught up
       const mailData: AmazonSesMailFields = {
         to,
         from,
@@ -781,6 +821,7 @@ export async function sendEmail({
           body,
           to,
           subject,
+          headers: unsubscribeHeaders,
           replyTo,
           provider: {
             type: EmailProviderType.AmazonSes,
@@ -808,6 +849,7 @@ export async function sendEmail({
         subject,
         html: body,
         reply_to: replyTo,
+        headers: unsubscribeHeaders,
         tags: [
           {
             name: "workspaceId",
@@ -861,6 +903,7 @@ export async function sendEmail({
           from,
           body,
           to,
+          headers: unsubscribeHeaders,
           subject,
           replyTo,
           provider: {
@@ -887,6 +930,12 @@ export async function sendEmail({
         Subject: subject,
         HtmlBody: body,
         ReplyTo: replyTo,
+        Headers: unsubscribeHeaders
+          ? Object.entries(unsubscribeHeaders).map(([name, value]) => ({
+              Name: name,
+              Value: value,
+            }))
+          : undefined,
         Metadata: {
           recipient: to,
           from,
@@ -933,6 +982,7 @@ export async function sendEmail({
           to,
           subject,
           replyTo,
+          headers: unsubscribeHeaders,
           provider: {
             type: EmailProviderType.PostMark,
           },
@@ -949,6 +999,7 @@ export async function sendEmail({
           to,
           subject,
           replyTo,
+          headers: unsubscribeHeaders,
           provider: {
             type: EmailProviderType.Test,
           },

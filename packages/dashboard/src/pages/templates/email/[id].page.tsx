@@ -1,4 +1,4 @@
-import { enrichMessageTemplate } from "backend-lib/src/messageTemplates";
+import { enrichMessageTemplate } from "backend-lib/src/messaging";
 import { MessageTemplate } from "backend-lib/src/types";
 import { toUserPropertyResource } from "backend-lib/src/userProperties";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";

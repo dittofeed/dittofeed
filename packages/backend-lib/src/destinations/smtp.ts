@@ -29,6 +29,7 @@ export async function sendMail({
   subject,
   body,
   replyTo,
+  headers,
 }: SendSmtpMailParams): Promise<Result<EmailSmtpSuccess, MessageSmtpFailure>> {
   const transport = createTransport({
     host,
@@ -48,6 +49,7 @@ export async function sendMail({
       subject,
       html: body,
       replyTo,
+      headers,
     });
 
     return ok({

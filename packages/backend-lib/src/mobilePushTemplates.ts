@@ -1,4 +1,4 @@
-import { findMessageTemplates } from "./messageTemplates";
+import { findMessageTemplates } from "./messaging";
 import { ChannelType, MessageTemplateResource } from "./types";
 
 export async function getMobilePushTemplates({

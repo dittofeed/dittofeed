@@ -954,6 +954,12 @@
                                         "to": {
                                           "type": "string"
                                         },
+                                        "headers": {
+                                          "type": "object",
+                                          "additionalProperties": {
+                                            "type": "string"
+                                          }
+                                        },
                                         "from": {
                                           "type": "string"
                                         },
@@ -10385,6 +10391,12 @@
                                   },
                                   "to": {
                                     "type": "string"
+                                  },
+                                  "headers": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                      "type": "string"
+                                    }
                                   },
                                   "from": {
                                     "type": "string"
