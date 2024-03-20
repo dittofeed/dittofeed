@@ -1,6 +1,7 @@
 import {
   ChannelType,
   EmailProviderType,
+  InternalEventType,
   JourneyNodeType,
   SmsProviderType,
 } from "./types";
@@ -53,3 +54,18 @@ export const ENTRY_TYPES = new Set<string>([
   JourneyNodeType.SegmentEntryNode,
   JourneyNodeType.EventEntryNode,
 ]);
+
+export const MESSAGE_EVENTS = [
+  InternalEventType.MessageSent,
+  InternalEventType.MessageFailure,
+  InternalEventType.MessageSkipped,
+  InternalEventType.BadWorkspaceConfiguration,
+  InternalEventType.EmailDelivered,
+  InternalEventType.EmailOpened,
+  InternalEventType.EmailClicked,
+  InternalEventType.EmailDropped,
+  InternalEventType.EmailBounced,
+  InternalEventType.EmailMarkedSpam,
+  InternalEventType.SmsDelivered,
+  InternalEventType.SmsFailed,
+];

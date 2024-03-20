@@ -9,7 +9,12 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { err, ok, Result } from "neverthrow";
 import NodeCache from "node-cache";
 
-import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
+import {
+  clickhouseClient,
+  ClickHouseQueryBuilder,
+  query as chQuery,
+  streamClickhouseQuery,
+} from "./clickhouse";
 import { startKeyedUserJourney } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import prisma from "./prisma";
@@ -250,9 +255,91 @@ async function getJourneyMessageStats({
   journeyIds,
 }: {
   workspaceId: string;
-  journeyIds?: string[];
+  journeyIds: string[];
 }): Promise<JourneyMessageStats[]> {
+  if (!journeyIds.length) {
+    return [];
+  }
   const messageStats: JourneyMessageStats[] = [];
+  const qb = new ClickHouseQueryBuilder();
+
+  const query = `
+    SELECT
+        journey_id,
+        last_event as event,
+        node_id,
+        count(resolved_message_id) AS count
+    FROM (
+            SELECT
+                JSON_VALUE(message_raw, '$.properties.journeyId') AS journey_id,
+                JSON_VALUE(message_raw, '$.properties.nodeId') AS node_id,
+                JSON_VALUE(message_raw, '$.properties.runId') AS run_id,
+                if(
+                    (
+                        JSON_VALUE(message_raw, '$.properties.messageId') AS property_message_id
+                    ) != '',
+                    property_message_id,
+                    message_id
+                ) AS resolved_message_id,
+                argMax(event, event_time) as last_event
+            FROM user_events_v2
+            WHERE
+                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                AND journey_id in ${qb.addQueryValue(
+                  journeyIds,
+                  "Array(String)",
+                )}
+                AND (event_type = 'track')
+                AND (
+                    (event = 'DFInternalMessageSent')
+                    OR (event = 'DFMessageFailure')
+                    OR (event = 'DFMessageSkipped')
+                    OR (event = 'DFEmailDropped')
+                    OR (event = 'DFEmailDelivered')
+                    OR (event = 'DFEmailOpened')
+                    OR (event = 'DFEmailClicked')
+                    OR (event = 'DFEmailBounced')
+                    OR (event = 'DFEmailMarkedSpam')
+                    OR (event = 'DFBadWorkspaceConfiguration')
+                )
+            GROUP BY
+                journey_id,
+                node_id,
+                run_id,
+                resolved_message_id
+        )
+    GROUP BY
+        journey_id,
+        node_id,
+        event
+  `;
+  const resultsSet = await chQuery({
+    query,
+  });
+  const statsMap = new Map<
+    string,
+    Map<string, MapWithDefault<string, number>>
+  >();
+  await streamClickhouseQuery(resultsSet, (row) => {
+    for (const i of row) {
+      const item = i as {
+        journey_id: string;
+        event: string;
+        node_id: string;
+        count: number;
+      };
+      const journeyStats =
+        statsMap.get(item.journey_id) ??
+        new Map<string, MapWithDefault<string, number>>();
+      const nodeStats =
+        journeyStats.get(item.node_id) ?? new MapWithDefault<string, number>(0);
+
+      nodeStats.set(item.event, item.count);
+      journeyStats.set(item.node_id, nodeStats);
+      statsMap.set(item.journey_id, journeyStats);
+    }
+  });
+
   return messageStats;
 }
 
@@ -314,7 +401,7 @@ from (
             JSON_VALUE(
                 message_raw,
                 '$.properties.messageId'
-            ) as property_message_id 
+            ) as property_message_id
             ) != '',
             property_message_id,
             message_id
