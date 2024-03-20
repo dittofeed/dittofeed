@@ -2186,13 +2186,13 @@ export const EmailStats = Type.Object({
   spamRate: Type.Number(),
 });
 
+export type EmailStats = Static<typeof EmailStats>;
+
 export const SmsStats = Type.Object({
   type: Type.Literal(ChannelType.Sms),
   deliveryRate: Type.Number(),
   failRate: Type.Optional(Type.Number()),
 });
-
-export type EmailStats = Static<typeof EmailStats>;
 
 export type SmsStats = Static<typeof SmsStats>;
 

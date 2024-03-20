@@ -20,7 +20,9 @@ import { startKeyedUserJourney } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
+  BaseMessageNodeStats,
   ChannelType,
+  EmailStats,
   EnrichedJourney,
   InternalEventType,
   JourneyDefinition,
@@ -32,6 +34,7 @@ import {
   SavedJourneyResource,
   TrackData,
 } from "./types";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -316,23 +319,22 @@ async function getJourneyMessageStats({
   const resultsSet = await chQuery({
     query,
   });
-  const statsMap = new Map<
-    string,
-    Map<string, MapWithDefault<string, number>>
-  >();
+  const statsMap = new Map<string, Map<string, Map<string, number>>>();
   await streamClickhouseQuery(resultsSet, (row) => {
     for (const i of row) {
       const item = i as {
         journey_id: string;
+        // represents the last observed event for a given email
+        // so for example a clicked email will also have been opened and
+        // delivered
         event: string;
         node_id: string;
         count: number;
       };
       const journeyStats =
-        statsMap.get(item.journey_id) ??
-        new Map<string, MapWithDefault<string, number>>();
+        statsMap.get(item.journey_id) ?? new Map<string, Map<string, number>>();
       const nodeStats =
-        journeyStats.get(item.node_id) ?? new MapWithDefault<string, number>(0);
+        journeyStats.get(item.node_id) ?? new Map<string, number>();
 
       nodeStats.set(item.event, item.count);
       journeyStats.set(item.node_id, nodeStats);
@@ -349,6 +351,51 @@ async function getJourneyMessageStats({
       const nodeStats = journeyStats.get(node.id);
       if (!nodeStats) {
         continue;
+      }
+
+      let stats: BaseMessageNodeStats;
+      switch (node.channel) {
+        case ChannelType.Email: {
+          const total = Array.from(nodeStats.values()).reduce(
+            (acc, val) => acc + val,
+            0,
+          );
+          const failed =
+            (nodeStats.get(InternalEventType.MessageFailure) ?? 0) +
+            (nodeStats.get(InternalEventType.BadWorkspaceConfiguration) ?? 0);
+
+          const sent = total - failed;
+          const delivered =
+            (nodeStats.get(InternalEventType.EmailDelivered) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailOpened) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailClicked) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailMarkedSpam) ?? 0);
+
+          const clicked = nodeStats.get(InternalEventType.EmailClicked) ?? 0;
+          const spam = nodeStats.get(InternalEventType.EmailMarkedSpam) ?? 0;
+          const opened = nodeStats.get(InternalEventType.EmailOpened) ?? 0;
+
+          const emailStats: EmailStats = {
+            type: ChannelType.Email,
+            deliveryRate: delivered / total,
+            openRate: opened / total,
+            spamRate: spam / total,
+            clickRate: clicked / total,
+          };
+          stats = {
+            sendRate: sent / total,
+            channelStats: emailStats,
+          };
+          break;
+        }
+        case ChannelType.Sms: {
+          break;
+        }
+        case ChannelType.MobilePush: {
+          continue;
+        }
+        default:
+          assertUnreachable(node.channel);
       }
     }
   }
