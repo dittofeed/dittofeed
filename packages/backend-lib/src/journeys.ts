@@ -7,6 +7,7 @@ import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
 import { parseInt, round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import NodeCache from "node-cache";
 
@@ -29,12 +30,12 @@ import {
   JourneyDraft,
   JourneyNodeType,
   JourneyStats,
-  MessageNodeStats,
+  MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
+  SmsStats,
   TrackData,
 } from "./types";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 export * from "isomorphic-lib/src/journeys";
 
@@ -251,7 +252,7 @@ function getEdgePercent(params: GetEdgePercentParams): number | null {
 interface JourneyMessageStats {
   journeyId: string;
   node_id: string;
-  stats: MessageNodeStats;
+  stats: BaseMessageNodeStats;
 }
 
 async function getJourneyMessageStats({
@@ -353,18 +354,19 @@ async function getJourneyMessageStats({
         continue;
       }
 
-      let stats: BaseMessageNodeStats;
+      let channelStats: MessageChannelStats | null = null;
+      const total = Array.from(nodeStats.values()).reduce(
+        (acc, val) => acc + val,
+        0,
+      );
+      const failed =
+        (nodeStats.get(InternalEventType.MessageFailure) ?? 0) +
+        (nodeStats.get(InternalEventType.BadWorkspaceConfiguration) ?? 0);
+      const sent = total - failed;
+      const sendRate = sent / total;
+
       switch (node.channel) {
         case ChannelType.Email: {
-          const total = Array.from(nodeStats.values()).reduce(
-            (acc, val) => acc + val,
-            0,
-          );
-          const failed =
-            (nodeStats.get(InternalEventType.MessageFailure) ?? 0) +
-            (nodeStats.get(InternalEventType.BadWorkspaceConfiguration) ?? 0);
-
-          const sent = total - failed;
           const delivered =
             (nodeStats.get(InternalEventType.EmailDelivered) ?? 0) +
             (nodeStats.get(InternalEventType.EmailOpened) ?? 0) +
@@ -382,13 +384,18 @@ async function getJourneyMessageStats({
             spamRate: spam / total,
             clickRate: clicked / total,
           };
-          stats = {
-            sendRate: sent / total,
-            channelStats: emailStats,
-          };
+          channelStats = emailStats;
           break;
         }
         case ChannelType.Sms: {
+          const delivered = nodeStats.get(InternalEventType.SmsDelivered) ?? 0;
+          const smsFailures = nodeStats.get(InternalEventType.SmsFailed) ?? 0;
+          const smsStats: SmsStats = {
+            type: ChannelType.Sms,
+            deliveryRate: delivered / total,
+            failRate: smsFailures / total,
+          };
+          channelStats = smsStats;
           break;
         }
         case ChannelType.MobilePush: {
@@ -400,7 +407,10 @@ async function getJourneyMessageStats({
       messageStats.push({
         journeyId: journey.id,
         node_id: node.id,
-        stats,
+        stats: {
+          sendRate,
+          channelStats,
+        },
       });
     }
   }
