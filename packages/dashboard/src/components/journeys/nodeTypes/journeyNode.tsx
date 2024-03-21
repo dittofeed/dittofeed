@@ -380,6 +380,7 @@ export function JourneyNode({
   const channelStats =
     isSelected &&
     stats?.type === NodeStatsType.MessageNodeStats &&
+    stats.sendRate &&
     stats.channelStats
       ? { ...stats.channelStats, sendRate: stats.sendRate }
       : null;

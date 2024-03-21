@@ -213,7 +213,8 @@ export default function MessagesPage() {
             if (
               !message.definition ||
               !nodeStats ||
-              nodeStats.type !== NodeStatsType.MessageNodeStats
+              nodeStats.type !== NodeStatsType.MessageNodeStats ||
+              !nodeStats.sendRate
             ) {
               return [];
             }
