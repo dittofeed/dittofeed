@@ -251,7 +251,7 @@ function getEdgePercent(params: GetEdgePercentParams): number | null {
 
 interface JourneyMessageStats {
   journeyId: string;
-  node_id: string;
+  nodeId: string;
   stats: BaseMessageNodeStats;
 }
 
@@ -338,18 +338,19 @@ export async function getJourneyMessageStats({
         // delivered
         event: string;
         node_id: string;
-        count: number;
+        count: string;
       };
       const journeyStats =
         statsMap.get(item.journey_id) ?? new Map<string, Map<string, number>>();
       const nodeStats =
         journeyStats.get(item.node_id) ?? new Map<string, number>();
 
-      nodeStats.set(item.event, item.count);
+      nodeStats.set(item.event, parseInt(item.count));
       journeyStats.set(item.node_id, nodeStats);
       statsMap.set(item.journey_id, journeyStats);
     }
   });
+  logger().debug({ statsMap }, "statsMap loc3");
 
   for (const journey of journeys) {
     const journeyStats = statsMap.get(journey.id);
@@ -383,8 +384,20 @@ export async function getJourneyMessageStats({
 
           const clicked = nodeStats.get(InternalEventType.EmailClicked) ?? 0;
           const spam = nodeStats.get(InternalEventType.EmailMarkedSpam) ?? 0;
-          const opened = nodeStats.get(InternalEventType.EmailOpened) ?? 0;
-
+          const opened =
+            (nodeStats.get(InternalEventType.EmailOpened) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailMarkedSpam) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailClicked) ?? 0);
+          logger().debug(
+            {
+              delivered,
+              clicked,
+              spam,
+              opened,
+              total,
+            },
+            "loc4",
+          );
           const emailStats: EmailStats = {
             type: ChannelType.Email,
             deliveryRate: delivered / total,
@@ -414,7 +427,7 @@ export async function getJourneyMessageStats({
       }
       messageStats.push({
         journeyId: journey.id,
-        node_id: node.id,
+        nodeId: node.id,
         stats: {
           sendRate,
           channelStats,

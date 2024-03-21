@@ -241,7 +241,22 @@ describe("journeys", () => {
             },
           ],
         });
-        expect(stats).toEqual([]);
+        expect(stats).toEqual([
+          {
+            journeyId,
+            nodeId: messageNodeId,
+            stats: {
+              channelStats: {
+                clickRate: 0,
+                deliveryRate: 0.5,
+                openRate: 0.25,
+                spamRate: 0.25,
+                type: ChannelType.Email,
+              },
+              sendRate: 0.75,
+            },
+          },
+        ]);
       });
     });
   });
