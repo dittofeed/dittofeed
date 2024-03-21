@@ -324,12 +324,6 @@ export async function getJourneyMessageStats({
   });
   const statsMap = new Map<string, Map<string, Map<string, number>>>();
   await streamClickhouseQuery(resultsSet, (row) => {
-    logger().debug(
-      {
-        row,
-      },
-      "row loc2",
-    );
     for (const i of row) {
       const item = i as {
         journey_id: string;
@@ -350,7 +344,6 @@ export async function getJourneyMessageStats({
       statsMap.set(item.journey_id, journeyStats);
     }
   });
-  logger().debug({ statsMap }, "statsMap loc3");
 
   for (const journey of journeys) {
     const journeyStats = statsMap.get(journey.id);
@@ -388,16 +381,7 @@ export async function getJourneyMessageStats({
             (nodeStats.get(InternalEventType.EmailOpened) ?? 0) +
             (nodeStats.get(InternalEventType.EmailMarkedSpam) ?? 0) +
             (nodeStats.get(InternalEventType.EmailClicked) ?? 0);
-          logger().debug(
-            {
-              delivered,
-              clicked,
-              spam,
-              opened,
-              total,
-            },
-            "loc4",
-          );
+
           const emailStats: EmailStats = {
             type: ChannelType.Email,
             deliveryRate: delivered / total,
@@ -560,7 +544,6 @@ group by event, node_id;`;
       }),
     }),
   ]);
-  logger().debug({ messageStats }, "messageStats loc1");
 
   const stream = statsResultSet.stream();
   // map from node_id to event to count
