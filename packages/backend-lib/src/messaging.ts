@@ -6,6 +6,7 @@ import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaV
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
+import { Overwrite } from "utility-types";
 
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
 import { sendMail as sendMailPostMark } from "./destinations/postmark";
@@ -45,6 +46,7 @@ import {
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
   MobilePushProviderType,
+  Prisma,
   Secret,
   SmsProvider,
   SmsProviderSecret,
@@ -61,7 +63,13 @@ export function enrichMessageTemplate({
   definition,
   draft,
   updatedAt,
-}: MessageTemplate): Result<MessageTemplateResource, Error> {
+}: Overwrite<
+  MessageTemplate,
+  {
+    draft?: Prisma.JsonValue;
+    definition?: Prisma.JsonValue;
+  }
+>): Result<MessageTemplateResource, Error> {
   const enrichedDefintion = definition
     ? schemaValidateWithErr(definition, MessageTemplateResourceDefinition)
     : ok(undefined);
@@ -184,6 +192,32 @@ export async function findMessageTemplates({
       where: {
         workspaceId,
         resourceType: includeInternal ? undefined : "Declarative",
+      },
+    })
+  ).map((mt) => unwrap(enrichMessageTemplate(mt)));
+}
+
+export async function findPartialMessageTemplates({
+  workspaceId,
+  includeInternal,
+}: {
+  workspaceId: string;
+  includeInternal?: boolean;
+}): Promise<MessageTemplateResource[]> {
+  return (
+    await prisma().messageTemplate.findMany({
+      where: {
+        workspaceId,
+        resourceType: includeInternal ? undefined : "Declarative",
+      },
+      select: {
+        // excluding draft and definition
+        id: true,
+        name: true,
+        workspaceId: true,
+        updatedAt: true,
+        resourceType: true,
+        createdAt: true,
       },
     })
   ).map((mt) => unwrap(enrichMessageTemplate(mt)));

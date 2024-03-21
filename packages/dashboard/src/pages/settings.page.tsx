@@ -54,7 +54,7 @@ import {
   EphemeralRequestStatus,
   IntegrationResource,
   IntegrationType,
-  SegmentResource,
+  PartialSegmentResource,
   SmsProviderType,
   SmtpSecretKey,
   SubscriptionChange,
@@ -1346,7 +1346,7 @@ function HubspotIntegration() {
   }
 
   const [subscribedSegments, setSubscribedSegments] = useState<
-    SegmentResource[]
+    PartialSegmentResource[]
   >(() => {
     const subbed = new Set(hubspotIntegration?.subscribedSegments ?? []);
     return segments.filter((segment) => subbed.has(segment.name));

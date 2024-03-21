@@ -6,7 +6,8 @@ import {
   getPeriodsByComputedPropertyId,
 } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import { findManyJourneyResourcesUnsafe } from "backend-lib/src/journeys";
-import { CompletionStatus, SegmentResource } from "isomorphic-lib/src/types";
+import { findManyPartialSegments } from "backend-lib/src/segments";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { pick } from "remeda/dist/commonjs/pick";
@@ -17,38 +18,18 @@ import SegmentsTable from "../../components/segmentsTable";
 import { addInitialStateToProps } from "../../lib/addInitialStateToProps";
 import { downloadFileFactory } from "../../lib/apiRequestHandlerFactory";
 import { useAppStore } from "../../lib/appStore";
-import prisma from "../../lib/prisma";
 import { requestContext } from "../../lib/requestContext";
 import { AppState, PropsWithInitialState } from "../../lib/types";
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
   requestContext(async (_ctx, dfContext) => {
-    // Dynamically import to avoid transitively importing backend config at build time.
-    const { toSegmentResource } = await import("backend-lib/src/segments");
-
     const workspaceId = dfContext.workspace.id;
-    const [segmentsFromDB, journeyResources] = await Promise.all([
-      prisma().segment.findMany({
-        where: {
-          workspaceId,
-          resourceType: {
-            not: "Internal",
-          },
-        },
-      }),
+    const [segmentResources, journeyResources] = await Promise.all([
+      findManyPartialSegments({ workspaceId }),
       findManyJourneyResourcesUnsafe({
         where: { workspaceId, resourceType: "Declarative" },
       }),
     ]);
-    const segmentResources: (SegmentResource & {
-      definitionUpdatedAt: number;
-    })[] = segmentsFromDB.flatMap((segment) => {
-      const result = toSegmentResource(segment);
-      if (result.isErr()) {
-        return [];
-      }
-      return result.value;
-    });
     const computedPropertyPeriods = await getPeriodsByComputedPropertyId({
       workspaceId,
       step: ComputedPropertyStep.ProcessAssignments,

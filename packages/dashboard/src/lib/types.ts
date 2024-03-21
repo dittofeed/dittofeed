@@ -35,6 +35,7 @@ import {
   JourneyUiPlaceholderEdgeProps,
   MessageTemplateResource,
   MessageUiNodeProps,
+  PartialSegmentResource,
   PersistedEmailProvider,
   PersistedSmsProvider,
   RequestStatus,
@@ -134,7 +135,7 @@ export type AppState = {
   member: WorkspaceMemberResource | null;
   memberRoles: WorkspaceMemberRoleResource[];
   drawerOpen: boolean;
-  segments: RequestStatus<SegmentResource[], Error>;
+  segments: RequestStatus<PartialSegmentResource[], Error>;
   broadcasts: BroadcastResource[];
   subscriptionGroups: SavedSubscriptionGroupResource[];
   userProperties: RequestStatus<UserPropertyResource[], Error>;
@@ -178,7 +179,7 @@ export interface AppActions {
   upsertMessage: (message: MessageTemplateResource) => void;
   upsertBroadcast: (message: BroadcastResource) => void;
   deleteMessage: (id: string) => void;
-  upsertSegment: (segment: SegmentResource) => void;
+  upsertSegment: (segment: PartialSegmentResource) => void;
   deleteSegment: (segmentId: string) => void;
   upsertJourney: (journey: SavedJourneyResource) => void;
   deleteJourney: (segmentId: string) => void;

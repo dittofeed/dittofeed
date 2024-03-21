@@ -27,7 +27,7 @@ import {
   EntryNode,
   JourneyNodeType,
   MessageTemplateResource,
-  SegmentResource,
+  PartialSegmentResource,
 } from "isomorphic-lib/src/types";
 import { ReactNode, useMemo } from "react";
 import { Node } from "reactflow";
@@ -53,7 +53,7 @@ import { waitForTimeoutLabel } from "./store";
 const width = 420;
 const transitionDuration = ".15s";
 
-function getSegmentLabel(tr: SegmentResource) {
+function getSegmentLabel(tr: { name: string }) {
   return tr.name;
 }
 
@@ -74,7 +74,7 @@ function SegmentSplitNodeFields({
 
   const onSegmentChangeHandler = (
     _event: unknown,
-    segment: SegmentResource | null,
+    segment: PartialSegmentResource | null,
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
@@ -125,7 +125,7 @@ function EntryNodeFields({
     case JourneyNodeType.SegmentEntryNode: {
       const onSegmentChangeHandler = (
         _event: unknown,
-        segment: SegmentResource | null,
+        segment: PartialSegmentResource | null,
       ) => {
         updateJourneyNodeData(nodeId, (node) => {
           const props = node.data.nodeTypeProps;
@@ -573,7 +573,7 @@ function WaitForNodeFields({
 
   const onSegmentChangeHandler = (
     _event: unknown,
-    segment: SegmentResource | null,
+    segment: PartialSegmentResource | null,
   ) => {
     updateJourneyNodeData(nodeId, (node) => {
       const props = node.data.nodeTypeProps;
