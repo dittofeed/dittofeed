@@ -458,11 +458,6 @@ export async function getJourneysStats({
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
   const query = `
-  select
-    event,
-    node_id,
-    count(resolved_message_id) count
-from (
     select
         JSON_VALUE(
             message_raw,
@@ -476,38 +471,15 @@ from (
             message_raw,
             '$.properties.runId'
         ) run_id,
-        if(
-            (
-            JSON_VALUE(
-                message_raw,
-                '$.properties.messageId'
-            ) as property_message_id
-            ) != '',
-            property_message_id,
-            message_id
-        ) resolved_message_id,
-        event
+        uniq(message_id) as count
     from user_events_v2
     where
         workspace_id = ${workspaceIdQuery}
         and journey_id in ${journeyIdsQuery}
         and event_type = 'track'
-        and (
-            event = 'DFInternalMessageSent'
-            or event = 'DFMessageFailure'
-            or event = 'DFMessageSkipped'
-            or event = 'DFEmailDropped'
-            or event = 'DFEmailDelivered'
-            or event = 'DFEmailOpened'
-            or event = 'DFEmailClicked'
-            or event = 'DFEmailBounced'
-            or event = 'DFEmailMarkedSpam'
-            or event = 'DFBadWorkspaceConfiguration'
-            or event = 'DFJourneyNodeProcessed'
-        )
-    group by journey_id, node_id, run_id, resolved_message_id, event
-)
-group by event, node_id;`;
+        and event = 'DFJourneyNodeProcessed'
+    group by journey_id, node_id, run_id
+`;
 
   const enrichedJourneys = journeys.map((journey) =>
     unwrap(enrichJourney(journey)),
