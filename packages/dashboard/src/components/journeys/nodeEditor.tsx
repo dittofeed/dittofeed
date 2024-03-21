@@ -277,7 +277,7 @@ function MessageNodeFields({
 
   const templates =
     messages.type === CompletionStatus.Successful
-      ? messages.value.filter((t) => t.definition?.type === nodeProps.channel)
+      ? messages.value.filter((t) => t.type === nodeProps.channel)
       : [];
 
   const template = templates.find((t) => t.id === nodeProps.templateId) ?? null;

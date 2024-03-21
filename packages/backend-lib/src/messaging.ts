@@ -37,7 +37,6 @@ import {
   EmailProvider,
   EmailProviderSecret,
   EmailProviderType,
-  EmailTemplate,
   InternalEventType,
   MessageSendFailure,
   MessageSkippedType,
@@ -70,51 +69,33 @@ export function enrichMessageTemplate({
     definition?: Prisma.JsonValue;
   }
 >): Result<MessageTemplateResource, Error> {
-  const enrichedDefintion = definition
+  const enrichedDefinition = definition
     ? schemaValidateWithErr(definition, MessageTemplateResourceDefinition)
     : ok(undefined);
   const enrichedDraft = draft
     ? schemaValidateWithErr(draft, MessageTemplateResourceDefinition)
     : ok(undefined);
-  if (enrichedDefintion.isErr()) {
-    return err(enrichedDefintion.error);
+  if (enrichedDefinition.isErr()) {
+    return err(enrichedDefinition.error);
   }
   if (enrichedDraft.isErr()) {
     return err(enrichedDraft.error);
+  }
+  const type = enrichedDefinition.value?.type ?? enrichedDraft.value?.type;
+  if (!type) {
+    return err(
+      new Error("message template has neither a draft nor a definition"),
+    );
   }
   return ok({
     id,
     name,
     workspaceId,
-    definition: enrichedDefintion.value,
+    type,
+    definition: enrichedDefinition.value,
     draft: enrichedDraft.value,
     updatedAt: Number(updatedAt),
   });
-}
-
-export function enrichEmailTemplate({
-  id,
-  workspaceId,
-  name,
-  body,
-  subject,
-  from,
-  replyTo,
-  updatedAt,
-}: EmailTemplate): MessageTemplateResource {
-  return {
-    id,
-    name,
-    workspaceId,
-    definition: {
-      type: ChannelType.Email,
-      subject,
-      from,
-      body,
-      replyTo: replyTo ?? undefined,
-    },
-    updatedAt: Number(updatedAt),
-  };
 }
 
 export async function findMessageTemplate({
@@ -204,23 +185,15 @@ export async function findPartialMessageTemplates({
   workspaceId: string;
   includeInternal?: boolean;
 }): Promise<MessageTemplateResource[]> {
-  return (
-    await prisma().messageTemplate.findMany({
-      where: {
-        workspaceId,
-        resourceType: includeInternal ? undefined : "Declarative",
-      },
-      select: {
-        // excluding draft and definition
-        id: true,
-        name: true,
-        workspaceId: true,
-        updatedAt: true,
-        resourceType: true,
-        createdAt: true,
-      },
-    })
-  ).map((mt) => unwrap(enrichMessageTemplate(mt)));
+  const messageTemplates = await prisma().messageTemplate.findMany({
+    where: {
+      workspaceId,
+      resourceType: includeInternal ? undefined : "Declarative",
+    },
+  });
+  return messageTemplates.map((mt) =>
+    R.omit(unwrap(enrichMessageTemplate(mt)), ["definition", "draft"]),
+  );
 }
 
 async function getSendMessageModels({

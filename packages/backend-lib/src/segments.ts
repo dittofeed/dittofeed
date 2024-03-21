@@ -517,18 +517,8 @@ export async function findManyPartialSegments({
         not: "Internal",
       },
     },
-    select: {
-      id: true,
-      name: true,
-      workspaceId: true,
-      resourceType: true,
-      updatedAt: true,
-      createdAt: true,
-      subscriptionGroupId: true,
-      definitionUpdatedAt: true,
-    },
   });
-  return segments.map((segment) => {
+  return segments.flatMap((segment) => {
     const {
       id,
       name,
