@@ -5,7 +5,6 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
-import * as R from "remeda";
 import { Overwrite } from "utility-types";
 
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
@@ -798,11 +797,11 @@ export async function sendEmail({
 
       const result = await sendMailAmazonSes({
         mailData,
-        config: R.pick(secretConfig, [
-          "accessKeyId",
-          "secretAccessKey",
-          "region",
-        ]) as AmazonSesConfig,
+        config: {
+          accessKeyId: secretConfig.accessKeyId,
+          secretAccessKey: secretConfig.secretAccessKey,
+          region: secretConfig.region,
+        },
       });
 
       if (result.isErr()) {
