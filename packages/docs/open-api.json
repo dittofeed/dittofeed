@@ -4235,23 +4235,6 @@
                             {
                               "type": "object",
                               "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "enum": [
-                                    "MessageNodeStats"
-                                  ]
-                                },
-                                "proportions": {
-                                  "type": "object",
-                                  "properties": {
-                                    "childEdge": {
-                                      "type": "number"
-                                    }
-                                  },
-                                  "required": [
-                                    "childEdge"
-                                  ]
-                                },
                                 "sendRate": {
                                   "type": "number"
                                 },
@@ -4309,12 +4292,28 @@
                                       ]
                                     }
                                   ]
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "MessageNodeStats"
+                                  ]
+                                },
+                                "proportions": {
+                                  "type": "object",
+                                  "properties": {
+                                    "childEdge": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "required": [
+                                    "childEdge"
+                                  ]
                                 }
                               },
                               "required": [
                                 "type",
-                                "proportions",
-                                "sendRate"
+                                "proportions"
                               ]
                             },
                             {
@@ -8070,9 +8069,22 @@
                       "type": "string"
                     },
                     "updatedAt": {
-                      "type": "number"
+                      "allOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
                     },
                     "lastRecomputed": {
+                      "type": "number"
+                    },
+                    "createdAt": {
+                      "type": "number"
+                    },
+                    "definitionUpdatedAt": {
                       "type": "number"
                     }
                   },
@@ -8081,7 +8093,9 @@
                     "workspaceId",
                     "name",
                     "definition",
-                    "updatedAt"
+                    "updatedAt",
+                    "createdAt",
+                    "definitionUpdatedAt"
                   ]
                 }
               }

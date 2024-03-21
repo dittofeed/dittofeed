@@ -3,10 +3,7 @@ import { getOrCreateBroadcast } from "backend-lib/src/broadcasts";
 import { findMessageTemplates } from "backend-lib/src/messaging";
 import prisma from "backend-lib/src/prisma";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
-import {
-  SavedSegmentResource,
-  SegmentResource,
-} from "isomorphic-lib/src/types";
+import { SavedSegmentResource } from "isomorphic-lib/src/types";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
