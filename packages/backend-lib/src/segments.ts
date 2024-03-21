@@ -13,6 +13,7 @@ import prisma from "./prisma";
 import {
   EnrichedSegment,
   InternalEventType,
+  PartialSegmentResource,
   Prisma,
   SavedSegmentResource,
   Segment,
@@ -269,7 +270,7 @@ export async function findManySegmentResourcesSafe({
  */
 export async function upsertSegment(
   segment: UpsertSegmentResource,
-): Promise<SegmentResource> {
+): Promise<SavedSegmentResource> {
   const { id, workspaceId, name, definition } = segment;
   const query = Prisma.sql`
     INSERT INTO "Segment" ("id", "workspaceId", "name", "definition", "updatedAt")
@@ -290,7 +291,9 @@ export async function upsertSegment(
     workspaceId: result.workspaceId,
     name: result.name,
     definition: updatedDefinition,
+    definitionUpdatedAt: result.definitionUpdatedAt.getTime(),
     updatedAt: Number(result.updatedAt),
+    createdAt: Number(result.createdAt),
   };
 }
 
@@ -500,4 +503,48 @@ export function getSegmentNode(
     return definition.entryNode;
   }
   return definition.nodes.find((node) => node.id === id) ?? null;
+}
+
+export async function findManyPartialSegments({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<PartialSegmentResource[]> {
+  const segments = await prisma().segment.findMany({
+    where: {
+      workspaceId,
+      resourceType: {
+        not: "Internal",
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      workspaceId: true,
+      resourceType: true,
+      updatedAt: true,
+      createdAt: true,
+      subscriptionGroupId: true,
+      definitionUpdatedAt: true,
+    },
+  });
+  return segments.map((segment) => {
+    const {
+      id,
+      name,
+      subscriptionGroupId,
+      updatedAt,
+      definitionUpdatedAt,
+      createdAt,
+    } = segment;
+    return {
+      id,
+      name,
+      workspaceId,
+      subscriptionGroupId: subscriptionGroupId ?? undefined,
+      updatedAt: updatedAt.getTime(),
+      definitionUpdatedAt: definitionUpdatedAt.getTime(),
+      createdAt: createdAt.getTime(),
+    } satisfies PartialSegmentResource;
+  });
 }

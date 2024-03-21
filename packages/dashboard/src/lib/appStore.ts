@@ -659,16 +659,15 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           }),
         addEditableSegmentChild: (parentId) =>
           set((state) => {
-            if (!state.editedSegment) {
+            const definition = state.editedSegment?.definition;
+            if (!definition) {
               return;
             }
 
             const parent =
-              parentId === state.editedSegment.definition.entryNode.id
-                ? state.editedSegment.definition.entryNode
-                : state.editedSegment.definition.nodes.find(
-                    (n) => n.id === parentId,
-                  );
+              parentId === definition.entryNode.id
+                ? definition.entryNode
+                : definition.nodes.find((n) => n.id === parentId);
 
             if (
               !parent ||
@@ -690,7 +689,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               },
             };
             parent.children.push(child.id);
-            state.editedSegment.definition.nodes.push(child);
+            definition.nodes.push(child);
             return state;
           }),
         setEditableSegmentName: (name) => {
@@ -703,14 +702,14 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         },
         removeEditableSegmentChild: (parentId, childId) =>
           set((state) => {
-            if (!state.editedSegment) {
+            const definition = state.editedSegment?.definition;
+            if (!definition) {
               return;
             }
-            const { editedSegment } = state;
             const parent =
-              parentId === editedSegment.definition.entryNode.id
-                ? editedSegment.definition.entryNode
-                : editedSegment.definition.nodes.find((n) => n.id === parentId);
+              parentId === definition.entryNode.id
+                ? definition.entryNode
+                : definition.nodes.find((n) => n.id === parentId);
 
             if (
               !parent ||
@@ -723,20 +722,20 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             }
 
             parent.children = parent.children.filter((c) => c !== childId);
-            editedSegment.definition.nodes.filter((n) => n.id !== childId);
-            removeOrphanedSegmentNodes(state.editedSegment.definition);
+            definition.nodes = definition.nodes.filter((n) => n.id !== childId);
+            removeOrphanedSegmentNodes(definition);
             return state;
           }),
         updateEditableSegmentNodeData: (nodeId, updater) =>
           set((state) => {
-            if (!state.editedSegment) {
+            const definition = state.editedSegment?.definition;
+            if (!definition) {
               return;
             }
-            const { editedSegment } = state;
             const node =
-              nodeId === editedSegment.definition.entryNode.id
-                ? editedSegment.definition.entryNode
-                : editedSegment.definition.nodes.find((n) => n.id === nodeId);
+              nodeId === definition.entryNode.id
+                ? definition.entryNode
+                : definition.nodes.find((n) => n.id === nodeId);
 
             if (!node) {
               return state;
@@ -746,23 +745,21 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           }),
         updateEditableSegmentNodeType: (nodeId, nodeType) =>
           set((state) => {
-            if (!state.editedSegment) {
+            const definition = state.editedSegment?.definition;
+            if (!definition) {
               return;
             }
-            const { editedSegment } = state;
-            if (nodeId === editedSegment.definition.entryNode.id) {
-              const node = state.editedSegment.definition.entryNode;
+            if (nodeId === definition.entryNode.id) {
+              const node = definition.entryNode;
               // No need to update node, already desired type
               if (node.type === nodeType) {
                 return state;
               }
               const newType = mapSegmentNodeToNewType(node, nodeType);
-              editedSegment.definition.entryNode = newType.primary;
-              editedSegment.definition.nodes = newType.secondary.concat(
-                editedSegment.definition.nodes,
-              );
+              definition.entryNode = newType.primary;
+              definition.nodes = newType.secondary.concat(definition.nodes);
             } else {
-              editedSegment.definition.nodes.forEach((node) => {
+              definition.nodes.forEach((node) => {
                 if (node.id !== nodeId) {
                   return;
                 }
@@ -774,17 +771,14 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
 
                 const newType = mapSegmentNodeToNewType(node, nodeType);
 
-                editedSegment.definition.nodes = newType.secondary.concat(
-                  editedSegment.definition.nodes,
+                definition.nodes = newType.secondary.concat(definition.nodes);
+                definition.nodes = definition.nodes.map((n) =>
+                  n.id === nodeId ? newType.primary : n,
                 );
-                editedSegment.definition.nodes =
-                  editedSegment.definition.nodes.map((n) =>
-                    n.id === nodeId ? newType.primary : n,
-                  );
               });
             }
 
-            removeOrphanedSegmentNodes(state.editedSegment.definition);
+            removeOrphanedSegmentNodes(definition);
             return state;
           }),
         setSegmentUpdateRequest: (request) =>

@@ -1,11 +1,10 @@
 import { toJourneyResource } from "backend-lib/src/journeys";
 import logger from "backend-lib/src/logger";
-import { findMessageTemplates } from "backend-lib/src/messaging";
-import { toSegmentResource } from "backend-lib/src/segments";
+import { findPartialMessageTemplates } from "backend-lib/src/messaging";
+import { findManyPartialSegments } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { CompletionStatus } from "isomorphic-lib/src/types";
-import { Result } from "neverthrow";
 import { GetServerSideProps } from "next";
 import { validate } from "uuid";
 
@@ -47,15 +46,8 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
         await prisma().journey.findUnique({
           where: { id },
         }),
-        prisma().segment.findMany({
-          where: {
-            workspaceId,
-            resourceType: {
-              not: "Internal",
-            },
-          },
-        }),
-        findMessageTemplates({ workspaceId }),
+        findManyPartialSegments({ workspaceId }),
+        findPartialMessageTemplates({ workspaceId }),
         prisma().subscriptionGroup.findMany({
           where: { workspaceId },
         }),
@@ -146,17 +138,10 @@ export const journeyGetServerSideProps: JourneyGetServerSideProps =
       };
     }
 
-    const segmentResourceResult = Result.combine(
-      segments.map(toSegmentResource),
-    );
-
-    if (segmentResourceResult.isOk()) {
-      const segmentResource = segmentResourceResult.value;
-      serverInitialState.segments = {
-        type: CompletionStatus.Successful,
-        value: segmentResource,
-      };
-    }
+    serverInitialState.segments = {
+      type: CompletionStatus.Successful,
+      value: segments,
+    };
 
     const props = addInitialStateToProps({
       serverInitialState,

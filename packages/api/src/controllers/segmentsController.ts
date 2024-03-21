@@ -6,7 +6,7 @@ import { FastifyInstance } from "fastify";
 import {
   DeleteSegmentRequest,
   EmptyResponse,
-  SegmentResource,
+  SavedSegmentResource,
   UpsertSegmentResource,
 } from "isomorphic-lib/src/types";
 
@@ -20,7 +20,7 @@ export default async function segmentsController(fastify: FastifyInstance) {
         tags: ["Segments"],
         body: UpsertSegmentResource,
         response: {
-          200: SegmentResource,
+          200: SavedSegmentResource,
         },
       },
     },

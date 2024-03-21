@@ -1,11 +1,9 @@
 import { DEFAULT_SEGMENT_DEFINITION } from "backend-lib/src/constants";
-import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   CompletionStatus,
   MessageTemplateResource,
+  SavedSegmentResource,
   SavedSubscriptionGroupResource,
-  SegmentDefinition,
   SegmentResource,
 } from "isomorphic-lib/src/types";
 
@@ -22,7 +20,7 @@ export function getSegmentConfigState({
   segmentId: string;
   messageTemplates: MessageTemplateResource[];
   subscriptionGroups: SavedSubscriptionGroupResource[];
-  segment: SegmentResource | null;
+  segment: SavedSegmentResource | null;
 }): Partial<AppState> {
   const serverInitialState: Partial<AppState> = {};
 
@@ -33,21 +31,11 @@ export function getSegmentConfigState({
 
   let segmentResource: SegmentResource;
   if (segment && segment.workspaceId === workspaceId) {
-    const segmentDefinition = unwrap(
-      schemaValidateWithErr(segment.definition, SegmentDefinition),
-    );
-    segmentResource = {
-      id: segment.id,
-      name: segment.name,
-      workspaceId,
-      definition: segmentDefinition,
-      updatedAt: segment.updatedAt,
-    };
-
     serverInitialState.segments = {
       type: CompletionStatus.Successful,
-      value: [segmentResource],
+      value: [segment],
     };
+    segmentResource = segment;
   } else {
     segmentResource = {
       name: `My Segment - ${id}`,

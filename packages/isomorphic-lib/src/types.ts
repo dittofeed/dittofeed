@@ -756,6 +756,18 @@ export const SavedSegmentResource = Type.Composite([
 
 export type SavedSegmentResource = Static<typeof SavedSegmentResource>;
 
+export const PartialSegmentResource = Type.Composite([
+  Type.Omit(SegmentResource, ["definition"]),
+  Type.Object({
+    definition: Type.Optional(SegmentDefinition),
+    createdAt: Type.Number(),
+    updatedAt: Type.Number(),
+    definitionUpdatedAt: Type.Number(),
+  }),
+]);
+
+export type PartialSegmentResource = Static<typeof PartialSegmentResource>;
+
 export const UpsertSubscriptionGroupResource = SubscriptionGroupResource;
 
 export type UpsertSubscriptionGroupResource = Static<

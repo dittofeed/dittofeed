@@ -1,5 +1,5 @@
 import { Button, Stack, useTheme } from "@mui/material";
-import { SegmentResource } from "isomorphic-lib/src/types";
+import { SavedSegmentResource } from "isomorphic-lib/src/types";
 import React from "react";
 
 import EditableName from "../../components/editableName";
@@ -37,7 +37,7 @@ export default function NewSegment() {
   const handleSave = apiRequestHandlerFactory({
     request: segmentUpdateRequest,
     setRequest: setSegmentUpdateRequest,
-    responseSchema: SegmentResource,
+    responseSchema: SavedSegmentResource,
     setResponse: upsertSegment,
     onSuccessNotice: `Saved segment ${editedSegment.name}`,
     onFailureNoticeHandler: () =>
