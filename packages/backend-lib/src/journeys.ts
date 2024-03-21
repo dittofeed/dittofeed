@@ -3,7 +3,7 @@ import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
-import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
+import { getUnsafe } from "isomorphic-lib/src/maps";
 import { parseInt, round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
@@ -12,7 +12,6 @@ import { err, ok, Result } from "neverthrow";
 import NodeCache from "node-cache";
 
 import {
-  clickhouseClient,
   ClickHouseQueryBuilder,
   query as chQuery,
   streamClickhouseQuery,
@@ -38,12 +37,6 @@ import {
 } from "./types";
 
 export * from "isomorphic-lib/src/journeys";
-
-const isValueInEnum = <T extends Record<string, string>>(
-  value: string,
-  enumObject: T,
-): value is T[keyof T] =>
-  Object.values(enumObject).includes(value as T[keyof T]);
 
 export function enrichJourney(
   journey: Journey,
@@ -479,7 +472,6 @@ export async function getJourneysStats({
     unwrap(enrichJourney(journey)),
   );
 
-  logger().debug("loc6");
   const [statsResultSet, messageStats] = await Promise.all([
     chQuery({
       query,
@@ -512,8 +504,6 @@ export async function getJourneysStats({
     }),
   ]);
 
-  logger().debug("loc5");
-
   const stream = statsResultSet.stream();
   // journey id -> node id -> count
   const journeyNodeProcessedMap = new Map<string, Map<string, number>>();
@@ -545,7 +535,6 @@ export async function getJourneysStats({
       rowPromises.push(promise);
     });
   });
-  logger().debug("loc4");
 
   await Promise.all([
     new Promise((resolve) => {
@@ -557,7 +546,6 @@ export async function getJourneysStats({
   ]);
 
   const journeysStats: JourneyStats[] = [];
-  logger().debug(messageStats, "loc3");
 
   for (const journey of enrichedJourneys) {
     const journeyId = journey.id;
