@@ -1,5 +1,5 @@
 /* eslint-disable no-underscore-dangle */
-import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { SecretNames } from "isomorphic-lib/src/constants";
 import { Liquid } from "liquidjs";
 import MarkdownIt from "markdown-it";
 import mjml2html from "mjml";
@@ -96,7 +96,7 @@ liquidEngine.registerTag("unsubscribe_link", {
     const identifier = assignmentAsString(userProperties, identifierKey);
     const userId = assignmentAsString(userProperties, "id");
 
-    const subscriptionSecret = secrets?.[SUBSCRIPTION_SECRET_NAME];
+    const subscriptionSecret = secrets?.[SecretNames.Subscription];
     if (subscriptionSecret && identifier && userId) {
       const url = generateSubscriptionChangeUrl({
         workspaceId,

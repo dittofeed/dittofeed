@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import {
   ContentCopyOutlined,
   InfoOutlined,
@@ -31,14 +32,9 @@ import { toSegmentResource } from "backend-lib/src/segments";
 import { subscriptionGroupToResource } from "backend-lib/src/subscriptionGroups";
 import { writeKeyToHeader } from "isomorphic-lib/src/auth";
 import {
-  AMAZONSES_SECRET_NAME,
   EMAIL_PROVIDER_TYPE_TO_SECRET_NAME,
-  POSTMARK_SECRET,
-  RESEND_SECRET,
-  SENDGRID_SECRET,
+  SecretNames,
   SMS_PROVIDER_TYPE_TO_SECRET_NAME,
-  SMTP_SECRET_NAME,
-  TWILIO_SECRET_NAME,
 } from "isomorphic-lib/src/constants";
 import { emailProviderLabel } from "isomorphic-lib/src/email";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -615,30 +611,32 @@ function SendGridConfig() {
                   id: "sendgrid-api-key",
                   type: "secret",
                   fieldProps: {
-                    name: SENDGRID_SECRET,
+                    name: SecretNames.Sendgrid,
                     secretKey: "apiKey",
                     label: "Sendgrid API Key",
                     helperText:
                       "API key, used internally by Dittofeed to send emails via sendgrid.",
                     type: EmailProviderType.Sendgrid,
                     saved:
-                      secretAvailability.find((s) => s.name === SENDGRID_SECRET)
-                        ?.configValue?.apiKey ?? false,
+                      secretAvailability.find(
+                        (s) => s.name === SecretNames.Sendgrid,
+                      )?.configValue?.apiKey ?? false,
                   },
                 },
                 {
                   id: "sendgrid-webhook-key",
                   type: "secret",
                   fieldProps: {
-                    name: SENDGRID_SECRET,
+                    name: SecretNames.Sendgrid,
                     secretKey: "webhookKey",
                     label: "Webhook Key",
                     helperText:
                       "Sendgrid webhook verification key, used to authenticate sendgrid webhook requests.",
                     type: EmailProviderType.Sendgrid,
                     saved:
-                      secretAvailability.find((s) => s.name === SENDGRID_SECRET)
-                        ?.configValue?.webhookKey ?? false,
+                      secretAvailability.find(
+                        (s) => s.name === SecretNames.Sendgrid,
+                      )?.configValue?.webhookKey ?? false,
                   },
                 },
               ],
@@ -667,14 +665,14 @@ function AmazonSesConfig() {
                   id: "amazonses-access-key-id",
                   type: "secret",
                   fieldProps: {
-                    name: AMAZONSES_SECRET_NAME,
+                    name: SecretNames.AmazonSes,
                     secretKey: "accessKeyId",
                     label: "Access Key Id",
                     helperText: "IAM user access key",
                     type: EmailProviderType.AmazonSes,
                     saved:
                       secretAvailability.find(
-                        (s) => s.name === AMAZONSES_SECRET_NAME,
+                        (s) => s.name === SecretNames.AmazonSes,
                       )?.configValue?.accessKeyId ?? false,
                   },
                 },
@@ -682,14 +680,14 @@ function AmazonSesConfig() {
                   id: "amazonses-secret-access-key",
                   type: "secret",
                   fieldProps: {
-                    name: AMAZONSES_SECRET_NAME,
+                    name: SecretNames.AmazonSes,
                     secretKey: "secretAccessKey",
                     label: "Secret Access Key",
                     helperText: "Secret access key for IAM user.",
                     type: EmailProviderType.AmazonSes,
                     saved:
                       secretAvailability.find(
-                        (s) => s.name === AMAZONSES_SECRET_NAME,
+                        (s) => s.name === SecretNames.AmazonSes,
                       )?.configValue?.secretAccessKey ?? false,
                   },
                 },
@@ -697,14 +695,14 @@ function AmazonSesConfig() {
                   id: "amazonses-region",
                   type: "secret",
                   fieldProps: {
-                    name: AMAZONSES_SECRET_NAME,
+                    name: SecretNames.AmazonSes,
                     secretKey: "region",
                     label: "AWS Region",
                     helperText: "The AWS region to route requests to.",
                     type: EmailProviderType.AmazonSes,
                     saved:
                       secretAvailability.find(
-                        (s) => s.name === AMAZONSES_SECRET_NAME,
+                        (s) => s.name === SecretNames.AmazonSes,
                       )?.configValue?.region ?? false,
                   },
                 },
@@ -734,30 +732,32 @@ function ResendConfig() {
                   id: "resend-api-key",
                   type: "secret",
                   fieldProps: {
-                    name: RESEND_SECRET,
+                    name: SecretNames.Resend,
                     secretKey: "apiKey",
                     label: "Resend API Key",
                     helperText:
                       "API key, used internally by Dittofeed to send emails via resend.",
                     type: EmailProviderType.Resend,
                     saved:
-                      secretAvailability.find((s) => s.name === RESEND_SECRET)
-                        ?.configValue?.apiKey ?? false,
+                      secretAvailability.find(
+                        (s) => s.name === SecretNames.Resend,
+                      )?.configValue?.apiKey ?? false,
                   },
                 },
                 {
                   id: "resend-webhook-key",
                   type: "secret",
                   fieldProps: {
-                    name: RESEND_SECRET,
+                    name: SecretNames.Resend,
                     secretKey: "webhookKey",
                     label: "Webhook Key",
                     helperText:
                       "Resend webhook verification key, used to authenticate resend webhook requests.",
                     type: EmailProviderType.Resend,
                     saved:
-                      secretAvailability.find((s) => s.name === RESEND_SECRET)
-                        ?.configValue?.webhookKey ?? false,
+                      secretAvailability.find(
+                        (s) => s.name === SecretNames.Resend,
+                      )?.configValue?.webhookKey ?? false,
                   },
                 },
               ],
@@ -786,30 +786,32 @@ function PostMarkConfig() {
                   id: "postmark-api-key",
                   type: "secret",
                   fieldProps: {
-                    name: POSTMARK_SECRET,
+                    name: SecretNames.Postmark,
                     secretKey: "apiKey",
                     label: "API Key",
                     helperText:
                       "API key, used by Dittofeed to send emails via Postmark.",
                     type: EmailProviderType.PostMark,
                     saved:
-                      secretAvailability.find((s) => s.name === POSTMARK_SECRET)
-                        ?.configValue?.apiKey ?? false,
+                      secretAvailability.find(
+                        (s) => s.name === SecretNames.Postmark,
+                      )?.configValue?.apiKey ?? false,
                   },
                 },
                 {
                   id: "postmark-webhook-key",
                   type: "secret",
                   fieldProps: {
-                    name: POSTMARK_SECRET,
+                    name: SecretNames.Postmark,
                     secretKey: "webhookKey",
                     label: "Webhook Key",
                     helperText:
                       "Auth header value (x-postmark-secret), used to authenticate PostMark webhook requests. Use a secure random string generator.",
                     type: EmailProviderType.PostMark,
                     saved:
-                      secretAvailability.find((s) => s.name === POSTMARK_SECRET)
-                        ?.configValue?.webhookKey ?? false,
+                      secretAvailability.find(
+                        (s) => s.name === SecretNames.Postmark,
+                      )?.configValue?.webhookKey ?? false,
                   },
                 },
               ],
@@ -854,13 +856,13 @@ function SmtpConfig() {
     id: `smtp-${field.key}`,
     type: "secret",
     fieldProps: {
-      name: SMTP_SECRET_NAME,
+      name: SecretNames.Smtp,
       secretKey: field.key,
       label: field.label,
       helperText: field.helperText,
       type: EmailProviderType.Smtp,
       saved:
-        secretAvailability.find((s) => s.name === SMTP_SECRET_NAME)
+        secretAvailability.find((s) => s.name === SecretNames.Smtp)
           ?.configValue?.[field.key] ?? false,
     },
   }));
@@ -1187,14 +1189,14 @@ function Twilios() {
                   id: "twilio-account-sid",
                   type: "secret",
                   fieldProps: {
-                    name: TWILIO_SECRET_NAME,
+                    name: SecretNames.Twilio,
                     secretKey: "accountSid",
                     label: "Account SID",
                     helperText: "Twilio Account SID",
                     type: SmsProviderType.Twilio,
                     saved:
                       secretAvailability.find(
-                        (s) => s.name === TWILIO_SECRET_NAME,
+                        (s) => s.name === SecretNames.Twilio,
                       )?.configValue?.accountSid ?? false,
                   },
                 },
@@ -1202,14 +1204,14 @@ function Twilios() {
                   id: "twilio-messaging-service-sid",
                   type: "secret",
                   fieldProps: {
-                    name: TWILIO_SECRET_NAME,
+                    name: SecretNames.Twilio,
                     secretKey: "messagingServiceSid",
                     label: "Messaging Service SID",
                     helperText: "Twilio messaging service SID",
                     type: SmsProviderType.Twilio,
                     saved:
                       secretAvailability.find(
-                        (s) => s.name === TWILIO_SECRET_NAME,
+                        (s) => s.name === SecretNames.Twilio,
                       )?.configValue?.messagingServiceSid ?? false,
                   },
                 },
@@ -1217,7 +1219,7 @@ function Twilios() {
                   id: "twilio-auth-token",
                   type: "secret",
                   fieldProps: {
-                    name: TWILIO_SECRET_NAME,
+                    name: SecretNames.Twilio,
                     secretKey: "authToken",
                     label: "Twilio Auth Token",
                     helperText:
@@ -1225,7 +1227,7 @@ function Twilios() {
                     type: SmsProviderType.Twilio,
                     saved:
                       secretAvailability.find(
-                        (s) => s.name === TWILIO_SECRET_NAME,
+                        (s) => s.name === SecretNames.Twilio,
                       )?.configValue?.authToken ?? false,
                   },
                 },

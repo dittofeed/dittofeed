@@ -49,6 +49,7 @@ module.exports = {
       },
     ],
     "@typescript-eslint/no-unsafe-enum-comparison": "error",
+    "@typescript-eslint/no-duplicate-enum-values": "error",
   },
   root: true,
 };
