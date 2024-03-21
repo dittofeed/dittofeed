@@ -11,12 +11,13 @@ import {
   resetGlobalCron,
 } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
-import {
-  SENDGRID_SECRET,
-  SENDGRID_WEBHOOK_SECRET_NAME,
-} from "isomorphic-lib/src/constants";
+import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { EmailProviderType, SendgridSecret } from "isomorphic-lib/src/types";
+import {
+  EmailProviderSecret,
+  EmailProviderType,
+  SendgridSecret,
+} from "isomorphic-lib/src/types";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
@@ -24,6 +25,7 @@ import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
 import { upgradeV010Post, upgradeV010Pre } from "./upgrades";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.
@@ -209,7 +211,7 @@ export async function cli() {
                 where: {
                   workspaceId_name: {
                     workspaceId: emailProvider.workspaceId,
-                    name: SENDGRID_WEBHOOK_SECRET_NAME,
+                    name: SecretNames.Sendgrid,
                   },
                 },
               });
@@ -221,7 +223,7 @@ export async function cli() {
               const secret = await pTx.secret.create({
                 data: {
                   workspaceId: emailProvider.workspaceId,
-                  name: SENDGRID_SECRET,
+                  name: SecretNames.Sendgrid,
                   configValue: sendgridSecretDefinition,
                 },
               });
@@ -235,6 +237,50 @@ export async function cli() {
               });
             }),
           );
+        });
+      },
+    )
+    .command(
+      "migrations disentangle-resend-sendgrid",
+      () => {},
+      async () => {
+        await prisma().$transaction(async (pTx) => {
+          const emailProviders = await pTx.emailProvider.findMany({
+            where: {
+              type: {
+                in: [EmailProviderType.Sendgrid, EmailProviderType.Resend],
+              },
+            },
+            include: {
+              secret: true,
+            },
+          });
+          // EmailProviderSecret
+          const vals = emailProviders.flatMap((ep) => {
+            if (!ep.secret?.configValue) {
+              logger().error(
+                {
+                  emailProvider: ep,
+                },
+                "email provider has no secret",
+              );
+              return [];
+            }
+            const secret = schemaValidateWithErr(
+              ep.secret.configValue,
+              EmailProviderSecret,
+            );
+            if (secret.isErr()) {
+              logger().error(
+                {
+                  err: secret.error,
+                  emailProvider: ep,
+                },
+                "failed to validate secret",
+              );
+              return [];
+            }
+          });
         });
       },
     )
