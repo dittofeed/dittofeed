@@ -274,7 +274,7 @@ describe("journeys", () => {
     let workspaceId: string;
     let journeyId: string;
 
-    describe.only("when a journey node has associated message stats", () => {
+    describe("when a journey node has associated message stats", () => {
       let messageNodeId: string;
 
       beforeEach(async () => {
@@ -285,27 +285,27 @@ describe("journeys", () => {
         });
         workspaceId = workspace.id;
         messageNodeId = randomUUID();
+        const entryNode = {
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: randomUUID(),
+          child: messageNodeId,
+        } as const;
+        const messageNode = {
+          id: messageNodeId,
+          type: JourneyNodeType.MessageNode,
+          variant: {
+            type: ChannelType.Email,
+            templateId: randomUUID(),
+          },
+          child: JourneyNodeType.ExitNode,
+        } as const;
 
         const journeyDefinition: JourneyDefinition = {
-          entryNode: {
-            type: JourneyNodeType.SegmentEntryNode,
-            segment: randomUUID(),
-            child: messageNodeId,
-          },
+          entryNode,
           exitNode: {
             type: JourneyNodeType.ExitNode,
           },
-          nodes: [
-            {
-              id: messageNodeId,
-              type: JourneyNodeType.MessageNode,
-              variant: {
-                type: ChannelType.Email,
-                templateId: randomUUID(),
-              },
-              child: JourneyNodeType.ExitNode,
-            },
-          ],
+          nodes: [messageNode],
         };
         const journey = await prisma().journey.create({
           data: {
@@ -316,26 +316,43 @@ describe("journeys", () => {
           },
         });
         journeyId = journey.id;
+        const userId = randomUUID();
 
-        await submitTrack({
-          workspaceId,
-          data: {
-            userId: randomUUID(),
-            messageId: randomUUID(),
-            event: InternalEventType.MessageSent,
-            properties: {
-              from: "from@email.com",
-              to: "to@email.com",
-              body: "hello",
-              subject: "hello",
-              nodeId: messageNodeId,
-              templateId: randomUUID(),
-              journeyId,
-              channel: ChannelType.Email,
-              runId: randomUUID(),
+        await Promise.all([
+          submitTrack({
+            workspaceId,
+            data: {
+              userId,
+              messageId: randomUUID(),
+              event: InternalEventType.MessageSent,
+              properties: {
+                from: "from@email.com",
+                to: "to@email.com",
+                body: "hello",
+                subject: "hello",
+                nodeId: messageNodeId,
+                templateId: randomUUID(),
+                journeyId,
+                channel: ChannelType.Email,
+                runId: randomUUID(),
+              },
             },
-          },
-        });
+          }),
+          recordNodeProcessed({
+            journeyStartedAt: Date.now(),
+            journeyId,
+            node: entryNode,
+            workspaceId,
+            userId,
+          }),
+          recordNodeProcessed({
+            journeyStartedAt: Date.now(),
+            journeyId,
+            node: messageNode,
+            workspaceId,
+            userId,
+          }),
+        ]);
       });
       it("returns the stats", async () => {
         const stats = await getJourneysStats({
