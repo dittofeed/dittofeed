@@ -1,8 +1,10 @@
 import { err, ok, Result, ResultAsync } from "neverthrow";
+import * as R from "remeda";
 import { ErrorResponse, Resend } from "resend";
 import { v5 as uuidv5 } from "uuid";
 
 import { submitBatch } from "../apps/batch";
+import { MESSAGE_METADATA_FIELDS } from "../constants";
 import logger from "../logger";
 import {
   BatchAppData,
@@ -70,7 +72,7 @@ export function resendEventToDF({
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const email = to[0]!;
 
-  const { userId, templateId } = resendEvent.data.tags;
+  const { userId } = resendEvent.data.tags;
   if (!userId) {
     return err(new Error("Missing userId or anonymousId."));
   }
@@ -102,6 +104,10 @@ export function resendEventToDF({
   }
 
   const timestamp = new Date(created_at).toISOString();
+  const properties: Record<string, string> = R.merge(
+    { email },
+    R.pick(resendEvent.data.tags, MESSAGE_METADATA_FIELDS),
+  );
   let item: BatchTrackData;
   if (userId) {
     item = {
@@ -110,12 +116,7 @@ export function resendEventToDF({
       userId,
       messageId,
       timestamp,
-      properties: {
-        email,
-        workspaceId,
-        templateId,
-        userId,
-      },
+      properties,
     };
   } else {
     return err(new Error("Missing userId and anonymousId."));

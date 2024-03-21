@@ -424,20 +424,7 @@ export enum SendgridEventType {
   GroupResubscribe = "group_resubscribe",
 }
 
-export const SendgridEvent = Type.Object({
-  email: Type.String(),
-  timestamp: Type.Integer(),
-  event: Type.Enum(SendgridEventType),
-  sg_event_id: Type.String(),
-  sg_message_id: Type.String(),
-  ip: Type.Optional(Type.String()),
-  reason: Type.Optional(Type.String()),
-  pool: Type.Optional(
-    Type.Object({
-      id: Type.Number(),
-      name: Type.String(),
-    }),
-  ),
+export const MessageMetadataFields = Type.Object({
   workspaceId: Type.Optional(Type.String()),
   runId: Type.Optional(Type.String()),
   messageId: Type.Optional(Type.String()),
@@ -447,6 +434,27 @@ export const SendgridEvent = Type.Object({
   journeyId: Type.Optional(Type.String()),
   anonymousId: Type.Optional(Type.String()),
 });
+
+export type MessageMetadataFields = Static<typeof MessageMetadataFields>;
+
+export const SendgridEvent = Type.Composite([
+  Type.Object({
+    email: Type.String(),
+    timestamp: Type.Integer(),
+    event: Type.Enum(SendgridEventType),
+    sg_event_id: Type.String(),
+    sg_message_id: Type.String(),
+    ip: Type.Optional(Type.String()),
+    reason: Type.Optional(Type.String()),
+    pool: Type.Optional(
+      Type.Object({
+        id: Type.Number(),
+        name: Type.String(),
+      }),
+    ),
+  }),
+  MessageMetadataFields,
+]);
 
 export enum ResendEventType {
   Sent = "email.sent",
@@ -466,15 +474,7 @@ export const ResendEvent = Type.Object({
     from: Type.String(),
     subject: Type.String(),
     to: Type.Array(Type.String()),
-    tags: Type.Object({
-      workspaceId: Type.Optional(Type.String()),
-      runId: Type.Optional(Type.String()),
-      messageId: Type.Optional(Type.String()),
-      userId: Type.Optional(Type.String()),
-      templateId: Type.Optional(Type.String()),
-      journeyId: Type.Optional(Type.String()),
-      anonymousId: Type.Optional(Type.String()),
-    }),
+    tags: MessageMetadataFields,
   }),
   type: Type.Enum(ResendEventType),
 });
@@ -487,21 +487,19 @@ export enum PostMarkEventType {
   Click = "Click",
 }
 
-export const PostMarkEvent = Type.Object({
-  MessageStream: Type.String(),
-  Tag: Type.String(),
-  MessageID: Type.String(),
-  Metadata: Type.Record(Type.String(), Type.Any()),
-  RecordType: Type.Enum(PostMarkEventType),
-  BouncedAt: Type.Optional(Type.String()),
-  DeliveredAt: Type.Optional(Type.String()),
-  ReceivedAt: Type.Optional(Type.String()),
-  workspaceId: Type.Optional(Type.String()),
-  runId: Type.Optional(Type.String()),
-  messageId: Type.Optional(Type.String()),
-  templateId: Type.Optional(Type.String()),
-  journeyId: Type.Optional(Type.String()),
-});
+export const PostMarkEvent = Type.Composite([
+  Type.Object({
+    MessageStream: Type.String(),
+    Tag: Type.String(),
+    MessageID: Type.String(),
+    Metadata: Type.Record(Type.String(), Type.Any()),
+    RecordType: Type.Enum(PostMarkEventType),
+    BouncedAt: Type.Optional(Type.String()),
+    DeliveredAt: Type.Optional(Type.String()),
+    ReceivedAt: Type.Optional(Type.String()),
+  }),
+  MessageMetadataFields,
+]);
 
 export type SendgridEvent = Static<typeof SendgridEvent>;
 
