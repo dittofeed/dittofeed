@@ -1,38 +1,42 @@
 import { Row } from "@clickhouse/client";
 import { Journey, JourneyStatus, Prisma, PrismaClient } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
+import { MESSAGE_EVENTS } from "isomorphic-lib/src/constants";
 import { buildHeritageMap, HeritageMap } from "isomorphic-lib/src/journeys";
-import { getUnsafe, MapWithDefault } from "isomorphic-lib/src/maps";
+import { getUnsafe } from "isomorphic-lib/src/maps";
 import { parseInt, round } from "isomorphic-lib/src/numbers";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
 import NodeCache from "node-cache";
 
-import { clickhouseClient, ClickHouseQueryBuilder } from "./clickhouse";
+import {
+  ClickHouseQueryBuilder,
+  query as chQuery,
+  streamClickhouseQuery,
+} from "./clickhouse";
 import { startKeyedUserJourney } from "./journeys/userWorkflow/lifecycle";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
+  BaseMessageNodeStats,
   ChannelType,
+  EmailStats,
   EnrichedJourney,
   InternalEventType,
   JourneyDefinition,
   JourneyDraft,
   JourneyNodeType,
   JourneyStats,
+  MessageChannelStats,
   NodeStatsType,
   SavedJourneyResource,
+  SmsStats,
   TrackData,
 } from "./types";
 
 export * from "isomorphic-lib/src/journeys";
-
-const isValueInEnum = <T extends Record<string, string>>(
-  value: string,
-  enumObject: T,
-): value is T[keyof T] =>
-  Object.values(enumObject).includes(value as T[keyof T]);
 
 export function enrichJourney(
   journey: Journey,
@@ -147,12 +151,10 @@ export async function findManyJourneysUnsafe(
 }
 
 const JourneyMessageStatsRow = Type.Object({
-  event: Type.String(),
+  journey_id: Type.String(),
   node_id: Type.String(),
   count: Type.String(),
 });
-
-type NodeEventMap = MapWithDefault<InternalEventType, number>;
 
 interface GetEdgePercentParams {
   originId: string;
@@ -238,6 +240,180 @@ function getEdgePercent(params: GetEdgePercentParams): number | null {
   return round(raw * 100, 1);
 }
 
+interface JourneyMessageStats {
+  journeyId: string;
+  nodeId: string;
+  stats: BaseMessageNodeStats;
+}
+
+export async function getJourneyMessageStats({
+  workspaceId,
+  journeys,
+}: {
+  workspaceId: string;
+  journeys: {
+    id: string;
+    nodes: {
+      id: string;
+      channel: ChannelType;
+    }[];
+  }[];
+}): Promise<JourneyMessageStats[]> {
+  if (!journeys.length) {
+    return [];
+  }
+  const journeyIds = journeys.map((j) => j.id);
+  const messageStats: JourneyMessageStats[] = [];
+  const qb = new ClickHouseQueryBuilder();
+
+  const query = `
+    SELECT
+        journey_id,
+        last_event as event,
+        node_id,
+        count(resolved_message_id) AS count
+    FROM (
+            SELECT
+                JSON_VALUE(message_raw, '$.properties.journeyId') AS journey_id,
+                JSON_VALUE(message_raw, '$.properties.nodeId') AS node_id,
+                JSON_VALUE(message_raw, '$.properties.runId') AS run_id,
+                if(
+                    (
+                        JSON_VALUE(message_raw, '$.properties.messageId') AS property_message_id
+                    ) != '',
+                    property_message_id,
+                    message_id
+                ) AS resolved_message_id,
+                argMax(event, event_time) as last_event
+            FROM user_events_v2
+            WHERE
+                workspace_id = ${qb.addQueryValue(workspaceId, "String")}
+                AND journey_id in ${qb.addQueryValue(
+                  journeyIds,
+                  "Array(String)",
+                )}
+                AND (event_type = 'track')
+                AND (event in ${qb.addQueryValue(
+                  MESSAGE_EVENTS,
+                  "Array(String)",
+                )})
+            GROUP BY
+                journey_id,
+                node_id,
+                run_id,
+                resolved_message_id
+        )
+    GROUP BY
+        journey_id,
+        node_id,
+        event
+  `;
+  const resultsSet = await chQuery({
+    query,
+    query_params: qb.getQueries(),
+    format: "JSONEachRow",
+  });
+  const statsMap = new Map<string, Map<string, Map<string, number>>>();
+  await streamClickhouseQuery(resultsSet, (row) => {
+    for (const i of row) {
+      const item = i as {
+        journey_id: string;
+        // represents the last observed event for a given email
+        // so for example a clicked email will also have been opened and
+        // delivered
+        event: string;
+        node_id: string;
+        count: string;
+      };
+      const journeyStats =
+        statsMap.get(item.journey_id) ?? new Map<string, Map<string, number>>();
+      const nodeStats =
+        journeyStats.get(item.node_id) ?? new Map<string, number>();
+
+      nodeStats.set(item.event, parseInt(item.count));
+      journeyStats.set(item.node_id, nodeStats);
+      statsMap.set(item.journey_id, journeyStats);
+    }
+  });
+
+  for (const journey of journeys) {
+    const journeyStats = statsMap.get(journey.id);
+    if (!journeyStats) {
+      continue;
+    }
+    for (const node of journey.nodes) {
+      const nodeStats = journeyStats.get(node.id);
+      if (!nodeStats) {
+        continue;
+      }
+
+      let channelStats: MessageChannelStats | null = null;
+      const total = Array.from(nodeStats.values()).reduce(
+        (acc, val) => acc + val,
+        0,
+      );
+      const failed =
+        (nodeStats.get(InternalEventType.MessageFailure) ?? 0) +
+        (nodeStats.get(InternalEventType.BadWorkspaceConfiguration) ?? 0);
+      const sent = total - failed;
+      const sendRate = sent / total;
+
+      switch (node.channel) {
+        case ChannelType.Email: {
+          const delivered =
+            (nodeStats.get(InternalEventType.EmailDelivered) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailOpened) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailClicked) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailMarkedSpam) ?? 0);
+
+          const clicked = nodeStats.get(InternalEventType.EmailClicked) ?? 0;
+          const spam = nodeStats.get(InternalEventType.EmailMarkedSpam) ?? 0;
+          const opened =
+            (nodeStats.get(InternalEventType.EmailOpened) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailMarkedSpam) ?? 0) +
+            (nodeStats.get(InternalEventType.EmailClicked) ?? 0);
+
+          const emailStats: EmailStats = {
+            type: ChannelType.Email,
+            deliveryRate: delivered / total,
+            openRate: opened / total,
+            spamRate: spam / total,
+            clickRate: clicked / total,
+          };
+          channelStats = emailStats;
+          break;
+        }
+        case ChannelType.Sms: {
+          const delivered = nodeStats.get(InternalEventType.SmsDelivered) ?? 0;
+          const smsFailures = nodeStats.get(InternalEventType.SmsFailed) ?? 0;
+          const smsStats: SmsStats = {
+            type: ChannelType.Sms,
+            deliveryRate: delivered / total,
+            failRate: smsFailures / total,
+          };
+          channelStats = smsStats;
+          break;
+        }
+        case ChannelType.MobilePush: {
+          continue;
+        }
+        default:
+          assertUnreachable(node.channel);
+      }
+      messageStats.push({
+        journeyId: journey.id,
+        nodeId: node.id,
+        stats: {
+          sendRate,
+          channelStats,
+        },
+      });
+    }
+  }
+
+  return messageStats;
+}
+
 export async function getJourneysStats({
   workspaceId,
   journeyIds: allJourneyIds,
@@ -273,11 +449,6 @@ export async function getJourneysStats({
   const journeyIdsQuery = qb.addQueryValue(journeyIds, "Array(String)");
 
   const query = `
-  select
-    event,
-    node_id,
-    count(resolved_message_id) count
-from (
     select
         JSON_VALUE(
             message_raw,
@@ -287,55 +458,55 @@ from (
             message_raw,
             '$.properties.nodeId'
         ) node_id,
-        JSON_VALUE(
-            message_raw,
-            '$.properties.runId'
-        ) run_id,
-        if(
-            (
-            JSON_VALUE(
-                message_raw,
-                '$.properties.messageId'
-            ) as property_message_id 
-            ) != '',
-            property_message_id,
-            message_id
-        ) resolved_message_id,
-        event
+        uniq(message_id) as count
     from user_events_v2
     where
         workspace_id = ${workspaceIdQuery}
         and journey_id in ${journeyIdsQuery}
         and event_type = 'track'
-        and (
-            event = 'DFInternalMessageSent'
-            or event = 'DFMessageFailure'
-            or event = 'DFMessageSkipped'
-            or event = 'DFEmailDropped'
-            or event = 'DFEmailDelivered'
-            or event = 'DFEmailOpened'
-            or event = 'DFEmailClicked'
-            or event = 'DFEmailBounced'
-            or event = 'DFEmailMarkedSpam'
-            or event = 'DFBadWorkspaceConfiguration'
-            or event = 'DFJourneyNodeProcessed'
-        )
-    group by journey_id, node_id, run_id, resolved_message_id, event
-)
-group by event, node_id;`;
+        and event = 'DFJourneyNodeProcessed'
+    group by journey_id, node_id
+`;
 
-  const statsResultSet = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-    format: "JSONEachRow",
-  });
+  const enrichedJourneys = journeys.map((journey) =>
+    unwrap(enrichJourney(journey)),
+  );
+
+  const [statsResultSet, messageStats] = await Promise.all([
+    chQuery({
+      query,
+      query_params: qb.getQueries(),
+      format: "JSONEachRow",
+    }),
+    getJourneyMessageStats({
+      workspaceId,
+      journeys: enrichedJourneys.flatMap((j) => {
+        if (!j.definition) {
+          return [];
+        }
+        const nodes = j.definition.nodes.flatMap((n) => {
+          if (n.type !== JourneyNodeType.MessageNode) {
+            return [];
+          }
+          return {
+            id: n.id,
+            channel: n.variant.type,
+          };
+        });
+        if (!nodes.length) {
+          return [];
+        }
+        return {
+          id: j.id,
+          nodes,
+        };
+      }),
+    }),
+  ]);
 
   const stream = statsResultSet.stream();
-  // map from node_id to event to count
-  const statsMap = new MapWithDefault<string, NodeEventMap>(
-    new MapWithDefault(0),
-  );
-  const nodeProcessedMap = new Map<string, number>();
+  // journey id -> node id -> count
+  const journeyNodeProcessedMap = new Map<string, Map<string, number>>();
 
   const rowPromises: Promise<unknown>[] = [];
   stream.on("data", (rows: Row[]) => {
@@ -350,27 +521,16 @@ group by event, node_id;`;
           );
           return;
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        const { event, node_id, count } = validated.value;
-        const eventMap: NodeEventMap = statsMap.get(node_id);
+        const {
+          node_id: nodeId,
+          count,
+          journey_id: journeyId,
+        } = validated.value;
 
-        if (!isValueInEnum(event, InternalEventType)) {
-          logger().error(
-            {
-              event,
-              workspaceId,
-            },
-            "got unknown event type in journey stats",
-          );
-          return;
-        }
-
-        eventMap.set(event, parseInt(count));
-        statsMap.set(node_id, eventMap);
-
-        if (event === InternalEventType.JourneyNodeProcessed) {
-          nodeProcessedMap.set(node_id, parseInt(count));
-        }
+        const nodeMap =
+          journeyNodeProcessedMap.get(journeyId) ?? new Map<string, number>();
+        nodeMap.set(nodeId, parseInt(count));
+        journeyNodeProcessedMap.set(journeyId, nodeMap);
       })();
       rowPromises.push(promise);
     });
@@ -385,15 +545,19 @@ group by event, node_id;`;
     ...rowPromises,
   ]);
 
-  const enrichedJourneys = journeys.map((journey) =>
-    unwrap(enrichJourney(journey)),
-  );
-
   const journeysStats: JourneyStats[] = [];
 
   for (const journey of enrichedJourneys) {
     const journeyId = journey.id;
     const { definition } = journey;
+
+    if (!definition) {
+      continue;
+    }
+    const nodeProcessedMap = journeyNodeProcessedMap.get(journeyId);
+    if (!nodeProcessedMap) {
+      continue;
+    }
 
     const stats: JourneyStats = {
       workspaceId,
@@ -401,43 +565,37 @@ group by event, node_id;`;
       nodeStats: {},
     };
     journeysStats.push(stats);
-    if (!definition) {
-      continue;
-    }
     const heritageMap = buildHeritageMap(definition);
 
     for (const node of definition.nodes) {
-      if (
-        node.type === JourneyNodeType.RateLimitNode ||
-        node.type === JourneyNodeType.ExperimentSplitNode
-      ) {
-        continue;
-      }
-
-      const nodeStats = statsMap.get(node.id);
-
-      if (node.type === JourneyNodeType.SegmentSplitNode) {
-        const percent = getEdgePercent({
-          originId: node.id,
-          targetId: node.variant.falseChild,
-          heritageMap,
-          nodeProcessedMap,
-        });
-        if (percent === null) {
-          continue;
+      switch (node.type) {
+        case JourneyNodeType.MessageNode: {
+          const nodeMessageStats =
+            messageStats.find(
+              (s) => s.journeyId === journey.id && s.nodeId === node.id,
+            )?.stats ?? {};
+          stats.nodeStats[node.id] = {
+            type: NodeStatsType.MessageNodeStats,
+            proportions: {
+              childEdge: 100,
+            },
+            ...nodeMessageStats,
+          };
+          break;
         }
-        stats.nodeStats[node.id] = {
-          type: NodeStatsType.SegmentSplitNodeStats,
-          proportions: {
-            falseChildEdge: percent,
-          },
-        };
-      } else if (node.type === JourneyNodeType.WaitForNode) {
-        const segmentChild = node.segmentChildren[0];
-        if (segmentChild) {
+        case JourneyNodeType.DelayNode: {
+          stats.nodeStats[node.id] = {
+            type: NodeStatsType.DelayNodeStats,
+            proportions: {
+              childEdge: 100,
+            },
+          };
+          break;
+        }
+        case JourneyNodeType.SegmentSplitNode: {
           const percent = getEdgePercent({
             originId: node.id,
-            targetId: segmentChild.id,
+            targetId: node.variant.falseChild,
             heritageMap,
             nodeProcessedMap,
           });
@@ -445,83 +603,41 @@ group by event, node_id;`;
             continue;
           }
           stats.nodeStats[node.id] = {
-            type: NodeStatsType.WaitForNodeStats,
+            type: NodeStatsType.SegmentSplitNodeStats,
             proportions: {
-              segmentChildEdge: percent,
+              falseChildEdge: percent,
             },
           };
+          break;
         }
-      } else if (node.type === JourneyNodeType.DelayNode) {
-        stats.nodeStats[node.id] = {
-          type: NodeStatsType.DelayNodeStats,
-          proportions: {
-            childEdge: 100,
-          },
-        };
-      } else {
-        stats.nodeStats[node.id] = {
-          type: NodeStatsType.MessageNodeStats,
-          proportions: {
-            childEdge: 100,
-          },
-          sendRate: 0,
-        };
+        case JourneyNodeType.WaitForNode: {
+          const segmentChild = node.segmentChildren[0];
+          if (segmentChild) {
+            const percent = getEdgePercent({
+              originId: node.id,
+              targetId: segmentChild.id,
+              heritageMap,
+              nodeProcessedMap,
+            });
+            if (percent === null) {
+              continue;
+            }
+            stats.nodeStats[node.id] = {
+              type: NodeStatsType.WaitForNodeStats,
+              proportions: {
+                segmentChildEdge: percent,
+              },
+            };
+          }
+          break;
+        }
+        case JourneyNodeType.RateLimitNode:
+          continue;
+        case JourneyNodeType.ExperimentSplitNode:
+          continue;
+        default:
+          assertUnreachable(node);
       }
-
-      if (
-        node.type !== JourneyNodeType.MessageNode ||
-        (node.variant.type !== ChannelType.Email &&
-          node.variant.type !== ChannelType.Sms)
-      ) {
-        continue;
-      }
-
-      const sent = nodeStats.get(InternalEventType.MessageSent);
-      const badConfig = nodeStats.get(
-        InternalEventType.BadWorkspaceConfiguration,
-      );
-      const messageFailure = nodeStats.get(InternalEventType.MessageFailure);
-      const delivered = nodeStats.get(InternalEventType.EmailDelivered);
-      const spam = nodeStats.get(InternalEventType.EmailMarkedSpam);
-      const opened = nodeStats.get(InternalEventType.EmailOpened);
-      const clicked = nodeStats.get(InternalEventType.EmailClicked);
-      const total = sent + badConfig + messageFailure;
-
-      let sendRate = 0;
-      let deliveryRate = 0;
-      let openRate = 0;
-      let clickRate = 0;
-      let spamRate = 0;
-
-      if (total > 0) {
-        sendRate = sent / total;
-        deliveryRate =
-          node.variant.type === ChannelType.Email
-            ? delivered / total
-            : (sent - messageFailure) / total;
-      }
-
-      if (node.variant.type === ChannelType.Email && total > 0) {
-        openRate = opened / total;
-        clickRate = clicked / total;
-        spamRate = spam / total;
-      }
-
-      stats.nodeStats[node.id] = {
-        type: NodeStatsType.MessageNodeStats,
-        proportions: {
-          childEdge: 100,
-        },
-        sendRate,
-        channelStats: {
-          type: node.variant.type,
-          deliveryRate,
-          failRate: messageFailure,
-          openRate,
-          spamRate,
-          clickRate,
-        },
-      };
     }
   }
 

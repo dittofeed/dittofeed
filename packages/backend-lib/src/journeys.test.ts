@@ -2,15 +2,17 @@ import { randomUUID } from "crypto";
 import * as R from "remeda";
 
 import { submitTrack } from "./apps/track";
-import { getJourneysStats } from "./journeys";
+import { getJourneyMessageStats, getJourneysStats } from "./journeys";
 import { recordNodeProcessed } from "./journeys/recordNodeProcessed";
 import prisma from "./prisma";
 import {
   ChannelType,
+  EmailProviderType,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
   MessageNode,
+  MessageServiceFailureVariant,
   NodeStatsType,
   SegmentEntryNode,
   SegmentSplitNode,
@@ -18,6 +20,256 @@ import {
 } from "./types";
 
 describe("journeys", () => {
+  describe("getJourneyMessageStats", () => {
+    let workspaceId: string;
+    let journeyId: string;
+    let messageNodeId: string;
+
+    beforeEach(async () => {
+      const workspace = await prisma().workspace.create({
+        data: {
+          name: randomUUID(),
+        },
+      });
+      workspaceId = workspace.id;
+      messageNodeId = randomUUID();
+
+      const journeyDefinition: JourneyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: randomUUID(),
+          child: messageNodeId,
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            id: messageNodeId,
+            type: JourneyNodeType.MessageNode,
+            variant: {
+              type: ChannelType.Email,
+              templateId: randomUUID(),
+            },
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+      const journey = await prisma().journey.create({
+        data: {
+          workspaceId,
+          definition: journeyDefinition,
+          name: randomUUID(),
+          status: "Running",
+        },
+      });
+      journeyId = journey.id;
+    });
+
+    describe("when the the message has one failed message one delivered message one bounced message and one marked as spam", () => {
+      beforeEach(async () => {
+        const messageId1 = randomUUID();
+        const messageId2 = randomUUID();
+        const messageId3 = randomUUID();
+        const messageId4 = randomUUID();
+        const userId1 = randomUUID();
+        const userId2 = randomUUID();
+        const userId3 = randomUUID();
+        const userId4 = randomUUID();
+        const now = Date.now();
+
+        await Promise.all([
+          // message 1 failed
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId1,
+              messageId: messageId1,
+              event: InternalEventType.MessageFailure,
+              timestamp: new Date(now).toISOString(),
+              properties: {
+                journeyId,
+                runId: `run-${userId1}`,
+                templateId: `template-${messageNodeId}`,
+                nodeId: messageNodeId,
+                variant: {
+                  type: ChannelType.Email,
+                  provider: {
+                    type: EmailProviderType.Resend,
+                    name: "error name",
+                    message: "error message",
+                  },
+                } satisfies MessageServiceFailureVariant,
+              },
+            },
+          }),
+          // message 2 delivered
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId2,
+              messageId: messageId2,
+              event: InternalEventType.MessageSent,
+              timestamp: new Date(now).toISOString(),
+              properties: {
+                from: "from@email.com",
+                to: "to@email.com",
+                body: "hello",
+                subject: "hello",
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId2}`,
+              },
+            },
+          }),
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId2,
+              messageId: randomUUID(),
+              event: InternalEventType.EmailDelivered,
+              timestamp: new Date(now + 100).toISOString(),
+              properties: {
+                messageId: messageId2,
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId2}`,
+              },
+            },
+          }),
+          // message 3 bounced
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId3,
+              messageId: messageId3,
+              event: InternalEventType.MessageSent,
+              timestamp: new Date(now).toISOString(),
+              properties: {
+                from: "from@email.com",
+                to: "to@email.com",
+                body: "hello",
+                subject: "hello",
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId3}`,
+              },
+            },
+          }),
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId3,
+              messageId: randomUUID(),
+              event: InternalEventType.EmailBounced,
+              timestamp: new Date(now + 100).toISOString(),
+              properties: {
+                messageId: messageId3,
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId3}`,
+              },
+            },
+          }),
+          // message 4 marked as spam
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId4,
+              messageId: messageId4,
+              event: InternalEventType.MessageSent,
+              timestamp: new Date(now).toISOString(),
+              properties: {
+                from: "from@email.com",
+                to: "to@email.com",
+                body: "hello",
+                subject: "hello",
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId4}`,
+              },
+            },
+          }),
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId4,
+              messageId: randomUUID(),
+              event: InternalEventType.EmailDelivered,
+              timestamp: new Date(now + 100).toISOString(),
+              properties: {
+                messageId: messageId4,
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId4}`,
+              },
+            },
+          }),
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId4,
+              messageId: randomUUID(),
+              event: InternalEventType.EmailMarkedSpam,
+              timestamp: new Date(now + 5000).toISOString(),
+              properties: {
+                messageId: messageId4,
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId4}`,
+              },
+            },
+          }),
+        ]);
+      });
+      it("returns the correct stats", async () => {
+        const stats = await getJourneyMessageStats({
+          workspaceId,
+          journeys: [
+            {
+              id: journeyId,
+              nodes: [
+                {
+                  id: messageNodeId,
+                  channel: ChannelType.Email,
+                },
+              ],
+            },
+          ],
+        });
+        expect(stats).toEqual([
+          {
+            journeyId,
+            nodeId: messageNodeId,
+            stats: {
+              channelStats: {
+                clickRate: 0,
+                deliveryRate: 0.5,
+                openRate: 0.25,
+                spamRate: 0.25,
+                type: ChannelType.Email,
+              },
+              sendRate: 0.75,
+            },
+          },
+        ]);
+      });
+    });
+  });
   describe("getJourneysStats", () => {
     let workspaceId: string;
     let journeyId: string;
@@ -33,56 +285,74 @@ describe("journeys", () => {
         });
         workspaceId = workspace.id;
         messageNodeId = randomUUID();
+        const entryNode = {
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: randomUUID(),
+          child: messageNodeId,
+        } as const;
+        const messageNode = {
+          id: messageNodeId,
+          type: JourneyNodeType.MessageNode,
+          variant: {
+            type: ChannelType.Email,
+            templateId: randomUUID(),
+          },
+          child: JourneyNodeType.ExitNode,
+        } as const;
 
         const journeyDefinition: JourneyDefinition = {
-          entryNode: {
-            type: JourneyNodeType.SegmentEntryNode,
-            segment: randomUUID(),
-            child: messageNodeId,
-          },
+          entryNode,
           exitNode: {
             type: JourneyNodeType.ExitNode,
           },
-          nodes: [
-            {
-              id: messageNodeId,
-              type: JourneyNodeType.MessageNode,
-              variant: {
-                type: ChannelType.Email,
-                templateId: randomUUID(),
-              },
-              child: JourneyNodeType.ExitNode,
-            },
-          ],
+          nodes: [messageNode],
         };
         const journey = await prisma().journey.create({
           data: {
             workspaceId,
             definition: journeyDefinition,
             name: randomUUID(),
+            status: "Running",
           },
         });
         journeyId = journey.id;
+        const userId = randomUUID();
 
-        await submitTrack({
-          workspaceId,
-          data: {
-            userId: randomUUID(),
-            messageId: randomUUID(),
-            event: InternalEventType.MessageSent,
-            properties: {
-              from: "from@email.com",
-              to: "to@email.com",
-              body: "hello",
-              subject: "hello",
-              nodeId: messageNodeId,
-              templateId: randomUUID(),
-              journeyId,
-              channel: ChannelType.Email,
-              runId: randomUUID(),
+        await Promise.all([
+          submitTrack({
+            workspaceId,
+            data: {
+              userId,
+              messageId: randomUUID(),
+              event: InternalEventType.MessageSent,
+              properties: {
+                from: "from@email.com",
+                to: "to@email.com",
+                body: "hello",
+                subject: "hello",
+                nodeId: messageNodeId,
+                templateId: randomUUID(),
+                journeyId,
+                channel: ChannelType.Email,
+                runId: randomUUID(),
+              },
             },
-          },
-        });
+          }),
+          recordNodeProcessed({
+            journeyStartedAt: Date.now(),
+            journeyId,
+            node: entryNode,
+            workspaceId,
+            userId,
+          }),
+          recordNodeProcessed({
+            journeyStartedAt: Date.now(),
+            journeyId,
+            node: messageNode,
+            workspaceId,
+            userId,
+          }),
+        ]);
       });
       it("returns the stats", async () => {
         const stats = await getJourneysStats({
@@ -173,6 +443,7 @@ describe("journeys", () => {
             workspaceId,
             definition: journeyDefinition,
             name: randomUUID(),
+            status: "Running",
           },
         });
         journeyId = journey.id;

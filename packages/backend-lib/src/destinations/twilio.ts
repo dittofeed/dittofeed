@@ -80,10 +80,11 @@ export async function submitTwilioEvents({
 
   switch (TwilioEvent.SmsStatus) {
     case TwilioMessageStatus.Failed:
-      eventName = InternalEventType.MessageFailure;
+      eventName = InternalEventType.SmsFailed;
       break;
     case TwilioMessageStatus.Delivered:
-      eventName = InternalEventType.MessageSent;
+      // TODO wrong
+      eventName = InternalEventType.SmsDelivered;
       break;
     default:
       return err(
