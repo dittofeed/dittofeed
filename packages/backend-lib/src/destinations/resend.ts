@@ -103,7 +103,6 @@ export function resendEventToDF({
 
   const timestamp = new Date(created_at).toISOString();
   let item: BatchTrackData;
-  // FIXME missing origin message id
   if (userId) {
     item = {
       type: EventType.Track,
