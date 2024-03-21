@@ -158,12 +158,10 @@ export async function findManyJourneysUnsafe(
 }
 
 const JourneyMessageStatsRow = Type.Object({
-  event: Type.String(),
+  journey_id: Type.String(),
   node_id: Type.String(),
   count: Type.String(),
 });
-
-type NodeEventMap = MapWithDefault<InternalEventType, number>;
 
 interface GetEdgePercentParams {
   originId: string;
@@ -467,10 +465,6 @@ export async function getJourneysStats({
             message_raw,
             '$.properties.nodeId'
         ) node_id,
-        JSON_VALUE(
-            message_raw,
-            '$.properties.runId'
-        ) run_id,
         uniq(message_id) as count
     from user_events_v2
     where
@@ -478,7 +472,7 @@ export async function getJourneysStats({
         and journey_id in ${journeyIdsQuery}
         and event_type = 'track'
         and event = 'DFJourneyNodeProcessed'
-    group by journey_id, node_id, run_id
+    group by journey_id, node_id
 `;
 
   const enrichedJourneys = journeys.map((journey) =>
@@ -518,11 +512,8 @@ export async function getJourneysStats({
   ]);
 
   const stream = statsResultSet.stream();
-  // map from node_id to event to count
-  const statsMap = new MapWithDefault<string, NodeEventMap>(
-    new MapWithDefault(0),
-  );
-  const nodeProcessedMap = new Map<string, number>();
+  // journey id -> node id -> count
+  const journeyNodeProcessedMap = new Map<string, Map<string, number>>();
 
   const rowPromises: Promise<unknown>[] = [];
   stream.on("data", (rows: Row[]) => {
@@ -537,27 +528,16 @@ export async function getJourneysStats({
           );
           return;
         }
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        const { event, node_id, count } = validated.value;
-        const eventMap: NodeEventMap = statsMap.get(node_id);
+        const {
+          node_id: nodeId,
+          count,
+          journey_id: journeyId,
+        } = validated.value;
 
-        if (!isValueInEnum(event, InternalEventType)) {
-          logger().error(
-            {
-              event,
-              workspaceId,
-            },
-            "got unknown event type in journey stats",
-          );
-          return;
-        }
-
-        eventMap.set(event, parseInt(count));
-        statsMap.set(node_id, eventMap);
-
-        if (event === InternalEventType.JourneyNodeProcessed) {
-          nodeProcessedMap.set(node_id, parseInt(count));
-        }
+        const nodeMap =
+          journeyNodeProcessedMap.get(journeyId) ?? new Map<string, number>();
+        nodeMap.set(nodeId, parseInt(count));
+        journeyNodeProcessedMap.set(journeyId, nodeMap);
       })();
       rowPromises.push(promise);
     });
@@ -588,39 +568,42 @@ export async function getJourneysStats({
       continue;
     }
     const heritageMap = buildHeritageMap(definition);
+    const nodeProcessedMap = journeyNodeProcessedMap.get(journeyId);
+    if (!nodeProcessedMap) {
+      continue;
+    }
 
     for (const node of definition.nodes) {
-      if (
-        node.type === JourneyNodeType.RateLimitNode ||
-        node.type === JourneyNodeType.ExperimentSplitNode
-      ) {
-        continue;
-      }
-
-      const nodeStats = statsMap.get(node.id);
-
-      if (node.type === JourneyNodeType.SegmentSplitNode) {
-        const percent = getEdgePercent({
-          originId: node.id,
-          targetId: node.variant.falseChild,
-          heritageMap,
-          nodeProcessedMap,
-        });
-        if (percent === null) {
-          continue;
+      switch (node.type) {
+        case JourneyNodeType.MessageNode: {
+          const nodeMessageStats = messageStats.find(
+            (s) => s.journeyId === journey.id && s.nodeId === node.id,
+          );
+          if (!nodeMessageStats) {
+            continue;
+          }
+          stats.nodeStats[node.id] = {
+            type: NodeStatsType.MessageNodeStats,
+            proportions: {
+              childEdge: 100,
+            },
+            ...nodeMessageStats.stats,
+          };
+          break;
         }
-        stats.nodeStats[node.id] = {
-          type: NodeStatsType.SegmentSplitNodeStats,
-          proportions: {
-            falseChildEdge: percent,
-          },
-        };
-      } else if (node.type === JourneyNodeType.WaitForNode) {
-        const segmentChild = node.segmentChildren[0];
-        if (segmentChild) {
+        case JourneyNodeType.DelayNode: {
+          stats.nodeStats[node.id] = {
+            type: NodeStatsType.DelayNodeStats,
+            proportions: {
+              childEdge: 100,
+            },
+          };
+          break;
+        }
+        case JourneyNodeType.SegmentSplitNode: {
           const percent = getEdgePercent({
             originId: node.id,
-            targetId: segmentChild.id,
+            targetId: node.variant.falseChild,
             heritageMap,
             nodeProcessedMap,
           });
@@ -628,83 +611,41 @@ export async function getJourneysStats({
             continue;
           }
           stats.nodeStats[node.id] = {
-            type: NodeStatsType.WaitForNodeStats,
+            type: NodeStatsType.SegmentSplitNodeStats,
             proportions: {
-              segmentChildEdge: percent,
+              falseChildEdge: percent,
             },
           };
+          break;
         }
-      } else if (node.type === JourneyNodeType.DelayNode) {
-        stats.nodeStats[node.id] = {
-          type: NodeStatsType.DelayNodeStats,
-          proportions: {
-            childEdge: 100,
-          },
-        };
-      } else {
-        stats.nodeStats[node.id] = {
-          type: NodeStatsType.MessageNodeStats,
-          proportions: {
-            childEdge: 100,
-          },
-          sendRate: 0,
-        };
+        case JourneyNodeType.WaitForNode: {
+          const segmentChild = node.segmentChildren[0];
+          if (segmentChild) {
+            const percent = getEdgePercent({
+              originId: node.id,
+              targetId: segmentChild.id,
+              heritageMap,
+              nodeProcessedMap,
+            });
+            if (percent === null) {
+              continue;
+            }
+            stats.nodeStats[node.id] = {
+              type: NodeStatsType.WaitForNodeStats,
+              proportions: {
+                segmentChildEdge: percent,
+              },
+            };
+          }
+          break;
+        }
+        case JourneyNodeType.RateLimitNode:
+          continue;
+        case JourneyNodeType.ExperimentSplitNode:
+          continue;
+        default:
+          assertUnreachable(node);
       }
-
-      if (
-        node.type !== JourneyNodeType.MessageNode ||
-        (node.variant.type !== ChannelType.Email &&
-          node.variant.type !== ChannelType.Sms)
-      ) {
-        continue;
-      }
-
-      const sent = nodeStats.get(InternalEventType.MessageSent);
-      const badConfig = nodeStats.get(
-        InternalEventType.BadWorkspaceConfiguration,
-      );
-      const messageFailure = nodeStats.get(InternalEventType.MessageFailure);
-      const delivered = nodeStats.get(InternalEventType.EmailDelivered);
-      const spam = nodeStats.get(InternalEventType.EmailMarkedSpam);
-      const opened = nodeStats.get(InternalEventType.EmailOpened);
-      const clicked = nodeStats.get(InternalEventType.EmailClicked);
-      const total = sent + badConfig + messageFailure;
-
-      let sendRate = 0;
-      let deliveryRate = 0;
-      let openRate = 0;
-      let clickRate = 0;
-      let spamRate = 0;
-
-      if (total > 0) {
-        sendRate = sent / total;
-        deliveryRate =
-          node.variant.type === ChannelType.Email
-            ? delivered / total
-            : (sent - messageFailure) / total;
-      }
-
-      if (node.variant.type === ChannelType.Email && total > 0) {
-        openRate = opened / total;
-        clickRate = clicked / total;
-        spamRate = spam / total;
-      }
-
-      stats.nodeStats[node.id] = {
-        type: NodeStatsType.MessageNodeStats,
-        proportions: {
-          childEdge: 100,
-        },
-        sendRate,
-        channelStats: {
-          type: node.variant.type,
-          deliveryRate,
-          failRate: messageFailure,
-          openRate,
-          spamRate,
-          clickRate,
-        },
-      };
     }
   }
 
