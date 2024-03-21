@@ -255,7 +255,7 @@ interface JourneyMessageStats {
   stats: BaseMessageNodeStats;
 }
 
-async function getJourneyMessageStats({
+export async function getJourneyMessageStats({
   workspaceId,
   journeys,
 }: {
@@ -504,11 +504,42 @@ from (
 )
 group by event, node_id;`;
 
-  const statsResultSet = await clickhouseClient().query({
-    query,
-    query_params: qb.getQueries(),
-    format: "JSONEachRow",
-  });
+  const enrichedJourneys = journeys.map((journey) =>
+    unwrap(enrichJourney(journey)),
+  );
+
+  const [statsResultSet, messageStats] = await Promise.all([
+    chQuery({
+      query,
+      query_params: qb.getQueries(),
+      format: "JSONEachRow",
+    }),
+    getJourneyMessageStats({
+      workspaceId,
+      journeys: enrichedJourneys.flatMap((j) => {
+        if (!j.definition) {
+          return [];
+        }
+        const nodes = j.definition.nodes.flatMap((n) => {
+          if (n.type !== JourneyNodeType.MessageNode) {
+            return [];
+          }
+          return {
+            id: n.id,
+            channel: n.variant.type,
+          };
+        });
+        if (!nodes.length) {
+          return [];
+        }
+        return {
+          id: j.id,
+          nodes,
+        };
+      }),
+    }),
+  ]);
+  logger().debug({ messageStats }, "messageStats loc1");
 
   const stream = statsResultSet.stream();
   // map from node_id to event to count
@@ -564,10 +595,6 @@ group by event, node_id;`;
     }),
     ...rowPromises,
   ]);
-
-  const enrichedJourneys = journeys.map((journey) =>
-    unwrap(enrichJourney(journey)),
-  );
 
   const journeysStats: JourneyStats[] = [];
 

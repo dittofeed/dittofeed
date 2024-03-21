@@ -7,10 +7,12 @@ import { recordNodeProcessed } from "./journeys/recordNodeProcessed";
 import prisma from "./prisma";
 import {
   ChannelType,
+  EmailProviderType,
   InternalEventType,
   JourneyDefinition,
   JourneyNodeType,
   MessageNode,
+  MessageServiceFailureVariant,
   NodeStatsType,
   SegmentEntryNode,
   SegmentSplitNode,
@@ -18,6 +20,210 @@ import {
 } from "./types";
 
 describe("journeys", () => {
+  describe("getJourneyMessageStats", () => {
+    let workspaceId: string;
+    let journeyId: string;
+    let messageNodeId: string;
+
+    beforeEach(async () => {
+      const workspace = await prisma().workspace.create({
+        data: {
+          name: randomUUID(),
+        },
+      });
+      workspaceId = workspace.id;
+      messageNodeId = randomUUID();
+
+      const journeyDefinition: JourneyDefinition = {
+        entryNode: {
+          type: JourneyNodeType.SegmentEntryNode,
+          segment: randomUUID(),
+          child: messageNodeId,
+        },
+        exitNode: {
+          type: JourneyNodeType.ExitNode,
+        },
+        nodes: [
+          {
+            id: messageNodeId,
+            type: JourneyNodeType.MessageNode,
+            variant: {
+              type: ChannelType.Email,
+              templateId: randomUUID(),
+            },
+            child: JourneyNodeType.ExitNode,
+          },
+        ],
+      };
+      const journey = await prisma().journey.create({
+        data: {
+          workspaceId,
+          definition: journeyDefinition,
+          name: randomUUID(),
+        },
+      });
+      journeyId = journey.id;
+    });
+
+    describe("when the the message has one failed message one delivered message one bounced message and one marked as spam", () => {
+      beforeEach(async () => {
+        const messageId1 = randomUUID();
+        const messageId2 = randomUUID();
+        const messageId3 = randomUUID();
+        const messageId4 = randomUUID();
+        const userId1 = randomUUID();
+        const userId2 = randomUUID();
+        const userId3 = randomUUID();
+        const userId4 = randomUUID();
+
+        await Promise.all([
+          // message 1 failed
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId1,
+              messageId: messageId1,
+              event: InternalEventType.MessageFailure,
+              properties: {
+                variant: {
+                  type: ChannelType.Email,
+                  provider: {
+                    type: EmailProviderType.Resend,
+                    name: "error name",
+                    message: "error message",
+                  },
+                } satisfies MessageServiceFailureVariant,
+              },
+            },
+          }),
+          // message 2 delivered
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId2,
+              messageId: messageId2,
+              event: InternalEventType.MessageSent,
+              properties: {
+                from: "from@email.com",
+                to: "to@email.com",
+                body: "hello",
+                subject: "hello",
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId2}`,
+              },
+            },
+          }),
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId2,
+              messageId: randomUUID(),
+              event: InternalEventType.EmailDelivered,
+              properties: {
+                messageId: messageId2,
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId2}`,
+              },
+            },
+          }),
+          // message 3 bounced
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId3,
+              messageId: messageId3,
+              event: InternalEventType.MessageSent,
+              properties: {
+                from: "from@email.com",
+                to: "to@email.com",
+                body: "hello",
+                subject: "hello",
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId3}`,
+              },
+            },
+          }),
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId3,
+              messageId: randomUUID(),
+              event: InternalEventType.EmailBounced,
+              properties: {
+                messageId: messageId3,
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId3}`,
+              },
+            },
+          }),
+          // message 4 marked as spam
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId4,
+              messageId: messageId4,
+              event: InternalEventType.MessageSent,
+              properties: {
+                from: "from@email.com",
+                to: "to@email.com",
+                body: "hello",
+                subject: "hello",
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId4}`,
+              },
+            },
+          }),
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId4,
+              messageId: randomUUID(),
+              event: InternalEventType.EmailDelivered,
+              properties: {
+                messageId: messageId4,
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId4}`,
+              },
+            },
+          }),
+          submitTrack({
+            workspaceId,
+            data: {
+              userId: userId4,
+              messageId: randomUUID(),
+              event: InternalEventType.EmailMarkedSpam,
+              properties: {
+                messageId: messageId4,
+                nodeId: messageNodeId,
+                templateId: `template-${messageNodeId}`,
+                journeyId,
+                channel: ChannelType.Email,
+                runId: `run-${userId4}`,
+              },
+            },
+          }),
+        ]);
+      });
+    });
+  });
   describe("getJourneysStats", () => {
     let workspaceId: string;
     let journeyId: string;
