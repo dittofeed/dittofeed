@@ -121,9 +121,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/client-ses@npm:^3.535.0":
+"@aws-sdk/client-sesv2@npm:^3.535.0":
   version: 3.535.0
-  resolution: "@aws-sdk/client-ses@npm:3.535.0"
+  resolution: "@aws-sdk/client-sesv2@npm:3.535.0"
   dependencies:
     "@aws-crypto/sha256-browser": 3.0.0
     "@aws-crypto/sha256-js": 3.0.0
@@ -164,9 +164,8 @@ __metadata:
     "@smithy/util-middleware": ^2.2.0
     "@smithy/util-retry": ^2.2.0
     "@smithy/util-utf8": ^2.3.0
-    "@smithy/util-waiter": ^2.2.0
     tslib: ^2.6.2
-  checksum: fd92bfb1e237e6641fa0b3864b47ffe83d8abeb64f4dac6dcb3ec859828f6fc097c5b1e951736b6f59b97c6f330cf09aa5164bbc5500684a2b5e6584636a5a2f
+  checksum: 2b310ea1f9a40927945ae57dfac176b072bdc0b300f86d82d9114a2412e43402878537ea5c8bbe573fe2275734028ecaced096593d31d0d55862b5c580907070
   languageName: node
   linkType: hard
 
@@ -5271,17 +5270,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@smithy/util-waiter@npm:^2.2.0":
-  version: 2.2.0
-  resolution: "@smithy/util-waiter@npm:2.2.0"
-  dependencies:
-    "@smithy/abort-controller": ^2.2.0
-    "@smithy/types": ^2.12.0
-    tslib: ^2.6.2
-  checksum: 303f56beb9ba4afada862eff4950a17d904a4fdfc01bd8acb932b0457e457730981162777004414252e700014c554d894a1ce9d32e0bad75e1a4a2ca6492429e
-  languageName: node
-  linkType: hard
-
 "@stablelib/base64@npm:^1.0.0":
   version: 1.0.1
   resolution: "@stablelib/base64@npm:1.0.1"
@@ -7855,7 +7843,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "backend-lib@workspace:packages/backend-lib"
   dependencies:
-    "@aws-sdk/client-ses": ^3.535.0
+    "@aws-sdk/client-sesv2": ^3.535.0
     "@clickhouse/client": ^0.2.1
     "@fast-csv/format": ^4.3.5
     "@opentelemetry/api": ^1.4.1

@@ -795,16 +795,13 @@ export async function sendEmail({
           },
         });
       }
-      // TODO [DF-469] add subscription group headers
-      // the SES sdk doesn't support custom headers without wrangling with raw
-      // email. the API added support for this as of 3/8/24 but the sdk hasn't
-      // caught up
       const mailData: AmazonSesMailFields = {
         to,
         from,
         subject,
         html: body,
         replyTo,
+        headers: unsubscribeHeaders,
         tags: {
           workspaceId,
           templateId,

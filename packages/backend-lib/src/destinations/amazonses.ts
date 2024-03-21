@@ -3,11 +3,11 @@ import Https from "node:https";
 import {
   MessageTag,
   SendEmailCommand,
-  type SendEmailCommandInput,
   SendEmailCommandOutput,
-  SESClient,
-  SESServiceException,
-} from "@aws-sdk/client-ses";
+  SendEmailRequest,
+  SESv2Client,
+  SESv2ServiceException,
+} from "@aws-sdk/client-sesv2";
 import { err, Result, ResultAsync } from "neverthrow";
 import * as R from "remeda";
 import SnsPayloadValidator from "sns-payload-validator";
@@ -39,8 +39,8 @@ function unwrapTag(tagName: string, tags: Record<string, string[]>) {
 
 // README the typescript types on this are wrong, body is not of type string,
 // it's a parsed JSON object
-function guardResponseError(e: unknown): SESServiceException {
-  if (e instanceof SESServiceException) {
+function guardResponseError(e: unknown): SESv2ServiceException {
+  if (e instanceof SESv2ServiceException) {
     return e;
   }
   throw e;
@@ -52,9 +52,9 @@ export async function sendMail({
 }: {
   config: AmazonSesConfig;
   mailData: AmazonSesMailFields;
-}): Promise<Result<SendEmailCommandOutput, SESServiceException>> {
+}): Promise<Result<SendEmailCommandOutput, SESv2ServiceException>> {
   const { accessKeyId, secretAccessKey, region } = config;
-  const client = new SESClient({
+  const client = new SESv2Client({
     region,
     credentials: {
       accessKeyId,
@@ -81,21 +81,29 @@ export async function sendMail({
       }
     : {};
 
-  const input: SendEmailCommandInput = {
-    Source: mailData.from,
+  const input: SendEmailRequest = {
+    FromEmailAddress: mailData.from,
     Destination: {
       ToAddresses: [mailData.to],
     },
-    Message: {
-      Subject: {
-        Data: mailData.subject,
-        Charset: "UTF-8",
-      },
-      Body: {
-        Html: {
-          Data: mailData.html,
+    Content: {
+      Simple: {
+        Subject: {
+          Data: mailData.subject,
           Charset: "UTF-8",
         },
+        Body: {
+          Html: {
+            Data: mailData.html,
+            Charset: "UTF-8",
+          },
+        },
+        Headers: mailData.headers
+          ? Object.entries(mailData.headers).map(([Name, Value]) => ({
+              Name,
+              Value,
+            }))
+          : undefined,
       },
     },
     ...tags,
