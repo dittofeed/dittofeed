@@ -5,6 +5,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
+import * as R from "remeda";
 import { Overwrite } from "utility-types";
 
 import { sendMail as sendMailAmazonSes } from "./destinations/amazonses";
@@ -28,7 +29,6 @@ import {
   SubscriptionGroupDetails,
 } from "./subscriptionGroups";
 import {
-  AmazonSesConfig,
   type AmazonSesMailFields,
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
@@ -625,7 +625,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `expected sendgrid secret config but got ${secretConfig.type}`,
+            message: `expected smtp secret config but got ${secretConfig.type}`,
           },
         });
       }
