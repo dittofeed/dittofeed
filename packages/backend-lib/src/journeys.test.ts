@@ -75,6 +75,7 @@ describe("journeys", () => {
         const userId2 = randomUUID();
         const userId3 = randomUUID();
         const userId4 = randomUUID();
+        const now = Date.now();
 
         await Promise.all([
           // message 1 failed
@@ -84,6 +85,7 @@ describe("journeys", () => {
               userId: userId1,
               messageId: messageId1,
               event: InternalEventType.MessageFailure,
+              timestamp: new Date(now).toISOString(),
               properties: {
                 journeyId,
                 runId: `run-${userId1}`,
@@ -107,6 +109,7 @@ describe("journeys", () => {
               userId: userId2,
               messageId: messageId2,
               event: InternalEventType.MessageSent,
+              timestamp: new Date(now).toISOString(),
               properties: {
                 from: "from@email.com",
                 to: "to@email.com",
@@ -126,6 +129,7 @@ describe("journeys", () => {
               userId: userId2,
               messageId: randomUUID(),
               event: InternalEventType.EmailDelivered,
+              timestamp: new Date(now + 100).toISOString(),
               properties: {
                 messageId: messageId2,
                 nodeId: messageNodeId,
@@ -143,6 +147,7 @@ describe("journeys", () => {
               userId: userId3,
               messageId: messageId3,
               event: InternalEventType.MessageSent,
+              timestamp: new Date(now).toISOString(),
               properties: {
                 from: "from@email.com",
                 to: "to@email.com",
@@ -162,6 +167,7 @@ describe("journeys", () => {
               userId: userId3,
               messageId: randomUUID(),
               event: InternalEventType.EmailBounced,
+              timestamp: new Date(now + 100).toISOString(),
               properties: {
                 messageId: messageId3,
                 nodeId: messageNodeId,
@@ -179,6 +185,7 @@ describe("journeys", () => {
               userId: userId4,
               messageId: messageId4,
               event: InternalEventType.MessageSent,
+              timestamp: new Date(now).toISOString(),
               properties: {
                 from: "from@email.com",
                 to: "to@email.com",
@@ -198,6 +205,7 @@ describe("journeys", () => {
               userId: userId4,
               messageId: randomUUID(),
               event: InternalEventType.EmailDelivered,
+              timestamp: new Date(now + 100).toISOString(),
               properties: {
                 messageId: messageId4,
                 nodeId: messageNodeId,
@@ -214,6 +222,7 @@ describe("journeys", () => {
               userId: userId4,
               messageId: randomUUID(),
               event: InternalEventType.EmailMarkedSpam,
+              timestamp: new Date(now + 5000).toISOString(),
               properties: {
                 messageId: messageId4,
                 nodeId: messageNodeId,
