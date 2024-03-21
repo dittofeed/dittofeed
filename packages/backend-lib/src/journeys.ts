@@ -319,9 +319,17 @@ export async function getJourneyMessageStats({
   `;
   const resultsSet = await chQuery({
     query,
+    query_params: qb.getQueries(),
+    format: "JSONEachRow",
   });
   const statsMap = new Map<string, Map<string, Map<string, number>>>();
   await streamClickhouseQuery(resultsSet, (row) => {
+    logger().debug(
+      {
+        row,
+      },
+      "row loc2",
+    );
     for (const i of row) {
       const item = i as {
         journey_id: string;

@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import * as R from "remeda";
 
 import { submitTrack } from "./apps/track";
-import { getJourneysStats } from "./journeys";
+import { getJourneyMessageStats, getJourneysStats } from "./journeys";
 import { recordNodeProcessed } from "./journeys/recordNodeProcessed";
 import prisma from "./prisma";
 import {
@@ -85,6 +85,10 @@ describe("journeys", () => {
               messageId: messageId1,
               event: InternalEventType.MessageFailure,
               properties: {
+                journeyId,
+                runId: `run-${userId1}`,
+                templateId: `template-${messageNodeId}`,
+                nodeId: messageNodeId,
                 variant: {
                   type: ChannelType.Email,
                   provider: {
@@ -221,6 +225,23 @@ describe("journeys", () => {
             },
           }),
         ]);
+      });
+      it.only("returns the correct stats", async () => {
+        const stats = await getJourneyMessageStats({
+          workspaceId,
+          journeys: [
+            {
+              id: journeyId,
+              nodes: [
+                {
+                  id: messageNodeId,
+                  channel: ChannelType.Email,
+                },
+              ],
+            },
+          ],
+        });
+        expect(stats).toEqual([]);
       });
     });
   });
