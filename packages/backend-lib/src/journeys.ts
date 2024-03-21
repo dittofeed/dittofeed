@@ -479,6 +479,7 @@ export async function getJourneysStats({
     unwrap(enrichJourney(journey)),
   );
 
+  logger().debug("loc6");
   const [statsResultSet, messageStats] = await Promise.all([
     chQuery({
       query,
@@ -511,6 +512,8 @@ export async function getJourneysStats({
     }),
   ]);
 
+  logger().debug("loc5");
+
   const stream = statsResultSet.stream();
   // journey id -> node id -> count
   const journeyNodeProcessedMap = new Map<string, Map<string, number>>();
@@ -542,6 +545,7 @@ export async function getJourneysStats({
       rowPromises.push(promise);
     });
   });
+  logger().debug("loc4");
 
   await Promise.all([
     new Promise((resolve) => {
@@ -553,10 +557,19 @@ export async function getJourneysStats({
   ]);
 
   const journeysStats: JourneyStats[] = [];
+  logger().debug(messageStats, "loc3");
 
   for (const journey of enrichedJourneys) {
     const journeyId = journey.id;
     const { definition } = journey;
+
+    if (!definition) {
+      continue;
+    }
+    const nodeProcessedMap = journeyNodeProcessedMap.get(journeyId);
+    if (!nodeProcessedMap) {
+      continue;
+    }
 
     const stats: JourneyStats = {
       workspaceId,
@@ -564,30 +577,21 @@ export async function getJourneysStats({
       nodeStats: {},
     };
     journeysStats.push(stats);
-    if (!definition) {
-      continue;
-    }
     const heritageMap = buildHeritageMap(definition);
-    const nodeProcessedMap = journeyNodeProcessedMap.get(journeyId);
-    if (!nodeProcessedMap) {
-      continue;
-    }
 
     for (const node of definition.nodes) {
       switch (node.type) {
         case JourneyNodeType.MessageNode: {
-          const nodeMessageStats = messageStats.find(
-            (s) => s.journeyId === journey.id && s.nodeId === node.id,
-          );
-          if (!nodeMessageStats) {
-            continue;
-          }
+          const nodeMessageStats =
+            messageStats.find(
+              (s) => s.journeyId === journey.id && s.nodeId === node.id,
+            )?.stats ?? {};
           stats.nodeStats[node.id] = {
             type: NodeStatsType.MessageNodeStats,
             proportions: {
               childEdge: 100,
             },
-            ...nodeMessageStats.stats,
+            ...nodeMessageStats,
           };
           break;
         }

@@ -60,6 +60,7 @@ describe("journeys", () => {
           workspaceId,
           definition: journeyDefinition,
           name: randomUUID(),
+          status: "Running",
         },
       });
       journeyId = journey.id;
@@ -235,7 +236,7 @@ describe("journeys", () => {
           }),
         ]);
       });
-      it.only("returns the correct stats", async () => {
+      it("returns the correct stats", async () => {
         const stats = await getJourneyMessageStats({
           workspaceId,
           journeys: [
@@ -273,7 +274,7 @@ describe("journeys", () => {
     let workspaceId: string;
     let journeyId: string;
 
-    describe("when a journey node has associated message stats", () => {
+    describe.only("when a journey node has associated message stats", () => {
       let messageNodeId: string;
 
       beforeEach(async () => {
@@ -311,6 +312,7 @@ describe("journeys", () => {
             workspaceId,
             definition: journeyDefinition,
             name: randomUUID(),
+            status: "Running",
           },
         });
         journeyId = journey.id;
@@ -424,6 +426,7 @@ describe("journeys", () => {
             workspaceId,
             definition: journeyDefinition,
             name: randomUUID(),
+            status: "Running",
           },
         });
         journeyId = journey.id;

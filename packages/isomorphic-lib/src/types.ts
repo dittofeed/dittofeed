@@ -2201,7 +2201,7 @@ export const MessageChannelStats = Type.Union([EmailStats, SmsStats]);
 export type MessageChannelStats = Static<typeof MessageChannelStats>;
 
 export const BaseMessageNodeStats = Type.Object({
-  sendRate: Type.Number(),
+  sendRate: Type.Optional(Type.Number()),
   channelStats: Type.Optional(MessageChannelStats),
 });
 
