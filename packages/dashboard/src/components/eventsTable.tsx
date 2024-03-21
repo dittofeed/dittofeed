@@ -223,7 +223,7 @@ export function EventsTable({
 
     const templateId = parsedTraits.templateId || "";
     const template = messages.find((t) => t.id === templateId);
-    const channelType = template?.definition?.type ?? null;
+    const channelType = template?.type ?? null;
     const templateName = template?.name ?? null;
 
     const journeyResources = getJourneyResources(

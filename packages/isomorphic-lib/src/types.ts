@@ -745,24 +745,26 @@ export const SegmentResource = Type.Object({
 
 export type SegmentResource = Static<typeof SegmentResource>;
 
+export const SegmentTimestamps = Type.Object({
+  createdAt: Type.Number(),
+  updatedAt: Type.Number(),
+  definitionUpdatedAt: Type.Number(),
+});
+
+export type SegmentTimestamps = Static<typeof SegmentTimestamps>;
+
 export const SavedSegmentResource = Type.Composite([
   SegmentResource,
-  Type.Object({
-    createdAt: Type.Number(),
-    updatedAt: Type.Number(),
-    definitionUpdatedAt: Type.Number(),
-  }),
+  SegmentTimestamps,
 ]);
 
 export type SavedSegmentResource = Static<typeof SavedSegmentResource>;
 
 export const PartialSegmentResource = Type.Composite([
   Type.Omit(SegmentResource, ["definition"]),
+  SegmentTimestamps,
   Type.Object({
     definition: Type.Optional(SegmentDefinition),
-    createdAt: Type.Number(),
-    updatedAt: Type.Number(),
-    definitionUpdatedAt: Type.Number(),
   }),
 ]);
 
@@ -928,6 +930,7 @@ const MessageTemplateResourceProperties = {
   workspaceId: Type.String(),
   id: Type.String(),
   name: Type.String(),
+  type: Type.Enum(ChannelType),
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(MessageTemplateResourceDefinition),
   updatedAt: Type.Number(),
