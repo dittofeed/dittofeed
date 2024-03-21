@@ -26,6 +26,7 @@ import {
   NodeStatsType,
 } from "isomorphic-lib/src/types";
 import { useRouter } from "next/router";
+import { useCallback, useMemo } from "react";
 import { Handle, NodeProps, Position } from "reactflow";
 
 import { useAppStore, useAppStorePick } from "../../../lib/appStore";
@@ -322,42 +323,61 @@ export function JourneyNode({
   ]);
 
   const { id: journeyId } = path.query;
-  if (!journeyId || typeof journeyId !== "string") {
-    return null;
-  }
+  const config = useMemo(
+    () => journNodeTypeToConfig(data.nodeTypeProps),
+    [data.nodeTypeProps],
+  );
+  const clickInsideHandler = useCallback(() => {
+    setSelectedNodeId(id);
+  }, [id, setSelectedNodeId]);
 
-  const config = journNodeTypeToConfig(data.nodeTypeProps);
   const isSelected = selectedNodeId === id;
 
-  const clickInsideHandler = () => {
-    setSelectedNodeId(id);
-  };
+  const clickOutsideHandler = useCallback(
+    (event: MouseEvent | TouchEvent) => {
+      // Clicking on another node should not trigger the node editor to close.
+      if (!isSelected) {
+        return;
+      }
 
-  const clickOutsideHandler = (event: MouseEvent | TouchEvent) => {
-    // Clicking on another node should not trigger the node editor to close.
-    if (!isSelected) {
-      return;
+      const insideRenderer = event
+        .composedPath()
+        .find(
+          (el) =>
+            el instanceof HTMLElement &&
+            el.classList.contains("react-flow__renderer"),
+        );
+
+      if (!insideRenderer) {
+        return;
+      }
+      setSelectedNodeId(null);
+    },
+    [isSelected, setSelectedNodeId],
+  );
+  const isComplete = useMemo(
+    () => isNodeComplete(data.nodeTypeProps, { segments, messages }),
+    [data.nodeTypeProps, messages, segments],
+  );
+
+  const channelStats = useMemo(() => {
+    if (!journeyId || typeof journeyId !== "string") {
+      return null;
     }
-
-    const insideRenderer = event
-      .composedPath()
-      .find(
-        (el) =>
-          el instanceof HTMLElement &&
-          el.classList.contains("react-flow__renderer"),
-      );
-
-    if (!insideRenderer) {
-      return;
-    }
-    setSelectedNodeId(null);
-  };
+    const stats = journeyStats[journeyId]?.nodeStats[id];
+    return isSelected &&
+      stats?.type === NodeStatsType.MessageNodeStats &&
+      stats.sendRate &&
+      stats.channelStats
+      ? { ...stats.channelStats, sendRate: stats.sendRate }
+      : null;
+  }, [id, isSelected, journeyId, journeyStats]);
 
   const borderColor: string = isSelected
     ? theme.palette.blue[200]
     : theme.palette.grey[200];
 
-  const body = !isNodeComplete(data.nodeTypeProps, { segments, messages }) ? (
+  const body = !isComplete ? (
     <Stack direction="row">
       <Box
         sx={{
@@ -375,15 +395,6 @@ export function JourneyNode({
   ) : (
     config.body
   );
-
-  const stats = journeyStats[journeyId]?.nodeStats[id];
-  const channelStats =
-    isSelected &&
-    stats?.type === NodeStatsType.MessageNodeStats &&
-    stats.sendRate &&
-    stats.channelStats
-      ? { ...stats.channelStats, sendRate: stats.sendRate }
-      : null;
 
   const contents = (
     <Stack
@@ -505,9 +516,13 @@ export function JourneyNode({
           className={styles.handle}
         />
       )}
-      <ClickAwayListener onClickAway={clickOutsideHandler}>
-        {contents}
-      </ClickAwayListener>
+      {isSelected ? (
+        <ClickAwayListener onClickAway={clickOutsideHandler}>
+          {contents}
+        </ClickAwayListener>
+      ) : (
+        contents
+      )}
       {!config.disableBottomHandle && (
         <Handle
           type="source"
