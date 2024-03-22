@@ -31,12 +31,9 @@ export const segmentUpdateSignal =
 const WORKFLOW_NAME = "userJourneyWorkflow";
 
 const {
-  sendEmail,
   getSegmentAssignment,
   onNodeProcessedV2,
   isRunnable,
-  sendMobilePush,
-  sendSms,
   sendMessageV2,
   findNextLocalizedTime,
 } = proxyActivities<typeof activities>({
@@ -273,7 +270,6 @@ export async function userJourneyWorkflow({
         break;
       }
       case JourneyNodeType.MessageNode: {
-        let shouldContinue: boolean;
         const messageId = uuid4();
         const messagePayload: activities.SendParams = {
           userId,
@@ -286,33 +282,11 @@ export async function userJourneyWorkflow({
           messageId,
         };
 
-        if (wf.patched("send-message-v2")) {
-          shouldContinue = await sendMessageV2({
-            channel: currentNode.variant.type,
-            context,
-            ...messagePayload,
-          });
-        } else {
-          switch (currentNode.variant.type) {
-            case ChannelType.Email: {
-              shouldContinue = await sendEmail(messagePayload);
-              break;
-            }
-            case ChannelType.MobilePush: {
-              shouldContinue = await sendMobilePush(messagePayload);
-              break;
-            }
-            case ChannelType.Sms: {
-              shouldContinue = await sendSms(messagePayload);
-              break;
-            }
-            default: {
-              const { type }: never = currentNode.variant;
-              // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-              assertUnreachable(type, `unknown channel type ${type}`);
-            }
-          }
-        }
+        const shouldContinue = await sendMessageV2({
+          channel: currentNode.variant.type,
+          context,
+          ...messagePayload,
+        });
 
         if (!shouldContinue) {
           logger.info("message node early exit", {
