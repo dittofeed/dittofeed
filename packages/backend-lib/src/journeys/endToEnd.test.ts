@@ -51,7 +51,6 @@ describe("end to end journeys", () => {
   let worker: Worker;
 
   const testActivities = {
-    sendEmail: jest.fn().mockReturnValue(true),
     sendMessageV2: jest.fn().mockReturnValue(true),
   };
 
