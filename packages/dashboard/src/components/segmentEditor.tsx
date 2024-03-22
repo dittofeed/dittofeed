@@ -200,6 +200,7 @@ function ValueSelect({
       if (
         node.type === SegmentNodeType.Trait &&
         (node.operator.type === SegmentOperatorType.Equals ||
+          node.operator.type === SegmentOperatorType.NotEquals ||
           node.operator.type === SegmentOperatorType.HasBeen)
       ) {
         node.operator.value = e.target.value;
