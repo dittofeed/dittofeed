@@ -8,11 +8,9 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 import * as wf from "@temporalio/workflow";
-import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 
 import { assertUnreachableSafe } from "../typeAssertions";
 import {
-  ChannelType,
   DelayVariantType,
   JourneyDefinition,
   JourneyNode,
