@@ -27,13 +27,7 @@ import {
 } from "backend-lib/src/types";
 import { insertUserEvents } from "backend-lib/src/userEvents";
 import { FastifyInstance } from "fastify";
-import {
-  POSTMARK_SECRET,
-  RESEND_SECRET,
-  SENDGRID_SECRET,
-  TWILIO_SECRET_NAME,
-  WORKSPACE_ID_HEADER,
-} from "isomorphic-lib/src/constants";
+import { SecretNames, WORKSPACE_ID_HEADER } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   PostMarkSecret,
@@ -95,7 +89,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       const secret = await prisma().secret.findUnique({
         where: {
           workspaceId_name: {
-            name: SENDGRID_SECRET,
+            name: SecretNames.Sendgrid,
             workspaceId,
           },
         },
@@ -244,7 +238,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       const secret = await prisma().secret.findUnique({
         where: {
           workspaceId_name: {
-            name: RESEND_SECRET,
+            name: SecretNames.Resend,
             workspaceId,
           },
         },
@@ -322,7 +316,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       const secret = await prisma().secret.findUnique({
         where: {
           workspaceId_name: {
-            name: POSTMARK_SECRET,
+            name: SecretNames.Postmark,
             workspaceId,
           },
         },
@@ -387,7 +381,7 @@ export default async function webhookController(fastify: FastifyInstance) {
       const twilioSecretModel = await prisma().secret.findUnique({
         where: {
           workspaceId_name: {
-            name: TWILIO_SECRET_NAME,
+            name: SecretNames.Twilio,
             workspaceId,
           },
         },

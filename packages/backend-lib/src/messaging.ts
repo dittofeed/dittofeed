@@ -29,7 +29,6 @@ import {
   SubscriptionGroupDetails,
 } from "./subscriptionGroups";
 import {
-  AmazonSesConfig,
   type AmazonSesMailFields,
   BackendMessageSendResult,
   BadWorkspaceConfigurationType,
@@ -626,7 +625,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `expected sendgrid secret config but got ${secretConfig.type}`,
+            message: `expected smtp secret config but got ${secretConfig.type}`,
           },
         });
       }
@@ -798,11 +797,11 @@ export async function sendEmail({
 
       const result = await sendMailAmazonSes({
         mailData,
-        config: R.pick(secretConfig, [
-          "accessKeyId",
-          "secretAccessKey",
-          "region",
-        ]) as AmazonSesConfig,
+        config: {
+          accessKeyId: secretConfig.accessKeyId,
+          secretAccessKey: secretConfig.secretAccessKey,
+          region: secretConfig.region,
+        },
       });
 
       if (result.isErr()) {
@@ -877,7 +876,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `missing apiKey in sendgrid secret config`,
+            message: `missing apiKey in resend secret config`,
           },
         });
       }

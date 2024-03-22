@@ -381,6 +381,28 @@
                     "name": {
                       "type": "string"
                     },
+                    "type": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Email"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "MobilePush"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Sms"
+                          ]
+                        }
+                      ]
+                    },
                     "definition": {
                       "anyOf": [
                         {
@@ -569,6 +591,7 @@
                     "workspaceId",
                     "id",
                     "name",
+                    "type",
                     "updatedAt"
                   ]
                 }
@@ -11366,6 +11389,9 @@
                           "templateId": {
                             "type": "string"
                           },
+                          "nodeId": {
+                            "type": "string"
+                          },
                           "journeyId": {
                             "type": "string"
                           },
@@ -11551,10 +11577,19 @@
                   "messageId": {
                     "type": "string"
                   },
+                  "userId": {
+                    "type": "string"
+                  },
                   "templateId": {
                     "type": "string"
                   },
+                  "nodeId": {
+                    "type": "string"
+                  },
                   "journeyId": {
+                    "type": "string"
+                  },
+                  "anonymousId": {
                     "type": "string"
                   }
                 },
@@ -13208,6 +13243,9 @@
                           "templateId": {
                             "type": "string"
                           },
+                          "nodeId": {
+                            "type": "string"
+                          },
                           "journeyId": {
                             "type": "string"
                           },
@@ -13393,10 +13431,19 @@
                   "messageId": {
                     "type": "string"
                   },
+                  "userId": {
+                    "type": "string"
+                  },
                   "templateId": {
                     "type": "string"
                   },
+                  "nodeId": {
+                    "type": "string"
+                  },
                   "journeyId": {
+                    "type": "string"
+                  },
+                  "anonymousId": {
                     "type": "string"
                   }
                 },
