@@ -39,7 +39,7 @@ import {
 import { Webhook } from "svix";
 import { validateRequest } from "twilio";
 
-import { getWorkspaceId } from "../workspace";
+import { getWorkspaceId, getWorkspaceIdFromReq } from "../workspace";
 
 const TWILIO_CONFIG_ERR_MSG = "Twilio configuration not found";
 
@@ -47,13 +47,15 @@ const TWILIO_CONFIG_ERR_MSG = "Twilio configuration not found";
 export default async function webhookController(fastify: FastifyInstance) {
   await fastify.register(formbody);
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  fastify.addHook("onSend", async (_request, reply, payload) => {
+  fastify.addHook("onSend", async (request, reply, payload) => {
     if (reply.statusCode !== 400) {
       return payload;
     }
+    const workspaceId = getWorkspaceIdFromReq(request);
     logger().error(
       {
         payload,
+        workspaceId,
       },
       "Failed to validate webhook payload.",
     );
