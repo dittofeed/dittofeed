@@ -1,6 +1,6 @@
 import { MailDataRequired } from "@sendgrid/mail";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
-import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
@@ -242,7 +242,7 @@ async function getSendMessageModels({
       where: {
         workspaceId_name: {
           workspaceId,
-          name: SUBSCRIPTION_SECRET_NAME,
+          name: SecretNames.Subscription,
         },
       },
     }),
@@ -528,7 +528,7 @@ export async function sendEmail({
     },
     secrets: subscriptionGroupSecret
       ? {
-          [SUBSCRIPTION_SECRET_NAME]: subscriptionGroupSecret,
+          [SecretNames.Subscription]: subscriptionGroupSecret,
         }
       : undefined,
   });

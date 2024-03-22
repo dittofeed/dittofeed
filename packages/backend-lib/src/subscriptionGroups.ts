@@ -1,8 +1,5 @@
 import { Segment, SegmentAssignment, SubscriptionGroup } from "@prisma/client";
-import {
-  SUBSCRIPTION_MANAGEMENT_PAGE,
-  SUBSCRIPTION_SECRET_NAME,
-} from "isomorphic-lib/src/constants";
+import { SecretNames } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import path from "path";
 import * as R from "remeda";
@@ -247,7 +244,7 @@ export function generateSubscriptionChangeUrl({
       subscriptionChange === SubscriptionChange.Subscribe ? "1" : "0";
   }
   const url = new URL(config().dashboardUrl);
-  url.pathname = path.join("/dashboard", SUBSCRIPTION_MANAGEMENT_PAGE);
+  url.pathname = path.join("/dashboard", SecretNames.Subscription);
   url.search = new URLSearchParams(params).toString();
   const urlString = url.toString();
   logger().debug(
@@ -384,7 +381,7 @@ export async function lookupUserForSubscriptions({
     prisma().secret.findUnique({
       where: {
         workspaceId_name: {
-          name: SUBSCRIPTION_SECRET_NAME,
+          name: SecretNames.Subscription,
           workspaceId,
         },
       },

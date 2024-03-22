@@ -1,10 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
-import {
-  DEBUG_USER_ID1,
-  SUBSCRIPTION_SECRET_NAME,
-} from "isomorphic-lib/src/constants";
+import { DEBUG_USER_ID1, SecretNames } from "isomorphic-lib/src/constants";
 import { v5 as uuidv5 } from "uuid";
 
 import { createWriteKey } from "./auth";
@@ -162,12 +159,12 @@ async function bootstrapPostgres({
       where: {
         workspaceId_name: {
           workspaceId,
-          name: SUBSCRIPTION_SECRET_NAME,
+          name: SecretNames.Subscription,
         },
       },
       create: {
         workspaceId,
-        name: SUBSCRIPTION_SECRET_NAME,
+        name: SecretNames.Subscription,
         value: generateSecureKey(8),
       },
       update: {},

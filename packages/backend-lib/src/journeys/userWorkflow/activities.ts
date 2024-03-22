@@ -6,10 +6,7 @@ import {
 import { MailDataRequired } from "@sendgrid/mail";
 import escapeHTML from "escape-html";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
-import {
-  FCM_SECRET_NAME,
-  SUBSCRIPTION_SECRET_NAME,
-} from "isomorphic-lib/src/constants";
+import { SecretNames } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import { err, ok, Result } from "neverthrow";
@@ -161,7 +158,7 @@ async function sendWithTracking<C>(
       where: {
         workspaceId_name: {
           workspaceId,
-          name: SUBSCRIPTION_SECRET_NAME,
+          name: SecretNames.Subscription,
         },
       },
     }),
@@ -334,7 +331,7 @@ export async function sendSmsWithPayload(
           identifierKey: CHANNEL_IDENTIFIERS[channel],
           subscriptionGroupId: params.subscriptionGroupId,
           secrets: {
-            [SUBSCRIPTION_SECRET_NAME]: subscriptionSecret,
+            [SecretNames.Subscription]: subscriptionSecret,
           },
         });
 
@@ -453,7 +450,7 @@ export async function sendMobilePushWithPayload(
         where: {
           workspaceId_name: {
             workspaceId,
-            name: FCM_SECRET_NAME,
+            name: SecretNames.Fcm,
           },
         },
       });
@@ -485,7 +482,7 @@ export async function sendMobilePushWithPayload(
           identifierKey: CHANNEL_IDENTIFIERS[channel],
           subscriptionGroupId: params.subscriptionGroupId,
           secrets: {
-            [SUBSCRIPTION_SECRET_NAME]: subscriptionSecret,
+            [SecretNames.Subscription]: subscriptionSecret,
           },
         });
 
@@ -604,7 +601,7 @@ async function sendEmailWithPayload(
           identifierKey: CHANNEL_IDENTIFIERS[channel],
           subscriptionGroupId: params.subscriptionGroupId,
           secrets: {
-            [SUBSCRIPTION_SECRET_NAME]: subscriptionSecret,
+            [SecretNames.Subscription]: subscriptionSecret,
           },
         });
 

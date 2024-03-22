@@ -1,9 +1,6 @@
 import { SubscriptionGroup } from "@prisma/client";
 import { randomUUID } from "crypto";
-import {
-  DEBUG_USER_ID1,
-  SUBSCRIPTION_SECRET_NAME,
-} from "isomorphic-lib/src/constants";
+import { DEBUG_USER_ID1, SecretNames } from "isomorphic-lib/src/constants";
 
 import bootstrap from "./bootstrap";
 import prisma from "./prisma";
@@ -71,7 +68,7 @@ describe("generateSubscriptionChangeUrl", () => {
       where: {
         workspaceId_name: {
           workspaceId,
-          name: SUBSCRIPTION_SECRET_NAME,
+          name: SecretNames.Subscription,
         },
       },
     });
