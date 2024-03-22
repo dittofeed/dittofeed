@@ -30,6 +30,7 @@ import {
   SegmentHasBeenOperatorComparator,
   SegmentNode,
   SegmentNodeType,
+  SegmentNotEqualsOperator,
   SegmentOperator,
   SegmentOperatorType,
   SegmentResource,
@@ -143,8 +144,14 @@ const hasBeenOperatorOption = {
   label: "Has Been",
 };
 
+const notEqualsOperatorOption = {
+  id: SegmentOperatorType.NotEquals,
+  label: "Not Equals",
+};
+
 const operatorOptions: Option[] = [
   equalsOperatorOption,
+  notEqualsOperatorOption,
   withinOperatorOption,
   hasBeenOperatorOption,
   existsOperatorOption,
@@ -155,6 +162,7 @@ const keyedOperatorOptions = new Map<SegmentOperatorType, Option>([
   [SegmentOperatorType.Within, withinOperatorOption],
   [SegmentOperatorType.HasBeen, hasBeenOperatorOption],
   [SegmentOperatorType.Exists, existsOperatorOption],
+  [SegmentOperatorType.NotEquals, notEqualsOperatorOption],
 ]);
 
 const relationalOperatorNames: [RelationalOperators, string][] = [
@@ -175,7 +183,10 @@ function ValueSelect({
   operator,
 }: {
   nodeId: string;
-  operator: SegmentEqualsOperator | SegmentHasBeenOperator;
+  operator:
+    | SegmentEqualsOperator
+    | SegmentHasBeenOperator
+    | SegmentNotEqualsOperator;
 }) {
   const { value } = operator;
   const { disabled } = useContext(DisabledContext);
@@ -681,7 +692,8 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
       );
       break;
     case SegmentOperatorType.NotEquals: {
-      throw new Error("Not implemented");
+      valueSelect = <ValueSelect nodeId={node.id} operator={node.operator} />;
+      break;
     }
     case SegmentOperatorType.Exists: {
       valueSelect = null;
@@ -769,7 +781,11 @@ function TraitSelect({ node }: { node: TraitSegmentNode }) {
                     break;
                   }
                   case SegmentOperatorType.NotEquals: {
-                    throw new Error("Not implemented");
+                    nodeOperator = {
+                      type: SegmentOperatorType.NotEquals,
+                      value: "",
+                    };
+                    break;
                   }
                   default: {
                     assertUnreachable(newValue.id);
