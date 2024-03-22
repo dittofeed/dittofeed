@@ -10,7 +10,7 @@ import prisma from "backend-lib/src/prisma";
 import { Prisma } from "backend-lib/src/types";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
-import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { SecretNames } from "isomorphic-lib/src/constants";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BadWorkspaceConfigurationType,
@@ -58,7 +58,7 @@ export default async function contentController(fastify: FastifyInstance) {
         where: {
           workspaceId,
           name: {
-            in: [SUBSCRIPTION_SECRET_NAME],
+            in: [SecretNames.Subscription],
           },
         },
       });

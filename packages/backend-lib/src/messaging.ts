@@ -876,7 +876,7 @@ export async function sendEmail({
           type: InternalEventType.BadWorkspaceConfiguration,
           variant: {
             type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `missing apiKey in sendgrid secret config`,
+            message: `missing apiKey in resend secret config`,
           },
         });
       }
