@@ -164,6 +164,8 @@ export default function WorkflowEdge({
               height: 60,
               transform: `translate(${edgeCenterX - 30}px,${edgeCenterY - 30}px)`,
               position: "absolute",
+              opacity: isDragging ? 0 : undefined,
+              transition: "opacity 0.2s",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
