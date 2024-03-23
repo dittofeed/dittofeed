@@ -2890,7 +2890,7 @@ describe("computeProperties", () => {
           definition: {
             entryNode: {
               type: SegmentNodeType.Trait,
-              id: randomUUID(),
+              id: "node-1",
               path: "env",
               operator: {
                 type: SegmentOperatorType.NotEquals,
@@ -2913,6 +2913,20 @@ describe("computeProperties", () => {
                 env: "test",
               },
             },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-2",
+              traits: {
+                env: "prod",
+              },
+            },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-3",
+              traits: {},
+            },
           ],
         },
         {
@@ -2920,9 +2934,44 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          states: [
+            {
+              userId: "user-1",
+              type: "segment",
+              nodeId: "node-1",
+              lastValue: "test",
+              name: "test",
+            },
+            {
+              userId: "user-2",
+              type: "segment",
+              nodeId: "node-1",
+              lastValue: "prod",
+              name: "test",
+            },
+            {
+              userId: "user-3",
+              type: "segment",
+              nodeId: "node-1",
+              lastValue: "",
+              name: "test",
+            },
+          ],
           users: [
             {
               id: "user-1",
+              segments: {
+                test: true,
+              },
+            },
+            {
+              id: "user-2",
+              segments: {
+                test: null,
+              },
+            },
+            {
+              id: "user-3",
               segments: {
                 test: true,
               },

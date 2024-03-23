@@ -1199,6 +1199,28 @@ export function segmentNodeToStateSubQuery({
       if (!path) {
         return [];
       }
+      if (node.operator.type === SegmentOperatorType.NotEquals) {
+        const varName = qb.getVariableName();
+        return [
+          {
+            condition: `event_type == 'identify'`,
+            type: "segment",
+            uniqValue: "''",
+            // using stateId as placeholder string to allow NotEquals to select
+            // empty values. no real danger of collissions given that stateId is
+            // a uuid
+            argMaxValue: `
+              if(
+                (JSON_VALUE(properties, ${path}) as ${varName}) == '',
+                ${qb.addQueryValue(stateId, "String")},
+                ${varName}
+              )
+            `,
+            computedPropertyId: segment.id,
+            stateId,
+          },
+        ];
+      }
       const eventTimeExpression: string | undefined =
         node.operator.type === SegmentOperatorType.HasBeen ||
         node.operator.type === SegmentOperatorType.Within

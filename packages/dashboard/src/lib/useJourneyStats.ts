@@ -30,8 +30,6 @@ export function useJourneyStats(
           workspaceId: args.workspaceId,
           journeyIds: args.journeyIds,
         };
-        // "journeyIds[]": "8c6fe764-4a92-4082-8822-d16d812c7ce3"
-        // FIXME
         const response = await axios.get(`${args.apiBase}/api/journeys/stats`, {
           params,
         });
