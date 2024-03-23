@@ -1192,7 +1192,6 @@ export function segmentNodeToStateSubQuery({
   switch (node.type) {
     case SegmentNodeType.Trait: {
       const stateId = segmentNodeStateId(segment, node.id);
-      // FIXME
       const path = toJsonPathParam({
         path: node.path,
         qb,
@@ -1235,7 +1234,6 @@ export function segmentNodeToStateSubQuery({
           joinPriorStateValue:
             node.operator.type === SegmentOperatorType.HasBeen,
           uniqValue: "''",
-          // FIXME handle empty values
           argMaxValue: `JSON_VALUE(properties, ${path})`,
           eventTimeExpression,
           computedPropertyId: segment.id,
