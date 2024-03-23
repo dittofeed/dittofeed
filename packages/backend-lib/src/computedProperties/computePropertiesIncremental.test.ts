@@ -2883,7 +2883,6 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a negative trait segment",
-      only: true,
       userProperties: [],
       segments: [
         {
@@ -2950,6 +2949,13 @@ describe("computeProperties", () => {
               lastValue: "prod",
               name: "test",
             },
+            {
+              userId: "user-3",
+              type: "segment",
+              nodeId: "node-1",
+              lastValue: "",
+              name: "test",
+            },
           ],
           users: [
             {
@@ -2964,12 +2970,12 @@ describe("computeProperties", () => {
                 test: null,
               },
             },
-            // {
-            //   id: "user-3",
-            //   segments: {
-            //     test: true,
-            //   },
-            // },
+            {
+              id: "user-3",
+              segments: {
+                test: true,
+              },
+            },
           ],
         },
       ],
