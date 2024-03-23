@@ -112,6 +112,7 @@ async function sendMessageInner({
 
 export async function sendMessageV2(params: SendParamsV2): Promise<boolean> {
   const { messageId, userId, journeyId, nodeId, templateId, runId } = params;
+  const now = new Date();
   const sendResult = await sendMessageInner(params);
   let shouldContinue: boolean;
   let event: InternalEventType;
@@ -144,6 +145,7 @@ export async function sendMessageV2(params: SendParamsV2): Promise<boolean> {
     userId,
     messageId,
     event,
+    timestamp: now.toISOString(),
     properties: trackingProperties,
   };
 
