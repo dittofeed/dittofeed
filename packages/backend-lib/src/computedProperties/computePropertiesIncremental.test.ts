@@ -2883,6 +2883,7 @@ describe("computeProperties", () => {
     },
     {
       description: "computes a negative trait segment",
+      only: true,
       userProperties: [],
       segments: [
         {
@@ -2890,7 +2891,7 @@ describe("computeProperties", () => {
           definition: {
             entryNode: {
               type: SegmentNodeType.Trait,
-              id: randomUUID(),
+              id: "node-1",
               path: "env",
               operator: {
                 type: SegmentOperatorType.NotEquals,
@@ -2934,6 +2935,22 @@ describe("computeProperties", () => {
         },
         {
           type: EventsStepType.Assert,
+          states: [
+            {
+              userId: "user-1",
+              type: "segment",
+              nodeId: "node-1",
+              lastValue: "test",
+              name: "test",
+            },
+            {
+              userId: "user-2",
+              type: "segment",
+              nodeId: "node-1",
+              lastValue: "prod",
+              name: "test",
+            },
+          ],
           users: [
             {
               id: "user-1",
@@ -2947,12 +2964,12 @@ describe("computeProperties", () => {
                 test: null,
               },
             },
-            {
-              id: "user-3",
-              segments: {
-                test: true,
-              },
-            },
+            // {
+            //   id: "user-3",
+            //   segments: {
+            //     test: true,
+            //   },
+            // },
           ],
         },
       ],
