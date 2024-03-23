@@ -2921,6 +2921,12 @@ describe("computeProperties", () => {
                 env: "prod",
               },
             },
+            {
+              type: EventType.Identify,
+              offsetMs: -100,
+              userId: "user-3",
+              traits: {},
+            },
           ],
         },
         {
@@ -2939,6 +2945,12 @@ describe("computeProperties", () => {
               id: "user-2",
               segments: {
                 test: null,
+              },
+            },
+            {
+              id: "user-3",
+              segments: {
+                test: true,
               },
             },
           ],
