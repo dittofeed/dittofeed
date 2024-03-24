@@ -1,4 +1,5 @@
 import { SegmentAssignment } from "@prisma/client";
+import { ENTRY_TYPES } from "isomorphic-lib/src/constants";
 import { err, ok } from "neverthrow";
 import { omit } from "remeda";
 
@@ -14,7 +15,6 @@ import {
   BadWorkspaceConfigurationType,
   ChannelType,
   InternalEventType,
-  JourneyNodeType,
   JSONValue,
   TrackData,
 } from "../../types";
@@ -171,7 +171,9 @@ export async function isRunnable({
         journeyId,
         userId,
         eventKey,
-        type: JourneyNodeType.ExitNode,
+        type: {
+          in: Array.from(ENTRY_TYPES),
+        },
       },
     }),
     prisma().journey.findUnique({
