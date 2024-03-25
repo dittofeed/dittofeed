@@ -345,4 +345,13 @@ export async function userJourneyWorkflow({
     });
     currentNode = nextNode;
   }
+
+  await onNodeProcessedV2({
+    workspaceId,
+    userId,
+    node: definition.exitNode,
+    journeyStartedAt,
+    journeyId,
+    eventKey,
+  });
 }
