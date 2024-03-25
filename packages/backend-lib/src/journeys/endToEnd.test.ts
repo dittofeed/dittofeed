@@ -30,6 +30,7 @@ import {
   SegmentSplitVariantType,
   SubscriptionGroupType,
 } from "../types";
+import { getUserJourneyWorkflowId } from "./userWorkflow";
 
 const paidSegmentDefinition: SegmentDefinition = {
   entryNode: {
@@ -196,7 +197,10 @@ describe("end to end journeys", () => {
 
       currentTimeMS = await testEnv.currentTimeMs();
 
-      userJourneyWorkflowId = `user-journey-${journey.id}-${userId1}`;
+      userJourneyWorkflowId = getUserJourneyWorkflowId({
+        userId: userId1,
+        journeyId: journey.id,
+      });
     });
 
     describe("when the timer times out before the segment is satisfied", () => {
@@ -561,7 +565,10 @@ describe("end to end journeys", () => {
           ],
         });
 
-        userJourneyWorkflowId = `user-journey-${journey.id}-${userId1}`;
+        userJourneyWorkflowId = getUserJourneyWorkflowId({
+          userId: userId1,
+          journeyId: journey.id,
+        });
       });
 
       it("sends them a welcome email", async () => {
@@ -590,7 +597,11 @@ describe("end to end journeys", () => {
             userJourneyWorkflowId,
           );
 
-          const userJourneyWorkflowId2 = `user-journey-${journey.id}-${userId2}`;
+          const userJourneyWorkflowId2 = getUserJourneyWorkflowId({
+            userId: userId2,
+            journeyId: journey.id,
+          });
+
           const handle2 = testEnv.client.workflow.getHandle(
             userJourneyWorkflowId2,
           );
@@ -662,7 +673,10 @@ describe("end to end journeys", () => {
           ),
         );
 
-        userJourneyWorkflowId = `user-journey-${journey.id}-${userId1}`;
+        userJourneyWorkflowId = getUserJourneyWorkflowId({
+          userId: userId1,
+          journeyId: journey.id,
+        });
 
         const currentTimeMS = await testEnv.currentTimeMs();
 
