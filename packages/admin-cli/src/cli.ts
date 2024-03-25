@@ -13,12 +13,7 @@ import {
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import {
-  EmailProviderSecret,
-  EmailProviderType,
-  SendgridSecret,
-} from "isomorphic-lib/src/types";
+import { EmailProviderType, SendgridSecret } from "isomorphic-lib/src/types";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
@@ -29,6 +24,7 @@ import {
   disentangleResendSendgrid,
   upgradeV010Post,
   upgradeV010Pre,
+  upgradeV012Pre,
 } from "./upgrades";
 
 export async function cli() {
@@ -332,6 +328,14 @@ export async function cli() {
       () => {},
       async () => {
         await upgradeV010Post();
+      },
+    )
+    .command(
+      "upgrade-0-12-0-pre",
+      "Run the post-upgrade steps for the 0.10.0 after updating your Dittofeed application version.",
+      () => {},
+      async () => {
+        await upgradeV012Pre();
       },
     )
     .demandCommand(1, "# Please provide a valid command")

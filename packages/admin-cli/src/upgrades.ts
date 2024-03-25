@@ -14,7 +14,7 @@ import { createUserEventsTables } from "backend-lib/src/userEvents/clickhouse";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 
-import { spawnWithEnv } from "./spawn";
+import { spawnWithEnv, spawnWithEnvSafe } from "./spawn";
 
 export async function disentangleResendSendgrid() {
   logger().info("Disentangling resend and sendgrid email providers.");
@@ -202,4 +202,20 @@ export async function upgradeV010Post() {
     clickhouse_settings: { wait_end_of_query: 1 },
   });
   logger().info("Performing post-upgrade steps for v0.10.0 completed.");
+}
+
+export async function upgradeV012Pre() {
+  logger().info("Performing pre-upgrade steps for v0.12.0");
+
+  await disentangleResendSendgrid();
+
+  await spawnWithEnvSafe([
+    "yarn",
+    "workspace",
+    "backend-lib",
+    "prisma",
+    "migrate",
+    "deploy",
+  ]);
+  logger().info("Pre-upgrade steps for v0.12.0 completed.");
 }
