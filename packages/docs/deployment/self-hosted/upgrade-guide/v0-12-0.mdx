@@ -1,10 +1,10 @@
 ---
-title: "Upgrading from v0.11.0 to v0.12.0"
+title: "Upgrading from v0.11.0 to v0.12.1"
 ---
 
-<Warning> v0.12.0 is currently in alpha, upgrade at your own risk</Warning>
+<Warning> v0.12.1 is currently in alpha, upgrade at your own risk</Warning>
 
-Upgrading from v0.11.0 to v0.12.0 is fairly straightforward. This guide will walk you through the process of upgrading your Dittofeed instance.
+Upgrading from v0.11.0 to v0.12.1 is fairly straightforward. This guide will walk you through the process of upgrading your Dittofeed instance.
 
 
 ## Step 1: Setting Up Your `docker-compose.lite.yaml` File
@@ -37,7 +37,7 @@ services:
       - dittofeed-network-lite
   # useful for upgrading dittofeed
   admin-cli:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.12.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.12.1}
     entrypoint: []
     profiles: ["admin-cli"]
     command: tail -f /dev/null
@@ -68,18 +68,18 @@ docker compose --profile admin-cli -f docker-compose.lite.yaml up admin-cli -d
 Run the upgrade script before deploying the new version of Dittofeed:
 
 ```bash
-./scripts/admin-lite.sh upgrade-0-12-0-pre
+./scripts/admin-lite.sh upgrade-0-12-1-pre
 ```
 
 ## Step 4: Upgrade Your `docker-compose.lite.yaml` File
 
-Upgrade the version in your docker-compose.lite.yaml file to v0.12.0:
+Upgrade the version in your docker-compose.lite.yaml file to v0.12.1:
 
 ```yaml
 ...
 services:
   lite:
-    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.12.0}
+    image: dittofeed/dittofeed-lite:${IMAGE_TAG:-v0.12.1}
 ...
 ```
 

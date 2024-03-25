@@ -331,7 +331,7 @@ export async function cli() {
       },
     )
     .command(
-      "upgrade-0-12-0-pre",
+      "upgrade-0-12-1-pre",
       "Run the post-upgrade steps for the 0.10.0 after updating your Dittofeed application version.",
       () => {},
       async () => {
