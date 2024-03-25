@@ -25,7 +25,11 @@ import yargs from "yargs/yargs";
 import { boostrapOptions, bootstrapHandler } from "./bootstrap";
 import { hubspotSync } from "./hubspot";
 import { spawnWithEnv } from "./spawn";
-import { upgradeV010Post, upgradeV010Pre } from "./upgrades";
+import {
+  disentangleResendSendgrid,
+  upgradeV010Post,
+  upgradeV010Pre,
+} from "./upgrades";
 
 export async function cli() {
   // Ensure config is initialized, and that environment variables are set.
@@ -244,140 +248,7 @@ export async function cli() {
       "migrations disentangle-resend-sendgrid",
       "Runs migration, disentangling the resend and sendgrid email providers.",
       () => {},
-      async () => {
-        logger().info("Disentangling resend and sendgrid email providers.");
-        await prisma().$transaction(async (pTx) => {
-          const emailProviders = await pTx.emailProvider.findMany({
-            where: {
-              type: {
-                in: [EmailProviderType.Sendgrid, EmailProviderType.Resend],
-              },
-            },
-            include: {
-              secret: true,
-            },
-          });
-          const misnamedValues = emailProviders.flatMap((ep) => {
-            if (!ep.secret?.configValue) {
-              logger().error(
-                {
-                  emailProvider: ep,
-                },
-                "email provider has no secret",
-              );
-              return [];
-            }
-            const secret = schemaValidateWithErr(
-              ep.secret.configValue,
-              EmailProviderSecret,
-            );
-            if (secret.isErr()) {
-              logger().error(
-                {
-                  err: secret.error,
-                  emailProviderId: ep.id,
-                },
-                "failed to validate secret",
-              );
-              return [];
-            }
-            const secretValue = secret.value;
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-            if (ep.type === secretValue.type) {
-              return [];
-            }
-            return {
-              workspaceId: ep.workspaceId,
-              emailProviderId: ep.id,
-              emailProviderType: ep.type,
-              secretId: ep.secret.id,
-              secretName: ep.secret.name,
-              secretValue,
-            };
-          });
-          const promises: Promise<unknown>[] = [];
-          for (const misnamed of misnamedValues) {
-            logger().info(
-              {
-                workspaceId: misnamed.workspaceId,
-                emailProviderId: misnamed.emailProviderId,
-                emailProviderType: misnamed.emailProviderType,
-                secretId: misnamed.secretId,
-                secretName: misnamed.secretName,
-                secretValueType: misnamed.secretValue.type,
-              },
-              "Misnamed.",
-            );
-            if (
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-              misnamed.emailProviderType === EmailProviderType.Resend &&
-              misnamed.secretValue.type === EmailProviderType.Sendgrid
-            ) {
-              logger().info("Correcting Resend email provider.");
-              promises.push(
-                (async () => {
-                  const secret = await pTx.secret.create({
-                    data: {
-                      name: SecretNames.Resend,
-                      workspaceId: misnamed.workspaceId,
-                      configValue: { type: EmailProviderType.Resend },
-                    },
-                  });
-                  await pTx.emailProvider.update({
-                    where: {
-                      id: misnamed.emailProviderId,
-                    },
-                    data: {
-                      secretId: secret.id,
-                    },
-                  });
-                })(),
-              );
-            } else if (
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-              misnamed.emailProviderType === EmailProviderType.Sendgrid &&
-              misnamed.secretValue.type === EmailProviderType.Resend
-            ) {
-              logger().info("Correcting Sendgrid email provider.");
-              promises.push(
-                (async () => {
-                  const secret = await pTx.secret.create({
-                    data: {
-                      name: SecretNames.Resend,
-                      workspaceId: misnamed.workspaceId,
-                      configValue: misnamed.secretValue,
-                    },
-                  });
-                  await pTx.emailProvider.update({
-                    where: {
-                      workspaceId_type: {
-                        type: EmailProviderType.Resend,
-                        workspaceId: misnamed.workspaceId,
-                      },
-                    },
-                    data: {
-                      secretId: secret.id,
-                    },
-                  });
-                  await pTx.secret.update({
-                    where: {
-                      workspaceId_name: {
-                        workspaceId: misnamed.workspaceId,
-                        name: SecretNames.Sendgrid,
-                      },
-                    },
-                    data: {
-                      configValue: { type: EmailProviderType.Sendgrid },
-                    },
-                  });
-                })(),
-              );
-            }
-          }
-          await Promise.all(promises);
-        });
-        logger().info("Done.");
-      },
+      () => disentangleResendSendgrid(),
     )
     .command(
       "admin-api-key create",
