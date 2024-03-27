@@ -51,10 +51,11 @@ The following would need to occur in order for a user to receive multiple messag
 
 At this point any `LOGGED_IN` events will be ignored, as the user is already in the `loggedIn` segment and the their journey is already running.
 
-4. 5 minutes pass, and the specified segment window expires.
-5. Dittofeed processes the segment window expiration and removes the user from the `loggedIn` segment.
+4. The user is sent a message, and the journey is completed.
+5. 5 minutes pass, and the specified segment window expires.
+6. Dittofeed processes the segment window expiration and removes the user from the `loggedIn` segment.
 
-At this point the user is no longer in the `loggedIn` segment, and any `LOGGED_IN` events will re-assign the user to the segment and re-start the journey.
+At this point the user is no longer in the `loggedIn` segment, and any additional `LOGGED_IN` events will re-assign the user to the segment and re-start the journey.
 
 <Warning>
 You probably *shouldn't* email a user every time they log in, this example is for educational purposes only.
