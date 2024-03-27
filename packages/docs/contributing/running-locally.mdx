@@ -62,9 +62,15 @@ docker compose --profile otel up -d
 
 ## FAQ
 
-### Why don't I see any users in the Dashboard?
+### Why don't I see any users in my workspace?
 
-Displayed users represent a collection of computed "User Property Assignments" and "Segment Assignments". These are computed by the dittofeed worker, and won't be available until the worker has processed user events. Try running the following commands.
+Displayed users represent a collection of computed "User Property Assignments" and "Segment Assignments". These are computed by the dittofeed worker, and won't be available until the worker has processed user events. If you aren't seeing users in your workspace, it's likely one of the following is true:
+
+- Dittofeed hasn't received any user events.
+- The configured user properties and segments don't match the provided events.
+- The worker isn't running the compute properties workflow.
+
+Try running the following commands.
 
 ```bash
 # Will start the job responsible to computing user events, and create sample events.

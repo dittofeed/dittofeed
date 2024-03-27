@@ -11,7 +11,12 @@ There are two types of journey entry nodes, Segment Entry Nodes and Event Entry 
 
 Users enter journeys with Segment Entry Nodes when they enter the specified segment.  Segment Entry Nodes are useful for what might traditionally considered marketing messaging. Example use cases include drip campaigns, onboarding, or re-engagement campaigns.
 
-Journeys with Segment Entry Nodes have at most one running instance per user.
+Journeys with Segment Entry Nodes have at most one running instance per user.  Note that a user can only re-enter a segment entry journey if:
+
+1. The user exits the journey.
+2. The user exits the segment.
+3. The user re-enters the segment.
+4. The journey is configured to allow re-entry.
 
 ### Example Use Case - Welcome email
 
