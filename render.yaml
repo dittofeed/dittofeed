@@ -33,12 +33,12 @@ services:
     name: dittofeed-lite
     env: docker
     autoDeploy: false
-    dockerfilePath: ./packages/lite/Dockerfile
-    dockerContext: .
-    # Setting Node.js max-old-space-size to 312 MB.
-    # This is calculated as follows: Total RAM (512 MB) - Buffer (200 MB) -
+    image:
+      name: dittofeed/dittofeed-lite:v0.12.1
+    # Setting Node.js max-old-space-size to 412 MB.
+    # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
     # Memory for other processes (100 MB).
-    dockerCommand: node --max-old-space-size=212 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
+    dockerCommand: node --max-old-space-size=412 packages/lite/dist/scripts/startLite.js --workspace-name=$WORKSPACE_NAME
     envVars:
       - fromGroup: backend-app-env
       - fromGroup: clickhouse-credentials
