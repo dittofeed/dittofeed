@@ -31,9 +31,10 @@ envVarGroups:
 services:
   - type: web
     name: dittofeed-lite
-    env: image
+    runtime: image
     autoDeploy: false
-    image: dittofeed/dittofeed-lite:v0.12.1
+    image:
+      url: "docker.io/dittofeed/dittofeed-lite:v0.12.1"
     # Setting Node.js max-old-space-size to 412 MB.
     # This is calculated as follows: Total RAM (512 MB) - Buffer (100 MB) -
     # Memory for other processes (100 MB).
