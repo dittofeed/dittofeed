@@ -25,7 +25,9 @@ export enum SecretNames {
   Fcm = "fcm-key",
   Smtp = "smtp",
   Subscription = "subscription-key",
+  Webhook = "webhook-channel",
 }
+
 export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
   {
     [SmsProviderType.Twilio]: SecretNames.Twilio,

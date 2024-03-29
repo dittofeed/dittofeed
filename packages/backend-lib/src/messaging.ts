@@ -1215,6 +1215,180 @@ export async function sendSms({
   }
 }
 
+export async function sendWebhook({
+  workspaceId,
+  templateId,
+  userPropertyAssignments,
+  subscriptionGroupDetails,
+  useDraft,
+  userId,
+}: Omit<
+  SendMessageParametersWebhook,
+  "channel"
+>): Promise<BackendMessageSendResult> {
+  const [getSendModelsResult, secret] = await Promise.all([
+    getSendMessageModels({
+      workspaceId,
+      templateId,
+      channel: ChannelType.Webhook,
+      useDraft,
+      subscriptionGroupDetails,
+    }),
+    await prisma().secret.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: SecretNames.Webhook,
+        },
+      },
+    }),
+  ]);
+  if (getSendModelsResult.isErr()) {
+    return err(getSendModelsResult.error);
+  }
+  // [DF-471] auto-create secret
+  const { messageTemplateDefinition } = getSendModelsResult.value;
+
+  const parsedConfigResult: Record<string, string> = secret?.configValue
+    ? schemaValidateWithErr(secret.configValue, SmsProviderSecret).unwrapOr({})
+    : {};
+
+  if (messageTemplateDefinition.type !== ChannelType.Webhook) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateMisconfigured,
+        message: "message template is not webhook template",
+      },
+    });
+  }
+  const { identifierKey } = messageTemplateDefinition;
+
+  const renderedValuesResult = renderValues({
+    userProperties: userPropertyAssignments,
+    identifierKey,
+    subscriptionGroupId: subscriptionGroupDetails?.id,
+    workspaceId,
+    templates: {
+      body: {
+        contents: messageTemplateDefinition.body,
+      },
+    },
+  });
+
+  if (renderedValuesResult.isErr()) {
+    const { error, field } = renderedValuesResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+
+  const rawIdentifier = userPropertyAssignments[identifierKey];
+  let identifier: string | null;
+  switch (typeof rawIdentifier) {
+    case "string":
+      identifier = rawIdentifier;
+      break;
+    // in the case of e.g. a phone number, convert to string
+    case "number":
+      identifier = String(rawIdentifier);
+      break;
+    default:
+      identifier = null;
+      break;
+  }
+
+  if (!identifier) {
+    return err({
+      type: InternalEventType.MessageSkipped,
+      variant: {
+        type: MessageSkippedType.MissingIdentifier,
+        identifierKey,
+      },
+    });
+  }
+  const { body } = renderedValuesResult.value;
+  const to = identifier;
+
+  switch (smsProvider.type) {
+    case SmsProviderType.Twilio: {
+      const { accountSid, authToken, messagingServiceSid } =
+        parsedConfigResult.value as TwilioSecret;
+
+      if (!accountSid || !authToken || !messagingServiceSid) {
+        return err({
+          type: InternalEventType.BadWorkspaceConfiguration,
+          variant: {
+            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+            message: `missing accountSid, authToken, or messagingServiceSid in sms provider config`,
+          },
+        });
+      }
+
+      const result = await sendSmsTwilio({
+        body,
+        accountSid,
+        authToken,
+        userId,
+        messagingServiceSid,
+        subscriptionGroupId: subscriptionGroupDetails?.id,
+        to,
+        workspaceId,
+      });
+
+      if (result.isErr()) {
+        return err({
+          type: InternalEventType.MessageFailure,
+          variant: {
+            type: ChannelType.Sms,
+            provider: {
+              type: SmsProviderType.Twilio,
+              message: result.error.message,
+            },
+          },
+        });
+      }
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Sms,
+          body,
+          to,
+          provider: {
+            type: SmsProviderType.Twilio,
+            sid: result.value.sid,
+          },
+        },
+      });
+    }
+    case SmsProviderType.Test:
+      return ok({
+        type: InternalEventType.MessageSent,
+        variant: {
+          type: ChannelType.Sms,
+          body,
+          to,
+          provider: {
+            type: SmsProviderType.Test,
+          },
+        },
+      });
+    default: {
+      return err({
+        type: InternalEventType.BadWorkspaceConfiguration,
+        variant: {
+          type: BadWorkspaceConfigurationType.MessageServiceProviderNotFound,
+        },
+      });
+    }
+  }
+}
+
 export async function sendMessage(
   params: SendMessageParameters,
 ): Promise<BackendMessageSendResult> {
