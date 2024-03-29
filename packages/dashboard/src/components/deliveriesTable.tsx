@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
+import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   ChannelType,
@@ -34,7 +35,6 @@ import { immer } from "zustand/middleware/immer";
 
 import { useAppStorePick } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
-import { getTemplatesLink } from "../lib/templatesLink";
 import EmailPreviewHeader from "./emailPreviewHeader";
 import SmsPreviewBody from "./smsPreviewBody";
 import TemplatePreview from "./templatePreview";
@@ -518,7 +518,7 @@ export function DeliveriesTable({
                 if (row.originType === "broadcast") {
                   href = `/broadcasts/template/${row.originId}`;
                 } else if (row.templateId) {
-                  href = getTemplatesLink({
+                  href = messageTemplatePath({
                     channel: row.channel,
                     id: row.templateId,
                   });

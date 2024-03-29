@@ -67,11 +67,14 @@ export enum SubscriptionGroupType {
   OptOut = "OptOut",
 }
 
-export enum ChannelType {
-  Email = "Email",
-  MobilePush = "MobilePush",
-  Sms = "Sms",
-}
+export const ChannelType = {
+  Email: "Email",
+  MobilePush: "MobilePush",
+  Sms: "Sms",
+  Webhook: "Webhook",
+} as const;
+
+export type ChannelType = (typeof ChannelType)[keyof typeof ChannelType];
 
 export const SubscriptionGroupResource = Type.Object({
   id: Type.String(),
@@ -627,10 +630,18 @@ export const SmsMessageVariant = Type.Object({
 
 export type SmsMessageVariant = Static<typeof SmsMessageVariant>;
 
+export const WebhookMessageVariant = Type.Object({
+  type: Type.Literal(ChannelType.Webhook),
+  templateId: Type.String(),
+});
+
+export type WebhookMessageVariant = Static<typeof WebhookMessageVariant>;
+
 export const MessageVariant = Type.Union([
   EmailMessageVariant,
   MobilePushMessageVariant,
   SmsMessageVariant,
+  WebhookMessageVariant,
 ]);
 
 export type MessageVariants = Static<typeof MessageVariant>;
@@ -916,10 +927,42 @@ export const SmsTemplateResource = Type.Composite([
 
 export type SmsTemplateResource = Static<typeof SmsTemplateResource>;
 
+// Partial of AxiosRequestConfig.
+export const WebhookConfig = Type.Object({
+  url: Type.Optional(Type.String()),
+  method: Type.Optional(Type.String()),
+  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
+  params: Type.Optional(Type.Any()),
+  data: Type.Optional(Type.Any()),
+  responseEncoding: Type.Optional(
+    Type.Union([Type.Literal("json"), Type.Literal("text")]),
+  ),
+});
+
+export type WebhookConfig = Static<typeof WebhookConfig>;
+
+export const WebhookContents = Type.Object({
+  identifierKey: Type.String(),
+  config: WebhookConfig,
+  secret: WebhookConfig,
+});
+
+export type WebhookContents = Static<typeof WebhookContents>;
+
+export const WebhookTemplateResource = Type.Composite([
+  Type.Object({
+    type: Type.Literal(ChannelType.Webhook),
+  }),
+  WebhookContents,
+]);
+
+export type WebhookTemplateResource = Static<typeof WebhookTemplateResource>;
+
 export const MessageTemplateResourceDefinition = Type.Union([
   MobilePushTemplateResource,
   EmailTemplateResource,
   SmsTemplateResource,
+  WebhookTemplateResource,
 ]);
 
 export type MessageTemplateResourceDefinition = Static<
@@ -2211,7 +2254,18 @@ export const SmsStats = Type.Object({
 
 export type SmsStats = Static<typeof SmsStats>;
 
-export const MessageChannelStats = Type.Union([EmailStats, SmsStats]);
+export const WebhookStats = Type.Object({
+  type: Type.Literal(ChannelType.Webhook),
+  stats: Type.Record(Type.String(), Type.Number()),
+});
+
+export type WebhookStats = Static<typeof WebhookStats>;
+
+export const MessageChannelStats = Type.Union([
+  EmailStats,
+  SmsStats,
+  WebhookStats,
+]);
 
 export type MessageChannelStats = Static<typeof MessageChannelStats>;
 
@@ -2454,6 +2508,23 @@ export const MessageEmailSuccess = Type.Composite([
 
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
 
+export const WebhookResponse = Type.Object({
+  status: Type.Number(),
+  headers: Type.Record(Type.String(), Type.String()),
+  body: Type.Unknown(),
+});
+
+export type WebhookResponse = Static<typeof WebhookResponse>;
+
+export const MessageWebhookSuccess = Type.Object({
+  type: Type.Literal(ChannelType.Webhook),
+  to: Type.String(),
+  request: WebhookConfig,
+  response: WebhookResponse,
+});
+
+export type MessageWebhookSuccess = Static<typeof MessageWebhookSuccess>;
+
 export const MessageSkipped = Type.Object({
   type: Type.Literal(InternalEventType.MessageSkipped),
   message: Type.Optional(Type.String()),
@@ -2464,6 +2535,7 @@ export type MessageSkipped = Static<typeof MessageSkipped>;
 export const MessageSendSuccessVariant = Type.Union([
   MessageEmailSuccess,
   MessageSmsSuccess,
+  MessageWebhookSuccess,
 ]);
 
 export type MessageSendSuccessVariant = Static<
@@ -2637,9 +2709,19 @@ export const MessageSmsServiceFailure = Type.Object({
 
 export type MessageSmsServiceFailure = Static<typeof MessageSmsServiceFailure>;
 
+export const MessageWebhookServiceFailure = Type.Object({
+  type: Type.Literal(ChannelType.Webhook),
+  response: WebhookResponse,
+});
+
+export type MessageWebhookServiceFailure = Static<
+  typeof MessageWebhookServiceFailure
+>;
+
 export const MessageServiceFailureVariant = Type.Union([
   MessageEmailServiceFailure,
   MessageSmsServiceFailure,
+  MessageWebhookServiceFailure,
 ]);
 
 export type MessageServiceFailureVariant = Static<
@@ -2734,6 +2816,10 @@ export const MessageTemplateTestRequest = Type.Union([
     ...BaseMessageTemplateTestRequest,
     channel: Type.Literal(ChannelType.MobilePush),
     provider: Type.Optional(Type.Enum(MobilePushProviderType)),
+  }),
+  Type.Object({
+    ...BaseMessageTemplateTestRequest,
+    channel: Type.Literal(ChannelType.Webhook),
   }),
 ]);
 

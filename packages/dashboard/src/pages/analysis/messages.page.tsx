@@ -231,7 +231,11 @@ export default function MessagesPage() {
                 nodeStats.channelStats?.type === ChannelType.Email
                   ? nodeStats.channelStats.clickRate
                   : 0,
-              deliveryRate: nodeStats.channelStats?.deliveryRate ?? 0,
+              deliveryRate:
+                nodeStats.channelStats &&
+                "deliveryRate" in nodeStats.channelStats
+                  ? nodeStats.channelStats.deliveryRate
+                  : 0,
               spamRate:
                 nodeStats.channelStats?.type === ChannelType.Email
                   ? nodeStats.channelStats.spamRate

@@ -286,6 +286,7 @@ enum DBChannelType {
   Email
   MobilePush
   Sms
+  Webhook
 }
 
 model SubscriptionGroup {

@@ -15,6 +15,7 @@ import {
   GridRenderCellParams,
 } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
+import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   ChannelType,
@@ -33,7 +34,6 @@ import { shallow } from "zustand/shallow";
 
 import { useAppStore } from "../lib/appStore";
 import { LinkCell, monospaceCell } from "../lib/datagridCells";
-import { getTemplatesLink } from "../lib/templatesLink";
 import { EventResources } from "../lib/types";
 import EventDetailsSidebar from "./eventDetailsSidebar";
 
@@ -204,7 +204,7 @@ export function EventsTable({
     if (templateId && channelType && templateName) {
       resources.push({
         name: templateName,
-        link: getTemplatesLink({ channel: channelType, id: templateId }),
+        link: messageTemplatePath({ channel: channelType, id: templateId }),
         key: uuid(),
       });
     }

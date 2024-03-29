@@ -146,24 +146,30 @@ export interface BaseTemplateState {
 }
 
 export interface EmailTemplateState extends BaseTemplateState {
-  channel: ChannelType.Email;
+  channel: (typeof ChannelType)["Email"];
   providerOverride: EmailProviderType | null;
 }
 
 export interface SmsTemplateState extends BaseTemplateState {
-  channel: ChannelType.Sms;
+  channel: (typeof ChannelType)["Sms"];
   providerOverride: SmsProviderType | null;
 }
 
 export interface MobilePushTemplateState extends BaseTemplateState {
-  channel: ChannelType.MobilePush;
+  channel: (typeof ChannelType)["MobilePush"];
   providerOverride: MobilePushProviderType | null;
+}
+
+export interface WebhookTemplateState extends BaseTemplateState {
+  channel: (typeof ChannelType)["Webhook"];
+  providerOverride: null;
 }
 
 export type TemplateEditorState =
   | EmailTemplateState
   | SmsTemplateState
-  | MobilePushTemplateState;
+  | MobilePushTemplateState
+  | WebhookTemplateState;
 
 const LOREM = new LoremIpsum({
   sentencesPerParagraph: {
@@ -599,6 +605,12 @@ export default function TemplateEditor({
         provider: state.providerOverride ?? undefined,
       };
       break;
+    case ChannelType.Webhook:
+      submitTestData = {
+        ...submitTestDataBase,
+        channel: state.channel,
+      };
+      break;
     default:
       assertUnreachable(state);
   }
@@ -661,8 +673,15 @@ export default function TemplateEditor({
       );
     }
   } else {
-    const identiferKey = CHANNEL_IDENTIFIERS[channel];
-    const to = userProperties[identiferKey];
+    let to: string | null = null;
+    if (channel === ChannelType.Webhook) {
+      if (debouncedDefinition?.type === ChannelType.Webhook) {
+        to = userProperties[debouncedDefinition.identifierKey] ?? null;
+      }
+    } else {
+      const identiferKey = CHANNEL_IDENTIFIERS[channel];
+      to = userProperties[identiferKey] ?? null;
+    }
     let providerAutocomplete: React.ReactNode;
     switch (state.channel) {
       case ChannelType.Email: {
@@ -724,6 +743,9 @@ export default function TemplateEditor({
         );
         break;
       }
+      case ChannelType.Webhook:
+        providerAutocomplete = null;
+        break;
       default:
         assertUnreachable(state);
     }
