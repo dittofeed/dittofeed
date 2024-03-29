@@ -1264,21 +1264,100 @@ export async function sendWebhook({
   }
   const { identifierKey } = messageTemplateDefinition;
 
-  // TODO how to handle params / data?
-  const renderedValuesResult = renderValues({
+  // TODO headers
+  // TODO secrets
+  // TODO pass config
+  const renderedConfigValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
     templates: {
-      body: {
-        contents: messageTemplateDefinition.body,
+      url: {
+        contents: messageTemplateDefinition.config.url,
+      },
+      method: {
+        contents: messageTemplateDefinition.config.method,
+      },
+      params: {
+        contents: messageTemplateDefinition.config.params,
+      },
+      data: {
+        contents: messageTemplateDefinition.config.data,
+      },
+      responseEncoding: {
+        contents: messageTemplateDefinition.config.responseEncoding,
       },
     },
   });
+  const renderedSecretValuesResult = renderValues({
+    userProperties: userPropertyAssignments,
+    identifierKey,
+    subscriptionGroupId: subscriptionGroupDetails?.id,
+    workspaceId,
+    templates: {
+      url: {
+        contents: messageTemplateDefinition.secret.url,
+      },
+      method: {
+        contents: messageTemplateDefinition.secret.method,
+      },
+      params: {
+        contents: messageTemplateDefinition.secret.params,
+      },
+      data: {
+        contents: messageTemplateDefinition.secret.data,
+      },
+      responseEncoding: {
+        contents: messageTemplateDefinition.secret.responseEncoding,
+      },
+    },
+  });
+  const headers =
+    messageTemplateDefinition.config.headers ||
+    messageTemplateDefinition.secret.headers
+      ? {
+          ...messageTemplateDefinition.config.headers,
+          ...messageTemplateDefinition.secret.headers,
+        }
+      : null;
 
-  if (renderedValuesResult.isErr()) {
-    const { error, field } = renderedValuesResult.error;
+  const renderedHeadersResult = headers
+    ? renderValues({
+        userProperties: userPropertyAssignments,
+        identifierKey,
+        subscriptionGroupId: subscriptionGroupDetails?.id,
+        workspaceId,
+        templates: R.mapValues(headers, (val) => ({ contents: val })),
+      })
+    : null;
+
+  if (renderedConfigValuesResult.isErr()) {
+    const { error, field } = renderedConfigValuesResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+
+  if (renderedSecretValuesResult.isErr()) {
+    const { error, field } = renderedSecretValuesResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+
+  if (renderedHeadersResult?.isErr()) {
+    const { error, field } = renderedHeadersResult.error;
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
