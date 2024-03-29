@@ -316,24 +316,30 @@ export interface SendMessageParametersBase {
 }
 
 export interface SendMessageParametersEmail extends SendMessageParametersBase {
-  channel: ChannelType.Email;
+  channel: (typeof ChannelType)["Email"];
   provider?: EmailProviderType;
 }
 
 export interface SendMessageParametersSms extends SendMessageParametersBase {
-  channel: ChannelType.Sms;
+  channel: (typeof ChannelType)["Sms"];
   provider?: SmsProviderType;
 }
 
 export interface SendMessageParametersMobilePush
   extends SendMessageParametersBase {
-  channel: ChannelType.MobilePush;
+  channel: (typeof ChannelType)["MobilePush"];
   provider?: MobilePushProviderType;
+}
+
+export interface SendMessageParametersWebhook
+  extends SendMessageParametersBase {
+  channel: (typeof ChannelType)["Webhook"];
 }
 
 export type SendMessageParameters =
   | SendMessageParametersEmail
   | SendMessageParametersSms
+  | SendMessageParametersWebhook
   | SendMessageParametersMobilePush;
 
 type TemplateDictionary<T> = {
@@ -1218,6 +1224,9 @@ export async function sendMessage(
     case ChannelType.Sms:
       return sendSms(params);
     case ChannelType.MobilePush:
+      throw new Error("not implemented");
+    case ChannelType.Webhook:
+      // TODO [DF-471] implement webhook
       throw new Error("not implemented");
   }
 }
