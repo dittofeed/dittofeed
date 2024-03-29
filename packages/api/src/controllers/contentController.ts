@@ -185,6 +185,13 @@ export default async function contentController(fastify: FastifyInstance) {
           };
           break;
         }
+        case ChannelType.Webhook: {
+          sendMessageParams = {
+            ...baseSendMessageParams,
+            channel: request.body.channel,
+          };
+          break;
+        }
         default:
           assertUnreachable(request.body);
       }
