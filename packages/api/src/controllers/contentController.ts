@@ -71,7 +71,10 @@ export default async function contentController(fastify: FastifyInstance) {
         templateSecrets[secret.name] = secret.value;
       }
 
-      const identifierKey = CHANNEL_IDENTIFIERS[channel];
+      const identifierKey =
+        channel !== ChannelType.Webhook
+          ? CHANNEL_IDENTIFIERS[channel]
+          : contents.identifierKey?.value;
 
       const responseContents: RenderMessageTemplateResponse["contents"] =
         R.mapValues(contents, (content) => {
