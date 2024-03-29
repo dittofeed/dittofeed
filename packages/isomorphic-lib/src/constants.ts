@@ -48,6 +48,7 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
   [ChannelType.Sms]: "SMS",
   [ChannelType.Email]: "Email",
   [ChannelType.MobilePush]: "Push Notification",
+  [ChannelType.Webhook]: "Webhook",
 };
 
 export const DAY_INDICES = [0, 1, 2, 3, 4, 5, 6] as const;
