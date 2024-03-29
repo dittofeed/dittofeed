@@ -7199,7 +7199,7 @@ __metadata:
     jest: ^29.4.0
     jest-expect-message: ^1.1.3
     prettier: ^3.2.5
-    remeda: ^1.12.0
+    remeda: ^1.56.0
     ts-jest: ^29.0.5
     ts-node: ^10.9.1
     typescript: ^5.2.2
@@ -7449,7 +7449,7 @@ __metadata:
     postmark: ^4.0.2
     prettier: 3.2.5
     qs: ^6.12.0
-    remeda: ^1.12.0
+    remeda: ^1.56.0
     resend: ^2.1.0
     svix: ^1.15.0
     ts-jest: ^29.0.5
@@ -7917,7 +7917,7 @@ __metadata:
     postmark: ^4.0.2
     prettier: 3.2.5
     prisma: ^5.4.1
-    remeda: ^1.24.0
+    remeda: ^1.56.0
     resend: ^2.1.0
     sns-payload-validator: ^2.1.0
     ts-jest: ^29.0.5
@@ -9045,7 +9045,7 @@ __metadata:
     react-diff-view: ^3.0.3
     react-dom: 18.2.0
     reactflow: ^11.2.0
-    remeda: ^1.24.0
+    remeda: ^1.56.0
     simplebar-react: ^2.4.3
     slate: ^0.87.0
     slate-history: ^0.86.0
@@ -12281,7 +12281,7 @@ __metadata:
     json-stable-stringify: ^1.1.1
     neverthrow: ^6.0.0
     prettier: 3.2.5
-    remeda: ^1.24.0
+    remeda: ^1.56.0
     ts-jest: ^29.0.5
     typescript: ^5.2.2
   languageName: unknown
@@ -16002,17 +16002,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"remeda@npm:^1.12.0":
-  version: 1.12.0
-  resolution: "remeda@npm:1.12.0"
-  checksum: 1c06c6a22d53ad3383d1502faf39b2df15cce742b03056014e96a696cee0fb3f022826c51b4ecacbdd787077e372e8f6a77dbd42b40a8fc8a37ecc39562d2248
-  languageName: node
-  linkType: hard
-
-"remeda@npm:^1.24.0":
-  version: 1.24.0
-  resolution: "remeda@npm:1.24.0"
-  checksum: 1354f45585e201506653d6f4b6a5965d299cf5f9cf2ac8a8e6efc51dc813771cce1b6f4330cc61faa8f1c95d3268b855e200c399cba6b40facbdf7af29bd2786
+"remeda@npm:^1.56.0":
+  version: 1.56.0
+  resolution: "remeda@npm:1.56.0"
+  checksum: d1e5a2cefa4dc194b0bc0b0df34cdaa865e4bfa0518759cd47de3488ea5a7d75a54f4f6a0b01829f9ca631fcf2a37935cfdf39ab52d686b1bf15a08049c7a6e1
   languageName: node
   linkType: hard
 
