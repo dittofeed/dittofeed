@@ -11,6 +11,7 @@ import {
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
+  WebhookTemplateResource,
 } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
 
@@ -81,6 +82,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     deleteMessageTemplate(deleteRequest.id);
   };
 
+  // TODO [DF-471]
   const { emailTemplates, mobilePushTemplates, smsTemplates } = useMemo(() => {
     const messages =
       messagesResult.type === CompletionStatus.Successful
@@ -90,6 +92,7 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
       emailTemplates: NarrowedMessageTemplateResource<EmailTemplateResource>[];
       mobilePushTemplates: NarrowedMessageTemplateResource<MobilePushTemplateResource>[];
       smsTemplates: NarrowedMessageTemplateResource<SmsTemplateResource>[];
+      webhookTemplates: NarrowedMessageTemplateResource<WebhookTemplateResource>[];
     }>(
       (acc, template) => {
         const definition = template.draft ?? template.definition;
@@ -119,6 +122,13 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
               definition,
             });
             break;
+          case ChannelType.Webhook:
+            acc.webhookTemplates.push({
+              ...template,
+              updatedAt: template.updatedAt,
+              definition,
+            });
+            break;
           default: {
             const { type } = definition;
             assertUnreachable(type);
@@ -126,7 +136,12 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
         }
         return acc;
       },
-      { emailTemplates: [], mobilePushTemplates: [], smsTemplates: [] },
+      {
+        emailTemplates: [],
+        mobilePushTemplates: [],
+        smsTemplates: [],
+        webhookTemplates: [],
+      },
     );
   }, [messagesResult]);
 

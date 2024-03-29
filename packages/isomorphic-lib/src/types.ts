@@ -2518,6 +2518,7 @@ export type WebhookResponse = Static<typeof WebhookResponse>;
 
 export const MessageWebhookSuccess = Type.Object({
   type: Type.Literal(ChannelType.Webhook),
+  to: Type.String(),
   request: WebhookConfig,
   response: WebhookResponse,
 });

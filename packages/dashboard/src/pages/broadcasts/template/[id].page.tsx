@@ -265,6 +265,9 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         break;
       case ChannelType.MobilePush:
         throw new Error("MobilePush not implemented");
+      case ChannelType.Webhook:
+        // TODO [DF-471]
+        throw new Error("Webhook not implemented");
       default:
         assertUnreachable(channel);
     }

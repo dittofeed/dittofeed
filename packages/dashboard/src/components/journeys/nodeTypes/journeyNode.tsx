@@ -475,7 +475,14 @@ export function JourneyNode({
         {channelStats ? (
           <>
             <StatCategory label="Sent" rate={channelStats.sendRate} />
-            <StatCategory label="Delivered" rate={channelStats.deliveryRate} />
+            <StatCategory
+              label="Delivered"
+              rate={
+                "deliveryRate" in channelStats
+                  ? channelStats.deliveryRate
+                  : "N/A"
+              }
+            />
             <StatCategory
               label="Opened"
               rate={
