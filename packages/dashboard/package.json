@@ -56,7 +56,7 @@
     "react-diff-view": "^3.0.3",
     "react-dom": "18.2.0",
     "reactflow": "^11.2.0",
-    "remeda": "^1.24.0",
+    "remeda": "^1.56.0",
     "simplebar-react": "^2.4.3",
     "slate": "^0.87.0",
     "slate-history": "^0.86.0",
