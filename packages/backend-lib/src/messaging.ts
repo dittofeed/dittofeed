@@ -1264,6 +1264,7 @@ export async function sendWebhook({
   }
   const { identifierKey } = messageTemplateDefinition;
 
+  // TODO how to handle params / data?
   const renderedValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
