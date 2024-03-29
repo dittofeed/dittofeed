@@ -2976,14 +2976,14 @@ export type SmtpSecret = Static<typeof SmtpSecret>;
 
 export type SmtpSecretKey = keyof Omit<SmtpSecret, "type">;
 
-export const WebhookProviderSecret = Type.Composite([
+export const WebhookSecret = Type.Composite([
   Type.Record(Type.String(), Type.String()),
   Type.Object({
     type: Type.Literal(ChannelType.Webhook),
   }),
 ]);
 
-export type WebhookProviderSecret = Static<typeof WebhookProviderSecret>;
+export type WebhookProviderSecret = Static<typeof WebhookSecret>;
 
 export const EmailProviderSecret = Type.Union([
   SendgridSecret,

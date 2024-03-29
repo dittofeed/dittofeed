@@ -1,4 +1,5 @@
 import { MailDataRequired } from "@sendgrid/mail";
+import axios from "axios";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -51,6 +52,7 @@ import {
   SmsProviderType,
   TwilioSecret,
   UpsertMessageTemplateResource,
+  WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -1250,7 +1252,7 @@ export async function sendWebhook({
   const { messageTemplateDefinition } = getSendModelsResult.value;
 
   const parsedConfigResult: Record<string, string> = secret?.configValue
-    ? schemaValidateWithErr(secret.configValue, SmsProviderSecret).unwrapOr({})
+    ? schemaValidateWithErr(secret.configValue, WebhookSecret).unwrapOr({})
     : {};
 
   if (messageTemplateDefinition.type !== ChannelType.Webhook) {
@@ -1264,6 +1266,7 @@ export async function sendWebhook({
   }
   const { identifierKey } = messageTemplateDefinition;
 
+  // TODO [DF-471]
   // TODO headers
   // TODO secrets
   // TODO pass config
@@ -1356,7 +1359,8 @@ export async function sendWebhook({
     });
   }
 
-  if (renderedHeadersResult?.isErr()) {
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  if (renderedHeadersResult && renderedHeadersResult.isErr()) {
     const { error, field } = renderedHeadersResult.error;
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
@@ -1392,81 +1396,88 @@ export async function sendWebhook({
       },
     });
   }
-  const { body } = renderedValuesResult.value;
-  const to = identifier;
 
-  switch (smsProvider.type) {
-    case SmsProviderType.Twilio: {
-      const { accountSid, authToken, messagingServiceSid } =
-        parsedConfigResult.value as TwilioSecret;
+  try {
+    // const data  = R.merg renderedConfigValuesResult.value.data ?? {} ;
+    const response = await axios({
+      headers: renderedHeadersResult?.value,
+    });
+  } catch (e) {}
 
-      if (!accountSid || !authToken || !messagingServiceSid) {
-        return err({
-          type: InternalEventType.BadWorkspaceConfiguration,
-          variant: {
-            type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-            message: `missing accountSid, authToken, or messagingServiceSid in sms provider config`,
-          },
-        });
-      }
+  // const to = identifier;
 
-      const result = await sendSmsTwilio({
-        body,
-        accountSid,
-        authToken,
-        userId,
-        messagingServiceSid,
-        subscriptionGroupId: subscriptionGroupDetails?.id,
-        to,
-        workspaceId,
-      });
+  // switch (smsProvider.type) {
+  //   case SmsProviderType.Twilio: {
+  //     const { accountSid, authToken, messagingServiceSid } =
+  //       parsedConfigResult.value as TwilioSecret;
 
-      if (result.isErr()) {
-        return err({
-          type: InternalEventType.MessageFailure,
-          variant: {
-            type: ChannelType.Sms,
-            provider: {
-              type: SmsProviderType.Twilio,
-              message: result.error.message,
-            },
-          },
-        });
-      }
-      return ok({
-        type: InternalEventType.MessageSent,
-        variant: {
-          type: ChannelType.Sms,
-          body,
-          to,
-          provider: {
-            type: SmsProviderType.Twilio,
-            sid: result.value.sid,
-          },
-        },
-      });
-    }
-    case SmsProviderType.Test:
-      return ok({
-        type: InternalEventType.MessageSent,
-        variant: {
-          type: ChannelType.Sms,
-          body,
-          to,
-          provider: {
-            type: SmsProviderType.Test,
-          },
-        },
-      });
-    default: {
-      return err({
-        type: InternalEventType.BadWorkspaceConfiguration,
-        variant: {
-          type: BadWorkspaceConfigurationType.MessageServiceProviderNotFound,
-        },
-      });
-    }
-  }
+  //     if (!accountSid || !authToken || !messagingServiceSid) {
+  //       return err({
+  //         type: InternalEventType.BadWorkspaceConfiguration,
+  //         variant: {
+  //           type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
+  //           message: `missing accountSid, authToken, or messagingServiceSid in sms provider config`,
+  //         },
+  //       });
+  //     }
+
+  //     const result = await sendSmsTwilio({
+  //       body,
+  //       accountSid,
+  //       authToken,
+  //       userId,
+  //       messagingServiceSid,
+  //       subscriptionGroupId: subscriptionGroupDetails?.id,
+  //       to,
+  //       workspaceId,
+  //     });
+
+  //     if (result.isErr()) {
+  //       return err({
+  //         type: InternalEventType.MessageFailure,
+  //         variant: {
+  //           type: ChannelType.Sms,
+  //           provider: {
+  //             type: SmsProviderType.Twilio,
+  //             message: result.error.message,
+  //           },
+  //         },
+  //       });
+  //     }
+  //     return ok({
+  //       type: InternalEventType.MessageSent,
+  //       variant: {
+  //         type: ChannelType.Sms,
+  //         body,
+  //         to,
+  //         provider: {
+  //           type: SmsProviderType.Twilio,
+  //           sid: result.value.sid,
+  //         },
+  //       },
+  //     });
+  //   }
+  //   case SmsProviderType.Test:
+  //     return ok({
+  //       type: InternalEventType.MessageSent,
+  //       variant: {
+  //         type: ChannelType.Sms,
+  //         body,
+  //         to,
+  //         provider: {
+  //           type: SmsProviderType.Test,
+  //         },
+  //       },
+  //     });
+  //   default: {
+  //     return err({
+  //       type: InternalEventType.BadWorkspaceConfiguration,
+  //       variant: {
+  //         type: BadWorkspaceConfigurationType.MessageServiceProviderNotFound,
+  //       },
+  //     });
+  //   }
+  // }
 }
 
 export async function sendMessage(
