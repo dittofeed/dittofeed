@@ -4,7 +4,6 @@ import { Prisma } from "@prisma/client";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import jsonPath from "jsonpath";
-import { mapValues } from "remeda";
 import { v5 as uuidv5 } from "uuid";
 
 import {
@@ -2128,19 +2127,19 @@ export async function computeState({
     });
 
     const subQueriesWithPeriods = subQueryData.reduce<
-      Record<number, SubQueryData[]>
+      Map<number, SubQueryData[]>
     >((memo, subQuery) => {
       const period = periodByComputedPropertyId.get(subQuery) ?? null;
       const periodKey = period?.maxTo.getTime() ?? 0;
-      const subQueriesForPeriod = memo[periodKey] ?? [];
-      memo[periodKey] = [...subQueriesForPeriod, subQuery];
+      const subQueriesForPeriod = memo.get(periodKey) ?? [];
+      memo.set(periodKey, [...subQueriesForPeriod, subQuery]);
       return memo;
-    }, {});
+    }, new Map());
 
     const nowSeconds = now / 1000;
     const workspaceIdClause = qb.addQueryValue(workspaceId, "String");
-    const queries = Object.values(
-      mapValues(subQueriesWithPeriods, async (periodSubQueries, period) => {
+    const queries = Array.from(subQueriesWithPeriods.entries()).map(
+      async ([period, periodSubQueries]) => {
         const lowerBoundClause =
           period > 0
             ? `and processing_time >= toDateTime64(${period / 1000}, 3)`
@@ -2278,9 +2277,8 @@ export async function computeState({
             function_json_value_return_type_allow_complex: 1,
           },
         });
-      }),
+      },
     );
-
     await Promise.all(queries);
 
     await createPeriods({
