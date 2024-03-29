@@ -1,3 +1,4 @@
+import { assertUnreachable } from "./typeAssertions";
 import { ChannelType } from "./types";
 
 export function messageTemplatePath({
@@ -18,6 +19,11 @@ export function messageTemplatePath({
     case ChannelType.Sms:
       channelSubPath = "sms";
       break;
+    case ChannelType.Webhook:
+      channelSubPath = "webhook";
+      break;
+    default:
+      assertUnreachable(channel);
   }
   return `/templates/${channelSubPath}/${id}`;
 }
