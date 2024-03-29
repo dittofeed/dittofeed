@@ -67,12 +67,14 @@ export enum SubscriptionGroupType {
   OptOut = "OptOut",
 }
 
-export enum ChannelType {
-  Email = "Email",
-  MobilePush = "MobilePush",
-  Sms = "Sms",
-  Webhook = "Webhook",
-}
+export const ChannelType = {
+  Email: "Email",
+  MobilePush: "MobilePush",
+  Sms: "Sms",
+  Webhook: "Webhook",
+} as const;
+
+export type ChannelType = (typeof ChannelType)[keyof typeof ChannelType];
 
 export const SubscriptionGroupResource = Type.Object({
   id: Type.String(),
@@ -940,6 +942,7 @@ export const WebhookConfig = Type.Object({
 export type WebhookConfig = Static<typeof WebhookConfig>;
 
 export const WebhookContents = Type.Object({
+  identifierKey: Type.String(),
   config: WebhookConfig,
   secret: WebhookConfig,
 });
