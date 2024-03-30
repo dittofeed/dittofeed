@@ -1,7 +1,7 @@
 import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
-import { SecretNames } from "isomorphic-lib/src/constants";
+import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   jsonParseSafe,
@@ -1252,11 +1252,13 @@ export async function sendWebhook({
   if (getSendModelsResult.isErr()) {
     return err(getSendModelsResult.error);
   }
-  // [DF-471] auto-create secret
-  const { messageTemplateDefinition } = getSendModelsResult.value;
+  const { messageTemplateDefinition, subscriptionGroupSecret } =
+    getSendModelsResult.value;
 
   const parsedConfigResult: Record<string, string> = secret?.configValue
-    ? schemaValidateWithErr(secret.configValue, WebhookSecret).unwrapOr({})
+    ? schemaValidateWithErr(secret.configValue, WebhookSecret)
+        .map((c) => R.omit(c, ["type"]))
+        .unwrapOr({})
     : {};
 
   if (messageTemplateDefinition.type !== ChannelType.Webhook) {
@@ -1269,6 +1271,11 @@ export async function sendWebhook({
     });
   }
   const { identifierKey } = messageTemplateDefinition;
+  const secrets: Record<string, string> = parsedConfigResult;
+
+  if (subscriptionGroupSecret) {
+    secrets[SecretNames.Subscription] = subscriptionGroupSecret;
+  }
 
   // TODO [DF-471]
   // TODO pass secrets config
@@ -1277,6 +1284,7 @@ export async function sendWebhook({
     identifierKey,
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
+    secrets,
     templates: {
       url: {
         contents: messageTemplateDefinition.config.url,
@@ -1300,6 +1308,7 @@ export async function sendWebhook({
     identifierKey,
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
+    secrets,
     templates: {
       url: {
         contents: messageTemplateDefinition.secret.url,
@@ -1325,6 +1334,7 @@ export async function sendWebhook({
         identifierKey,
         subscriptionGroupId: subscriptionGroupDetails?.id,
         workspaceId,
+        secrets,
         templates: R.mapValues(
           messageTemplateDefinition.config.headers,
           (val) => ({ contents: val }),
@@ -1338,6 +1348,7 @@ export async function sendWebhook({
         identifierKey,
         subscriptionGroupId: subscriptionGroupDetails?.id,
         workspaceId,
+        secrets,
         templates: R.mapValues(
           messageTemplateDefinition.secret.headers,
           (val) => ({ contents: val }),
@@ -1395,10 +1406,16 @@ export async function sendWebhook({
     });
   }
 
+  const renderedConfigHeaders = {
+    ...(messageTags?.messageId
+      ? { [MESSAGE_ID_HEADER]: messageTags.messageId }
+      : {}),
+    ...(renderedHeadersConfigResult?.value ?? {}),
+  };
   const renderedHeaders =
     renderedHeadersConfigResult || renderedHeadersSecretResult
       ? {
-          ...(renderedHeadersConfigResult?.value ?? {}),
+          ...renderedConfigHeaders,
           ...(renderedHeadersSecretResult?.value ?? {}),
         }
       : undefined;
@@ -1486,7 +1503,7 @@ export async function sendWebhook({
         request: {
           // exclude secret values from being logged
           ...renderedConfigValuesResult.value,
-          headers: renderedHeadersConfigResult?.value,
+          headers: renderedConfigHeaders,
         } satisfies WebhookConfig,
         response: {
           status: response.status,
