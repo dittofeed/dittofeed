@@ -2509,8 +2509,8 @@ export const MessageEmailSuccess = Type.Composite([
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
 
 export const WebhookResponse = Type.Object({
-  status: Type.Number(),
-  headers: Type.Record(Type.String(), Type.String()),
+  status: Type.Optional(Type.Number()),
+  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   body: Type.Unknown(),
 });
 

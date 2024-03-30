@@ -1,5 +1,5 @@
 import { MailDataRequired } from "@sendgrid/mail";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
@@ -57,6 +57,10 @@ import {
   TwilioSecret,
   UpsertMessageTemplateResource,
   WebhookSecret,
+  MessageWebhookServiceFailure,
+  MessageWebhookSuccess,
+  WebhookConfig,
+  WebhookResponse,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -317,7 +321,7 @@ export interface SendMessageParametersBase {
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
   subscriptionGroupDetails?: SubscriptionGroupDetails & { name: string };
-  messageTags?: Record<string, string>;
+  messageTags?: Record<string, string> & { messageId: string };
   useDraft: boolean;
 }
 
@@ -1223,7 +1227,7 @@ export async function sendWebhook({
   userPropertyAssignments,
   subscriptionGroupDetails,
   useDraft,
-  userId,
+  messageTags,
 }: Omit<
   SendMessageParametersWebhook,
   "channel"
@@ -1267,9 +1271,7 @@ export async function sendWebhook({
   const { identifierKey } = messageTemplateDefinition;
 
   // TODO [DF-471]
-  // TODO headers
-  // TODO secrets
-  // TODO pass config
+  // TODO pass secrets config
   const renderedConfigValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
@@ -1316,22 +1318,30 @@ export async function sendWebhook({
       },
     },
   });
-  const headers =
-    messageTemplateDefinition.config.headers ||
-    messageTemplateDefinition.secret.headers
-      ? {
-          ...messageTemplateDefinition.config.headers,
-          ...messageTemplateDefinition.secret.headers,
-        }
-      : null;
 
-  const renderedHeadersResult = headers
+  const renderedHeadersConfigResult = messageTemplateDefinition.config.headers
     ? renderValues({
         userProperties: userPropertyAssignments,
         identifierKey,
         subscriptionGroupId: subscriptionGroupDetails?.id,
         workspaceId,
-        templates: R.mapValues(headers, (val) => ({ contents: val })),
+        templates: R.mapValues(
+          messageTemplateDefinition.config.headers,
+          (val) => ({ contents: val }),
+        ),
+      })
+    : null;
+
+  const renderedHeadersSecretResult = messageTemplateDefinition.secret.headers
+    ? renderValues({
+        userProperties: userPropertyAssignments,
+        identifierKey,
+        subscriptionGroupId: subscriptionGroupDetails?.id,
+        workspaceId,
+        templates: R.mapValues(
+          messageTemplateDefinition.secret.headers,
+          (val) => ({ contents: val }),
+        ),
       })
     : null;
 
@@ -1360,8 +1370,8 @@ export async function sendWebhook({
   }
 
   // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-  if (renderedHeadersResult && renderedHeadersResult.isErr()) {
-    const { error, field } = renderedHeadersResult.error;
+  if (renderedHeadersConfigResult && renderedHeadersConfigResult.isErr()) {
+    const { error, field } = renderedHeadersConfigResult.error;
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
@@ -1372,13 +1382,33 @@ export async function sendWebhook({
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  if (renderedHeadersSecretResult && renderedHeadersSecretResult.isErr()) {
+    const { error, field } = renderedHeadersSecretResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+
+  const renderedHeaders =
+    renderedHeadersConfigResult || renderedHeadersSecretResult
+      ? {
+          ...(renderedHeadersConfigResult?.value ?? {}),
+          ...(renderedHeadersSecretResult?.value ?? {}),
+        }
+      : undefined;
+
   const rawIdentifier = userPropertyAssignments[identifierKey];
   let identifier: string | null;
   switch (typeof rawIdentifier) {
     case "string":
       identifier = rawIdentifier;
       break;
-    // in the case of e.g. a phone number, convert to string
     case "number":
       identifier = String(rawIdentifier);
       break;
@@ -1398,7 +1428,6 @@ export async function sendWebhook({
   }
 
   try {
-    // FIXME pull out into shared method
     const data =
       renderedConfigValuesResult.value.data ||
       renderedSecretValuesResult.value.data
@@ -1447,84 +1476,43 @@ export async function sendWebhook({
       responseType:
         renderedSecretValuesResult.value.responseEncoding ??
         renderedConfigValuesResult.value.responseEncoding,
-      headers: renderedHeadersResult?.value,
+      headers: renderedHeaders,
     });
-  } catch (e) {}
+    return ok({
+      type: InternalEventType.MessageSent,
+      variant: {
+        type: ChannelType.Webhook,
+        to: identifier,
+        request: {
+          // exclude secret values from being logged
+          ...renderedConfigValuesResult.value,
+          headers: renderedHeadersConfigResult?.value,
+        } satisfies WebhookConfig,
+        response: {
+          status: response.status,
+          headers: response.headers as Record<string, string> | undefined,
+          body: response.data,
+        } satisfies WebhookResponse,
+      } satisfies MessageWebhookSuccess,
+    });
+  } catch (e) {
+    const { response } = e as AxiosError;
+    const responseHeaders = response?.headers as
+      | Record<string, string>
+      | undefined;
 
-  // const to = identifier;
-
-  // switch (smsProvider.type) {
-  //   case SmsProviderType.Twilio: {
-  //     const { accountSid, authToken, messagingServiceSid } =
-  //       parsedConfigResult.value as TwilioSecret;
-
-  //     if (!accountSid || !authToken || !messagingServiceSid) {
-  //       return err({
-  //         type: InternalEventType.BadWorkspaceConfiguration,
-  //         variant: {
-  //           type: BadWorkspaceConfigurationType.MessageServiceProviderMisconfigured,
-  //           message: `missing accountSid, authToken, or messagingServiceSid in sms provider config`,
-  //         },
-  //       });
-  //     }
-
-  //     const result = await sendSmsTwilio({
-  //       body,
-  //       accountSid,
-  //       authToken,
-  //       userId,
-  //       messagingServiceSid,
-  //       subscriptionGroupId: subscriptionGroupDetails?.id,
-  //       to,
-  //       workspaceId,
-  //     });
-
-  //     if (result.isErr()) {
-  //       return err({
-  //         type: InternalEventType.MessageFailure,
-  //         variant: {
-  //           type: ChannelType.Sms,
-  //           provider: {
-  //             type: SmsProviderType.Twilio,
-  //             message: result.error.message,
-  //           },
-  //         },
-  //       });
-  //     }
-  //     return ok({
-  //       type: InternalEventType.MessageSent,
-  //       variant: {
-  //         type: ChannelType.Sms,
-  //         body,
-  //         to,
-  //         provider: {
-  //           type: SmsProviderType.Twilio,
-  //           sid: result.value.sid,
-  //         },
-  //       },
-  //     });
-  //   }
-  //   case SmsProviderType.Test:
-  //     return ok({
-  //       type: InternalEventType.MessageSent,
-  //       variant: {
-  //         type: ChannelType.Sms,
-  //         body,
-  //         to,
-  //         provider: {
-  //           type: SmsProviderType.Test,
-  //         },
-  //       },
-  //     });
-  //   default: {
-  //     return err({
-  //       type: InternalEventType.BadWorkspaceConfiguration,
-  //       variant: {
-  //         type: BadWorkspaceConfigurationType.MessageServiceProviderNotFound,
-  //       },
-  //     });
-  //   }
-  // }
+    return err({
+      type: InternalEventType.MessageFailure,
+      variant: {
+        type: ChannelType.Webhook,
+        response: {
+          status: response?.status,
+          body: response?.data,
+          headers: responseHeaders,
+        },
+      } satisfies MessageWebhookServiceFailure,
+    });
+  }
 }
 
 export async function sendMessage(
