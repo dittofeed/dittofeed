@@ -3,7 +3,10 @@ import axios from "axios";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafe,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
@@ -55,6 +58,7 @@ import {
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
+import { isObject } from "liquidjs/dist/src/util";
 
 export function enrichMessageTemplate({
   id,
@@ -1398,9 +1402,50 @@ export async function sendWebhook({
   }
 
   try {
-    // const data  = R.merg renderedConfigValuesResult.value.data ?? {} ;
+    // FIXME pull out into shared method
+    const data =
+      renderedConfigValuesResult.value.data ||
+      renderedSecretValuesResult.value.data
+        ? R.mergeDeep(
+            renderedConfigValuesResult.value.data
+              ? jsonParseSafe(renderedConfigValuesResult.value.data)
+                  .map((v) => (isObject(v) ? v : {}))
+                  .unwrapOr({})
+              : {},
+            renderedConfigValuesResult.value.data
+              ? jsonParseSafe(renderedConfigValuesResult.value.data)
+                  .map((v) => (isObject(v) ? v : {}))
+                  .unwrapOr({})
+              : {},
+          )
+        : undefined;
+
+    const params =
+      renderedConfigValuesResult.value.params ||
+      renderedSecretValuesResult.value.params
+        ? R.mergeDeep(
+            renderedConfigValuesResult.value.params
+              ? jsonParseSafe(renderedConfigValuesResult.value.params)
+                  .map((v) => (isObject(v) ? v : {}))
+                  .unwrapOr({})
+              : {},
+            renderedConfigValuesResult.value.params
+              ? jsonParseSafe(renderedConfigValuesResult.value.params)
+                  .map((v) => (isObject(v) ? v : {}))
+                  .unwrapOr({})
+              : {},
+          )
+        : undefined;
+
+    const method =
+      renderedSecretValuesResult.value.method ??
+      renderedConfigValuesResult.value.method;
+
     const response = await axios({
+      data,
+      method,
       headers: renderedHeadersResult?.value,
+      params,
     });
   } catch (e) {}
 
