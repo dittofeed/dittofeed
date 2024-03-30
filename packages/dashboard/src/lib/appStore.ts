@@ -10,7 +10,7 @@ import {
   SubscriptionGroupType,
 } from "isomorphic-lib/src/types";
 import { useLayoutEffect } from "react";
-import { pick } from "remeda/dist/commonjs/pick";
+import { pick } from "remeda";
 import { v4 as uuid } from "uuid";
 import { create, UseBoundStore } from "zustand";
 import createContext from "zustand/context";

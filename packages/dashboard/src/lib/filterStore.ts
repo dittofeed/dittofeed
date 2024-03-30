@@ -1,4 +1,4 @@
-import { pick } from "remeda/dist/commonjs/pick";
+import { pick } from "remeda";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 

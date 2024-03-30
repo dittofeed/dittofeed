@@ -1,6 +1,6 @@
 import { DittofeedSdk } from "@dittofeed/sdk-web";
 import React from "react";
-import { pick } from "remeda/dist/commonjs/pick";
+import { pick } from "remeda";
 
 import { apiBase } from "../lib/apiBase";
 import { useAppStore } from "../lib/appStore";

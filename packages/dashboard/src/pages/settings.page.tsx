@@ -65,7 +65,7 @@ import {
 } from "next";
 import { enqueueSnackbar } from "notistack";
 import { useMemo, useState } from "react";
-import { pick } from "remeda/dist/commonjs/pick";
+import { pick } from "remeda";
 import { useImmer } from "use-immer";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";

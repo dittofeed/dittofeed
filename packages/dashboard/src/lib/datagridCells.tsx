@@ -3,7 +3,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import Link from "next/link";
 import React from "react";
-import { pick } from "remeda/dist/commonjs/pick";
+import { pick } from "remeda";
 
 export const RenderCellValues = Type.Object({
   value: Type.String(),

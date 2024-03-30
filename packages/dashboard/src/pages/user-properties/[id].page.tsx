@@ -32,7 +32,7 @@ import { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import React, { ComponentProps } from "react";
-import { pick } from "remeda/dist/commonjs/pick";
+import { pick } from "remeda";
 import { v4 as uuidv4, validate } from "uuid";
 import { shallow } from "zustand/shallow";
 
