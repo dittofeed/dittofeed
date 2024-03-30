@@ -1,4 +1,4 @@
-import { sortBy } from "remeda/dist/commonjs/sortBy";
+import { sortBy } from "remeda";
 
 import { getUnsafe } from "./maps";
 import { assertUnreachable } from "./typeAssertions";

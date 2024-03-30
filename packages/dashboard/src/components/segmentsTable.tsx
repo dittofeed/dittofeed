@@ -5,7 +5,7 @@ import {
   EmptyResponse,
 } from "isomorphic-lib/src/types";
 import React, { useMemo } from "react";
-import { pick } from "remeda/dist/commonjs/pick";
+import { pick } from "remeda";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";

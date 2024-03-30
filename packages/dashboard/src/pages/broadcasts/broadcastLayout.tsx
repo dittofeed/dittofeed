@@ -5,8 +5,7 @@ import {
 } from "isomorphic-lib/src/types";
 import Link from "next/link";
 import React, { useMemo } from "react";
-import { sortBy } from "remeda/dist/commonjs/sortBy";
-import { toPairs } from "remeda/dist/commonjs/toPairs";
+import { sortBy, toPairs } from "remeda";
 import { useDebounce } from "use-debounce";
 
 import DashboardContent from "../../components/dashboardContent";

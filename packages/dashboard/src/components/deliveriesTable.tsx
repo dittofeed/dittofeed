@@ -28,8 +28,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { ParsedUrlQuery } from "querystring";
 import React, { useState } from "react";
-import { omit } from "remeda/dist/commonjs/omit";
-import { pick } from "remeda/dist/commonjs/pick";
+import { omit, pick } from "remeda";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 

@@ -40,8 +40,7 @@ import {
   Node,
   NodeChange,
 } from "reactflow";
-import { omit } from "remeda/dist/commonjs/omit";
-import { sortBy } from "remeda/dist/commonjs/sortBy";
+import { omit, sortBy } from "remeda";
 import { v4 as uuid } from "uuid";
 import { type immer } from "zustand/middleware/immer";
 
