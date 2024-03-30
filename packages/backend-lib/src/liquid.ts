@@ -89,15 +89,17 @@ liquidEngine.registerTag("unsubscribe_link", {
       | string
       | undefined;
     const userProperties = allScope.user as UserPropertyAssignments;
-    const identifierKey = allScope.identifier_key as string;
+    const identifierKey = allScope.identifier_key as string | undefined;
 
     let href = "";
 
-    const identifier = assignmentAsString(userProperties, identifierKey);
+    const identifier = identifierKey
+      ? assignmentAsString(userProperties, identifierKey)
+      : null;
     const userId = assignmentAsString(userProperties, "id");
 
     const subscriptionSecret = secrets?.[SecretNames.Subscription];
-    if (subscriptionSecret && identifier && userId) {
+    if (subscriptionSecret && identifierKey && identifier && userId) {
       const url = generateSubscriptionChangeUrl({
         workspaceId,
         identifier,
@@ -138,7 +140,7 @@ export function renderLiquid({
 }: {
   template?: string;
   mjml?: boolean;
-  identifierKey: string;
+  identifierKey?: string;
   userProperties: UserPropertyAssignments;
   secrets?: Secrets;
   subscriptionGroupId?: string;

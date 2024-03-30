@@ -53,6 +53,12 @@
                         "enum": [
                           "Sms"
                         ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Webhook"
+                        ]
                       }
                     ]
                   },
@@ -262,6 +268,96 @@
                           "type",
                           "body"
                         ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "Webhook"
+                            ]
+                          },
+                          "identifierKey": {
+                            "type": "string"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "method": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              },
+                              "params": {},
+                              "data": {},
+                              "responseEncoding": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "json"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "text"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "secret": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "method": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              },
+                              "params": {},
+                              "data": {},
+                              "responseEncoding": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "json"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "text"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "identifierKey",
+                          "config",
+                          "secret"
+                        ]
                       }
                     ]
                   },
@@ -352,6 +448,96 @@
                           "type",
                           "body"
                         ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "Webhook"
+                            ]
+                          },
+                          "identifierKey": {
+                            "type": "string"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "method": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              },
+                              "params": {},
+                              "data": {},
+                              "responseEncoding": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "json"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "text"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "secret": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "method": {
+                                "type": "string"
+                              },
+                              "headers": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              },
+                              "params": {},
+                              "data": {},
+                              "responseEncoding": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "json"
+                                    ]
+                                  },
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "text"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "identifierKey",
+                          "config",
+                          "secret"
+                        ]
                       }
                     ]
                   }
@@ -399,6 +585,12 @@
                           "type": "string",
                           "enum": [
                             "Sms"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Webhook"
                           ]
                         }
                       ]
@@ -490,6 +682,96 @@
                             "type",
                             "body"
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Webhook"
+                              ]
+                            },
+                            "identifierKey": {
+                              "type": "string"
+                            },
+                            "config": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "params": {},
+                                "data": {},
+                                "responseEncoding": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "json"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "text"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "secret": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "params": {},
+                                "data": {},
+                                "responseEncoding": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "json"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "text"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "identifierKey",
+                            "config",
+                            "secret"
+                          ]
                         }
                       ]
                     },
@@ -580,6 +862,96 @@
                             "type",
                             "body"
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "Webhook"
+                              ]
+                            },
+                            "identifierKey": {
+                              "type": "string"
+                            },
+                            "config": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "params": {},
+                                "data": {},
+                                "responseEncoding": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "json"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "text"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "secret": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "type": "string"
+                                },
+                                "headers": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "params": {},
+                                "data": {},
+                                "responseEncoding": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "json"
+                                      ]
+                                    },
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "text"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "required": [
+                            "type",
+                            "identifierKey",
+                            "config",
+                            "secret"
+                          ]
                         }
                       ]
                     },
@@ -632,6 +1004,12 @@
                         "type": "string",
                         "enum": [
                           "Sms"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Webhook"
                         ]
                       }
                     ]
@@ -826,6 +1204,33 @@
                               "Test"
                             ]
                           }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "workspaceId",
+                      "templateId",
+                      "userProperties",
+                      "channel"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "workspaceId": {
+                        "type": "string"
+                      },
+                      "templateId": {
+                        "type": "string"
+                      },
+                      "userProperties": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "Webhook"
                         ]
                       }
                     },
@@ -1062,6 +1467,81 @@
                                         "provider",
                                         "to",
                                         "body"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Webhook"
+                                          ]
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "request": {
+                                          "type": "object",
+                                          "properties": {
+                                            "url": {
+                                              "type": "string"
+                                            },
+                                            "method": {
+                                              "type": "string"
+                                            },
+                                            "headers": {
+                                              "type": "object",
+                                              "additionalProperties": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "params": {},
+                                            "data": {},
+                                            "responseEncoding": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "json"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "text"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "response": {
+                                          "type": "object",
+                                          "properties": {
+                                            "status": {
+                                              "type": "number"
+                                            },
+                                            "headers": {
+                                              "type": "object",
+                                              "additionalProperties": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "body": {}
+                                          },
+                                          "required": [
+                                            "status",
+                                            "headers",
+                                            "body"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "to",
+                                        "request",
+                                        "response"
                                       ]
                                     }
                                   ]
@@ -1695,6 +2175,24 @@
                                         "type",
                                         "templateId"
                                       ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Webhook"
+                                          ]
+                                        },
+                                        "templateId": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "templateId"
+                                      ]
                                     }
                                   ]
                                 },
@@ -1948,6 +2446,12 @@
                                                           "type": "string",
                                                           "enum": [
                                                             "Sms"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "type": "string",
+                                                          "enum": [
+                                                            "Webhook"
                                                           ]
                                                         }
                                                       ]
@@ -2427,6 +2931,12 @@
                                                             "type": "string",
                                                             "enum": [
                                                               "Sms"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "Webhook"
                                                             ]
                                                           }
                                                         ]
@@ -3066,6 +3576,24 @@
                                               "type",
                                               "templateId"
                                             ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Webhook"
+                                                ]
+                                              },
+                                              "templateId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "templateId"
+                                            ]
                                           }
                                         ]
                                       },
@@ -3327,6 +3855,12 @@
                                                             "type": "string",
                                                             "enum": [
                                                               "Sms"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "string",
+                                                            "enum": [
+                                                              "Webhook"
                                                             ]
                                                           }
                                                         ]
@@ -3982,6 +4516,24 @@
                                               "type",
                                               "templateId"
                                             ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "type": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "Webhook"
+                                                ]
+                                              },
+                                              "templateId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "type",
+                                              "templateId"
+                                            ]
                                           }
                                         ]
                                       },
@@ -4312,6 +4864,27 @@
                                       "required": [
                                         "type",
                                         "deliveryRate"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": [
+                                            "Webhook"
+                                          ]
+                                        },
+                                        "stats": {
+                                          "type": "object",
+                                          "additionalProperties": {
+                                            "type": "number"
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "type",
+                                        "stats"
                                       ]
                                     }
                                   ]
@@ -8764,6 +9337,12 @@
                         "enum": [
                           "Sms"
                         ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "Webhook"
+                        ]
                       }
                     ]
                   },
@@ -8831,6 +9410,12 @@
                           "type": "string",
                           "enum": [
                             "Sms"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Webhook"
                           ]
                         }
                       ]
@@ -10138,6 +10723,12 @@
                   "type": "string",
                   "enum": [
                     "Sms"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Webhook"
                   ]
                 }
               ]
