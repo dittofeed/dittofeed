@@ -1438,10 +1438,16 @@ export async function sendWebhook({
       renderedConfigValuesResult.value.method;
 
     const response = await axios({
-      data,
+      url:
+        renderedSecretValuesResult.value.url ??
+        renderedConfigValuesResult.value.url,
       method,
-      headers: renderedHeadersResult?.value,
       params,
+      data,
+      responseType:
+        renderedSecretValuesResult.value.responseEncoding ??
+        renderedConfigValuesResult.value.responseEncoding,
+      headers: renderedHeadersResult?.value,
     });
   } catch (e) {}
 
