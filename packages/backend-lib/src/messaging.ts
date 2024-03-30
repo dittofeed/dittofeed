@@ -7,6 +7,7 @@ import {
   jsonParseSafe,
   schemaValidateWithErr,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import { isObject } from "liquidjs/dist/src/util";
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
@@ -58,7 +59,6 @@ import {
   WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
-import { isObject } from "liquidjs/dist/src/util";
 
 export function enrichMessageTemplate({
   id,
@@ -361,7 +361,7 @@ function renderValues<T extends TemplateDictionary<T>>({
 }: Omit<Parameters<typeof renderLiquid>[0], "template"> & {
   templates: T;
 }): Result<
-  { [K in keyof T]: string },
+  { [K in keyof T]: T[K]["contents"] },
   {
     field: string;
     error: string;
@@ -529,13 +529,9 @@ export async function sendEmail({
         contents: messageTemplateDefinition.body,
         mjml: true,
       },
-      ...(messageTemplateDefinition.replyTo
-        ? {
-            replyTo: {
-              contents: messageTemplateDefinition.replyTo,
-            },
-          }
-        : undefined),
+      replyTo: {
+        contents: messageTemplateDefinition.replyTo,
+      },
     },
     secrets: subscriptionGroupSecret
       ? {
