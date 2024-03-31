@@ -44,6 +44,7 @@ import {
   InternalEventType,
   MessageSendFailure,
   MessageSkippedType,
+  MessageTags,
   MessageTemplate,
   MessageTemplateRenderError,
   MessageTemplateResource,
@@ -61,7 +62,6 @@ import {
   WebhookConfig,
   WebhookResponse,
   WebhookSecret,
-  MessageTags,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -1286,6 +1286,7 @@ export async function sendWebhook({
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
     secrets,
+    tags: messageTags,
     templates: {
       url: {
         contents: messageTemplateDefinition.config.url,
@@ -1310,6 +1311,7 @@ export async function sendWebhook({
     subscriptionGroupId: subscriptionGroupDetails?.id,
     workspaceId,
     secrets,
+    tags: messageTags,
     templates: {
       url: {
         contents: messageTemplateDefinition.secret.url,
@@ -1336,6 +1338,7 @@ export async function sendWebhook({
         subscriptionGroupId: subscriptionGroupDetails?.id,
         workspaceId,
         secrets,
+        tags: messageTags,
         templates: R.mapValues(
           messageTemplateDefinition.config.headers,
           (val) => ({ contents: val }),
@@ -1350,6 +1353,7 @@ export async function sendWebhook({
         subscriptionGroupId: subscriptionGroupDetails?.id,
         workspaceId,
         secrets,
+        tags: messageTags,
         templates: R.mapValues(
           messageTemplateDefinition.secret.headers,
           (val) => ({ contents: val }),
