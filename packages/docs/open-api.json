@@ -296,8 +296,12 @@
                                   "type": "string"
                                 }
                               },
-                              "params": {},
-                              "data": {},
+                              "params": {
+                                "type": "string"
+                              },
+                              "data": {
+                                "type": "string"
+                              },
                               "responseEncoding": {
                                 "anyOf": [
                                   {
@@ -331,8 +335,12 @@
                                   "type": "string"
                                 }
                               },
-                              "params": {},
-                              "data": {},
+                              "params": {
+                                "type": "string"
+                              },
+                              "data": {
+                                "type": "string"
+                              },
                               "responseEncoding": {
                                 "anyOf": [
                                   {
@@ -476,8 +484,12 @@
                                   "type": "string"
                                 }
                               },
-                              "params": {},
-                              "data": {},
+                              "params": {
+                                "type": "string"
+                              },
+                              "data": {
+                                "type": "string"
+                              },
                               "responseEncoding": {
                                 "anyOf": [
                                   {
@@ -511,8 +523,12 @@
                                   "type": "string"
                                 }
                               },
-                              "params": {},
-                              "data": {},
+                              "params": {
+                                "type": "string"
+                              },
+                              "data": {
+                                "type": "string"
+                              },
                               "responseEncoding": {
                                 "anyOf": [
                                   {
@@ -710,8 +726,12 @@
                                     "type": "string"
                                   }
                                 },
-                                "params": {},
-                                "data": {},
+                                "params": {
+                                  "type": "string"
+                                },
+                                "data": {
+                                  "type": "string"
+                                },
                                 "responseEncoding": {
                                   "anyOf": [
                                     {
@@ -745,8 +765,12 @@
                                     "type": "string"
                                   }
                                 },
-                                "params": {},
-                                "data": {},
+                                "params": {
+                                  "type": "string"
+                                },
+                                "data": {
+                                  "type": "string"
+                                },
                                 "responseEncoding": {
                                   "anyOf": [
                                     {
@@ -890,8 +914,12 @@
                                     "type": "string"
                                   }
                                 },
-                                "params": {},
-                                "data": {},
+                                "params": {
+                                  "type": "string"
+                                },
+                                "data": {
+                                  "type": "string"
+                                },
                                 "responseEncoding": {
                                   "anyOf": [
                                     {
@@ -925,8 +953,12 @@
                                     "type": "string"
                                   }
                                 },
-                                "params": {},
-                                "data": {},
+                                "params": {
+                                  "type": "string"
+                                },
+                                "data": {
+                                  "type": "string"
+                                },
                                 "responseEncoding": {
                                   "anyOf": [
                                     {
@@ -1496,8 +1528,12 @@
                                                 "type": "string"
                                               }
                                             },
-                                            "params": {},
-                                            "data": {},
+                                            "params": {
+                                              "type": "string"
+                                            },
+                                            "data": {
+                                              "type": "string"
+                                            },
                                             "responseEncoding": {
                                               "anyOf": [
                                                 {
@@ -1531,8 +1567,6 @@
                                             "body": {}
                                           },
                                           "required": [
-                                            "status",
-                                            "headers",
                                             "body"
                                           ]
                                         }
