@@ -932,8 +932,8 @@ export const WebhookConfig = Type.Object({
   url: Type.Optional(Type.String()),
   method: Type.Optional(Type.String()),
   headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-  params: Type.Optional(Type.Any()),
-  data: Type.Optional(Type.Any()),
+  params: Type.Optional(Type.String()),
+  data: Type.Optional(Type.String()),
   responseEncoding: Type.Optional(
     Type.Union([Type.Literal("json"), Type.Literal("text")]),
   ),
@@ -2509,8 +2509,8 @@ export const MessageEmailSuccess = Type.Composite([
 export type MessageEmailSuccess = Static<typeof MessageEmailSuccess>;
 
 export const WebhookResponse = Type.Object({
-  status: Type.Number(),
-  headers: Type.Record(Type.String(), Type.String()),
+  status: Type.Optional(Type.Number()),
+  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   body: Type.Unknown(),
 });
 
@@ -2976,6 +2976,15 @@ export type SmtpSecret = Static<typeof SmtpSecret>;
 
 export type SmtpSecretKey = keyof Omit<SmtpSecret, "type">;
 
+export const WebhookSecret = Type.Composite([
+  Type.Record(Type.String(), Type.String()),
+  Type.Object({
+    type: Type.Literal(ChannelType.Webhook),
+  }),
+]);
+
+export type WebhookProviderSecret = Static<typeof WebhookSecret>;
+
 export const EmailProviderSecret = Type.Union([
   SendgridSecret,
   PostMarkSecret,
@@ -3107,3 +3116,5 @@ export const FeatureNames = Type.Enum(FeatureNamesEnum);
 export type FeatureMap = {
   [K in FeatureNamesEnum]?: boolean;
 };
+
+export type MessageTags = Record<string, string> & { messageId: string };

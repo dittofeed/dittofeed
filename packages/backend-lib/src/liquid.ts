@@ -6,7 +6,7 @@ import mjml2html from "mjml";
 
 import logger from "./logger";
 import { generateSubscriptionChangeUrl } from "./subscriptionGroups";
-import { SubscriptionChange } from "./types";
+import { MessageTags, SubscriptionChange } from "./types";
 import { assignmentAsString, UserPropertyAssignments } from "./userProperties";
 
 const md = new MarkdownIt({
@@ -80,7 +80,7 @@ liquidEngine.registerTag("unsubscribe_link", {
     this.contents = tagToken.args;
   },
   render(scope) {
-    const linkText = (this.contents as string) || "unsubscribe";
+    const linkText: string = (this.contents as string) || "unsubscribe";
 
     const allScope = scope.getAll() as Record<string, unknown>;
     const secrets = allScope.secrets as Secrets | undefined;
@@ -137,6 +137,7 @@ export function renderLiquid({
   identifierKey,
   secrets = {},
   mjml = false,
+  tags,
 }: {
   template?: string;
   mjml?: boolean;
@@ -145,6 +146,8 @@ export function renderLiquid({
   secrets?: Secrets;
   subscriptionGroupId?: string;
   workspaceId: string;
+  // TODO [DF-471] make this field required and render tags in the user property field
+  tags?: MessageTags;
 }): string {
   if (!template?.length) {
     return "";
@@ -156,6 +159,8 @@ export function renderLiquid({
     subscription_group_id: subscriptionGroupId,
     secrets,
     identifier_key: identifierKey,
+    // TODO [DF-471] remove default
+    tags: tags ?? {},
   }) as string;
   if (!mjml) {
     return liquidRendered;

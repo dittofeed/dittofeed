@@ -3,6 +3,7 @@ import { Value, ValueError } from "@sinclair/typebox/value";
 import JsonBigint from "json-bigint";
 import { err, ok, Result } from "neverthrow";
 
+import { isObject } from "../objects";
 import { JSONValue } from "../types";
 
 const JSON_BIG_INT = JsonBigint({ storeAsString: true });
@@ -43,4 +44,13 @@ export function jsonParseSafe(s: string): Result<JSONValue, Error> {
     error.cause = e;
     return err(error);
   }
+}
+
+export function unwrapJsonObject(s?: string): Record<string, unknown> {
+  if (!s) {
+    return {};
+  }
+  return jsonParseSafe(s)
+    .map((v) => (isObject(v) ? v : {}))
+    .unwrapOr({});
 }

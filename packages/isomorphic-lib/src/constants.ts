@@ -8,6 +8,7 @@ import {
 
 export const WORKSPACE_ID_HEADER = "df-workspace-id" as const;
 export const SUBSRIPTION_GROUP_ID_HEADER = "df-subscription-group-id" as const;
+export const MESSAGE_ID_HEADER = "df-message-id" as const;
 export const UNAUTHORIZED_PAGE = "/404" as const;
 export const SINGLE_TENANT_LOGIN_PAGE = "/auth/single-tenant" as const;
 export const WAITING_ROOM_PAGE = "/waiting-room" as const;
@@ -25,7 +26,9 @@ export enum SecretNames {
   Fcm = "fcm-key",
   Smtp = "smtp",
   Subscription = "subscription-key",
+  Webhook = "webhook-channel",
 }
+
 export const SMS_PROVIDER_TYPE_TO_SECRET_NAME: Record<SmsProviderType, string> =
   {
     [SmsProviderType.Twilio]: SecretNames.Twilio,

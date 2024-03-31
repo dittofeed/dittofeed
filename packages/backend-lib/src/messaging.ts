@@ -1,8 +1,12 @@
 import { MailDataRequired } from "@sendgrid/mail";
+import axios, { AxiosError } from "axios";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
-import { SecretNames } from "isomorphic-lib/src/constants";
+import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  schemaValidateWithErr,
+  unwrapJsonObject,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
@@ -39,10 +43,13 @@ import {
   InternalEventType,
   MessageSendFailure,
   MessageSkippedType,
+  MessageTags,
   MessageTemplate,
   MessageTemplateRenderError,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
+  MessageWebhookServiceFailure,
+  MessageWebhookSuccess,
   MobilePushProviderType,
   Prisma,
   Secret,
@@ -51,6 +58,9 @@ import {
   SmsProviderType,
   TwilioSecret,
   UpsertMessageTemplateResource,
+  WebhookConfig,
+  WebhookResponse,
+  WebhookSecret,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -311,7 +321,7 @@ export interface SendMessageParametersBase {
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
   subscriptionGroupDetails?: SubscriptionGroupDetails & { name: string };
-  messageTags?: Record<string, string>;
+  messageTags?: MessageTags;
   useDraft: boolean;
 }
 
@@ -355,7 +365,7 @@ function renderValues<T extends TemplateDictionary<T>>({
 }: Omit<Parameters<typeof renderLiquid>[0], "template"> & {
   templates: T;
 }): Result<
-  { [K in keyof T]: string },
+  { [K in keyof T]: T[K]["contents"] },
   {
     field: string;
     error: string;
@@ -523,13 +533,9 @@ export async function sendEmail({
         contents: messageTemplateDefinition.body,
         mjml: true,
       },
-      ...(messageTemplateDefinition.replyTo
-        ? {
-            replyTo: {
-              contents: messageTemplateDefinition.replyTo,
-            },
-          }
-        : undefined),
+      replyTo: {
+        contents: messageTemplateDefinition.replyTo,
+      },
     },
     secrets: subscriptionGroupSecret
       ? {
@@ -1212,6 +1218,302 @@ export async function sendSms({
         },
       });
     }
+  }
+}
+
+export async function sendWebhook({
+  workspaceId,
+  templateId,
+  userPropertyAssignments,
+  subscriptionGroupDetails,
+  useDraft,
+  messageTags,
+}: Omit<
+  SendMessageParametersWebhook,
+  "channel"
+>): Promise<BackendMessageSendResult> {
+  const [getSendModelsResult, secret] = await Promise.all([
+    getSendMessageModels({
+      workspaceId,
+      templateId,
+      channel: ChannelType.Webhook,
+      useDraft,
+      subscriptionGroupDetails,
+    }),
+    await prisma().secret.findUnique({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: SecretNames.Webhook,
+        },
+      },
+    }),
+  ]);
+  if (getSendModelsResult.isErr()) {
+    return err(getSendModelsResult.error);
+  }
+  const { messageTemplateDefinition, subscriptionGroupSecret } =
+    getSendModelsResult.value;
+
+  const parsedConfigResult: Record<string, string> = secret?.configValue
+    ? schemaValidateWithErr(secret.configValue, WebhookSecret)
+        .map((c) => R.omit(c, ["type"]))
+        .unwrapOr({})
+    : {};
+
+  if (messageTemplateDefinition.type !== ChannelType.Webhook) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateMisconfigured,
+        message: "message template is not webhook template",
+      },
+    });
+  }
+  const { identifierKey } = messageTemplateDefinition;
+  const secrets: Record<string, string> = parsedConfigResult;
+
+  if (subscriptionGroupSecret) {
+    secrets[SecretNames.Subscription] = subscriptionGroupSecret;
+  }
+
+  // TODO [DF-471]
+  const renderedConfigValuesResult = renderValues({
+    userProperties: userPropertyAssignments,
+    identifierKey,
+    subscriptionGroupId: subscriptionGroupDetails?.id,
+    workspaceId,
+    secrets,
+    tags: messageTags,
+    templates: {
+      url: {
+        contents: messageTemplateDefinition.config.url,
+      },
+      method: {
+        contents: messageTemplateDefinition.config.method,
+      },
+      params: {
+        contents: messageTemplateDefinition.config.params,
+      },
+      data: {
+        contents: messageTemplateDefinition.config.data,
+      },
+      responseEncoding: {
+        contents: messageTemplateDefinition.config.responseEncoding,
+      },
+    },
+  });
+  const renderedSecretValuesResult = renderValues({
+    userProperties: userPropertyAssignments,
+    identifierKey,
+    subscriptionGroupId: subscriptionGroupDetails?.id,
+    workspaceId,
+    secrets,
+    tags: messageTags,
+    templates: {
+      url: {
+        contents: messageTemplateDefinition.secret.url,
+      },
+      method: {
+        contents: messageTemplateDefinition.secret.method,
+      },
+      params: {
+        contents: messageTemplateDefinition.secret.params,
+      },
+      data: {
+        contents: messageTemplateDefinition.secret.data,
+      },
+      responseEncoding: {
+        contents: messageTemplateDefinition.secret.responseEncoding,
+      },
+    },
+  });
+
+  const renderedHeadersConfigResult = messageTemplateDefinition.config.headers
+    ? renderValues({
+        userProperties: userPropertyAssignments,
+        identifierKey,
+        subscriptionGroupId: subscriptionGroupDetails?.id,
+        workspaceId,
+        secrets,
+        tags: messageTags,
+        templates: R.mapValues(
+          messageTemplateDefinition.config.headers,
+          (val) => ({ contents: val }),
+        ),
+      })
+    : null;
+
+  const renderedHeadersSecretResult = messageTemplateDefinition.secret.headers
+    ? renderValues({
+        userProperties: userPropertyAssignments,
+        identifierKey,
+        subscriptionGroupId: subscriptionGroupDetails?.id,
+        workspaceId,
+        secrets,
+        tags: messageTags,
+        templates: R.mapValues(
+          messageTemplateDefinition.secret.headers,
+          (val) => ({ contents: val }),
+        ),
+      })
+    : null;
+
+  if (renderedConfigValuesResult.isErr()) {
+    const { error, field } = renderedConfigValuesResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+
+  if (renderedSecretValuesResult.isErr()) {
+    const { error, field } = renderedSecretValuesResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  if (renderedHeadersConfigResult && renderedHeadersConfigResult.isErr()) {
+    const { error, field } = renderedHeadersConfigResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  if (renderedHeadersSecretResult && renderedHeadersSecretResult.isErr()) {
+    const { error, field } = renderedHeadersSecretResult.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+
+  const renderedConfigHeaders: Record<string, string> =
+    renderedHeadersConfigResult?.value ?? {};
+
+  if (messageTags) {
+    renderedConfigHeaders[MESSAGE_ID_HEADER] = messageTags.messageId;
+  }
+
+  const renderedHeaders = {
+    ...renderedConfigHeaders,
+    ...(renderedHeadersSecretResult?.value ?? {}),
+  };
+
+  const rawIdentifier = userPropertyAssignments[identifierKey];
+  let identifier: string | null;
+  switch (typeof rawIdentifier) {
+    case "string":
+      identifier = rawIdentifier;
+      break;
+    case "number":
+      identifier = String(rawIdentifier);
+      break;
+    default:
+      identifier = null;
+      break;
+  }
+
+  if (!identifier) {
+    return err({
+      type: InternalEventType.MessageSkipped,
+      variant: {
+        type: MessageSkippedType.MissingIdentifier,
+        identifierKey,
+      },
+    });
+  }
+
+  try {
+    const data =
+      renderedConfigValuesResult.value.data ||
+      renderedSecretValuesResult.value.data
+        ? R.mergeDeep(
+            unwrapJsonObject(renderedConfigValuesResult.value.data),
+            unwrapJsonObject(renderedSecretValuesResult.value.data),
+          )
+        : undefined;
+
+    const params =
+      renderedConfigValuesResult.value.params ||
+      renderedSecretValuesResult.value.params
+        ? R.mergeDeep(
+            unwrapJsonObject(renderedConfigValuesResult.value.params),
+            unwrapJsonObject(renderedSecretValuesResult.value.params),
+          )
+        : undefined;
+
+    const method =
+      renderedSecretValuesResult.value.method ??
+      renderedConfigValuesResult.value.method;
+
+    const response = await axios({
+      url:
+        renderedSecretValuesResult.value.url ??
+        renderedConfigValuesResult.value.url,
+      method,
+      params,
+      data,
+      responseType:
+        renderedSecretValuesResult.value.responseEncoding ??
+        renderedConfigValuesResult.value.responseEncoding,
+      headers: renderedHeaders,
+    });
+    return ok({
+      type: InternalEventType.MessageSent,
+      variant: {
+        type: ChannelType.Webhook,
+        to: identifier,
+        request: {
+          // exclude secret values from being logged
+          ...renderedConfigValuesResult.value,
+          headers: renderedConfigHeaders,
+        } satisfies WebhookConfig,
+        response: {
+          status: response.status,
+          headers: response.headers as Record<string, string> | undefined,
+          body: response.data,
+        } satisfies WebhookResponse,
+      } satisfies MessageWebhookSuccess,
+    });
+  } catch (e) {
+    const { response } = e as AxiosError;
+    const responseHeaders = response?.headers as
+      | Record<string, string>
+      | undefined;
+
+    return err({
+      type: InternalEventType.MessageFailure,
+      variant: {
+        type: ChannelType.Webhook,
+        response: {
+          status: response?.status,
+          body: response?.data,
+          headers: responseHeaders,
+        },
+      } satisfies MessageWebhookServiceFailure,
+    });
   }
 }
 
