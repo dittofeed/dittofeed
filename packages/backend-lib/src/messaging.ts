@@ -4,11 +4,9 @@ import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
-  jsonParseSafe,
   schemaValidateWithErr,
   unwrapJsonObject,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
-import { isObject } from "liquidjs/dist/src/util";
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
 import * as R from "remeda";
