@@ -8,6 +8,7 @@ import {
 } from "backend-lib/src/messaging";
 import prisma from "backend-lib/src/prisma";
 import { Prisma } from "backend-lib/src/types";
+import { randomUUID } from "crypto";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
@@ -21,6 +22,7 @@ import {
   InternalEventType,
   JsonResultType,
   MessageSkippedType,
+  MessageTags,
   MessageTemplateResource,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
@@ -140,9 +142,11 @@ export default async function contentController(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const messageTags: Record<string, string> = {
+      const messageTags: MessageTags = {
         channel: request.body.channel,
+        messageId: randomUUID(),
       };
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const userId = request.body.userProperties.id;
       if (typeof userId === "string") {

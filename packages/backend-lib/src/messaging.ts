@@ -48,6 +48,8 @@ import {
   MessageTemplateRenderError,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
+  MessageWebhookServiceFailure,
+  MessageWebhookSuccess,
   MobilePushProviderType,
   Prisma,
   Secret,
@@ -56,11 +58,10 @@ import {
   SmsProviderType,
   TwilioSecret,
   UpsertMessageTemplateResource,
-  WebhookSecret,
-  MessageWebhookServiceFailure,
-  MessageWebhookSuccess,
   WebhookConfig,
   WebhookResponse,
+  WebhookSecret,
+  MessageTags,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -321,7 +322,7 @@ export interface SendMessageParametersBase {
   templateId: string;
   userPropertyAssignments: UserPropertyAssignments;
   subscriptionGroupDetails?: SubscriptionGroupDetails & { name: string };
-  messageTags?: Record<string, string> & { messageId: string };
+  messageTags?: MessageTags;
   useDraft: boolean;
 }
 

@@ -3116,3 +3116,5 @@ export const FeatureNames = Type.Enum(FeatureNamesEnum);
 export type FeatureMap = {
   [K in FeatureNamesEnum]?: boolean;
 };
+
+export type MessageTags = Record<string, string> & { messageId: string };
