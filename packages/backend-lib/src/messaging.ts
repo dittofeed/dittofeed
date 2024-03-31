@@ -6,6 +6,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
+  unwrapJsonObject,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { isObject } from "liquidjs/dist/src/util";
 import { err, ok, Result } from "neverthrow";
@@ -1451,16 +1452,8 @@ export async function sendWebhook({
       renderedConfigValuesResult.value.data ||
       renderedSecretValuesResult.value.data
         ? R.mergeDeep(
-            renderedConfigValuesResult.value.data
-              ? jsonParseSafe(renderedConfigValuesResult.value.data)
-                  .map((v) => (isObject(v) ? v : {}))
-                  .unwrapOr({})
-              : {},
-            renderedConfigValuesResult.value.data
-              ? jsonParseSafe(renderedConfigValuesResult.value.data)
-                  .map((v) => (isObject(v) ? v : {}))
-                  .unwrapOr({})
-              : {},
+            unwrapJsonObject(renderedConfigValuesResult.value.data),
+            unwrapJsonObject(renderedSecretValuesResult.value.data),
           )
         : undefined;
 
@@ -1468,16 +1461,8 @@ export async function sendWebhook({
       renderedConfigValuesResult.value.params ||
       renderedSecretValuesResult.value.params
         ? R.mergeDeep(
-            renderedConfigValuesResult.value.params
-              ? jsonParseSafe(renderedConfigValuesResult.value.params)
-                  .map((v) => (isObject(v) ? v : {}))
-                  .unwrapOr({})
-              : {},
-            renderedConfigValuesResult.value.params
-              ? jsonParseSafe(renderedConfigValuesResult.value.params)
-                  .map((v) => (isObject(v) ? v : {}))
-                  .unwrapOr({})
-              : {},
+            unwrapJsonObject(renderedConfigValuesResult.value.params),
+            unwrapJsonObject(renderedSecretValuesResult.value.params),
           )
         : undefined;
 
