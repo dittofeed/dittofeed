@@ -1279,7 +1279,6 @@ export async function sendWebhook({
   }
 
   // TODO [DF-471]
-  // TODO pass secrets config
   const renderedConfigValuesResult = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
@@ -1411,19 +1410,17 @@ export async function sendWebhook({
     });
   }
 
-  const renderedConfigHeaders = {
-    ...(messageTags?.messageId
-      ? { [MESSAGE_ID_HEADER]: messageTags.messageId }
-      : {}),
-    ...(renderedHeadersConfigResult?.value ?? {}),
+  const renderedConfigHeaders: Record<string, string> =
+    renderedHeadersConfigResult?.value ?? {};
+
+  if (messageTags) {
+    renderedConfigHeaders[MESSAGE_ID_HEADER] = messageTags.messageId;
+  }
+
+  const renderedHeaders = {
+    ...renderedConfigHeaders,
+    ...(renderedHeadersSecretResult?.value ?? {}),
   };
-  const renderedHeaders =
-    renderedHeadersConfigResult || renderedHeadersSecretResult
-      ? {
-          ...renderedConfigHeaders,
-          ...(renderedHeadersSecretResult?.value ?? {}),
-        }
-      : undefined;
 
   const rawIdentifier = userPropertyAssignments[identifierKey];
   let identifier: string | null;
