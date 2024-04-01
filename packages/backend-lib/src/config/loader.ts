@@ -3,6 +3,7 @@ import { constantCase } from "change-case";
 import dotenv from "dotenv";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import path from "path";
 
 import { findBaseDir } from "../dir";
 import { registerFormats } from "../formatRegistry";
@@ -21,7 +22,7 @@ export function loadConfig<S extends TSchema, C = Static<S>>({
   transform: (parsed: Static<S>) => C;
 }): C {
   registerFormats();
-  const baseDir = findBaseDir();
+  const baseDir = path.join(findBaseDir(), ".env");
   dotenv.config({ path: baseDir });
 
   const unknownConfig: UnknownConfig = {};

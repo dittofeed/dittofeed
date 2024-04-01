@@ -353,6 +353,8 @@ export async function cli() {
                 return [];
               }
               const templateDir = path.join(workspaceDir, template.name);
+              await fs.mkdir(templateDir, { recursive: true });
+
               const definition = definitionResult.value;
               let files: { path: string; contents: string }[];
               switch (definition.type) {
@@ -394,7 +396,10 @@ export async function cli() {
               }
 
               return files.map((f) =>
-                fs.writeFile(f.path, f.contents, { encoding: "utf-8" }),
+                fs.writeFile(f.path, f.contents, {
+                  encoding: "utf-8",
+                  flag: "w+",
+                }),
               );
             });
             await Promise.all(templatePromises);

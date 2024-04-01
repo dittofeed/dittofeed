@@ -14,6 +14,6 @@ export function findBaseDir(): string {
   if (baseDirParts === null) {
     baseDirParts = splitCwd;
   }
-  const baseDir = path.resolve(path.sep, ...baseDirParts, ".env");
+  const baseDir = path.resolve(path.sep, ...baseDirParts);
   return baseDir;
 }
