@@ -323,6 +323,7 @@ export async function cli() {
         logger().info("Done.");
       },
     )
+    .command("export-templates", "Export templates to csv.", async () => {})
     .command(
       "export-templates",
       "Export zip file with templates.",

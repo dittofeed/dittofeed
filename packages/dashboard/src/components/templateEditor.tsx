@@ -285,12 +285,14 @@ export default function TemplateEditor({
     workspace: workspaceResult,
     userProperties: userPropertiesResult,
     upsertMessage,
+    viewDraft,
   } = useAppStorePick([
     "apiBase",
     "messages",
     "workspace",
     "userProperties",
     "upsertMessage",
+    "viewDraft",
   ]);
   const template =
     messages.type === CompletionStatus.Successful
@@ -363,9 +365,10 @@ export default function TemplateEditor({
     }
     setState((draft) => {
       draft.title = template.name;
-      draft.definition = template.draft ?? template.definition ?? null;
+      draft.definition =
+        (viewDraft ? template.draft : template.definition) ?? null;
     });
-  }, [template, setState, definition, title]);
+  }, [template, setState, definition, title, viewDraft]);
 
   const handleSave = useCallback(
     ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {
