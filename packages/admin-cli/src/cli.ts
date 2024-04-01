@@ -332,74 +332,82 @@ export async function cli() {
         const baseDir = findBaseDir();
         const tmpDir = path.join(baseDir, ".tmp", `templates-${Date.now()}`);
         const workspaces = await prisma().workspace.findMany();
-        const promises: Promise<void>[] = workspaces.map(async (workspace) => {
-          const workspaceDir = path.join(tmpDir, workspace.name);
-          const templates = await prisma().messageTemplate.findMany({
-            where: {
-              workspaceId: workspace.id,
-            },
-          });
-          const templatePromises = templates.flatMap(async (template) => {
-            const definitionResult = schemaValidateWithErr(
-              template.definition,
-              MessageTemplateResourceDefinition,
-            );
-            if (definitionResult.isErr()) {
-              logger().error(
-                { err: definitionResult.error },
-                "Failed to validate template definition",
+        const promises: Promise<string>[] = workspaces.map(
+          async (workspace) => {
+            const workspaceDir = path.join(tmpDir, workspace.name);
+            const templates = await prisma().messageTemplate.findMany({
+              where: {
+                workspaceId: workspace.id,
+              },
+            });
+            const templatePromises = templates.flatMap(async (template) => {
+              const definitionResult = schemaValidateWithErr(
+                template.definition,
+                MessageTemplateResourceDefinition,
               );
-              return [];
-            }
-            const templateDir = path.join(workspaceDir, template.name);
-            const definition = definitionResult.value;
-            let files: { path: string; contents: string }[];
-            switch (definition.type) {
-              case ChannelType.Email: {
-                files = [
-                  {
-                    path: path.join(templateDir, "body.liquid.html"),
-                    contents: definition.body,
-                  },
-                  {
-                    path: path.join(templateDir, "subject.liquid.html"),
-                    contents: definition.subject,
-                  },
-                  {
-                    path: path.join(templateDir, "from.liquid.html"),
-                    contents: definition.from,
-                  },
-                ];
-                if (definition.replyTo) {
-                  files.push({
-                    path: path.join(templateDir, "reply-to.liquid.html"),
-                    contents: definition.replyTo,
-                  });
-                }
-                break;
-              }
-              default: {
-                logger().info(
-                  {
-                    name: template.name,
-                    id: template.id,
-                    workspaceName: workspace.name,
-                    type: definition.type,
-                  },
-                  "Skipping template due to unhandled type.",
+              if (definitionResult.isErr()) {
+                logger().error(
+                  { err: definitionResult.error },
+                  "Failed to validate template definition",
                 );
                 return [];
               }
-            }
+              const templateDir = path.join(workspaceDir, template.name);
+              const definition = definitionResult.value;
+              let files: { path: string; contents: string }[];
+              switch (definition.type) {
+                case ChannelType.Email: {
+                  files = [
+                    {
+                      path: path.join(templateDir, "body.liquid.html"),
+                      contents: definition.body,
+                    },
+                    {
+                      path: path.join(templateDir, "subject.liquid.html"),
+                      contents: definition.subject,
+                    },
+                    {
+                      path: path.join(templateDir, "from.liquid.html"),
+                      contents: definition.from,
+                    },
+                  ];
+                  if (definition.replyTo) {
+                    files.push({
+                      path: path.join(templateDir, "reply-to.liquid.html"),
+                      contents: definition.replyTo,
+                    });
+                  }
+                  break;
+                }
+                default: {
+                  logger().info(
+                    {
+                      name: template.name,
+                      id: template.id,
+                      workspaceName: workspace.name,
+                      type: definition.type,
+                    },
+                    "Skipping template due to unhandled type.",
+                  );
+                  return [];
+                }
+              }
 
-            return files.map((f) =>
-              fs.writeFile(f.path, f.contents, { encoding: "utf-8" }),
-            );
-          });
-          await Promise.all(templatePromises);
-        });
+              return files.map((f) =>
+                fs.writeFile(f.path, f.contents, { encoding: "utf-8" }),
+              );
+            });
+            await Promise.all(templatePromises);
+            return workspaceDir;
+          },
+        );
         await Promise.all(promises);
-        logger().info("Done.");
+        logger().info(
+          {
+            dir: tmpDir,
+          },
+          "Finished exporting templates.",
+        );
       },
     )
     .command(
