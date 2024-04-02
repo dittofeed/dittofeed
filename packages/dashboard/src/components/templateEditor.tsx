@@ -414,6 +414,9 @@ export default function TemplateEditor({
       type: PublisherStatusType.OutOfDate,
       disabled: !viewDraft || errors.size > 0,
       onPublish: () => {
+        if (!workspace) {
+          return;
+        }
         apiRequestHandlerFactory({
           request: updateRequest,
           setRequest: (request) =>
@@ -428,7 +431,13 @@ export default function TemplateEditor({
           requestConfig: {
             method: "PUT",
             url: `${apiBase}/api/content/templates`,
-            data: updateData,
+            data: {
+              workspaceId: workspace.id,
+              name: template.name,
+              id: template.id,
+              draft: null,
+              definition: serverState.definition,
+            } satisfies UpsertMessageTemplateResource,
             headers: {
               "Content-Type": "application/json",
             },
