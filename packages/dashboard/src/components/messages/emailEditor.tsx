@@ -177,7 +177,11 @@ export default function EmailEditor({
           </Stack>
         );
       }}
-      renderEditorBody={({ definition, setDefinition }) => {
+      renderEditorBody={({
+        definition,
+        setDefinition,
+        disabled: disabledOverride,
+      }) => {
         if (definition.type !== ChannelType.Email) {
           return null;
         }
@@ -193,7 +197,7 @@ export default function EmailEditor({
                 return defn;
               });
             }}
-            readOnly={disabled}
+            readOnly={disabledOverride}
             extensions={[
               html(),
               EditorView.theme({

@@ -79,6 +79,7 @@ import {
   PublisherUpToDateStatus,
 } from "./publisher";
 import TemplatePreview from "./templatePreview";
+import { deepEquals } from "isomorphic-lib/src/equality";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -150,6 +151,7 @@ export interface BaseTemplateState {
     userProperties: UserPropertyAssignments;
     userPropertiesJSON: string;
     title: string;
+    draft?: MessageTemplateResourceDefinition;
     definition: MessageTemplateResourceDefinition;
   } | null;
   testRequest: EphemeralRequestStatus<Error>;
@@ -213,6 +215,7 @@ export type SetDefinition = (
 export interface RenderEditorParams {
   setDefinition: SetDefinition;
   definition: MessageTemplateResourceDefinition;
+  disabled: boolean;
 }
 
 export type RenderEditorSection = (args: RenderEditorParams) => React.ReactNode;
@@ -301,6 +304,7 @@ export default function TemplateEditor({
     upsertMessage,
     viewDraft,
     inTransition,
+    setViewDraft,
   } = useAppStorePick([
     "apiBase",
     "messages",
@@ -308,6 +312,7 @@ export default function TemplateEditor({
     "userProperties",
     "upsertMessage",
     "viewDraft",
+    "setViewDraft",
     "inTransition",
   ]);
   const template =
@@ -397,10 +402,51 @@ export default function TemplateEditor({
     if (!template || !serverState) {
       return null;
     }
-    if (template.definition) {
+    if (!template.definition) {
+      return null;
     }
-    return null;
-  }, []);
+    if (!template.draft || !deepEquals(template.draft, template.definition)) {
+      const publisher: PublisherUpToDateStatus = {
+        type: PublisherStatusType.UpToDate,
+      };
+      return { publisher, draftToggle: publisher };
+    }
+    const publisher: PublisherOutOfDateStatus = {
+      type: PublisherStatusType.OutOfDate,
+      disabled: !viewDraft || errors.size > 0,
+      onPublish: () => {},
+      onRevert: () => {},
+      updateRequest,
+    };
+
+    const draftToggle: PublisherOutOfDateToggleStatus = {
+      type: PublisherStatusType.OutOfDate,
+      updateRequest,
+      isDraft: viewDraft,
+      onToggle: ({ isDraft: newIsDraft }) => {
+        setViewDraft(newIsDraft);
+      },
+    };
+    return { publisher, draftToggle };
+  }, [
+    errors.size,
+    serverState,
+    setViewDraft,
+    template,
+    updateRequest,
+    viewDraft,
+  ]);
+
+  const viewedDefinition =
+    viewDraft && serverState?.draft
+      ? serverState.draft
+      : serverState?.definition;
+
+  console.log(
+    "viewedDefinition loc1",
+    ...Object.values(viewedDefinition ?? {}),
+  );
+  console.log("template loc2", ...Object.values(template ?? {}));
 
   const handleSave = useCallback(
     ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {
@@ -458,7 +504,7 @@ export default function TemplateEditor({
     serverState?.userProperties ?? {},
     300,
   );
-  const [debouncedDefinition] = useDebounce(serverState?.definition, 300);
+  const [debouncedDefinition] = useDebounce(viewedDefinition, 300);
 
   useEffect(() => {
     (async () => {
@@ -788,15 +834,18 @@ export default function TemplateEditor({
       draft.fullscreen = null;
     });
   };
-  const renderEditorParams: RenderEditorParams | null = serverState
+  const renderEditorParams: RenderEditorParams | null = viewedDefinition
     ? {
-        definition: serverState.definition,
+        definition: viewedDefinition,
+        disabled: Boolean(disabled) || !viewDraft,
         setDefinition: (setter) =>
           setState((draft) => {
-            if (!draft.serverState) {
+            if (!draft.serverState || !viewDraft) {
               return draft;
             }
-            draft.serverState.definition = setter(draft.serverState.definition);
+            draft.serverState.draft = setter(
+              draft.serverState.draft ?? draft.serverState.definition,
+            );
             return draft;
           }),
       }
@@ -948,10 +997,11 @@ export default function TemplateEditor({
               <PublisherDraftToggle status={publisherStatuses.draftToggle} />
               <Publisher
                 status={publisherStatuses.publisher}
-                title={journey.name}
+                title={template.name}
               />
             </>
           )}
+          {/* // FIXME remove */}
           {/* {!hideSaveButton && (
             <Button
               variant="contained"
