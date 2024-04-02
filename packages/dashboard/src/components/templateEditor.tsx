@@ -394,6 +394,11 @@ export default function TemplateEditor({
     publisher: PublisherStatus;
     draftToggle: PublisherDraftToggleStatus;
   } | null = useMemo(() => {
+    if (!template || !serverState) {
+      return null;
+    }
+    if (template.definition) {
+    }
     return null;
   }, []);
 

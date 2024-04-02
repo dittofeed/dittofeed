@@ -974,6 +974,7 @@ const MessageTemplateResourceProperties = {
   id: Type.String(),
   name: Type.String(),
   type: Type.Enum(ChannelType),
+  // FIXME should not be opitonal (?)
   definition: Type.Optional(MessageTemplateResourceDefinition),
   draft: Type.Optional(MessageTemplateResourceDefinition),
   updatedAt: Type.Number(),
