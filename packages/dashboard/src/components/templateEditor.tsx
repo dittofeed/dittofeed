@@ -67,6 +67,17 @@ import { useUpdateEffect } from "../lib/useUpdateEffect";
 import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
+import {
+  Publisher,
+  PublisherDraftToggle,
+  PublisherDraftToggleStatus,
+  PublisherOutOfDateStatus,
+  PublisherOutOfDateToggleStatus,
+  PublisherStatus,
+  PublisherStatusType,
+  PublisherUnpublishedStatus,
+  PublisherUpToDateStatus,
+} from "./publisher";
 import TemplatePreview from "./templatePreview";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
@@ -269,6 +280,7 @@ export default function TemplateEditor({
   templateId: string;
   disabled?: boolean;
   hideTitle?: boolean;
+  // FIXME
   hideSaveButton?: boolean;
   saveOnUpdate?: boolean;
   member?: WorkspaceMemberResource;
@@ -342,10 +354,9 @@ export default function TemplateEditor({
     serverState,
   } = state;
 
-  // following two hooks allow for client side navigation, and for local state
-  // to become synced with zustand store
+  // Set server state post page transition for CSR
   useEffect(() => {
-    if (inTransition) {
+    if (inTransition || serverState) {
       return;
     }
     setState((draft) => {
@@ -376,6 +387,15 @@ export default function TemplateEditor({
     viewDraft,
     serverState,
   ]);
+
+  // FIXME incorporate hide save button
+  // FIXME rename hide save button
+  const publisherStatuses: {
+    publisher: PublisherStatus;
+    draftToggle: PublisherDraftToggleStatus;
+  } | null = useMemo(() => {
+    return null;
+  }, []);
 
   const handleSave = useCallback(
     ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {
@@ -918,7 +938,16 @@ export default function TemplateEditor({
               lintGutter(),
             ]}
           />
-          {!hideSaveButton && (
+          {publisherStatuses && (
+            <>
+              <PublisherDraftToggle status={publisherStatuses.draftToggle} />
+              <Publisher
+                status={publisherStatuses.publisher}
+                title={journey.name}
+              />
+            </>
+          )}
+          {/* {!hideSaveButton && (
             <Button
               variant="contained"
               onClick={() => handleSave()}
@@ -926,7 +955,7 @@ export default function TemplateEditor({
             >
               Publish Changes
             </Button>
-          )}
+          )} */}
           <LoadingModal
             openTitle="Send Test Message"
             onSubmit={submitTest}

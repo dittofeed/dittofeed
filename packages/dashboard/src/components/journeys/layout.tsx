@@ -10,7 +10,6 @@ import React, { useEffect, useMemo } from "react";
 import apiRequestHandlerFactory from "../../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../../lib/appStore";
 import MainLayout from "../mainLayout";
-import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import {
   Publisher,
   PublisherDraftToggle,
@@ -22,6 +21,7 @@ import {
   PublisherUnpublishedStatus,
   PublisherUpToDateStatus,
 } from "../publisher";
+import { getGlobalJourneyErrors } from "./globalJourneyErrors";
 import JourneyStepper from "./stepper";
 import {
   journeyDefinitionFromState,
@@ -181,7 +181,6 @@ export default function JourneyLayout({
           onSuccessNotice: "Published new Journey version.",
           setResponse: (response) => {
             upsertJourney(response);
-            console.log("loc1", response);
           },
           requestConfig: {
             method: "PUT",
