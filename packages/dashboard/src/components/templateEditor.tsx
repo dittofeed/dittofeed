@@ -365,8 +365,11 @@ export default function TemplateEditor({
     }
     setState((draft) => {
       draft.title = template.name;
-      draft.definition =
-        (viewDraft ? template.draft : template.definition) ?? null;
+      if (viewDraft && template.draft) {
+        draft.definition = template.draft;
+      } else if (template.definition) {
+        draft.definition = template.definition;
+      }
     });
   }, [template, setState, definition, title, viewDraft]);
 
