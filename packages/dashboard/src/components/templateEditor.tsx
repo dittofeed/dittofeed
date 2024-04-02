@@ -286,6 +286,7 @@ export default function TemplateEditor({
     userProperties: userPropertiesResult,
     upsertMessage,
     viewDraft,
+    inTransition,
   } = useAppStorePick([
     "apiBase",
     "messages",
@@ -293,6 +294,7 @@ export default function TemplateEditor({
     "userProperties",
     "upsertMessage",
     "viewDraft",
+    "inTransition",
   ]);
   const template =
     messages.type === CompletionStatus.Successful
@@ -347,31 +349,30 @@ export default function TemplateEditor({
   // following two hooks allow for client side navigation, and for local state
   // to become synced with zustand store
   useEffect(() => {
-    if (
-      Object.keys(initialUserProperties).length === 0 ||
-      Object.keys(userProperties).length > 0
-    ) {
+    if (inTransition) {
       return;
     }
     setState((draft) => {
       draft.userProperties = initialUserProperties;
       draft.userPropertiesJSON = JSON.stringify(initialUserProperties, null, 2);
-    });
-  }, [initialUserProperties, setState, userProperties]);
 
-  useEffect(() => {
-    if (definition || title || !template) {
-      return;
-    }
-    setState((draft) => {
-      draft.title = template.name;
-      if (viewDraft && template.draft) {
-        draft.definition = template.draft;
-      } else if (template.definition) {
-        draft.definition = template.definition;
+      if (template) {
+        draft.title = template.name;
+        if (viewDraft && template.draft) {
+          draft.definition = template.draft;
+        } else if (template.definition) {
+          draft.definition = template.definition;
+        }
       }
     });
-  }, [template, setState, definition, title, viewDraft]);
+  }, [
+    initialUserProperties,
+    setState,
+    userProperties,
+    inTransition,
+    template,
+    viewDraft,
+  ]);
 
   const handleSave = useCallback(
     ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {

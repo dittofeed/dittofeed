@@ -158,6 +158,7 @@ export type AppState = {
   integrations: IntegrationResource[];
   sourceControlProvider?: SourceControlProviderEnum;
   viewDraft: boolean;
+  inTransition?: boolean;
 } & PageStoreContents &
   Pick<
     Config,

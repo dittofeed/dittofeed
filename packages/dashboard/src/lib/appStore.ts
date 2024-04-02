@@ -9,7 +9,7 @@ import {
   SegmentOperatorType,
   SubscriptionGroupType,
 } from "isomorphic-lib/src/types";
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { pick } from "remeda";
 import { v4 as uuid } from "uuid";
 import { create, UseBoundStore } from "zustand";
@@ -18,6 +18,7 @@ import { immer } from "zustand/middleware/immer";
 
 import { createJourneySlice } from "../components/journeys/store";
 import { AppContents, AppState, PreloadedState } from "./types";
+import { useRouter } from "next/router";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();
@@ -819,6 +820,27 @@ type UseStoreState = typeof initializeStore extends (
 export const useCreateStore = (
   serverInitialState?: Partial<AppState>,
 ): (() => AppStore) => {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Function to run before page transition starts
+    const handleRouteChange = (url: unknown) => {
+      if (store) {
+        store.setState({
+          inTransition: true,
+        });
+      }
+    };
+
+    // Listen to routeChangeStart event
+    router.events.on("routeChangeStart", handleRouteChange);
+
+    // Cleanup listener on component unmount
+    return () => {
+      router.events.off("routeChangeStart", handleRouteChange);
+    };
+  }, []);
+
   // For SSR & SSG, always use a new store.
   if (typeof window === "undefined") {
     return () =>
@@ -852,6 +874,7 @@ export const useCreateStore = (
           ...initializedStore.getState(),
           // but reset all other properties.
           ...serverInitialState,
+          inTransition: false,
         },
         true, // replace states, rather than shallow merging
       );
