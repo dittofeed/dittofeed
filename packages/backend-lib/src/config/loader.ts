@@ -5,6 +5,7 @@ import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import path from "path";
 
+import { findBaseDir } from "../dir";
 import { registerFormats } from "../formatRegistry";
 
 export { NodeEnvEnum } from "../types";
@@ -21,21 +22,7 @@ export function loadConfig<S extends TSchema, C = Static<S>>({
   transform: (parsed: Static<S>) => C;
 }): C {
   registerFormats();
-
-  // find base directory containing "packages" directory
-  const splitCwd = process.cwd().split(path.sep);
-  let baseDirParts: string[] | null = null;
-  for (let i = splitCwd.length - 1; i >= 0; i--) {
-    const part = splitCwd[i];
-    if (part === "packages") {
-      baseDirParts = splitCwd.slice(0, i);
-      break;
-    }
-  }
-  if (baseDirParts === null) {
-    baseDirParts = splitCwd;
-  }
-  const baseDir = path.resolve(path.sep, ...baseDirParts, ".env");
+  const baseDir = path.join(findBaseDir(), ".env");
   dotenv.config({ path: baseDir });
 
   const unknownConfig: UnknownConfig = {};

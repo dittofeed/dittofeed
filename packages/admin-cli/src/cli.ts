@@ -2,6 +2,7 @@ import { createAdminApiKey } from "backend-lib/src/adminApiKeys";
 import { bootstrapWorker } from "backend-lib/src/bootstrap";
 import { computeState } from "backend-lib/src/computedProperties/computePropertiesIncremental";
 import backendConfig from "backend-lib/src/config";
+import { findBaseDir } from "backend-lib/src/dir";
 import logger from "backend-lib/src/logger";
 import { onboardUser } from "backend-lib/src/onboarding";
 import prisma from "backend-lib/src/prisma";
@@ -11,9 +12,17 @@ import {
   resetGlobalCron,
 } from "backend-lib/src/segments/computePropertiesWorkflow/lifecycle";
 import { findAllUserPropertyResources } from "backend-lib/src/userProperties";
+import fs from "fs/promises";
 import { SecretNames } from "isomorphic-lib/src/constants";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
-import { EmailProviderType, SendgridSecret } from "isomorphic-lib/src/types";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  ChannelType,
+  EmailProviderType,
+  MessageTemplateResourceDefinition,
+  SendgridSecret,
+} from "isomorphic-lib/src/types";
+import path from "path";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs/yargs";
 
@@ -312,6 +321,98 @@ export async function cli() {
           now: endDate,
         });
         logger().info("Done.");
+      },
+    )
+    .command(
+      "export-templates",
+      "Export zip file with templates.",
+      () => {},
+      async () => {
+        logger().info("Exporting templates...");
+        const baseDir = findBaseDir();
+        const tmpDir = path.join(baseDir, ".tmp", `templates-${Date.now()}`);
+        const workspaces = await prisma().workspace.findMany();
+        const promises: Promise<string>[] = workspaces.map(
+          async (workspace) => {
+            const workspaceDir = path.join(tmpDir, workspace.name);
+            const templates = await prisma().messageTemplate.findMany({
+              where: {
+                workspaceId: workspace.id,
+              },
+            });
+            const templatePromises = templates.flatMap(async (template) => {
+              const definitionResult = schemaValidateWithErr(
+                template.definition,
+                MessageTemplateResourceDefinition,
+              );
+              if (definitionResult.isErr()) {
+                logger().error(
+                  { err: definitionResult.error },
+                  "Failed to validate template definition",
+                );
+                return [];
+              }
+              const templateDir = path.join(workspaceDir, template.name);
+              await fs.mkdir(templateDir, { recursive: true });
+
+              const definition = definitionResult.value;
+              let files: { path: string; contents: string }[];
+              switch (definition.type) {
+                case ChannelType.Email: {
+                  files = [
+                    {
+                      path: path.join(templateDir, "body.liquid.html"),
+                      contents: definition.body,
+                    },
+                    {
+                      path: path.join(templateDir, "subject.liquid.html"),
+                      contents: definition.subject,
+                    },
+                    {
+                      path: path.join(templateDir, "from.liquid.html"),
+                      contents: definition.from,
+                    },
+                  ];
+                  if (definition.replyTo) {
+                    files.push({
+                      path: path.join(templateDir, "reply-to.liquid.html"),
+                      contents: definition.replyTo,
+                    });
+                  }
+                  break;
+                }
+                default: {
+                  logger().info(
+                    {
+                      name: template.name,
+                      id: template.id,
+                      workspaceName: workspace.name,
+                      type: definition.type,
+                    },
+                    "Skipping template due to unhandled type.",
+                  );
+                  return [];
+                }
+              }
+
+              return files.map((f) =>
+                fs.writeFile(f.path, f.contents, {
+                  encoding: "utf-8",
+                  flag: "w+",
+                }),
+              );
+            });
+            await Promise.all(templatePromises);
+            return workspaceDir;
+          },
+        );
+        await Promise.all(promises);
+        logger().info(
+          {
+            dir: tmpDir,
+          },
+          "Finished exporting templates.",
+        );
       },
     )
     .command(
