@@ -146,12 +146,11 @@ function ProviderOverrideSelector<P>({
 export interface BaseTemplateState {
   fullscreen: "preview" | "editor" | null;
   errors: Map<string, string>;
-  serverState: {
-    userProperties: UserPropertyAssignments;
-    userPropertiesJSON: string;
+  userProperties: UserPropertyAssignments;
+  userPropertiesJSON: string;
+  editedTemplate: {
     title: string;
     draft?: MessageTemplateResourceDefinition;
-    definition: MessageTemplateResourceDefinition;
   } | null;
   testRequest: EphemeralRequestStatus<Error>;
   testResponse: MessageTemplateTestResponse | null;
@@ -300,7 +299,7 @@ export default function TemplateEditor({
     messages,
     workspace: workspaceResult,
     userProperties: userPropertiesResult,
-    upsertMessage,
+    upsertTemplate,
     viewDraft,
     inTransition,
     setViewDraft,
@@ -309,7 +308,7 @@ export default function TemplateEditor({
     "messages",
     "workspace",
     "userProperties",
-    "upsertMessage",
+    "upsertTemplate",
     "viewDraft",
     "setViewDraft",
     "inTransition",
@@ -335,7 +334,9 @@ export default function TemplateEditor({
 
   const [state, setState] = useImmer<TemplateEditorState>({
     fullscreen: null,
-    serverState: null,
+    editedTemplate: null,
+    userProperties: {},
+    userPropertiesJSON: "{}",
     errors: new Map(),
     testResponse: null,
     testRequest: {
@@ -355,26 +356,19 @@ export default function TemplateEditor({
     testResponse,
     testRequest,
     updateRequest,
-    serverState,
+    editedTemplate,
+    userProperties,
+    userPropertiesJSON,
   } = state;
 
   // Set server state post page transition for CSR
   useEffect(() => {
-    if (inTransition || serverState) {
+    if (inTransition) {
       return;
     }
     setState((draft) => {
-      if (!template?.definition) {
-        return;
-      }
-      // FIXME pull out and add to factory response
-      draft.serverState = {
-        title: template.name,
-        definition: template.definition,
-        draft: template.draft,
-        userProperties: initialUserProperties,
-        userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
-      };
+      draft.userProperties = initialUserProperties;
+      draft.userPropertiesJSON = JSON.stringify(initialUserProperties, null, 2);
     });
   }, [
     initialUserProperties,
@@ -382,8 +376,20 @@ export default function TemplateEditor({
     inTransition,
     template,
     viewDraft,
-    serverState,
+    editedTemplate,
   ]);
+
+  useEffect(() => {
+    setState((draft) => {
+      if (!template?.definition) {
+        return;
+      }
+      draft.editedTemplate = {
+        draft: template.draft,
+        title: template.name,
+      };
+    });
+  }, [setState, template]);
 
   // FIXME incorporate hide save button
   // FIXME rename hide save button
@@ -391,18 +397,24 @@ export default function TemplateEditor({
     publisher: PublisherStatus;
     draftToggle: PublisherDraftToggleStatus;
   } | null = useMemo(() => {
-    if (!template || !serverState) {
+    console.log("loc1", {
+      template: Boolean(template),
+      editedTemplate: Boolean(editedTemplate),
+    });
+    if (!template?.definition || !editedTemplate) {
       return null;
     }
-    if (!template.definition) {
-      return null;
-    }
-    if (!template.draft || !deepEquals(template.draft, template.definition)) {
+    if (
+      !editedTemplate.draft ||
+      deepEquals(editedTemplate.draft, template.definition)
+    ) {
       const publisher: PublisherUpToDateStatus = {
         type: PublisherStatusType.UpToDate,
       };
+      console.log("loc2");
       return { publisher, draftToggle: publisher };
     }
+    console.log("loc3");
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       disabled: !viewDraft || errors.size > 0,
@@ -417,7 +429,7 @@ export default function TemplateEditor({
               draft.updateRequest = request;
             }),
           responseSchema: MessageTemplateResource,
-          setResponse: upsertMessage,
+          setResponse: upsertTemplate,
           onSuccessNotice: "Published template draft.",
           onFailureNoticeHandler: () =>
             `API Error: Failed to publish template draft.`,
@@ -429,7 +441,7 @@ export default function TemplateEditor({
               name: template.name,
               id: template.id,
               draft: null,
-              definition: serverState.definition,
+              definition: editedTemplate.draft,
             } satisfies UpsertMessageTemplateResource,
             headers: {
               "Content-Type": "application/json",
@@ -437,7 +449,36 @@ export default function TemplateEditor({
           },
         })();
       },
-      onRevert: () => {},
+      onRevert: () => {
+        if (!workspace) {
+          return;
+        }
+        apiRequestHandlerFactory({
+          request: updateRequest,
+          setRequest: (request) =>
+            setState((draft) => {
+              draft.updateRequest = request;
+            }),
+          responseSchema: MessageTemplateResource,
+          setResponse: upsertTemplate,
+          onSuccessNotice: "Reverted template draft.",
+          onFailureNoticeHandler: () =>
+            `API Error: Failed to revert template draft.`,
+          requestConfig: {
+            method: "PUT",
+            url: `${apiBase}/api/content/templates`,
+            data: {
+              workspaceId: workspace.id,
+              name: template.name,
+              id: template.id,
+              draft: null,
+            } satisfies UpsertMessageTemplateResource,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        })();
+      },
       updateRequest,
     };
 
@@ -451,24 +492,28 @@ export default function TemplateEditor({
     };
     return { publisher, draftToggle };
   }, [
+    apiBase,
     errors.size,
-    serverState,
+    editedTemplate,
+    setState,
     setViewDraft,
     template,
     updateRequest,
+    upsertTemplate,
     viewDraft,
+    workspace,
   ]);
 
   const viewedDefinition =
-    viewDraft && serverState?.draft
-      ? serverState.draft
-      : serverState?.definition;
+    viewDraft && editedTemplate?.draft
+      ? editedTemplate.draft
+      : template?.definition;
 
-  console.log(
-    "viewedDefinition loc1",
-    ...Object.values(viewedDefinition ?? {}),
-  );
-  console.log("template loc2", ...Object.values(template ?? {}));
+  // console.log(
+  //   "viewedDefinition loc1",
+  //   ...Object.values(viewedDefinition ?? {}),
+  // );
+  // console.log("template loc2", ...Object.values(template ?? {}));
 
   const handleSave = useCallback(
     ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {
@@ -513,7 +558,7 @@ export default function TemplateEditor({
       // })();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [disabled, workspaceResult, templateId, upsertMessage, apiBase, setState],
+    [disabled, workspaceResult, templateId, upsertTemplate, apiBase, setState],
   );
 
   useUpdateEffect(() => {
@@ -522,10 +567,7 @@ export default function TemplateEditor({
     });
   }, [handleSave, saveOnUpdate]);
 
-  const [debouncedUserProperties] = useDebounce(
-    serverState?.userProperties ?? {},
-    300,
-  );
+  const [debouncedUserProperties] = useDebounce(userProperties, 300);
   const [debouncedDefinition] = useDebounce(viewedDefinition, 300);
 
   useEffect(() => {
@@ -862,12 +904,19 @@ export default function TemplateEditor({
         disabled: Boolean(disabled) || !viewDraft,
         setDefinition: (setter) =>
           setState((draft) => {
-            if (!draft.serverState || !viewDraft) {
+            let currentDefinition: MessageTemplateResourceDefinition | null =
+              null;
+            if (draft.editedTemplate?.draft) {
+              currentDefinition = draft.editedTemplate.draft;
+            } else if (template.definition) {
+              // Read only object can't be passed into setter, so need to clone.
+              currentDefinition = { ...template.definition };
+            }
+
+            if (!currentDefinition || !draft.editedTemplate || !viewDraft) {
               return draft;
             }
-            draft.serverState.draft = setter(
-              draft.serverState.draft ?? draft.serverState.definition,
-            );
+            draft.editedTemplate.draft = setter(currentDefinition);
             return draft;
           }),
       }
@@ -967,16 +1016,16 @@ export default function TemplateEditor({
             boxShadow: theme.shadows[2],
           }}
         >
-          {serverState !== null && !hideTitle && (
+          {editedTemplate !== null && !hideTitle && (
             <EditableName
-              name={serverState.title}
+              name={editedTemplate.title}
               variant="h4"
               onChange={(e) =>
                 setState((draft) => {
-                  if (!draft.serverState) {
+                  if (!draft.editedTemplate) {
                     return;
                   }
-                  draft.serverState.title = e.target.value;
+                  draft.editedTemplate.title = e.target.value;
                 })
               }
             />
@@ -986,20 +1035,20 @@ export default function TemplateEditor({
             <Typography variant="h5">User Properties</Typography>
           </InfoTooltip>
           <ReactCodeMirror
-            value={serverState?.userPropertiesJSON ?? ""}
+            value={userPropertiesJSON}
             onChange={(json) =>
               setState((draft) => {
-                if (!draft.serverState) {
+                if (!draft.editedTemplate) {
                   return;
                 }
-                draft.serverState.userPropertiesJSON = json;
+                draft.userPropertiesJSON = json;
                 const result = jsonParseSafe(json).andThen((p) =>
                   schemaValidateWithErr(p, UserPropertyAssignments),
                 );
                 if (result.isErr()) {
                   return;
                 }
-                draft.serverState.userProperties = result.value;
+                draft.userProperties = result.value;
               })
             }
             extensions={[

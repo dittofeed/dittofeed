@@ -566,7 +566,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           set((state) => {
             state.drawerOpen = !state.drawerOpen;
           }),
-        upsertMessage: (message) =>
+        upsertTemplate: (template) =>
           set((state) => {
             let { messages } = state;
             if (messages.type !== CompletionStatus.Successful) {
@@ -576,13 +576,21 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               };
               state.messages = messages;
             }
-            for (const existingMessage of messages.value) {
-              if (message.id === existingMessage.id) {
-                Object.assign(existingMessage, message);
-                return state;
+            let updated = false;
+            for (let i = 0; i < messages.value.length; i++) {
+              const existing = messages.value[i];
+              if (!existing) {
+                throw new Error("template is undefined");
+              }
+              if (template.id === existing.id) {
+                messages.value[i] = template;
+                updated = true;
+                break;
               }
             }
-            messages.value.push(message);
+            if (!updated) {
+              messages.value.push(template);
+            }
             return state;
           }),
         upsertEmailProvider: (emailProvider) =>

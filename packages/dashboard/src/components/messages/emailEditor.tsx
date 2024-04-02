@@ -193,6 +193,7 @@ export default function EmailEditor({
                 if (defn.type !== ChannelType.Email) {
                   return defn;
                 }
+
                 defn.body = value;
                 return defn;
               });
