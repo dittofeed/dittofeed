@@ -6,7 +6,6 @@ import {
   Alert,
   Autocomplete,
   Box,
-  Button,
   Dialog,
   Divider,
   FormLabel,
@@ -24,6 +23,7 @@ import axios from "axios";
 import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { emailProviderLabel } from "isomorphic-lib/src/email";
+import { deepEquals } from "isomorphic-lib/src/equality";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -79,7 +79,6 @@ import {
   PublisherUpToDateStatus,
 } from "./publisher";
 import TemplatePreview from "./templatePreview";
-import { deepEquals } from "isomorphic-lib/src/equality";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -414,7 +413,28 @@ export default function TemplateEditor({
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       disabled: !viewDraft || errors.size > 0,
-      onPublish: () => {},
+      onPublish: () => {
+        apiRequestHandlerFactory({
+          request: updateRequest,
+          setRequest: (request) =>
+            setState((draft) => {
+              draft.updateRequest = request;
+            }),
+          responseSchema: MessageTemplateResource,
+          setResponse: upsertMessage,
+          onSuccessNotice: "Published template draft.",
+          onFailureNoticeHandler: () =>
+            `API Error: Failed to publish template draft.`,
+          requestConfig: {
+            method: "PUT",
+            url: `${apiBase}/api/content/templates`,
+            data: updateData,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        })();
+      },
       onRevert: () => {},
       updateRequest,
     };

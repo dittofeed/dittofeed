@@ -133,6 +133,8 @@ export async function upsertMessageTemplate(
   data: UpsertMessageTemplateResource,
 ): Promise<MessageTemplateResource> {
   let messageTemplate: MessageTemplate;
+  const draft = data.draft === null ? Prisma.DbNull : data.draft;
+
   if (data.name && data.workspaceId) {
     messageTemplate = await prisma().messageTemplate.upsert({
       where: {
@@ -143,14 +145,14 @@ export async function upsertMessageTemplate(
         name: data.name,
         id: data.id,
         definition: data.definition,
-        draft: data.draft,
+        draft,
       },
       update: {
         workspaceId: data.workspaceId,
         name: data.name,
         id: data.id,
         definition: data.definition,
-        draft: data.draft,
+        draft,
       },
     });
   } else {
@@ -163,7 +165,7 @@ export async function upsertMessageTemplate(
         name: data.name,
         id: data.id,
         definition: data.definition,
-        draft: data.draft,
+        draft,
       },
     });
   }
