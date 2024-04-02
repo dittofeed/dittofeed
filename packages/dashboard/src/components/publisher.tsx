@@ -18,7 +18,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { useEffect, useState } from "react";
 
-import { getWarningStyles } from "../../lib/warningTheme";
+import { getWarningStyles } from "../lib/warningTheme";
 
 export enum PublisherStatusType {
   Unpublished = "Unpublished",

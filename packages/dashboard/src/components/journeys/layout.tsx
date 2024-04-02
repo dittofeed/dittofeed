@@ -21,7 +21,7 @@ import {
   PublisherStatusType,
   PublisherUnpublishedStatus,
   PublisherUpToDateStatus,
-} from "./publisher";
+} from "../publisher";
 import JourneyStepper from "./stepper";
 import {
   journeyDefinitionFromState,
