@@ -364,21 +364,14 @@ export default function TemplateEditor({
       return;
     }
     setState((draft) => {
-      if (!template) {
+      if (!template?.definition) {
         return;
       }
-      let d: MessageTemplateResourceDefinition | null = null;
-      if (viewDraft && template.draft) {
-        d = template.draft;
-      } else if (template.definition) {
-        d = template.definition;
-      }
-      if (!d) {
-        return;
-      }
+      // FIXME pull out and add to factory response
       draft.serverState = {
         title: template.name,
-        definition: d,
+        definition: template.definition,
+        draft: template.draft,
         userProperties: initialUserProperties,
         userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
       };
