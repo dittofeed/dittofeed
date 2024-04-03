@@ -111,9 +111,10 @@ liquidEngine.registerTag("unsubscribe_link", {
       });
       href = `href="${url}"`;
     } else {
-      logger().debug(
+      logger().error(
         {
           hasSubscriptionSecret: !!subscriptionSecret,
+          identifierKey,
           identifier,
           userId,
         },
