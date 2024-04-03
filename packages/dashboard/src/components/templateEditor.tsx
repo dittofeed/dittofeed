@@ -53,7 +53,7 @@ import {
 import { LoremIpsum } from "lorem-ipsum";
 import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { useImmer } from "use-immer";
 
@@ -75,7 +75,6 @@ import {
   PublisherOutOfDateToggleStatus,
   PublisherStatus,
   PublisherStatusType,
-  PublisherUnpublishedStatus,
   PublisherUpToDateStatus,
 } from "./publisher";
 import TemplatePreview from "./templatePreview";
@@ -323,19 +322,6 @@ export default function TemplateEditor({
       ? workspaceResult.value
       : null;
   const initialUserProperties = useMemo(() => {
-    return {
-      anonymousId: "b8fa9198-6475-4b18-bb64-aafd0c8b717e",
-      id: "62b44d22-0d14-48bb-80d9-fb5da5b26a0c",
-      language: "en-US",
-      deviceToken:
-        "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      email: "name@email.com",
-      firstName: "Matt",
-      accountManager: "Jane Johnson",
-      lastName: "Smith",
-      phone:
-        "88855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf3488855512asdfafsdfasdfasf34",
-    };
     if (userPropertiesResult.type !== CompletionStatus.Successful) {
       return {};
     }
@@ -404,6 +390,7 @@ export default function TemplateEditor({
     });
   }, [setState, template]);
 
+  // FIXME toggling deletes draft
   const publisherStatuses: {
     publisher: PublisherStatus;
     draftToggle: PublisherDraftToggleStatus;
@@ -569,6 +556,7 @@ export default function TemplateEditor({
     })();
   }, [debouncedDraft]);
 
+  console.log("loc1", publisherStatuses);
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
 
   useEffect(() => {
@@ -1105,7 +1093,7 @@ export default function TemplateEditor({
               width: "50%",
             }}
           >
-            {/* {editor} */}
+            {editor}
           </Box>
           <Divider orientation="vertical" />
           <Box
@@ -1123,7 +1111,7 @@ export default function TemplateEditor({
         onClose={handleFullscreenClose}
         TransitionComponent={Transition}
       >
-        {/* {editor} */}
+        {editor}
       </Dialog>
       <Dialog
         fullScreen

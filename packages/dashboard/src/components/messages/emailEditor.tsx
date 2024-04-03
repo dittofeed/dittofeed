@@ -55,17 +55,15 @@ const definitionToPreview: DefinitionToPreview = (definition) => {
 };
 
 export default function EmailEditor({
-  hideSaveButton,
   hideTitle,
   templateId: messageId,
-  saveOnUpdate,
+  hidePublisher,
   disabled,
   member,
 }: {
   templateId: string;
-  hideSaveButton?: boolean;
+  hidePublisher?: boolean;
   hideTitle?: boolean;
-  saveOnUpdate?: boolean;
   disabled?: boolean;
   member?: WorkspaceMemberResource;
 }) {
@@ -87,7 +85,7 @@ export default function EmailEditor({
       member={member}
       disabled={disabled}
       hideTitle={hideTitle}
-      hidePublisher={hideSaveButton}
+      hidePublisher={hidePublisher}
       renderEditorHeader={({ definition, setDefinition }) => {
         if (definition.type !== ChannelType.Email) {
           return null;
