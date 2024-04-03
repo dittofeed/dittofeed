@@ -3,7 +3,9 @@ import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
 import { sendEmail } from "./messaging";
+import { upsertEmailProvider } from "./messaging/email";
 import prisma from "./prisma";
+import { upsertSubscriptionSecret } from "./subscriptionGroups";
 import {
   ChannelType,
   EmailProviderType,
@@ -12,7 +14,6 @@ import {
   MessageTags,
   SubscriptionGroupType,
 } from "./types";
-import { upsertEmailProvider } from "./messaging/email";
 
 describe("messaging", () => {
   let workspace: Workspace;
@@ -32,6 +33,9 @@ describe("messaging", () => {
         await upsertEmailProvider({
           workspaceId: workspace.id,
           type: EmailProviderType.Test,
+        });
+        await upsertSubscriptionSecret({
+          workspaceId: workspace.id,
         });
         template = await prisma().messageTemplate.create({
           data: {
