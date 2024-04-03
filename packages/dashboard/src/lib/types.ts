@@ -158,6 +158,7 @@ export type AppState = {
   integrations: IntegrationResource[];
   sourceControlProvider?: SourceControlProviderEnum;
   viewDraft: boolean;
+  inTransition?: boolean;
 } & PageStoreContents &
   Pick<
     Config,
@@ -176,7 +177,7 @@ export interface AppActions {
   upsertDataSourceConfiguration: (
     dataSource: DataSourceConfigurationResource,
   ) => void;
-  upsertMessage: (message: MessageTemplateResource) => void;
+  upsertTemplate: (message: MessageTemplateResource) => void;
   upsertBroadcast: (message: BroadcastResource) => void;
   deleteMessage: (id: string) => void;
   upsertSegment: (segment: PartialSegmentResource) => void;

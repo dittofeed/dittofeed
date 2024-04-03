@@ -6,7 +6,6 @@ import {
   Alert,
   Autocomplete,
   Box,
-  Button,
   Dialog,
   Divider,
   FormLabel,
@@ -24,6 +23,7 @@ import axios from "axios";
 import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { emailProviderLabel } from "isomorphic-lib/src/email";
+import { deepEquals } from "isomorphic-lib/src/equality";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -53,7 +53,7 @@ import {
 import { LoremIpsum } from "lorem-ipsum";
 import { useRouter } from "next/router";
 import { closeSnackbar, enqueueSnackbar } from "notistack";
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { useImmer } from "use-immer";
 
@@ -67,6 +67,16 @@ import { useUpdateEffect } from "../lib/useUpdateEffect";
 import EditableName from "./editableName";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
+import {
+  Publisher,
+  PublisherDraftToggle,
+  PublisherDraftToggleStatus,
+  PublisherOutOfDateStatus,
+  PublisherOutOfDateToggleStatus,
+  PublisherStatus,
+  PublisherStatusType,
+  PublisherUpToDateStatus,
+} from "./publisher";
 import TemplatePreview from "./templatePreview";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
@@ -134,12 +144,14 @@ function ProviderOverrideSelector<P>({
 
 export interface BaseTemplateState {
   fullscreen: "preview" | "editor" | null;
-  userProperties: UserPropertyAssignments;
   errors: Map<string, string>;
+  userProperties: UserPropertyAssignments;
   userPropertiesJSON: string;
-  title: string | null;
+  editedTemplate: {
+    title: string;
+    draft?: MessageTemplateResourceDefinition;
+  } | null;
   testRequest: EphemeralRequestStatus<Error>;
-  definition: MessageTemplateResourceDefinition | null;
   testResponse: MessageTemplateTestResponse | null;
   updateRequest: EphemeralRequestStatus<Error>;
   rendered: Record<string, string>;
@@ -200,6 +212,7 @@ export type SetDefinition = (
 export interface RenderEditorParams {
   setDefinition: SetDefinition;
   definition: MessageTemplateResourceDefinition;
+  disabled: boolean;
 }
 
 export type RenderEditorSection = (args: RenderEditorParams) => React.ReactNode;
@@ -255,11 +268,10 @@ export default function TemplateEditor({
   renderEditorHeader,
   renderPreviewBody,
   renderPreviewHeader,
-  hideSaveButton,
+  hidePublisher,
   disabled,
   member,
   hideTitle,
-  saveOnUpdate = false,
   fieldToReadable,
   definitionToPreview,
 }: {
@@ -267,8 +279,7 @@ export default function TemplateEditor({
   templateId: string;
   disabled?: boolean;
   hideTitle?: boolean;
-  hideSaveButton?: boolean;
-  saveOnUpdate?: boolean;
+  hidePublisher?: boolean;
   member?: WorkspaceMemberResource;
   renderPreviewHeader: RenderPreviewSection;
   renderPreviewBody: RenderPreviewSection;
@@ -284,18 +295,27 @@ export default function TemplateEditor({
     messages,
     workspace: workspaceResult,
     userProperties: userPropertiesResult,
-    upsertMessage,
+    upsertTemplate,
+    viewDraft,
+    inTransition,
+    setViewDraft,
   } = useAppStorePick([
     "apiBase",
     "messages",
     "workspace",
     "userProperties",
-    "upsertMessage",
+    "upsertTemplate",
+    "viewDraft",
+    "setViewDraft",
+    "inTransition",
   ]);
-  const template =
-    messages.type === CompletionStatus.Successful
-      ? messages.value.find((m) => m.id === templateId)
-      : undefined;
+  const template = useMemo(
+    () =>
+      messages.type === CompletionStatus.Successful
+        ? messages.value.find((m) => m.id === templateId)
+        : undefined,
+    [messages, templateId],
+  );
 
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
@@ -313,11 +333,10 @@ export default function TemplateEditor({
 
   const [state, setState] = useImmer<TemplateEditorState>({
     fullscreen: null,
-    definition: template?.draft ?? template?.definition ?? null,
-    title: template?.name ?? "",
-    errors: new Map(),
+    editedTemplate: null,
     userProperties: initialUserProperties,
     userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
+    errors: new Map(),
     testResponse: null,
     testRequest: {
       type: CompletionStatus.NotStarted,
@@ -331,124 +350,220 @@ export default function TemplateEditor({
   });
   const {
     fullscreen,
-    userProperties,
-    userPropertiesJSON,
-    title,
-    definition,
     errors,
     rendered,
     testResponse,
     testRequest,
     updateRequest,
+    editedTemplate,
+    userProperties,
+    userPropertiesJSON,
   } = state;
 
-  // following two hooks allow for client side navigation, and for local state
-  // to become synced with zustand store
+  // Set server state post page transition for CSR
   useEffect(() => {
-    if (
-      Object.keys(initialUserProperties).length === 0 ||
-      Object.keys(userProperties).length > 0
-    ) {
+    if (inTransition) {
       return;
     }
     setState((draft) => {
       draft.userProperties = initialUserProperties;
       draft.userPropertiesJSON = JSON.stringify(initialUserProperties, null, 2);
     });
-  }, [initialUserProperties, setState, userProperties]);
+  }, [
+    initialUserProperties,
+    setState,
+    inTransition,
+    template,
+    viewDraft,
+    editedTemplate,
+  ]);
 
   useEffect(() => {
-    if (definition || title || !template) {
-      return;
-    }
     setState((draft) => {
-      draft.title = template.name;
-      draft.definition = template.draft ?? template.definition ?? null;
-    });
-  }, [template, setState, definition, title]);
-
-  const handleSave = useCallback(
-    ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {
-      if (
-        disabled ||
-        workspaceResult.type !== CompletionStatus.Successful ||
-        !definition
-      ) {
+      if (!template?.definition) {
         return;
       }
-      const workspaceId = workspaceResult.value.id;
-
-      const updateData: UpsertMessageTemplateResource = {
-        id: templateId,
-        workspaceId,
-        name: title ?? undefined,
-        draft: definition,
+      draft.editedTemplate = {
+        draft: template.draft,
+        title: template.name,
       };
+    });
+  }, [setState, template]);
 
-      if (!saveAsDraft) {
-        updateData.definition = definition;
-      }
-
-      const draftNotice = saveAsDraft
-        ? "Saved template draft."
-        : "Published template draft.";
-
-      apiRequestHandlerFactory({
-        request: updateRequest,
-        setRequest: (request) =>
-          setState((draft) => {
-            draft.updateRequest = request;
-          }),
-        responseSchema: MessageTemplateResource,
-        setResponse: upsertMessage,
-        onSuccessNotice: draftNotice,
-        onFailureNoticeHandler: () => `API Error: Failed to update template.`,
-        requestConfig: {
-          method: "PUT",
-          url: `${apiBase}/api/content/templates`,
-          data: updateData,
-          headers: {
-            "Content-Type": "application/json",
+  // FIXME toggling deletes draft
+  const publisherStatuses: {
+    publisher: PublisherStatus;
+    draftToggle: PublisherDraftToggleStatus;
+  } | null = useMemo(() => {
+    if (hidePublisher) {
+      return null;
+    }
+    if (!template?.definition || !editedTemplate) {
+      return null;
+    }
+    if (
+      !editedTemplate.draft ||
+      deepEquals(editedTemplate.draft, template.definition)
+    ) {
+      const publisher: PublisherUpToDateStatus = {
+        type: PublisherStatusType.UpToDate,
+      };
+      return { publisher, draftToggle: publisher };
+    }
+    const publisher: PublisherOutOfDateStatus = {
+      type: PublisherStatusType.OutOfDate,
+      disabled: !viewDraft || errors.size > 0,
+      onPublish: () => {
+        if (!workspace) {
+          return;
+        }
+        apiRequestHandlerFactory({
+          request: updateRequest,
+          setRequest: (request) =>
+            setState((draft) => {
+              draft.updateRequest = request;
+            }),
+          responseSchema: MessageTemplateResource,
+          setResponse: upsertTemplate,
+          onSuccessNotice: "Published template draft.",
+          onFailureNoticeHandler: () =>
+            `API Error: Failed to publish template draft.`,
+          requestConfig: {
+            method: "PUT",
+            url: `${apiBase}/api/content/templates`,
+            data: {
+              workspaceId: workspace.id,
+              name: template.name,
+              id: template.id,
+              draft: null,
+              definition: editedTemplate.draft,
+            } satisfies UpsertMessageTemplateResource,
+            headers: {
+              "Content-Type": "application/json",
+            },
           },
-        },
-      })();
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      disabled,
-      workspaceResult,
-      definition,
-      templateId,
-      title,
-      upsertMessage,
-      apiBase,
-      setState,
-    ],
-  );
+        })();
+      },
+      onRevert: () => {
+        if (!workspace) {
+          return;
+        }
+        apiRequestHandlerFactory({
+          request: updateRequest,
+          setRequest: (request) =>
+            setState((draft) => {
+              draft.updateRequest = request;
+            }),
+          responseSchema: MessageTemplateResource,
+          setResponse: upsertTemplate,
+          onSuccessNotice: "Reverted template draft.",
+          onFailureNoticeHandler: () =>
+            `API Error: Failed to revert template draft.`,
+          requestConfig: {
+            method: "PUT",
+            url: `${apiBase}/api/content/templates`,
+            data: {
+              workspaceId: workspace.id,
+              name: template.name,
+              id: template.id,
+              draft: null,
+            } satisfies UpsertMessageTemplateResource,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        })();
+      },
+      updateRequest,
+    };
+
+    const draftToggle: PublisherOutOfDateToggleStatus = {
+      type: PublisherStatusType.OutOfDate,
+      updateRequest,
+      isDraft: viewDraft,
+      onToggle: ({ isDraft: newIsDraft }) => {
+        setViewDraft(newIsDraft);
+      },
+    };
+    return { publisher, draftToggle };
+  }, [
+    hidePublisher,
+    template,
+    editedTemplate,
+    viewDraft,
+    errors.size,
+    updateRequest,
+    workspace,
+    upsertTemplate,
+    apiBase,
+    setState,
+    setViewDraft,
+  ]);
+
+  const [debouncedDraft] = useDebounce(editedTemplate?.draft, 300);
 
   useUpdateEffect(() => {
-    handleSave({
-      saveAsDraft: !saveOnUpdate,
-    });
-  }, [handleSave, saveOnUpdate]);
+    if (disabled || !workspace || !editedTemplate) {
+      return;
+    }
+    const workspaceId = workspace.id;
+    const updateData: UpsertMessageTemplateResource = {
+      id: templateId,
+      workspaceId,
+      name: editedTemplate.title,
+    };
+    if (!hidePublisher) {
+      if (deepEquals(debouncedDraft, template?.draft)) {
+        return;
+      }
+      updateData.draft = debouncedDraft;
+    } else {
+      if (deepEquals(debouncedDraft, template?.definition)) {
+        return;
+      }
+      updateData.definition = debouncedDraft;
+    }
+
+    apiRequestHandlerFactory({
+      request: updateRequest,
+      setRequest: (request) =>
+        setState((draft) => {
+          draft.updateRequest = request;
+        }),
+      responseSchema: MessageTemplateResource,
+      setResponse: upsertTemplate,
+      onFailureNoticeHandler: () => `API Error: Failed to update template.`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/content/templates`,
+        data: updateData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+  }, [debouncedDraft]);
 
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
-  const [debouncedDefinition] = useDebounce(definition, 300);
 
   useEffect(() => {
     (async () => {
-      if (
-        !workspace ||
-        !debouncedDefinition ||
-        Object.keys(debouncedUserProperties).length === 0
-      ) {
+      if (!workspace || inTransition || !template) {
         return;
       }
+      const definitionToRender = viewDraft
+        ? debouncedDraft ?? template.definition
+        : template.definition;
+
+      if (!definitionToRender) {
+        return;
+      }
+
       const data: RenderMessageTemplateRequest = {
         workspaceId: workspace.id,
         channel,
         userProperties: debouncedUserProperties,
-        contents: definitionToPreview(debouncedDefinition),
+        contents: definitionToPreview(definitionToRender),
       };
 
       try {
@@ -508,8 +623,9 @@ export default function TemplateEditor({
   }, [
     apiBase,
     debouncedUserProperties,
-    debouncedDefinition,
+    debouncedDraft,
     definitionToPreview,
+    inTransition,
     fieldToReadable,
     setState,
     workspace,
@@ -537,7 +653,7 @@ export default function TemplateEditor({
         ? userPropertiesResult.value.map((p) => p.name)
         : [],
     );
-    for (const userProperty in userProperties) {
+    for (const userProperty in debouncedUserProperties) {
       if (!userPropertySet.has(userProperty)) {
         missingUserProperty = userProperty;
         break;
@@ -568,7 +684,7 @@ export default function TemplateEditor({
     setState((draft) => {
       draft.errors.set(USER_PROPERTY_WARNING_KEY, message);
     });
-  }, [errors, setState, userProperties, userPropertiesResult]);
+  }, [errors, setState, debouncedUserProperties, userPropertiesResult]);
 
   if (!workspace || !template) {
     return null;
@@ -580,7 +696,7 @@ export default function TemplateEditor({
   > = {
     workspaceId: workspace.id,
     templateId,
-    userProperties,
+    userProperties: debouncedUserProperties,
   };
   let submitTestData: MessageTemplateTestRequest;
   switch (state.channel) {
@@ -675,12 +791,12 @@ export default function TemplateEditor({
   } else {
     let to: string | null = null;
     if (channel === ChannelType.Webhook) {
-      if (debouncedDefinition?.type === ChannelType.Webhook) {
-        to = userProperties[debouncedDefinition.identifierKey] ?? null;
+      if (debouncedDraft?.type === ChannelType.Webhook) {
+        to = debouncedUserProperties[debouncedDraft.identifierKey] ?? null;
       }
     } else {
       const identiferKey = CHANNEL_IDENTIFIERS[channel];
-      to = userProperties[identiferKey] ?? null;
+      to = debouncedUserProperties[identiferKey] ?? null;
     }
     let providerAutocomplete: React.ReactNode;
     switch (state.channel) {
@@ -763,20 +879,35 @@ export default function TemplateEditor({
       draft.fullscreen = null;
     });
   };
-  const renderEditorParams: RenderEditorParams | null =
-    definition !== null
-      ? {
-          definition,
-          setDefinition: (setter) =>
-            setState((draft) => {
-              if (draft.definition === null) {
-                return draft;
-              }
-              draft.definition = setter(draft.definition);
-              return draft;
-            }),
+
+  if (!template.definition) {
+    return null;
+  }
+  const viewedDefinition =
+    (viewDraft ? editedTemplate?.draft : undefined) ?? template.definition;
+  const inDraftView =
+    publisherStatuses?.publisher.type !== PublisherStatusType.OutOfDate ||
+    viewDraft;
+  const renderEditorParams: RenderEditorParams = {
+    definition: viewedDefinition,
+    disabled: Boolean(disabled) || !inDraftView,
+    setDefinition: (setter) =>
+      setState((draft) => {
+        let currentDefinition: MessageTemplateResourceDefinition | null = null;
+        if (draft.editedTemplate?.draft) {
+          currentDefinition = draft.editedTemplate.draft;
+        } else if (template.definition) {
+          // Read only object can't be passed into setter, so need to clone.
+          currentDefinition = { ...template.definition };
         }
-      : null;
+
+        if (!currentDefinition || !draft.editedTemplate || !inDraftView) {
+          return draft;
+        }
+        draft.editedTemplate.draft = setter(currentDefinition);
+        return draft;
+      }),
+  };
 
   const editor = (
     <Stack
@@ -837,8 +968,14 @@ export default function TemplateEditor({
   };
   const preview = (
     <TemplatePreview
-      previewHeader={renderPreviewHeader({ rendered, userProperties })}
-      previewBody={renderPreviewBody({ rendered, userProperties })}
+      previewHeader={renderPreviewHeader({
+        rendered,
+        userProperties: debouncedUserProperties,
+      })}
+      previewBody={renderPreviewBody({
+        rendered,
+        userProperties: debouncedUserProperties,
+      })}
       visibilityHandler={getPreviewVisibilityHandler()}
       bodyPreviewHeading="Body Preview"
     />
@@ -864,57 +1001,32 @@ export default function TemplateEditor({
             padding: 1,
             border: `1px solid ${theme.palette.grey[200]}`,
             boxShadow: theme.shadows[2],
+            minHeight: 0,
           }}
         >
-          {title !== null && !hideTitle && (
+          {editedTemplate !== null && !hideTitle && (
             <EditableName
-              name={title}
+              name={editedTemplate.title}
               variant="h4"
               onChange={(e) =>
                 setState((draft) => {
-                  draft.title = e.target.value;
+                  if (!draft.editedTemplate) {
+                    return;
+                  }
+                  draft.editedTemplate.title = e.target.value;
                 })
               }
             />
           )}
 
-          <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
-            <Typography variant="h5">User Properties</Typography>
-          </InfoTooltip>
-          <ReactCodeMirror
-            value={userPropertiesJSON}
-            onChange={(json) =>
-              setState((draft) => {
-                draft.userPropertiesJSON = json;
-                const result = jsonParseSafe(json).andThen((p) =>
-                  schemaValidateWithErr(p, UserPropertyAssignments),
-                );
-                if (result.isErr()) {
-                  return;
-                }
-                draft.userProperties = result.value;
-              })
-            }
-            extensions={[
-              codeMirrorJson(),
-              linter(jsonParseLinter()),
-              EditorView.lineWrapping,
-              EditorView.theme({
-                "&": {
-                  fontFamily: theme.typography.fontFamily,
-                },
-              }),
-              lintGutter(),
-            ]}
-          />
-          {!hideSaveButton && (
-            <Button
-              variant="contained"
-              onClick={() => handleSave()}
-              disabled={errors.size > 0}
-            >
-              Publish Changes
-            </Button>
+          {publisherStatuses && (
+            <>
+              <PublisherDraftToggle status={publisherStatuses.draftToggle} />
+              <Publisher
+                status={publisherStatuses.publisher}
+                title={template.name}
+              />
+            </>
           )}
           <LoadingModal
             openTitle="Send Test Message"
@@ -927,6 +1039,47 @@ export default function TemplateEditor({
           >
             {testModalContents}
           </LoadingModal>
+          <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
+            <Typography variant="h5">User Properties</Typography>
+          </InfoTooltip>
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              minHeight: 0,
+            }}
+          >
+            <ReactCodeMirror
+              value={userPropertiesJSON}
+              height="100%"
+              onChange={(json) =>
+                setState((draft) => {
+                  if (!draft.editedTemplate) {
+                    return;
+                  }
+                  draft.userPropertiesJSON = json;
+                  const result = jsonParseSafe(json).andThen((p) =>
+                    schemaValidateWithErr(p, UserPropertyAssignments),
+                  );
+                  if (result.isErr()) {
+                    return;
+                  }
+                  draft.userProperties = result.value;
+                })
+              }
+              extensions={[
+                codeMirrorJson(),
+                linter(jsonParseLinter()),
+                EditorView.lineWrapping,
+                EditorView.theme({
+                  "&": {
+                    fontFamily: theme.typography.fontFamily,
+                  },
+                }),
+                lintGutter(),
+              ]}
+            />
+          </Box>
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box

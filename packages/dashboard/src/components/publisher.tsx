@@ -18,7 +18,7 @@ import {
 } from "isomorphic-lib/src/types";
 import { useEffect, useState } from "react";
 
-import { getWarningStyles } from "../../lib/warningTheme";
+import { getWarningStyles } from "../lib/warningTheme";
 
 export enum PublisherStatusType {
   Unpublished = "Unpublished",
@@ -63,13 +63,15 @@ function PublisherInner({
   disableRevert,
   invisible,
   title,
+  showUnpublishedWarning,
 }: {
-  invisible?: boolean;
   onPublish: () => void;
   onRevert: () => void;
+  invisible?: boolean;
   showProgress: boolean;
   disableRevert: boolean;
   disablePublish: boolean;
+  showUnpublishedWarning?: boolean;
   title: string;
 }) {
   const [publishConfirmationOpen, setPublishConfirmationOpen] = useState(false);
@@ -80,19 +82,11 @@ function PublisherInner({
       alignItems="center"
       spacing={1}
       sx={{
+        visibility: !invisible ? "visible" : "hidden",
+        opacity: !invisible ? 1 : 0,
         transition: "visibility 0.4s, opacity 0.4s linear",
-        visibility: invisible ? "hidden" : undefined,
-        opacity: invisible ? 0 : undefined,
       }}
     >
-      <Box
-        sx={{
-          ...getWarningStyles(theme),
-          p: 1,
-        }}
-      >
-        Unpublished Changes.
-      </Box>
       <Button
         onClick={() => {
           setPublishConfirmationOpen(true);
@@ -104,7 +98,23 @@ function PublisherInner({
       <Button onClick={onRevert} disabled={disableRevert}>
         Revert
       </Button>
-      {showProgress && <CircularProgress size="1rem" />}
+      <CircularProgress
+        sx={{
+          visibility: showProgress ? "visible" : "hidden",
+          opacity: showProgress ? 1 : 0,
+          transition: "visibility 0.4s, opacity 0.4s linear",
+        }}
+        size="1rem"
+      />
+      <Box
+        sx={{
+          ...getWarningStyles(theme),
+          p: 1,
+          opacity: showUnpublishedWarning ? undefined : 0,
+        }}
+      >
+        Unpublished Changes.
+      </Box>
       <Dialog
         open={publishConfirmationOpen}
         onClose={() => setPublishConfirmationOpen(false)}
@@ -162,15 +172,13 @@ export function Publisher({ status, title }: PublisherProps) {
         onRevert={() => {}}
         title={title}
         disablePublish
+        showUnpublishedWarning
         disableRevert
       />
     );
   }
 
-  if (
-    status.type === PublisherStatusType.Unpublished ||
-    status.type === PublisherStatusType.UpToDate
-  ) {
+  if (status.type === PublisherStatusType.Unpublished) {
     return (
       <PublisherInner
         title={title}
@@ -178,6 +186,19 @@ export function Publisher({ status, title }: PublisherProps) {
         onPublish={() => {}}
         onRevert={() => {}}
         invisible
+        disablePublish
+        disableRevert
+      />
+    );
+  }
+
+  if (status.type === PublisherStatusType.UpToDate) {
+    return (
+      <PublisherInner
+        title={title}
+        showProgress={showProgress}
+        onPublish={() => {}}
+        onRevert={() => {}}
         disablePublish
         disableRevert
       />
@@ -193,6 +214,7 @@ export function Publisher({ status, title }: PublisherProps) {
       showProgress={showProgress}
       onPublish={status.onPublish}
       onRevert={status.onRevert}
+      showUnpublishedWarning
       disablePublish={operationInProgress || Boolean(status.disabled)}
       disableRevert={operationInProgress}
     />
@@ -218,7 +240,13 @@ export function PublisherDraftToggle({ status }: PublisherDraftToggleProps) {
     return null;
   }
   if (status.type === PublisherStatusType.UpToDate) {
-    return null;
+    return (
+      <FormControlLabel
+        control={<Switch checked={false} name="draft" />}
+        disabled
+        label="Published View"
+      />
+    );
   }
   return (
     <FormControlLabel

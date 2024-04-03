@@ -36,15 +36,13 @@ const definitionToPreview: DefinitionToPreview = (definition) => {
 export default function SmsEditor({
   templateId: messageId,
   hideTitle,
-  hideSaveButton,
-  saveOnUpdate,
+  hidePublisher,
   disabled,
   member,
 }: {
   templateId: string;
   hideTitle?: boolean;
-  hideSaveButton?: boolean;
-  saveOnUpdate?: boolean;
+  hidePublisher?: boolean;
   disabled?: boolean;
   member?: WorkspaceMemberResource;
 }) {
@@ -57,8 +55,7 @@ export default function SmsEditor({
       member={member}
       disabled={disabled}
       hideTitle={hideTitle}
-      hideSaveButton={hideSaveButton}
-      saveOnUpdate={saveOnUpdate}
+      hidePublisher={hidePublisher}
       renderEditorHeader={() => null}
       renderEditorBody={({ definition, setDefinition }) => {
         if (definition.type !== ChannelType.Sms) {

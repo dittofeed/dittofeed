@@ -9,7 +9,8 @@ import {
   SegmentOperatorType,
   SubscriptionGroupType,
 } from "isomorphic-lib/src/types";
-import { useLayoutEffect } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useLayoutEffect } from "react";
 import { pick } from "remeda";
 import { v4 as uuid } from "uuid";
 import { create, UseBoundStore } from "zustand";
@@ -565,7 +566,7 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
           set((state) => {
             state.drawerOpen = !state.drawerOpen;
           }),
-        upsertMessage: (message) =>
+        upsertTemplate: (template) =>
           set((state) => {
             let { messages } = state;
             if (messages.type !== CompletionStatus.Successful) {
@@ -575,13 +576,21 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
               };
               state.messages = messages;
             }
-            for (const existingMessage of messages.value) {
-              if (message.id === existingMessage.id) {
-                Object.assign(existingMessage, message);
-                return state;
+            let updated = false;
+            for (let i = 0; i < messages.value.length; i++) {
+              const existing = messages.value[i];
+              if (!existing) {
+                throw new Error("template is undefined");
+              }
+              if (template.id === existing.id) {
+                messages.value[i] = template;
+                updated = true;
+                break;
               }
             }
-            messages.value.push(message);
+            if (!updated) {
+              messages.value.push(template);
+            }
             return state;
           }),
         upsertEmailProvider: (emailProvider) =>
@@ -819,6 +828,28 @@ type UseStoreState = typeof initializeStore extends (
 export const useCreateStore = (
   serverInitialState?: Partial<AppState>,
 ): (() => AppStore) => {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Function to run before page transition starts
+    const handleRouteChange = () => {
+      if (store) {
+        store.setState({
+          inTransition: true,
+        });
+      }
+    };
+
+    // Listen to routeChangeStart event
+    router.events.on("routeChangeStart", handleRouteChange);
+
+    // Cleanup listener on component unmount
+    return () => {
+      router.events.off("routeChangeStart", handleRouteChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // For SSR & SSG, always use a new store.
   if (typeof window === "undefined") {
     return () =>
@@ -852,6 +883,7 @@ export const useCreateStore = (
           ...initializedStore.getState(),
           // but reset all other properties.
           ...serverInitialState,
+          inTransition: false,
         },
         true, // replace states, rather than shallow merging
       );

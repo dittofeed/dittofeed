@@ -55,17 +55,15 @@ const definitionToPreview: DefinitionToPreview = (definition) => {
 };
 
 export default function EmailEditor({
-  hideSaveButton,
   hideTitle,
   templateId: messageId,
-  saveOnUpdate,
+  hidePublisher,
   disabled,
   member,
 }: {
   templateId: string;
-  hideSaveButton?: boolean;
+  hidePublisher?: boolean;
   hideTitle?: boolean;
-  saveOnUpdate?: boolean;
   disabled?: boolean;
   member?: WorkspaceMemberResource;
 }) {
@@ -87,8 +85,7 @@ export default function EmailEditor({
       member={member}
       disabled={disabled}
       hideTitle={hideTitle}
-      hideSaveButton={hideSaveButton}
-      saveOnUpdate={saveOnUpdate}
+      hidePublisher={hidePublisher}
       renderEditorHeader={({ definition, setDefinition }) => {
         if (definition.type !== ChannelType.Email) {
           return null;
@@ -177,7 +174,11 @@ export default function EmailEditor({
           </Stack>
         );
       }}
-      renderEditorBody={({ definition, setDefinition }) => {
+      renderEditorBody={({
+        definition,
+        setDefinition,
+        disabled: disabledOverride,
+      }) => {
         if (definition.type !== ChannelType.Email) {
           return null;
         }
@@ -189,11 +190,12 @@ export default function EmailEditor({
                 if (defn.type !== ChannelType.Email) {
                   return defn;
                 }
+
                 defn.body = value;
                 return defn;
               });
             }}
-            readOnly={disabled}
+            readOnly={disabledOverride}
             extensions={[
               html(),
               EditorView.theme({
