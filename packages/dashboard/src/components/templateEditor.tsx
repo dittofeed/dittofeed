@@ -269,11 +269,10 @@ export default function TemplateEditor({
   renderEditorHeader,
   renderPreviewBody,
   renderPreviewHeader,
-  hideSaveButton,
+  hidePublisher,
   disabled,
   member,
   hideTitle,
-  saveOnUpdate = false,
   fieldToReadable,
   definitionToPreview,
 }: {
@@ -281,9 +280,7 @@ export default function TemplateEditor({
   templateId: string;
   disabled?: boolean;
   hideTitle?: boolean;
-  // FIXME
-  hideSaveButton?: boolean;
-  saveOnUpdate?: boolean;
+  hidePublisher?: boolean;
   member?: WorkspaceMemberResource;
   renderPreviewHeader: RenderPreviewSection;
   renderPreviewBody: RenderPreviewSection;
@@ -313,10 +310,13 @@ export default function TemplateEditor({
     "setViewDraft",
     "inTransition",
   ]);
-  const template =
-    messages.type === CompletionStatus.Successful
-      ? messages.value.find((m) => m.id === templateId)
-      : undefined;
+  const template = useMemo(
+    () =>
+      messages.type === CompletionStatus.Successful
+        ? messages.value.find((m) => m.id === templateId)
+        : undefined,
+    [messages, templateId],
+  );
 
   const workspace =
     workspaceResult.type === CompletionStatus.Successful
@@ -335,8 +335,8 @@ export default function TemplateEditor({
   const [state, setState] = useImmer<TemplateEditorState>({
     fullscreen: null,
     editedTemplate: null,
-    userProperties: {},
-    userPropertiesJSON: "{}",
+    userProperties: initialUserProperties,
+    userPropertiesJSON: JSON.stringify(initialUserProperties, null, 2),
     errors: new Map(),
     testResponse: null,
     testRequest: {
@@ -391,16 +391,13 @@ export default function TemplateEditor({
     });
   }, [setState, template]);
 
-  // FIXME incorporate hide save button
-  // FIXME rename hide save button
   const publisherStatuses: {
     publisher: PublisherStatus;
     draftToggle: PublisherDraftToggleStatus;
   } | null = useMemo(() => {
-    console.log("loc1", {
-      template: Boolean(template),
-      editedTemplate: Boolean(editedTemplate),
-    });
+    if (hidePublisher) {
+      return null;
+    }
     if (!template?.definition || !editedTemplate) {
       return null;
     }
@@ -411,10 +408,8 @@ export default function TemplateEditor({
       const publisher: PublisherUpToDateStatus = {
         type: PublisherStatusType.UpToDate,
       };
-      console.log("loc2");
       return { publisher, draftToggle: publisher };
     }
-    console.log("loc3");
     const publisher: PublisherOutOfDateStatus = {
       type: PublisherStatusType.OutOfDate,
       disabled: !viewDraft || errors.size > 0,
@@ -492,98 +487,95 @@ export default function TemplateEditor({
     };
     return { publisher, draftToggle };
   }, [
-    apiBase,
-    errors.size,
+    hidePublisher,
+    template,
     editedTemplate,
+    viewDraft,
+    errors.size,
+    updateRequest,
+    workspace,
+    upsertTemplate,
+    apiBase,
     setState,
     setViewDraft,
-    template,
-    updateRequest,
-    upsertTemplate,
-    viewDraft,
-    workspace,
   ]);
 
-  const viewedDefinition =
-    viewDraft && editedTemplate?.draft
-      ? editedTemplate.draft
-      : template?.definition;
-
-  // console.log(
-  //   "viewedDefinition loc1",
-  //   ...Object.values(viewedDefinition ?? {}),
-  // );
-  // console.log("template loc2", ...Object.values(template ?? {}));
-
-  const handleSave = useCallback(
-    ({ saveAsDraft = false }: { saveAsDraft?: boolean } = {}) => {
-      // if (
-      //   disabled ||
-      //   workspaceResult.type !== CompletionStatus.Successful ||
-      //   !serverState
-      // ) {
-      //   return;
-      // }
-      // const workspaceId = workspaceResult.value.id;
-      // const updateData: UpsertMessageTemplateResource = {
-      //   id: templateId,
-      //   workspaceId,
-      //   name: serverState.title,
-      //   draft: serverState.definition,
-      // };
-      // if (!saveAsDraft) {
-      //   updateData.definition = ;
-      // }
-      // const draftNotice = saveAsDraft
-      //   ? "Saved template draft."
-      //   : "Published template draft.";
-      // apiRequestHandlerFactory({
-      //   request: updateRequest,
-      //   setRequest: (request) =>
-      //     setState((draft) => {
-      //       draft.updateRequest = request;
-      //     }),
-      //   responseSchema: MessageTemplateResource,
-      //   setResponse: upsertMessage,
-      //   onSuccessNotice: draftNotice,
-      //   onFailureNoticeHandler: () => `API Error: Failed to update template.`,
-      //   requestConfig: {
-      //     method: "PUT",
-      //     url: `${apiBase}/api/content/templates`,
-      //     data: updateData,
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //   },
-      // })();
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [disabled, workspaceResult, templateId, upsertTemplate, apiBase, setState],
+  const viewedDefinition = useMemo(
+    () =>
+      viewDraft && editedTemplate?.draft
+        ? editedTemplate.draft
+        : template?.definition,
+    [viewDraft, editedTemplate, template],
   );
 
+  const [debouncedDraft] = useDebounce(viewedDefinition, 300);
+
   useUpdateEffect(() => {
-    handleSave({
-      saveAsDraft: !saveOnUpdate,
-    });
-  }, [handleSave, saveOnUpdate]);
+    if (
+      disabled ||
+      workspaceResult.type !== CompletionStatus.Successful ||
+      !editedTemplate
+    ) {
+      return;
+    }
+    const workspaceId = workspaceResult.value.id;
+    const updateData: UpsertMessageTemplateResource = {
+      id: templateId,
+      workspaceId,
+      name: editedTemplate.title,
+    };
+    if (!hidePublisher) {
+      if (deepEquals(debouncedDraft, template?.draft)) {
+        return;
+      }
+      updateData.draft = debouncedDraft;
+    } else {
+      if (deepEquals(debouncedDraft, template?.definition)) {
+        return;
+      }
+      updateData.definition = debouncedDraft;
+    }
+
+    apiRequestHandlerFactory({
+      request: updateRequest,
+      setRequest: (request) =>
+        setState((draft) => {
+          draft.updateRequest = request;
+        }),
+      responseSchema: MessageTemplateResource,
+      setResponse: upsertTemplate,
+      onFailureNoticeHandler: () => `API Error: Failed to update template.`,
+      requestConfig: {
+        method: "PUT",
+        url: `${apiBase}/api/content/templates`,
+        data: updateData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    })();
+  }, [debouncedDraft]);
 
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
-  const [debouncedDefinition] = useDebounce(viewedDefinition, 300);
 
   useEffect(() => {
     (async () => {
-      if (
-        !workspace ||
-        !debouncedDefinition ||
-        Object.keys(debouncedUserProperties).length === 0
-      ) {
+      if (!workspace || !debouncedDraft || inTransition || !template) {
         return;
       }
+      const definitionToRender = viewDraft
+        ? debouncedDraft
+        : template.definition;
+
+      if (!definitionToRender) {
+        return;
+      }
+
       const data: RenderMessageTemplateRequest = {
         workspaceId: workspace.id,
         channel,
         userProperties: debouncedUserProperties,
-        contents: definitionToPreview(debouncedDefinition),
+        contents: definitionToPreview(definitionToRender),
       };
 
       try {
@@ -643,7 +635,7 @@ export default function TemplateEditor({
   }, [
     apiBase,
     debouncedUserProperties,
-    debouncedDefinition,
+    debouncedDraft,
     definitionToPreview,
     fieldToReadable,
     setState,
@@ -810,8 +802,8 @@ export default function TemplateEditor({
   } else {
     let to: string | null = null;
     if (channel === ChannelType.Webhook) {
-      if (debouncedDefinition?.type === ChannelType.Webhook) {
-        to = debouncedUserProperties[debouncedDefinition.identifierKey] ?? null;
+      if (debouncedDraft?.type === ChannelType.Webhook) {
+        to = debouncedUserProperties[debouncedDraft.identifierKey] ?? null;
       }
     } else {
       const identiferKey = CHANNEL_IDENTIFIERS[channel];
@@ -1031,38 +1023,6 @@ export default function TemplateEditor({
             />
           )}
 
-          <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
-            <Typography variant="h5">User Properties</Typography>
-          </InfoTooltip>
-          <ReactCodeMirror
-            value={userPropertiesJSON}
-            onChange={(json) =>
-              setState((draft) => {
-                if (!draft.editedTemplate) {
-                  return;
-                }
-                draft.userPropertiesJSON = json;
-                const result = jsonParseSafe(json).andThen((p) =>
-                  schemaValidateWithErr(p, UserPropertyAssignments),
-                );
-                if (result.isErr()) {
-                  return;
-                }
-                draft.userProperties = result.value;
-              })
-            }
-            extensions={[
-              codeMirrorJson(),
-              linter(jsonParseLinter()),
-              EditorView.lineWrapping,
-              EditorView.theme({
-                "&": {
-                  fontFamily: theme.typography.fontFamily,
-                },
-              }),
-              lintGutter(),
-            ]}
-          />
           {publisherStatuses && (
             <>
               <PublisherDraftToggle status={publisherStatuses.draftToggle} />
@@ -1072,16 +1032,6 @@ export default function TemplateEditor({
               />
             </>
           )}
-          {/* // FIXME remove */}
-          {/* {!hideSaveButton && (
-            <Button
-              variant="contained"
-              onClick={() => handleSave()}
-              disabled={errors.size > 0}
-            >
-              Publish Changes
-            </Button>
-          )} */}
           <LoadingModal
             openTitle="Send Test Message"
             onSubmit={submitTest}
@@ -1093,6 +1043,54 @@ export default function TemplateEditor({
           >
             {testModalContents}
           </LoadingModal>
+          <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
+            <Typography variant="h5">User Properties</Typography>
+          </InfoTooltip>
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              "& .cm-editor": {
+                // height: "100%",
+                // maxHeight: "100%",
+              },
+              "& > *:first-child": {
+                height: "100%",
+                // maxHeight: "100%",
+              },
+            }}
+          >
+            <ReactCodeMirror
+              value={userPropertiesJSON}
+              // height="100%"
+              onChange={(json) =>
+                setState((draft) => {
+                  if (!draft.editedTemplate) {
+                    return;
+                  }
+                  draft.userPropertiesJSON = json;
+                  const result = jsonParseSafe(json).andThen((p) =>
+                    schemaValidateWithErr(p, UserPropertyAssignments),
+                  );
+                  if (result.isErr()) {
+                    return;
+                  }
+                  draft.userProperties = result.value;
+                })
+              }
+              extensions={[
+                codeMirrorJson(),
+                linter(jsonParseLinter()),
+                EditorView.lineWrapping,
+                EditorView.theme({
+                  "&": {
+                    fontFamily: theme.typography.fontFamily,
+                  },
+                }),
+                lintGutter(),
+              ]}
+            />
+          </Box>
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box
