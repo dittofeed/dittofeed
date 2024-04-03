@@ -246,22 +246,14 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
         templateEditor = (
           <EmailEditor
             disabled={started}
-            hideSaveButton
             hideTitle
-            saveOnUpdate
+            hidePublisher
             templateId={templateId}
           />
         );
         break;
       case ChannelType.Sms:
-        templateEditor = (
-          <SmsEditor
-            templateId={templateId}
-            hideSaveButton
-            hideTitle
-            saveOnUpdate
-          />
-        );
+        templateEditor = <SmsEditor templateId={templateId} hideTitle />;
         break;
       case ChannelType.MobilePush:
         throw new Error("MobilePush not implemented");

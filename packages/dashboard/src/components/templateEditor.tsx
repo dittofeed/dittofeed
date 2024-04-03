@@ -502,15 +502,12 @@ export default function TemplateEditor({
 
   const [debouncedDraft] = useDebounce(editedTemplate?.draft, 300);
 
+  console.log("loc1", template);
   useUpdateEffect(() => {
-    if (
-      disabled ||
-      workspaceResult.type !== CompletionStatus.Successful ||
-      !editedTemplate
-    ) {
+    if (disabled || !workspace || !editedTemplate) {
       return;
     }
-    const workspaceId = workspaceResult.value.id;
+    const workspaceId = workspace.id;
     const updateData: UpsertMessageTemplateResource = {
       id: templateId,
       workspaceId,
@@ -552,11 +549,11 @@ export default function TemplateEditor({
 
   useEffect(() => {
     (async () => {
-      if (!workspace || !debouncedDraft || inTransition || !template) {
+      if (!workspace || inTransition || !template) {
         return;
       }
       const definitionToRender = viewDraft
-        ? debouncedDraft
+        ? debouncedDraft ?? template.definition
         : template.definition;
 
       if (!definitionToRender) {
@@ -629,6 +626,7 @@ export default function TemplateEditor({
     debouncedUserProperties,
     debouncedDraft,
     definitionToPreview,
+    inTransition,
     fieldToReadable,
     setState,
     workspace,
