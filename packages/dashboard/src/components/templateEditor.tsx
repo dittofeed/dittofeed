@@ -500,15 +500,7 @@ export default function TemplateEditor({
     setViewDraft,
   ]);
 
-  const viewedDefinition = useMemo(
-    () =>
-      viewDraft && editedTemplate?.draft
-        ? editedTemplate.draft
-        : template?.definition,
-    [viewDraft, editedTemplate, template],
-  );
-
-  const [debouncedDraft] = useDebounce(viewedDefinition, 300);
+  const [debouncedDraft] = useDebounce(editedTemplate?.draft, 300);
 
   useUpdateEffect(() => {
     if (
@@ -556,7 +548,6 @@ export default function TemplateEditor({
     })();
   }, [debouncedDraft]);
 
-  console.log("loc1", publisherStatuses);
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
 
   useEffect(() => {
@@ -891,29 +882,35 @@ export default function TemplateEditor({
       draft.fullscreen = null;
     });
   };
-  const renderEditorParams: RenderEditorParams | null = viewedDefinition
-    ? {
-        definition: viewedDefinition,
-        disabled: Boolean(disabled) || !viewDraft,
-        setDefinition: (setter) =>
-          setState((draft) => {
-            let currentDefinition: MessageTemplateResourceDefinition | null =
-              null;
-            if (draft.editedTemplate?.draft) {
-              currentDefinition = draft.editedTemplate.draft;
-            } else if (template.definition) {
-              // Read only object can't be passed into setter, so need to clone.
-              currentDefinition = { ...template.definition };
-            }
 
-            if (!currentDefinition || !draft.editedTemplate || !viewDraft) {
-              return draft;
-            }
-            draft.editedTemplate.draft = setter(currentDefinition);
-            return draft;
-          }),
-      }
-    : null;
+  if (!template.definition) {
+    return null;
+  }
+  const viewedDefinition =
+    (viewDraft ? editedTemplate?.draft : undefined) ?? template.definition;
+  const inDraftView =
+    publisherStatuses?.publisher.type !== PublisherStatusType.OutOfDate ||
+    viewDraft;
+  const renderEditorParams: RenderEditorParams = {
+    definition: viewedDefinition,
+    disabled: Boolean(disabled) || !inDraftView,
+    setDefinition: (setter) =>
+      setState((draft) => {
+        let currentDefinition: MessageTemplateResourceDefinition | null = null;
+        if (draft.editedTemplate?.draft) {
+          currentDefinition = draft.editedTemplate.draft;
+        } else if (template.definition) {
+          // Read only object can't be passed into setter, so need to clone.
+          currentDefinition = { ...template.definition };
+        }
+
+        if (!currentDefinition || !draft.editedTemplate || !inDraftView) {
+          return draft;
+        }
+        draft.editedTemplate.draft = setter(currentDefinition);
+        return draft;
+      }),
+  };
 
   const editor = (
     <Stack

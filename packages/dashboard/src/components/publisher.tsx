@@ -63,6 +63,7 @@ function PublisherInner({
   disableRevert,
   invisible,
   title,
+  showUnpublishedWarning,
 }: {
   onPublish: () => void;
   onRevert: () => void;
@@ -70,6 +71,7 @@ function PublisherInner({
   showProgress: boolean;
   disableRevert: boolean;
   disablePublish: boolean;
+  showUnpublishedWarning?: boolean;
   title: string;
 }) {
   const [publishConfirmationOpen, setPublishConfirmationOpen] = useState(false);
@@ -108,7 +110,7 @@ function PublisherInner({
         sx={{
           ...getWarningStyles(theme),
           p: 1,
-          opacity: disablePublish && disableRevert ? 0 : undefined,
+          opacity: showUnpublishedWarning ? undefined : 0,
         }}
       >
         Unpublished Changes.
@@ -170,6 +172,7 @@ export function Publisher({ status, title }: PublisherProps) {
         onRevert={() => {}}
         title={title}
         disablePublish
+        showUnpublishedWarning
         disableRevert
       />
     );
@@ -211,6 +214,7 @@ export function Publisher({ status, title }: PublisherProps) {
       showProgress={showProgress}
       onPublish={status.onPublish}
       onRevert={status.onRevert}
+      showUnpublishedWarning
       disablePublish={operationInProgress || Boolean(status.disabled)}
       disableRevert={operationInProgress}
     />
