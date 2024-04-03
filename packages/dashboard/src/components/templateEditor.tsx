@@ -502,7 +502,6 @@ export default function TemplateEditor({
 
   const [debouncedDraft] = useDebounce(editedTemplate?.draft, 300);
 
-  console.log("loc1", template);
   useUpdateEffect(() => {
     if (disabled || !workspace || !editedTemplate) {
       return;
