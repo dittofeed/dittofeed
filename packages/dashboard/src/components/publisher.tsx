@@ -236,6 +236,7 @@ export interface PublisherDraftToggleProps {
 }
 
 export function PublisherDraftToggle({ status }: PublisherDraftToggleProps) {
+  const theme = useTheme();
   if (status.type === PublisherStatusType.Unpublished) {
     return null;
   }
@@ -244,12 +245,13 @@ export function PublisherDraftToggle({ status }: PublisherDraftToggleProps) {
       <FormControlLabel
         control={<Switch checked={false} name="draft" />}
         disabled
-        label="Published View"
+        label="View Draft"
       />
     );
   }
   return (
     <FormControlLabel
+      sx={{ color: status.isDraft ? undefined : theme.palette.grey[400] }}
       control={
         <Switch
           checked={status.isDraft}
@@ -259,7 +261,7 @@ export function PublisherDraftToggle({ status }: PublisherDraftToggleProps) {
           name="draft"
         />
       }
-      label={status.isDraft ? "Draft View" : "Published View"}
+      label="View Draft"
     />
   );
 }
