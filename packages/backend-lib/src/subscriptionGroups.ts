@@ -7,7 +7,7 @@ import { URL } from "url";
 import { v4 as uuid } from "uuid";
 
 import config from "./config";
-import { generateSecureHash } from "./crypto";
+import { generateSecureHash, generateSecureKey } from "./crypto";
 import logger from "./logger";
 import prisma from "./prisma";
 import {
@@ -522,4 +522,25 @@ export async function updateUserSubscriptions({
       userEvents,
     }),
   ]);
+}
+
+export async function upsertSubscriptionSecret({
+  workspaceId,
+}: {
+  workspaceId: string;
+}) {
+  return prisma().secret.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId,
+        name: SecretNames.Subscription,
+      },
+    },
+    create: {
+      workspaceId,
+      name: SecretNames.Subscription,
+      value: generateSecureKey(8),
+    },
+    update: {},
+  });
 }

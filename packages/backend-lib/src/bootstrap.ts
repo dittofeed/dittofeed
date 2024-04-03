@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { WorkflowExecutionAlreadyStartedError } from "@temporalio/common";
 import { randomUUID } from "crypto";
-import { DEBUG_USER_ID1, SecretNames } from "isomorphic-lib/src/constants";
+import { DEBUG_USER_ID1 } from "isomorphic-lib/src/constants";
 import { v5 as uuidv5 } from "uuid";
 
 import { createWriteKey } from "./auth";
@@ -19,7 +19,10 @@ import {
   startComputePropertiesWorkflow,
   startGlobalCron,
 } from "./segments/computePropertiesWorkflow/lifecycle";
-import { upsertSubscriptionGroup } from "./subscriptionGroups";
+import {
+  upsertSubscriptionGroup,
+  upsertSubscriptionSecret,
+} from "./subscriptionGroups";
 import {
   ChannelType,
   SubscriptionGroupType,
@@ -155,19 +158,8 @@ async function bootstrapPostgres({
         update: up,
       }),
     ),
-    prisma().secret.upsert({
-      where: {
-        workspaceId_name: {
-          workspaceId,
-          name: SecretNames.Subscription,
-        },
-      },
-      create: {
-        workspaceId,
-        name: SecretNames.Subscription,
-        value: generateSecureKey(8),
-      },
-      update: {},
+    upsertSubscriptionSecret({
+      workspaceId,
     }),
     createWriteKey({
       workspaceId,
