@@ -1060,41 +1060,11 @@ export default function TemplateEditor({
           <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
             <Typography variant="h5">User Properties</Typography>
           </InfoTooltip>
-          {/* https://stackblitz.com/edit/react-ts-daa6tr?file=style.css */}
           <Box
             sx={{
               flex: 1,
               display: "flex",
               minHeight: 0,
-              "& .cm-editor": {
-                height: "100%",
-                maxHeight: "100%",
-                minHeight: 0,
-                flex: 1,
-                boxSizing: "border-box",
-                display: "flex",
-              },
-              "& .cm-scroller": {
-                overflow: "auto",
-              },
-              // .cm-wrap { height: 100% }
-              // .cm-scroller { overflow: auto }
-              // "& .cm-outer-container": {
-              //   flex: 1,
-              // },
-              // "& .cm-content": {
-              //   // wordWrap: "break-word",
-              //   // whiteSpace: "pre-wrap",
-              //   // wordBreak: "normal",
-              // },
-              "& > *:first-child": {
-                height: "100%",
-                maxHeight: "100%",
-                minHeight: 0,
-                flex: 1,
-                boxSizing: "border-box",
-                display: "flex",
-              },
             }}
           >
             <ReactCodeMirror
