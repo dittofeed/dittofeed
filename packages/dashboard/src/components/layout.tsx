@@ -47,7 +47,12 @@ function Layout({
           <Toolbar />
           <Box
             id="layout-contents"
-            sx={{ display: "flex", alignItems: "stretch", flex: 1 }}
+            sx={{
+              display: "flex",
+              alignItems: "stretch",
+              flex: 1,
+              minHeight: 0,
+            }}
           >
             {children}
           </Box>

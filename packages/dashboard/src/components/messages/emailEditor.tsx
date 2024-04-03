@@ -87,8 +87,7 @@ export default function EmailEditor({
       member={member}
       disabled={disabled}
       hideTitle={hideTitle}
-      hideSaveButton={hideSaveButton}
-      saveOnUpdate={saveOnUpdate}
+      hidePublisher={hideSaveButton}
       renderEditorHeader={({ definition, setDefinition }) => {
         if (definition.type !== ChannelType.Email) {
           return null;
