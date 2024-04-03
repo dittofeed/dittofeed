@@ -9,6 +9,7 @@ import {
   SegmentOperatorType,
   SubscriptionGroupType,
 } from "isomorphic-lib/src/types";
+import { useRouter } from "next/router";
 import { useEffect, useLayoutEffect } from "react";
 import { pick } from "remeda";
 import { v4 as uuid } from "uuid";
@@ -18,7 +19,6 @@ import { immer } from "zustand/middleware/immer";
 
 import { createJourneySlice } from "../components/journeys/store";
 import { AppContents, AppState, PreloadedState } from "./types";
-import { useRouter } from "next/router";
 
 // TODO migrate away from deprecreated createContext method
 const zustandContext = createContext<UseStoreState>();
@@ -832,7 +832,7 @@ export const useCreateStore = (
 
   useEffect(() => {
     // Function to run before page transition starts
-    const handleRouteChange = (url: unknown) => {
+    const handleRouteChange = () => {
       if (store) {
         store.setState({
           inTransition: true,
@@ -847,6 +847,7 @@ export const useCreateStore = (
     return () => {
       router.events.off("routeChangeStart", handleRouteChange);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // For SSR & SSG, always use a new store.
