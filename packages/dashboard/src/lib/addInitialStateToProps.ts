@@ -1,5 +1,5 @@
 import backendConfig from "backend-lib/src/config";
-import { CompletionStatus, DFRequestContext } from "isomorphic-lib/src/types";
+import { CompletionStatus } from "isomorphic-lib/src/types";
 
 import { apiBase } from "./apiBase";
 import { AppState, DashboardContext, PropsWithInitialState } from "./types";
