@@ -23,7 +23,7 @@ import {
 } from "@mui/material";
 import React, { lazy, Suspense } from "react";
 
-import { useAppStore } from "../../../lib/appStore";
+import { useAppStorePick } from "../../../lib/appStore";
 import ExternalLink from "../../externalLink";
 import { GitBranchIcon } from "../../gitBranchIcon";
 import MobileSection from "./headerContent/mobileSection";
@@ -49,10 +49,10 @@ const newBranch = "new-branch" as const;
 const branchName = "maxgurewitz/my-feature-branch";
 
 function BranchSelect() {
-  const enableSourceControl = useAppStore((store) => store.enableSourceControl);
-  const sourceControlProvider = useAppStore(
-    (store) => store.sourceControlProvider,
-  );
+  const { enableSourceControl, sourceControlProvider } = useAppStorePick([
+    "enableSourceControl",
+    "sourceControlProvider",
+  ]);
 
   const [branch, setBranch] = React.useState("main");
   const [newBranchIsOpen, setNewBranchIsOpen] = React.useState(false);
@@ -219,10 +219,10 @@ const newConfig = `definition:
 
 function GitActionsSelect() {
   const theme = useTheme();
-  const enableSourceControl = useAppStore((store) => store.enableSourceControl);
-  const sourceControlProvider = useAppStore(
-    (store) => store.sourceControlProvider,
-  );
+  const { enableSourceControl, sourceControlProvider } = useAppStorePick([
+    "enableSourceControl",
+    "sourceControlProvider",
+  ]);
   const [isDiffOpen, setDiffOpen] = React.useState(false);
   const handleClose = () => setDiffOpen(false);
 
@@ -307,6 +307,7 @@ function HeaderContent() {
   const matchesXs = useMediaQuery<Theme>((theme) =>
     theme.breakpoints.down("md"),
   );
+  const { features } = useAppStorePick(["features"]);
 
   return (
     <>
@@ -314,17 +315,19 @@ function HeaderContent() {
       <Box sx={{ width: "100%", ml: { xs: 0, md: 1 } }} />
       {matchesXs && <Box sx={{ width: "100%", ml: 1 }} />}
       <GitActionsSelect />
-      <IconButton
-        component={Link}
-        href="https://github.com/dittofeed/dittofeed"
-        target="_blank"
-        disableRipple
-        color="secondary"
-        title="Github Repository"
-        sx={{ color: "text.primary", bgcolor: "grey.100" }}
-      >
-        <GithubOutlined />
-      </IconButton>
+      {!features.WhiteLabel ? (
+        <IconButton
+          component={Link}
+          href="https://github.com/dittofeed/dittofeed"
+          target="_blank"
+          disableRipple
+          color="secondary"
+          title="Github Repository"
+          sx={{ color: "text.primary", bgcolor: "grey.100" }}
+        >
+          <GithubOutlined />
+        </IconButton>
+      ) : null}
 
       {!matchesXs && <Profile />}
       {matchesXs && <MobileSection />}
