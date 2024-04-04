@@ -383,14 +383,21 @@ export default function TemplateEditor({
       if (!template?.definition) {
         return;
       }
-      draft.editedTemplate = {
-        draft: template.draft,
-        title: template.name,
-      };
+      if (!draft.editedTemplate) {
+        draft.editedTemplate = {
+          title: template.name,
+          draft: template.draft,
+        };
+      } else {
+        draft.editedTemplate.title = template.name;
+        // handling reverts, otherwise don't overwrite draft
+        if (!template.draft) {
+          draft.editedTemplate.draft = undefined;
+        }
+      }
     });
   }, [setState, template]);
 
-  // FIXME toggling deletes draft
   const publisherStatuses: {
     publisher: PublisherStatus;
     draftToggle: PublisherDraftToggleStatus;
