@@ -3109,6 +3109,7 @@ export const JourneyUpsertValidationError = Type.Object({
 
 export enum FeatureNamesEnum {
   DisplayJourneyPercentages = "DisplayJourneyPercentages",
+  WhiteLabel = "WhiteLabel",
 }
 
 export const FeatureNames = Type.Enum(FeatureNamesEnum);
