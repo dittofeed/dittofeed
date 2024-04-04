@@ -4,14 +4,15 @@ import { Box, IconButton, Stack, Typography } from "@mui/material";
 import Link from "next/link";
 import { useContext } from "react";
 
+import { useAppStorePick } from "../../../../lib/appStore";
 import { LayoutContext } from "../../context";
 import MinimalNavGroup from "./navigation/minimalNavGroup";
-// project import
 import NavGroup from "./navigation/navGroup";
 
 // ==============================|| DRAWER CONTENT - NAVIGATION ||============================== //
 
 function Navigation() {
+  const { features } = useAppStorePick(["features"]);
   const layout = useContext(LayoutContext);
   const items = layout?.items;
   const title = layout?.pageTitle;
@@ -20,7 +21,10 @@ function Navigation() {
   const isMinimal = navigationRenderer === "minimal";
 
   const navGroups = items
-    ? items.map((item) => {
+    ? items.flatMap((item) => {
+        if (features.WhiteLabel && item.id === "support") {
+          return [];
+        }
         switch (item.type) {
           case "group":
             return isMinimal ? (
