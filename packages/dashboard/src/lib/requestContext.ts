@@ -1,5 +1,6 @@
 import { DittofeedSdk } from "@dittofeed/sdk-node";
 import backendConfig from "backend-lib/src/config";
+import { getFeatures } from "backend-lib/src/features";
 import logger from "backend-lib/src/logger";
 import {
   getRequestContext,
@@ -81,6 +82,9 @@ export const requestContext: <T>(
     }
 
     const dfContext = rc.value;
+    const features = await getFeatures({
+      workspaceId: dfContext.workspace.id,
+    });
 
     DittofeedSdk.identify({
       userId: dfContext.member.id,
@@ -94,5 +98,5 @@ export const requestContext: <T>(
       },
     });
 
-    return gssp(context, dfContext);
+    return gssp(context, { ...dfContext, features });
   };
