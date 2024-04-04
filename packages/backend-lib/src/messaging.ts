@@ -567,7 +567,14 @@ export async function sendEmail({
       },
     });
   }
-  const { from, subject, body, replyTo } = renderedValuesResult.value;
+  const {
+    from,
+    subject,
+    body,
+    replyTo: baseReplyTo,
+  } = renderedValuesResult.value;
+  // don't pass an empty string for reply to values
+  const replyTo = !baseReplyTo?.length ? undefined : baseReplyTo;
   const to = identifier;
   const unsubscribeHeadersResult: Result<
     UnsubscribeHeaders,
