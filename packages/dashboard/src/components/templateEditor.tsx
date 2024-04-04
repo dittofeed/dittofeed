@@ -627,6 +627,7 @@ export default function TemplateEditor({
     definitionToPreview,
     inTransition,
     fieldToReadable,
+    viewDraft,
     setState,
     workspace,
   ]);
