@@ -408,7 +408,7 @@ export function DeliveriesTable({
   const renderEmailPreviewBody = (body: string) => {
     return (
       <iframe
-        srcDoc={`<!DOCTYPE html>${body ?? ""}`}
+        srcDoc={`<!DOCTYPE html>${body}`}
         title="email-body-preview"
         style={{
           border: "none",
