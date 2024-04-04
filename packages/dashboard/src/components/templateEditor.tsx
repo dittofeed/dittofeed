@@ -555,7 +555,12 @@ export default function TemplateEditor({
 
   useEffect(() => {
     (async () => {
-      if (!workspace || inTransition || !template) {
+      if (
+        !workspace ||
+        inTransition ||
+        !template ||
+        Object.keys(userProperties).length === 0
+      ) {
         return;
       }
       const definitionToRender = viewDraft
