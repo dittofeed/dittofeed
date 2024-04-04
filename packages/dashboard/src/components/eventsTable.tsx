@@ -25,7 +25,7 @@ import {
   GetEventsResponse,
   GetEventsResponseItem,
 } from "isomorphic-lib/src/types";
-import React, { useMemo, useState } from "react";
+import React, { ComponentProps, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { v4 as uuid } from "uuid";
 import { create } from "zustand";
@@ -107,6 +107,28 @@ function generatePreviewColumn(
       );
     },
   };
+}
+function EventsToolbar({
+  onChange,
+  value,
+}: Pick<ComponentProps<typeof TextField>, "onChange" | "value">) {
+  return (
+    <TextField
+      id="search"
+      type="search"
+      label="Search"
+      sx={{ width: "98%", m: 2 }}
+      value={value}
+      onChange={onChange}
+      InputProps={{
+        endAdornment: (
+          <InputAdornment position="end">
+            <SearchIcon />
+          </InputAdornment>
+        ),
+      }}
+    />
+  );
 }
 
 export function EventsTable({
@@ -416,24 +438,7 @@ export function EventsTable({
           borderColor: theme.palette.grey[200],
         }}
         slots={{
-          // eslint-disable-next-line react/no-unstable-nested-components
-          toolbar: ({ onChange, value }) => (
-            <TextField
-              id="search"
-              type="search"
-              label="Search"
-              sx={{ width: "98%", m: 2 }}
-              value={value}
-              onChange={onChange}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          ),
+          toolbar: EventsToolbar,
         }}
         slotProps={{
           toolbar: {
