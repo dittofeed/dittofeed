@@ -2,7 +2,7 @@ import backendConfig from "backend-lib/src/config";
 import { CompletionStatus, DFRequestContext } from "isomorphic-lib/src/types";
 
 import { apiBase } from "./apiBase";
-import { AppState, PropsWithInitialState } from "./types";
+import { AppState, DashboardContext, PropsWithInitialState } from "./types";
 
 function clone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
@@ -17,7 +17,7 @@ export function addInitialStateToProps<
 }: {
   props: T;
   serverInitialState: Partial<AppState>;
-  dfContext: DFRequestContext;
+  dfContext: DashboardContext;
 }): T & PropsWithInitialState {
   const {
     sourceControlProvider,
@@ -45,6 +45,7 @@ export function addInitialStateToProps<
     trackDashboard,
     dashboardWriteKey,
     enableMobilePush,
+    features: dfContext.features,
   });
 
   return {

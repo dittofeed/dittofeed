@@ -103,6 +103,8 @@ export type PreloadedState = Partial<AppState>;
 
 export type AppContents = AppState & AppActions;
 
+export type DashboardContext = DFRequestContext & { features: FeatureMap };
+
 export type GetDFServerSideProps<
   // eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style, @typescript-eslint/no-explicit-any
   P extends { [key: string]: any } = { [key: string]: any },
@@ -110,7 +112,7 @@ export type GetDFServerSideProps<
   D extends PreviewData = PreviewData,
 > = (
   context: GetServerSidePropsContext<Q, D>,
-  dfContext: DFRequestContext,
+  dfContext: DashboardContext,
 ) => Promise<GetServerSidePropsResult<P>>;
 
 export type UserPropertyMessages = Record<

@@ -26,14 +26,12 @@ export async function getFeatures({
   workspaceId,
 }: {
   workspaceId: string;
-  names: FeatureNamesEnum[];
+  names?: FeatureNamesEnum[];
 }): Promise<FeatureMap> {
   const features = await prisma().feature.findMany({
     where: {
       workspaceId,
-      name: {
-        in: names,
-      },
+      ...(names ? { name: { in: names } } : {}),
     },
   });
   return features.reduce<FeatureMap>((acc, feature) => {
