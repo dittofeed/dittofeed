@@ -1,4 +1,6 @@
-name: Admin CLI CI
+
+# Run CI when changes are made to the admin-cli package or its internal dependencies
+name: Admin CLI Dependencies CI
 
 on:
   push:
@@ -6,17 +8,21 @@ on:
       - main
     paths:
       - 'packages/admin-cli/**'
+      - 'packages/backend-lib/**'
+      - 'packages/isomorphic-lib/**'
   pull_request:
     branches:
       - main
     paths:
       - 'packages/admin-cli/**'
+      - 'packages/backend-lib/**'
+      - 'packages/isomorphic-lib/**'
   workflow_dispatch:
 
 jobs:
-  shared:
+  admin-cli:
     uses: ./.github/workflows/shared-workflow.yaml
     with:
       package-name: 'admin-cli'
       is_backend: 'true'
-      run_lint: 'true'
+      run_tests: 'true'
