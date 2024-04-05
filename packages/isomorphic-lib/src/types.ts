@@ -1003,7 +1003,7 @@ const MessageTemplateResourceProperties = {
   name: Type.String(),
   type: Type.Enum(ChannelType),
   definition: Type.Optional(MessageTemplateResourceDefinition),
-  draft: Type.Optional(MessageTemplateResourceDefinition),
+  draft: Type.Optional(MessageTemplateResourceDraft),
   updatedAt: Type.Number(),
 } as const;
 

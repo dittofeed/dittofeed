@@ -1,3 +1,5 @@
+import { Result } from "neverthrow";
+
 import { assertUnreachable } from "./typeAssertions";
 import {
   ChannelType,
@@ -35,5 +37,11 @@ export function messageTemplatePath({
 export function messageTemplateDefinitionToDraft(
   definition: MessageTemplateResourceDefinition,
 ): MessageTemplateResourceDraft {
+  throw new Error("Not implemented");
+}
+
+export function messageTemplateDraftToDefinition(
+  draft: MessageTemplateResourceDraft,
+): Result<MessageTemplateResourceDefinition, Error> {
   throw new Error("Not implemented");
 }
