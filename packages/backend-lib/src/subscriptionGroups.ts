@@ -1,7 +1,7 @@
 import { Segment, SegmentAssignment, SubscriptionGroup } from "@prisma/client";
 import {
-  SUBSCRIPTION_MANAGEMENT_PAGE,
   SecretNames,
+  SUBSCRIPTION_MANAGEMENT_PAGE,
 } from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import path from "path";
