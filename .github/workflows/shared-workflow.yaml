@@ -47,6 +47,21 @@ jobs:
     name: Run Tests
     if: ${{ inputs.run_tests == 'true' }}
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        # Only start the service if the backend is being tested
+        image: ${{ ( inputs.is_backend == 'true' ) && 'postgres:15' || '' }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: dittofeed_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout repository

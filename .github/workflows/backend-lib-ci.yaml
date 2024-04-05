@@ -19,3 +19,4 @@ jobs:
     with:
       package-name: 'backend-lib'
       is_backend: 'true'
+      run_tests: 'true'
