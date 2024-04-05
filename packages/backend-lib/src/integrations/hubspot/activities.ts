@@ -598,7 +598,10 @@ export function calculateHubspotEmailChanges({
       );
       continue;
     }
-    const hsNumericTimestamp = new Date(hsTimestamp).getTime();
+    const hsTimestampUtc = hsTimestamp.endsWith("Z")
+      ? hsTimestamp
+      : `${hsTimestamp}Z`;
+    const hsNumericTimestamp = new Date(hsTimestampUtc).getTime();
     const existingEmail = pastEmails.find(
       (e) =>
         new Date(e.properties.hs_timestamp).getTime() === hsNumericTimestamp,
