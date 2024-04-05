@@ -12,9 +12,13 @@ async function dropClickhouse() {
   await clickhouseClient().close();
 }
 
+async function dropDatabase() {
+  await prisma().$disconnect();
+  await prisma().$executeRawUnsafe(
+    `DROP DATABASE IF EXISTS ${config().database};`,
+  );
+}
+
 export default async function globalTeardown() {
-  await Promise.all([
-    dropClickhouse(),
-    prisma().$executeRawUnsafe(`DROP DATABASE IF EXISTS ${config().database};`),
-  ]);
+  await Promise.all([dropClickhouse(), dropDatabase()]);
 }
