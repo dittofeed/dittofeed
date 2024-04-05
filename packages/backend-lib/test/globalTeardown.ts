@@ -15,6 +15,6 @@ async function dropClickhouse() {
 export default async function globalTeardown() {
   await Promise.all([
     dropClickhouse(),
-    prisma().$executeRaw`DROP DATABASE IF EXISTS ${config().database};`,
+    prisma().$executeRawUnsafe(`DROP DATABASE IF EXISTS ${config().database};`),
   ]);
 }
