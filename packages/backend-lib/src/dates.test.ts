@@ -3,9 +3,9 @@ import { differenceInHours } from "date-fns";
 import { findNextLocalizedTimeInner } from "./dates";
 
 describe("findNextLocalizedTimeInner", () => {
-  describe("when localizing to disneyland time at 8 pm it shows a 4 hours difference", () => {
-    it("shows a 4 hours difference", () => {
-      // slightly after 3 pm in los angeles time
+  describe("when localizing to disneyland time at 8 pm it", () => {
+    it("shows a 4 hours difference when localizing from 12 am UTC", () => {
+      // slightly after 4 pm in los angeles time
       const now = new Date("2023-12-19T23:00:12.123Z").getTime();
       const result = findNextLocalizedTimeInner({
         latLon: "33.8121,-117.9190",

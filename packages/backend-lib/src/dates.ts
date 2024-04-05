@@ -34,8 +34,9 @@ export function findNextLocalizedTimeInner({
 }): number {
   const timezone =
     typeof latLon === "string" ? getTimezone({ latLon }) : DEFAULT_TIMEZONE;
-  const offset = getTimezoneOffset(timezone);
+  const offset = getTimezoneOffset(timezone, now);
   const zoned = offset + now;
+
   let adjusted = new Date(zoned);
   adjusted.setUTCHours(hour, minute, 0, 0);
 
