@@ -25,4 +25,5 @@ jobs:
     with:
       package-name: 'admin-cli'
       is_backend: 'true'
-      run_tests: 'true'
+      # TODO when tests are added to the admin-cli package, uncomment the following line
+      # run_tests: 'true'
