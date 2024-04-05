@@ -1,7 +1,6 @@
-import bootstrap from "../src/bootstrap";
+import { bootstrapClickhouse } from "../src/bootstrap";
+import { prismaMigrate } from "../src/prisma/migrate";
 
 export default async function globalSetup() {
-  await bootstrap({
-    workspaceName: "test-workspace",
-  });
+  await Promise.all([bootstrapClickhouse(), prismaMigrate()]);
 }

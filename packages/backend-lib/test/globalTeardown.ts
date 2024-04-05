@@ -1,7 +1,8 @@
 import { clickhouseClient } from "../src/clickhouse";
 import config from "../src/config";
+import prisma from "../src/prisma";
 
-export default async function globalTeardown() {
+async function dropClickhouse() {
   await clickhouseClient().exec({
     query: `DROP DATABASE IF EXISTS ${config().clickhouseDatabase} SYNC`,
     clickhouse_settings: {
@@ -9,4 +10,11 @@ export default async function globalTeardown() {
     },
   });
   await clickhouseClient().close();
+}
+
+export default async function globalTeardown() {
+  await Promise.all([
+    dropClickhouse(),
+    prisma().$executeRaw`DROP DATABASE IF EXISTS ${config().database};`,
+  ]);
 }
