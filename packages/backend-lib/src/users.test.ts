@@ -1,4 +1,4 @@
-import { Workspace } from "@prisma/client";
+import { UserProperty, Workspace } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 
@@ -26,12 +26,14 @@ describe("getUsers", () => {
 
   describe("when number of users is greater than the limit", () => {
     let userIds: [string, string];
+    let firstNameProperty: UserProperty;
+
     beforeEach(async () => {
       userIds = [
         "185410bb-60e0-407a-95bb-4568ad450ff9",
         "787ec382-1f3a-4375-ae7d-2dae8b863991",
       ];
-      const firstNameProperty = await prisma().userProperty.create({
+      firstNameProperty = await prisma().userProperty.create({
         data: {
           name: "firstName",
           workspaceId: workspace.id,
@@ -71,7 +73,10 @@ describe("getUsers", () => {
           id: userIds[0],
           segments: [],
           properties: {
-            firstName: "max",
+            [firstNameProperty.id]: {
+              name: "firstName",
+              value: "max",
+            },
           },
         },
       ]);
@@ -90,7 +95,10 @@ describe("getUsers", () => {
           id: userIds[1],
           segments: [],
           properties: {
-            firstName: "chandler",
+            [firstNameProperty.id]: {
+              name: "firstName",
+              value: "chandler",
+            },
           },
         },
       ]);
@@ -190,15 +198,21 @@ describe("getUsers", () => {
       const result = unwrap(
         await getUsers({
           workspaceId: workspace.id,
-          segmentId: segmentId1,
+          segmentFilter: [segmentId1],
         }),
       );
 
       expect(result).toEqual({
+        userCount: 1,
         users: [
           {
             id: userIds[0],
-            segments: [segmentId1],
+            segments: [
+              {
+                id: segmentId1,
+                name: "segment1",
+              },
+            ],
             properties: {},
           },
         ],
