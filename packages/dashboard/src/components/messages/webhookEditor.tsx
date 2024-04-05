@@ -8,11 +8,11 @@ import {
   RenderMessageTemplateRequestContents,
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
+import { useMemo } from "react";
 import R from "remeda";
 
-import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
 import { useAppStorePick } from "../../lib/appStore";
-import { useMemo } from "react";
+import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
 
 function fieldToReadable(field: string) {
   // FIXME
@@ -31,15 +31,13 @@ const definitionToPreview: DefinitionToPreview = (definition) => {
 export default function WebhookEditor({
   templateId,
   hideTitle,
-  hideSaveButton,
-  saveOnUpdate,
+  hidePublisher,
   disabled,
   member,
 }: {
   templateId: string;
   hideTitle?: boolean;
-  hideSaveButton?: boolean;
-  saveOnUpdate?: boolean;
+  hidePublisher?: boolean;
   disabled?: boolean;
   member?: WorkspaceMemberResource;
 }) {
@@ -75,10 +73,10 @@ export default function WebhookEditor({
       member={member}
       disabled={disabled}
       hideTitle={hideTitle}
-      hideSaveButton={hideSaveButton}
-      saveOnUpdate={saveOnUpdate}
+      hidePublisher={hidePublisher}
+      // FIXME add identifierKey
       renderEditorHeader={() => null}
-      renderEditorBody={({ setDefinition }) => {
+      renderEditorBody={({ definition, setDefinition }) => {
         return (
           <ReactCodeMirror
             // FIXME

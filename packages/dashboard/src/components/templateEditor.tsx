@@ -930,9 +930,7 @@ export default function TemplateEditor({
       }}
       spacing={1}
     >
-      <Stack>
-        {renderEditorParams && renderEditorHeader(renderEditorParams)}
-      </Stack>
+      <Stack>{renderEditorHeader(renderEditorParams)}</Stack>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
         {fullscreen === null ? (
@@ -952,9 +950,7 @@ export default function TemplateEditor({
           </IconButton>
         )}
       </Stack>
-      <BodyBox direction="left">
-        {renderEditorParams ? renderEditorBody(renderEditorParams) : null}
-      </BodyBox>
+      <BodyBox direction="left">{renderEditorBody(renderEditorParams)}</BodyBox>
     </Stack>
   );
   const getPreviewVisibilityHandler = () => {
