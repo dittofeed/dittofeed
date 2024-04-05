@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { SUBSCRIPTION_SECRET_NAME } from "isomorphic-lib/src/constants";
+import { SecretNames } from "isomorphic-lib/src/constants";
 
 import { renderLiquid } from "./liquid";
 
@@ -148,7 +148,7 @@ describe("renderWithUserProperties", () => {
         identifierKey: "email",
         subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
         secrets: {
-          [SUBSCRIPTION_SECRET_NAME]: "secret",
+          [SecretNames.Subscription]: "secret",
         },
         userProperties: {
           email: "max@email.com",
@@ -175,7 +175,7 @@ describe("renderWithUserProperties", () => {
         identifierKey: "email",
         subscriptionGroupId: "92edd119-3566-4c42-a91a-ff80498a1f57",
         secrets: {
-          [SUBSCRIPTION_SECRET_NAME]: "secret",
+          [SecretNames.Subscription]: "secret",
         },
         userProperties: {
           email: "max@email.com",

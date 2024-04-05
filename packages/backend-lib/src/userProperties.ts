@@ -122,6 +122,10 @@ export function assignmentAsString(
   key: string,
 ): string | null {
   const assignment = assignments[key];
+  if (typeof assignment === "number") {
+    return String(assignment);
+  }
+
   if (typeof assignment !== "string") {
     return null;
   }
