@@ -63,6 +63,17 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      clickhouse-server:
+        # Only start the service if the backend is being tested
+        image: ${{ ( inputs.is_backend == 'true' ) && 'clickhouse/clickhouse-server:23.8.8.20-alpine' || '' }}
+        env:
+          CLICKHOUSE_USER: dittofeed
+          CLICKHOUSE_PASSWORD: password
+        ports:
+          - 8123:8123
+          - 9000:9000
+          - 9009:9009
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
