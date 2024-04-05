@@ -527,7 +527,7 @@ function SegmentIoConfig() {
       <SectionHeader
         id={settingsSectionIds.segmentSource}
         title="Data Sources"
-        description="In order to use Dittofeed, at least 1 source of user data must be configured."
+        description="Integrations for submitting data to your workspace."
       />
       <Fields
         sections={[
@@ -615,7 +615,7 @@ function SendGridConfig() {
                     secretKey: "apiKey",
                     label: "Sendgrid API Key",
                     helperText:
-                      "API key, used internally by Dittofeed to send emails via sendgrid.",
+                      "API key, used internally to send emails via sendgrid.",
                     type: EmailProviderType.Sendgrid,
                     saved:
                       secretAvailability.find(
@@ -736,7 +736,7 @@ function ResendConfig() {
                     secretKey: "apiKey",
                     label: "Resend API Key",
                     helperText:
-                      "API key, used internally by Dittofeed to send emails via resend.",
+                      "API key, used internally to send emails via resend.",
                     type: EmailProviderType.Resend,
                     saved:
                       secretAvailability.find(
@@ -790,7 +790,7 @@ function PostMarkConfig() {
                     secretKey: "apiKey",
                     label: "API Key",
                     helperText:
-                      "API key, used by Dittofeed to send emails via Postmark.",
+                      "API key, used internally to send emails via Postmark.",
                     type: EmailProviderType.PostMark,
                     saved:
                       secretAvailability.find(
@@ -1417,7 +1417,7 @@ function HubspotIntegration() {
     hubspotContents = (
       <Stack spacing={1}>
         <InfoBox>
-          Dittofeed can sync segments to Hubspot as lists. See{" "}
+          Segments can be synced to Hubspot as lists. See{" "}
           <ExternalLink
             disableNewTab
             enableLinkStyling
