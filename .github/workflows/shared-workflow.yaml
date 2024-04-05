@@ -14,11 +14,16 @@ on:
         required: false
         default: "false"
         type: string
+      run_lint:
+        required: false
+        default: "false"
+        type: string
 
 jobs:
   lint:
     name: Run Lint
     runs-on: ubuntu-latest
+    if: ${{ inputs.run_lint == 'true' }}
 
     steps:
       - name: Checkout repository

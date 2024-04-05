@@ -1,5 +1,5 @@
-# Run CI when changes are made to the API package
-name: API CI
+# Run CI when changes are made to the API package or its internal dependencies
+name: API Dependencies CI
 
 on:
   push:
@@ -7,11 +7,15 @@ on:
       - main
     paths:
       - 'packages/api/**'
+      - 'packages/backend-lib/**'
+      - 'packages/isomorphic-lib/**'
   pull_request:
     branches:
       - main
     paths:
       - 'packages/api/**'
+      - 'packages/backend-lib/**'
+      - 'packages/isomorphic-lib/**'
   workflow_dispatch:
 
 jobs:
@@ -19,5 +23,5 @@ jobs:
     uses: ./.github/workflows/shared-workflow.yaml
     with:
       package-name: 'api'
-      run_lint: 'true'
+      is_backend: 'true'
       run_tests: 'true'
