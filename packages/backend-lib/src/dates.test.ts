@@ -31,7 +31,7 @@ describe("findNextLocalizedTimeInner", () => {
       expect(differenceInHours(result, now)).toBe(20);
     });
     describe("when also required to be on a Thursday", () => {
-      it("shows a 44 hour difference", () => {
+      it("shows a 44 hour difference when starting from Thursday", () => {
         // slightly after 8 am in tokyo time
         const now = new Date("2023-12-19T23:00:12.12Z").getTime();
 
