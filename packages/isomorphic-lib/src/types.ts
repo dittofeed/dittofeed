@@ -969,6 +969,34 @@ export type MessageTemplateResourceDefinition = Static<
   typeof MessageTemplateResourceDefinition
 >;
 
+export const WebhookTemplateResourceDraft = Type.Object({
+  type: Type.Literal(ChannelType.Webhook),
+  identifierKey: Type.String(),
+  body: Type.String(),
+});
+
+export type WebhookTemplateResourceDraft = Static<
+  typeof WebhookTemplateResourceDraft
+>;
+
+export const ParsedWebhookeDraftBody = Type.Pick(WebhookContents, [
+  "config",
+  "secret",
+]);
+
+export type ParsedWebhookeDraftBody = Static<typeof ParsedWebhookeDraftBody>;
+
+export const MessageTemplateResourceDraft = Type.Union([
+  MobilePushTemplateResource,
+  EmailTemplateResource,
+  SmsTemplateResource,
+  WebhookTemplateResourceDraft,
+]);
+
+export type MessageTemplateResourceDraft = Static<
+  typeof MessageTemplateResourceDraft
+>;
+
 const MessageTemplateResourceProperties = {
   workspaceId: Type.String(),
   id: Type.String(),

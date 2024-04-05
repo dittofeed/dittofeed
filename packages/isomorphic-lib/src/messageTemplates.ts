@@ -1,5 +1,9 @@
 import { assertUnreachable } from "./typeAssertions";
-import { ChannelType } from "./types";
+import {
+  ChannelType,
+  MessageTemplateResourceDefinition,
+  MessageTemplateResourceDraft,
+} from "./types";
 
 export function messageTemplatePath({
   id,
@@ -26,4 +30,10 @@ export function messageTemplatePath({
       assertUnreachable(channel);
   }
   return `/templates/${channelSubPath}/${id}`;
+}
+
+export function messageTemplateDefinitionToDraft(
+  definition: MessageTemplateResourceDefinition,
+): MessageTemplateResourceDraft {
+  throw new Error("Not implemented");
 }

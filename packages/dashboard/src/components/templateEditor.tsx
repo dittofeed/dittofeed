@@ -38,6 +38,7 @@ import {
   JsonResultType,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
+  MessageTemplateResourceDraft,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
   MobilePushProviderType,
@@ -149,7 +150,7 @@ export interface BaseTemplateState {
   userPropertiesJSON: string;
   editedTemplate: {
     title: string;
-    draft?: MessageTemplateResourceDefinition;
+    draft?: MessageTemplateResourceDraft;
   } | null;
   testRequest: EphemeralRequestStatus<Error>;
   testResponse: MessageTemplateTestResponse | null;
@@ -896,11 +897,13 @@ export default function TemplateEditor({
   if (!template.definition) {
     return null;
   }
+
   const viewedDefinition =
     (viewDraft ? editedTemplate?.draft : undefined) ?? template.definition;
   const inDraftView =
     publisherStatuses?.publisher.type !== PublisherStatusType.OutOfDate ||
     viewDraft;
+
   const renderEditorParams: RenderEditorParams = {
     definition: viewedDefinition,
     disabled: Boolean(disabled) || !inDraftView,
