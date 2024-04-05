@@ -24,6 +24,7 @@ import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { emailProviderLabel } from "isomorphic-lib/src/email";
 import { deepEquals } from "isomorphic-lib/src/equality";
+import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -79,7 +80,6 @@ import {
   PublisherUpToDateStatus,
 } from "./publisher";
 import TemplatePreview from "./templatePreview";
-import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -531,10 +531,17 @@ export default function TemplateEditor({
       }
       updateData.draft = debouncedDraft;
     } else {
-      if (deepEquals(debouncedDraft, template?.definition)) {
+      const definitionFromDraft = debouncedDraft
+        ? messageTemplateDraftToDefinition(debouncedDraft).unwrapOr(null)
+        : null;
+
+      if (
+        !definitionFromDraft ||
+        deepEquals(definitionFromDraft, template?.definition)
+      ) {
         return;
       }
-      updateData.definition = debouncedDraft;
+      updateData.definition = definitionFromDraft;
     }
 
     apiRequestHandlerFactory({
@@ -569,9 +576,18 @@ export default function TemplateEditor({
       ) {
         return;
       }
-      const definitionToRender = viewDraft
-        ? debouncedDraft ?? template.definition
-        : template.definition;
+
+      let definitionToRender: MessageTemplateResourceDefinition | null = null;
+      const templateDefinition = template.definition ?? null;
+      if (viewDraft) {
+        const definitionFromDraft = debouncedDraft
+          ? messageTemplateDraftToDefinition(debouncedDraft).unwrapOr(null)
+          : null;
+
+        definitionToRender = definitionFromDraft ?? templateDefinition;
+      } else {
+        definitionToRender = templateDefinition;
+      }
 
       if (!definitionToRender) {
         return;
