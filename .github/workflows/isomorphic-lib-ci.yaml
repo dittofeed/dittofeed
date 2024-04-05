@@ -18,3 +18,4 @@ jobs:
     uses: ./.github/workflows/shared-workflow.yaml
     with:
       package-name: 'isomorphic-lib'
+      run_lint: 'true'

@@ -219,7 +219,7 @@ async function bootstrapKafka() {
   await kafkaAdmin().disconnect();
 }
 
-async function bootstrapClickhouse() {
+export async function bootstrapClickhouse() {
   await createClickhouseDb();
 
   await createUserEventsTables({

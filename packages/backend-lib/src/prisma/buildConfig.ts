@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 import config from "../config";
+import { NodeEnvEnum } from "../types";
 
 export type PrismaClientConfig = ConstructorParameters<typeof PrismaClient>[0];
 
@@ -13,7 +14,7 @@ function buildConfig(): PrismaClientConfig {
     },
   };
 
-  if (config().prettyLogs) {
+  if (config().nodeEnv === NodeEnvEnum.Development) {
     prismaConfig.log = ["query", "info", "warn", "error"];
   }
   return prismaConfig;

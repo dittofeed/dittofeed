@@ -315,7 +315,7 @@ export async function getUsers({
 
   const val: GetUsersResponse = {
     users: Array.from(userMap.values()),
-    userCount: (countResults as [{ userCount: number }])[0].userCount,
+    userCount: Number((countResults as [{ userCount: bigint }])[0].userCount),
   };
 
   if (nextCursor) {

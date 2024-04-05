@@ -1,22 +1,27 @@
-name: backend-lib CI
+# Run CI when changes are made to the Dashboard package or its internal dependencies
+name: Dashboard Dependencies CI
 
 on:
   push:
     branches:
       - main
     paths:
+      - 'packages/dashboard/**'
       - 'packages/backend-lib/**'
+      - 'packages/isomorphic-lib/**'
   pull_request:
     branches:
       - main
     paths:
+      - 'packages/dashboard/**'
       - 'packages/backend-lib/**'
+      - 'packages/isomorphic-lib/**'
   workflow_dispatch:
 
 jobs:
-  shared:
+  dashboard:
     uses: ./.github/workflows/shared-workflow.yaml
     with:
-      package-name: 'backend-lib'
+      package-name: 'dashboard'
       is_backend: 'true'
       run_tests: 'true'

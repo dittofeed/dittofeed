@@ -181,13 +181,14 @@ export type Config = Overwrite<
   }
 > & {
   defaultUserEventsTableVersion: string;
+  database: string;
 };
 
 const defaultDbParams: Record<string, string> = {
   connect_timeout: "60",
 };
 
-function parseDatabaseUrl(rawConfig: RawConfig) {
+function parseDatabaseUrl(rawConfig: RawConfig, database: string) {
   if (rawConfig.databaseUrl) {
     const url = new URL(rawConfig.databaseUrl);
 
@@ -209,9 +210,8 @@ function parseDatabaseUrl(rawConfig: RawConfig) {
   const databasePassword = rawConfig.databasePassword ?? "password";
   const databaseHost = rawConfig.databaseHost ?? "localhost";
   const databasePort = rawConfig.databasePort ?? "5432";
-
   const url = new URL(
-    `postgresql://${databaseUser}:${databasePassword}@${databaseHost}:${databasePort}/dittofeed`,
+    `postgresql://${databaseUser}:${databasePassword}@${databaseHost}:${databasePort}/${database}`,
   );
   url.search = new URLSearchParams({
     ...defaultDbParams,
@@ -263,11 +263,14 @@ function buildDashboardUrl({
 }
 
 function parseRawConfig(rawConfig: RawConfig): Config {
-  const databaseUrl = parseDatabaseUrl(rawConfig);
   const clickhouseDatabase =
     rawConfig.clickhouseDatabase ??
     (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
 
+  const database =
+    rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed";
+
+  const databaseUrl = parseDatabaseUrl(rawConfig, database);
   const nodeEnv = rawConfig.nodeEnv ?? NodeEnvEnum.Development;
   const writeMode: WriteMode =
     rawConfig.writeMode ??
@@ -304,6 +307,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     writeMode,
     temporalAddress: defaultTemporalAddress(rawConfig.temporalAddress),
     databaseUrl,
+    database,
     clickhouseDatabase,
     clickhouseHost: defaultChUrl(
       rawConfig.clickhouseHost,

@@ -75,7 +75,7 @@ describe("hubspot activities", () => {
         expect(changes).toEqual({
           newEmails: [
             {
-              hs_timestamp: 1693359427000,
+              hs_timestamp: 1693334227000,
               hs_email_html: "<div>test email</div>\n",
               hs_email_subject: "test",
               hs_email_status: "SENT",

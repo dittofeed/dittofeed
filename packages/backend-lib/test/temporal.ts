@@ -9,6 +9,15 @@ import {
 import * as activities from "../src/temporal/activities";
 import { CustomActivityInboundInterceptor } from "../src/temporal/activityInboundInterceptor";
 
+const EMPTY_LOGGER = {
+  log() {},
+  trace() {},
+  debug() {},
+  info() {},
+  warn() {},
+  error() {},
+};
+
 export async function createEnvAndWorker({
   activityOverrides,
 }: {
@@ -27,11 +36,11 @@ export async function createEnvAndWorker({
             }),
         ],
       },
-      console,
+      EMPTY_LOGGER,
     ),
     activities: { ...activities, ...activityOverrides },
     taskQueue: "default",
-    sinks: defaultSinks(console),
+    sinks: defaultSinks(EMPTY_LOGGER),
   });
   return { testEnv, worker };
 }

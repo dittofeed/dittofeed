@@ -34,8 +34,9 @@ export function findNextLocalizedTimeInner({
 }): number {
   const timezone =
     typeof latLon === "string" ? getTimezone({ latLon }) : DEFAULT_TIMEZONE;
-  const offset = getTimezoneOffset(timezone);
+  const offset = getTimezoneOffset(timezone, now);
   const zoned = offset + now;
+
   let adjusted = new Date(zoned);
   adjusted.setUTCHours(hour, minute, 0, 0);
 
@@ -44,8 +45,12 @@ export function findNextLocalizedTimeInner({
     : EVERY_DAY_IN_WEEK;
 
   for (let i = 0; i < 8; i++) {
-    if (adjusted.getTime() > zoned && allowedDays.has(adjusted.getUTCDay())) {
-      return adjusted.getTime() - offset;
+    const local = adjusted.getTime() - offset;
+    if (
+      adjusted.getTime() > zoned &&
+      allowedDays.has(new Date(local).getUTCDay())
+    ) {
+      return local;
     }
     adjusted = add(adjusted, { days: 1 });
   }

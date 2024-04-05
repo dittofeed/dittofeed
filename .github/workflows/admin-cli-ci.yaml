@@ -1,4 +1,4 @@
-name: admin-cli CI
+name: Admin CLI CI
 
 on:
   push:
@@ -19,3 +19,4 @@ jobs:
     with:
       package-name: 'admin-cli'
       is_backend: 'true'
+      run_lint: 'true'

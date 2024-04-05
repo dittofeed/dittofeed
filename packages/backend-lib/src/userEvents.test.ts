@@ -61,39 +61,39 @@ describe("userEvents", () => {
     let messageId2: string;
     let messageId3: string;
 
-    describe("with a date range", () => {
-      beforeEach(async () => {
-        messageId1 = randomUUID();
-        messageId2 = randomUUID();
-        messageId3 = randomUUID();
-        const now = new Date("2023-01-01T00:00:00.000Z").getTime();
+    beforeEach(async () => {
+      messageId1 = randomUUID();
+      messageId2 = randomUUID();
+      messageId3 = randomUUID();
+      const now = new Date("2023-01-01T00:00:00.000Z").getTime();
 
-        await submitBatch({
-          workspaceId: workspace.id,
-          now,
-          data: [
-            {
-              type: EventType.Identify,
-              messageId: messageId1,
-              userId: "user1",
-              offsetMs: 4 * 24 * 60 * 60 * 1000,
-            },
-            {
-              type: EventType.Identify,
-              messageId: messageId2,
-              userId: "user1",
-              offsetMs: 9 * 24 * 60 * 60 * 1000,
-            },
-            {
-              type: EventType.Identify,
-              messageId: messageId3,
-              userId: "user1",
-              offsetMs: 14 * 24 * 60 * 60 * 1000,
-            },
-          ],
-        });
+      await submitBatch({
+        workspaceId: workspace.id,
+        now,
+        data: [
+          {
+            type: EventType.Identify,
+            messageId: messageId1,
+            userId: "user1",
+            offsetMs: 4 * 24 * 60 * 60 * 1000,
+          },
+          {
+            type: EventType.Identify,
+            messageId: messageId2,
+            userId: "user1",
+            offsetMs: 9 * 24 * 60 * 60 * 1000,
+          },
+          {
+            type: EventType.Identify,
+            messageId: messageId3,
+            userId: "user1",
+            offsetMs: 14 * 24 * 60 * 60 * 1000,
+          },
+        ],
       });
+    });
 
+    describe("with a date range", () => {
       it("returns events in the date range", async () => {
         const { events } = await findManyEventsWithCount({
           workspaceId: workspace.id,
@@ -103,51 +103,21 @@ describe("userEvents", () => {
         expect(events.map((e) => e.message_id)).toEqual([messageId2]);
       });
     });
-    describe("when identify events contain overlapping traits", () => {
-      beforeEach(async () => {
-        messageId1 = randomUUID();
-        messageId2 = randomUUID();
 
-        await insertUserEvents({
-          workspaceId: workspace.id,
-          events: [
-            {
-              messageId: messageId1,
-              messageRaw: segmentIdentifyEvent({
-                messageId1,
-                timestamp: "2015-02-23T22:28:55.111Z",
-                traits: {
-                  status: "onboarding",
-                  name: "max",
-                },
-              }),
-            },
-            {
-              messageId: messageId2,
-              messageRaw: segmentIdentifyEvent({
-                timestamp: "2015-01-23T22:28:55.111Z",
-                messageId: messageId2,
-                traits: {
-                  status: "onboarding",
-                  height: "73",
-                },
-              }),
-            },
-          ],
-        });
+    it("returns events sorted by processing date", async () => {
+      const { events } = await findManyEventsWithCount({
+        workspaceId: workspace.id,
       });
+      const processingTimes = events.map((e) =>
+        new Date(e.processing_time).getTime(),
+      );
+      expect(processingTimes).not.toHaveLength(0);
 
-      it("returns the relevant traits without duplicates", async () => {
-        const { events } = await findManyEventsWithCount({
-          workspaceId: workspace.id,
-        });
-        if (!events[0] || !events[1]) {
-          throw new Error("Too few events found.");
-        }
-        expect(new Date(events[0].event_time).getTime()).toBeGreaterThan(
-          new Date(events[1].event_time).getTime(),
-        );
-      });
+      const expected = [...processingTimes];
+      expected.sort();
+      expected.reverse();
+
+      expect(processingTimes).toEqual(expected);
     });
   });
 });

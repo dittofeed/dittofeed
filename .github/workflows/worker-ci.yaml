@@ -14,8 +14,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  shared:
+  worker:
     uses: ./.github/workflows/shared-workflow.yaml
     with:
       package-name: 'worker'
       is_backend: 'true'
+      run_lint: 'true'

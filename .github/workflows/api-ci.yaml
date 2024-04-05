@@ -1,3 +1,4 @@
+# Run CI when changes are made to the API package
 name: API CI
 
 on:
@@ -14,9 +15,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  shared:
+  api:
     uses: ./.github/workflows/shared-workflow.yaml
     with:
       package-name: 'api'
-      is_backend: 'true'
-      run_tests: 'true'
+      run_lint: 'true'

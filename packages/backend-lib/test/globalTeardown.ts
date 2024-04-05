@@ -1,7 +1,7 @@
 import { clickhouseClient } from "../src/clickhouse";
 import config from "../src/config";
 
-export default async function globalTeardown() {
+async function dropClickhouse() {
   await clickhouseClient().exec({
     query: `DROP DATABASE IF EXISTS ${config().clickhouseDatabase} SYNC`,
     clickhouse_settings: {
@@ -9,4 +9,8 @@ export default async function globalTeardown() {
     },
   });
   await clickhouseClient().close();
+}
+
+export default async function globalTeardown() {
+  await dropClickhouse();
 }
