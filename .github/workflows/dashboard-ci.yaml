@@ -19,4 +19,4 @@ jobs:
     with:
       package-name: 'dashboard'
       is_backend: 'true'
-      run_lin: 'true'
+      run_lint: 'true'

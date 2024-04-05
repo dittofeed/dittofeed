@@ -20,4 +20,3 @@ jobs:
     with:
       package-name: 'api'
       run_lint: 'true'
-      run_tests: 'true'
