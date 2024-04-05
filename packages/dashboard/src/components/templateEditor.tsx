@@ -79,6 +79,7 @@ import {
   PublisherUpToDateStatus,
 } from "./publisher";
 import TemplatePreview from "./templatePreview";
+import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
 
 const USER_PROPERTY_WARNING_KEY = "user-property-warning";
 
@@ -409,9 +410,13 @@ export default function TemplateEditor({
     if (!template?.definition || !editedTemplate) {
       return null;
     }
+    const definitionFromDraft = editedTemplate.draft
+      ? messageTemplateDraftToDefinition(editedTemplate.draft).unwrapOr(null)
+      : null;
+
     if (
-      !editedTemplate.draft ||
-      deepEquals(editedTemplate.draft, template.definition)
+      !definitionFromDraft ||
+      deepEquals(definitionFromDraft, template.definition)
     ) {
       const publisher: PublisherUpToDateStatus = {
         type: PublisherStatusType.UpToDate,
@@ -444,7 +449,7 @@ export default function TemplateEditor({
               name: template.name,
               id: template.id,
               draft: null,
-              definition: editedTemplate.draft,
+              definition: definitionFromDraft,
             } satisfies UpsertMessageTemplateResource,
             headers: {
               "Content-Type": "application/json",
