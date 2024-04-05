@@ -26,7 +26,7 @@ describe("messaging", () => {
     });
   });
   describe("sendEmail", () => {
-    describe("when an email includes an unsusbcribe link tag", () => {
+    describe("when an email to a user with a numeric id includes an unsusbcribe link tag", () => {
       let template: MessageTemplate;
       let subscriptionGroup: SubscriptionGroup;
       beforeEach(async () => {
@@ -59,7 +59,7 @@ describe("messaging", () => {
         });
       });
       it("should render the tag", async () => {
-        const userId = "user-id-1";
+        const userId = 1234;
         const email = "test@email.com";
 
         const payload = await sendEmail({
@@ -76,7 +76,7 @@ describe("messaging", () => {
             id: userId,
             email,
           },
-          userId,
+          userId: String(userId),
           useDraft: false,
           subscriptionGroupDetails: {
             id: subscriptionGroup.id,
