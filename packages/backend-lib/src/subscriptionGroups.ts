@@ -1,5 +1,8 @@
 import { Segment, SegmentAssignment, SubscriptionGroup } from "@prisma/client";
-import { SecretNames } from "isomorphic-lib/src/constants";
+import {
+  SUBSCRIPTION_MANAGEMENT_PAGE,
+  SecretNames,
+} from "isomorphic-lib/src/constants";
 import { err, ok, Result } from "neverthrow";
 import path from "path";
 import * as R from "remeda";
@@ -243,7 +246,7 @@ export function generateSubscriptionChangeUrl({
       subscriptionChange === SubscriptionChange.Subscribe ? "1" : "0";
   }
   const url = new URL(config().dashboardUrl);
-  url.pathname = path.join("/dashboard", SecretNames.Subscription);
+  url.pathname = path.join("/dashboard", SUBSCRIPTION_MANAGEMENT_PAGE);
   url.search = new URLSearchParams(params).toString();
   const urlString = url.toString();
   logger().debug(
