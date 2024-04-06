@@ -76,7 +76,7 @@ export default function WebhookEditor({
       hidePublisher={hidePublisher}
       // FIXME add identifierKey
       renderEditorHeader={() => null}
-      renderEditorBody={({ definition, setDefinition }) => {
+      renderEditorBody={({ draft: definition, setDraft: setDefinition }) => {
         return (
           <ReactCodeMirror
             // FIXME

@@ -86,7 +86,7 @@ export default function EmailEditor({
       disabled={disabled}
       hideTitle={hideTitle}
       hidePublisher={hidePublisher}
-      renderEditorHeader={({ definition, setDefinition }) => {
+      renderEditorHeader={({ draft: definition, setDraft: setDefinition }) => {
         if (definition.type !== ChannelType.Email) {
           return null;
         }
@@ -175,8 +175,8 @@ export default function EmailEditor({
         );
       }}
       renderEditorBody={({
-        definition,
-        setDefinition,
+        draft: definition,
+        setDraft: setDefinition,
         disabled: disabledOverride,
       }) => {
         if (definition.type !== ChannelType.Email) {

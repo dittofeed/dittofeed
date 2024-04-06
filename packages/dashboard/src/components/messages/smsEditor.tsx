@@ -57,7 +57,7 @@ export default function SmsEditor({
       hideTitle={hideTitle}
       hidePublisher={hidePublisher}
       renderEditorHeader={() => null}
-      renderEditorBody={({ definition, setDefinition }) => {
+      renderEditorBody={({ draft: definition, setDraft: setDefinition }) => {
         if (definition.type !== ChannelType.Sms) {
           return null;
         }

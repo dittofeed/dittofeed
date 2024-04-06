@@ -24,7 +24,10 @@ import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { emailProviderLabel } from "isomorphic-lib/src/email";
 import { deepEquals } from "isomorphic-lib/src/equality";
-import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
+import {
+  messageTemplateDefinitionToDraft,
+  messageTemplateDraftToDefinition,
+} from "isomorphic-lib/src/messageTemplates";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -205,15 +208,13 @@ export type RenderPreviewSection = (
   args: RenderPreviewParams,
 ) => React.ReactNode;
 
-export type SetDefinition = (
-  setter: (
-    dfn: MessageTemplateResourceDefinition,
-  ) => MessageTemplateResourceDefinition,
+export type SetDraft = (
+  setter: (draft: MessageTemplateResourceDraft) => MessageTemplateResourceDraft,
 ) => void;
 
 export interface RenderEditorParams {
-  setDefinition: SetDefinition;
-  definition: MessageTemplateResourceDefinition;
+  setDraft: SetDraft;
+  draft: MessageTemplateResourceDraft;
   disabled: boolean;
 }
 
@@ -919,30 +920,35 @@ export default function TemplateEditor({
     return null;
   }
 
-  const viewedDefinition =
-    (viewDraft ? editedTemplate?.draft : undefined) ?? template.definition;
+  const draft: MessageTemplateResourceDraft | undefined =
+    (viewDraft ? editedTemplate?.draft : undefined) ??
+    messageTemplateDefinitionToDraft(template.definition);
+
   const inDraftView =
     publisherStatuses?.publisher.type !== PublisherStatusType.OutOfDate ||
     viewDraft;
 
+  // FIXME wrap in use memo
   const renderEditorParams: RenderEditorParams = {
-    definition: viewedDefinition,
+    draft,
     disabled: Boolean(disabled) || !inDraftView,
-    setDefinition: (setter) =>
-      setState((draft) => {
-        let currentDefinition: MessageTemplateResourceDefinition | null = null;
-        if (draft.editedTemplate?.draft) {
-          currentDefinition = draft.editedTemplate.draft;
+    setDraft: (setter) =>
+      setState((stateDraft) => {
+        let currentDefinition: MessageTemplateResourceDraft | null = null;
+        if (stateDraft.editedTemplate?.draft) {
+          currentDefinition = stateDraft.editedTemplate.draft;
         } else if (template.definition) {
           // Read only object can't be passed into setter, so need to clone.
-          currentDefinition = { ...template.definition };
+          currentDefinition = messageTemplateDefinitionToDraft({
+            ...template.definition,
+          });
         }
 
-        if (!currentDefinition || !draft.editedTemplate || !inDraftView) {
-          return draft;
+        if (!currentDefinition || !stateDraft.editedTemplate || !inDraftView) {
+          return stateDraft;
         }
-        draft.editedTemplate.draft = setter(currentDefinition);
-        return draft;
+        stateDraft.editedTemplate.draft = setter(currentDefinition);
+        return stateDraft;
       }),
   };
 
@@ -961,8 +967,8 @@ export default function TemplateEditor({
           <IconButton
             size="small"
             onClick={() =>
-              setState((draft) => {
-                draft.fullscreen = "editor";
+              setState((stateDraft) => {
+                stateDraft.fullscreen = "editor";
               })
             }
           >
@@ -984,8 +990,8 @@ export default function TemplateEditor({
           <IconButton
             size="small"
             onClick={() =>
-              setState((draft) => {
-                draft.fullscreen = "preview";
+              setState((stateDraft) => {
+                stateDraft.fullscreen = "preview";
               })
             }
           >
@@ -1042,11 +1048,11 @@ export default function TemplateEditor({
               name={editedTemplate.title}
               variant="h4"
               onChange={(e) =>
-                setState((draft) => {
-                  if (!draft.editedTemplate) {
+                setState((stateDraft) => {
+                  if (!stateDraft.editedTemplate) {
                     return;
                   }
-                  draft.editedTemplate.title = e.target.value;
+                  stateDraft.editedTemplate.title = e.target.value;
                 })
               }
             />
@@ -1065,8 +1071,8 @@ export default function TemplateEditor({
             openTitle="Send Test Message"
             onSubmit={submitTest}
             onClose={() =>
-              setState((draft) => {
-                draft.testResponse = null;
+              setState((stateDraft) => {
+                stateDraft.testResponse = null;
               })
             }
           >
@@ -1086,18 +1092,18 @@ export default function TemplateEditor({
               value={userPropertiesJSON}
               height="100%"
               onChange={(json) =>
-                setState((draft) => {
-                  if (!draft.editedTemplate) {
+                setState((stateDraft) => {
+                  if (!stateDraft.editedTemplate) {
                     return;
                   }
-                  draft.userPropertiesJSON = json;
+                  stateDraft.userPropertiesJSON = json;
                   const result = jsonParseSafe(json).andThen((p) =>
                     schemaValidateWithErr(p, UserPropertyAssignments),
                   );
                   if (result.isErr()) {
                     return;
                   }
-                  draft.userProperties = result.value;
+                  stateDraft.userProperties = result.value;
                 })
               }
               extensions={[
