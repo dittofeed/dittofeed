@@ -722,7 +722,54 @@ export default function TemplateEditor({
     });
   }, [errors, setState, debouncedUserProperties, userPropertiesResult]);
 
-  if (!workspace || !template) {
+  const renderEditorParams: RenderEditorParams | null = useMemo(() => {
+    if (!template?.definition) {
+      return null;
+    }
+    const draft: MessageTemplateResourceDraft | undefined =
+      (viewDraft ? editedTemplate?.draft : undefined) ??
+      messageTemplateDefinitionToDraft(template.definition);
+
+    const inDraftView =
+      publisherStatuses?.publisher.type !== PublisherStatusType.OutOfDate ||
+      viewDraft;
+
+    return {
+      draft,
+      disabled: Boolean(disabled) || !inDraftView,
+      setDraft: (setter) =>
+        setState((stateDraft) => {
+          let currentDefinition: MessageTemplateResourceDraft | null = null;
+          if (stateDraft.editedTemplate?.draft) {
+            currentDefinition = stateDraft.editedTemplate.draft;
+          } else if (template.definition) {
+            // Read only object can't be passed into setter, so need to clone.
+            currentDefinition = messageTemplateDefinitionToDraft({
+              ...template.definition,
+            });
+          }
+
+          if (
+            !currentDefinition ||
+            !stateDraft.editedTemplate ||
+            !inDraftView
+          ) {
+            return stateDraft;
+          }
+          stateDraft.editedTemplate.draft = setter(currentDefinition);
+          return stateDraft;
+        }),
+    };
+  }, [
+    disabled,
+    editedTemplate?.draft,
+    publisherStatuses?.publisher.type,
+    setState,
+    template?.definition,
+    viewDraft,
+  ]);
+
+  if (!workspace || !template || !renderEditorParams) {
     return null;
   }
 
@@ -919,38 +966,6 @@ export default function TemplateEditor({
   if (!template.definition) {
     return null;
   }
-
-  const draft: MessageTemplateResourceDraft | undefined =
-    (viewDraft ? editedTemplate?.draft : undefined) ??
-    messageTemplateDefinitionToDraft(template.definition);
-
-  const inDraftView =
-    publisherStatuses?.publisher.type !== PublisherStatusType.OutOfDate ||
-    viewDraft;
-
-  // FIXME wrap in use memo
-  const renderEditorParams: RenderEditorParams = {
-    draft,
-    disabled: Boolean(disabled) || !inDraftView,
-    setDraft: (setter) =>
-      setState((stateDraft) => {
-        let currentDefinition: MessageTemplateResourceDraft | null = null;
-        if (stateDraft.editedTemplate?.draft) {
-          currentDefinition = stateDraft.editedTemplate.draft;
-        } else if (template.definition) {
-          // Read only object can't be passed into setter, so need to clone.
-          currentDefinition = messageTemplateDefinitionToDraft({
-            ...template.definition,
-          });
-        }
-
-        if (!currentDefinition || !stateDraft.editedTemplate || !inDraftView) {
-          return stateDraft;
-        }
-        stateDraft.editedTemplate.draft = setter(currentDefinition);
-        return stateDraft;
-      }),
-  };
 
   const editor = (
     <Stack
