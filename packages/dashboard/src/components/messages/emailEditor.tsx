@@ -11,7 +11,7 @@ import {
 import React from "react";
 
 import EmailPreviewHeader from "../emailPreviewHeader";
-import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
+import TemplateEditor, { DraftToPreview } from "../templateEditor";
 
 const USER_TO = "{{user.email}}";
 
@@ -30,7 +30,7 @@ function fieldToReadable(field: string) {
   }
 }
 
-const definitionToPreview: DefinitionToPreview = (definition) => {
+const draftToPreview: DraftToPreview = (definition) => {
   if (definition.type !== ChannelType.Email) {
     throw new Error("Invalid channel type");
   }
@@ -225,7 +225,7 @@ export default function EmailEditor({
           }}
         />
       )}
-      definitionToPreview={definitionToPreview}
+      draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
     />
   );

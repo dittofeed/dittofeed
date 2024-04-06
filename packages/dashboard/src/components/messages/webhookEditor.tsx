@@ -10,10 +10,9 @@ import {
   WorkspaceMemberResource,
 } from "isomorphic-lib/src/types";
 import { useMemo } from "react";
-import R from "remeda";
 
 import { useAppStorePick } from "../../lib/appStore";
-import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
+import TemplateEditor, { DraftToPreview } from "../templateEditor";
 
 function fieldToReadable(field: string) {
   switch (field) {
@@ -26,12 +25,15 @@ function fieldToReadable(field: string) {
   }
 }
 
-const definitionToPreview: DefinitionToPreview = (definition) => {
+const draftToPreview: DraftToPreview = (definition) => {
   if (definition.type !== ChannelType.Webhook) {
     throw new Error("Invalid channel type");
   }
-  // FIXME
-  const content: RenderMessageTemplateRequestContents = {};
+  const content: RenderMessageTemplateRequestContents = {
+    body: {
+      value: definition.body,
+    },
+  };
   return content;
 };
 
@@ -109,7 +111,7 @@ export default function WebhookEditor({
         if (!rendered.body) return null;
         return <>FIXME</>;
       }}
-      definitionToPreview={definitionToPreview}
+      draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
     />
   );

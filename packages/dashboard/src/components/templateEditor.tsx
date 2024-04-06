@@ -41,7 +41,6 @@ import {
   InternalEventType,
   JsonResultType,
   MessageTemplateResource,
-  MessageTemplateResourceDefinition,
   MessageTemplateResourceDraft,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
@@ -224,8 +223,8 @@ function errorHash(key: string, message: string) {
   return hash(`${key}-${message}`);
 }
 
-export type DefinitionToPreview = (
-  dfn: MessageTemplateResourceDefinition,
+export type DraftToPreview = (
+  draft: MessageTemplateResourceDraft,
 ) => RenderMessageTemplateRequestContents;
 
 function getUserPropertyValue({
@@ -276,7 +275,7 @@ export default function TemplateEditor({
   member,
   hideTitle,
   fieldToReadable,
-  definitionToPreview,
+  draftToPreview,
 }: {
   channel: ChannelType;
   templateId: string;
@@ -288,7 +287,7 @@ export default function TemplateEditor({
   renderPreviewBody: RenderPreviewSection;
   renderEditorHeader: RenderEditorSection;
   renderEditorBody: RenderEditorSection;
-  definitionToPreview: DefinitionToPreview;
+  draftToPreview: DraftToPreview;
   fieldToReadable: (field: string) => string | null;
 }) {
   const theme = useTheme();
@@ -578,27 +577,17 @@ export default function TemplateEditor({
         return;
       }
 
-      let definitionToRender: MessageTemplateResourceDefinition | null = null;
-      const templateDefinition = template.definition ?? null;
-      if (viewDraft) {
-        const definitionFromDraft = debouncedDraft
-          ? messageTemplateDraftToDefinition(debouncedDraft).unwrapOr(null)
-          : null;
-
-        definitionToRender = definitionFromDraft ?? templateDefinition;
-      } else {
-        definitionToRender = templateDefinition;
-      }
-
-      if (!definitionToRender) {
+      if (!template.definition) {
         return;
       }
+      const draftToRender =
+        debouncedDraft ?? messageTemplateDefinitionToDraft(template.definition);
 
       const data: RenderMessageTemplateRequest = {
         workspaceId: workspace.id,
         channel,
         userProperties: debouncedUserProperties,
-        contents: definitionToPreview(definitionToRender),
+        contents: draftToPreview(draftToRender),
       };
 
       try {
@@ -659,7 +648,7 @@ export default function TemplateEditor({
     apiBase,
     debouncedUserProperties,
     debouncedDraft,
-    definitionToPreview,
+    draftToPreview,
     inTransition,
     fieldToReadable,
     viewDraft,
