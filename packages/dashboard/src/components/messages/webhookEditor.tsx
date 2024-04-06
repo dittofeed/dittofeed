@@ -1,7 +1,7 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { useTheme } from "@mui/material";
+import { TextField, useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
@@ -76,8 +76,35 @@ export default function WebhookEditor({
       disabled={disabled}
       hideTitle={hideTitle}
       hidePublisher={hidePublisher}
-      // FIXME add identifierKey
-      renderEditorHeader={() => null}
+      renderEditorHeader={({ draft, setDraft }) => {
+        if (draft.type !== ChannelType.Webhook) {
+          return null;
+        }
+        return (
+          <TextField
+            disabled={disabled}
+            label="Identifier Key"
+            variant="filled"
+            onChange={(e) => {
+              setDraft((defn) => {
+                if (defn.type !== ChannelType.Webhook) {
+                  return defn;
+                }
+                defn.identifierKey = e.target.value;
+                return defn;
+              });
+            }}
+            required
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopRightRadius: 0,
+              },
+            }}
+            value={draft.identifierKey}
+          />
+        );
+      }}
       renderEditorBody={({ draft, setDraft }) => {
         return (
           <ReactCodeMirror
@@ -106,6 +133,7 @@ export default function WebhookEditor({
           />
         );
       }}
+      // fixme
       renderPreviewHeader={() => null}
       renderPreviewBody={({ rendered }) => {
         if (!rendered.body) return null;
