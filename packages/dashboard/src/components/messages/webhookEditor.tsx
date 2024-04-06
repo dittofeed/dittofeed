@@ -16,8 +16,14 @@ import { useAppStorePick } from "../../lib/appStore";
 import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
 
 function fieldToReadable(field: string) {
-  // FIXME
-  return null;
+  switch (field) {
+    case "body":
+      return "Body";
+    case "identifierKey":
+      return "Identifier Key";
+    default:
+      return null;
+  }
 }
 
 const definitionToPreview: DefinitionToPreview = (definition) => {
