@@ -12,7 +12,10 @@ import {
 import { useMemo } from "react";
 
 import { useAppStorePick } from "../../lib/appStore";
-import TemplateEditor, { DraftToPreview } from "../templateEditor";
+import TemplateEditor, {
+  DraftToPreview,
+  getDisabledInputStyles,
+} from "../templateEditor";
 
 function fieldToReadable(field: string) {
   switch (field) {
@@ -133,8 +136,29 @@ export default function WebhookEditor({
           />
         );
       }}
-      // fixme
-      renderPreviewHeader={() => null}
+      renderPreviewHeader={({ draft }) => {
+        if (draft.type !== ChannelType.Webhook) {
+          return null;
+        }
+        const disabledStyles = getDisabledInputStyles(theme);
+
+        return (
+          <TextField
+            required
+            label="Identifier Key"
+            variant="filled"
+            disabled
+            InputProps={{
+              sx: {
+                fontSize: ".75rem",
+                borderTopLeftRadius: 0,
+              },
+            }}
+            sx={disabledStyles}
+            value={draft.identifierKey}
+          />
+        );
+      }}
       renderPreviewBody={({ rendered }) => {
         if (!rendered.body) return null;
         return <>FIXME</>;

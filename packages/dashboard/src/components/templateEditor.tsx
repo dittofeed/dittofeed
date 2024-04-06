@@ -13,7 +13,9 @@ import {
   Slide,
   Stack,
   styled,
+  SxProps,
   TextField,
+  Theme,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -119,6 +121,19 @@ const BodyBox = styled(Box, {
   }),
 );
 
+export function getDisabledInputStyles(theme: Theme): SxProps<Theme> {
+  const disabledStyles: SxProps<Theme> = {
+    "& .MuiInputBase-input.Mui-disabled": {
+      WebkitTextFillColor: theme.palette.grey[600],
+      color: theme.palette.grey[600],
+    },
+    '& .MuiFormLabel-root[data-shrink="true"]': {
+      color: theme.palette.grey[600],
+    },
+  };
+  return disabledStyles;
+}
+
 function ProviderOverrideSelector<P>({
   value,
   options,
@@ -200,6 +215,7 @@ const LOREM = new LoremIpsum({
 
 export interface RenderPreviewParams {
   rendered: Record<string, string>;
+  draft: MessageTemplateResourceDraft;
   userProperties: UserPropertyAssignments;
 }
 
@@ -1009,20 +1025,22 @@ export default function TemplateEditor({
       </>
     );
   };
-  const preview = (
+  const preview = debouncedDraft ? (
     <TemplatePreview
       previewHeader={renderPreviewHeader({
         rendered,
+        draft: debouncedDraft,
         userProperties: debouncedUserProperties,
       })}
       previewBody={renderPreviewBody({
         rendered,
         userProperties: debouncedUserProperties,
+        draft: debouncedDraft,
       })}
       visibilityHandler={getPreviewVisibilityHandler()}
       bodyPreviewHeading="Body Preview"
     />
-  );
+  ) : null;
   return (
     <>
       <Stack
