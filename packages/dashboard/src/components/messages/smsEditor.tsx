@@ -57,15 +57,15 @@ export default function SmsEditor({
       hideTitle={hideTitle}
       hidePublisher={hidePublisher}
       renderEditorHeader={() => null}
-      renderEditorBody={({ draft: definition, setDraft: setDefinition }) => {
-        if (definition.type !== ChannelType.Sms) {
+      renderEditorBody={({ draft, setDraft }) => {
+        if (draft.type !== ChannelType.Sms) {
           return null;
         }
         return (
           <ReactCodeMirror
-            value={definition.body}
+            value={draft.body}
             onChange={(value) => {
-              setDefinition((defn) => {
+              setDraft((defn) => {
                 if (defn.type !== ChannelType.Sms) {
                   return defn;
                 }

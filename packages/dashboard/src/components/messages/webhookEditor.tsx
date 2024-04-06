@@ -54,13 +54,6 @@ export default function WebhookEditor({
     [templates, templateId],
   );
   const definition = viewDraft ? template?.draft : template?.definition;
-  const configAndSecretsPayload = useMemo(
-    () =>
-      definition && definition.type === ChannelType.Webhook
-        ? JSON.stringify(R.pick(definition, ["config", "secret"]))
-        : "",
-    [definition],
-  );
 
   if (!definition || definition.type !== ChannelType.Webhook) {
     return null;
@@ -76,17 +69,16 @@ export default function WebhookEditor({
       hidePublisher={hidePublisher}
       // FIXME add identifierKey
       renderEditorHeader={() => null}
-      renderEditorBody={({ draft: definition, setDraft: setDefinition }) => {
+      renderEditorBody={({ draft, setDraft }) => {
         return (
           <ReactCodeMirror
-            // FIXME
-            value={configAndSecretsPayload}
+            value={draft.body}
             onChange={(value) => {
-              setDefinition((defn) => {
+              setDraft((defn) => {
                 if (defn.type !== ChannelType.Webhook) {
                   return defn;
                 }
-                // FIXME
+                defn.body = value;
                 return defn;
               });
             }}

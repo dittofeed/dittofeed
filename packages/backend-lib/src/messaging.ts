@@ -2,6 +2,7 @@ import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
+import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
   schemaValidateWithErr,
@@ -48,6 +49,7 @@ import {
   MessageTemplateRenderError,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
+  MessageTemplateResourceDraft,
   MessageWebhookServiceFailure,
   MessageWebhookSuccess,
   MobilePushProviderType,
@@ -82,7 +84,7 @@ export function enrichMessageTemplate({
     ? schemaValidateWithErr(definition, MessageTemplateResourceDefinition)
     : ok(undefined);
   const enrichedDraft = draft
-    ? schemaValidateWithErr(draft, MessageTemplateResourceDefinition)
+    ? schemaValidateWithErr(draft, MessageTemplateResourceDraft)
     : ok(undefined);
   if (enrichedDefinition.isErr()) {
     return err(enrichedDefinition.error);
@@ -292,9 +294,12 @@ async function getSendMessageModels({
       },
     });
   }
-  const messageTemplateDefinition = useDraft
-    ? messageTemplate.draft ?? messageTemplate.definition
-    : messageTemplate.definition;
+  const definitionFromDraft =
+    useDraft && messageTemplate.draft
+      ? messageTemplateDraftToDefinition(messageTemplate.draft).unwrapOr(null)
+      : null;
+  const messageTemplateDefinition: MessageTemplateResourceDefinition | null =
+    definitionFromDraft ?? messageTemplate.definition ?? null;
 
   if (!messageTemplateDefinition) {
     logger().debug(

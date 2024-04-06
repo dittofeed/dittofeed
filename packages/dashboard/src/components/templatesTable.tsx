@@ -8,6 +8,7 @@ import {
   EmptyResponse,
   JourneyNodeType,
   MessageTemplateResourceDefinition,
+  MessageTemplateResourceDraft,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
@@ -27,7 +28,7 @@ import {
 interface Row extends BaseResourceRow {
   journeys: { name: string; id: string }[];
   definition?: MessageTemplateResourceDefinition;
-  draft?: MessageTemplateResourceDefinition;
+  draft?: MessageTemplateResourceDraft;
 }
 
 export interface TemplatesTableProps {
@@ -95,42 +96,41 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
       webhookTemplates: NarrowedMessageTemplateResource<WebhookTemplateResource>[];
     }>(
       (acc, template) => {
-        const definition = template.draft ?? template.definition;
-        if (!definition) {
+        if (!template.definition) {
           return acc;
         }
 
-        switch (definition.type) {
+        switch (template.definition.type) {
           case ChannelType.Email:
             acc.emailTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              definition,
+              definition: template.definition,
             });
             break;
           case ChannelType.MobilePush:
             acc.mobilePushTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              definition,
+              definition: template.definition,
             });
             break;
           case ChannelType.Sms:
             acc.smsTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              definition,
+              definition: template.definition,
             });
             break;
           case ChannelType.Webhook:
             acc.webhookTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              definition,
+              definition: template.definition,
             });
             break;
           default: {
-            const { type } = definition;
+            const { type } = template.definition;
             assertUnreachable(type);
           }
         }
