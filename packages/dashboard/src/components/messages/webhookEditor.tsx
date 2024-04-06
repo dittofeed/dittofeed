@@ -1,4 +1,5 @@
-import { lintGutter } from "@codemirror/lint";
+import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
+import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
@@ -84,7 +85,8 @@ export default function WebhookEditor({
             }}
             readOnly={disabled}
             extensions={[
-              // FIXME json extension
+              codeMirrorJson(),
+              linter(jsonParseLinter()),
               EditorView.theme({
                 "&": {
                   fontFamily: theme.typography.fontFamily,
