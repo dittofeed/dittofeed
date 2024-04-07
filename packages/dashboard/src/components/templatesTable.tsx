@@ -83,8 +83,12 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     deleteMessageTemplate(deleteRequest.id);
   };
 
-  // TODO [DF-471]
-  const { emailTemplates, mobilePushTemplates, smsTemplates } = useMemo(() => {
+  const {
+    emailTemplates,
+    mobilePushTemplates,
+    smsTemplates,
+    webhookTemplates,
+  } = useMemo(() => {
     const messages =
       messagesResult.type === CompletionStatus.Successful
         ? messagesResult.value
@@ -161,6 +165,13 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
       updatedAt: new Date(template.updatedAt).toISOString(),
     }));
     routeName = "mobile-push";
+  } else if (label === CHANNEL_NAMES[ChannelType.Webhook]) {
+    rows = webhookTemplates.map((template) => ({
+      ...template,
+      journeys: getJourneysUsedBy(journeysUsedBy, template.id),
+      updatedAt: new Date(template.updatedAt).toISOString(),
+    }));
+    routeName = "webhook";
   } else {
     rows = smsTemplates.map((template) => ({
       ...template,
