@@ -932,8 +932,8 @@ export const WebhookConfig = Type.Object({
   url: Type.Optional(Type.String()),
   method: Type.Optional(Type.String()),
   headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-  params: Type.Optional(Type.String()),
-  data: Type.Optional(Type.String()),
+  params: Type.Optional(Type.Any()),
+  data: Type.Optional(Type.Any()),
   responseEncoding: Type.Optional(
     Type.Union([Type.Literal("json"), Type.Literal("text")]),
   ),
@@ -953,6 +953,7 @@ export const WebhookTemplateResource = Type.Composite([
   Type.Object({
     type: Type.Literal(ChannelType.Webhook),
   }),
+  // FIXME should probably have the content and config stored as strings and parsed to config
   WebhookContents,
 ]);
 
