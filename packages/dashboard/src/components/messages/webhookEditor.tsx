@@ -54,10 +54,7 @@ export default function WebhookEditor({
   member?: WorkspaceMemberResource;
 }) {
   const theme = useTheme();
-  const { messages: templates, viewDraft } = useAppStorePick([
-    "messages",
-    "viewDraft",
-  ]);
+  const { messages: templates } = useAppStorePick(["messages", "viewDraft"]);
   const template = useMemo(
     () =>
       templates.type === CompletionStatus.Successful
@@ -65,9 +62,8 @@ export default function WebhookEditor({
         : undefined,
     [templates, templateId],
   );
-  const definition = viewDraft ? template?.draft : template?.definition;
 
-  if (!definition || definition.type !== ChannelType.Webhook) {
+  if (template?.type !== ChannelType.Webhook) {
     return null;
   }
 

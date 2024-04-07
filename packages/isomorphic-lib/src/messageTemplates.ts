@@ -48,10 +48,14 @@ export function messageTemplateDefinitionToDraft(
   return {
     type: ChannelType.Webhook,
     identifierKey: definition.identifierKey,
-    body: JSON.stringify({
-      config: definition.config,
-      secret: definition.secret,
-    }),
+    body: JSON.stringify(
+      {
+        config: definition.config,
+        secret: definition.secret,
+      },
+      null,
+      2,
+    ),
   };
 }
 
