@@ -11,7 +11,10 @@ import {
   Stack,
   Switch,
   useTheme,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import { PublishOutlined, RestoreOutlined } from "@mui/icons-material";
 import {
   CompletionStatus,
   EphemeralRequestStatus,
@@ -53,6 +56,7 @@ export type PublisherStatus =
 export interface PublisherProps {
   status: PublisherStatus;
   title: string;
+  isMinimised?: boolean;
 }
 
 function PublisherInner({
@@ -64,6 +68,7 @@ function PublisherInner({
   invisible,
   title,
   showUnpublishedWarning,
+  isMinimised,
 }: {
   onPublish: () => void;
   onRevert: () => void;
@@ -73,12 +78,13 @@ function PublisherInner({
   disablePublish: boolean;
   showUnpublishedWarning?: boolean;
   title: string;
+  isMinimised?: boolean;
 }) {
   const [publishConfirmationOpen, setPublishConfirmationOpen] = useState(false);
   const theme = useTheme();
   return (
     <Stack
-      direction="row"
+      direction={isMinimised ? "column" : "row"}
       alignItems="center"
       spacing={1}
       sx={{
@@ -87,17 +93,52 @@ function PublisherInner({
         transition: "visibility 0.4s, opacity 0.4s linear",
       }}
     >
-      <Button
-        onClick={() => {
-          setPublishConfirmationOpen(true);
-        }}
-        disabled={disablePublish}
-      >
-        Publish
-      </Button>
-      <Button onClick={onRevert} disabled={disableRevert}>
-        Revert
-      </Button>
+      {!isMinimised && (
+        <Button
+          onClick={() => {
+            setPublishConfirmationOpen(true);
+          }}
+          disabled={disablePublish}
+        >
+          Publish
+        </Button>
+      )}
+      {isMinimised && (
+        <Tooltip title="Publish">
+          <IconButton
+            onClick={() => {
+              setPublishConfirmationOpen(true);
+            }}
+            disabled={disablePublish}
+          >
+            <PublishOutlined
+              sx={{
+                border: `2px solid ${disablePublish ? theme.palette.grey[400] : theme.palette.grey[600]}`,
+                borderRadius: "50%",
+              }}
+            />
+          </IconButton>
+        </Tooltip>
+      )}
+
+      {!isMinimised && (
+        <Button onClick={onRevert} disabled={disableRevert}>
+          Revert
+        </Button>
+      )}
+      {isMinimised && (
+        <Tooltip title="Revert">
+          <IconButton onClick={onRevert} disabled={disableRevert}>
+            <RestoreOutlined
+              sx={{
+                border: `2px solid ${disablePublish ? theme.palette.grey[400] : theme.palette.grey[600]}`,
+                borderRadius: "50%",
+              }}
+            />
+          </IconButton>
+        </Tooltip>
+      )}
+
       <CircularProgress
         sx={{
           visibility: showProgress ? "visible" : "hidden",
@@ -106,15 +147,18 @@ function PublisherInner({
         }}
         size="1rem"
       />
-      <Box
-        sx={{
-          ...getWarningStyles(theme),
-          p: 1,
-          opacity: showUnpublishedWarning ? undefined : 0,
-        }}
-      >
-        Unpublished Changes.
-      </Box>
+      {!isMinimised && (
+        <Box
+          sx={{
+            ...getWarningStyles(theme),
+            p: 1,
+            opacity: showUnpublishedWarning ? undefined : 0,
+          }}
+        >
+          Unpublished Changes.
+        </Box>
+      )}
+
       <Dialog
         open={publishConfirmationOpen}
         onClose={() => setPublishConfirmationOpen(false)}
@@ -145,7 +189,7 @@ function PublisherInner({
   );
 }
 
-export function Publisher({ status, title }: PublisherProps) {
+export function Publisher({ status, title, isMinimised }: PublisherProps) {
   const [showProgress, setShowProgress] = useState(false);
 
   useEffect(() => {
@@ -174,6 +218,7 @@ export function Publisher({ status, title }: PublisherProps) {
         disablePublish
         showUnpublishedWarning
         disableRevert
+        isMinimised={isMinimised}
       />
     );
   }
@@ -188,6 +233,7 @@ export function Publisher({ status, title }: PublisherProps) {
         invisible
         disablePublish
         disableRevert
+        isMinimised={isMinimised}
       />
     );
   }
@@ -201,6 +247,7 @@ export function Publisher({ status, title }: PublisherProps) {
         onRevert={() => {}}
         disablePublish
         disableRevert
+        isMinimised={isMinimised}
       />
     );
   }
@@ -217,6 +264,7 @@ export function Publisher({ status, title }: PublisherProps) {
       showUnpublishedWarning
       disablePublish={operationInProgress || Boolean(status.disabled)}
       disableRevert={operationInProgress}
+      isMinimised={isMinimised}
     />
   );
 }
@@ -233,10 +281,15 @@ export type PublisherDraftToggleStatus =
 
 export interface PublisherDraftToggleProps {
   status: PublisherDraftToggleStatus;
+  isMinimised: boolean;
 }
 
-export function PublisherDraftToggle({ status }: PublisherDraftToggleProps) {
+export function PublisherDraftToggle({
+  status,
+  isMinimised,
+}: PublisherDraftToggleProps) {
   const theme = useTheme();
+  const labelPlacement = isMinimised ? "bottom" : "end";
   if (status.type === PublisherStatusType.Unpublished) {
     return null;
   }
@@ -246,6 +299,8 @@ export function PublisherDraftToggle({ status }: PublisherDraftToggleProps) {
         control={<Switch checked={false} name="draft" />}
         disabled
         label="View Draft"
+        labelPlacement={labelPlacement}
+        componentsProps={{ typography: { align: "center" } }}
       />
     );
   }
@@ -262,6 +317,8 @@ export function PublisherDraftToggle({ status }: PublisherDraftToggleProps) {
         />
       }
       label="View Draft"
+      labelPlacement={labelPlacement}
+      componentsProps={{ typography: { align: "center" } }}
     />
   );
 }

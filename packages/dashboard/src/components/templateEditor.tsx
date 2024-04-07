@@ -1,7 +1,12 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { Fullscreen, FullscreenExit } from "@mui/icons-material";
+import {
+  Fullscreen,
+  FullscreenExit,
+  KeyboardDoubleArrowLeftOutlined,
+  KeyboardDoubleArrowRightOutlined,
+} from "@mui/icons-material";
 import {
   Alert,
   Autocomplete,
@@ -10,6 +15,7 @@ import {
   Divider,
   FormLabel,
   IconButton,
+  Tooltip,
   Slide,
   Stack,
   styled,
@@ -155,6 +161,7 @@ export interface BaseTemplateState {
   testResponse: MessageTemplateTestResponse | null;
   updateRequest: EphemeralRequestStatus<Error>;
   rendered: Record<string, string>;
+  isUserPropertiesMinimised: boolean;
 }
 
 export interface EmailTemplateState extends BaseTemplateState {
@@ -347,6 +354,7 @@ export default function TemplateEditor({
     providerOverride: null,
     channel,
     rendered: {},
+    isUserPropertiesMinimised: false,
   });
   const {
     fullscreen,
@@ -358,6 +366,7 @@ export default function TemplateEditor({
     editedTemplate,
     userProperties,
     userPropertiesJSON,
+    isUserPropertiesMinimised,
   } = state;
 
   // Set server state post page transition for CSR
@@ -892,6 +901,11 @@ export default function TemplateEditor({
       draft.fullscreen = null;
     });
   };
+  const handleUserPropertiesToggle = () => {
+    setState((draft) => {
+      draft.isUserPropertiesMinimised = !draft.isUserPropertiesMinimised;
+    });
+  };
 
   if (!template.definition) {
     return null;
@@ -1017,82 +1031,133 @@ export default function TemplateEditor({
             minHeight: 0,
           }}
         >
-          {editedTemplate !== null && !hideTitle && (
-            <EditableName
-              name={editedTemplate.title}
-              variant="h4"
-              onChange={(e) =>
-                setState((draft) => {
-                  if (!draft.editedTemplate) {
-                    return;
+          <Stack
+            direction="row"
+            justifyContent={
+              isUserPropertiesMinimised ? "center" : "space-between"
+            }
+            spacing={2}
+          >
+            {editedTemplate !== null &&
+              !hideTitle &&
+              !isUserPropertiesMinimised && (
+                <EditableName
+                  name={editedTemplate.title}
+                  variant="h4"
+                  onChange={(e) =>
+                    setState((draft) => {
+                      if (!draft.editedTemplate) {
+                        return;
+                      }
+                      draft.editedTemplate.title = e.target.value;
+                    })
                   }
-                  draft.editedTemplate.title = e.target.value;
-                })
+                />
+              )}
+            <Tooltip
+              title={
+                isUserPropertiesMinimised
+                  ? "Maximize user properties pane"
+                  : "Minimize user properties pane"
               }
-            />
-          )}
+            >
+              <IconButton
+                onClick={() => handleUserPropertiesToggle()}
+                disabled={disabled}
+              >
+                {!isUserPropertiesMinimised && (
+                  <KeyboardDoubleArrowLeftOutlined
+                    sx={{
+                      border: `2px solid ${theme.palette.grey[600]}`,
+                      borderRadius: "50%",
+                    }}
+                  />
+                )}
+                {isUserPropertiesMinimised && (
+                  <KeyboardDoubleArrowRightOutlined
+                    sx={{
+                      border: `2px solid ${theme.palette.grey[600]}`,
+                      borderRadius: "50%",
+                    }}
+                  />
+                )}
+              </IconButton>
+            </Tooltip>
+          </Stack>
 
           {publisherStatuses && (
             <>
-              <PublisherDraftToggle status={publisherStatuses.draftToggle} />
+              <PublisherDraftToggle
+                status={publisherStatuses.draftToggle}
+                isMinimised={isUserPropertiesMinimised}
+              />
               <Publisher
                 status={publisherStatuses.publisher}
                 title={template.name}
+                isMinimised={isUserPropertiesMinimised}
               />
             </>
           )}
-          <LoadingModal
-            openTitle="Send Test Message"
-            onSubmit={submitTest}
-            onClose={() =>
-              setState((draft) => {
-                draft.testResponse = null;
-              })
-            }
-          >
-            {testModalContents}
-          </LoadingModal>
-          <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
-            <Typography variant="h5">User Properties</Typography>
-          </InfoTooltip>
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              minHeight: 0,
-            }}
-          >
-            <ReactCodeMirror
-              value={userPropertiesJSON}
-              height="100%"
-              onChange={(json) =>
+          <Stack direction="row" justifyContent="center">
+            <LoadingModal
+              isMinimised={isUserPropertiesMinimised}
+              openTitle="Send Test Message"
+              onSubmit={submitTest}
+              onClose={() =>
                 setState((draft) => {
-                  if (!draft.editedTemplate) {
-                    return;
-                  }
-                  draft.userPropertiesJSON = json;
-                  const result = jsonParseSafe(json).andThen((p) =>
-                    schemaValidateWithErr(p, UserPropertyAssignments),
-                  );
-                  if (result.isErr()) {
-                    return;
-                  }
-                  draft.userProperties = result.value;
+                  draft.testResponse = null;
                 })
               }
-              extensions={[
-                codeMirrorJson(),
-                linter(jsonParseLinter()),
-                EditorView.lineWrapping,
-                EditorView.theme({
-                  "&": {
-                    fontFamily: theme.typography.fontFamily,
-                  },
-                }),
-                lintGutter(),
-              ]}
-            />
-          </Box>
+            >
+              {testModalContents}
+            </LoadingModal>
+          </Stack>
+          {!isUserPropertiesMinimised && (
+            <>
+              <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>
+                <Typography variant="h5">User Properties</Typography>
+              </InfoTooltip>
+
+              <Box
+                sx={{
+                  flex: 1,
+                  display: "flex",
+                  minHeight: 0,
+                }}
+              >
+                <ReactCodeMirror
+                  value={userPropertiesJSON}
+                  height="100%"
+                  onChange={(json) =>
+                    setState((draft) => {
+                      if (!draft.editedTemplate) {
+                        return;
+                      }
+                      draft.userPropertiesJSON = json;
+                      const result = jsonParseSafe(json).andThen((p) =>
+                        schemaValidateWithErr(p, UserPropertyAssignments),
+                      );
+                      if (result.isErr()) {
+                        return;
+                      }
+                      draft.userProperties = result.value;
+                    })
+                  }
+                  extensions={[
+                    codeMirrorJson(),
+                    linter(jsonParseLinter()),
+                    EditorView.lineWrapping,
+                    EditorView.theme({
+                      "&": {
+                        fontFamily: theme.typography.fontFamily,
+                      },
+                    }),
+                    lintGutter(),
+                  ]}
+                />
+              </Box>
+            </>
+          )}
         </Stack>
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box

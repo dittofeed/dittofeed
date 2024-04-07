@@ -5,9 +5,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Tooltip,
+  IconButton,
+  useTheme,
 } from "@mui/material";
 import { useState } from "react";
-
+import { ForwardToInboxOutlined } from "@mui/icons-material";
 export default function LoadingModal({
   dialogTitle,
   children,
@@ -16,6 +19,7 @@ export default function LoadingModal({
   openTitle,
   submitDisabled,
   submitTitle,
+  isMinimised,
   onSubmit,
   onClose,
 }: {
@@ -26,9 +30,11 @@ export default function LoadingModal({
   children?: React.ReactNode;
   openDisabled?: boolean;
   submitDisabled?: boolean;
+  isMinimised?: boolean;
   onSubmit: () => void;
   onClose?: () => void;
 }) {
+  const theme = useTheme();
   const [modalOpen, setModalOpen] = useState(false);
   const onCloseModal = () => {
     setModalOpen(false);
@@ -36,13 +42,31 @@ export default function LoadingModal({
   };
   return (
     <>
-      <Button
-        onClick={() => setModalOpen(true)}
-        disabled={openDisabled}
-        variant="outlined"
-      >
-        {openTitle}
-      </Button>
+      {!isMinimised && (
+        <Button
+          onClick={() => setModalOpen(true)}
+          disabled={openDisabled}
+          variant="outlined"
+        >
+          {openTitle}
+        </Button>
+      )}
+      {isMinimised && (
+        <Tooltip title="Send Test Messages">
+          <IconButton
+            onClick={() => setModalOpen(true)}
+            disabled={openDisabled}
+          >
+            <ForwardToInboxOutlined
+              sx={{
+                border: `2px solid ${theme.palette.grey[600]}`,
+                borderRadius: "50%",
+              }}
+            />
+          </IconButton>
+        </Tooltip>
+      )}
+
       <Dialog open={modalOpen} onClose={onCloseModal}>
         <DialogTitle>{dialogTitle ?? openTitle}</DialogTitle>
         {children && <DialogContent dividers>{children}</DialogContent>}
