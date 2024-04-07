@@ -281,7 +281,7 @@ export type PublisherDraftToggleStatus =
 
 export interface PublisherDraftToggleProps {
   status: PublisherDraftToggleStatus;
-  isMinimised: boolean;
+  isMinimised?: boolean;
 }
 
 export function PublisherDraftToggle({
