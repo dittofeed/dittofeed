@@ -161,7 +161,25 @@ export default function WebhookEditor({
       }}
       renderPreviewBody={({ rendered }) => {
         if (!rendered.body) return null;
-        return <>FIXME</>;
+
+        return (
+          <ReactCodeMirror
+            value={rendered.body}
+            height="100%"
+            readOnly
+            extensions={[
+              codeMirrorJson(),
+              linter(jsonParseLinter()),
+              EditorView.lineWrapping,
+              EditorView.theme({
+                "&": {
+                  fontFamily: theme.typography.fontFamily,
+                },
+              }),
+              lintGutter(),
+            ]}
+          />
+        );
       }}
       draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
