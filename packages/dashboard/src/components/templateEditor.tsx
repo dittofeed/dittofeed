@@ -582,22 +582,26 @@ export default function TemplateEditor({
 
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
 
+  const draftToRender = useMemo(() => {
+    if (debouncedDraft) {
+      return debouncedDraft;
+    }
+    if (!template?.definition) {
+      return null;
+    }
+    return messageTemplateDefinitionToDraft(template.definition);
+  }, [debouncedDraft, template?.definition]);
+
   useEffect(() => {
     (async () => {
       if (
         !workspace ||
         inTransition ||
-        !template ||
-        Object.keys(userProperties).length === 0
+        !draftToRender ||
+        Object.keys(debouncedUserProperties).length === 0
       ) {
         return;
       }
-
-      if (!template.definition) {
-        return;
-      }
-      const draftToRender =
-        debouncedDraft ?? messageTemplateDefinitionToDraft(template.definition);
 
       const data: RenderMessageTemplateRequest = {
         workspaceId: workspace.id,
@@ -660,17 +664,7 @@ export default function TemplateEditor({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    apiBase,
-    debouncedUserProperties,
-    debouncedDraft,
-    draftToPreview,
-    inTransition,
-    fieldToReadable,
-    viewDraft,
-    setState,
-    workspace,
-  ]);
+  }, [debouncedUserProperties, debouncedDraft, inTransition, viewDraft]);
 
   useEffect(() => {
     const exitingFunction = () => {
@@ -1025,17 +1019,17 @@ export default function TemplateEditor({
       </>
     );
   };
-  const preview = debouncedDraft ? (
+  const preview = draftToRender ? (
     <TemplatePreview
       previewHeader={renderPreviewHeader({
         rendered,
-        draft: debouncedDraft,
+        draft: draftToRender,
         userProperties: debouncedUserProperties,
       })}
       previewBody={renderPreviewBody({
         rendered,
         userProperties: debouncedUserProperties,
-        draft: debouncedDraft,
+        draft: draftToRender,
       })}
       visibilityHandler={getPreviewVisibilityHandler()}
       bodyPreviewHeading="Body Preview"
