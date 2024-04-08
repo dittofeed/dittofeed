@@ -71,6 +71,7 @@ import {
 } from "../lib/notices";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
 import EditableName from "./editableName";
+import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
 import {
@@ -844,12 +845,47 @@ export default function TemplateEditor({
       testResponse.value.variant.type === channel
     ) {
       const { to } = testResponse.value.variant;
-      // FIXME
-      // add response
+
+      let responseEl: React.ReactNode | null = null;
+      switch (testResponse.value.variant.type) {
+        case ChannelType.Webhook: {
+          const { response } = testResponse.value.variant;
+          responseEl = (
+            <Stack spacing={1}>
+              <SubtleHeader>Response</SubtleHeader>
+              <ReactCodeMirror
+                value={JSON.stringify(response, null, 2)}
+                height="100%"
+                readOnly
+                editable={false}
+                extensions={[
+                  codeMirrorJson(),
+                  linter(jsonParseLinter()),
+                  EditorView.lineWrapping,
+                  EditorView.editable.of(false),
+                  EditorView.theme({
+                    "&": {
+                      fontFamily: theme.typography.fontFamily,
+                    },
+                  }),
+                  lintGutter(),
+                ]}
+              />
+            </Stack>
+          );
+          break;
+        }
+      }
       testModalContents = (
-        <Alert severity="success">Message was sent successfully to {to}</Alert>
+        <>
+          <Alert severity="success">
+            Message was sent successfully to {to}
+          </Alert>
+          {responseEl}
+        </>
       );
     } else if (testResponse.type === JsonResultType.Err) {
+      // FIXME handle webhook errors
       testModalContents = (
         <Stack spacing={1}>
           <Alert severity="error">
