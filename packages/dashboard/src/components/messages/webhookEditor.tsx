@@ -163,10 +163,12 @@ export default function WebhookEditor({
             value={rendered.body}
             height="100%"
             readOnly
+            editable={false}
             extensions={[
               codeMirrorJson(),
               linter(jsonParseLinter()),
               EditorView.lineWrapping,
+              EditorView.editable.of(false),
               EditorView.theme({
                 "&": {
                   fontFamily: theme.typography.fontFamily,
