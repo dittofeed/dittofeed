@@ -281,90 +281,14 @@
                           "identifierKey": {
                             "type": "string"
                           },
-                          "config": {
-                            "type": "object",
-                            "properties": {
-                              "url": {
-                                "type": "string"
-                              },
-                              "method": {
-                                "type": "string"
-                              },
-                              "headers": {
-                                "type": "object",
-                                "additionalProperties": {
-                                  "type": "string"
-                                }
-                              },
-                              "params": {
-                                "type": "string"
-                              },
-                              "data": {
-                                "type": "string"
-                              },
-                              "responseEncoding": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "json"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "text"
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          },
-                          "secret": {
-                            "type": "object",
-                            "properties": {
-                              "url": {
-                                "type": "string"
-                              },
-                              "method": {
-                                "type": "string"
-                              },
-                              "headers": {
-                                "type": "object",
-                                "additionalProperties": {
-                                  "type": "string"
-                                }
-                              },
-                              "params": {
-                                "type": "string"
-                              },
-                              "data": {
-                                "type": "string"
-                              },
-                              "responseEncoding": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "json"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "text"
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
+                          "body": {
+                            "type": "string"
                           }
                         },
                         "required": [
                           "type",
                           "identifierKey",
-                          "config",
-                          "secret"
+                          "body"
                         ]
                       }
                     ]
@@ -471,90 +395,14 @@
                               "identifierKey": {
                                 "type": "string"
                               },
-                              "config": {
-                                "type": "object",
-                                "properties": {
-                                  "url": {
-                                    "type": "string"
-                                  },
-                                  "method": {
-                                    "type": "string"
-                                  },
-                                  "headers": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "params": {
-                                    "type": "string"
-                                  },
-                                  "data": {
-                                    "type": "string"
-                                  },
-                                  "responseEncoding": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "json"
-                                        ]
-                                      },
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "text"
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                }
-                              },
-                              "secret": {
-                                "type": "object",
-                                "properties": {
-                                  "url": {
-                                    "type": "string"
-                                  },
-                                  "method": {
-                                    "type": "string"
-                                  },
-                                  "headers": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "params": {
-                                    "type": "string"
-                                  },
-                                  "data": {
-                                    "type": "string"
-                                  },
-                                  "responseEncoding": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "json"
-                                        ]
-                                      },
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "text"
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                }
+                              "body": {
+                                "type": "string"
                               }
                             },
                             "required": [
                               "type",
                               "identifierKey",
-                              "config",
-                              "secret"
+                              "body"
                             ]
                           }
                         ]
@@ -718,90 +566,14 @@
                             "identifierKey": {
                               "type": "string"
                             },
-                            "config": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "method": {
-                                  "type": "string"
-                                },
-                                "headers": {
-                                  "type": "object",
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  }
-                                },
-                                "params": {
-                                  "type": "string"
-                                },
-                                "data": {
-                                  "type": "string"
-                                },
-                                "responseEncoding": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "json"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "text"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            },
-                            "secret": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "method": {
-                                  "type": "string"
-                                },
-                                "headers": {
-                                  "type": "object",
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  }
-                                },
-                                "params": {
-                                  "type": "string"
-                                },
-                                "data": {
-                                  "type": "string"
-                                },
-                                "responseEncoding": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "json"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "text"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
+                            "body": {
+                              "type": "string"
                             }
                           },
                           "required": [
                             "type",
                             "identifierKey",
-                            "config",
-                            "secret"
+                            "body"
                           ]
                         }
                       ]
@@ -906,90 +678,14 @@
                             "identifierKey": {
                               "type": "string"
                             },
-                            "config": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "method": {
-                                  "type": "string"
-                                },
-                                "headers": {
-                                  "type": "object",
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  }
-                                },
-                                "params": {
-                                  "type": "string"
-                                },
-                                "data": {
-                                  "type": "string"
-                                },
-                                "responseEncoding": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "json"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "text"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            },
-                            "secret": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "method": {
-                                  "type": "string"
-                                },
-                                "headers": {
-                                  "type": "object",
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  }
-                                },
-                                "params": {
-                                  "type": "string"
-                                },
-                                "data": {
-                                  "type": "string"
-                                },
-                                "responseEncoding": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "json"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "text"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
+                            "body": {
+                              "type": "string"
                             }
                           },
                           "required": [
                             "type",
                             "identifierKey",
-                            "config",
-                            "secret"
+                            "body"
                           ]
                         }
                       ]
@@ -1535,12 +1231,8 @@
                                                 "type": "string"
                                               }
                                             },
-                                            "params": {
-                                              "type": "string"
-                                            },
-                                            "data": {
-                                              "type": "string"
-                                            },
+                                            "params": {},
+                                            "data": {},
                                             "responseEncoding": {
                                               "anyOf": [
                                                 {
