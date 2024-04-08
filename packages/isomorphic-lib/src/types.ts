@@ -943,8 +943,7 @@ export type WebhookConfig = Static<typeof WebhookConfig>;
 
 export const WebhookContents = Type.Object({
   identifierKey: Type.String(),
-  config: WebhookConfig,
-  secret: WebhookConfig,
+  body: Type.String(),
 });
 
 export type WebhookContents = Static<typeof WebhookContents>;
@@ -953,7 +952,6 @@ export const WebhookTemplateResource = Type.Composite([
   Type.Object({
     type: Type.Literal(ChannelType.Webhook),
   }),
-  // FIXME should probably have the content and config stored as strings and parsed to config
   WebhookContents,
 ]);
 
@@ -970,28 +968,25 @@ export type MessageTemplateResourceDefinition = Static<
   typeof MessageTemplateResourceDefinition
 >;
 
-export const WebhookTemplateResourceDraft = Type.Object({
-  type: Type.Literal(ChannelType.Webhook),
-  identifierKey: Type.String(),
-  body: Type.String(),
-});
+// Alias for now
+export const WebhookTemplateResourceDraft = WebhookTemplateResource;
 
 export type WebhookTemplateResourceDraft = Static<
   typeof WebhookTemplateResourceDraft
 >;
 
-export const ParsedWebhookeDraftBody = Type.Pick(WebhookContents, [
-  "config",
-  "secret",
-]);
+export const ParsedWebhookBody = Type.Object({
+  config: WebhookConfig,
+  secret: WebhookConfig,
+});
 
-export type ParsedWebhookeDraftBody = Static<typeof ParsedWebhookeDraftBody>;
+export type ParsedWebhookBody = Static<typeof ParsedWebhookBody>;
 
 export const MessageTemplateResourceDraft = Type.Union([
   MobilePushTemplateResource,
   EmailTemplateResource,
   SmsTemplateResource,
-  WebhookTemplateResourceDraft,
+  WebhookTemplateResource,
 ]);
 
 export type MessageTemplateResourceDraft = Static<

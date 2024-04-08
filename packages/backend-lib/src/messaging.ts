@@ -5,8 +5,8 @@ import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
 import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
+  jsonParseSafe,
   schemaValidateWithErr,
-  unwrapJsonObject,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
@@ -53,6 +53,7 @@ import {
   MessageWebhookServiceFailure,
   MessageWebhookSuccess,
   MobilePushProviderType,
+  ParsedWebhookBody,
   Prisma,
   Secret,
   SmsProvider,
@@ -1291,140 +1292,194 @@ export async function sendWebhook({
     secrets[SecretNames.Subscription] = subscriptionGroupSecret;
   }
 
+  const renderedBody = renderValues({
+    userProperties: userPropertyAssignments,
+    identifierKey,
+    subscriptionGroupId: subscriptionGroupDetails?.id,
+    workspaceId,
+    secrets,
+    tags: messageTags,
+    templates: {
+      body: {
+        contents: messageTemplateDefinition.body,
+      },
+    },
+  });
+  if (renderedBody.isErr()) {
+    const { error, field } = renderedBody.error;
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field,
+        error,
+      },
+    });
+  }
+  const parsedBody = jsonParseSafe(renderedBody.value.body);
+  if (parsedBody.isErr()) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field: "body",
+        error: `Failed to parse webhook json payload: ${parsedBody.error.message}`,
+      },
+    });
+  }
+
+  const validatedBody = schemaValidateWithErr(
+    parsedBody.value,
+    ParsedWebhookBody,
+  );
+  if (validatedBody.isErr()) {
+    return err({
+      type: InternalEventType.BadWorkspaceConfiguration,
+      variant: {
+        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+        field: "body",
+        error: `Failed to validate webhook json payload: ${validatedBody.error.message}`,
+      },
+    });
+  }
+
   // TODO [DF-471]
-  const renderedConfigValuesResult = renderValues({
-    userProperties: userPropertyAssignments,
-    identifierKey,
-    subscriptionGroupId: subscriptionGroupDetails?.id,
-    workspaceId,
-    secrets,
-    tags: messageTags,
-    templates: {
-      url: {
-        contents: messageTemplateDefinition.config.url,
-      },
-      method: {
-        contents: messageTemplateDefinition.config.method,
-      },
-      params: {
-        contents: messageTemplateDefinition.config.params,
-      },
-      data: {
-        contents: messageTemplateDefinition.config.data,
-      },
-      responseEncoding: {
-        contents: messageTemplateDefinition.config.responseEncoding,
-      },
-    },
-  });
-  const renderedSecretValuesResult = renderValues({
-    userProperties: userPropertyAssignments,
-    identifierKey,
-    subscriptionGroupId: subscriptionGroupDetails?.id,
-    workspaceId,
-    secrets,
-    tags: messageTags,
-    templates: {
-      url: {
-        contents: messageTemplateDefinition.secret.url,
-      },
-      method: {
-        contents: messageTemplateDefinition.secret.method,
-      },
-      params: {
-        contents: messageTemplateDefinition.secret.params,
-      },
-      data: {
-        contents: messageTemplateDefinition.secret.data,
-      },
-      responseEncoding: {
-        contents: messageTemplateDefinition.secret.responseEncoding,
-      },
-    },
-  });
+  // const renderedConfigValuesResult = renderValues({V
+  //   userProperties: userPropertyAssignments,
+  //   identifierKey,
+  //   subscriptionGroupId: subscriptionGroupDetails?.id,
+  //   workspaceId,
+  //   secrets,
+  //   tags: messageTags,
+  //   templates: {
+  //     url: {
+  //       contents: messageTemplateDefinition.config.url,
+  //     },
+  //     method: {
+  //       contents: messageTemplateDefinition.config.method,
+  //     },
+  //     params: {
+  //       contents: messageTemplateDefinition.config.params,
+  //     },
+  //     data: {
+  //       contents: messageTemplateDefinition.config.data,
+  //     },
+  //     responseEncoding: {
+  //       contents: messageTemplateDefinition.config.responseEncoding,
+  //     },
+  //   },
+  // });
+  // const renderedSecretValuesResult = renderValues({
+  //   userProperties: userPropertyAssignments,
+  //   identifierKey,
+  //   subscriptionGroupId: subscriptionGroupDetails?.id,
+  //   workspaceId,
+  //   secrets,
+  //   tags: messageTags,
+  //   templates: {
+  //     url: {
+  //       contents: messageTemplateDefinition.secret.url,
+  //     },
+  //     method: {
+  //       contents: messageTemplateDefinition.secret.method,
+  //     },
+  //     params: {
+  //       contents: messageTemplateDefinition.secret.params,
+  //     },
+  //     data: {
+  //       contents: messageTemplateDefinition.secret.data,
+  //     },
+  //     responseEncoding: {
+  //       contents: messageTemplateDefinition.secret.responseEncoding,
+  //     },
+  //   },
+  // });
 
-  const renderedHeadersConfigResult = messageTemplateDefinition.config.headers
-    ? renderValues({
-        userProperties: userPropertyAssignments,
-        identifierKey,
-        subscriptionGroupId: subscriptionGroupDetails?.id,
-        workspaceId,
-        secrets,
-        tags: messageTags,
-        templates: R.mapValues(
-          messageTemplateDefinition.config.headers,
-          (val) => ({ contents: val }),
-        ),
-      })
-    : null;
+  // const renderedHeadersConfigResult = messageTemplateDefinition.config.headers
+  //   ? renderValues({
+  //       userProperties: userPropertyAssignments,
+  //       identifierKey,
+  //       subscriptionGroupId: subscriptionGroupDetails?.id,
+  //       workspaceId,
+  //       secrets,
+  //       tags: messageTags,
+  //       templates: R.mapValues(
+  //         messageTemplateDefinition.config.headers,
+  //         (val) => ({ contents: val }),
+  //       ),
+  //     })
+  //   : null;
 
-  const renderedHeadersSecretResult = messageTemplateDefinition.secret.headers
-    ? renderValues({
-        userProperties: userPropertyAssignments,
-        identifierKey,
-        subscriptionGroupId: subscriptionGroupDetails?.id,
-        workspaceId,
-        secrets,
-        tags: messageTags,
-        templates: R.mapValues(
-          messageTemplateDefinition.secret.headers,
-          (val) => ({ contents: val }),
-        ),
-      })
-    : null;
+  // const renderedHeadersSecretResult = messageTemplateDefinition.secret.headers
+  //   ? renderValues({
+  //       userProperties: userPropertyAssignments,
+  //       identifierKey,
+  //       subscriptionGroupId: subscriptionGroupDetails?.id,
+  //       workspaceId,
+  //       secrets,
+  //       tags: messageTags,
+  //       templates: R.mapValues(
+  //         messageTemplateDefinition.secret.headers,
+  //         (val) => ({ contents: val }),
+  //       ),
+  //     })
+  //   : null;
 
-  if (renderedConfigValuesResult.isErr()) {
-    const { error, field } = renderedConfigValuesResult.error;
-    return err({
-      type: InternalEventType.BadWorkspaceConfiguration,
-      variant: {
-        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
-        field,
-        error,
-      },
-    });
-  }
+  // if (renderedConfigValuesResult.isErr()) {
+  //   const { error, field } = renderedConfigValuesResult.error;
+  //   return err({
+  //     type: InternalEventType.BadWorkspaceConfiguration,
+  //     variant: {
+  //       type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+  //       field,
+  //       error,
+  //     },
+  //   });
+  // }
 
-  if (renderedSecretValuesResult.isErr()) {
-    const { error, field } = renderedSecretValuesResult.error;
-    return err({
-      type: InternalEventType.BadWorkspaceConfiguration,
-      variant: {
-        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
-        field,
-        error,
-      },
-    });
-  }
+  // if (renderedSecretValuesResult.isErr()) {
+  //   const { error, field } = renderedSecretValuesResult.error;
+  //   return err({
+  //     type: InternalEventType.BadWorkspaceConfiguration,
+  //     variant: {
+  //       type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+  //       field,
+  //       error,
+  //     },
+  //   });
+  // }
 
-  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-  if (renderedHeadersConfigResult && renderedHeadersConfigResult.isErr()) {
-    const { error, field } = renderedHeadersConfigResult.error;
-    return err({
-      type: InternalEventType.BadWorkspaceConfiguration,
-      variant: {
-        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
-        field,
-        error,
-      },
-    });
-  }
+  // // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  // if (renderedHeadersConfigResult && renderedHeadersConfigResult.isErr()) {
+  //   const { error, field } = renderedHeadersConfigResult.error;
+  //   return err({
+  //     type: InternalEventType.BadWorkspaceConfiguration,
+  //     variant: {
+  //       type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+  //       field,
+  //       error,
+  //     },
+  //   });
+  // }
 
-  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-  if (renderedHeadersSecretResult && renderedHeadersSecretResult.isErr()) {
-    const { error, field } = renderedHeadersSecretResult.error;
-    return err({
-      type: InternalEventType.BadWorkspaceConfiguration,
-      variant: {
-        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
-        field,
-        error,
-      },
-    });
-  }
+  // // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  // if (renderedHeadersSecretResult && renderedHeadersSecretResult.isErr()) {
+  //   const { error, field } = renderedHeadersSecretResult.error;
+  //   return err({
+  //     type: InternalEventType.BadWorkspaceConfiguration,
+  //     variant: {
+  //       type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
+  //       field,
+  //       error,
+  //     },
+  //   });
+  // }
+
+  const { config: renderedConfig, secret: renderedSecret } =
+    validatedBody.value;
 
   const renderedConfigHeaders: Record<string, string> =
-    renderedHeadersConfigResult?.value ?? {};
+    renderedConfig.headers ?? {};
 
   if (messageTags) {
     renderedConfigHeaders[MESSAGE_ID_HEADER] = messageTags.messageId;
@@ -1432,7 +1487,7 @@ export async function sendWebhook({
 
   const renderedHeaders = {
     ...renderedConfigHeaders,
-    ...(renderedHeadersSecretResult?.value ?? {}),
+    ...(renderedSecret.headers ?? {}),
   };
 
   const rawIdentifier = userPropertyAssignments[identifierKey];
@@ -1460,48 +1515,29 @@ export async function sendWebhook({
   }
 
   try {
-    const data =
-      renderedConfigValuesResult.value.data ||
-      renderedSecretValuesResult.value.data
-        ? R.mergeDeep(
-            unwrapJsonObject(renderedConfigValuesResult.value.data),
-            unwrapJsonObject(renderedSecretValuesResult.value.data),
-          )
-        : undefined;
-
-    const params =
-      renderedConfigValuesResult.value.params ||
-      renderedSecretValuesResult.value.params
-        ? R.mergeDeep(
-            unwrapJsonObject(renderedConfigValuesResult.value.params),
-            unwrapJsonObject(renderedSecretValuesResult.value.params),
-          )
-        : undefined;
-
-    const method =
-      renderedSecretValuesResult.value.method ??
-      renderedConfigValuesResult.value.method;
+    const data: unknown = renderedSecret.data ?? renderedConfig.data;
+    const params: unknown = renderedSecret.params ?? renderedConfig.params;
+    const method = renderedSecret.method ?? renderedConfig.method;
+    const responseType =
+      renderedSecret.responseEncoding ?? renderedConfig.responseEncoding;
+    const url = renderedSecret.url ?? renderedConfig.url;
 
     const response = await axios({
-      url:
-        renderedSecretValuesResult.value.url ??
-        renderedConfigValuesResult.value.url,
+      url,
       method,
       params,
       data,
-      responseType:
-        renderedSecretValuesResult.value.responseEncoding ??
-        renderedConfigValuesResult.value.responseEncoding,
+      responseType,
       headers: renderedHeaders,
     });
+
     return ok({
       type: InternalEventType.MessageSent,
       variant: {
         type: ChannelType.Webhook,
         to: identifier,
         request: {
-          // exclude secret values from being logged
-          ...renderedConfigValuesResult.value,
+          ...renderedConfig,
           headers: renderedConfigHeaders,
         } satisfies WebhookConfig,
         response: {

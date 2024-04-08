@@ -54,17 +54,8 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           definition: {
             type: ChannelType.Webhook,
             identifierKey: "email",
-            config: {
-              url: "https://httpbin.org/post",
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              data: {
-                email: "{{email}}",
-              },
-            },
-            secret: {},
+            config: DEFAULT_WEBHOOK_CONFIG,
+            secret: DEFAULT_WEBHOOK_SECRET,
           } satisfies WebhookTemplateResource,
         },
         update: {},
