@@ -21,22 +21,18 @@ import prisma from "../../../lib/prisma";
 import { requestContext } from "../../../lib/requestContext";
 import { PropsWithInitialState } from "../../../lib/types";
 
-const DEFAULT_WEBHOOK_CONFIG = `{
-  "url": "https://httpbin.org/post",
-  "method": "POST",
-  "headers": {
-    "Content-Type": "application/json"
-  },
-  "data": {}
-}`;
-
-const DEFAULT_WEBHOOK_SECRET = `{
-  "headers": {}
-}`;
-
 const DEFAULT_WEBHOOK_BODY = `{
-  "config": ${DEFAULT_WEBHOOK_CONFIG},
-  "secret": ${DEFAULT_WEBHOOK_SECRET}
+  "config": {
+    "url": "https://httpbin.org/post",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "data": {}
+  },
+  "secret": {
+    "headers": {}
+  }
 }`;
 
 export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
