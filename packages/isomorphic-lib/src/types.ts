@@ -2432,10 +2432,6 @@ export type DefaultSmsProviderResource = Static<
 
 export const MessageTemplateTestErrorResponse = Type.Object({});
 
-export type MessageTemplateTestResponse = Static<
-  typeof MessageTemplateTestResponse
->;
-
 export const SmsTwilioSuccess = Type.Object({
   type: Type.Literal(SmsProviderType.Twilio),
   sid: Type.String(),
@@ -2576,6 +2572,18 @@ export type MessageSendSuccess = Static<typeof MessageSendSuccess>;
 export const MessageSuccess = Type.Union([MessageSendSuccess, MessageSkipped]);
 
 export type MessageSuccess = Static<typeof MessageSuccess>;
+
+export const MessageTemplateTestResponse = JsonResult(
+  MessageSuccess,
+  Type.Object({
+    suggestions: Type.Array(Type.String()),
+    responseData: Type.Optional(Type.String()),
+  }),
+);
+
+export type MessageTemplateTestResponse = Static<
+  typeof MessageTemplateTestResponse
+>;
 
 export enum BadWorkspaceConfigurationType {
   MessageTemplateNotFound = "MessageTemplateNotFound",
@@ -2850,14 +2858,6 @@ export const MessageTemplateTestRequest = Type.Union([
 export type MessageTemplateTestRequest = Static<
   typeof MessageTemplateTestRequest
 >;
-
-export const MessageTemplateTestResponse = JsonResult(
-  MessageSuccess,
-  Type.Object({
-    suggestions: Type.Array(Type.String()),
-    responseData: Type.Optional(Type.String()),
-  }),
-);
 
 export const GetTraitsRequest = Type.Object({
   workspaceId: Type.String(),
