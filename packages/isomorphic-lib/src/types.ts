@@ -2743,7 +2743,8 @@ export type MessageSmsServiceFailure = Static<typeof MessageSmsServiceFailure>;
 
 export const MessageWebhookServiceFailure = Type.Object({
   type: Type.Literal(ChannelType.Webhook),
-  response: WebhookResponse,
+  code: Type.Optional(Type.String()),
+  response: Type.Optional(WebhookResponse),
 });
 
 export type MessageWebhookServiceFailure = Static<

@@ -1416,20 +1416,25 @@ export async function sendWebhook({
       } satisfies MessageWebhookSuccess,
     });
   } catch (e) {
-    const { response } = e as AxiosError;
-    const responseHeaders = response?.headers as
-      | Record<string, string>
-      | undefined;
+    const { response: axiosResponse, code } = e as AxiosError;
+    let response: WebhookResponse | undefined;
+    if (axiosResponse && Object.keys(axiosResponse).length > 0) {
+      const responseHeaders = axiosResponse.headers as
+        | Record<string, string>
+        | undefined;
 
+      response = {
+        status: axiosResponse.status,
+        body: axiosResponse.data,
+        headers: responseHeaders,
+      };
+    }
     return err({
       type: InternalEventType.MessageFailure,
       variant: {
         type: ChannelType.Webhook,
-        response: {
-          status: response?.status,
-          body: response?.data,
-          headers: responseHeaders,
-        },
+        code,
+        response,
       } satisfies MessageWebhookServiceFailure,
     });
   }
