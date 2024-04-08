@@ -222,12 +222,6 @@ export default async function contentController(fastify: FastifyInstance) {
       if (result.error.type === InternalEventType.MessageFailure) {
         switch (result.error.variant.type) {
           case ChannelType.Webhook: {
-            logger().debug(
-              {
-                response: result.error.variant.response,
-              },
-              "loc1 response",
-            );
             const { response, code } = result.error.variant;
             const suggestions = [
               "The webhook failed, check your request configuration and try again.",
