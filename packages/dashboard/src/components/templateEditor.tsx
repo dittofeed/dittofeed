@@ -873,8 +873,8 @@ export default function TemplateEditor({
   } else {
     let to: string | null = null;
     if (channel === ChannelType.Webhook) {
-      if (debouncedDraft?.type === ChannelType.Webhook) {
-        to = debouncedUserProperties[debouncedDraft.identifierKey] ?? null;
+      if (draftToRender?.type === ChannelType.Webhook) {
+        to = debouncedUserProperties[draftToRender.identifierKey] ?? null;
       }
     } else {
       const identiferKey = CHANNEL_IDENTIFIERS[channel];

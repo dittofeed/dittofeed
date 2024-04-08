@@ -70,7 +70,7 @@ export default function WebhookEditor({
   return (
     <TemplateEditor
       templateId={templateId}
-      channel={ChannelType.Sms}
+      channel={ChannelType.Webhook}
       member={member}
       disabled={disabled}
       hideTitle={hideTitle}
