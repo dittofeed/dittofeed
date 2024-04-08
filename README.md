@@ -81,8 +81,8 @@ Click Deploy to Render below and follow the prompts to deploy Dittofeed on Rende
 |-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | Webhook channel               | New message channel supporting arbitrary requests to user-specified APIs.                                                                                            | - \[ ]   |
 | Low code template builder     | Allows members to build email templates in a low-code interface without manual encoding in MJML.                                                                     | - \[ ]   |
-| Performance work on time-based segmentation | Optimization of [computePropertiesWorkflow](https://github.com/dittofeed/dittofeed/blob/0477114238af27d4f42f3d368266a79823956236/packages/backend-lib/src/segments/computePropertiesWorkflow.ts#L46-L113) to reduce segment update times. | - ✅   |
-| Basic White Labeling Support  | Allow workspace members to provide their own branding, for the dashboard.                                                                                                                                                                 | - \[ ]   |
+| Performance work on time-based segmentation | Optimization of [computePropertiesWorkflow](https://github.com/dittofeed/dittofeed/blob/0477114238af27d4f42f3d368266a79823956236/packages/backend-lib/src/segments/computePropertiesWorkflow.ts#L46-L113) to reduce segment update times. | - ✅ |
+| Basic White Labeling Support  | Allow workspace members to provide their own branding, for the dashboard.                                                                                                                                                                 | - ✅ |
 | AWS SES Support               | Support SES as an email service provider.                                                                                                                                                                      | - ✅ |
 
 ---
