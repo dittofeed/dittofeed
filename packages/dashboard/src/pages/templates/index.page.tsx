@@ -130,6 +130,9 @@ function TemplateListContents() {
           <MenuItem component={Link} href={`/templates/sms/${newItemId}`}>
             SMS
           </MenuItem>
+          <MenuItem component={Link} href={`/templates/webhook/${newItemId}`}>
+            Webhook
+          </MenuItem>
           <MenuItem
             component={Link}
             disabled={!enableMobilePush}
@@ -148,6 +151,7 @@ function TemplateListContents() {
         >
           <Tab label={CHANNEL_NAMES[ChannelType.Email]} />
           <Tab label={CHANNEL_NAMES[ChannelType.Sms]} />
+          <Tab label={CHANNEL_NAMES[ChannelType.Webhook]} />
           <Tab label={CHANNEL_NAMES[ChannelType.MobilePush]} />
         </Tabs>
       </Box>
@@ -158,6 +162,9 @@ function TemplateListContents() {
         <TemplatesTable label={CHANNEL_NAMES[ChannelType.Sms]} />
       </TabPanel>
       <TabPanel value={tab} index={2}>
+        <TemplatesTable label={CHANNEL_NAMES[ChannelType.Webhook]} />
+      </TabPanel>
+      <TabPanel value={tab} index={3}>
         <TemplatesTable label={CHANNEL_NAMES[ChannelType.MobilePush]} />
       </TabPanel>
     </Stack>

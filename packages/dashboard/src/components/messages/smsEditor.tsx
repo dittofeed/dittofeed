@@ -10,7 +10,7 @@ import {
 import React from "react";
 
 import SmsPreviewBody from "../smsPreviewBody";
-import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
+import TemplateEditor, { DraftToPreview } from "../templateEditor";
 
 function fieldToReadable(field: string) {
   switch (field) {
@@ -21,7 +21,7 @@ function fieldToReadable(field: string) {
   }
 }
 
-const definitionToPreview: DefinitionToPreview = (definition) => {
+const draftToPreview: DraftToPreview = (definition) => {
   if (definition.type !== ChannelType.Sms) {
     throw new Error("Invalid channel type");
   }
@@ -57,15 +57,15 @@ export default function SmsEditor({
       hideTitle={hideTitle}
       hidePublisher={hidePublisher}
       renderEditorHeader={() => null}
-      renderEditorBody={({ definition, setDefinition }) => {
-        if (definition.type !== ChannelType.Sms) {
+      renderEditorBody={({ draft, setDraft }) => {
+        if (draft.type !== ChannelType.Sms) {
           return null;
         }
         return (
           <ReactCodeMirror
-            value={definition.body}
+            value={draft.body}
             onChange={(value) => {
-              setDefinition((defn) => {
+              setDraft((defn) => {
                 if (defn.type !== ChannelType.Sms) {
                   return defn;
                 }
@@ -91,7 +91,7 @@ export default function SmsEditor({
         if (!rendered.body) return null;
         return <SmsPreviewBody body={rendered.body} />;
       }}
-      definitionToPreview={definitionToPreview}
+      draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
     />
   );

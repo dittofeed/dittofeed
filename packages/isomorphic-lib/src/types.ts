@@ -932,8 +932,8 @@ export const WebhookConfig = Type.Object({
   url: Type.Optional(Type.String()),
   method: Type.Optional(Type.String()),
   headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-  params: Type.Optional(Type.String()),
-  data: Type.Optional(Type.String()),
+  params: Type.Optional(Type.Any()),
+  data: Type.Optional(Type.Any()),
   responseEncoding: Type.Optional(
     Type.Union([Type.Literal("json"), Type.Literal("text")]),
   ),
@@ -943,8 +943,7 @@ export type WebhookConfig = Static<typeof WebhookConfig>;
 
 export const WebhookContents = Type.Object({
   identifierKey: Type.String(),
-  config: WebhookConfig,
-  secret: WebhookConfig,
+  body: Type.String(),
 });
 
 export type WebhookContents = Static<typeof WebhookContents>;
@@ -969,13 +968,38 @@ export type MessageTemplateResourceDefinition = Static<
   typeof MessageTemplateResourceDefinition
 >;
 
+// Alias for now
+export const WebhookTemplateResourceDraft = WebhookTemplateResource;
+
+export type WebhookTemplateResourceDraft = Static<
+  typeof WebhookTemplateResourceDraft
+>;
+
+export const ParsedWebhookBody = Type.Object({
+  config: WebhookConfig,
+  secret: WebhookConfig,
+});
+
+export type ParsedWebhookBody = Static<typeof ParsedWebhookBody>;
+
+export const MessageTemplateResourceDraft = Type.Union([
+  MobilePushTemplateResource,
+  EmailTemplateResource,
+  SmsTemplateResource,
+  WebhookTemplateResource,
+]);
+
+export type MessageTemplateResourceDraft = Static<
+  typeof MessageTemplateResourceDraft
+>;
+
 const MessageTemplateResourceProperties = {
   workspaceId: Type.String(),
   id: Type.String(),
   name: Type.String(),
   type: Type.Enum(ChannelType),
   definition: Type.Optional(MessageTemplateResourceDefinition),
-  draft: Type.Optional(MessageTemplateResourceDefinition),
+  draft: Type.Optional(MessageTemplateResourceDraft),
   updatedAt: Type.Number(),
 } as const;
 
@@ -996,7 +1020,7 @@ export const UpsertMessageTemplateResource = Type.Object({
   id: Type.String(),
   name: Type.Optional(Type.String()),
   definition: Type.Optional(MessageTemplateResourceDefinition),
-  draft: Type.Optional(Nullable(MessageTemplateResourceDefinition)),
+  draft: Type.Optional(Nullable(MessageTemplateResourceDraft)),
 });
 
 export type UpsertMessageTemplateResource = Static<
@@ -2408,10 +2432,6 @@ export type DefaultSmsProviderResource = Static<
 
 export const MessageTemplateTestErrorResponse = Type.Object({});
 
-export type MessageTemplateTestResponse = Static<
-  typeof MessageTemplateTestResponse
->;
-
 export const SmsTwilioSuccess = Type.Object({
   type: Type.Literal(SmsProviderType.Twilio),
   sid: Type.String(),
@@ -2552,6 +2572,18 @@ export type MessageSendSuccess = Static<typeof MessageSendSuccess>;
 export const MessageSuccess = Type.Union([MessageSendSuccess, MessageSkipped]);
 
 export type MessageSuccess = Static<typeof MessageSuccess>;
+
+export const MessageTemplateTestResponse = JsonResult(
+  MessageSuccess,
+  Type.Object({
+    suggestions: Type.Array(Type.String()),
+    responseData: Type.Optional(Type.String()),
+  }),
+);
+
+export type MessageTemplateTestResponse = Static<
+  typeof MessageTemplateTestResponse
+>;
 
 export enum BadWorkspaceConfigurationType {
   MessageTemplateNotFound = "MessageTemplateNotFound",
@@ -2711,7 +2743,8 @@ export type MessageSmsServiceFailure = Static<typeof MessageSmsServiceFailure>;
 
 export const MessageWebhookServiceFailure = Type.Object({
   type: Type.Literal(ChannelType.Webhook),
-  response: WebhookResponse,
+  code: Type.Optional(Type.String()),
+  response: Type.Optional(WebhookResponse),
 });
 
 export type MessageWebhookServiceFailure = Static<
@@ -2826,14 +2859,6 @@ export const MessageTemplateTestRequest = Type.Union([
 export type MessageTemplateTestRequest = Static<
   typeof MessageTemplateTestRequest
 >;
-
-export const MessageTemplateTestResponse = JsonResult(
-  MessageSuccess,
-  Type.Object({
-    suggestions: Type.Array(Type.String()),
-    responseData: Type.Optional(Type.String()),
-  }),
-);
 
 export const GetTraitsRequest = Type.Object({
   workspaceId: Type.String(),

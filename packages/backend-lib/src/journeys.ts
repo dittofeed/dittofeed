@@ -399,7 +399,7 @@ export async function getJourneyMessageStats({
         }
         case ChannelType.Webhook: {
           // TODO [DF-471]
-          throw new Error("Not implemented");
+          continue;
         }
         default:
           assertUnreachable(node.channel);

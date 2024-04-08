@@ -220,80 +220,101 @@ export default async function contentController(fastify: FastifyInstance) {
         });
       }
       if (result.error.type === InternalEventType.MessageFailure) {
-        if (result.error.variant.type === ChannelType.Email) {
-          const { type } = result.error.variant.provider;
-          switch (type) {
-            case EmailProviderType.Sendgrid: {
-              const { body, status } = result.error.variant.provider;
-              const suggestions: string[] = [];
-              if (status) {
-                suggestions.push(`Sendgrid responded with status: ${status}`);
-                if (status === 403) {
-                  suggestions.push(
-                    "Is the configured email domain authorized in sengrid?",
-                  );
+        switch (result.error.variant.type) {
+          case ChannelType.Webhook: {
+            const { response, code } = result.error.variant;
+            const suggestions = [
+              "The webhook failed, check your request configuration and try again.",
+            ];
+            if (code) {
+              suggestions.push(`Webhook responded with status: ${code}`);
+            }
+            return reply.status(200).send({
+              type: JsonResultType.Err,
+              err: {
+                suggestions,
+                responseData: response
+                  ? JSON.stringify(response, null, 2)
+                  : undefined,
+              },
+            });
+            break;
+          }
+          case ChannelType.Email: {
+            const { type } = result.error.variant.provider;
+            switch (type) {
+              case EmailProviderType.Sendgrid: {
+                const { body, status } = result.error.variant.provider;
+                const suggestions: string[] = [];
+                if (status) {
+                  suggestions.push(`Sendgrid responded with status: ${status}`);
+                  if (status === 403) {
+                    suggestions.push(
+                      "Is the configured email domain authorized in sengrid?",
+                    );
+                  }
                 }
+                return reply.status(200).send({
+                  type: JsonResultType.Err,
+                  err: {
+                    suggestions,
+                    responseData: body,
+                  },
+                });
               }
-              return reply.status(200).send({
-                type: JsonResultType.Err,
-                err: {
-                  suggestions,
-                  responseData: body,
-                },
-              });
-            }
-            case EmailProviderType.Resend: {
-              const { message } = result.error.variant.provider;
-              const suggestions: string[] = [];
-              suggestions.push(message);
-              return reply.status(200).send({
-                type: JsonResultType.Err,
-                err: {
-                  suggestions,
-                  responseData: message,
-                },
-              });
-            }
-            case EmailProviderType.Smtp: {
-              return reply.status(200).send({
-                type: JsonResultType.Err,
-                err: {
-                  suggestions: [
-                    "Failed to send email. Check your SMTP settings.",
-                  ],
-                  responseData: result.error.variant.provider.message,
-                },
-              });
-              break;
-            }
-            case EmailProviderType.AmazonSes: {
-              const { message } = result.error.variant.provider;
-              const suggestions: string[] = [];
-              if (message) {
+              case EmailProviderType.Resend: {
+                const { message } = result.error.variant.provider;
+                const suggestions: string[] = [];
                 suggestions.push(message);
+                return reply.status(200).send({
+                  type: JsonResultType.Err,
+                  err: {
+                    suggestions,
+                    responseData: message,
+                  },
+                });
               }
-              return reply.status(200).send({
-                type: JsonResultType.Err,
-                err: {
-                  suggestions,
-                  responseData: message,
-                },
-              });
-            }
-            case EmailProviderType.PostMark: {
-              const { message } = result.error.variant.provider;
-              const suggestions: string[] = [];
-              suggestions.push(message);
-              return reply.status(200).send({
-                type: JsonResultType.Err,
-                err: {
-                  suggestions,
-                  responseData: message,
-                },
-              });
-            }
-            default: {
-              assertUnreachable(type);
+              case EmailProviderType.Smtp: {
+                return reply.status(200).send({
+                  type: JsonResultType.Err,
+                  err: {
+                    suggestions: [
+                      "Failed to send email. Check your SMTP settings.",
+                    ],
+                    responseData: result.error.variant.provider.message,
+                  },
+                });
+                break;
+              }
+              case EmailProviderType.AmazonSes: {
+                const { message } = result.error.variant.provider;
+                const suggestions: string[] = [];
+                if (message) {
+                  suggestions.push(message);
+                }
+                return reply.status(200).send({
+                  type: JsonResultType.Err,
+                  err: {
+                    suggestions,
+                    responseData: message,
+                  },
+                });
+              }
+              case EmailProviderType.PostMark: {
+                const { message } = result.error.variant.provider;
+                const suggestions: string[] = [];
+                suggestions.push(message);
+                return reply.status(200).send({
+                  type: JsonResultType.Err,
+                  err: {
+                    suggestions,
+                    responseData: message,
+                  },
+                });
+              }
+              default: {
+                assertUnreachable(type);
+              }
             }
           }
         }

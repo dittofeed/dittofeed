@@ -13,7 +13,9 @@ import {
   Slide,
   Stack,
   styled,
+  SxProps,
   TextField,
+  Theme,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -24,6 +26,10 @@ import hash from "fnv1a";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { emailProviderLabel } from "isomorphic-lib/src/email";
 import { deepEquals } from "isomorphic-lib/src/equality";
+import {
+  messageTemplateDefinitionToDraft,
+  messageTemplateDraftToDefinition,
+} from "isomorphic-lib/src/messageTemplates";
 import {
   jsonParseSafe,
   schemaValidateWithErr,
@@ -37,7 +43,7 @@ import {
   InternalEventType,
   JsonResultType,
   MessageTemplateResource,
-  MessageTemplateResourceDefinition,
+  MessageTemplateResourceDraft,
   MessageTemplateTestRequest,
   MessageTemplateTestResponse,
   MobilePushProviderType,
@@ -65,6 +71,7 @@ import {
 } from "../lib/notices";
 import { useUpdateEffect } from "../lib/useUpdateEffect";
 import EditableName from "./editableName";
+import { SubtleHeader } from "./headers";
 import InfoTooltip from "./infoTooltip";
 import LoadingModal from "./loadingModal";
 import {
@@ -115,6 +122,19 @@ const BodyBox = styled(Box, {
   }),
 );
 
+export function getDisabledInputStyles(theme: Theme): SxProps<Theme> {
+  const disabledStyles: SxProps<Theme> = {
+    "& .MuiInputBase-input.Mui-disabled": {
+      WebkitTextFillColor: theme.palette.grey[600],
+      color: theme.palette.grey[600],
+    },
+    '& .MuiFormLabel-root[data-shrink="true"]': {
+      color: theme.palette.grey[600],
+    },
+  };
+  return disabledStyles;
+}
+
 function ProviderOverrideSelector<P>({
   value,
   options,
@@ -149,7 +169,7 @@ export interface BaseTemplateState {
   userPropertiesJSON: string;
   editedTemplate: {
     title: string;
-    draft?: MessageTemplateResourceDefinition;
+    draft?: MessageTemplateResourceDraft;
   } | null;
   testRequest: EphemeralRequestStatus<Error>;
   testResponse: MessageTemplateTestResponse | null;
@@ -196,6 +216,7 @@ const LOREM = new LoremIpsum({
 
 export interface RenderPreviewParams {
   rendered: Record<string, string>;
+  draft: MessageTemplateResourceDraft;
   userProperties: UserPropertyAssignments;
 }
 
@@ -203,15 +224,13 @@ export type RenderPreviewSection = (
   args: RenderPreviewParams,
 ) => React.ReactNode;
 
-export type SetDefinition = (
-  setter: (
-    dfn: MessageTemplateResourceDefinition,
-  ) => MessageTemplateResourceDefinition,
+export type SetDraft = (
+  setter: (draft: MessageTemplateResourceDraft) => MessageTemplateResourceDraft,
 ) => void;
 
 export interface RenderEditorParams {
-  setDefinition: SetDefinition;
-  definition: MessageTemplateResourceDefinition;
+  setDraft: SetDraft;
+  draft: MessageTemplateResourceDraft;
   disabled: boolean;
 }
 
@@ -221,8 +240,8 @@ function errorHash(key: string, message: string) {
   return hash(`${key}-${message}`);
 }
 
-export type DefinitionToPreview = (
-  dfn: MessageTemplateResourceDefinition,
+export type DraftToPreview = (
+  draft: MessageTemplateResourceDraft,
 ) => RenderMessageTemplateRequestContents;
 
 function getUserPropertyValue({
@@ -273,7 +292,7 @@ export default function TemplateEditor({
   member,
   hideTitle,
   fieldToReadable,
-  definitionToPreview,
+  draftToPreview,
 }: {
   channel: ChannelType;
   templateId: string;
@@ -285,7 +304,7 @@ export default function TemplateEditor({
   renderPreviewBody: RenderPreviewSection;
   renderEditorHeader: RenderEditorSection;
   renderEditorBody: RenderEditorSection;
-  definitionToPreview: DefinitionToPreview;
+  draftToPreview: DraftToPreview;
   fieldToReadable: (field: string) => string | null;
 }) {
   const theme = useTheme();
@@ -408,9 +427,13 @@ export default function TemplateEditor({
     if (!template?.definition || !editedTemplate) {
       return null;
     }
+    const definitionFromDraft = editedTemplate.draft
+      ? messageTemplateDraftToDefinition(editedTemplate.draft).unwrapOr(null)
+      : null;
+
     if (
-      !editedTemplate.draft ||
-      deepEquals(editedTemplate.draft, template.definition)
+      !definitionFromDraft ||
+      deepEquals(definitionFromDraft, template.definition)
     ) {
       const publisher: PublisherUpToDateStatus = {
         type: PublisherStatusType.UpToDate,
@@ -443,7 +466,7 @@ export default function TemplateEditor({
               name: template.name,
               id: template.id,
               draft: null,
-              definition: editedTemplate.draft,
+              definition: definitionFromDraft,
             } satisfies UpsertMessageTemplateResource,
             headers: {
               "Content-Type": "application/json",
@@ -525,10 +548,17 @@ export default function TemplateEditor({
       }
       updateData.draft = debouncedDraft;
     } else {
-      if (deepEquals(debouncedDraft, template?.definition)) {
+      const definitionFromDraft = debouncedDraft
+        ? messageTemplateDraftToDefinition(debouncedDraft).unwrapOr(null)
+        : null;
+
+      if (
+        !definitionFromDraft ||
+        deepEquals(definitionFromDraft, template?.definition)
+      ) {
         return;
       }
-      updateData.definition = debouncedDraft;
+      updateData.definition = definitionFromDraft;
     }
 
     apiRequestHandlerFactory({
@@ -553,21 +583,24 @@ export default function TemplateEditor({
 
   const [debouncedUserProperties] = useDebounce(userProperties, 300);
 
+  const draftToRender = useMemo(() => {
+    if (debouncedDraft) {
+      return debouncedDraft;
+    }
+    if (!template?.definition) {
+      return null;
+    }
+    return messageTemplateDefinitionToDraft(template.definition);
+  }, [debouncedDraft, template?.definition]);
+
   useEffect(() => {
     (async () => {
       if (
         !workspace ||
         inTransition ||
-        !template ||
-        Object.keys(userProperties).length === 0
+        !draftToRender ||
+        Object.keys(debouncedUserProperties).length === 0
       ) {
-        return;
-      }
-      const definitionToRender = viewDraft
-        ? debouncedDraft ?? template.definition
-        : template.definition;
-
-      if (!definitionToRender) {
         return;
       }
 
@@ -575,7 +608,7 @@ export default function TemplateEditor({
         workspaceId: workspace.id,
         channel,
         userProperties: debouncedUserProperties,
-        contents: definitionToPreview(definitionToRender),
+        contents: draftToPreview(draftToRender),
       };
 
       try {
@@ -632,17 +665,7 @@ export default function TemplateEditor({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    apiBase,
-    debouncedUserProperties,
-    debouncedDraft,
-    definitionToPreview,
-    inTransition,
-    fieldToReadable,
-    viewDraft,
-    setState,
-    workspace,
-  ]);
+  }, [debouncedUserProperties, debouncedDraft, inTransition, viewDraft]);
 
   useEffect(() => {
     const exitingFunction = () => {
@@ -699,7 +722,54 @@ export default function TemplateEditor({
     });
   }, [errors, setState, debouncedUserProperties, userPropertiesResult]);
 
-  if (!workspace || !template) {
+  const renderEditorParams: RenderEditorParams | null = useMemo(() => {
+    if (!template?.definition) {
+      return null;
+    }
+    const draft: MessageTemplateResourceDraft | undefined =
+      (viewDraft ? editedTemplate?.draft : undefined) ??
+      messageTemplateDefinitionToDraft(template.definition);
+
+    const inDraftView =
+      publisherStatuses?.publisher.type !== PublisherStatusType.OutOfDate ||
+      viewDraft;
+
+    return {
+      draft,
+      disabled: Boolean(disabled) || !inDraftView,
+      setDraft: (setter) =>
+        setState((stateDraft) => {
+          let currentDefinition: MessageTemplateResourceDraft | null = null;
+          if (stateDraft.editedTemplate?.draft) {
+            currentDefinition = stateDraft.editedTemplate.draft;
+          } else if (template.definition) {
+            // Read only object can't be passed into setter, so need to clone.
+            currentDefinition = messageTemplateDefinitionToDraft({
+              ...template.definition,
+            });
+          }
+
+          if (
+            !currentDefinition ||
+            !stateDraft.editedTemplate ||
+            !inDraftView
+          ) {
+            return stateDraft;
+          }
+          stateDraft.editedTemplate.draft = setter(currentDefinition);
+          return stateDraft;
+        }),
+    };
+  }, [
+    disabled,
+    editedTemplate?.draft,
+    publisherStatuses?.publisher.type,
+    setState,
+    template?.definition,
+    viewDraft,
+  ]);
+
+  if (!workspace || !template || !renderEditorParams) {
     return null;
   }
 
@@ -775,10 +845,47 @@ export default function TemplateEditor({
       testResponse.value.variant.type === channel
     ) {
       const { to } = testResponse.value.variant;
+
+      let responseEl: React.ReactNode | null = null;
+      switch (testResponse.value.variant.type) {
+        case ChannelType.Webhook: {
+          const { response } = testResponse.value.variant;
+          responseEl = (
+            <Stack spacing={1}>
+              <SubtleHeader>Response</SubtleHeader>
+              <ReactCodeMirror
+                value={JSON.stringify(response, null, 2)}
+                height="100%"
+                readOnly
+                editable={false}
+                extensions={[
+                  codeMirrorJson(),
+                  linter(jsonParseLinter()),
+                  EditorView.lineWrapping,
+                  EditorView.editable.of(false),
+                  EditorView.theme({
+                    "&": {
+                      fontFamily: theme.typography.fontFamily,
+                    },
+                  }),
+                  lintGutter(),
+                ]}
+              />
+            </Stack>
+          );
+          break;
+        }
+      }
       testModalContents = (
-        <Alert severity="success">Message was sent successfully to {to}</Alert>
+        <>
+          <Alert severity="success">
+            Message was sent successfully to {to}
+          </Alert>
+          {responseEl}
+        </>
       );
     } else if (testResponse.type === JsonResultType.Err) {
+      // FIXME handle webhook errors
       testModalContents = (
         <Stack spacing={1}>
           <Alert severity="error">
@@ -790,22 +897,32 @@ export default function TemplateEditor({
               {suggestion}
             </Alert>
           ))}
-          <Typography
-            sx={{
-              fontFamily: "monospace",
-              backgroundColor: theme.palette.grey[100],
-            }}
-          >
-            <code>{testResponse.err.responseData}</code>
-          </Typography>
+          <ReactCodeMirror
+            value={testResponse.err.responseData}
+            height="100%"
+            readOnly
+            editable={false}
+            extensions={[
+              codeMirrorJson(),
+              linter(jsonParseLinter()),
+              EditorView.lineWrapping,
+              EditorView.editable.of(false),
+              EditorView.theme({
+                "&": {
+                  fontFamily: theme.typography.fontFamily,
+                },
+              }),
+              lintGutter(),
+            ]}
+          />
         </Stack>
       );
     }
   } else {
     let to: string | null = null;
     if (channel === ChannelType.Webhook) {
-      if (debouncedDraft?.type === ChannelType.Webhook) {
-        to = debouncedUserProperties[debouncedDraft.identifierKey] ?? null;
+      if (draftToRender?.type === ChannelType.Webhook) {
+        to = debouncedUserProperties[draftToRender.identifierKey] ?? null;
       }
     } else {
       const identiferKey = CHANNEL_IDENTIFIERS[channel];
@@ -896,31 +1013,6 @@ export default function TemplateEditor({
   if (!template.definition) {
     return null;
   }
-  const viewedDefinition =
-    (viewDraft ? editedTemplate?.draft : undefined) ?? template.definition;
-  const inDraftView =
-    publisherStatuses?.publisher.type !== PublisherStatusType.OutOfDate ||
-    viewDraft;
-  const renderEditorParams: RenderEditorParams = {
-    definition: viewedDefinition,
-    disabled: Boolean(disabled) || !inDraftView,
-    setDefinition: (setter) =>
-      setState((draft) => {
-        let currentDefinition: MessageTemplateResourceDefinition | null = null;
-        if (draft.editedTemplate?.draft) {
-          currentDefinition = draft.editedTemplate.draft;
-        } else if (template.definition) {
-          // Read only object can't be passed into setter, so need to clone.
-          currentDefinition = { ...template.definition };
-        }
-
-        if (!currentDefinition || !draft.editedTemplate || !inDraftView) {
-          return draft;
-        }
-        draft.editedTemplate.draft = setter(currentDefinition);
-        return draft;
-      }),
-  };
 
   const editor = (
     <Stack
@@ -930,17 +1022,15 @@ export default function TemplateEditor({
       }}
       spacing={1}
     >
-      <Stack>
-        {renderEditorParams && renderEditorHeader(renderEditorParams)}
-      </Stack>
+      <Stack>{renderEditorHeader(renderEditorParams)}</Stack>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <FormLabel sx={{ paddingLeft: 1 }}>Body Message</FormLabel>
         {fullscreen === null ? (
           <IconButton
             size="small"
             onClick={() =>
-              setState((draft) => {
-                draft.fullscreen = "editor";
+              setState((stateDraft) => {
+                stateDraft.fullscreen = "editor";
               })
             }
           >
@@ -952,9 +1042,7 @@ export default function TemplateEditor({
           </IconButton>
         )}
       </Stack>
-      <BodyBox direction="left">
-        {renderEditorParams ? renderEditorBody(renderEditorParams) : null}
-      </BodyBox>
+      <BodyBox direction="left">{renderEditorBody(renderEditorParams)}</BodyBox>
     </Stack>
   );
   const getPreviewVisibilityHandler = () => {
@@ -964,8 +1052,8 @@ export default function TemplateEditor({
           <IconButton
             size="small"
             onClick={() =>
-              setState((draft) => {
-                draft.fullscreen = "preview";
+              setState((stateDraft) => {
+                stateDraft.fullscreen = "preview";
               })
             }
           >
@@ -979,20 +1067,22 @@ export default function TemplateEditor({
       </>
     );
   };
-  const preview = (
+  const preview = draftToRender ? (
     <TemplatePreview
       previewHeader={renderPreviewHeader({
         rendered,
+        draft: draftToRender,
         userProperties: debouncedUserProperties,
       })}
       previewBody={renderPreviewBody({
         rendered,
         userProperties: debouncedUserProperties,
+        draft: draftToRender,
       })}
       visibilityHandler={getPreviewVisibilityHandler()}
       bodyPreviewHeading="Body Preview"
     />
-  );
+  ) : null;
   return (
     <>
       <Stack
@@ -1022,11 +1112,11 @@ export default function TemplateEditor({
               name={editedTemplate.title}
               variant="h4"
               onChange={(e) =>
-                setState((draft) => {
-                  if (!draft.editedTemplate) {
+                setState((stateDraft) => {
+                  if (!stateDraft.editedTemplate) {
                     return;
                   }
-                  draft.editedTemplate.title = e.target.value;
+                  stateDraft.editedTemplate.title = e.target.value;
                 })
               }
             />
@@ -1045,8 +1135,8 @@ export default function TemplateEditor({
             openTitle="Send Test Message"
             onSubmit={submitTest}
             onClose={() =>
-              setState((draft) => {
-                draft.testResponse = null;
+              setState((stateDraft) => {
+                stateDraft.testResponse = null;
               })
             }
           >
@@ -1066,18 +1156,18 @@ export default function TemplateEditor({
               value={userPropertiesJSON}
               height="100%"
               onChange={(json) =>
-                setState((draft) => {
-                  if (!draft.editedTemplate) {
+                setState((stateDraft) => {
+                  if (!stateDraft.editedTemplate) {
                     return;
                   }
-                  draft.userPropertiesJSON = json;
+                  stateDraft.userPropertiesJSON = json;
                   const result = jsonParseSafe(json).andThen((p) =>
                     schemaValidateWithErr(p, UserPropertyAssignments),
                   );
                   if (result.isErr()) {
                     return;
                   }
-                  draft.userProperties = result.value;
+                  stateDraft.userProperties = result.value;
                 })
               }
               extensions={[

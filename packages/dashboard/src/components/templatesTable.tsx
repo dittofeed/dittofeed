@@ -8,6 +8,7 @@ import {
   EmptyResponse,
   JourneyNodeType,
   MessageTemplateResourceDefinition,
+  MessageTemplateResourceDraft,
   MobilePushTemplateResource,
   NarrowedMessageTemplateResource,
   SmsTemplateResource,
@@ -27,7 +28,7 @@ import {
 interface Row extends BaseResourceRow {
   journeys: { name: string; id: string }[];
   definition?: MessageTemplateResourceDefinition;
-  draft?: MessageTemplateResourceDefinition;
+  draft?: MessageTemplateResourceDraft;
 }
 
 export interface TemplatesTableProps {
@@ -82,8 +83,12 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
     deleteMessageTemplate(deleteRequest.id);
   };
 
-  // TODO [DF-471]
-  const { emailTemplates, mobilePushTemplates, smsTemplates } = useMemo(() => {
+  const {
+    emailTemplates,
+    mobilePushTemplates,
+    smsTemplates,
+    webhookTemplates,
+  } = useMemo(() => {
     const messages =
       messagesResult.type === CompletionStatus.Successful
         ? messagesResult.value
@@ -95,42 +100,41 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
       webhookTemplates: NarrowedMessageTemplateResource<WebhookTemplateResource>[];
     }>(
       (acc, template) => {
-        const definition = template.draft ?? template.definition;
-        if (!definition) {
+        if (!template.definition) {
           return acc;
         }
 
-        switch (definition.type) {
+        switch (template.definition.type) {
           case ChannelType.Email:
             acc.emailTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              definition,
+              definition: template.definition,
             });
             break;
           case ChannelType.MobilePush:
             acc.mobilePushTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              definition,
+              definition: template.definition,
             });
             break;
           case ChannelType.Sms:
             acc.smsTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              definition,
+              definition: template.definition,
             });
             break;
           case ChannelType.Webhook:
             acc.webhookTemplates.push({
               ...template,
               updatedAt: template.updatedAt,
-              definition,
+              definition: template.definition,
             });
             break;
           default: {
-            const { type } = definition;
+            const { type } = template.definition;
             assertUnreachable(type);
           }
         }
@@ -161,6 +165,13 @@ export default function TemplatesTable({ label }: TemplatesTableProps) {
       updatedAt: new Date(template.updatedAt).toISOString(),
     }));
     routeName = "mobile-push";
+  } else if (label === CHANNEL_NAMES[ChannelType.Webhook]) {
+    rows = webhookTemplates.map((template) => ({
+      ...template,
+      journeys: getJourneysUsedBy(journeysUsedBy, template.id),
+      updatedAt: new Date(template.updatedAt).toISOString(),
+    }));
+    routeName = "webhook";
   } else {
     rows = smsTemplates.map((template) => ({
       ...template,
