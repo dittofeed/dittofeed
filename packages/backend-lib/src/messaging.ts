@@ -1578,7 +1578,6 @@ export async function sendMessage(
     case ChannelType.MobilePush:
       throw new Error("not implemented");
     case ChannelType.Webhook:
-      // TODO [DF-471] implement webhook
-      throw new Error("not implemented");
+      return sendWebhook(params);
   }
 }

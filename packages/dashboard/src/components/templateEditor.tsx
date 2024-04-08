@@ -844,6 +844,8 @@ export default function TemplateEditor({
       testResponse.value.variant.type === channel
     ) {
       const { to } = testResponse.value.variant;
+      // FIXME
+      // add response
       testModalContents = (
         <Alert severity="success">Message was sent successfully to {to}</Alert>
       );
