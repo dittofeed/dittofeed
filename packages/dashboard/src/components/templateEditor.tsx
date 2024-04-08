@@ -897,14 +897,24 @@ export default function TemplateEditor({
               {suggestion}
             </Alert>
           ))}
-          <Typography
-            sx={{
-              fontFamily: "monospace",
-              backgroundColor: theme.palette.grey[100],
-            }}
-          >
-            <code>{testResponse.err.responseData}</code>
-          </Typography>
+          <ReactCodeMirror
+            value={testResponse.err.responseData}
+            height="100%"
+            readOnly
+            editable={false}
+            extensions={[
+              codeMirrorJson(),
+              linter(jsonParseLinter()),
+              EditorView.lineWrapping,
+              EditorView.editable.of(false),
+              EditorView.theme({
+                "&": {
+                  fontFamily: theme.typography.fontFamily,
+                },
+              }),
+              lintGutter(),
+            ]}
+          />
         </Stack>
       );
     }
