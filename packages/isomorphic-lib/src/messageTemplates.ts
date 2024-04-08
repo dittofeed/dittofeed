@@ -1,15 +1,10 @@
-import { err, ok, Result } from "neverthrow";
+import { ok, Result } from "neverthrow";
 
-import {
-  jsonParseSafe,
-  schemaValidateWithErr,
-} from "./resultHandling/schemaValidation";
 import { assertUnreachable } from "./typeAssertions";
 import {
   ChannelType,
   MessageTemplateResourceDefinition,
   MessageTemplateResourceDraft,
-  ParsedWebhookBody,
 } from "./types";
 
 export function messageTemplatePath({
@@ -40,7 +35,7 @@ export function messageTemplatePath({
 }
 
 /**
- * Identify function for now.
+ * Identify function for now. Placeholder in case draft and definition diverge.
  * @param definition
  * @returns
  */
@@ -50,6 +45,11 @@ export function messageTemplateDefinitionToDraft(
   return definition;
 }
 
+/**
+ * Identify function for now. Placeholder in case draft and definition diverge.
+ * @param draft
+ * @returns
+ */
 export function messageTemplateDraftToDefinition(
   draft: MessageTemplateResourceDraft,
 ): Result<MessageTemplateResourceDefinition, Error> {
