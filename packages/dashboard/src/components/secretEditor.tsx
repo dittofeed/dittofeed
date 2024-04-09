@@ -58,7 +58,7 @@ export interface SecretEditorProps {
   // whether the secret is saved or not on page load
   saved: boolean;
   // used to describe the secret in the UI
-  label: string;
+  label?: string;
   // type of secret, passed in payload
   type: string;
   helperText?: string;
@@ -102,7 +102,7 @@ function SecretTextField({
   autoFocus?: boolean;
   onVisibilityChange: () => void;
   showValue: boolean;
-  label: string;
+  label?: string;
   onChange: React.ComponentProps<typeof TextField>["onChange"];
   helperText?: string;
 }) {

@@ -14,9 +14,6 @@ import {
   Button,
   Checkbox,
   Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControlLabel,
   FormGroup,
   IconButton,
@@ -26,9 +23,7 @@ import {
   Switch,
   TextField,
   Typography,
-  useTheme,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
@@ -46,7 +41,6 @@ import { emailProviderLabel } from "isomorphic-lib/src/email";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
-  ChannelType,
   CompletionStatus,
   DataSourceConfigurationResource,
   DataSourceVariantType,
@@ -88,8 +82,8 @@ import { HubspotIcon } from "../components/icons/hubspotIcon";
 import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
-import { SecretEditor } from "../components/secretEditor";
 import { SubscriptionManagement } from "../components/subscriptionManagement";
+import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
@@ -99,7 +93,6 @@ import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { getOrCreateSmsProviders } from "../lib/sms";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
-import WebhookSecretTable from "../components/webhookSecretTable";
 
 async function copyToClipboard({
   value,
