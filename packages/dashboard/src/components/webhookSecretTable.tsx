@@ -5,6 +5,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Stack,
   TextField,
   useTheme,
 } from "@mui/material";
@@ -116,12 +117,30 @@ export default function WebhookSecretTable() {
               valueGetter: (params) => (params.row.saved ? 0 : 1),
               headerName: "Update",
               renderCell: (params) => (
-                <SecretEditor
-                  type={ChannelType.Webhook}
-                  name={SecretNames.Webhook}
-                  saved={params.row.saved}
-                  secretKey={params.row.name}
-                />
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{
+                    height: "100%",
+                    width: "100%",
+                  }}
+                >
+                  <SecretEditor
+                    type={ChannelType.Webhook}
+                    name={SecretNames.Webhook}
+                    saved={params.row.saved}
+                    secretKey={params.row.name}
+                  />
+                  <Button
+                    onClick={() => {
+                      setState((draft) => {
+                        draft.newSecretValues.delete(params.row.name);
+                      });
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </Stack>
               ),
             },
           ]}
