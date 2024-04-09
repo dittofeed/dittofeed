@@ -66,5 +66,6 @@ export type FieldSectionProps = PropsWithChildren<{
 }>;
 
 export type FieldsProps = PropsWithChildren<{
+  disableChildStyling?: boolean;
   sections: FieldSectionProps[];
 }>;

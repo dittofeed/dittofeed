@@ -1267,7 +1267,9 @@ function WebhookChannelConfig() {
         id={settingsSectionIds.webhookChannel}
         title="Webhook"
       />
-      webhook
+      <Fields disableChildStyling sections={[]}>
+        foo
+      </Fields>
     </>
   );
 }
