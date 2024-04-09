@@ -45,11 +45,20 @@ export default function WebhookSecretTable() {
         };
       },
     );
-    const unsavedOptions = Array.from(newSecretValues).map((name) => ({
+    const unsavedOptions = Array.from(newSecretValues).flatMap((name) => {
+      if (config?.[name]) {
+        return [];
+      }
+      return {
+        name,
+        saved: false,
+      };
+    });
+    return unsavedOptions.concat(savedOptions).map(({ name, saved }) => ({
       name,
-      saved: false,
+      saved,
+      savedIndex: saved ? 0 : 1,
     }));
-    return unsavedOptions.concat(savedOptions);
   }, [secretAvailability, newSecretValues]);
 
   const closeDialog = () =>
@@ -80,28 +89,31 @@ export default function WebhookSecretTable() {
       </Button>
       <Box
         sx={{
-          height: theme.spacing(40),
+          height: theme.spacing(60),
         }}
       >
-        <DataGrid<{ name: string; saved: boolean }>
+        <DataGrid<{ name: string; saved: boolean; savedIndex: number }>
           rows={webhookSecrets}
           autoPageSize
           initialState={{
             sorting: {
-              sortModel: [{ field: "name", sort: "asc" }],
+              sortModel: [
+                { field: "savedIndex", sort: "asc" },
+                { field: "name", sort: "asc" },
+              ],
             },
           }}
           columns={[
             {
               field: "name",
               headerName: "Name",
-              sortComparator: (value, row) => {
-                return 0;
-              },
+              sortable: false,
             },
             {
-              field: "update",
+              sortable: false,
+              field: "saved",
               flex: 1,
+              valueGetter: (params) => (params.row.saved ? 0 : 1),
               headerName: "Update",
               renderCell: (params) => (
                 <SecretEditor
