@@ -5,6 +5,7 @@ import {
   Mail,
   SimCardDownload,
   SmsOutlined,
+  Webhook,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import {
@@ -303,6 +304,7 @@ const settingsSectionIds = {
   segmentSource: "segment-source",
   emailChannel: "email-channel",
   smsChannel: "sms-channel",
+  webhookChannel: "webhook-channel",
   subscription: "subscriptions",
   authentication: "authentication",
   hubspotIntegration: "hubspot-integration",
@@ -347,6 +349,14 @@ const menuItems: MenuItemGroup[] = [
         icon: SmsOutlined,
         description:
           "Configure email settings, including the email provider credentials.",
+      },
+      {
+        id: "webhook",
+        title: "Webhook",
+        type: "item",
+        url: `/settings#${settingsSectionIds.webhookChannel}`,
+        icon: Webhook,
+        description: "Configure webhook settings, including custom secrets.",
       },
     ],
   },
@@ -1250,12 +1260,25 @@ function SmsChannelConfig() {
   );
 }
 
+function WebhookChannelConfig() {
+  return (
+    <>
+      <SectionSubHeader
+        id={settingsSectionIds.webhookChannel}
+        title="Webhook"
+      />
+      webhook
+    </>
+  );
+}
+
 function MessageChannelsConfig() {
   return (
     <Stack spacing={3}>
       <SectionHeader title="Message Channels" />
       <EmailChannelConfig />
       <SmsChannelConfig />
+      <WebhookChannelConfig />
     </Stack>
   );
 }
