@@ -26,6 +26,7 @@ import {
   Switch,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
@@ -98,6 +99,7 @@ import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { getOrCreateSmsProviders } from "../lib/sms";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
+import WebhookSecretTable from "../components/webhookSecretTable";
 
 async function copyToClipboard({
   value,
@@ -1268,46 +1270,6 @@ function SmsChannelConfig() {
 }
 
 function WebhookChannelConfig() {
-  const { secretAvailability } = useAppStorePick(["secretAvailability"]);
-  const [{ newSecretValues, newSecretName }, setState] = useImmer<{
-    newSecretName: string | null;
-    newSecretValues: Set<string>;
-  }>({
-    newSecretValues: new Set(),
-    newSecretName: null,
-  });
-
-  const webhookSecrets = useMemo(() => {
-    const config = secretAvailability.find(
-      (s) => s.name === SecretNames.Webhook,
-    )?.configValue;
-    const savedOptions = Object.entries(config ?? {}).flatMap(
-      ([name, saved]) => ({
-        name,
-        saved,
-      }),
-    );
-    const unsavedOptions = Array.from(newSecretValues).map((name) => ({
-      name,
-      saved: false,
-    }));
-    return unsavedOptions.concat(savedOptions);
-  }, [secretAvailability, newSecretValues]);
-
-  const closeDialog = () =>
-    setState((draft) => {
-      draft.newSecretName = null;
-    });
-  const addNewSecret = () => {
-    setState((draft) => {
-      if (!draft.newSecretName) {
-        return;
-      }
-      draft.newSecretValues.add(draft.newSecretName);
-      draft.newSecretName = null;
-    });
-  };
-
   return (
     <>
       <SectionSubHeader
@@ -1315,71 +1277,8 @@ function WebhookChannelConfig() {
         title="Webhook"
       />
       <Fields disableChildStyling sections={[]}>
-        <Button
-          variant="outlined"
-          onClick={() => {
-            setState((draft) => {
-              draft.newSecretName = "";
-            });
-          }}
-        >
-          Create Webhook Secret
-        </Button>
-        <DataGrid<{ name: string; saved: boolean }>
-          rows={webhookSecrets}
-          initialState={{
-            sorting: {
-              sortModel: [{ field: "name", sort: "asc" }],
-            },
-          }}
-          columns={[
-            {
-              field: "name",
-              headerName: "Name",
-              sortComparator: (value, row) => {
-                console.log(value, row);
-                return 0;
-              },
-              renderCell: (params) => (
-                <SecretEditor
-                  type={ChannelType.Webhook}
-                  name={SecretNames.Webhook}
-                  saved={params.row.saved}
-                  secretKey={params.row.name}
-                  label={params.row.name}
-                />
-              ),
-            },
-          ]}
-          getRowId={(row) => row.name}
-          disableRowSelectionOnClick
-          autoPageSize
-          getRowHeight={() => "auto"}
-        />
+        <WebhookSecretTable />
       </Fields>
-      <Dialog open={newSecretName !== null} onClose={closeDialog}>
-        <DialogTitle>Create Webhook Secret</DialogTitle>
-        <DialogContent>
-          <TextField
-            value={newSecretName ?? ""}
-            onChange={(e) => {
-              setState((draft) => {
-                draft.newSecretName = e.target.value;
-              });
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault(); // Prevent form submission if inside a form
-                addNewSecret();
-              }
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDialog}>Cancel</Button>
-          <Button onClick={addNewSecret}>Create</Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 }
