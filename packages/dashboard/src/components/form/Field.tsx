@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import React from "react";
 
-import SecretEditor from "../secretEditor";
+import { SecretEditor } from "../secretEditor";
 import { SelectField } from "./select";
 import SimpleTextField from "./SimpleTextField";
 import SimpleToggle from "./SimpleToggle";

@@ -137,7 +137,7 @@ function setRequest(request: EphemeralRequestStatus<Error>) {
   };
 }
 
-export default function SecretEditor({
+export function SecretEditor({
   name,
   saved,
   secretKey,
