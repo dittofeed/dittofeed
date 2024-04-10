@@ -3001,12 +3001,14 @@ export type SmtpSecret = Static<typeof SmtpSecret>;
 
 export type SmtpSecretKey = keyof Omit<SmtpSecret, "type">;
 
-export const WebhookSecret = Type.Composite([
+export const WebhookSecret = Type.Intersect([
   Type.Record(Type.String(), Type.String()),
   Type.Object({
     type: Type.Literal(ChannelType.Webhook),
   }),
 ]);
+
+export type WebhookSecret = Static<typeof WebhookSecret>;
 
 export type WebhookProviderSecret = Static<typeof WebhookSecret>;
 

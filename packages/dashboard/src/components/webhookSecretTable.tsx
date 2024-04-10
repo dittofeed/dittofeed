@@ -131,15 +131,17 @@ export default function WebhookSecretTable() {
                     saved={params.row.saved}
                     secretKey={params.row.name}
                   />
-                  <Button
-                    onClick={() => {
-                      setState((draft) => {
-                        draft.newSecretValues.delete(params.row.name);
-                      });
-                    }}
-                  >
-                    Delete
-                  </Button>
+                  {params.row.saved ? null : (
+                    <Button
+                      onClick={() => {
+                        setState((draft) => {
+                          draft.newSecretValues.delete(params.row.name);
+                        });
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </Stack>
               ),
             },
