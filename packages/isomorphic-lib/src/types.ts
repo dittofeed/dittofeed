@@ -3073,6 +3073,7 @@ export const AdminApiKeyResource = Type.Object({
   workspaceId: Type.String(),
   id: Type.String(),
   name: Type.String(),
+  createdAt: Type.Number(),
 });
 
 export type AdminApiKeyResource = Static<typeof AdminApiKeyResource>;
