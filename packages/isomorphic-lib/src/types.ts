@@ -2159,7 +2159,7 @@ export const UpsertSecretRequest = Type.Object({
 export type UpsertSecretRequest = Static<typeof UpsertSecretRequest>;
 
 export const DeleteSecretRequest = Type.Object({
-  name: Type.String(),
+  id: Type.String(),
   workspaceId: Type.String(),
 });
 
@@ -3068,6 +3068,14 @@ export const AdminApiKeyDefinition = Type.Object({
 });
 
 export type AdminApiKeyDefinition = Static<typeof AdminApiKeyDefinition>;
+
+export const AdminApiKeyResource = Type.Object({
+  workspaceId: Type.String(),
+  id: Type.String(),
+  name: Type.String(),
+});
+
+export type AdminApiKeyResource = Static<typeof AdminApiKeyResource>;
 
 export const CreateAdminApiKeyRequest = Type.Object({
   workspaceId: Type.String(),

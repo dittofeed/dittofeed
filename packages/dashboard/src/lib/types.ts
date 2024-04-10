@@ -2,6 +2,7 @@ import { Config } from "backend-lib/src/config";
 import { Draft } from "immer";
 import {
   AdditionalJourneyNodeType,
+  AdminApiKeyResource,
   BroadcastResource,
   ChannelType,
   DataSourceConfigurationResource,
@@ -148,6 +149,7 @@ export type AppState = {
   getTraitsRequest: EphemeralRequestStatus<Error>;
   writeKeys: WriteKeyResource[];
   secrets: SecretResource[];
+  adminApiKeys?: AdminApiKeyResource[];
   secretAvailability: SecretAvailabilityResource[];
   defaultEmailProvider: DefaultEmailProviderResource | null;
   emailProviders: PersistedEmailProvider[];
