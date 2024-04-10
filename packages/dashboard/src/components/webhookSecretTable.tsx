@@ -7,6 +7,7 @@ import {
   DialogTitle,
   Stack,
   TextField,
+  Tooltip,
   useTheme,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
@@ -104,6 +105,15 @@ export default function WebhookSecretTable() {
         <DataGrid<{ name: string; saved: boolean; savedIndex: number }>
           rows={webhookSecrets}
           autoPageSize
+          disableRowSelectionOnClick
+          sx={{
+            "& .MuiDataGrid-cell:focus": {
+              outline: "none",
+            },
+            "& .MuiDataGrid-cell:focus-within": {
+              outline: "none",
+            },
+          }}
           initialState={{
             sorting: {
               sortModel: [
@@ -117,6 +127,12 @@ export default function WebhookSecretTable() {
               field: "name",
               headerName: "Name",
               sortable: false,
+              width: 112,
+              renderCell: (params) => (
+                <Tooltip title={params.row.name}>
+                  <span>{params.row.name}</span>
+                </Tooltip>
+              ),
             },
             {
               sortable: false,
@@ -155,7 +171,6 @@ export default function WebhookSecretTable() {
             },
           ]}
           getRowId={(row) => row.name}
-          disableRowSelectionOnClick
         />
       </Box>
       <Dialog open={newSecretName !== null} onClose={closeDialog}>
