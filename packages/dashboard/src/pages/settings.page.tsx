@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import {
   ContentCopyOutlined,
+  Create,
   InfoOutlined,
+  Key,
   Mail,
   SimCardDownload,
   SmsOutlined,
@@ -308,7 +310,8 @@ const settingsSectionIds = {
   smsChannel: "sms-channel",
   webhookChannel: "webhook-channel",
   subscription: "subscriptions",
-  authentication: "authentication",
+  writeKey: "writeKey",
+  adminApiKey: "admin-api-key",
   hubspotIntegration: "hubspot-integration",
   workspaceMetadata: "workspace-metadata",
 } as const;
@@ -373,8 +376,24 @@ const menuItems: MenuItemGroup[] = [
     id: "authentication",
     title: "Authentication",
     type: "group",
-    children: [],
-    url: `/settings#${settingsSectionIds.authentication}`,
+    children: [
+      {
+        id: "write-key",
+        title: "Public Write Key",
+        type: "item",
+        url: `/settings#${settingsSectionIds.writeKey}`,
+        description: "Write key used to submit user data to Dittofeed.",
+        icon: Create,
+      },
+      {
+        id: "admin-api-key",
+        title: "Admin API Key",
+        type: "item",
+        url: `/settings#${settingsSectionIds.adminApiKey}`,
+        description: "API key used to authenticate against the Admin API.",
+        icon: Key,
+      },
+    ],
   },
   {
     id: "integrations",
