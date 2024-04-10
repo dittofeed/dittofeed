@@ -5,6 +5,7 @@ import {
   Mail,
   SimCardDownload,
   SmsOutlined,
+  Webhook,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import {
@@ -82,6 +83,7 @@ import InfoBox from "../components/infoBox";
 import Layout from "../components/layout";
 import { MenuItemGroup } from "../components/menuItems/types";
 import { SubscriptionManagement } from "../components/subscriptionManagement";
+import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
@@ -251,6 +253,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       getSecretAvailability({
         workspaceId,
         names: [
+          SecretNames.Webhook,
           ...Object.values(EMAIL_PROVIDER_TYPE_TO_SECRET_NAME),
           ...Object.values(SMS_PROVIDER_TYPE_TO_SECRET_NAME),
         ],
@@ -303,6 +306,7 @@ const settingsSectionIds = {
   segmentSource: "segment-source",
   emailChannel: "email-channel",
   smsChannel: "sms-channel",
+  webhookChannel: "webhook-channel",
   subscription: "subscriptions",
   authentication: "authentication",
   hubspotIntegration: "hubspot-integration",
@@ -347,6 +351,14 @@ const menuItems: MenuItemGroup[] = [
         icon: SmsOutlined,
         description:
           "Configure email settings, including the email provider credentials.",
+      },
+      {
+        id: "webhook",
+        title: "Webhook",
+        type: "item",
+        url: `/settings#${settingsSectionIds.webhookChannel}`,
+        icon: Webhook,
+        description: "Configure webhook settings, including custom secrets.",
       },
     ],
   },
@@ -1250,12 +1262,27 @@ function SmsChannelConfig() {
   );
 }
 
+function WebhookChannelConfig() {
+  return (
+    <>
+      <SectionSubHeader
+        id={settingsSectionIds.webhookChannel}
+        title="Webhook"
+      />
+      <Fields disableChildStyling sections={[]}>
+        <WebhookSecretTable />
+      </Fields>
+    </>
+  );
+}
+
 function MessageChannelsConfig() {
   return (
     <Stack spacing={3}>
       <SectionHeader title="Message Channels" />
       <EmailChannelConfig />
       <SmsChannelConfig />
+      <WebhookChannelConfig />
     </Stack>
   );
 }

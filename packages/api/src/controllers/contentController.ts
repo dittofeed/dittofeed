@@ -7,14 +7,16 @@ import {
   upsertMessageTemplate,
 } from "backend-lib/src/messaging";
 import prisma from "backend-lib/src/prisma";
-import { Prisma } from "backend-lib/src/types";
+import { Prisma, Secret } from "backend-lib/src/types";
 import { randomUUID } from "crypto";
 import { FastifyInstance } from "fastify";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { SecretNames } from "isomorphic-lib/src/constants";
+import { schemaValidateWithErr } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { assertUnreachable } from "isomorphic-lib/src/typeAssertions";
 import {
   BadWorkspaceConfigurationType,
+  BaseMessageResponse,
   ChannelType,
   DeleteMessageTemplateRequest,
   EmailProviderType,
@@ -30,6 +32,7 @@ import {
   RenderMessageTemplateResponse,
   RenderMessageTemplateResponseContent,
   UpsertMessageTemplateResource,
+  WebhookSecret,
 } from "isomorphic-lib/src/types";
 import * as R from "remeda";
 
@@ -44,6 +47,7 @@ export default async function contentController(fastify: FastifyInstance) {
         body: RenderMessageTemplateRequest,
         response: {
           200: RenderMessageTemplateResponse,
+          500: BaseMessageResponse,
         },
       },
     },
@@ -56,21 +60,42 @@ export default async function contentController(fastify: FastifyInstance) {
         userProperties,
       } = request.body;
 
-      const secrets = await prisma().secret.findMany({
-        where: {
-          workspaceId,
-          name: {
-            in: [SecretNames.Subscription],
+      const secretNames = [SecretNames.Subscription];
+      if (channel === ChannelType.Webhook) {
+        secretNames.push(SecretNames.Webhook);
+      }
+
+      const secrets = (
+        await prisma().secret.findMany({
+          where: {
+            workspaceId,
+            name: {
+              in: secretNames,
+            },
           },
-        },
-      });
+        })
+      ).reduce((acc, secret) => {
+        acc.set(secret.name, secret);
+        return acc;
+      }, new Map<string, Secret>());
 
       const templateSecrets: Record<string, string> = {};
-      for (const secret of secrets) {
-        if (!secret.value) {
-          continue;
+      const subscriptionSecret = secrets.get(SecretNames.Subscription)?.value;
+      if (subscriptionSecret) {
+        templateSecrets[SecretNames.Subscription] = subscriptionSecret;
+      }
+      const webhookSecret = secrets.get(SecretNames.Webhook)?.configValue;
+      if (webhookSecret) {
+        const validated = schemaValidateWithErr(webhookSecret, WebhookSecret);
+        if (validated.isErr()) {
+          return reply.status(500).send({
+            message: "Invalid webhook secret configuration",
+          });
         }
-        templateSecrets[secret.name] = secret.value;
+        Object.entries(R.omit(validated.value, ["type"])).forEach(([key]) => {
+          // don't render actual secret value
+          templateSecrets[key] = "**********";
+        });
       }
 
       const identifierKey =

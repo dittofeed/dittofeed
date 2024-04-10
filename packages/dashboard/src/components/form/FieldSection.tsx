@@ -20,6 +20,7 @@ function FieldSection({ title, fieldGroups }: FieldSectionProps) {
         sx={{
           fontSize: 16,
           fontWeight: 500,
+          pt: 4,
           pb: 2,
           mb: 4,
           borderBottom: "1px solid",
@@ -31,7 +32,7 @@ function FieldSection({ title, fieldGroups }: FieldSectionProps) {
       <Stack>{renderedGroups}</Stack>
     </Stack>
   ) : (
-    <Stack sx={{ py: 2 }}>{renderedGroups}</Stack>
+    <Stack sx={{ pb: 2, pt: 4 }}>{renderedGroups}</Stack>
   );
 }
 
