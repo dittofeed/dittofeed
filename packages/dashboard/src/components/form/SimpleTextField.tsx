@@ -1,5 +1,7 @@
 import { TextField, TextFieldProps, useTheme } from "@mui/material";
 
+export const TEXT_FIELD_HEIGHT = 0.8;
+
 export default function SimpleTextField(props: TextFieldProps) {
   const theme = useTheme();
   const { sx } = props;
@@ -13,7 +15,7 @@ export default function SimpleTextField(props: TextFieldProps) {
           display: "none",
         },
         input: {
-          height: "0.8rem",
+          height: `${TEXT_FIELD_HEIGHT}rem`,
         },
 
         label: {

@@ -1,6 +1,7 @@
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import {
+  Box,
   Button,
   IconButton,
   InputAdornment,
@@ -13,11 +14,12 @@ import {
   EphemeralRequestStatus,
   UpsertSecretRequest,
 } from "isomorphic-lib/src/types";
+import { ComponentProps } from "react";
 import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
-import SimpleTextField from "./form/SimpleTextField";
+import SimpleTextField, { TEXT_FIELD_HEIGHT } from "./form/SimpleTextField";
 
 export enum SecretStateType {
   Saved = "Saved",
@@ -50,6 +52,16 @@ export interface SecretState {
   editingState: EditingSecretState;
 }
 
+function SecretButton(props: ComponentProps<typeof LoadingButton>) {
+  return (
+    <Box>
+      <LoadingButton
+        {...props}
+        sx={{ height: `${TEXT_FIELD_HEIGHT + 2}rem` }}
+      />
+    </Box>
+  );
+}
 export interface SecretEditorProps {
   // the name of the secret config referenced by this component
   name: string;
@@ -198,7 +210,7 @@ export function SecretEditor({
             helperText={helperText}
             label={label}
           />
-          <Button
+          <SecretButton
             onClick={() => {
               setState((draft) => {
                 draft.editingState = {
@@ -209,13 +221,13 @@ export function SecretEditor({
             }}
           >
             Update
-          </Button>
-          <LoadingButton
+          </SecretButton>
+          <SecretButton
             loading={updateRequest.type === CompletionStatus.InProgress}
             onClick={deleteHandler}
           >
             Delete
-          </LoadingButton>
+          </SecretButton>
         </>
       );
       break;
@@ -266,13 +278,15 @@ export function SecretEditor({
             onVisibilityChange={() => setState(toggleVisibility)}
             showValue={showValue}
           />
-          <LoadingButton
-            loading={updateRequest.type === CompletionStatus.InProgress}
+          <SecretButton
             onClick={updateHandler}
+            loading={updateRequest.type === CompletionStatus.InProgress}
           >
             Save
-          </LoadingButton>
-          <Button onClick={() => setState(disableSavedEditing)}>Cancel</Button>
+          </SecretButton>
+          <SecretButton onClick={() => setState(disableSavedEditing)}>
+            Cancel
+          </SecretButton>
         </>
       );
       break;
@@ -324,13 +338,14 @@ export function SecretEditor({
             }}
             showValue={showValue}
           />
-          <LoadingButton
+
+          <SecretButton
             variant="contained"
             loading={updateRequest.type === CompletionStatus.InProgress}
             onClick={updateHandler}
           >
             Save
-          </LoadingButton>
+          </SecretButton>
         </>
       );
       break;
@@ -341,7 +356,6 @@ export function SecretEditor({
     <Stack
       direction="row"
       className="secret-editor"
-      alignItems="center"
       spacing={1}
       sx={{ width: "100%" }}
     >
