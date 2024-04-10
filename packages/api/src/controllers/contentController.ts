@@ -92,11 +92,10 @@ export default async function contentController(fastify: FastifyInstance) {
             message: "Invalid webhook secret configuration",
           });
         }
-        Object.entries(R.omit(validated.value, ["type"])).forEach(
-          ([key, value]) => {
-            templateSecrets[key] = value;
-          },
-        );
+        Object.entries(R.omit(validated.value, ["type"])).forEach(([key]) => {
+          // don't render actual secret value
+          templateSecrets[key] = "**********";
+        });
       }
 
       const identifierKey =
