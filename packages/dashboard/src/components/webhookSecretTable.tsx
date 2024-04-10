@@ -78,16 +78,24 @@ export default function WebhookSecretTable() {
 
   return (
     <>
-      <Button
-        variant="outlined"
-        onClick={() => {
-          setState((draft) => {
-            draft.newSecretName = "";
-          });
+      <Stack
+        direction="row"
+        justifyContent="end"
+        sx={{
+          width: "100%",
         }}
       >
-        Create Webhook Secret
-      </Button>
+        <Button
+          variant="outlined"
+          onClick={() => {
+            setState((draft) => {
+              draft.newSecretName = "";
+            });
+          }}
+        >
+          Create Webhook Secret
+        </Button>
+      </Stack>
       <Box
         sx={{
           height: theme.spacing(60),
