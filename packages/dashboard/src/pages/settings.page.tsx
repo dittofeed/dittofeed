@@ -95,6 +95,7 @@ import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { getOrCreateSmsProviders } from "../lib/sms";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
+import AdminApiKeyTable from "../components/adminApiKeyTable";
 
 async function copyToClipboard({
   value,
@@ -1362,7 +1363,7 @@ function AdminApiKeySettings() {
         },
       ]}
     >
-      foobar
+      <AdminApiKeyTable />
     </Fields>
   );
 }
