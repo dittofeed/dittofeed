@@ -1348,6 +1348,7 @@ function WriteKeySettings() {
 function AdminApiKeySettings() {
   return (
     <Fields
+      disableChildStyling
       sections={[
         {
           id: settingsSectionIds.adminApiKey,
@@ -1360,7 +1361,9 @@ function AdminApiKeySettings() {
           ],
         },
       ]}
-    />
+    >
+      foobar
+    </Fields>
   );
 }
 
