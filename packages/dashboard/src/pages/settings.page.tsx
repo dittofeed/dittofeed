@@ -310,7 +310,8 @@ const settingsSectionIds = {
   smsChannel: "sms-channel",
   webhookChannel: "webhook-channel",
   subscription: "subscriptions",
-  writeKey: "writeKey",
+  authentication: "authentication",
+  writeKey: "write-key",
   adminApiKey: "admin-api-key",
   hubspotIntegration: "hubspot-integration",
   workspaceMetadata: "workspace-metadata",
@@ -1318,35 +1319,61 @@ function WriteKeySettings() {
   }
 
   return (
+    <Fields
+      sections={[
+        {
+          id: settingsSectionIds.writeKey,
+          fieldGroups: [
+            {
+              id: "write-key-fields",
+              name: "Write key",
+              fields: [
+                copyToClipboardField({
+                  id: "sendgrid-api-key",
+                  successNotice: "Copied write key to clipboard.",
+                  failureNotice: "Failed to copy write key to clipboard.",
+                  value: keyHeader,
+                  helperText:
+                    'Include this key as an HTTP "Authorization: Basic ..." header in your requests. This authorization key can be included in your client, and does not need to be kept secret.',
+                }),
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
+function AdminApiKeySettings() {
+  return (
+    <Fields
+      sections={[
+        {
+          id: settingsSectionIds.adminApiKey,
+          fieldGroups: [
+            {
+              id: "authorization-fields",
+              name: "Admin API Key",
+              fields: [],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
+function AuthenticationSettings() {
+  return (
     <Stack spacing={3}>
       <SectionHeader
         id={settingsSectionIds.authentication}
         title="Authentication"
         description=""
       />
-      <Fields
-        sections={[
-          {
-            id: "authorization-section-1",
-            fieldGroups: [
-              {
-                id: "authorization-fields",
-                name: "Write key",
-                fields: [
-                  copyToClipboardField({
-                    id: "sendgrid-api-key",
-                    successNotice: "Copied write key to clipboard.",
-                    failureNotice: "Failed to copy write key to clipboard.",
-                    value: keyHeader,
-                    helperText:
-                      'Include this key as an HTTP "Authorization: Basic ..." header in your requests. This authorization key can be included in your client, and does not need to be kept secret.',
-                  }),
-                ],
-              },
-            ],
-          },
-        ]}
-      />
+      <WriteKeySettings />
+      <AdminApiKeySettings />
     </Stack>
   );
 }
@@ -1539,14 +1566,10 @@ function IntegrationSettings() {
   return (
     <Stack spacing={3}>
       <SectionHeader title="Integrations" description="" />
-      <SectionSubHeader
-        id={settingsSectionIds.hubspotIntegration}
-        title="Hubspot"
-      />
       <Fields
         sections={[
           {
-            id: "hubspot-section",
+            id: settingsSectionIds.hubspotIntegration,
             fieldGroups: [
               {
                 id: "hubspot-fields",
@@ -1744,7 +1767,7 @@ const Settings: NextPage<
       >
         <SegmentIoConfig />
         <MessageChannelsConfig />
-        <WriteKeySettings />
+        <AuthenticationSettings />
         <SubscriptionManagementSettings />
         <IntegrationSettings />
         <Metadata />

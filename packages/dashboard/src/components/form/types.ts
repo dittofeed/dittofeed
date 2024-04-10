@@ -9,7 +9,7 @@ import { PropsWithChildren } from "react";
 import { SecretEditorProps } from "../secretEditor";
 import { SelectFieldProps } from "./select";
 
-type ID = string | number;
+type ID = string;
 
 export interface Field {
   id: ID;
