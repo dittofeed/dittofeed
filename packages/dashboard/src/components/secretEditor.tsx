@@ -342,6 +342,12 @@ export function SecretEditorBase({
   );
 }
 
+/**
+ * Edit a secret whose values are stored as a map of key-value pairs inside of
+ * secret configValue json.
+ * @param param0
+ * @returns
+ */
 export function KeyedSecretEditor({
   name,
   label,
