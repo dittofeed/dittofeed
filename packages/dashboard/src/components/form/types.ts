@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import { PropsWithChildren } from "react";
 
-import { SecretEditorProps } from "../secretEditor";
+import { SecretEditorKeyedProps } from "../secretEditor";
 import { SelectFieldProps } from "./select";
 
 type ID = string;
@@ -37,7 +37,7 @@ export interface ButtonField extends Field {
 
 export interface SecretField extends Field {
   type: "secret";
-  fieldProps: SecretEditorProps;
+  fieldProps: SecretEditorKeyedProps;
 }
 
 export interface SelectField extends Field {

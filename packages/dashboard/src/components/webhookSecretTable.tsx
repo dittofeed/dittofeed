@@ -17,7 +17,7 @@ import { useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
-import { SecretEditor } from "./secretEditor";
+import { KeyedSecretEditor } from "./secretEditor";
 
 export default function WebhookSecretTable() {
   const { secretAvailability } = useAppStorePick(["secretAvailability"]);
@@ -149,7 +149,7 @@ export default function WebhookSecretTable() {
                     width: "100%",
                   }}
                 >
-                  <SecretEditor
+                  <KeyedSecretEditor
                     type={ChannelType.Webhook}
                     name={SecretNames.Webhook}
                     saved={params.row.saved}

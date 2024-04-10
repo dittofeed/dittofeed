@@ -165,7 +165,7 @@ interface SecretEditorUpdateProps {
   handleDelete: HandleDelete;
 }
 
-interface SecretEditorKeyedProps extends SecretEditorProps {
+export interface SecretEditorKeyedProps extends SecretEditorProps {
   // the name of the secret config referenced by this component
   name: string;
   // type of secret, passed in payload
@@ -342,7 +342,7 @@ export function SecretEditorBase({
   );
 }
 
-export function SecretEditor({
+export function KeyedSecretEditor({
   name,
   label,
   type,
