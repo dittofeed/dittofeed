@@ -1,3 +1,4 @@
+import { PublishOutlined, RestoreOutlined } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -8,13 +9,12 @@ import {
   DialogContentText,
   DialogTitle,
   FormControlLabel,
+  IconButton,
   Stack,
   Switch,
-  useTheme,
-  IconButton,
   Tooltip,
+  useTheme,
 } from "@mui/material";
-import { PublishOutlined, RestoreOutlined } from "@mui/icons-material";
 import {
   CompletionStatus,
   EphemeralRequestStatus,

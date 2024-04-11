@@ -1,3 +1,4 @@
+import { ForwardToInboxOutlined } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import {
   Button,
@@ -5,12 +6,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Tooltip,
   IconButton,
+  Tooltip,
   useTheme,
 } from "@mui/material";
 import { useState } from "react";
-import { ForwardToInboxOutlined } from "@mui/icons-material";
+
 export default function LoadingModal({
   dialogTitle,
   children,
