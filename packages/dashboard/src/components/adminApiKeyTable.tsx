@@ -126,10 +126,18 @@ export default function AdminApiKeyTable() {
   const deleteKey = (id: string) => {};
 
   let dialogContent: React.ReactNode = null;
+  let dialogActions: React.ReactNode = null;
   if (modalState?.type === ModalStateType.Naming) {
     if (modalState.createRequest.type === CompletionStatus.InProgress) {
       // FIXME loading
       dialogContent = "Creating...";
+
+      dialogActions = (
+        <>
+          <Button disabled>Cancel</Button>
+          <Button disabled>Create</Button>
+        </>
+      );
     } else {
       dialogContent = (
         <TextField
@@ -155,9 +163,16 @@ export default function AdminApiKeyTable() {
         />
       );
     }
+    dialogActions = (
+      <>
+        <Button onClick={closeDialog}>Cancel</Button>
+        <Button onClick={createKey}>Create</Button>
+      </>
+    );
   } else if (modalState?.type === ModalStateType.Copying) {
     // FIXME add copy box
     dialogContent = <>{modalState.keyValue}</>;
+    dialogActions = <Button onClick={closeDialog}>Close</Button>;
   }
 
   return (
@@ -225,8 +240,13 @@ export default function AdminApiKeyTable() {
             {
               field: "createdAt",
               width: 200,
-              valueGetter: (params) =>
-                new Date(params.row.createdAt).toISOString(),
+              valueGetter: (params) => {
+                // debugger;
+                console.log("loc1", params.row);
+                // return "";
+
+                return new Date(params.row.createdAt).toISOString();
+              },
               headerName: "Created At",
             },
             {
@@ -257,10 +277,7 @@ export default function AdminApiKeyTable() {
             {dialogContent}
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDialog}>Cancel</Button>
-          <Button onClick={createKey}>Create</Button>
-        </DialogActions>
+        <DialogActions>{dialogActions}</DialogActions>
       </Dialog>
     </>
   );
