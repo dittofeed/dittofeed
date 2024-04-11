@@ -87,10 +87,12 @@ export default function AdminApiKeyTable() {
     }
     apiRequestHandlerFactory({
       request: modalState.createRequest,
+      onFailureNoticeHandler: () =>
+        `Failed to create API key: ${modalState.newName}`,
       requestConfig: {
         method: "POST",
         url: `${apiBase}/api/admin-keys`,
-        params: {
+        data: {
           workspaceId: workspace.value.id,
           name: modalState.newName,
         } satisfies CreateAdminApiKeyRequest,
@@ -119,7 +121,7 @@ export default function AdminApiKeyTable() {
           };
         });
       },
-    });
+    })();
   }, [modalState, setState, workspace, upsertAdminApiKey, apiBase]);
   const deleteKey = (id: string) => {};
 
@@ -245,7 +247,16 @@ export default function AdminApiKeyTable() {
       </Box>
       <Dialog open={modalState !== null} onClose={closeDialog} fullWidth>
         <DialogTitle>Create Admin API Key</DialogTitle>
-        <DialogContent>{dialogContent}</DialogContent>
+        <DialogContent>
+          <Box
+            sx={{
+              width: "100%",
+              p: 2,
+            }}
+          >
+            {dialogContent}
+          </Box>
+        </DialogContent>
         <DialogActions>
           <Button onClick={closeDialog}>Cancel</Button>
           <Button onClick={createKey}>Create</Button>
