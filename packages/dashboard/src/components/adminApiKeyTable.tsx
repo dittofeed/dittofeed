@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -129,8 +130,7 @@ export default function AdminApiKeyTable() {
   let dialogActions: React.ReactNode = null;
   if (modalState?.type === ModalStateType.Naming) {
     if (modalState.createRequest.type === CompletionStatus.InProgress) {
-      // FIXME loading
-      dialogContent = "Creating...";
+      dialogContent = <CircularProgress />;
 
       dialogActions = (
         <>
