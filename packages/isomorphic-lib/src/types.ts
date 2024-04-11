@@ -3085,12 +3085,12 @@ export const CreateAdminApiKeyRequest = Type.Object({
 
 export type CreateAdminApiKeyRequest = Static<typeof CreateAdminApiKeyRequest>;
 
-export const CreateAdminApiKeyResponse = Type.Object({
-  id: Type.String(),
-  apiKey: Type.String(),
-  name: Type.String(),
-  workspaceId: Type.String(),
-});
+export const CreateAdminApiKeyResponse = Type.Composite([
+  AdminApiKeyResource,
+  Type.Object({
+    apiKey: Type.String(),
+  }),
+]);
 
 export type CreateAdminApiKeyResponse = Static<
   typeof CreateAdminApiKeyResponse

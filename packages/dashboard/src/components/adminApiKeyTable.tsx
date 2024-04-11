@@ -16,14 +16,13 @@ import {
   CreateAdminApiKeyRequest,
   CreateAdminApiKeyResponse,
   EphemeralRequestStatus,
-  RequestStatus,
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
 
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
 import DeleteDialog from "./confirmDeleteDialog";
-import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 
 enum ModalStateType {
   Naming = "Naming",
@@ -51,11 +50,13 @@ interface TableState {
 
 export default function AdminApiKeyTable() {
   const theme = useTheme();
-  const { adminApiKeys, apiBase, workspace } = useAppStorePick([
-    "adminApiKeys",
-    "workspace",
-    "apiBase",
-  ]);
+  const { adminApiKeys, apiBase, workspace, upsertAdminApiKey } =
+    useAppStorePick([
+      "adminApiKeys",
+      "workspace",
+      "apiBase",
+      "upsertAdminApiKey",
+    ]);
   const rows = useMemo(() => {
     if (!adminApiKeys) {
       return [];
@@ -104,8 +105,14 @@ export default function AdminApiKeyTable() {
       },
       responseSchema: CreateAdminApiKeyResponse,
       setResponse: (response) => {
+        upsertAdminApiKey({
+          workspaceId: response.workspaceId,
+          id: response.id,
+          name: response.name,
+          createdAt: response.createdAt,
+        });
+
         setState((draft) => {
-          // FIXME upsert to appstore
           draft.modalState = {
             type: ModalStateType.Copying,
             keyValue: response.apiKey,
@@ -113,7 +120,7 @@ export default function AdminApiKeyTable() {
         });
       },
     });
-  }, [modalState, setState, workspace]);
+  }, [modalState, setState, workspace, upsertAdminApiKey, apiBase]);
   const deleteKey = (id: string) => {};
 
   let dialogContent: React.ReactNode = null;

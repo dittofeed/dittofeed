@@ -28,6 +28,7 @@ export async function createAdminApiKey(
   const key = randomBytes(32).toString("hex");
   const id = randomUUID();
   let isConflictError = false;
+  let createdAt: number | null = null;
 
   try {
     await prisma().$transaction(async (tx) => {
@@ -43,7 +44,7 @@ export async function createAdminApiKey(
             } satisfies AdminApiKeyDefinition,
           },
         });
-        await tx.adminApiKey.create({
+        const adminApiKey = await tx.adminApiKey.create({
           data: {
             id,
             name: data.name,
@@ -51,6 +52,7 @@ export async function createAdminApiKey(
             secretId: secret.id,
           },
         });
+        createdAt = adminApiKey.createdAt.getTime();
       } catch (error) {
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -67,11 +69,16 @@ export async function createAdminApiKey(
       return err({ type: AdminApiKeyCreateErrorType.Conflict });
     }
   }
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (!createdAt) {
+    throw new Error("Unexpected error: createdAt is null");
+  }
   return ok({
     workspaceId: data.workspaceId,
     apiKey: key,
     name: data.name,
     id,
+    createdAt,
   });
 }
 
