@@ -206,6 +206,7 @@ export interface AppActions {
     defaultSmsProvider: DefaultSmsProviderResource,
   ) => void;
   setViewDraft: (viewDraft: boolean) => void;
+  upsertAdminApiKey: (apiKey: AdminApiKeyResource) => void;
 }
 
 export interface SegmentIndexContent {

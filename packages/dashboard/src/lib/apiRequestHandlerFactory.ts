@@ -152,10 +152,10 @@ export default function apiRequestHandlerFactory<D, S extends TSchema>({
       return;
     }
 
-    setResponse(parsedResponse.value, requestConfig.data);
     setRequest({
       type: CompletionStatus.NotStarted,
     });
+    setResponse(parsedResponse.value, requestConfig.data);
 
     if (onSuccessNotice) {
       enqueueSnackbar(onSuccessNotice, {

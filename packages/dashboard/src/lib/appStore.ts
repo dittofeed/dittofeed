@@ -593,6 +593,28 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             }
             return state;
           }),
+        upsertAdminApiKey: (apiKey) =>
+          set((state) => {
+            const { adminApiKeys: adminApiKeysWithoutDefault } = state;
+            const adminApiKeys = adminApiKeysWithoutDefault ?? [];
+
+            let updated = false;
+            for (let i = 0; i < adminApiKeys.length; i++) {
+              const existing = adminApiKeys[i];
+              if (!existing) {
+                throw new Error("apiKey is undefined");
+              }
+              if (apiKey.id === existing.id) {
+                adminApiKeys[i] = apiKey;
+                updated = true;
+                break;
+              }
+            }
+            if (!updated) {
+              adminApiKeys.push(apiKey);
+            }
+            return state;
+          }),
         upsertEmailProvider: (emailProvider) =>
           set((state) => {
             for (const existingProvider of state.emailProviders) {

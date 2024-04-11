@@ -13,14 +13,17 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import {
   CompletionStatus,
+  CreateAdminApiKeyRequest,
+  CreateAdminApiKeyResponse,
   EphemeralRequestStatus,
   RequestStatus,
 } from "isomorphic-lib/src/types";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
 import DeleteDialog from "./confirmDeleteDialog";
+import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 
 enum ModalStateType {
   Naming = "Naming",
@@ -29,12 +32,13 @@ enum ModalStateType {
 
 interface NamingState {
   type: ModalStateType.Naming;
+  createRequest: EphemeralRequestStatus<Error>;
   newName: string;
 }
 
 interface CopyingState {
   type: ModalStateType.Copying;
-  createRequest: RequestStatus<string, Error>;
+  keyValue: string;
 }
 
 type ModalState = NamingState | CopyingState | null;
@@ -73,39 +77,78 @@ export default function AdminApiKeyTable() {
     });
   };
 
-  // FIXME
-  const createKey = () => {};
+  const createKey = useCallback(() => {
+    if (
+      workspace.type !== CompletionStatus.Successful ||
+      modalState?.type !== ModalStateType.Naming
+    ) {
+      return;
+    }
+    apiRequestHandlerFactory({
+      request: modalState.createRequest,
+      requestConfig: {
+        method: "POST",
+        url: `${apiBase}/api/admin-keys`,
+        params: {
+          workspaceId: workspace.value.id,
+          name: modalState.newName,
+        } satisfies CreateAdminApiKeyRequest,
+      },
+      setRequest: (request) => {
+        setState((draft) => {
+          if (draft.modalState?.type !== ModalStateType.Naming) {
+            return;
+          }
+          draft.modalState.createRequest = request;
+        });
+      },
+      responseSchema: CreateAdminApiKeyResponse,
+      setResponse: (response) => {
+        setState((draft) => {
+          // FIXME upsert to appstore
+          draft.modalState = {
+            type: ModalStateType.Copying,
+            keyValue: response.apiKey,
+          };
+        });
+      },
+    });
+  }, [modalState, setState, workspace]);
   const deleteKey = (id: string) => {};
 
   let dialogContent: React.ReactNode = null;
   if (modalState?.type === ModalStateType.Naming) {
-    dialogContent = (
-      <TextField
-        value={modalState.newName}
-        onChange={(e) => {
-          setState((draft) => {
-            if (draft.modalState?.type !== ModalStateType.Naming) {
-              return;
-            }
-            draft.modalState.newName = e.target.value;
-          });
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault(); // Prevent form submission if inside a form
-            createKey();
-          }
-        }}
-      />
-    );
-  } else if (modalState?.type === ModalStateType.Copying) {
     if (modalState.createRequest.type === CompletionStatus.InProgress) {
-      // FIXME loading spinner
+      // FIXME loading
       dialogContent = "Creating...";
-    } else if (modalState.createRequest.type === CompletionStatus.Successful) {
-      // FIXME add copy box
-      dialogContent = <>{modalState.createRequest.value}</>;
+    } else {
+      dialogContent = (
+        <TextField
+          sx={{
+            width: "100%",
+          }}
+          label="API Key Name"
+          value={modalState.newName}
+          onChange={(e) => {
+            setState((draft) => {
+              if (draft.modalState?.type !== ModalStateType.Naming) {
+                return;
+              }
+              draft.modalState.newName = e.target.value;
+            });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault(); // Prevent form submission if inside a form
+              createKey();
+            }
+          }}
+        />
+      );
     }
+  } else if (modalState?.type === ModalStateType.Copying) {
+    // FIXME add copy box
+    dialogContent = <>{modalState.keyValue}</>;
   }
 
   return (
@@ -123,6 +166,9 @@ export default function AdminApiKeyTable() {
             setState((draft) => {
               draft.modalState = {
                 type: ModalStateType.Naming,
+                createRequest: {
+                  type: CompletionStatus.NotStarted,
+                },
                 newName: "",
               };
             });
@@ -160,8 +206,7 @@ export default function AdminApiKeyTable() {
             {
               field: "name",
               headerName: "Name",
-              sortable: false,
-              width: 112,
+              flex: 1,
               renderCell: (params) => (
                 <Tooltip title={params.row.name}>
                   <span>{params.row.name}</span>
@@ -170,6 +215,7 @@ export default function AdminApiKeyTable() {
             },
             {
               field: "createdAt",
+              width: 200,
               valueGetter: (params) =>
                 new Date(params.row.createdAt).toISOString(),
               headerName: "Created At",
@@ -190,7 +236,7 @@ export default function AdminApiKeyTable() {
           getRowId={(row) => row.name}
         />
       </Box>
-      <Dialog open={modalState !== null} onClose={closeDialog}>
+      <Dialog open={modalState !== null} onClose={closeDialog} fullWidth>
         <DialogTitle>Create Admin API Key</DialogTitle>
         <DialogContent>{dialogContent}</DialogContent>
         <DialogActions>
