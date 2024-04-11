@@ -1,4 +1,8 @@
-import { PublishOutlined, RestoreOutlined } from "@mui/icons-material";
+import {
+  PublishOutlined,
+  UndoOutlined,
+  WarningAmberOutlined,
+} from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -129,7 +133,7 @@ function PublisherInner({
       {isMinimised && (
         <Tooltip title="Revert">
           <IconButton onClick={onRevert} disabled={disableRevert}>
-            <RestoreOutlined
+            <UndoOutlined
               sx={{
                 border: `2px solid ${disablePublish ? theme.palette.grey[400] : theme.palette.grey[600]}`,
                 borderRadius: "50%",
@@ -139,14 +143,17 @@ function PublisherInner({
         </Tooltip>
       )}
 
-      <CircularProgress
-        sx={{
-          visibility: showProgress ? "visible" : "hidden",
-          opacity: showProgress ? 1 : 0,
-          transition: "visibility 0.4s, opacity 0.4s linear",
-        }}
-        size="1rem"
-      />
+      {showProgress && (
+        <CircularProgress
+          sx={{
+            visibility: showProgress ? "visible" : "hidden",
+            opacity: showProgress ? 1 : 0,
+            transition: "visibility 0.4s, opacity 0.4s linear",
+          }}
+          size="1rem"
+        />
+      )}
+
       {!isMinimised && (
         <Box
           sx={{
@@ -157,6 +164,19 @@ function PublisherInner({
         >
           Unpublished Changes.
         </Box>
+      )}
+
+      {isMinimised && showUnpublishedWarning && (
+        <Tooltip title="Unpublished Changes.">
+          <WarningAmberOutlined
+            sx={{
+              ...getWarningStyles(theme),
+              color: `${theme.palette.warning.light}`,
+              border: `2px solid ${theme.palette.warning.light}`,
+              borderRadius: "50%",
+            }}
+          />
+        </Tooltip>
       )}
 
       <Dialog
