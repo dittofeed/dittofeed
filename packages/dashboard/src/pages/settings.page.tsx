@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import {
-  ContentCopyOutlined,
   Create,
   InfoOutlined,
   Key,
@@ -18,8 +17,6 @@ import {
   Dialog,
   FormControlLabel,
   FormGroup,
-  IconButton,
-  InputAdornment,
   Paper,
   Stack,
   Switch,
@@ -67,7 +64,6 @@ import {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
-import { enqueueSnackbar } from "notistack";
 import { useMemo, useState } from "react";
 import { pick } from "remeda";
 import { useImmer } from "use-immer";
@@ -91,37 +87,12 @@ import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { copyInputProps, copyToClipboard } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
-import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { getOrCreateSmsProviders } from "../lib/sms";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
-
-async function copyToClipboard({
-  value,
-  successNotice,
-  failureNotice,
-}: {
-  successNotice: string;
-  failureNotice: string;
-  value: string;
-}) {
-  try {
-    await navigator.clipboard.writeText(value);
-    enqueueSnackbar(successNotice, {
-      variant: "success",
-      autoHideDuration: 1000,
-      anchorOrigin: noticeAnchorOrigin,
-    });
-  } catch (err) {
-    enqueueSnackbar(failureNotice, {
-      variant: "error",
-      autoHideDuration: 1000,
-      anchorOrigin: noticeAnchorOrigin,
-    });
-  }
-}
 
 function copyToClipboardField({
   value,
@@ -144,24 +115,11 @@ function copyToClipboardField({
       helperText,
       value,
       onChange: () => {},
-      InputProps: {
-        endAdornment: (
-          <InputAdornment position="end">
-            <IconButton
-              color="primary"
-              onClick={() =>
-                copyToClipboard({
-                  value,
-                  successNotice,
-                  failureNotice,
-                })
-              }
-            >
-              <ContentCopyOutlined />
-            </IconButton>
-          </InputAdornment>
-        ),
-      },
+      InputProps: copyInputProps({
+        value,
+        successNotice,
+        failureNotice,
+      }),
     },
   };
 }

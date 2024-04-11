@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -23,6 +24,7 @@ import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
+import { copyInputProps } from "../lib/copyToClipboard";
 import DeleteDialog from "./confirmDeleteDialog";
 
 enum ModalStateType {
@@ -170,8 +172,27 @@ export default function AdminApiKeyTable() {
       </>
     );
   } else if (modalState?.type === ModalStateType.Copying) {
-    // FIXME add copy box
-    dialogContent = <>{modalState.keyValue}</>;
+    dialogContent = (
+      <>
+        <Alert severity="warning">
+          Make sure to copy, and securely store this API Key. You will not be
+          able to access it again after closing this dialogue.
+        </Alert>
+        <TextField
+          value={modalState.keyValue}
+          fullWidth
+          InputProps={{
+            ...copyInputProps({
+              value: modalState.keyValue,
+              successNotice: "Copied Admin API Key.",
+              failureNotice: "Failed to copy Admin API Key.",
+            }),
+            readOnly: true,
+          }}
+        />
+      </>
+    );
+
     dialogActions = <Button onClick={closeDialog}>Close</Button>;
   }
 
@@ -268,14 +289,16 @@ export default function AdminApiKeyTable() {
       <Dialog open={modalState !== null} onClose={closeDialog} fullWidth>
         <DialogTitle>Create Admin API Key</DialogTitle>
         <DialogContent>
-          <Box
+          <Stack
+            direction="column"
+            spacing={1}
             sx={{
               width: "100%",
               p: 2,
             }}
           >
             {dialogContent}
-          </Box>
+          </Stack>
         </DialogContent>
         <DialogActions>{dialogActions}</DialogActions>
       </Dialog>
