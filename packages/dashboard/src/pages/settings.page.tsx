@@ -87,7 +87,7 @@ import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
-import { copyInputProps, copyToClipboard } from "../lib/copyToClipboard";
+import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
