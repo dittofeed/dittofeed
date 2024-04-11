@@ -47,7 +47,7 @@ export default async function apiKeyController(fastify: FastifyInstance) {
       schema: {
         description: "Delete an admin API key.",
         tags: ["API Key", "Admin"],
-        body: DeleteAdminApiKeyRequest,
+        querystring: DeleteAdminApiKeyRequest,
         response: {
           204: EmptyResponse,
         },
@@ -56,7 +56,8 @@ export default async function apiKeyController(fastify: FastifyInstance) {
     async (request, reply) => {
       await prisma().adminApiKey.delete({
         where: {
-          id: request.body.id,
+          workspaceId: request.query.workspaceId,
+          id: request.query.id,
         },
       });
 

@@ -17,6 +17,8 @@ import {
   CompletionStatus,
   CreateAdminApiKeyRequest,
   CreateAdminApiKeyResponse,
+  DeleteAdminApiKeyRequest,
+  EmptyResponse,
   EphemeralRequestStatus,
 } from "isomorphic-lib/src/types";
 import { useCallback, useMemo } from "react";
@@ -53,13 +55,19 @@ interface TableState {
 
 export default function AdminApiKeyTable() {
   const theme = useTheme();
-  const { adminApiKeys, apiBase, workspace, upsertAdminApiKey } =
-    useAppStorePick([
-      "adminApiKeys",
-      "workspace",
-      "apiBase",
-      "upsertAdminApiKey",
-    ]);
+  const {
+    adminApiKeys,
+    apiBase,
+    workspace,
+    upsertAdminApiKey,
+    deleteAdminApiKey,
+  } = useAppStorePick([
+    "adminApiKeys",
+    "workspace",
+    "apiBase",
+    "upsertAdminApiKey",
+    "deleteAdminApiKey",
+  ]);
   const rows = useMemo(() => {
     if (!adminApiKeys) {
       return [];
@@ -126,7 +134,41 @@ export default function AdminApiKeyTable() {
       },
     })();
   }, [modalState, setState, workspace, upsertAdminApiKey, apiBase]);
-  const deleteKey = (id: string) => {};
+  const deleteKey = useCallback(
+    (id: string) => {
+      if (workspace.type !== CompletionStatus.Successful) {
+        return;
+      }
+      const deleteRequest = deleteRequests.get(id) ?? {
+        type: CompletionStatus.NotStarted,
+      };
+      apiRequestHandlerFactory({
+        request: deleteRequest,
+        onFailureNoticeHandler: () => "Failed to delete API key.",
+        responseSchema: EmptyResponse,
+        requestConfig: {
+          method: "DELETE",
+          url: `${apiBase}/api/admin-keys`,
+          params: {
+            workspaceId: workspace.value.id,
+            id,
+          } satisfies DeleteAdminApiKeyRequest,
+        },
+        setRequest: (request) => {
+          setState((draft) => {
+            draft.deleteRequests.set(id, request);
+          });
+        },
+        setResponse: () => {
+          deleteAdminApiKey(id);
+          setState((draft) => {
+            draft.deleteRequests.delete(id);
+          });
+        },
+      })();
+    },
+    [deleteAdminApiKey, deleteRequests, setState, workspace, apiBase],
+  );
 
   let dialogContent: React.ReactNode = null;
   let dialogActions: React.ReactNode = null;
@@ -261,13 +303,8 @@ export default function AdminApiKeyTable() {
             {
               field: "createdAt",
               width: 200,
-              valueGetter: (params) => {
-                // debugger;
-                console.log("loc1", params.row);
-                // return "";
-
-                return new Date(params.row.createdAt).toISOString();
-              },
+              valueGetter: (params) =>
+                new Date(params.row.createdAt).toISOString(),
               headerName: "Created At",
             },
             {
@@ -276,7 +313,11 @@ export default function AdminApiKeyTable() {
               sortable: false,
               renderCell: (params) => (
                 <DeleteDialog
-                  title={`Delete ${params.row.name}`}
+                  disabled={
+                    deleteRequests.get(params.row.id)?.type ===
+                    CompletionStatus.InProgress
+                  }
+                  title={`Delete Admin API Key ${params.row.name}`}
                   message={`Are you sure you want to delete ${params.row.name}?`}
                   onConfirm={() => deleteKey(params.row.id)}
                 />

@@ -207,6 +207,7 @@ export interface AppActions {
   ) => void;
   setViewDraft: (viewDraft: boolean) => void;
   upsertAdminApiKey: (apiKey: AdminApiKeyResource) => void;
+  deleteAdminApiKey: (id: string) => void;
 }
 
 export interface SegmentIndexContent {
