@@ -5,6 +5,7 @@ import prisma from "./prisma";
 import {
   AdminApiKeyDefinition,
   AdminApiKeyPermission,
+  AdminApiKeyResource,
   AdminApiKeyType,
   CreateAdminApiKeyRequest,
   CreateAdminApiKeyResponse,
@@ -72,4 +73,22 @@ export async function createAdminApiKey(
     name: data.name,
     id,
   });
+}
+
+export async function getAdminApiKeys({
+  workspaceId,
+}: {
+  workspaceId: string;
+}): Promise<AdminApiKeyResource[]> {
+  const keys = await prisma().adminApiKey.findMany({
+    where: {
+      workspaceId,
+    },
+  });
+  return keys.map((key) => ({
+    workspaceId,
+    id: key.id,
+    name: key.name,
+    createdAt: key.createdAt.getTime(),
+  }));
 }

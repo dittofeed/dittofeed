@@ -26,6 +26,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
@@ -230,6 +231,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       smsProviders,
       defaultSmsProviderRecord,
       secretAvailability,
+      adminApiKeys,
     ] = await Promise.all([
       getOrCreateEmailProviders({ workspaceId }),
       prisma().defaultEmailProvider.findFirst({
@@ -261,6 +263,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           ...Object.values(SMS_PROVIDER_TYPE_TO_SECRET_NAME),
         ],
       }),
+      getAdminApiKeys({ workspaceId }),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -295,6 +298,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     serverInitialState.subscriptionGroups = subscriptionGroupResources;
     serverInitialState.defaultSmsProvider = defaultSmsProviderRecord;
     serverInitialState.smsProviders = smsProviders;
+    serverInitialState.adminApiKeys = adminApiKeys;
 
     return {
       props: addInitialStateToProps({

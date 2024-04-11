@@ -11,7 +11,11 @@ import {
   useTheme,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { EphemeralRequestStatus } from "isomorphic-lib/src/types";
+import {
+  CompletionStatus,
+  EphemeralRequestStatus,
+  RequestStatus,
+} from "isomorphic-lib/src/types";
 import { useMemo } from "react";
 import { useImmer } from "use-immer";
 
@@ -30,7 +34,7 @@ interface NamingState {
 
 interface CopyingState {
   type: ModalStateType.Copying;
-  keyValue: string;
+  createRequest: RequestStatus<string, Error>;
 }
 
 type ModalState = NamingState | CopyingState | null;
@@ -46,6 +50,7 @@ export default function AdminApiKeyTable() {
   const { adminApiKeys, apiBase, workspace } = useAppStorePick([
     "adminApiKeys",
     "workspace",
+    "apiBase",
   ]);
   const rows = useMemo(() => {
     if (!adminApiKeys) {
@@ -70,7 +75,7 @@ export default function AdminApiKeyTable() {
 
   // FIXME
   const createKey = () => {};
-  const deleteKey = (id) => {};
+  const deleteKey = (id: string) => {};
 
   let dialogContent: React.ReactNode = null;
   if (modalState?.type === ModalStateType.Naming) {
@@ -94,8 +99,13 @@ export default function AdminApiKeyTable() {
       />
     );
   } else if (modalState?.type === ModalStateType.Copying) {
-    // FIXME add copy box
-    dialogContent = <>{modalState.keyValue}</>;
+    if (modalState.createRequest.type === CompletionStatus.InProgress) {
+      // FIXME loading spinner
+      dialogContent = "Creating...";
+    } else if (modalState.createRequest.type === CompletionStatus.Successful) {
+      // FIXME add copy box
+      dialogContent = <>{modalState.createRequest.value}</>;
+    }
   }
 
   return (
@@ -118,7 +128,7 @@ export default function AdminApiKeyTable() {
             });
           }}
         >
-          Create Webhook Secret
+          Create Admin API Key
         </Button>
       </Stack>
       <Box
