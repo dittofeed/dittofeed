@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import {
-  ContentCopyOutlined,
+  Create,
   InfoOutlined,
+  Key,
   Mail,
   SimCardDownload,
   SmsOutlined,
@@ -16,14 +17,13 @@ import {
   Dialog,
   FormControlLabel,
   FormGroup,
-  IconButton,
-  InputAdornment,
   Paper,
   Stack,
   Switch,
   TextField,
   Typography,
 } from "@mui/material";
+import { getAdminApiKeys } from "backend-lib/src/adminApiKeys";
 import { createWriteKey, getWriteKeys } from "backend-lib/src/auth";
 import { HUBSPOT_INTEGRATION } from "backend-lib/src/constants";
 import { generateSecureKey } from "backend-lib/src/crypto";
@@ -64,13 +64,13 @@ import {
   InferGetServerSidePropsType,
   NextPage,
 } from "next";
-import { enqueueSnackbar } from "notistack";
 import { useMemo, useState } from "react";
 import { pick } from "remeda";
 import { useImmer } from "use-immer";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+import AdminApiKeyTable from "../components/adminApiKeyTable";
 import ExternalLink from "../components/externalLink";
 import Fields from "../components/form/Fields";
 import {
@@ -87,37 +87,12 @@ import WebhookSecretTable from "../components/webhookSecretTable";
 import { addInitialStateToProps } from "../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStore, useAppStorePick } from "../lib/appStore";
+import { copyInputProps } from "../lib/copyToClipboard";
 import { getOrCreateEmailProviders } from "../lib/email";
-import { noticeAnchorOrigin } from "../lib/notices";
 import prisma from "../lib/prisma";
 import { requestContext } from "../lib/requestContext";
 import { getOrCreateSmsProviders } from "../lib/sms";
 import { PreloadedState, PropsWithInitialState } from "../lib/types";
-
-async function copyToClipboard({
-  value,
-  successNotice,
-  failureNotice,
-}: {
-  successNotice: string;
-  failureNotice: string;
-  value: string;
-}) {
-  try {
-    await navigator.clipboard.writeText(value);
-    enqueueSnackbar(successNotice, {
-      variant: "success",
-      autoHideDuration: 1000,
-      anchorOrigin: noticeAnchorOrigin,
-    });
-  } catch (err) {
-    enqueueSnackbar(failureNotice, {
-      variant: "error",
-      autoHideDuration: 1000,
-      anchorOrigin: noticeAnchorOrigin,
-    });
-  }
-}
 
 function copyToClipboardField({
   value,
@@ -140,24 +115,11 @@ function copyToClipboardField({
       helperText,
       value,
       onChange: () => {},
-      InputProps: {
-        endAdornment: (
-          <InputAdornment position="end">
-            <IconButton
-              color="primary"
-              onClick={() =>
-                copyToClipboard({
-                  value,
-                  successNotice,
-                  failureNotice,
-                })
-              }
-            >
-              <ContentCopyOutlined />
-            </IconButton>
-          </InputAdornment>
-        ),
-      },
+      InputProps: copyInputProps({
+        value,
+        successNotice,
+        failureNotice,
+      }),
     },
   };
 }
@@ -227,6 +189,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
       smsProviders,
       defaultSmsProviderRecord,
       secretAvailability,
+      adminApiKeys,
     ] = await Promise.all([
       getOrCreateEmailProviders({ workspaceId }),
       prisma().defaultEmailProvider.findFirst({
@@ -258,6 +221,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
           ...Object.values(SMS_PROVIDER_TYPE_TO_SECRET_NAME),
         ],
       }),
+      getAdminApiKeys({ workspaceId }),
     ]);
 
     const serverInitialState: PreloadedState = {
@@ -292,6 +256,7 @@ export const getServerSideProps: GetServerSideProps<PropsWithInitialState> =
     serverInitialState.subscriptionGroups = subscriptionGroupResources;
     serverInitialState.defaultSmsProvider = defaultSmsProviderRecord;
     serverInitialState.smsProviders = smsProviders;
+    serverInitialState.adminApiKeys = adminApiKeys;
 
     return {
       props: addInitialStateToProps({
@@ -309,6 +274,8 @@ const settingsSectionIds = {
   webhookChannel: "webhook-channel",
   subscription: "subscriptions",
   authentication: "authentication",
+  writeKey: "write-key",
+  adminApiKey: "admin-api-key",
   hubspotIntegration: "hubspot-integration",
   workspaceMetadata: "workspace-metadata",
 } as const;
@@ -373,8 +340,24 @@ const menuItems: MenuItemGroup[] = [
     id: "authentication",
     title: "Authentication",
     type: "group",
-    children: [],
-    url: `/settings#${settingsSectionIds.authentication}`,
+    children: [
+      {
+        id: "write-key",
+        title: "Public Write Key",
+        type: "item",
+        url: `/settings#${settingsSectionIds.writeKey}`,
+        description: "Write key used to submit user data to Dittofeed.",
+        icon: Create,
+      },
+      {
+        id: "admin-api-key",
+        title: "Admin API Key",
+        type: "item",
+        url: `/settings#${settingsSectionIds.adminApiKey}`,
+        description: "API key used to authenticate against the Admin API.",
+        icon: Key,
+      },
+    ],
   },
   {
     id: "integrations",
@@ -1299,35 +1282,64 @@ function WriteKeySettings() {
   }
 
   return (
+    <Fields
+      sections={[
+        {
+          id: settingsSectionIds.writeKey,
+          fieldGroups: [
+            {
+              id: "write-key-fields",
+              name: "Write key",
+              fields: [
+                copyToClipboardField({
+                  id: "sendgrid-api-key",
+                  successNotice: "Copied write key to clipboard.",
+                  failureNotice: "Failed to copy write key to clipboard.",
+                  value: keyHeader,
+                  helperText:
+                    'Include this key as an HTTP "Authorization: Basic ..." header in your requests. This authorization key can be included in your client, and does not need to be kept secret.',
+                }),
+              ],
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
+function AdminApiKeySettings() {
+  return (
+    <Fields
+      disableChildStyling
+      sections={[
+        {
+          id: settingsSectionIds.adminApiKey,
+          fieldGroups: [
+            {
+              id: "authorization-fields",
+              name: "Admin API Key",
+              fields: [],
+            },
+          ],
+        },
+      ]}
+    >
+      <AdminApiKeyTable />
+    </Fields>
+  );
+}
+
+function AuthenticationSettings() {
+  return (
     <Stack spacing={3}>
       <SectionHeader
         id={settingsSectionIds.authentication}
         title="Authentication"
         description=""
       />
-      <Fields
-        sections={[
-          {
-            id: "authorization-section-1",
-            fieldGroups: [
-              {
-                id: "authorization-fields",
-                name: "Write key",
-                fields: [
-                  copyToClipboardField({
-                    id: "sendgrid-api-key",
-                    successNotice: "Copied write key to clipboard.",
-                    failureNotice: "Failed to copy write key to clipboard.",
-                    value: keyHeader,
-                    helperText:
-                      'Include this key as an HTTP "Authorization: Basic ..." header in your requests. This authorization key can be included in your client, and does not need to be kept secret.',
-                  }),
-                ],
-              },
-            ],
-          },
-        ]}
-      />
+      <WriteKeySettings />
+      <AdminApiKeySettings />
     </Stack>
   );
 }
@@ -1520,14 +1532,10 @@ function IntegrationSettings() {
   return (
     <Stack spacing={3}>
       <SectionHeader title="Integrations" description="" />
-      <SectionSubHeader
-        id={settingsSectionIds.hubspotIntegration}
-        title="Hubspot"
-      />
       <Fields
         sections={[
           {
-            id: "hubspot-section",
+            id: settingsSectionIds.hubspotIntegration,
             fieldGroups: [
               {
                 id: "hubspot-fields",
@@ -1725,7 +1733,7 @@ const Settings: NextPage<
       >
         <SegmentIoConfig />
         <MessageChannelsConfig />
-        <WriteKeySettings />
+        <AuthenticationSettings />
         <SubscriptionManagementSettings />
         <IntegrationSettings />
         <Metadata />

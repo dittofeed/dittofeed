@@ -124,19 +124,19 @@ export default async function secretsController(fastify: FastifyInstance) {
     {
       schema: {
         description: "Delete a secret.",
+        querystring: DeleteSecretRequest,
         tags: ["Secrets"],
-        body: DeleteSecretRequest,
         response: {
           204: EmptyResponse,
         },
       },
     },
     async (request, reply) => {
-      const { workspaceId, name } = request.body;
-      await prisma().secret.deleteMany({
+      const { workspaceId, id } = request.query;
+      await prisma().secret.delete({
         where: {
           workspaceId,
-          name,
+          id,
         },
       });
       return reply.status(204).send();

@@ -4870,28 +4870,24 @@
           "Secrets"
         ],
         "description": "Delete a secret.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "workspaceId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "workspaceId"
-                ]
-              }
-            }
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "id",
+            "required": true
           },
-          "required": true
-        },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
         "responses": {
           "204": {
             "description": "An empty String",
@@ -10988,24 +10984,28 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {
+                    "workspaceId": {
                       "type": "string"
                     },
-                    "apiKey": {
+                    "id": {
                       "type": "string"
                     },
                     "name": {
                       "type": "string"
                     },
-                    "workspaceId": {
+                    "createdAt": {
+                      "type": "number"
+                    },
+                    "apiKey": {
                       "type": "string"
                     }
                   },
                   "required": [
+                    "workspaceId",
                     "id",
-                    "apiKey",
                     "name",
-                    "workspaceId"
+                    "createdAt",
+                    "apiKey"
                   ]
                 }
               }
@@ -11030,28 +11030,24 @@
           "Admin"
         ],
         "description": "Delete an admin API key.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceId": {
-                    "type": "string"
-                  },
-                  "id": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "workspaceId",
-                  "id"
-                ]
-              }
-            }
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
           },
-          "required": true
-        },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "id",
+            "required": true
+          }
+        ],
         "responses": {
           "204": {
             "description": "An empty String",

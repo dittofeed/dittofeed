@@ -4,7 +4,7 @@ import React from "react";
 import FieldGroup from "./FieldGroup";
 import { FieldSectionProps } from "./types";
 
-function FieldSection({ title, fieldGroups }: FieldSectionProps) {
+function FieldSection({ title, fieldGroups, id }: FieldSectionProps) {
   const renderedGroups = (
     <>
       {fieldGroups.map((group) => (
@@ -14,7 +14,7 @@ function FieldSection({ title, fieldGroups }: FieldSectionProps) {
   );
 
   return title ? (
-    <Stack>
+    <Stack id={id}>
       <Typography
         variant="h3"
         sx={{
@@ -32,7 +32,15 @@ function FieldSection({ title, fieldGroups }: FieldSectionProps) {
       <Stack>{renderedGroups}</Stack>
     </Stack>
   ) : (
-    <Stack sx={{ pb: 2, pt: 4 }}>{renderedGroups}</Stack>
+    <Stack
+      id={id}
+      sx={{
+        pb: 2,
+        pt: 4,
+      }}
+    >
+      {renderedGroups}
+    </Stack>
   );
 }
 
