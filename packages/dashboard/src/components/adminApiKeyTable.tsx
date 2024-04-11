@@ -1,19 +1,21 @@
-import { useImmer } from "use-immer";
-
-import { useAppStorePick } from "../lib/appStore";
-import { EphemeralRequestStatus } from "isomorphic-lib/src/types";
 import {
   Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
+  DialogTitle,
   Stack,
+  TextField,
   Tooltip,
   useTheme,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { EphemeralRequestStatus } from "isomorphic-lib/src/types";
 import { useMemo } from "react";
+import { useImmer } from "use-immer";
+
+import { useAppStorePick } from "../lib/appStore";
 import DeleteDialog from "./confirmDeleteDialog";
 
 enum ModalStateType {
@@ -41,7 +43,10 @@ interface TableState {
 
 export default function AdminApiKeyTable() {
   const theme = useTheme();
-  const { adminApiKeys } = useAppStorePick(["adminApiKeys"]);
+  const { adminApiKeys, apiBase, workspace } = useAppStorePick([
+    "adminApiKeys",
+    "workspace",
+  ]);
   const rows = useMemo(() => {
     if (!adminApiKeys) {
       return [];
@@ -49,12 +54,49 @@ export default function AdminApiKeyTable() {
     return adminApiKeys.map((key) => ({
       name: key.name,
       createdAt: key.createdAt,
+      id: key.id,
     }));
   }, [adminApiKeys]);
   const [{ modalState, deleteRequests }, setState] = useImmer<TableState>({
     modalState: null,
     deleteRequests: new Map(),
   });
+
+  const closeDialog = () => {
+    setState((draft) => {
+      draft.modalState = null;
+    });
+  };
+
+  // FIXME
+  const createKey = () => {};
+  const deleteKey = (id) => {};
+
+  let dialogContent: React.ReactNode = null;
+  if (modalState?.type === ModalStateType.Naming) {
+    dialogContent = (
+      <TextField
+        value={modalState.newName}
+        onChange={(e) => {
+          setState((draft) => {
+            if (draft.modalState?.type !== ModalStateType.Naming) {
+              return;
+            }
+            draft.modalState.newName = e.target.value;
+          });
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault(); // Prevent form submission if inside a form
+            createKey();
+          }
+        }}
+      />
+    );
+  } else if (modalState?.type === ModalStateType.Copying) {
+    // FIXME add copy box
+    dialogContent = <>{modalState.keyValue}</>;
+  }
 
   return (
     <>
@@ -84,7 +126,7 @@ export default function AdminApiKeyTable() {
           height: theme.spacing(60),
         }}
       >
-        <DataGrid<{ name: string; createdAt: number }>
+        <DataGrid<{ name: string; createdAt: number; id: string }>
           rows={rows}
           autoPageSize
           disableRowSelectionOnClick
@@ -130,10 +172,7 @@ export default function AdminApiKeyTable() {
                 <DeleteDialog
                   title={`Delete ${params.row.name}`}
                   message={`Are you sure you want to delete ${params.row.name}?`}
-                  onConfirm={() => {
-                    // FIXME
-                    console.log("delete");
-                  }}
+                  onConfirm={() => deleteKey(params.row.id)}
                 />
               ),
             },
@@ -141,27 +180,12 @@ export default function AdminApiKeyTable() {
           getRowId={(row) => row.name}
         />
       </Box>
-      <Dialog open={newSecretName !== null} onClose={closeDialog}>
-        <DialogTitle>Create Webhook Secret</DialogTitle>
-        <DialogContent>
-          <TextField
-            value={newSecretName ?? ""}
-            onChange={(e) => {
-              setState((draft) => {
-                draft.newSecretName = e.target.value;
-              });
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault(); // Prevent form submission if inside a form
-                addNewSecret();
-              }
-            }}
-          />
-        </DialogContent>
+      <Dialog open={modalState !== null} onClose={closeDialog}>
+        <DialogTitle>Create Admin API Key</DialogTitle>
+        <DialogContent>{dialogContent}</DialogContent>
         <DialogActions>
           <Button onClick={closeDialog}>Cancel</Button>
-          <Button onClick={addNewSecret}>Create</Button>
+          <Button onClick={createKey}>Create</Button>
         </DialogActions>
       </Dialog>
     </>
