@@ -1188,6 +1188,7 @@ export default function TemplateEditor({
               />
             </>
           )}
+
           <Stack
             direction="row"
             justifyContent="center"
