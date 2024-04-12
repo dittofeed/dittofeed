@@ -1,7 +1,7 @@
 import { json as codeMirrorJson, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
-import { TextField, useTheme } from "@mui/material";
+import { Autocomplete, TextField, useTheme } from "@mui/material";
 import ReactCodeMirror from "@uiw/react-codemirror";
 import {
   ChannelType,
@@ -54,7 +54,11 @@ export default function WebhookEditor({
   member?: WorkspaceMemberResource;
 }) {
   const theme = useTheme();
-  const { messages: templates } = useAppStorePick(["messages", "viewDraft"]);
+  const { messages: templates, userProperties } = useAppStorePick([
+    "messages",
+    "viewDraft",
+    "userProperties",
+  ]);
   const template = useMemo(
     () =>
       templates.type === CompletionStatus.Successful
@@ -79,28 +83,41 @@ export default function WebhookEditor({
         if (draft.type !== ChannelType.Webhook) {
           return null;
         }
+        const options =
+          userProperties.type === CompletionStatus.Successful
+            ? userProperties.value.map((up) => up.name)
+            : [];
         return (
-          <TextField
+          <Autocomplete
             disabled={disabled}
-            label="Identifier Key"
-            variant="filled"
-            onChange={(e) => {
-              setDraft((defn) => {
-                if (defn.type !== ChannelType.Webhook) {
-                  return defn;
-                }
-                defn.identifierKey = e.target.value;
-                return defn;
-              });
-            }}
-            required
-            InputProps={{
-              sx: {
-                fontSize: ".75rem",
-                borderTopRightRadius: 0,
-              },
-            }}
+            options={options}
             value={draft.identifierKey}
+            autoComplete
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="filled"
+                label="Identifier Key"
+                InputProps={{
+                  ...params.InputProps,
+                  sx: {
+                    fontSize: ".75rem",
+                    borderTopRightRadius: 0,
+                  },
+                }}
+              />
+            )}
+            onChange={(_, value) => {
+              if (value) {
+                setDraft((defn) => {
+                  if (defn.type !== ChannelType.Webhook) {
+                    return defn;
+                  }
+                  defn.identifierKey = value;
+                  return defn;
+                });
+              }
+            }}
           />
         );
       }}
