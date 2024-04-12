@@ -142,18 +142,14 @@ function PublisherInner({
           </IconButton>
         </Tooltip>
       )}
-
-      {showProgress && (
-        <CircularProgress
-          sx={{
-            visibility: showProgress ? "visible" : "hidden",
-            opacity: showProgress ? 1 : 0,
-            transition: "visibility 0.4s, opacity 0.4s linear",
-          }}
-          size="1rem"
-        />
-      )}
-
+      <CircularProgress
+        sx={{
+          visibility: showProgress ? "visible" : "hidden",
+          opacity: showProgress ? 1 : 0,
+          transition: "visibility 0.4s, opacity 0.4s linear",
+        }}
+        size="1rem"
+      />
       {!isMinimised && (
         <Box
           sx={{
