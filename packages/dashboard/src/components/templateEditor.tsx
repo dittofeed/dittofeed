@@ -20,8 +20,8 @@ import {
   styled,
   SxProps,
   TextField,
-  Tooltip,
   Theme,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -1114,7 +1114,7 @@ export default function TemplateEditor({
           spacing={2}
           sx={{
             borderTopRightRadius: 1,
-            width: "25%",
+            width: isUserPropertiesMinimised ? "fit-content" : "25%",
             padding: 1,
             border: `1px solid ${theme.palette.grey[200]}`,
             boxShadow: theme.shadows[2],
