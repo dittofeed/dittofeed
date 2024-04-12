@@ -99,6 +99,7 @@ export default function WebhookEditor({
                 variant="filled"
                 label="Identifier Key"
                 InputProps={{
+                  ...params.InputProps,
                   sx: {
                     fontSize: ".75rem",
                     borderTopRightRadius: 0,
