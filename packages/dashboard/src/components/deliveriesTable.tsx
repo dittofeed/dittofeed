@@ -622,6 +622,10 @@ export function DeliveriesTable({
         anchor="bottom"
         sx={{
           zIndex: "2000",
+          "& .MuiDrawer-paper": {
+            height: "100vh",
+            width: "100vw",
+          },
         }}
       >
         {preview}

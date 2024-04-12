@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import React from "react";
 
-import SecretEditor from "../secretEditor";
+import { KeyedSecretEditor } from "../secretEditor";
 import { SelectField } from "./select";
 import SimpleTextField from "./SimpleTextField";
 import SimpleToggle from "./SimpleToggle";
@@ -58,7 +58,7 @@ function Field({ type, fieldProps }: FieldComponents) {
       field = <fieldComponents.toggle {...fieldProps} />;
       break;
     case "secret":
-      field = <SecretEditor {...fieldProps} />;
+      field = <KeyedSecretEditor {...fieldProps} />;
       break;
     case "select":
       field = <SelectField {...fieldProps} />;

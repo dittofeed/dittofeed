@@ -156,6 +156,24 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -281,90 +299,14 @@
                           "identifierKey": {
                             "type": "string"
                           },
-                          "config": {
-                            "type": "object",
-                            "properties": {
-                              "url": {
-                                "type": "string"
-                              },
-                              "method": {
-                                "type": "string"
-                              },
-                              "headers": {
-                                "type": "object",
-                                "additionalProperties": {
-                                  "type": "string"
-                                }
-                              },
-                              "params": {
-                                "type": "string"
-                              },
-                              "data": {
-                                "type": "string"
-                              },
-                              "responseEncoding": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "json"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "text"
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
-                          },
-                          "secret": {
-                            "type": "object",
-                            "properties": {
-                              "url": {
-                                "type": "string"
-                              },
-                              "method": {
-                                "type": "string"
-                              },
-                              "headers": {
-                                "type": "object",
-                                "additionalProperties": {
-                                  "type": "string"
-                                }
-                              },
-                              "params": {
-                                "type": "string"
-                              },
-                              "data": {
-                                "type": "string"
-                              },
-                              "responseEncoding": {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "json"
-                                    ]
-                                  },
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "text"
-                                    ]
-                                  }
-                                ]
-                              }
-                            }
+                          "body": {
+                            "type": "string"
                           }
                         },
                         "required": [
                           "type",
                           "identifierKey",
-                          "config",
-                          "secret"
+                          "body"
                         ]
                       }
                     ]
@@ -471,90 +413,14 @@
                               "identifierKey": {
                                 "type": "string"
                               },
-                              "config": {
-                                "type": "object",
-                                "properties": {
-                                  "url": {
-                                    "type": "string"
-                                  },
-                                  "method": {
-                                    "type": "string"
-                                  },
-                                  "headers": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "params": {
-                                    "type": "string"
-                                  },
-                                  "data": {
-                                    "type": "string"
-                                  },
-                                  "responseEncoding": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "json"
-                                        ]
-                                      },
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "text"
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                }
-                              },
-                              "secret": {
-                                "type": "object",
-                                "properties": {
-                                  "url": {
-                                    "type": "string"
-                                  },
-                                  "method": {
-                                    "type": "string"
-                                  },
-                                  "headers": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "params": {
-                                    "type": "string"
-                                  },
-                                  "data": {
-                                    "type": "string"
-                                  },
-                                  "responseEncoding": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "json"
-                                        ]
-                                      },
-                                      {
-                                        "type": "string",
-                                        "enum": [
-                                          "text"
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                }
+                              "body": {
+                                "type": "string"
                               }
                             },
                             "required": [
                               "type",
                               "identifierKey",
-                              "config",
-                              "secret"
+                              "body"
                             ]
                           }
                         ]
@@ -718,90 +584,14 @@
                             "identifierKey": {
                               "type": "string"
                             },
-                            "config": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "method": {
-                                  "type": "string"
-                                },
-                                "headers": {
-                                  "type": "object",
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  }
-                                },
-                                "params": {
-                                  "type": "string"
-                                },
-                                "data": {
-                                  "type": "string"
-                                },
-                                "responseEncoding": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "json"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "text"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            },
-                            "secret": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "method": {
-                                  "type": "string"
-                                },
-                                "headers": {
-                                  "type": "object",
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  }
-                                },
-                                "params": {
-                                  "type": "string"
-                                },
-                                "data": {
-                                  "type": "string"
-                                },
-                                "responseEncoding": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "json"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "text"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
+                            "body": {
+                              "type": "string"
                             }
                           },
                           "required": [
                             "type",
                             "identifierKey",
-                            "config",
-                            "secret"
+                            "body"
                           ]
                         }
                       ]
@@ -906,90 +696,14 @@
                             "identifierKey": {
                               "type": "string"
                             },
-                            "config": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "method": {
-                                  "type": "string"
-                                },
-                                "headers": {
-                                  "type": "object",
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  }
-                                },
-                                "params": {
-                                  "type": "string"
-                                },
-                                "data": {
-                                  "type": "string"
-                                },
-                                "responseEncoding": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "json"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "text"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
-                            },
-                            "secret": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "method": {
-                                  "type": "string"
-                                },
-                                "headers": {
-                                  "type": "object",
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  }
-                                },
-                                "params": {
-                                  "type": "string"
-                                },
-                                "data": {
-                                  "type": "string"
-                                },
-                                "responseEncoding": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "json"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "text"
-                                      ]
-                                    }
-                                  ]
-                                }
-                              }
+                            "body": {
+                              "type": "string"
                             }
                           },
                           "required": [
                             "type",
                             "identifierKey",
-                            "config",
-                            "secret"
+                            "body"
                           ]
                         }
                       ]
@@ -1535,12 +1249,8 @@
                                                 "type": "string"
                                               }
                                             },
-                                            "params": {
-                                              "type": "string"
-                                            },
-                                            "data": {
-                                              "type": "string"
-                                            },
+                                            "params": {},
+                                            "data": {},
                                             "responseEncoding": {
                                               "anyOf": [
                                                 {
@@ -5160,28 +4870,24 @@
           "Secrets"
         ],
         "description": "Delete a secret.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "workspaceId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "workspaceId"
-                ]
-              }
-            }
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "id",
+            "required": true
           },
-          "required": true
-        },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
         "responses": {
           "204": {
             "description": "An empty String",
@@ -11278,24 +10984,28 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {
+                    "workspaceId": {
                       "type": "string"
                     },
-                    "apiKey": {
+                    "id": {
                       "type": "string"
                     },
                     "name": {
                       "type": "string"
                     },
-                    "workspaceId": {
+                    "createdAt": {
+                      "type": "number"
+                    },
+                    "apiKey": {
                       "type": "string"
                     }
                   },
                   "required": [
+                    "workspaceId",
                     "id",
-                    "apiKey",
                     "name",
-                    "workspaceId"
+                    "createdAt",
+                    "apiKey"
                   ]
                 }
               }
@@ -11320,28 +11030,24 @@
           "Admin"
         ],
         "description": "Delete an admin API key.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "workspaceId": {
-                    "type": "string"
-                  },
-                  "id": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "workspaceId",
-                  "id"
-                ]
-              }
-            }
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
           },
-          "required": true
-        },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "id",
+            "required": true
+          }
+        ],
         "responses": {
           "204": {
             "description": "An empty String",
@@ -14551,6 +14257,190 @@
                 "schema": {
                   "description": "An empty String",
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/events/": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "description": "Get list of events",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "searchTerm",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "userId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "startDate",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "endDate",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "messageId": {
+                            "type": "string"
+                          },
+                          "eventType": {
+                            "type": "string"
+                          },
+                          "event": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "anonymousId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "processingTime": {
+                            "type": "string"
+                          },
+                          "eventTime": {
+                            "type": "string"
+                          },
+                          "traits": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "messageId",
+                          "eventType",
+                          "event",
+                          "userId",
+                          "anonymousId",
+                          "processingTime",
+                          "eventTime",
+                          "traits"
+                        ]
+                      }
+                    },
+                    "count": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "events",
+                    "count"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/events/traits": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "description": "Get list of traits available on identify calls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "workspaceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "traits": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "traits"
+                  ]
                 }
               }
             }

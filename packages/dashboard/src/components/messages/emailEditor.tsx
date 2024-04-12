@@ -11,7 +11,7 @@ import {
 import React from "react";
 
 import EmailPreviewHeader from "../emailPreviewHeader";
-import TemplateEditor, { DefinitionToPreview } from "../templateEditor";
+import TemplateEditor, { DraftToPreview } from "../templateEditor";
 
 const USER_TO = "{{user.email}}";
 
@@ -30,7 +30,7 @@ function fieldToReadable(field: string) {
   }
 }
 
-const definitionToPreview: DefinitionToPreview = (definition) => {
+const draftToPreview: DraftToPreview = (definition) => {
   if (definition.type !== ChannelType.Email) {
     throw new Error("Invalid channel type");
   }
@@ -86,8 +86,8 @@ export default function EmailEditor({
       disabled={disabled}
       hideTitle={hideTitle}
       hidePublisher={hidePublisher}
-      renderEditorHeader={({ definition, setDefinition }) => {
-        if (definition.type !== ChannelType.Email) {
+      renderEditorHeader={({ draft, setDraft }) => {
+        if (draft.type !== ChannelType.Email) {
           return null;
         }
         return (
@@ -111,7 +111,7 @@ export default function EmailEditor({
               label="From"
               variant="filled"
               onChange={(e) => {
-                setDefinition((defn) => {
+                setDraft((defn) => {
                   if (defn.type !== ChannelType.Email) {
                     return defn;
                   }
@@ -126,7 +126,7 @@ export default function EmailEditor({
                   borderTopRightRadius: 0,
                 },
               }}
-              value={definition.from}
+              value={draft.from}
             />
             <TextField
               label="Subject"
@@ -134,7 +134,7 @@ export default function EmailEditor({
               disabled={disabled}
               variant="filled"
               onChange={(e) => {
-                setDefinition((defn) => {
+                setDraft((defn) => {
                   if (defn.type !== ChannelType.Email) {
                     return defn;
                   }
@@ -148,14 +148,14 @@ export default function EmailEditor({
                   borderTopRightRadius: 0,
                 },
               }}
-              value={definition.subject}
+              value={draft.subject}
             />
             <TextField
               label="Reply-To"
               variant="filled"
               disabled={disabled}
               onChange={(e) => {
-                setDefinition((defn) => {
+                setDraft((defn) => {
                   if (defn.type !== ChannelType.Email) {
                     return defn;
                   }
@@ -169,24 +169,20 @@ export default function EmailEditor({
                   borderTopRightRadius: 0,
                 },
               }}
-              value={definition.replyTo ?? ""}
+              value={draft.replyTo ?? ""}
             />
           </Stack>
         );
       }}
-      renderEditorBody={({
-        definition,
-        setDefinition,
-        disabled: disabledOverride,
-      }) => {
-        if (definition.type !== ChannelType.Email) {
+      renderEditorBody={({ draft, setDraft, disabled: disabledOverride }) => {
+        if (draft.type !== ChannelType.Email) {
           return null;
         }
         return (
           <ReactCodeMirror
-            value={definition.body}
+            value={draft.body}
             onChange={(value) => {
-              setDefinition((defn) => {
+              setDraft((defn) => {
                 if (defn.type !== ChannelType.Email) {
                   return defn;
                 }
@@ -229,7 +225,7 @@ export default function EmailEditor({
           }}
         />
       )}
-      definitionToPreview={definitionToPreview}
+      draftToPreview={draftToPreview}
       fieldToReadable={fieldToReadable}
     />
   );

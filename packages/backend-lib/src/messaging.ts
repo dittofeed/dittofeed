@@ -2,10 +2,11 @@ import { MailDataRequired } from "@sendgrid/mail";
 import axios, { AxiosError } from "axios";
 import { CHANNEL_IDENTIFIERS } from "isomorphic-lib/src/channels";
 import { MESSAGE_ID_HEADER, SecretNames } from "isomorphic-lib/src/constants";
+import { messageTemplateDraftToDefinition } from "isomorphic-lib/src/messageTemplates";
 import { unwrap } from "isomorphic-lib/src/resultHandling/resultUtils";
 import {
+  jsonParseSafe,
   schemaValidateWithErr,
-  unwrapJsonObject,
 } from "isomorphic-lib/src/resultHandling/schemaValidation";
 import { err, ok, Result } from "neverthrow";
 import { Message as PostMarkRequiredFields } from "postmark";
@@ -48,9 +49,11 @@ import {
   MessageTemplateRenderError,
   MessageTemplateResource,
   MessageTemplateResourceDefinition,
+  MessageTemplateResourceDraft,
   MessageWebhookServiceFailure,
   MessageWebhookSuccess,
   MobilePushProviderType,
+  ParsedWebhookBody,
   Prisma,
   Secret,
   SmsProvider,
@@ -82,7 +85,7 @@ export function enrichMessageTemplate({
     ? schemaValidateWithErr(definition, MessageTemplateResourceDefinition)
     : ok(undefined);
   const enrichedDraft = draft
-    ? schemaValidateWithErr(draft, MessageTemplateResourceDefinition)
+    ? schemaValidateWithErr(draft, MessageTemplateResourceDraft)
     : ok(undefined);
   if (enrichedDefinition.isErr()) {
     return err(enrichedDefinition.error);
@@ -292,9 +295,12 @@ async function getSendMessageModels({
       },
     });
   }
-  const messageTemplateDefinition = useDraft
-    ? messageTemplate.draft ?? messageTemplate.definition
-    : messageTemplate.definition;
+  const definitionFromDraft =
+    useDraft && messageTemplate.draft
+      ? messageTemplateDraftToDefinition(messageTemplate.draft).unwrapOr(null)
+      : null;
+  const messageTemplateDefinition: MessageTemplateResourceDefinition | null =
+    definitionFromDraft ?? messageTemplate.definition ?? null;
 
   if (!messageTemplateDefinition) {
     logger().debug(
@@ -1286,8 +1292,7 @@ export async function sendWebhook({
     secrets[SecretNames.Subscription] = subscriptionGroupSecret;
   }
 
-  // TODO [DF-471]
-  const renderedConfigValuesResult = renderValues({
+  const renderedBody = renderValues({
     userProperties: userPropertyAssignments,
     identifierKey,
     subscriptionGroupId: subscriptionGroupDetails?.id,
@@ -1295,81 +1300,13 @@ export async function sendWebhook({
     secrets,
     tags: messageTags,
     templates: {
-      url: {
-        contents: messageTemplateDefinition.config.url,
-      },
-      method: {
-        contents: messageTemplateDefinition.config.method,
-      },
-      params: {
-        contents: messageTemplateDefinition.config.params,
-      },
-      data: {
-        contents: messageTemplateDefinition.config.data,
-      },
-      responseEncoding: {
-        contents: messageTemplateDefinition.config.responseEncoding,
+      body: {
+        contents: messageTemplateDefinition.body,
       },
     },
   });
-  const renderedSecretValuesResult = renderValues({
-    userProperties: userPropertyAssignments,
-    identifierKey,
-    subscriptionGroupId: subscriptionGroupDetails?.id,
-    workspaceId,
-    secrets,
-    tags: messageTags,
-    templates: {
-      url: {
-        contents: messageTemplateDefinition.secret.url,
-      },
-      method: {
-        contents: messageTemplateDefinition.secret.method,
-      },
-      params: {
-        contents: messageTemplateDefinition.secret.params,
-      },
-      data: {
-        contents: messageTemplateDefinition.secret.data,
-      },
-      responseEncoding: {
-        contents: messageTemplateDefinition.secret.responseEncoding,
-      },
-    },
-  });
-
-  const renderedHeadersConfigResult = messageTemplateDefinition.config.headers
-    ? renderValues({
-        userProperties: userPropertyAssignments,
-        identifierKey,
-        subscriptionGroupId: subscriptionGroupDetails?.id,
-        workspaceId,
-        secrets,
-        tags: messageTags,
-        templates: R.mapValues(
-          messageTemplateDefinition.config.headers,
-          (val) => ({ contents: val }),
-        ),
-      })
-    : null;
-
-  const renderedHeadersSecretResult = messageTemplateDefinition.secret.headers
-    ? renderValues({
-        userProperties: userPropertyAssignments,
-        identifierKey,
-        subscriptionGroupId: subscriptionGroupDetails?.id,
-        workspaceId,
-        secrets,
-        tags: messageTags,
-        templates: R.mapValues(
-          messageTemplateDefinition.secret.headers,
-          (val) => ({ contents: val }),
-        ),
-      })
-    : null;
-
-  if (renderedConfigValuesResult.isErr()) {
-    const { error, field } = renderedConfigValuesResult.error;
+  if (renderedBody.isErr()) {
+    const { error, field } = renderedBody.error;
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
@@ -1379,47 +1316,38 @@ export async function sendWebhook({
       },
     });
   }
-
-  if (renderedSecretValuesResult.isErr()) {
-    const { error, field } = renderedSecretValuesResult.error;
+  const parsedBody = jsonParseSafe(renderedBody.value.body);
+  if (parsedBody.isErr()) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
         type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
-        field,
-        error,
+        field: "body",
+        error: `Failed to parse webhook json payload: ${parsedBody.error.message}`,
       },
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-  if (renderedHeadersConfigResult && renderedHeadersConfigResult.isErr()) {
-    const { error, field } = renderedHeadersConfigResult.error;
+  const validatedBody = schemaValidateWithErr(
+    parsedBody.value,
+    ParsedWebhookBody,
+  );
+  if (validatedBody.isErr()) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
         type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
-        field,
-        error,
+        field: "body",
+        error: `Failed to validate webhook json payload: ${validatedBody.error.message}`,
       },
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-  if (renderedHeadersSecretResult && renderedHeadersSecretResult.isErr()) {
-    const { error, field } = renderedHeadersSecretResult.error;
-    return err({
-      type: InternalEventType.BadWorkspaceConfiguration,
-      variant: {
-        type: BadWorkspaceConfigurationType.MessageTemplateRenderError,
-        field,
-        error,
-      },
-    });
-  }
+  const { config: renderedConfig, secret: renderedSecret } =
+    validatedBody.value;
 
   const renderedConfigHeaders: Record<string, string> =
-    renderedHeadersConfigResult?.value ?? {};
+    renderedConfig.headers ?? {};
 
   if (messageTags) {
     renderedConfigHeaders[MESSAGE_ID_HEADER] = messageTags.messageId;
@@ -1427,7 +1355,7 @@ export async function sendWebhook({
 
   const renderedHeaders = {
     ...renderedConfigHeaders,
-    ...(renderedHeadersSecretResult?.value ?? {}),
+    ...(renderedSecret.headers ?? {}),
   };
 
   const rawIdentifier = userPropertyAssignments[identifierKey];
@@ -1455,48 +1383,29 @@ export async function sendWebhook({
   }
 
   try {
-    const data =
-      renderedConfigValuesResult.value.data ||
-      renderedSecretValuesResult.value.data
-        ? R.mergeDeep(
-            unwrapJsonObject(renderedConfigValuesResult.value.data),
-            unwrapJsonObject(renderedSecretValuesResult.value.data),
-          )
-        : undefined;
-
-    const params =
-      renderedConfigValuesResult.value.params ||
-      renderedSecretValuesResult.value.params
-        ? R.mergeDeep(
-            unwrapJsonObject(renderedConfigValuesResult.value.params),
-            unwrapJsonObject(renderedSecretValuesResult.value.params),
-          )
-        : undefined;
-
-    const method =
-      renderedSecretValuesResult.value.method ??
-      renderedConfigValuesResult.value.method;
+    const data: unknown = renderedSecret.data ?? renderedConfig.data;
+    const params: unknown = renderedSecret.params ?? renderedConfig.params;
+    const method = renderedSecret.method ?? renderedConfig.method;
+    const responseType =
+      renderedSecret.responseEncoding ?? renderedConfig.responseEncoding;
+    const url = renderedSecret.url ?? renderedConfig.url;
 
     const response = await axios({
-      url:
-        renderedSecretValuesResult.value.url ??
-        renderedConfigValuesResult.value.url,
+      url,
       method,
       params,
       data,
-      responseType:
-        renderedSecretValuesResult.value.responseEncoding ??
-        renderedConfigValuesResult.value.responseEncoding,
+      responseType,
       headers: renderedHeaders,
     });
+
     return ok({
       type: InternalEventType.MessageSent,
       variant: {
         type: ChannelType.Webhook,
         to: identifier,
         request: {
-          // exclude secret values from being logged
-          ...renderedConfigValuesResult.value,
+          ...renderedConfig,
           headers: renderedConfigHeaders,
         } satisfies WebhookConfig,
         response: {
@@ -1507,20 +1416,25 @@ export async function sendWebhook({
       } satisfies MessageWebhookSuccess,
     });
   } catch (e) {
-    const { response } = e as AxiosError;
-    const responseHeaders = response?.headers as
-      | Record<string, string>
-      | undefined;
+    const { response: axiosResponse, code } = e as AxiosError;
+    let response: WebhookResponse | undefined;
+    if (axiosResponse && Object.keys(axiosResponse).length > 0) {
+      const responseHeaders = axiosResponse.headers as
+        | Record<string, string>
+        | undefined;
 
+      response = {
+        status: axiosResponse.status,
+        body: axiosResponse.data,
+        headers: responseHeaders,
+      };
+    }
     return err({
       type: InternalEventType.MessageFailure,
       variant: {
         type: ChannelType.Webhook,
-        response: {
-          status: response?.status,
-          body: response?.data,
-          headers: responseHeaders,
-        },
+        code,
+        response,
       } satisfies MessageWebhookServiceFailure,
     });
   }
@@ -1537,7 +1451,6 @@ export async function sendMessage(
     case ChannelType.MobilePush:
       throw new Error("not implemented");
     case ChannelType.Webhook:
-      // TODO [DF-471] implement webhook
-      throw new Error("not implemented");
+      return sendWebhook(params);
   }
 }

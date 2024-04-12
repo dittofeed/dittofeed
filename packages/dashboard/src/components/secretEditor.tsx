@@ -1,23 +1,25 @@
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
 import {
-  Button,
+  Box,
   IconButton,
   InputAdornment,
   Stack,
   TextField,
 } from "@mui/material";
+import { Parameters } from "@sinclair/typebox";
 import {
   CompletionStatus,
   EmptyResponse,
   EphemeralRequestStatus,
   UpsertSecretRequest,
 } from "isomorphic-lib/src/types";
+import { ComponentProps, useCallback } from "react";
 import { useImmer } from "use-immer";
 
 import apiRequestHandlerFactory from "../lib/apiRequestHandlerFactory";
 import { useAppStorePick } from "../lib/appStore";
-import SimpleTextField from "./form/SimpleTextField";
+import SimpleTextField, { TEXT_FIELD_HEIGHT } from "./form/SimpleTextField";
 
 export enum SecretStateType {
   Saved = "Saved",
@@ -50,17 +52,23 @@ export interface SecretState {
   editingState: EditingSecretState;
 }
 
+function SecretButton(props: ComponentProps<typeof LoadingButton>) {
+  return (
+    <Box>
+      <LoadingButton
+        {...props}
+        sx={{ height: `${TEXT_FIELD_HEIGHT + 2}rem` }}
+      />
+    </Box>
+  );
+}
 export interface SecretEditorProps {
-  // the name of the secret config referenced by this component
-  name: string;
   // the key within the secret config referenced by this component
   secretKey: string;
   // whether the secret is saved or not on page load
   saved: boolean;
   // used to describe the secret in the UI
-  label: string;
-  // type of secret, passed in payload
-  type: string;
+  label?: string;
   helperText?: string;
 }
 
@@ -102,7 +110,7 @@ function SecretTextField({
   autoFocus?: boolean;
   onVisibilityChange: () => void;
   showValue: boolean;
-  label: string;
+  label?: string;
   onChange: React.ComponentProps<typeof TextField>["onChange"];
   helperText?: string;
 }) {
@@ -137,15 +145,42 @@ function setRequest(request: EphemeralRequestStatus<Error>) {
   };
 }
 
-export default function SecretEditor({
-  name,
+type HandleUpdate = (props: {
+  key: string;
+  value: string;
+  request: EphemeralRequestStatus<Error>;
+  setRequest: (request: EphemeralRequestStatus<Error>) => void;
+  onResponse: () => void;
+}) => void;
+
+type HandleDelete = (props: {
+  key: string;
+  request: EphemeralRequestStatus<Error>;
+  setRequest: (request: EphemeralRequestStatus<Error>) => void;
+  onResponse: () => void;
+}) => void;
+
+interface SecretEditorUpdateProps {
+  handleUpdate: HandleUpdate;
+  handleDelete: HandleDelete;
+}
+
+export interface SecretEditorKeyedProps extends SecretEditorProps {
+  // the name of the secret config referenced by this component
+  name: string;
+  // type of secret, passed in payload
+  type: string;
+}
+
+export function SecretEditorBase({
   saved,
   secretKey,
   label,
-  type,
   helperText,
-}: SecretEditorProps) {
-  const { workspace: workspaceResult, apiBase } = useAppStorePick([
+  handleDelete,
+  handleUpdate,
+}: SecretEditorProps & SecretEditorUpdateProps) {
+  const { workspace: workspaceResult } = useAppStorePick([
     "workspace",
     "apiBase",
   ]);
@@ -159,36 +194,6 @@ export default function SecretEditor({
   let field: React.ReactNode;
   switch (editingState.type) {
     case SecretStateType.Saved: {
-      const deleteHandler = apiRequestHandlerFactory({
-        request: updateRequest,
-        setRequest: (request) => setState(setRequest(request)),
-        responseSchema: EmptyResponse,
-        onSuccessNotice: `Successfully deleted ${label}`,
-        setResponse: () => {
-          setState((draft) => {
-            draft.editingState = {
-              type: SecretStateType.UnSaved,
-              value: "",
-            };
-          });
-        },
-        onFailureNoticeHandler: () => `API Error: Failed to update ${label}`,
-        requestConfig: {
-          method: "PUT",
-          url: `${apiBase}/api/secrets`,
-          data: {
-            workspaceId: workspaceResult.value.id,
-            name,
-            configValue: {
-              [secretKey]: "",
-            },
-          } satisfies UpsertSecretRequest,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      });
-
       field = (
         <>
           <SimpleTextField
@@ -198,7 +203,7 @@ export default function SecretEditor({
             helperText={helperText}
             label={label}
           />
-          <Button
+          <SecretButton
             onClick={() => {
               setState((draft) => {
                 draft.editingState = {
@@ -209,46 +214,32 @@ export default function SecretEditor({
             }}
           >
             Update
-          </Button>
-          <LoadingButton
+          </SecretButton>
+          <SecretButton
             loading={updateRequest.type === CompletionStatus.InProgress}
-            onClick={deleteHandler}
+            onClick={() =>
+              handleDelete({
+                key: secretKey,
+                request: updateRequest,
+                setRequest,
+                onResponse: () => {
+                  setState((draft) => {
+                    draft.editingState = {
+                      type: SecretStateType.UnSaved,
+                      value: "",
+                    };
+                  });
+                },
+              })
+            }
           >
             Delete
-          </LoadingButton>
+          </SecretButton>
         </>
       );
       break;
     }
     case SecretStateType.SavedEditing: {
-      const updateHandler = apiRequestHandlerFactory({
-        request: updateRequest,
-        setRequest: (request) => setState(setRequest(request)),
-        responseSchema: EmptyResponse,
-        onSuccessNotice: `Successfully updated ${label}`,
-        onFailureNoticeHandler: () => `API Error: Failed to update ${label}`,
-        setResponse: () => {
-          setState((draft) => {
-            draft.editingState = {
-              type: SecretStateType.Saved,
-            };
-          });
-        },
-        requestConfig: {
-          method: "PUT",
-          url: `${apiBase}/api/secrets`,
-          data: {
-            workspaceId: workspaceResult.value.id,
-            name,
-            configValue: {
-              [secretKey]: editingState.value,
-            },
-          } satisfies UpsertSecretRequest,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      });
       field = (
         <>
           <SecretTextField
@@ -266,47 +257,34 @@ export default function SecretEditor({
             onVisibilityChange={() => setState(toggleVisibility)}
             showValue={showValue}
           />
-          <LoadingButton
+          <SecretButton
+            onClick={() =>
+              handleUpdate({
+                key: secretKey,
+                value: editingState.value,
+                request: updateRequest,
+                setRequest,
+                onResponse: () => {
+                  setState((draft) => {
+                    draft.editingState = {
+                      type: SecretStateType.Saved,
+                    };
+                  });
+                },
+              })
+            }
             loading={updateRequest.type === CompletionStatus.InProgress}
-            onClick={updateHandler}
           >
             Save
-          </LoadingButton>
-          <Button onClick={() => setState(disableSavedEditing)}>Cancel</Button>
+          </SecretButton>
+          <SecretButton onClick={() => setState(disableSavedEditing)}>
+            Cancel
+          </SecretButton>
         </>
       );
       break;
     }
     case SecretStateType.UnSaved: {
-      const updateHandler = apiRequestHandlerFactory({
-        request: updateRequest,
-        setRequest: (request) => setState(setRequest(request)),
-        responseSchema: EmptyResponse,
-        onSuccessNotice: `Successfully updated ${label}`,
-        onFailureNoticeHandler: () => `API Error: Failed to update ${label}`,
-        setResponse: () => {
-          setState((draft) => {
-            draft.editingState = {
-              type: SecretStateType.Saved,
-            };
-          });
-        },
-        requestConfig: {
-          method: "PUT",
-          url: `${apiBase}/api/secrets`,
-          data: {
-            workspaceId: workspaceResult.value.id,
-            name,
-            configValue: {
-              type,
-              [secretKey]: editingState.value,
-            },
-          } satisfies UpsertSecretRequest,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
-      });
       field = (
         <>
           <SecretTextField
@@ -324,13 +302,28 @@ export default function SecretEditor({
             }}
             showValue={showValue}
           />
-          <LoadingButton
+
+          <SecretButton
             variant="contained"
             loading={updateRequest.type === CompletionStatus.InProgress}
-            onClick={updateHandler}
+            onClick={() =>
+              handleUpdate({
+                key: secretKey,
+                value: editingState.value,
+                request: updateRequest,
+                setRequest,
+                onResponse: () => {
+                  setState((draft) => {
+                    draft.editingState = {
+                      type: SecretStateType.Saved,
+                    };
+                  });
+                },
+              })
+            }
           >
             Save
-          </LoadingButton>
+          </SecretButton>
         </>
       );
       break;
@@ -341,11 +334,110 @@ export default function SecretEditor({
     <Stack
       direction="row"
       className="secret-editor"
-      alignItems="center"
       spacing={1}
       sx={{ width: "100%" }}
     >
       {field}
     </Stack>
+  );
+}
+
+/**
+ * Edit a secret whose values are stored as a map of key-value pairs inside of
+ * secret configValue json.
+ * @param param0
+ * @returns
+ */
+export function KeyedSecretEditor({
+  name,
+  label,
+  type,
+  ...rest
+}: SecretEditorKeyedProps) {
+  const { workspace: workspaceResult, apiBase } = useAppStorePick([
+    "workspace",
+    "apiBase",
+  ]);
+
+  const handleUpdate: HandleUpdate = useCallback(
+    ({
+      key,
+      value,
+      request,
+      setRequest: setUpdateRequest,
+      onResponse,
+    }: Parameters<HandleUpdate>[0]) => {
+      if (workspaceResult.type !== CompletionStatus.Successful) {
+        return;
+      }
+      apiRequestHandlerFactory({
+        request,
+        setRequest: setUpdateRequest,
+        responseSchema: EmptyResponse,
+        onSuccessNotice: `Successfully saved ${label}`,
+        onFailureNoticeHandler: () => `API Error: Failed to save ${label}`,
+        setResponse: onResponse,
+        requestConfig: {
+          method: "PUT",
+          url: `${apiBase}/api/secrets`,
+          data: {
+            workspaceId: workspaceResult.value.id,
+            name,
+            configValue: {
+              type,
+              [key]: value,
+            },
+          } satisfies UpsertSecretRequest,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      })();
+    },
+    [workspaceResult, label, apiBase, name, type],
+  );
+
+  const handleDelete: HandleDelete = useCallback(
+    ({
+      key,
+      request,
+      setRequest: setUpdateRequest,
+      onResponse,
+    }: Parameters<HandleDelete>[0]) => {
+      if (workspaceResult.type !== CompletionStatus.Successful) {
+        return;
+      }
+      apiRequestHandlerFactory({
+        request,
+        setRequest: setUpdateRequest,
+        responseSchema: EmptyResponse,
+        onSuccessNotice: `Successfully deleted ${label}`,
+        onFailureNoticeHandler: () => `API Error: Failed to delete ${label}`,
+        setResponse: onResponse,
+        requestConfig: {
+          method: "PUT",
+          url: `${apiBase}/api/secrets`,
+          data: {
+            workspaceId: workspaceResult.value.id,
+            name,
+            configValue: {
+              [key]: "",
+            },
+          } satisfies UpsertSecretRequest,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      })();
+    },
+    [workspaceResult, label, apiBase, name],
+  );
+  return (
+    <SecretEditorBase
+      handleUpdate={handleUpdate}
+      handleDelete={handleDelete}
+      label={label}
+      {...rest}
+    />
   );
 }

@@ -29,13 +29,14 @@ export default async function apiKeyController(fastify: FastifyInstance) {
       if (adminApiKey.isErr()) {
         return reply.status(409).send();
       }
-      const { workspaceId, name, id, apiKey } = adminApiKey.value;
+      const { workspaceId, name, id, apiKey, createdAt } = adminApiKey.value;
 
       return reply.status(200).send({
         workspaceId,
         name,
         id,
         apiKey,
+        createdAt,
       });
     },
   );
@@ -46,7 +47,7 @@ export default async function apiKeyController(fastify: FastifyInstance) {
       schema: {
         description: "Delete an admin API key.",
         tags: ["API Key", "Admin"],
-        body: DeleteAdminApiKeyRequest,
+        querystring: DeleteAdminApiKeyRequest,
         response: {
           204: EmptyResponse,
         },
@@ -55,7 +56,8 @@ export default async function apiKeyController(fastify: FastifyInstance) {
     async (request, reply) => {
       await prisma().adminApiKey.delete({
         where: {
-          id: request.body.id,
+          workspaceId: request.query.workspaceId,
+          id: request.query.id,
         },
       });
 

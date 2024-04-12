@@ -4,7 +4,7 @@ import React from "react";
 import FieldSection from "./FieldSection";
 import { FieldsProps } from "./types";
 
-function Fields({ sections, children }: FieldsProps) {
+function Fields({ sections, children, disableChildStyling }: FieldsProps) {
   return (
     <Stack
       sx={{
@@ -21,7 +21,7 @@ function Fields({ sections, children }: FieldsProps) {
       {sections.map((section) => (
         <FieldSection key={section.id} {...section} />
       ))}
-      {children ? (
+      {children && !disableChildStyling ? (
         <Stack
           sx={{
             borderTopWidth: "1px",
@@ -36,6 +36,7 @@ function Fields({ sections, children }: FieldsProps) {
           {children}
         </Stack>
       ) : null}
+      {children && disableChildStyling ? children : null}
     </Stack>
   );
 }

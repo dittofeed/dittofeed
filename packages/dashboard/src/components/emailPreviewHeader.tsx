@@ -1,9 +1,11 @@
-import { SxProps, TextField, Theme, useTheme } from "@mui/material";
+import { TextField, useTheme } from "@mui/material";
 import escapeHTML from "escape-html";
 import React from "react";
 
+import { getDisabledInputStyles } from "./templateEditor";
+
 interface EmailPreviewHeaderProps {
-  email: string;
+  email: string | undefined;
   from: string | undefined | null;
   subject: string | undefined | null;
   replyTo: string | undefined | null;
@@ -16,15 +18,8 @@ function EmailPreviewHeader({
   replyTo,
 }: EmailPreviewHeaderProps) {
   const theme = useTheme();
-  const disabledStyles: SxProps<Theme> = {
-    "& .MuiInputBase-input.Mui-disabled": {
-      WebkitTextFillColor: theme.palette.grey[600],
-      color: theme.palette.grey[600],
-    },
-    '& .MuiFormLabel-root[data-shrink="true"]': {
-      color: theme.palette.grey[600],
-    },
-  };
+  const disabledStyles = getDisabledInputStyles(theme);
+
   return (
     <>
       <TextField

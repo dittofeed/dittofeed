@@ -34,6 +34,7 @@ import { validate } from "uuid";
 
 import EmailEditor from "../../../components/messages/emailEditor";
 import SmsEditor from "../../../components/messages/smsEditor";
+import WebhookEditor from "../../../components/messages/webhookEditor";
 import SubscriptionGroupAutocomplete from "../../../components/subscriptionGroupAutocomplete";
 import { addInitialStateToProps } from "../../../lib/addInitialStateToProps";
 import apiRequestHandlerFactory from "../../../lib/apiRequestHandlerFactory";
@@ -258,8 +259,15 @@ const BroadcastTemplate: NextPage<BroadcastTemplateProps> =
       case ChannelType.MobilePush:
         throw new Error("MobilePush not implemented");
       case ChannelType.Webhook:
-        // TODO [DF-471]
-        throw new Error("Webhook not implemented");
+        templateEditor = (
+          <WebhookEditor
+            disabled={started}
+            hideTitle
+            hidePublisher
+            templateId={templateId}
+          />
+        );
+        break;
       default:
         assertUnreachable(channel);
     }

@@ -19,4 +19,5 @@ jobs:
     uses: ./.github/workflows/shared-workflow.yaml
     with:
       package-name: 'api'
+      is_backend: 'true'
       run_lint: 'true'
