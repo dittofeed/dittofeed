@@ -597,14 +597,12 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
         patchSecretAvailability: (secretAvailability) =>
           set((state) => {
             for (const existing of state.secretAvailability) {
-              console.log("existing", existing);
               if (
                 state.workspace.type === CompletionStatus.Successful &&
                 state.workspace.value.id === secretAvailability.workspaceId &&
                 existing.name === secretAvailability.name &&
                 existing.configValue
               ) {
-                console.log("patching secret availability", secretAvailability);
                 existing.configValue[secretAvailability.key] =
                   secretAvailability.value;
               }
