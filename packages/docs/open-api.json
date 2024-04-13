@@ -1251,7 +1251,7 @@
                                             },
                                             "params": {},
                                             "data": {},
-                                            "responseEncoding": {
+                                            "responseType": {
                                               "anyOf": [
                                                 {
                                                   "type": "string",
