@@ -4,8 +4,6 @@ title: "Webhook Template Editor"
 
 Dittofeed provides a Webhook template editor for rendering webhook request configurations.
 
-FIXME screenshot
-
 ## Configuration
 
 ```json
@@ -32,9 +30,15 @@ The difference between `config` and `seceret` is that the `secret` values:
 1. Override the config values.
 2. Are not rendered into the stored `DFInternalMessageSent` events.
 
-These features of the secret object are useful for storing sensitive information, such as API keys. API keys for the webhook channel can be set on the settings page.
+These features of the secret object are useful for storing sensitive information, such as API keys. API keys for the webhook channel can be set on the settings page, at [`/dashboard/settings#webhook-channel`](https://dittofeed.com/dashboard/settings#webhook-channel).
 
-FIXME screenshot of config and secret table
+<Frame>
+  ![Webhook Secrets](/images/webhook-secrets.png)
+</Frame>
+
+<Frame>
+  ![Example Webhook Template](/images/example-webhook-template.png)
+</Frame>
 
 ## Identifier Key
 
