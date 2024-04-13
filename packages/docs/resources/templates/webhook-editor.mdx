@@ -13,8 +13,18 @@ FIXME screenshot
 }
 ```
 
-{/* FIXME link to axios values table */}
-The `config` object and `secret` object accept the same values, modeled after [axios](https://www.npmjs.com/package/axios) request configuration.
+The `config` object and `secret` object accept the same values, modeled after [axios](https://www.npmjs.com/package/axios) [request configuration](https://axios-http.com/docs/req_config).
+
+| Parameter      | Example                                 | Description                                           |
+|----------------|-----------------------------------------|-------------------------------------------------------|
+| `url`          | `"https://api.com/users"`               | `url` is the server URL that will be used for the request |
+| `method`       | `"POST"`                                | `method` is the request method to be used when making the request |
+| `headers`      | `{ "Authorization": "Basic abc123" }`   | `headers` are custom headers to be sent              |
+| `params`       | `{ "id": 123 }`                         | `params` are the URL parameters to be sent with the request |
+| `data`         | `{ "firstName": "fred" }`               | `data` is the data to be sent as the request body    |
+| `responseType` | `"json"`                                | Allowed options are "json" and "text"                |
+
+
 
 FIXME possible values in table, collapsible
 

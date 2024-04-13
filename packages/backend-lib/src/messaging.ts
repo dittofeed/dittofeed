@@ -1387,7 +1387,7 @@ export async function sendWebhook({
     const params: unknown = renderedSecret.params ?? renderedConfig.params;
     const method = renderedSecret.method ?? renderedConfig.method;
     const responseType =
-      renderedSecret.responseEncoding ?? renderedConfig.responseEncoding;
+      renderedSecret.responseType ?? renderedConfig.responseType;
     const url = renderedSecret.url ?? renderedConfig.url;
 
     const response = await axios({
