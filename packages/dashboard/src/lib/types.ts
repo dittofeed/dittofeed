@@ -208,6 +208,12 @@ export interface AppActions {
   setViewDraft: (viewDraft: boolean) => void;
   upsertAdminApiKey: (apiKey: AdminApiKeyResource) => void;
   deleteAdminApiKey: (id: string) => void;
+  patchSecretAvailability: (secret: {
+    workspaceId: string;
+    name: string;
+    key: string;
+    value: boolean;
+  }) => void;
 }
 
 export interface SegmentIndexContent {

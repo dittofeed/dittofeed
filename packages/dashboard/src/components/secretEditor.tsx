@@ -52,7 +52,7 @@ export interface SecretState {
   editingState: EditingSecretState;
 }
 
-function SecretButton(props: ComponentProps<typeof LoadingButton>) {
+export function SecretButton(props: ComponentProps<typeof LoadingButton>) {
   return (
     <Box>
       <LoadingButton
@@ -63,6 +63,8 @@ function SecretButton(props: ComponentProps<typeof LoadingButton>) {
   );
 }
 export interface SecretEditorProps {
+  // the name of the secret entry
+  name: string;
   // the key within the secret config referenced by this component
   secretKey: string;
   // whether the secret is saved or not on page load
@@ -166,13 +168,12 @@ interface SecretEditorUpdateProps {
 }
 
 export interface SecretEditorKeyedProps extends SecretEditorProps {
-  // the name of the secret config referenced by this component
-  name: string;
   // type of secret, passed in payload
   type: string;
 }
 
 export function SecretEditorBase({
+  name,
   saved,
   secretKey,
   label,
@@ -180,10 +181,8 @@ export function SecretEditorBase({
   handleDelete,
   handleUpdate,
 }: SecretEditorProps & SecretEditorUpdateProps) {
-  const { workspace: workspaceResult } = useAppStorePick([
-    "workspace",
-    "apiBase",
-  ]);
+  const { workspace: workspaceResult, patchSecretAvailability } =
+    useAppStorePick(["workspace", "patchSecretAvailability"]);
 
   const [{ editingState, updateRequest, showValue }, setState] =
     useImmer<SecretState>(() => initialState(saved));
@@ -223,6 +222,12 @@ export function SecretEditorBase({
                 request: updateRequest,
                 setRequest,
                 onResponse: () => {
+                  patchSecretAvailability({
+                    workspaceId: workspaceResult.value.id,
+                    name,
+                    key: secretKey,
+                    value: false,
+                  });
                   setState((draft) => {
                     draft.editingState = {
                       type: SecretStateType.UnSaved,
@@ -265,6 +270,13 @@ export function SecretEditorBase({
                 request: updateRequest,
                 setRequest,
                 onResponse: () => {
+                  patchSecretAvailability({
+                    workspaceId: workspaceResult.value.id,
+                    name,
+                    key: secretKey,
+                    value: true,
+                  });
+
                   setState((draft) => {
                     draft.editingState = {
                       type: SecretStateType.Saved,
@@ -313,6 +325,12 @@ export function SecretEditorBase({
                 request: updateRequest,
                 setRequest,
                 onResponse: () => {
+                  patchSecretAvailability({
+                    workspaceId: workspaceResult.value.id,
+                    name,
+                    key: secretKey,
+                    value: true,
+                  });
                   setState((draft) => {
                     draft.editingState = {
                       type: SecretStateType.Saved,
@@ -437,6 +455,7 @@ export function KeyedSecretEditor({
       handleUpdate={handleUpdate}
       handleDelete={handleDelete}
       label={label}
+      name={name}
       {...rest}
     />
   );
