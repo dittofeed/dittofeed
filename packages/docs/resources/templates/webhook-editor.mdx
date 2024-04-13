@@ -6,6 +6,8 @@ Dittofeed provides a Webhook template editor for rendering webhook request confi
 
 FIXME screenshot
 
+## Configuration
+
 ```json
 {
     "config": {...},
@@ -25,14 +27,15 @@ The `config` object and `secret` object accept the same values, modeled after [a
 | `responseType` | `"json"`                                | Allowed options are "json" and "text"                |
 
 
-
-FIXME possible values in table, collapsible
-
-The difference between the two is that the secret values:
+The difference between `config` and `seceret` is that the `secret` values:
 
 1. Override the config values.
 2. Are not rendered into the stored `DFInternalMessageSent` events.
 
-These features of the secret object are useful for storing sensitive information, such as API keys. API keys for the webhook channel can be set on the settings page. FIXME screenshot of config and secret table
+These features of the secret object are useful for storing sensitive information, such as API keys. API keys for the webhook channel can be set on the settings page.
+
+FIXME screenshot of config and secret table
+
+## Identifier Key
 
 The webhook template editor also allows you to configure an identifier key. This key serves several purposes, including managing subscriptions, handling webhook based delivery updates, and more. This value should be the user property which identifies the user with respect to the channel you are contacting them on e.g. the users email, their phone number, or their device token in the case of mobile push.
