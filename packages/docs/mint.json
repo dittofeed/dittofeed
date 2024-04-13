@@ -117,7 +117,8 @@
             "integrations/channels/smtp",
             "integrations/channels/amazonses",
             "integrations/channels/sms",
-            "integrations/channels/twilio"
+            "integrations/channels/twilio",
+            "integrations/channels/webhooks"
           ]
         },
         "integrations/sdks",
@@ -175,7 +176,8 @@
             "resources/templates/mjml",
             "resources/templates/liquid-presets",
             "resources/templates/free-email-templates",
-            "resources/templates/sms-editor"
+            "resources/templates/sms-editor",
+            "resources/templates/webhook-editor"
           ]
         },
         "resources/workspaces",

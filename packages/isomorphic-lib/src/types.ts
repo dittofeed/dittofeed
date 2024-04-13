@@ -934,7 +934,7 @@ export const WebhookConfig = Type.Object({
   headers: Type.Optional(Type.Record(Type.String(), Type.String())),
   params: Type.Optional(Type.Any()),
   data: Type.Optional(Type.Any()),
-  responseEncoding: Type.Optional(
+  responseType: Type.Optional(
     Type.Union([Type.Literal("json"), Type.Literal("text")]),
   ),
 });

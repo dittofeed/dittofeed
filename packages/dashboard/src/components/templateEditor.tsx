@@ -894,7 +894,6 @@ export default function TemplateEditor({
         </>
       );
     } else if (testResponse.type === JsonResultType.Err) {
-      // FIXME handle webhook errors
       testModalContents = (
         <Stack spacing={1}>
           <Alert severity="error">
@@ -1189,24 +1188,18 @@ export default function TemplateEditor({
             </>
           )}
 
-          <Stack
-            direction="row"
-            justifyContent="center"
-            sx={{ marginTop: "8px !important" }}
+          <LoadingModal
+            isMinimised={isUserPropertiesMinimised}
+            openTitle="Send Test Message"
+            onSubmit={submitTest}
+            onClose={() =>
+              setState((draft) => {
+                draft.testResponse = null;
+              })
+            }
           >
-            <LoadingModal
-              isMinimised={isUserPropertiesMinimised}
-              openTitle="Send Test Message"
-              onSubmit={submitTest}
-              onClose={() =>
-                setState((draft) => {
-                  draft.testResponse = null;
-                })
-              }
-            >
-              {testModalContents}
-            </LoadingModal>
-          </Stack>
+            {testModalContents}
+          </LoadingModal>
           {!isUserPropertiesMinimised && (
             <>
               <InfoTooltip title={USER_PROPERTIES_TOOLTIP}>

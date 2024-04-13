@@ -17,7 +17,7 @@ import { useMemo } from "react";
 import { useImmer } from "use-immer";
 
 import { useAppStorePick } from "../lib/appStore";
-import { KeyedSecretEditor } from "./secretEditor";
+import { KeyedSecretEditor, SecretButton } from "./secretEditor";
 
 export default function WebhookSecretTable() {
   const { secretAvailability } = useAppStorePick(["secretAvailability"]);
@@ -37,18 +37,18 @@ export default function WebhookSecretTable() {
     )?.configValue;
     const savedOptions = Object.entries(config ?? {}).flatMap(
       ([key, saved]) => {
-        if (key === "type") {
+        if (key === "type" || !saved) {
           return [];
         }
         const name = key;
         return {
           name,
-          saved,
+          saved: true,
         };
       },
     );
     const unsavedOptions = Array.from(newSecretValues).flatMap((name) => {
-      if (config?.[name]) {
+      if (config?.[name] !== undefined) {
         return [];
       }
       return {
@@ -153,10 +153,11 @@ export default function WebhookSecretTable() {
                     type={ChannelType.Webhook}
                     name={SecretNames.Webhook}
                     saved={params.row.saved}
+                    label={params.row.name}
                     secretKey={params.row.name}
                   />
                   {params.row.saved ? null : (
-                    <Button
+                    <SecretButton
                       onClick={() => {
                         setState((draft) => {
                           draft.newSecretValues.delete(params.row.name);
@@ -164,7 +165,7 @@ export default function WebhookSecretTable() {
                       }}
                     >
                       Delete
-                    </Button>
+                    </SecretButton>
                   )}
                 </Stack>
               ),

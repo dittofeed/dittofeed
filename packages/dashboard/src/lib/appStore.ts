@@ -593,6 +593,22 @@ export const initializeStore = (preloadedState: PreloadedState = {}) =>
             }
             return state;
           }),
+
+        patchSecretAvailability: (secretAvailability) =>
+          set((state) => {
+            for (const existing of state.secretAvailability) {
+              if (
+                state.workspace.type === CompletionStatus.Successful &&
+                state.workspace.value.id === secretAvailability.workspaceId &&
+                existing.name === secretAvailability.name &&
+                existing.configValue
+              ) {
+                existing.configValue[secretAvailability.key] =
+                  secretAvailability.value;
+              }
+            }
+            return state;
+          }),
         upsertAdminApiKey: (apiKey) =>
           set((state) => {
             const { adminApiKeys: adminApiKeysWithoutDefault } = state;
