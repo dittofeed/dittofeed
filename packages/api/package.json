@@ -55,6 +55,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@apidevtools/openapi-schemas": "^2.1.0",
     "@temporalio/testing": "1.8.4",
     "@temporalio/worker": "1.8.4",
     "@types/jest": "^29.2.6",
@@ -63,6 +64,8 @@
     "@types/yargs": "^17.0.24",
     "@typescript-eslint/eslint-plugin": "^5.60.0",
     "@typescript-eslint/parser": "^5.60.0",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^3.0.1",
     "eslint": "^8.43.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^17.0.0",
