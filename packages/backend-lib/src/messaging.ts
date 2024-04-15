@@ -64,6 +64,7 @@ import {
   WebhookConfig,
   WebhookResponse,
   WebhookSecret,
+  DefaultEmailProvider,
 } from "./types";
 import { UserPropertyAssignments } from "./userProperties";
 
@@ -445,20 +446,7 @@ async function getEmailProvider({
 }: {
   workspaceId: string;
   provider?: EmailProviderType;
-}): Promise<(EmailProvider & { secret: Secret | null }) | null> {
-  if (provider) {
-    return prisma().emailProvider.findUnique({
-      where: {
-        workspaceId_type: {
-          workspaceId,
-          type: provider,
-        },
-      },
-      include: {
-        secret: true,
-      },
-    });
-  }
+}): Promise<(DefaultEmailProvider & { emailProvider: EmailProvider & { secret: Secret | null } }) | null> {
   const defaultProvider = await prisma().defaultEmailProvider.findUnique({
     where: {
       workspaceId,
@@ -471,7 +459,7 @@ async function getEmailProvider({
       },
     },
   });
-  return defaultProvider?.emailProvider ?? null;
+  return defaultProvider ?? null;
 }
 
 export async function sendEmail({
@@ -487,7 +475,7 @@ export async function sendEmail({
   SendMessageParametersEmail,
   "channel"
 >): Promise<BackendMessageSendResult> {
-  const [getSendModelsResult, emailProvider] = await Promise.all([
+  const [getSendModelsResult, DefaultEmailProvider] = await Promise.all([
     getSendMessageModels({
       workspaceId,
       templateId,
@@ -506,7 +494,7 @@ export async function sendEmail({
   const { messageTemplateDefinition, subscriptionGroupSecret } =
     getSendModelsResult.value;
 
-  if (!emailProvider) {
+  if (!DefaultEmailProvider?.emailProvider) {
     return err({
       type: InternalEventType.BadWorkspaceConfiguration,
       variant: {
@@ -574,13 +562,13 @@ export async function sendEmail({
     });
   }
   const {
-    from,
     subject,
     body,
     replyTo: baseReplyTo,
   } = renderedValuesResult.value;
   // don't pass an empty string for reply to values
   const replyTo = !baseReplyTo?.length ? undefined : baseReplyTo;
+  const from = DefaultEmailProvider.fromAddress ?? renderedValuesResult.value.from;
   const to = identifier;
   const unsubscribeHeadersResult: Result<
     UnsubscribeHeaders,
@@ -609,7 +597,7 @@ export async function sendEmail({
     | Record<string, string>
     | undefined;
 
-  const unvalidatedSecretConfig = emailProvider.secret?.configValue;
+  const unvalidatedSecretConfig = DefaultEmailProvider.emailProvider.secret?.configValue;
 
   if (!unvalidatedSecretConfig) {
     return err({
@@ -623,7 +611,7 @@ export async function sendEmail({
   }
 
   const secretConfigResult = schemaValidateWithErr(
-    emailProvider.secret?.configValue,
+    DefaultEmailProvider.emailProvider.secret?.configValue,
     EmailProviderSecret,
   );
   if (secretConfigResult.isErr()) {
@@ -645,7 +633,7 @@ export async function sendEmail({
   }
   const secretConfig = secretConfigResult.value;
 
-  switch (emailProvider.type) {
+  switch (DefaultEmailProvider.emailProvider.type) {
     case EmailProviderType.Smtp: {
       if (secretConfig.type !== EmailProviderType.Smtp) {
         return err({
