@@ -5,5 +5,8 @@
   "license": "LicenseRef-LICENSE",
   "scripts": {
     "dev": "mintlify dev"
+  },
+  "devDependencies": {
+    "@mintlify/scraping": "^3.0.102"
   }
 }
