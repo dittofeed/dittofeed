@@ -54,7 +54,7 @@ describe("swagger", () => {
       addFormats(ajv);
     });
 
-    it.only("the swagger config should be valid", () => {
+    it("the swagger config should be valid", () => {
       const validate = ajv.compile(getSchema());
       const valid = validate(app.swagger());
       const errors = validate.errors?.length;
