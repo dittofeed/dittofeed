@@ -59,7 +59,7 @@
     {
       "group": "Getting Started",
 
-      "pages": ["introduction", "quick-start", "video-walkthrough","glossary"]
+      "pages": ["introduction", "quick-start", "video-walkthrough", "glossary"]
     },
     {
       "group": "Deployment",
@@ -85,9 +85,7 @@
             "deployment/self-hosted/write-modes",
             {
               "group": "Write Modes",
-              "pages": [
-                "deployment/self-hosted/write-modes/kafka"
-              ]
+              "pages": ["deployment/self-hosted/write-modes/kafka"]
             }
           ]
         },
@@ -218,7 +216,10 @@
         "api-reference/endpoints/apps/screen",
         "api-reference/endpoints/apps/batch",
         "api-reference/endpoints/subscription-management/user-subscriptions",
-        "api-reference/endpoints/webhooks/segment"
+        "api-reference/endpoints/webhooks/segment",
+        "api-reference/auto/users/post-apiadminusers",
+        "api-reference/auto/users/delete-apiadminusers",
+        "api-reference/auto/events/get-apiadminevents"
       ]
     },
     {
