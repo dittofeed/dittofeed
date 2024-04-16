@@ -203,6 +203,7 @@
         "guide/roadmap",
         "guide/faq",
         "guide/creating-journeys",
+        "guide/accessing-admin-api",
         "guide/git-workflows",
         "guide/testing",
         "guide/license"
