@@ -3155,3 +3155,13 @@ export type FeatureMap = {
 };
 
 export type MessageTags = Record<string, string> & { messageId: string };
+
+export const RelatedResourceProperties = Type.Object({
+  journeyId: Type.Optional(Type.String()),
+  nodeId: Type.Optional(Type.String()),
+  templateId: Type.Optional(Type.String()),
+});
+
+export type RelatedResourceProperties = Static<
+  typeof RelatedResourceProperties
+>;
