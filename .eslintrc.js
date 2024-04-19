@@ -16,6 +16,7 @@ module.exports = {
   plugins: ["@typescript-eslint", "simple-import-sort", "filenames"],
   rules: {
     "@typescript-eslint/no-redeclare": "off",
+    "@typescript-eslint/no-explicit-any": "error",
     "consistent-return": "off",
     // There's some kind of bug with this rule, which throws the error "Cannot read properties of undefined (reading 'kind')"
     "@typescript-eslint/return-await": "off",

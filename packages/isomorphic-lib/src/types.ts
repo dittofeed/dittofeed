@@ -2379,12 +2379,6 @@ export const TwilioSecret = Type.Object({
   authToken: Type.Optional(Type.String()),
 });
 
-export const TwilioSmsProvider = Type.Object({
-  id: Type.String(),
-  workspaceId: Type.String(),
-  type: Type.Optional(Type.Literal(SmsProviderType.Twilio)),
-});
-
 export type TwilioSecret = Static<typeof TwilioSecret>;
 
 export const TestSmsSecret = Type.Object({
@@ -2399,9 +2393,17 @@ export const TestSmsProvider = Type.Object({
   type: Type.Literal(SmsProviderType.Test),
 });
 
+export type TestSmsProvider = Static<typeof TestSmsProvider>;
+
 export const SmsProviderSecret = Type.Union([TwilioSecret, TestSmsSecret]);
 
 export type SmsProviderSecret = Static<typeof SmsProviderSecret>;
+
+export const TwilioSmsProvider = Type.Object({
+  id: Type.String(),
+  workspaceId: Type.String(),
+  type: Type.Optional(Type.Literal(SmsProviderType.Twilio)),
+});
 
 export type TwilioSmsProvider = Static<typeof TwilioSmsProvider>;
 
@@ -3155,3 +3157,16 @@ export type FeatureMap = {
 };
 
 export type MessageTags = Record<string, string> & { messageId: string };
+
+export const RelatedResourceProperties = Type.Intersect([
+  Type.Record(Type.String(), Type.Unknown()),
+  Type.Object({
+    journeyId: Type.Optional(Type.String()),
+    nodeId: Type.Optional(Type.String()),
+    templateId: Type.Optional(Type.String()),
+  }),
+]);
+
+export type RelatedResourceProperties = Static<
+  typeof RelatedResourceProperties
+>;

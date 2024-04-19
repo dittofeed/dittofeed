@@ -13,10 +13,15 @@ import {
   DataGridProps,
   GridColDef,
   GridRenderCellParams,
+  GridValueGetterParams,
 } from "@mui/x-data-grid";
 import axios, { AxiosResponse } from "axios";
 import { messageTemplatePath } from "isomorphic-lib/src/messageTemplates";
-import { schemaValidate } from "isomorphic-lib/src/resultHandling/schemaValidation";
+import {
+  jsonParseSafe,
+  schemaValidate,
+  schemaValidateWithErr,
+} from "isomorphic-lib/src/resultHandling/schemaValidation";
 import {
   ChannelType,
   CompletionStatus,
@@ -24,6 +29,7 @@ import {
   GetEventsRequest,
   GetEventsResponse,
   GetEventsResponseItem,
+  RelatedResourceProperties,
 } from "isomorphic-lib/src/types";
 import React, { ComponentProps, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
@@ -234,16 +240,16 @@ export function EventsTable({
     return resources;
   };
 
-  const getResources = (parsedTraits: any) => {
-    const journeyId = parsedTraits.journeyId || "";
-    const nodeId = parsedTraits.nodeId || "";
+  const getResources = (parsedTraits: RelatedResourceProperties) => {
+    const journeyId = parsedTraits.journeyId ?? "";
+    const nodeId = parsedTraits.nodeId ?? "";
 
     if (nodeId === "broadcast-message") {
       const broadcastResources = getBroadcastResources(journeyId);
       return broadcastResources;
     }
 
-    const templateId = parsedTraits.templateId || "";
+    const templateId = parsedTraits.templateId ?? "";
     const template = messages.find((t) => t.id === templateId);
     const channelType = template?.type ?? null;
     const templateName = template?.name ?? null;
@@ -257,7 +263,7 @@ export function EventsTable({
     return journeyResources;
   };
 
-  const cols: DataGridProps["columns"] = [
+  const cols: DataGridProps<GetEventsResponseItem>["columns"] = [
     {
       field: "userId",
       headerName: "User Id",
@@ -305,7 +311,12 @@ export function EventsTable({
       field: "relatedResources",
       headerName: "Related Resources",
       flex: 2,
-      valueGetter: (params: any) => JSON.parse(params.row.traits),
+      valueGetter: (params: GridValueGetterParams<GetEventsResponseItem>) =>
+        jsonParseSafe(params.row.traits)
+          .andThen((traits) =>
+            schemaValidateWithErr(traits, RelatedResourceProperties),
+          )
+          .unwrapOr({} satisfies RelatedResourceProperties),
       renderCell: ({ value }: GridRenderCellParams) => {
         const relatedResources = getResources(value);
 
@@ -431,7 +442,7 @@ export function EventsTable({
 
   return (
     <>
-      <DataGrid
+      <DataGrid<GetEventsResponseItem>
         rows={sortedEvents}
         sx={{
           border: 2,
