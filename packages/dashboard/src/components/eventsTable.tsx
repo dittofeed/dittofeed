@@ -234,7 +234,8 @@ export function EventsTable({
     return resources;
   };
 
-  const getResources = (parsedTraits: any) => {
+  // FIXME
+  const getResources = (parsedTraits) => {
     const journeyId = parsedTraits.journeyId || "";
     const nodeId = parsedTraits.nodeId || "";
 
@@ -305,7 +306,7 @@ export function EventsTable({
       field: "relatedResources",
       headerName: "Related Resources",
       flex: 2,
-      valueGetter: (params: any) => JSON.parse(params.row.traits),
+      valueGetter: (params) => JSON.parse(params.row.traits),
       renderCell: ({ value }: GridRenderCellParams) => {
         const relatedResources = getResources(value);
 
