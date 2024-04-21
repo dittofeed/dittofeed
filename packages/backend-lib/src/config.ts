@@ -1,6 +1,7 @@
 import { Static, Type } from "@sinclair/typebox";
 import { parseInt } from "isomorphic-lib/src/numbers";
 import { hasProtocol } from "isomorphic-lib/src/urls";
+import queryString from "querystring";
 import { URL } from "url";
 import { Overwrite } from "utility-types";
 
@@ -21,6 +22,7 @@ const BaseRawConfigProps = {
   databasePassword: Type.Optional(Type.String()),
   databaseHost: Type.Optional(Type.String()),
   databasePort: Type.Optional(Type.String()),
+  databaseParams: Type.Optional(Type.String()),
   writeMode: Type.Optional(WriteMode),
   temporalAddress: Type.Optional(Type.String()),
   clickhouseHost: Type.String(),
@@ -213,8 +215,18 @@ function parseDatabaseUrl(rawConfig: RawConfig, database: string) {
   const url = new URL(
     `postgresql://${databaseUser}:${databasePassword}@${databaseHost}:${databasePort}/${database}`,
   );
+  const unfilteredParams = rawConfig.databaseParams
+    ? queryString.parse(rawConfig.databaseParams)
+    : null;
+  const params: Record<string, string> = {};
+  for (const [key, value] of Object.entries(unfilteredParams ?? {})) {
+    if (typeof value === "string") {
+      params[key] = value;
+    }
+  }
   url.search = new URLSearchParams({
     ...defaultDbParams,
+    ...params,
   }).toString();
 
   return url.toString();
