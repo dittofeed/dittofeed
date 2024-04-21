@@ -91,8 +91,16 @@ export async function cli() {
       "Spawns clickhouse-client with dittofeed's config used to authenticate.",
       () => {},
       async () => {
-        const host = new URL(backendConfig().clickhouseHost).hostname;
-        spawnWithEnv(["clickhouse-client", `--host=${host}`]);
+        const { clickhouseHost, clickhousePassword } = backendConfig();
+        const host = new URL(clickhouseHost).hostname;
+        spawnWithEnv([
+          "clickhouse-client",
+          "client",
+          `--host=${host}`,
+          "--",
+          "--secure",
+          `--pasword=${clickhousePassword}`,
+        ]);
       },
     )
     .command(
@@ -100,8 +108,16 @@ export async function cli() {
       "Spawns 'clickhouse client' with dittofeed's config used to authenticate. Useful for local development for users that installed both clickhouse server and client.",
       () => {},
       async () => {
-        const host = new URL(backendConfig().clickhouseHost).hostname;
-        spawnWithEnv(["clickhouse", "client", `--host=${host}`]);
+        const { clickhouseHost, clickhousePassword } = backendConfig();
+        const host = new URL(clickhouseHost).hostname;
+        spawnWithEnv([
+          "clickhouse",
+          "client",
+          `--host=${host}`,
+          "--",
+          "--secure",
+          `--pasword=${clickhousePassword}`,
+        ]);
       },
     )
     .command(
