@@ -23,6 +23,7 @@ const BaseRawConfigProps = {
   databaseHost: Type.Optional(Type.String()),
   databasePort: Type.Optional(Type.String()),
   databaseParams: Type.Optional(Type.String()),
+  databaseName: Type.Optional(Type.String()),
   writeMode: Type.Optional(WriteMode),
   temporalAddress: Type.Optional(Type.String()),
   clickhouseHost: Type.String(),
@@ -228,9 +229,6 @@ function parseDatabaseUrl(rawConfig: RawConfig, database: string) {
     ...defaultDbParams,
     ...paramOverrides,
   };
-  console.log("loc0", rawConfig.databaseParams);
-  console.log("loc1", unfilteredParams);
-  console.log("loc2", params);
   url.search = new URLSearchParams(params).toString();
 
   return url.toString();
@@ -284,7 +282,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
 
   const database =
-    rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed";
+    rawConfig.databaseName ??
+    (rawConfig.nodeEnv === NodeEnvEnum.Test ? "dittofeed_test" : "dittofeed");
 
   const databaseUrl = parseDatabaseUrl(rawConfig, database);
   const nodeEnv = rawConfig.nodeEnv ?? NodeEnvEnum.Development;
