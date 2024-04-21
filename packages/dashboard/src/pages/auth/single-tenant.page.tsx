@@ -69,16 +69,12 @@ export default function SingleTenantAuth() {
       spacing={1}
     >
       <NavCard />
-      <Stack
-        alignItems="center"
-        justifyContent="center"
-        direction="row"
-        spacing={1}
-      >
+      <Stack direction="row" spacing={1}>
         <TextField
           error={!!error}
           sx={{
             maxWidth: theme.spacing(75),
+            height: "3.3rem",
           }}
           label="Admin Password"
           type="password"
@@ -98,6 +94,7 @@ export default function SingleTenantAuth() {
           disabled={loading}
           loading={loading}
           onClick={submit}
+          sx={{ height: "3.3rem" }}
           variant="contained"
         >
           Login
