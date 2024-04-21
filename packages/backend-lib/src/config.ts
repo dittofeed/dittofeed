@@ -218,16 +218,20 @@ function parseDatabaseUrl(rawConfig: RawConfig, database: string) {
   const unfilteredParams = rawConfig.databaseParams
     ? queryString.parse(rawConfig.databaseParams)
     : null;
-  const params: Record<string, string> = {};
+  const paramOverrides: Record<string, string> = {};
   for (const [key, value] of Object.entries(unfilteredParams ?? {})) {
     if (typeof value === "string") {
-      params[key] = value;
+      paramOverrides[key] = value;
     }
   }
-  url.search = new URLSearchParams({
+  const params = {
     ...defaultDbParams,
-    ...params,
-  }).toString();
+    ...paramOverrides,
+  };
+  console.log("loc0", rawConfig.databaseParams);
+  console.log("loc1", unfilteredParams);
+  console.log("loc2", params);
+  url.search = new URLSearchParams(params).toString();
 
   return url.toString();
 }
