@@ -9,6 +9,7 @@ import { useRouter } from "next/router";
 import React from "react";
 
 import NavCard from "../../components/layout/drawer/drawerContent/navCard";
+import { getWarningStyles } from "../../lib/warningTheme";
 
 interface SingleTenantAuthProps {
   warnings: string[];
@@ -61,6 +62,12 @@ export const getServerSideProps: GetServerSideProps<
     );
   }
 
+  if (secretKey === DEFAULT_BACKEND_CONFIG.secretKey) {
+    warnings.push(
+      "Default secret key is being used. Please configure the SECRET_KEY environment variable.",
+    );
+  }
+
   if (!singleTenantCookieSecure) {
     warnings.push(
       "Single tenant cookie is not secure. Please use tls and set SINGLE_TENANT_COOKIE_SECURE='true'.",
@@ -77,7 +84,7 @@ export const getServerSideProps: GetServerSideProps<
 const APPLICATION_ERROR = "API Error: something wen't wrong.";
 
 const SingleTenantAuth: NextPage<SingleTenantAuthProps> =
-  function SingleTenantAuth() {
+  function SingleTenantAuth({ warnings }) {
     const path = useRouter();
     const theme = useTheme();
     const [password, setPassword] = React.useState("");
@@ -112,7 +119,7 @@ const SingleTenantAuth: NextPage<SingleTenantAuthProps> =
         spacing={1}
       >
         <NavCard />
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} p={3}>
           <TextField
             error={!!error}
             sx={{
@@ -142,6 +149,19 @@ const SingleTenantAuth: NextPage<SingleTenantAuthProps> =
           >
             Login
           </LoadingButton>
+        </Stack>
+        <Stack
+          direction="column"
+          spacing={1}
+          sx={{
+            p: 2,
+            fontWeight: 600,
+            ...getWarningStyles(theme),
+          }}
+        >
+          {warnings.map((warning) => (
+            <li key={warning}>{warning}</li>
+          ))}
         </Stack>
       </Stack>
     );
