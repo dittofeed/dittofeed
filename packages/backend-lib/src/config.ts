@@ -84,6 +84,7 @@ const BaseRawConfigProps = {
   computePropertiesWorkflowTaskTimeout: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  singleTenantCookieSecure: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -181,6 +182,7 @@ export type Config = Overwrite<
     computePropertiesInterval: number;
     computePropertiesWorkflowTaskTimeout: number;
     computePropertiesAttempts: number;
+    singleTenantCookieSecure: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -190,6 +192,13 @@ export type Config = Overwrite<
 const defaultDbParams: Record<string, string> = {
   connect_timeout: "60",
 };
+
+export const DEFAULT_BACKEND_CONFIG = {
+  databasePassword: "password",
+  clickhousePassword: "password",
+  password: "password",
+  secretKey: "o/UopmFUqiYriIzOCXnzZXGbcYTWuE3iVx2822jC0fY=",
+} as const;
 
 function parseDatabaseUrl(rawConfig: RawConfig, database: string) {
   if (rawConfig.databaseUrl) {
@@ -210,7 +219,8 @@ function parseDatabaseUrl(rawConfig: RawConfig, database: string) {
   }
 
   const databaseUser = rawConfig.databaseUser ?? "postgres";
-  const databasePassword = rawConfig.databasePassword ?? "password";
+  const databasePassword =
+    rawConfig.databasePassword ?? DEFAULT_BACKEND_CONFIG.databasePassword;
   const databaseHost = rawConfig.databaseHost ?? "localhost";
   const databasePort = rawConfig.databasePort ?? "5432";
   const url = new URL(
@@ -308,13 +318,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
   }
 
   const authMode = rawConfig.authMode ?? "anonymous";
-  const { secretKey } = rawConfig;
-
-  if (authMode === "single-tenant" && (!secretKey || !rawConfig.password)) {
-    throw new Error(
-      "In single-tenant mode must specify secretKey and password",
-    );
-  }
+  const secretKey = rawConfig.secretKey ?? DEFAULT_BACKEND_CONFIG.secretKey;
 
   const parsedConfig: Config = {
     ...rawConfig,
@@ -329,7 +333,8 @@ function parseRawConfig(rawConfig: RawConfig): Config {
       rawConfig.clickhouseProtocol,
     ),
     clickhouseUser: rawConfig.clickhouseUser ?? "dittofeed",
-    clickhousePassword: rawConfig.clickhousePassword ?? "password",
+    clickhousePassword:
+      rawConfig.clickhousePassword ?? DEFAULT_BACKEND_CONFIG.clickhousePassword,
     kafkaBrokers: rawConfig.kafkaBrokers
       ? rawConfig.kafkaBrokers.split(",")
       : ["localhost:9092"],
@@ -391,6 +396,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
         ? "/api/public/single-tenant/signout"
         : rawConfig.signoutUrl,
     secretKey,
+    password: rawConfig.password ?? DEFAULT_BACKEND_CONFIG.password,
     // ms
     computePropertiesWorkflowTaskTimeout:
       rawConfig.computePropertiesWorkflowTaskTimeout
@@ -399,6 +405,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     computePropertiesAttempts: rawConfig.computePropertiesAttempts
       ? parseInt(rawConfig.computePropertiesAttempts)
       : 150,
+    singleTenantCookieSecure: rawConfig.singleTenantCookieSecure === "true",
   };
   return parsedConfig;
 }
