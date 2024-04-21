@@ -84,6 +84,7 @@ const BaseRawConfigProps = {
   computePropertiesWorkflowTaskTimeout: Type.Optional(
     Type.String({ format: "naturalNumber" }),
   ),
+  singleTenantCookieSecure: Type.Optional(BoolStr),
 };
 
 function defaultTemporalAddress(inputURL?: string): string {
@@ -181,6 +182,7 @@ export type Config = Overwrite<
     computePropertiesInterval: number;
     computePropertiesWorkflowTaskTimeout: number;
     computePropertiesAttempts: number;
+    singleTenantCookieSecure: boolean;
   }
 > & {
   defaultUserEventsTableVersion: string;
@@ -403,6 +405,7 @@ function parseRawConfig(rawConfig: RawConfig): Config {
     computePropertiesAttempts: rawConfig.computePropertiesAttempts
       ? parseInt(rawConfig.computePropertiesAttempts)
       : 150,
+    singleTenantCookieSecure: rawConfig.singleTenantCookieSecure === "true",
   };
   return parsedConfig;
 }
