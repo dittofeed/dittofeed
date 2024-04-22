@@ -850,6 +850,18 @@ export const AnonymousId = Type.String({
 
 export type AnonymousId = Static<typeof AnonymousId>;
 
+export const PUBLIC_WRITE_KEY_DESCRIPTION =
+  "Authorization header for the request, in the format `Bearer <token>`. Find your token at https://dittofeed.com/dashboard/settings#write-key.";
+
+export const PublicWriteKey = Type.String({
+  description: PUBLIC_WRITE_KEY_DESCRIPTION,
+  examples: [
+    "Basic YzQ2MDllYjMtYTE2OC00MGI5LWI1ZWMtYTdiYTFkYzY2NWYwOjI5NGYwYjkyOTI1YWZhNzM=",
+  ],
+});
+
+export type PublicWriteKey = Static<typeof PublicWriteKey>;
+
 export const GetEventsRequest = Type.Object({
   workspaceId: Type.String(),
   searchTerm: Type.Optional(Type.String()),
@@ -1982,18 +1994,35 @@ export const BatchIdentifyData = Type.Union([
 
 export type BatchIdentifyData = Static<typeof BatchIdentifyData>;
 
+export const TrackEventName = Type.String({
+  description: "Name of the action that a user has performed.",
+  examples: ["COURSE_CLICKED"],
+});
+
+export type TrackEventName = Static<typeof TrackEventName>;
+
+export const TrackEventProperties = Type.Record(Type.String(), Type.Any(), {
+  description:
+    "Free-form dictionary of properties of the event, like revenue or product name. Can contain arbitrary JSON values.",
+  examples: [
+    {
+      title: "Intro to customer engagement",
+    },
+  ],
+});
+
+export type TrackEventProperties = Static<typeof TrackEventProperties>;
+
 export const BaseTrackData = {
   ...BaseAppData,
   context: AppDataContext,
-  event: Type.String(),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  event: TrackEventName,
+  properties: Type.Optional(TrackEventProperties),
 };
 
 export const BaseBatchTrackData = {
-  ...BaseAppData,
+  ...BaseTrackData,
   type: Type.Literal(EventType.Track),
-  event: Type.String(),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const KnownTrackData = Type.Object({
@@ -2035,18 +2064,34 @@ export const BatchTrackData = Type.Union([
 
 export type BatchTrackData = Static<typeof BatchTrackData>;
 
+export const PageName = Type.String({
+  description: "Name of the page visited by the user.",
+  examples: ["Home"],
+});
+
+export type PageName = Static<typeof PageName>;
+
+export const PageProperties = Type.Record(Type.String(), Type.Any(), {
+  description:
+    "Free-form dictionary of properties of the page, like url and referrer. Can contain arbitrary JSON values.",
+  examples: [
+    {
+      title: "My Site",
+      url: "http://www.site.com",
+    },
+  ],
+});
+
 export const BasePageData = {
   ...BaseAppData,
   context: AppDataContext,
-  name: Type.Optional(Type.String()),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  name: Type.Optional(PageName),
+  properties: Type.Optional(PageProperties),
 };
 
 export const BaseBatchPageData = {
-  ...BaseAppData,
+  ...BasePageData,
   type: Type.Literal(EventType.Page),
-  name: Type.Optional(Type.String()),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const KnownPageData = Type.Object({
@@ -2080,18 +2125,34 @@ export const BatchPageData = Type.Union([
 
 export type BatchPageData = Static<typeof BatchPageData>;
 
+export const ScreenName = Type.String({
+  description: "Name of the screen visited by the user.",
+  examples: ["Home"],
+});
+
+export type ScreenName = Static<typeof ScreenName>;
+
+export const ScreenProperties = Type.Record(Type.String(), Type.Any(), {
+  description: "Free-form dictionary of properties of the screen, like title.",
+  examples: [
+    {
+      title: "My Screen",
+    },
+  ],
+});
+
+export type ScreenProperties = Static<typeof ScreenProperties>;
+
 export const BaseScreenData = {
   ...BaseAppData,
   context: AppDataContext,
-  name: Type.Optional(Type.String()),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  name: Type.Optional(ScreenName),
+  properties: Type.Optional(ScreenProperties),
 };
 
 export const BaseBatchScreenData = {
-  ...BaseAppData,
+  ...BaseScreenData,
   type: Type.Literal(EventType.Screen),
-  name: Type.Optional(Type.String()),
-  properties: Type.Optional(Type.Record(Type.String(), Type.Any())),
 };
 
 export const KnownScreenData = Type.Object({

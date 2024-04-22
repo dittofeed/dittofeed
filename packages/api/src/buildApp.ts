@@ -8,7 +8,10 @@ import { trimTo32Bytes } from "backend-lib/src/crypto";
 import logger from "backend-lib/src/logger";
 import fastify from "fastify";
 import fastifyRawBody from "fastify-raw-body";
-import { DFRequestContext } from "isomorphic-lib/src/types";
+import {
+  DFRequestContext,
+  PUBLIC_WRITE_KEY_DESCRIPTION,
+} from "isomorphic-lib/src/types";
 import { OpenAPIV3_1 } from "openapi-types";
 import qs from "qs";
 
@@ -60,6 +63,16 @@ async function buildApp() {
         title: "Dittofeed API",
         description: "Dittofeed API Swagger Documentation",
         version: "0.0.1",
+      },
+      components: {
+        securitySchemes: {
+          publicWriteKey: {
+            type: "apiKey",
+            description: PUBLIC_WRITE_KEY_DESCRIPTION,
+            name: "PublicWriteKey",
+            in: "header",
+          },
+        },
       },
       servers,
     },
