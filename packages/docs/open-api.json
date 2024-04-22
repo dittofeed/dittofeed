@@ -12300,9 +12300,17 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
@@ -12326,9 +12334,17 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
@@ -12411,9 +12427,17 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
@@ -12441,9 +12465,17 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
@@ -12530,9 +12562,17 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
@@ -12559,9 +12599,17 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
@@ -12647,9 +12695,17 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
@@ -12676,9 +12732,17 @@
                     "type": "object",
                     "properties": {
                       "messageId": {
+                        "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                        "examples": [
+                          "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                        ],
                         "type": "string"
                       },
                       "timestamp": {
+                        "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                        "examples": [
+                          "2024-04-22T07:00:00.000Z"
+                        ],
                         "type": "string"
                       },
                       "context": {
@@ -12795,9 +12859,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -12824,9 +12896,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -12857,9 +12937,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -12890,9 +12978,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -12927,9 +13023,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -12959,9 +13063,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -12995,9 +13107,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -13027,9 +13147,17 @@
                               "type": "object",
                               "properties": {
                                 "messageId": {
+                                  "description": "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+                                  "examples": [
+                                    "23d04926-78e5-4ebc-853f-f26c84ff629e"
+                                  ],
                                   "type": "string"
                                 },
                                 "timestamp": {
+                                  "description": "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+                                  "examples": [
+                                    "2024-04-22T07:00:00.000Z"
+                                  ],
                                   "type": "string"
                                 },
                                 "type": {
@@ -14037,6 +14165,44 @@
             "description": "Id of the workspace which will receive the segment payload. Defaults to the default workspace id, for single tenant systems"
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/public/single-tenant/login": {
+      "post": {
+        "description": "Login in single-tenant auth mode.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/public/single-tenant/signout": {
+      "get": {
+        "description": "Signout in single-tenant auth mode.",
         "responses": {
           "200": {
             "description": "Default Response"

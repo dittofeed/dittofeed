@@ -846,7 +846,25 @@ export const GetEventsRequest = Type.Object({
 
 export type GetEventsRequest = Static<typeof GetEventsRequest>;
 
-export const Traits = Nullable(Type.Record(Type.String(), Type.Any()));
+export const Traits = Type.Record(Type.String(), Type.Any(), {
+  description:
+    "Free-form dictionary of traits of the user, like email or name. Can contain arbitrary JSON values.",
+  examples: [
+    {
+      name: "Michael Scott",
+      items: [
+        {
+          id: 1,
+          name: "Paper",
+        },
+        {
+          id: 2,
+          name: "Stapler",
+        },
+      ],
+    },
+  ],
+});
 
 export type Traits = Static<typeof Traits>;
 
@@ -1864,26 +1882,44 @@ export type DeleteSubscriptionGroupRequest = Static<
 >;
 
 export const AppDataContext = Type.Optional(
-  Type.Record(Type.String(), Type.Any()),
+  Type.Record(Type.String(), Type.Any(), {
+    description:
+      "Provides metadata about the user submitting the event and the context in which the event occurred.",
+    examples: [
+      {
+        ip: "192.0.2.1",
+      },
+    ],
+  }),
 );
 
 export type AppDataContext = Static<typeof AppDataContext>;
 
 export const BaseAppData = {
-  messageId: Type.String(),
-  timestamp: Type.Optional(Type.String()),
+  messageId: Type.String({
+    description:
+      "Unique identifier for the message, used as an idempotency key for safe retries. Can provide a UUID.",
+    examples: ["23d04926-78e5-4ebc-853f-f26c84ff629e"],
+  }),
+  timestamp: Type.Optional(
+    Type.String({
+      description:
+        "ISO 8601 formatted timestamp of when the event occurred. If not provided, the current server time will be used.",
+      examples: ["2024-04-22T07:00:00.000Z"],
+    }),
+  ),
 };
 
 export const BaseIdentifyData = {
   ...BaseAppData,
   context: AppDataContext,
-  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  traits: Type.Optional(Traits),
 };
 
 export const BaseBatchIdentifyData = {
   ...BaseAppData,
   type: Type.Literal(EventType.Identify),
-  traits: Type.Optional(Type.Record(Type.String(), Type.Any())),
+  traits: Type.Optional(Traits),
 };
 
 const KnownIdentifyData = Type.Object({
